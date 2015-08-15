@@ -42,6 +42,8 @@ Pretty much what it's name suggests. It's an angry teapot, based on the one from
 
 Made by me from scratch. Just some teapot with angry looking eyes.
 
+*Note for rendering* : You may want to disable back-face culling on this to make it look proper when rendering.
+
 Triangle count : 5,564
 
 ## Chinese dragon
