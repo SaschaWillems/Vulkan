@@ -46,6 +46,16 @@ Made by me from scratch. Just some teapot with angry looking eyes.
 
 Triangle count : 5,564
 
+## Hamardillo
+<img src="./images/hammardillo.png" alt="Angry teapot" width="192px">
+
+Based on the Stanford Armadillo : http://graphics.stanford.edu/data/3Dscanrep/
+
+Since the mode is not rigged, I had to manually change arm and hand rotations and positions, so the seams are not perfect.
+I also added some black eyes, a nose ring and a skull-crushing hammer to emphasize it's attitude over high driver overhead.
+
+Triangle count : 91,956
+
 ## Chinese dragon
 <img src="./images/chinesedragon.png" alt="Chinese dragon" width="192px">
 
