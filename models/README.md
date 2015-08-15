@@ -26,12 +26,23 @@ Note that the models are usually made up of several meshes due to different mate
 
 Also note that the scale of the models is not unified, so the general scale may differ. I usually do a normalization of model scaling upon loading models into my examples.
 
+
+## Vulkan scene
+<img src="./images/vulkanscene.png" alt="Vulkan Scene" width="192px">
+
+A test scene with a high triangle count made up by all the single models listed here, see the model descriptions for details.
+
+**As with the Vulkan Logo:** Please regard Khronos' [API logo usage and word mark guidelines](https://www.khronos.org/legal/trademarks/) when using this!
+
+If you plan on using this for anything public I'd love know, sp please let me know!
+
+
 ## Vulkan Logo
-<img src="./images/vulkanlogo.png" alt="Chinese dragon" width="192px">
+<img src="./images/vulkanlogo.png" alt="Vulkan logo" width="192px">
 
 A 3D rendition of the official Vulkan(tm) Logo. I made this based on the 2D logo, please note that it's not 100% perfect, e.g. the arc is slightly different.
 
-**Important** : Please regard Khronos' [API logo usage and word mark guidelines](https://www.khronos.org/legal/trademarks/) when using this!
+**Important**: Please regard Khronos' [API logo usage and word mark guidelines](https://www.khronos.org/legal/trademarks/) when using this!
 
 Triangle count : 4,348
 
