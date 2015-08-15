@@ -8,6 +8,8 @@ Some of them are done by myself from scratch, others are based on existing model
 
 Unless noted otherwise, the models are free to use under the terms of the [Creative Commons Attribution 3.0 license](http://creativecommons.org/licenses/by/3.0/).
 
+The models from the Stanford 3D scanning repository don't come with a license, but I think it would be fair to also attribute them too when using the models I've based of their work.
+
 If you use them in your (public) work, please drop me a line so I can check it out ;)
 
 ## Formats
