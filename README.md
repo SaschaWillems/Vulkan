@@ -11,6 +11,14 @@ I recently did a write-up with my personal view on Vulkan for a hobby developer.
 
 [You can read it here](http://www.saschawillems.de/?p=1886)
 
+## 3D models
+<img src="./models/images/angryteapot.png" width="128px">
+<img src="./models/images/hammardillo.png" width="128px">
+<img src="./models/images/chinesedragon.png" width="128px">
+<img src="./models/images/tacticalbunny.png" width="128px">
+
+This repository also contains the 3D models used for examples (and screenshots), see the respective [README](./models/README.md) for details.
+
 ## External resources
 A list of interesting links on Vulkan :
 - [Official page](https://www.khronos.org/vulkan)
