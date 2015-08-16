@@ -14,9 +14,9 @@ If you use them in your (public) work, please drop me a line so I can check it o
 
 ## Formats
 
-Models are always provided as .X (DirectX file format, binary version), as this format supports everything necessary.
+Models are provided in different formats, but usually at least as .X (DirectX file format, binary version), as this format supports everything necessary to correctly display the models.
 
-If possible (max. 64k triangles) a .3DS file is also provided, if the model has more than 64k triangles a .OBJ (Wavefront) version including the material libary (.mtl) is also provided.
+Some of the models are also available as [glTF](https://www.khronos.org/gltf) and [COLLADA](https://www.khronos.org/collada/) formats, both made by the Khronos group.
 
 If you need the models in a different format (that's common) please drop me a line.
 
