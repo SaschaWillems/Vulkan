@@ -22,6 +22,11 @@ This repository also contains the 3D models used for examples (and screenshots),
 ## External resources
 A list of interesting links on Vulkan :
 - [Official page](https://www.khronos.org/vulkan)
-- [SIGGRAPH 2015 Press Briefing](https://www.khronos.org/assets/uploads/developers/library/2015-siggraph/Khronos-Press-Briefing-SIGGRAPH_Aug15.pdf)
+- [Khronos SIGGRAPH 2015 Press Briefing](https://www.khronos.org/assets/uploads/developers/library/2015-siggraph/Khronos-Press-Briefing-SIGGRAPH_Aug15.pdf)
+- [NVIDIA SIGGRAPH 15 Conference](https://www.youtube.com/watch?v=8xBuAdnIrJQ) - Piers Daniell (NVIDIA)
+- [An Overview of Next-Generation Graphics APIs](http://nextgenapis.realtimerendering.com/)
+    - [A Whirlwind Tour of Vulkan](http://nextgenapis.realtimerendering.com/presentations/2_Sellers_Vulkan.pptx) - Graham Sellers (AMD)
+    - [Porting Source 2 to Vulkan](http://nextgenapis.realtimerendering.com/presentations/6_Ginsberg_Source2.pptx) - Dan Ginsburg (Valve)
+    - [Next-Generation Graphics APIs:  Similarities and Differences](http://nextgenapis.realtimerendering.com/presentations/1_Foley_Overview.pptx) - Tim Foley (NVIDIA Research)
 - [GDC 2015 presentation](https://www.khronos.org/assets/uploads/developers/library/2015-gdc/Khronos-Vulkan-GDC_Mar15.pdf)
 - [PowerVR Vulkan demo](http://blog.imgtec.com/powervr/gnomes-per-second-in-vulkan-and-opengl-es)
