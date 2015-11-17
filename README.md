@@ -1,32 +1,93 @@
 # Vulkan examples and demos
 
-![Vulkan Logo](./images/vulkanlogo.png)
+<img src="./images/vulkanlogoscene.png" alt="Vulkan demo scene" height="256px">
 
-**Future place for examples and demos for Khronos' modern 3D and compute API**
+**Future place for examples and demos for Khronos' new 3D and compute API [Vulkan(tm)](https://www.khronos.org/vulkan)**
 
 ## Vulkan from my point-of-view
-<img src="./images/vulkanlogoscene.png" alt="Vulkan demo scene" width="512px">
 
-I recently did a write-up with my personal view on Vulkan for a hobby developer. It goes into detail on some of the most important things to consider when deciding on how to switch over from Vulkan and also clears up some things that several press articles got wrong.
+I recently [did a write-up](http://www.saschawillems.de/?p=1886) with my personal view on Vulkan for a hobby developer. It goes into detail on some of the most important things to consider when deciding on how to switch over from Vulkan and also clears up some things that several press articles got wrong.
 
-[You can read it here](http://www.saschawillems.de/?p=1886)
+## Vulkan example base class
+All examples are derived from a base class that encapsulates common used Vulkan functionality and all the setup stuff that's not necessary to repeat for each example. It also contains functions to load shaders and an easy wrapper to enable debugging via the validation layers.
 
-## 3D models
-<img src="./models/images/angryteapot.png" width="128px">
-<img src="./models/images/hammardillo.png" width="128px">
-<img src="./models/images/chinesedragon.png" width="128px">
-<img src="./models/images/tacticalbunny.png" width="128px">
+If you want to create an example based on this base class, simply derive :
 
-This repository also contains the 3D models used for examples (and screenshots), see the respective [README](./models/README.md) for details.
+```cpp
+#include "vulkanexamplebase.h"
+...
+class MyVulkanExample : public VulkanExampleBase
+{
+  ...
+  VulkanExample()
+  {
+    width = 1024;
+    height = 1024;
+    zoom = -15;
+    rotation = glm::vec3(-45.0, 22.5, 0.0);
+    title = "My new Vulkan Example";
+  }
+}
+```
+*todo* : Document helper classes like vulkandebug
+
+## Examples
+*todo* : In progress (order by complexity?)
+
+### Triangle
+<img src="./screenshots/basic_triangle.png" height="128px">
+
+Most basic example. Renders a colored triangle using an indexed vertex buffer, only one pipeline with very simple shaders. Uses a single uniform buffer for the matrices.
+
+### Texture
+<img src="./screenshots/basic_texture.png" height="128px">
+
+Loads a single texture and displays it on a simple quad.
+
+### Pipelines
+<img src="./screenshots/basic_pipelines.png" height="128px">
+
+Pipelines replace the huge (and cumbersome) state machine of OpenGL. This example creates different pipelines with different states and shader setups.
+
+### Gears
+<img src="./screenshots/basic_gears.png" height="128px">
+
+Vulkan interpretation of glxgears. Procedurally generates separate meshes for each gear, with every mesh having it's own uniform buffer object for animation. Also demonstrates how to use different descriptor sets.
+
+### Mesh rendering
+*todo* : Current screenshot
+
+Uses [assimp](https://github.com/assimp/assimp) to load a mesh from a common 3D format and shows how to render it in Vulkan.
+
+### Mesh instancing
+*todo* : Current screenshot
+
+Based on the mesh demo, but does instanced rendering of the same mesh using separate uniform buffers for each instance.
+
+### Spherical environment mapping
+<img src="./screenshots/spherical_env_mapping.png" height="128px">
+
+Uses a matcap texture (spherical reflection map) to fake complex lighting. It's based on [this article](https://github.com/spite/spherical-environment-mapping).
+
+### (Tessellation shader) PN-Triangles
+<img src="./screenshots/tess_pntriangles.jpg" height="128px">
+
+Generating curved PN-Triangles on the GPU using tessellation shaders to add details to low-polygon meshes, based on [this paper](http://alex.vlachos.com/graphics/CurvedPNTriangles.pdf).
+
+### (Tessellation shader) Displacement mapping
+<img src="./screenshots/tess_displacement.jpg" height="128px">
+
+Uses tessellation shaders to generate and displace geometry based on a displacement map (heightmap).
+
+### (Geometry shader) Normal debugging
+<img src="./screenshots/geom_normals.png" height="128px">
+
+Renders the vertex normals of a complex mesh with the use of a geometry shader. The mesh is rendered solid first and the a geometry shader that generates lines from the face normals is used in the second pass.
+
+
+## Dependencies
+*todo*
 
 ## External resources
-A list of interesting links on Vulkan :
-- [Official page](https://www.khronos.org/vulkan)
-- [Khronos SIGGRAPH 2015 Press Briefing](https://www.khronos.org/assets/uploads/developers/library/2015-siggraph/Khronos-Press-Briefing-SIGGRAPH_Aug15.pdf)
-- [NVIDIA SIGGRAPH 15 Conference](https://www.youtube.com/watch?v=8xBuAdnIrJQ) - Piers Daniell (NVIDIA)
-- [An Overview of Next-Generation Graphics APIs](http://nextgenapis.realtimerendering.com/)
-    - [A Whirlwind Tour of Vulkan](http://nextgenapis.realtimerendering.com/presentations/2_Sellers_Vulkan.pptx) - Graham Sellers (AMD)
-    - [Porting Source 2 to Vulkan](http://nextgenapis.realtimerendering.com/presentations/6_Ginsberg_Source2.pptx) - Dan Ginsburg (Valve)
-    - [Next-Generation Graphics APIs:  Similarities and Differences](http://nextgenapis.realtimerendering.com/presentations/1_Foley_Overview.pptx) - Tim Foley (NVIDIA Research)
-- [GDC 2015 presentation](https://www.khronos.org/assets/uploads/developers/library/2015-gdc/Khronos-Vulkan-GDC_Mar15.pdf)
-- [PowerVR Vulkan demo](http://blog.imgtec.com/powervr/gnomes-per-second-in-vulkan-and-opengl-es)
+*TODO : In progress*
+- [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
