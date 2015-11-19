@@ -29,10 +29,21 @@ class MyVulkanExample : public VulkanExampleBase
   }
 }
 ```
+##### Validation layers
+The example base class offers a constructor overload for enabling a default set of Vulkan validation layers (for debugging purposes). If you want to use this functionality, simple use the construtor override :
+```cpp
+VulkanExample() : VulkanExampleBase(true)
+{
+  ...
+}
+```
+
+
+
 *todo* : Document helper classes like vulkandebug
 
 ## Examples
-*todo* : In progress (order by complexity?)
+*todo* : In progress
 
 ### Triangle
 <img src="./screenshots/basic_triangle.png" height="128px">
@@ -55,9 +66,9 @@ Pipelines replace the huge (and cumbersome) state machine of OpenGL. This exampl
 Vulkan interpretation of glxgears. Procedurally generates separate meshes for each gear, with every mesh having it's own uniform buffer object for animation. Also demonstrates how to use different descriptor sets.
 
 ### Mesh rendering
-*todo* : Current screenshot
+<img src="./screenshots/basic_mesh.png" height="128px">
 
-Uses [assimp](https://github.com/assimp/assimp) to load a mesh from a common 3D format and shows how to render it in Vulkan.
+Uses [assimp](https://github.com/assimp/assimp) to load and a mesh from a common 3D format. The mesh data is then converted to a fixed vertex layout matching a basic set of shaders.
 
 ### Mesh instancing
 *todo* : Current screenshot
@@ -86,7 +97,11 @@ Renders the vertex normals of a complex mesh with the use of a geometry shader. 
 
 
 ## Dependencies
-*todo*
+*Note*: Not all demos require all of these
+- [OpenGL Mathematics (GLM)](https://github.com/g-truc/glm)
+- [OpenGL Image (GLI)](https://github.com/g-truc/gli)
+- [Open Asset Import Library](https://github.com/assimp/assimp)
+- Vulkan Headers (not yet available)
 
 ## External resources
 *TODO : In progress*
