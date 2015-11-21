@@ -71,9 +71,9 @@ Vulkan interpretation of glxgears. Procedurally generates separate meshes for ea
 Uses [assimp](https://github.com/assimp/assimp) to load and a mesh from a common 3D format. The mesh data is then converted to a fixed vertex layout matching a basic set of shaders.
 
 ### Mesh instancing
-*todo* : Current screenshot
+<img src="./screenshots/instancing.png" height="128px">
 
-Based on the mesh demo, but does instanced rendering of the same mesh using separate uniform buffers for each instance.
+Renders hundreds of meshes using instances with uniforms for e.g. coloring each mesh separately.
 
 ### Spherical environment mapping
 <img src="./screenshots/spherical_env_mapping.png" height="128px">
