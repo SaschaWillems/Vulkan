@@ -95,6 +95,11 @@ Uses tessellation shaders to generate and displace geometry based on a displacem
 
 Renders the vertex normals of a complex mesh with the use of a geometry shader. The mesh is rendered solid first and the a geometry shader that generates lines from the face normals is used in the second pass.
 
+### Vulkan demo scene
+<img src="./screenshots/vulkan_scene.png" height="128px">
+
+More of a playground than an actual example. Renders multiple meshes with different shaders (and pipelines) including a background.
+
 
 ## Dependencies
 *Note*: Not all demos require all of these
