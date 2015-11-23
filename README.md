@@ -80,6 +80,11 @@ Renders hundreds of meshes using instances with uniforms for e.g. coloring each 
 
 Uses a matcap texture (spherical reflection map) to fake complex lighting. It's based on [this article](https://github.com/spite/spherical-environment-mapping).
 
+### Parallax mapping
+<img src="./screenshots/parallax_mapping.jpg" height="128px">
+
+Like normal mapping, parallax mapping simulates geometry on a flat surface. In addition to normal mapping a heightmap is used to offset texture coordinates depending on the viewing angle giving the illusion of added depth.
+
 ### (Tessellation shader) PN-Triangles
 <img src="./screenshots/tess_pntriangles.jpg" height="128px">
 
