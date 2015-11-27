@@ -75,6 +75,11 @@ Uses [assimp](https://github.com/assimp/assimp) to load and a mesh from a common
 
 Renders hundreds of meshes using instances with uniforms for e.g. coloring each mesh separately.
 
+### Offscreen rendering
+<img src="./screenshots/basic_offscreen.png" height="128px">
+
+Uses a separate framebuffer (that is not part of the swap chain) for rendering a 3D scene off screen and blits it into a texture target displayed on a quad. The blit does scaling and (if required) also format conversions. 
+
 ### Spherical environment mapping
 <img src="./screenshots/spherical_env_mapping.png" height="128px">
 
