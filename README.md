@@ -78,7 +78,12 @@ Renders hundreds of meshes using instances with uniforms for e.g. coloring each 
 ### Offscreen rendering
 <img src="./screenshots/basic_offscreen.png" height="128px">
 
-Uses a separate framebuffer (that is not part of the swap chain) for rendering a 3D scene off screen and blits it into a texture target displayed on a quad. The blit does scaling and (if required) also format conversions. 
+Uses a separate framebuffer (that is not part of the swap chain) for rendering a 3D scene off screen and blits it into a texture target displayed on a quad. The blit does scaling and (if required) also format conversions.
+
+### Radial blur
+<img src="./screenshots/radial_blur.png" height="128px">
+
+Demonstrates basic usage of fullscreen shader effects. The scene is rendered offscreen first, gets blitted to texture target and for the final draw this texture is blended on top of the 3D scene with a radial blur shader applied.
 
 ### Spherical environment mapping
 <img src="./screenshots/spherical_env_mapping.png" height="128px">
