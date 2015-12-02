@@ -83,7 +83,12 @@ Uses a separate framebuffer (that is not part of the swap chain) for rendering a
 ### Radial blur
 <img src="./screenshots/radial_blur.png" height="128px">
 
-Demonstrates basic usage of fullscreen shader effects. The scene is rendered offscreen first, gets blitted to texture target and for the final draw this texture is blended on top of the 3D scene with a radial blur shader applied.
+Demonstrates basic usage of fullscreen shader effects. The scene is rendered offscreen first, gets blitted to a texture target and for the final draw this texture is blended on top of the 3D scene with a radial blur shader applied.
+
+### Bloom
+<img src="./screenshots/bloom.png" height="128px">
+
+Implements a bloom effect to simulate glowing parts of a 3D mesh. A two pass gaussian blur (horizontal and then vertical) is used to generate a blurred low res version of the scene only containing the glowing parts of th the 3D mesh. This then gets blended onto the scene to add the blur effect.
 
 ### Spherical environment mapping
 <img src="./screenshots/spherical_env_mapping.png" height="128px">
@@ -115,9 +120,12 @@ Renders the vertex normals of a complex mesh with the use of a geometry shader. 
 
 More of a playground than an actual example. Renders multiple meshes with different shaders (and pipelines) including a background.
 
+## Building
+*todo* : In progress
+The repository contains CMake files for all demos and all required headers to compile the example, so any platform that supports CMake and has a C++11 compatible compiler should work.
 
 ## Dependencies
-*Note*: Not all demos require all of these
+*Note*: Included in the repository
 - [OpenGL Mathematics (GLM)](https://github.com/g-truc/glm)
 - [OpenGL Image (GLI)](https://github.com/g-truc/gli)
 - [Open Asset Import Library](https://github.com/assimp/assimp)
