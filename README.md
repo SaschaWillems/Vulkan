@@ -38,12 +38,16 @@ VulkanExample() : VulkanExampleBase(true)
 }
 ```
 
-
-
 *todo* : Document helper classes like vulkandebug
 
+## Building
+The repository contains a CMakeLists.txt to be used with [CMake](https://cmake.org).
+
+Use it to generate a platform-specific build configuration for building all examples. It should work with different compilers on Windows and Linux (C++11 required).
+
+All required headers and libs are included in the repository, building the examples should work out of the box.
+
 ## Examples
-*todo* : In progress
 
 ### Triangle
 <img src="./screenshots/basic_triangle.png" height="128px">
@@ -119,10 +123,6 @@ Renders the vertex normals of a complex mesh with the use of a geometry shader. 
 <img src="./screenshots/vulkan_scene.png" height="128px">
 
 More of a playground than an actual example. Renders multiple meshes with different shaders (and pipelines) including a background.
-
-## Building
-*todo* : In progress
-The repository contains CMake files for all demos and all required headers to compile the example, so any platform that supports CMake and has a C++11 compatible compiler should work.
 
 ## Dependencies
 *Note*: Included in the repository
