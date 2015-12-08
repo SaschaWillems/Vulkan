@@ -114,6 +114,11 @@ Generating curved PN-Triangles on the GPU using tessellation shaders to add deta
 
 Uses tessellation shaders to generate and displace geometry based on a displacement map (heightmap).
 
+### (Compute shader) Image processing
+<img src="./screenshots/compute_imageprocessing.png" height="128px">
+
+Demonstrates the use of a separate compute queue (and command buffer) to apply different convolution kernels on an input image.
+
 ### (Geometry shader) Normal debugging
 <img src="./screenshots/geom_normals.png" height="128px">
 
