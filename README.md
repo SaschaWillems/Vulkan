@@ -2,7 +2,12 @@
 
 <img src="./images/vulkanlogoscene.png" alt="Vulkan demo scene" height="256px">
 
-**Future place for examples and demos for Khronos' new 3D and compute API [Vulkan(tm)](https://www.khronos.org/vulkan)**
+Future place for examples and demos for Khronos' new 3D and compute API [Vulkan(tm)](https://www.khronos.org/vulkan)
+
+
+**Sources will be available when Vulkan is released to the public. Current ETA is early 2016**.
+
+See the [Vulkan Working Group Update](https://www.khronos.org/vulkan) for details.
 
 ## Vulkan from my point-of-view
 
