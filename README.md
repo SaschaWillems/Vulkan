@@ -79,6 +79,11 @@ Uses [assimp](https://github.com/assimp/assimp) to load and a mesh from a common
 
 Renders hundreds of meshes using instances with uniforms for e.g. coloring each mesh separately.
 
+### Push constants
+<img src="./screenshots/push_constants.png" height="128px">
+
+Demonstrates the use of push constants for updating small blocks of shader data with high speed (and without having to use a uniform buffer). Displays several light sources with position updates through a push constant block in a separate command buffer.
+
 ### Offscreen rendering
 <img src="./screenshots/basic_offscreen.png" height="128px">
 
@@ -137,5 +142,5 @@ More of a playground than an actual example. Renders multiple meshes with differ
 - Vulkan Headers (not yet available)
 
 ## External resources
-*TODO : In progress*
 - [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
+- [SPIR-V specifications](https://www.khronos.org/registry/spir-v/specs/1.0/SPIRV.html)
