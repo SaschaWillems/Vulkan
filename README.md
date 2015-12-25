@@ -59,10 +59,16 @@ All required headers and libs are included in the repository, building the examp
 
 Most basic example. Renders a colored triangle using an indexed vertex buffer, only one pipeline with very simple shaders. Uses a single uniform buffer for the matrices.
 
-### Texture
+### Texture loading
 <img src="./screenshots/basic_texture.png" height="128px">
 
-Loads a single texture and displays it on a simple quad.
+Loads a single texture and displays it on a simple quad. Demonstrates loading a texture to host visible memory and transforming it into an optimal tiling format for the GPU.
+
+### Cubemap
+<img src="./screenshots/texture_cubemap.png" height="128px">
+
+Building on the basic texture loading example a cubemap is loaded into host visible memory and then transformed into an optimal format for the GPU.
+The demo uses two different pipelines (and shader sets) to display the cubemap as a skybox (background) and as a source for reflections.
 
 ### Pipelines
 <img src="./screenshots/basic_pipelines.png" height="128px">
@@ -150,6 +156,9 @@ More of a playground than an actual example. Renders multiple meshes with differ
 - [OpenGL Image (GLI)](https://github.com/g-truc/gli)
 - [Open Asset Import Library](https://github.com/assimp/assimp)
 - Vulkan Headers (not yet available)
+
+## Attributions
+- Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://http://www.humus.name/)
 
 ## External resources
 - [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
