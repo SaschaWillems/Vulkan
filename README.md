@@ -70,6 +70,12 @@ Loads a single texture and displays it on a simple quad. Demonstrates loading a 
 Building on the basic texture loading example a cubemap is loaded into host visible memory and then transformed into an optimal format for the GPU.
 The demo uses two different pipelines (and shader sets) to display the cubemap as a skybox (background) and as a source for reflections.
 
+### Texture array
+<img src="./screenshots/texture_array.png" height="128px">
+
+Texture arrays allow storing of multiple images in different layers without any interpolation between the layers. 
+This example demonstrates the use of a 2D texture array with instanced rendering. Each instance samples from a different layer of the texture array.
+
 ### Pipelines
 <img src="./screenshots/basic_pipelines.png" height="128px">
 
