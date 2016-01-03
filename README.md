@@ -59,10 +59,10 @@ All required headers and libs are included in the repository, building the examp
 
 Most basic example. Renders a colored triangle using an indexed vertex buffer, only one pipeline with very simple shaders. Uses a single uniform buffer for the matrices.
 
-### Texture loading
+### Texture mapping
 <img src="./screenshots/basic_texture.png" height="128px">
 
-Loads a single texture and displays it on a simple quad. Demonstrates loading a texture to host visible memory and transforming it into an optimal tiling format for the GPU.
+Loads a single texture and displays it on a simple quad. Demonstrates loading a texture to host visible memory (linear tiling) and transforming it into an optimal (tiling) format for the GPU, including upload of available mip map levels.
 
 ### Cubemap
 <img src="./screenshots/texture_cubemap.png" height="128px">
@@ -73,7 +73,7 @@ The demo uses two different pipelines (and shader sets) to display the cubemap a
 ### Texture array
 <img src="./screenshots/texture_array.png" height="128px">
 
-Texture arrays allow storing of multiple images in different layers without any interpolation between the layers. 
+Texture arrays allow storing of multiple images in different layers without any interpolation between the layers.
 This example demonstrates the use of a 2D texture array with instanced rendering. Each instance samples from a different layer of the texture array.
 
 ### Pipelines
