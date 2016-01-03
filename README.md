@@ -13,38 +13,6 @@ See the [Vulkan Working Group Update](https://www.khronos.org/vulkan) for detail
 
 I recently [did a write-up](http://www.saschawillems.de/?p=1886) with my personal view on Vulkan for a hobby developer. It goes into detail on some of the most important things to consider when deciding on how to switch over from Vulkan and also clears up some things that several press articles got wrong.
 
-## Vulkan example base class
-All examples are derived from a base class that encapsulates common used Vulkan functionality and all the setup stuff that's not necessary to repeat for each example. It also contains functions to load shaders and an easy wrapper to enable debugging via the validation layers.
-
-If you want to create an example based on this base class, simply derive :
-
-```cpp
-#include "vulkanexamplebase.h"
-...
-class MyVulkanExample : public VulkanExampleBase
-{
-  ...
-  VulkanExample()
-  {
-    width = 1024;
-    height = 1024;
-    zoom = -15;
-    rotation = glm::vec3(-45.0, 22.5, 0.0);
-    title = "My new Vulkan Example";
-  }
-}
-```
-##### Validation layers
-The example base class offers a constructor overload for enabling a default set of Vulkan validation layers (for debugging purposes). If you want to use this functionality, simple use the construtor override :
-```cpp
-VulkanExample() : VulkanExampleBase(true)
-{
-  ...
-}
-```
-
-*todo* : Document helper classes like vulkandebug
-
 ## Building
 The repository contains a CMakeLists.txt to be used with [CMake](https://cmake.org).
 
@@ -116,6 +84,12 @@ Demonstrates basic usage of fullscreen shader effects. The scene is rendered off
 
 Implements a bloom effect to simulate glowing parts of a 3D mesh. A two pass gaussian blur (horizontal and then vertical) is used to generate a blurred low res version of the scene only containing the glowing parts of th the 3D mesh. This then gets blended onto the scene to add the blur effect.
 
+### Omnidirectional shadow mapping
+<img src="./screenshots/shadow_omnidirectional.png" height="128px">
+
+Uses a dynamic 32 bit floating point cube map for a point light source that casts shadows in all directions (unlike projective shadow mapping).
+The cube map faces contain thee distances from the light sources, which are then used in the scene rendering pass to determine if the fragment is shadowed or not.
+
 ### Spherical environment mapping
 <img src="./screenshots/spherical_env_mapping.png" height="128px">
 
@@ -155,6 +129,9 @@ Renders the vertex normals of a complex mesh with the use of a geometry shader. 
 <img src="./screenshots/vulkan_scene.png" height="128px">
 
 More of a playground than an actual example. Renders multiple meshes with different shaders (and pipelines) including a background.
+
+## Additional documentation
+- [Vulkan example base class](./documentation/examplebaseclass.md)
 
 ## Dependencies
 *Note*: Included in the repository
