@@ -56,10 +56,10 @@ Pipelines replace the huge (and cumbersome) state machine of OpenGL. This exampl
 
 Vulkan interpretation of glxgears. Procedurally generates separate meshes for each gear, with every mesh having it's own uniform buffer object for animation. Also demonstrates how to use different descriptor sets.
 
-### Mesh rendering
+### Mesh loading and rendering
 <img src="./screenshots/basic_mesh.png" height="128px">
 
-Uses [assimp](https://github.com/assimp/assimp) to load and a mesh from a common 3D format. The mesh data is then converted to a fixed vertex layout matching a basic set of shaders.
+Uses [assimp](https://github.com/assimp/assimp) to load and a mesh from a common 3D format including a color map. The mesh data is then converted to a fixed vertex layout matching the pipeline (and shader) layout descriptions.
 
 ### Mesh instancing
 <img src="./screenshots/instancing.png" height="128px">
@@ -151,6 +151,8 @@ More of a playground than an actual example. Renders multiple meshes with differ
 
 ## Attributions
 - Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://www.humus.name/)
+- Armored knight model by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
+- Voyager model by [NASA](http://nasa3d.arc.nasa.gov/models)
 
 ## External resources
 - [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
