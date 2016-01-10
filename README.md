@@ -64,7 +64,7 @@ Uses [assimp](https://github.com/assimp/assimp) to load and a mesh from a common
 ### Mesh instancing
 <img src="./screenshots/instancing.png" height="128px">
 
-Renders hundreds of meshes using instances with uniforms for e.g. coloring each mesh separately.
+Shows the use of instancing for rendering the same mesh with differing uniforms with one single draw command. This saves performance if the same mesh has to be rendered multiple times.
 
 ### Push constants
 <img src="./screenshots/push_constants.png" height="128px">
@@ -85,6 +85,13 @@ Demonstrates basic usage of fullscreen shader effects. The scene is rendered off
 <img src="./screenshots/bloom.png" height="128px">
 
 Implements a bloom effect to simulate glowing parts of a 3D mesh. A two pass gaussian blur (horizontal and then vertical) is used to generate a blurred low res version of the scene only containing the glowing parts of th the 3D mesh. This then gets blended onto the scene to add the blur effect.
+
+### Deferred shading
+<img src="./screenshots/deferred_shading.png" height="128px">
+
+Demonstrates the use of multiple render targets to fill a G-Buffer for deferred shading.
+
+Deferred shading collects all values (color, normal, position) into different render targets in one pass thanks to multiple render targets, and then does all shading and lighting calculations based on these in scree space, thus allowing for much more light sources than traditional forward renderers.
 
 ### Omnidirectional shadow mapping
 <img src="./screenshots/shadow_omnidirectional.png" height="128px">
