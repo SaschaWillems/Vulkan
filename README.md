@@ -27,6 +27,8 @@ All required headers and libs are included in the repository, building the examp
 
 Most basic example. Renders a colored triangle using an indexed vertex buffer, only one pipeline with very simple shaders. Uses a single uniform buffer for the matrices.
 
+This example won't make use of helper functions or initializers (like the other examples) and is much more of an explicit example then the others included in this repository. It contains lot's of boiler plate that you'd usually encapsulate in helper functions and classes.
+
 ### Texture mapping
 <img src="./screenshots/basic_texture.png" height="128px">
 
@@ -141,7 +143,7 @@ More of a playground than an actual example. Renders multiple meshes with differ
 - Vulkan Headers (not yet available)
 
 ## Attributions
-- Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://http://www.humus.name/)
+- Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://www.humus.name/)
 
 ## External resources
 - [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
