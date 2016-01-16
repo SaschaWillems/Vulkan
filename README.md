@@ -50,6 +50,14 @@ The demo uses two different pipelines (and shader sets) to display the cubemap a
 Texture arrays allow storing of multiple images in different layers without any interpolation between the layers.
 This example demonstrates the use of a 2D texture array with instanced rendering. Each instance samples from a different layer of the texture array.
 
+### Distance field fonts
+----
+<img src="./screenshots/font_distancefield.png" height="96px" align="right">
+
+Instead of just sampling a bitmap font texture, a texture with per-character signed distance fields is used to generate high quality glyphs in the fragment shader. This results in a much higher quality than common bitmap fonts, even if heavily zoomed.
+
+Distance field font textures can be generated with tools like [Hiero](https://github.com/libgdx/libgdx/wiki/Hiero).
+
 ### Pipelines
 ----
 <img src="./screenshots/basic_pipelines.png" height="96px" align="right">
