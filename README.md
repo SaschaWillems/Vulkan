@@ -34,7 +34,7 @@ This example won't make use of helper functions or initializers (like the other 
 ----
 <img src="./screenshots/basic_texture.png" height="96px" align="right">
 
-Loads a single texture and displays it on a simple quad. Demonstrates loading a texture to host visible memory (linear tiling) and transforming it into an optimal (tiling) format for the GPU, including upload of available mip map levels.
+Loads a single texture and displays it on a simple quad. Shows how to upload a texture including mip maps to the gpu in an optimal (tiling) format. Also demonstrates how to display the texture using a combined image sampler with anisotropic filtering enabled.
 
 ### Cubemap
 ----
