@@ -88,6 +88,13 @@ Shows the use of instancing for rendering the same mesh with differing uniforms 
 
 Demonstrates the use of push constants for updating small blocks of shader data with high speed (and without having to use a uniform buffer). Displays several light sources with position updates through a push constant block in a separate command buffer.
 
+### Occlusion queries
+----
+<img src="./screenshots/occlusion_queries.png" height="96px" align="right">
+
+Shows how to use occlusion queries to determine object visibility depending on the number of passed samples for a given object. Does an occlusion pass first, drawing all objects (and the occluder) with basic shaders, then reads the query results to conditionally color the objects during the final pass depending on their visibility.
+
+
 ### Offscreen rendering
 ----
 <img src="./screenshots/basic_offscreen.png" height="96px" align="right">
