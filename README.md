@@ -82,6 +82,12 @@ Uses [assimp](https://github.com/assimp/assimp) to load and a mesh from a common
 
 Shows the use of instancing for rendering the same mesh with differing uniforms with one single draw command. This saves performance if the same mesh has to be rendered multiple times.
 
+### Skeletal animation
+----
+<img src="./screenshots/mesh_skeletalanimation.png" height="96px" align="right">
+
+Based on the mesh loading example, this example loads and displays a rigged COLLADA model including animations. Bone weights are extracted for each vertex and are passed to the vertex shader together with the final bone transformation matrices for vertex position calculations.
+
 ### Push constants
 ----
 <img src="./screenshots/push_constants.png" height="96px" align="right">
@@ -93,7 +99,6 @@ Demonstrates the use of push constants for updating small blocks of shader data 
 <img src="./screenshots/occlusion_queries.png" height="96px" align="right">
 
 Shows how to use occlusion queries to determine object visibility depending on the number of passed samples for a given object. Does an occlusion pass first, drawing all objects (and the occluder) with basic shaders, then reads the query results to conditionally color the objects during the final pass depending on their visibility.
-
 
 ### Offscreen rendering
 ----
@@ -190,6 +195,7 @@ More of a playground than an actual example. Renders multiple meshes with differ
 - Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://www.humus.name/)
 - Armored knight model by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
 - Voyager model by [NASA](http://nasa3d.arc.nasa.gov/models)
+- Astroboy COLLADA model copyright 2008 Sony Computer Entertainment Inc.
 
 ## External resources
 - [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
