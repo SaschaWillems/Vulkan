@@ -193,9 +193,10 @@ More of a playground than an actual example. Renders multiple meshes with differ
 
 ## Attributions
 - Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://www.humus.name/)
-- Armored knight model by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
+- Armored knight model used in deferred example by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
 - Voyager model by [NASA](http://nasa3d.arc.nasa.gov/models)
 - Astroboy COLLADA model copyright 2008 Sony Computer Entertainment Inc.
+- Bear mug model used in tessellation example by [AAre](http://opengameart.org/users/aare)
 
 ## External resources
 - [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
