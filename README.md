@@ -20,6 +20,8 @@ Use it to generate a platform-specific build configuration for building all exam
 
 All required headers and libs are included in the repository, building the examples should work out of the box.
 
+The repository also contains a few Android examples to get started, check the [Android readme](./android/README.md) for details.
+
 ## Examples
 
 ### Triangle
@@ -180,6 +182,13 @@ Renders the vertex normals of a complex mesh with the use of a geometry shader. 
 <img src="./screenshots/vulkan_scene.png" height="96px" align="right">
 
 More of a playground than an actual example. Renders multiple meshes with different shaders (and pipelines) including a background.
+
+<br>
+## Android
+
+This repository also contains a few Android examples that are (for now) separated from the rest of the examples. See the [Android readme](./android/README.md) for details on what is included and how to build the examples.
+
+The examples already share a few source files with existing examples and might be integrated into them at some point.
 
 ## Additional documentation
 - [Vulkan example base class](./documentation/examplebaseclass.md)
