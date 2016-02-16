@@ -754,9 +754,9 @@ xcb_window_t VulkanExampleBase::setupWindow()
 
 	/* Magic code that will send notification when window is destroyed */
 	xcb_intern_atom_cookie_t cookie = xcb_intern_atom(connection, 1, 12, "WM_PROTOCOLS");
-	xcb_intern_atom_reply_t* reply = xcb_intern_atom_reply(connection, cookie, 0);
-
 	xcb_intern_atom_cookie_t cookie2 = xcb_intern_atom(connection, 0, 16, "WM_DELETE_WINDOW");
+	
+	xcb_intern_atom_reply_t* reply = xcb_intern_atom_reply(connection, cookie, 0);
 	atom_wm_delete_window = xcb_intern_atom_reply(connection, cookie2, 0);
 
 	xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
