@@ -20,6 +20,12 @@ Use it to generate a platform-specific build configuration for building all exam
 
 The repository also contains a few Android examples to get started, check the [Android readme](./android/README.md) for details.
 
+## Binaries
+
+Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found here](http://vulkan.gpuinfo.org/examples.php). I'll try keep them up-to-date with the repositry.
+
+Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder.
+
 ## Vendor support
 The examples have been tested on different vendors, but since **most drivers are beta** not all examples may work with all vendors.
 
