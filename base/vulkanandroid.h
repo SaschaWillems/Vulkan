@@ -1,0 +1,115 @@
+/*
+* Android Vulkan function pointer prototypes
+*
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+*
+* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+*/
+
+#pragma once
+
+#ifndef VULKANANDROID_H
+#define VULKANANDROID_H
+
+// Vulkan needs to be loaded dynamically on android
+
+#pragma once
+
+#ifndef VULKANANDROID_HPP
+#define VULKANANDROID_HPP
+
+#include "vulkan/vulkan.h"
+
+#ifdef __ANDROID__
+
+// Function pointer prototypes
+// Not complete, just the functions used in the caps viewer!
+extern PFN_vkCreateInstance vkCreateInstance;
+extern PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;
+extern PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
+extern PFN_vkCreateDevice vkCreateDevice;
+extern PFN_vkEnumeratePhysicalDevices vkEnumeratePhysicalDevices;
+extern PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
+extern PFN_vkEnumerateDeviceExtensionProperties vkEnumerateDeviceExtensionProperties;
+extern PFN_vkEnumerateDeviceLayerProperties vkEnumerateDeviceLayerProperties;
+extern PFN_vkGetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
+extern PFN_vkGetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures;
+extern PFN_vkGetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
+extern PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
+extern PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
+extern PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties;
+extern PFN_vkCmdPipelineBarrier vkCmdPipelineBarrier;
+extern PFN_vkCreateShaderModule vkCreateShaderModule;
+extern PFN_vkCreateBuffer vkCreateBuffer;
+extern PFN_vkGetBufferMemoryRequirements vkGetBufferMemoryRequirements;
+extern PFN_vkMapMemory vkMapMemory;
+extern PFN_vkUnmapMemory vkUnmapMemory;
+extern PFN_vkBindBufferMemory vkBindBufferMemory;
+extern PFN_vkDestroyBuffer vkDestroyBuffer;
+extern PFN_vkAllocateMemory vkAllocateMemory;
+extern PFN_vkBindImageMemory vkBindImageMemory;
+extern PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
+extern PFN_vkCmdCopyImage vkCmdCopyImage;
+extern PFN_vkCreateSampler vkCreateSampler;
+extern PFN_vkDestroyImage vkDestroyImage;
+extern PFN_vkFreeMemory vkFreeMemory;
+extern PFN_vkCreateRenderPass vkCreateRenderPass;
+extern PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass;
+extern PFN_vkCmdEndRenderPass vkCmdEndRenderPass;
+extern PFN_vkCreateImage vkCreateImage;
+extern PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements;
+extern PFN_vkCreateImageView vkCreateImageView;
+extern PFN_vkDestroyImageView vkDestroyImageView;
+extern PFN_vkCreateSemaphore vkCreateSemaphore;
+extern PFN_vkDestroySemaphore vkDestroySemaphore;
+extern PFN_vkCreateCommandPool vkCreateCommandPool;
+extern PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
+extern PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
+extern PFN_vkEndCommandBuffer vkEndCommandBuffer;
+extern PFN_vkGetDeviceQueue vkGetDeviceQueue;
+extern PFN_vkQueueSubmit vkQueueSubmit;
+extern PFN_vkQueueWaitIdle vkQueueWaitIdle;
+extern PFN_vkCreateFramebuffer vkCreateFramebuffer;
+extern PFN_vkCreatePipelineCache vkCreatePipelineCache;
+extern PFN_vkCreatePipelineLayout vkCreatePipelineLayout;
+extern PFN_vkCreateGraphicsPipelines vkCreateGraphicsPipelines;
+extern PFN_vkCreateComputePipelines vkCreateComputePipelines;
+extern PFN_vkCreateDescriptorPool vkCreateDescriptorPool;
+extern PFN_vkCreateDescriptorSetLayout vkCreateDescriptorSetLayout;
+extern PFN_vkAllocateDescriptorSets vkAllocateDescriptorSets;
+extern PFN_vkUpdateDescriptorSets vkUpdateDescriptorSets;
+extern PFN_vkCmdBindDescriptorSets vkCmdBindDescriptorSets;
+extern PFN_vkCmdBindPipeline vkCmdBindPipeline;
+extern PFN_vkCmdBindVertexBuffers vkCmdBindVertexBuffers;
+extern PFN_vkCmdBindIndexBuffer vkCmdBindIndexBuffer;
+extern PFN_vkCmdSetViewport vkCmdSetViewport;
+extern PFN_vkCmdSetScissor vkCmdSetScissor;
+extern PFN_vkCmdDrawIndexed vkCmdDrawIndexed;
+extern PFN_vkCmdDraw vkCmdDraw;
+extern PFN_vkCmdDispatch vkCmdDispatch;
+extern PFN_vkDestroyPipeline vkDestroyPipeline;
+extern PFN_vkDestroyPipelineLayout vkDestroyPipelineLayout;
+extern PFN_vkDestroyDescriptorSetLayout vkDestroyDescriptorSetLayout;
+extern PFN_vkDestroyDevice vkDestroyDevice;
+extern PFN_vkDestroyInstance vkDestroyInstance;
+extern PFN_vkDestroyDescriptorPool vkDestroyDescriptorPool;
+extern PFN_vkFreeCommandBuffers vkFreeCommandBuffers;
+extern PFN_vkDestroyRenderPass vkDestroyRenderPass;
+extern PFN_vkDestroyFramebuffer vkDestroyFramebuffer;
+extern PFN_vkDestroyShaderModule vkDestroyShaderModule;
+extern PFN_vkDestroyPipelineCache vkDestroyPipelineCache;
+
+extern PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
+extern PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
+
+bool loadVulkanLibrary();
+void loadVulkanFunctions(VkInstance instance);
+void freeVulkanLibrary();
+
+#endif
+
+#endif // VULKANANDROID_HPP
+
+
+#endif // VULKANANDROID_H
+ 
