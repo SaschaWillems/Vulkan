@@ -215,7 +215,7 @@ public:
 		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
 		assert(!err);
 
-		// The submit infor strcuture contains a list of
+		// The submit info structure contains a list of
 		// command buffers and semaphores to be submitted to a queue
 		// If you want to submit multiple command buffers, pass an array
 		VkSubmitInfo submitInfo = {};
