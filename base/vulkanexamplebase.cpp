@@ -470,7 +470,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 
 	// Physical device
 	// Note : This example will always use the first physical device reported
-	uint32_t gpuCount;
+	uint32_t gpuCount = 1;
 	err = vkEnumeratePhysicalDevices(instance, &gpuCount, &physicalDevice);
 	if (err)
 	{
