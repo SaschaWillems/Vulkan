@@ -469,13 +469,24 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	}
 
 	// Physical device
-	// Note : This example will always use the first physical device reported
-	uint32_t gpuCount;
-	err = vkEnumeratePhysicalDevices(instance, &gpuCount, &physicalDevice);
+	uint32_t gpuCount = 0;
+	// Get number of available physical devices
+	err = vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr);
+	assert(!err);		
+	assert(gpuCount > 0);
+	// Enumerate devices
+	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
+	err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
 	if (err)
 	{
 		vkTools::exitFatal("Could not enumerate phyiscal devices : \n" + vkTools::errorString(err), "Fatal error");
 	}
+
+	// Note : 
+	// This example will always use the first physical device reported, 
+	// change the vector index if you have multiple Vulkan devices installed 
+	// and want to use another one
+	physicalDevice = physicalDevices[0];
 
 	// Find a queue that supports graphics operations
 	uint32_t graphicsQueueIndex = 0;
