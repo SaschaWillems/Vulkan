@@ -12,7 +12,7 @@ The repository contains everything required to compile the examples out of the b
 A Visual Studio (2015) solution file for compiling all examples is included with the repository.
 
 ### CMake
-For Linux (or if you want to use a different IDE) there is also a a CMakeLists.txt to be used with [CMake](https://cmake.org).
+For Linux (or if you want to use a different IDE) there is also a CMakeLists.txt to be used with [CMake](https://cmake.org).
 
 Use it to generate a platform-specific build configuration for building all examples. It should work with different compilers on Windows and Linux (C++11 required).
 
@@ -22,7 +22,7 @@ The repository also contains a few Android examples to get started, check the [A
 
 ## Binaries
 
-Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found here](http://vulkan.gpuinfo.org/examples.php). I'll try keep them up-to-date with the repositry.
+Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found here](http://vulkan.gpuinfo.org/examples.php). I'll try keep them up-to-date with the repository.
 
 Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder.
 
@@ -132,7 +132,7 @@ Demonstrates basic usage of fullscreen shader effects. The scene is rendered off
 ## Bloom
 <img src="./screenshots/bloom.png" height="96px" align="right">
 
-Implements a bloom effect to simulate glowing parts of a 3D mesh. A two pass gaussian blur (horizontal and then vertical) is used to generate a blurred low res version of the scene only containing the glowing parts of th the 3D mesh. This then gets blended onto the scene to add the blur effect.
+Implements a bloom effect to simulate glowing parts of a 3D mesh. A two pass gaussian blur (horizontal and then vertical) is used to generate a blurred low res version of the scene only containing the glowing parts of the 3D mesh. This then gets blended onto the scene to add the blur effect.
 <br><br>
 
 ## Deferred shading
@@ -217,7 +217,7 @@ Thanks to the authors of these libraries :
 - [Open Asset Import Library](https://github.com/assimp/assimp)
 - [Tiny obj loader](https://github.com/syoyo/tinyobjloader)
 
-And a huge thanks to the Vulkan Working Group, Vulkan Adivsory Panel, the fine people at LunarG and everyone from the different IHVs that helped me get the examples up and working on their hardware!
+And a huge thanks to the Vulkan Working Group, Vulkan Advisory Panel, the fine people at LunarG and everyone from the different IHVs that helped me get the examples up and working on their hardware!
 
 ## Attributions
 - Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://www.humus.name/)
