@@ -354,7 +354,7 @@ public:
 		indexbufferInfo.flags = 0;
 		// Copy index data to VRAM
 		memset(&indices, 0, sizeof(indices));
-		err = vkCreateBuffer(device, &bufInfo, nullptr, &indices.buf);
+		err = vkCreateBuffer(device, &indexbufferInfo, nullptr, &indices.buf);
 		assert(!err);
 		vkGetBufferMemoryRequirements(device, indices.buf, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
