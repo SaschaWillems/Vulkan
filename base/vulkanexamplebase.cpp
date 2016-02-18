@@ -522,24 +522,8 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	// Get the graphics queue
 	vkGetDeviceQueue(device, graphicsQueueIndex, 0, &queue);
 
-	// Find supported depth format
-	// We prefer 24 bits of depth and 8 bits of stencil, but that may not be supported by all implementations
-	std::vector<VkFormat> depthFormats = { VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM };
-	bool depthFormatFound = false;
-	for (auto& format : depthFormats)
-	{
-		VkFormatProperties formatProps;
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);
-		// Format must support depth stencil attachment for optimal tiling
-		if (formatProps.optimalTilingFeatures && VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-		{
-			depthFormat = format;
-			depthFormatFound = true;
-			break;
-		}		
-	}
-
-	assert(depthFormatFound);
+	VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &depthFormat);
+	assert(validDepthFormat);
 
 	swapChain.init(instance, physicalDevice, device);
 }
