@@ -522,6 +522,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	// Get the graphics queue
 	vkGetDeviceQueue(device, graphicsQueueIndex, 0, &queue);
 
+	// Find a suitable depth format
 	VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &depthFormat);
 	assert(validDepthFormat);
 
