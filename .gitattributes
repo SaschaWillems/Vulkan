@@ -64,3 +64,4 @@
 
 # Exclude dirs from githug language statis
 data/* linguist-vendored=true
+external/* linguist-vendored=true
