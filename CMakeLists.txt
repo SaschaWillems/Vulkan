@@ -85,6 +85,7 @@ set(EXAMPLES
 	pushconstants
 	radialblur
 	shadowmap
+	skeletalanimation
 	sphericalenvmapping
 	tessellation
 	texture
