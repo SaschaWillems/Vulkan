@@ -357,15 +357,6 @@ public:
 
 		err = vkQueueWaitIdle(computeQueue);
 		assert(!err);
-
-#ifdef _WIN32
-		if (err == VK_ERROR_DEVICE_LOST)
-		{
-			MessageBox(NULL, "Device lost", NULL, NULL);
-			exit(0);
-		}
-#endif
-
 	}
 
 	// Setup vertices for a single uv-mapped quad

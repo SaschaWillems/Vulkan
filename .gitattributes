@@ -61,3 +61,7 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Exclude dirs from githug language statis
+data/* linguist-vendored=true
+external/* linguist-vendored=true

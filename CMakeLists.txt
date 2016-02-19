@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 cmake_policy(VERSION 2.8)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 set(NAME bloom)
 
@@ -85,6 +85,7 @@ set(EXAMPLES
 	pushconstants
 	radialblur
 	shadowmap
+	skeletalanimation
 	sphericalenvmapping
 	tessellation
 	texture

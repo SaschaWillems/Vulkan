@@ -469,13 +469,24 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	}
 
 	// Physical device
-	// Note : This example will always use the first physical device reported
-	uint32_t gpuCount;
-	err = vkEnumeratePhysicalDevices(instance, &gpuCount, &physicalDevice);
+	uint32_t gpuCount = 0;
+	// Get number of available physical devices
+	err = vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr);
+	assert(!err);		
+	assert(gpuCount > 0);
+	// Enumerate devices
+	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
+	err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
 	if (err)
 	{
 		vkTools::exitFatal("Could not enumerate phyiscal devices : \n" + vkTools::errorString(err), "Fatal error");
 	}
+
+	// Note : 
+	// This example will always use the first physical device reported, 
+	// change the vector index if you have multiple Vulkan devices installed 
+	// and want to use another one
+	physicalDevice = physicalDevices[0];
 
 	// Find a queue that supports graphics operations
 	uint32_t graphicsQueueIndex = 0;
@@ -511,24 +522,9 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	// Get the graphics queue
 	vkGetDeviceQueue(device, graphicsQueueIndex, 0, &queue);
 
-	// Find supported depth format
-	// We prefer 24 bits of depth and 8 bits of stencil, but that may not be supported by all implementations
-	std::vector<VkFormat> depthFormats = { VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM };
-	bool depthFormatFound = false;
-	for (auto& format : depthFormats)
-	{
-		VkFormatProperties formatProps;
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);
-		// Format must support depth stencil attachment for optimal tiling
-		if (formatProps.optimalTilingFeatures && VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-		{
-			depthFormat = format;
-			depthFormatFound = true;
-			break;
-		}		
-	}
-
-	assert(depthFormatFound);
+	// Find a suitable depth format
+	VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &depthFormat);
+	assert(validDepthFormat);
 
 	swapChain.init(instance, physicalDevice, device);
 }

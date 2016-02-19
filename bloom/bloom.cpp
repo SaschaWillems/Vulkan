@@ -286,25 +286,10 @@ public:
 
 		VkFormat fbColorFormat = FB_COLOR_FORMAT;
 
-		// Find supported depth format
-		// We prefer 24 bits of depth and 8 bits of stencil, but that may not be supported by all implementations
+		// Find a suitable depth format
 		VkFormat fbDepthFormat;
-		std::vector<VkFormat> depthFormats = { VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM };
-		bool depthFormatFound = false;
-		for (auto& format : depthFormats)
-		{
-			VkFormatProperties formatProps;
-			vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);
-			// Format must support depth stencil attachment for optimal tiling
-			if (formatProps.optimalTilingFeatures && VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-			{
-				fbDepthFormat = format;
-				depthFormatFound = true;
-				break;
-			}
-		}
-
-		assert(depthFormatFound);
+		VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &fbDepthFormat);
+		assert(validDepthFormat);
 
 		VkResult err;
 
