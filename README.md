@@ -180,7 +180,7 @@ Uses tessellation shaders to generate and displace geometry based on a displacem
 Attraction based particle system. A shader storage buffer is used to store particle data and updated by a compute shader. The buffer is then used by the graphics pipeline for rendering.
 <br><br>
 
-## (Compute shader) Image processing(computeshader/)
+## [(Compute shader) Image processing](computeshader/)
 <img src="./screenshots/compute_imageprocessing.png" height="96px" align="right">
 
 Demonstrates the use of a separate compute queue (and command buffer) to apply different convolution kernels on an input image.
@@ -193,7 +193,7 @@ Demonstrates the use of a separate compute queue (and command buffer) to apply d
 Renders the vertex normals of a complex mesh with the use of a geometry shader. The mesh is rendered solid first and the a geometry shader that generates lines from the face normals is used in the second pass.
 <br><br>
 
-## [Vulkan demo scene](vulkan/)
+## [Vulkan demo scene](vulkanscene/)
 <img src="./screenshots/vulkan_scene.png" height="96px" align="right">
 
 More of a playground than an actual example. Renders multiple meshes with different shaders (and pipelines) including a background.
