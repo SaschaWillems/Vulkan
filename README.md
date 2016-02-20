@@ -39,7 +39,7 @@ The examples are build against **API Version 1.0.3** and support **implementatio
 
 ## Examples
 
-## [Triangle](https://github.com/roboman2444/Vulkan/tree/master/triangle)
+## [Triangle](triangle/)
 <img src="./screenshots/basic_triangle.png" height="96px" align="right">
 
 Most basic example. Renders a colored triangle using an indexed vertex buffer, only one pipeline with very simple shaders. Uses a single uniform buffer for the matrices.
