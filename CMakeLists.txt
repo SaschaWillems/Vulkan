@@ -12,6 +12,10 @@ include_directories(external/gli)
 include_directories(external/assimp)
 include_directories(base)
 
+IF(CYGWIN)
+	set(WIN32 "1")
+ENDIF(CYGWIN)
+
 IF(WIN32)
 	find_library(VULKAN_LIB NAMES vulkan-1 vulkan PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)
 	find_library(ASSIMP_LIB NAMES assimp PATHS ${CMAKE_SOURCE_DIR}/libs/assimp)
@@ -23,6 +27,10 @@ ELSE(WIN32)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_XCB_KHR")
 	# Todo : android?
 ENDIF(WIN32)
+
+IF(CYGWIN)
+	set(VULKAN_LIB ${CMAKE_SOURCE_DIR}/libs/vulkan/vulkan-1.lib)
+ENDIF(CYGWIN)
 
 message(STATUS ${VULKAN_LIB})
 
@@ -85,7 +93,6 @@ set(EXAMPLES
 	pushconstants
 	radialblur
 	shadowmap
-	skeletalanimation
 	sphericalenvmapping
 	tessellation
 	texture
