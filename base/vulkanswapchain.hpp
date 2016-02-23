@@ -366,10 +366,12 @@ public:
 
 			buffers[i].image = images[i];
 
+			// Transform images from initial (undefined) to present layout
 			vkTools::setImageLayout(
 				cmdBuffer, 
 				buffers[i].image, 
-				VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, 
+				VK_IMAGE_ASPECT_COLOR_BIT, 
+				VK_IMAGE_LAYOUT_UNDEFINED, 
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 			colorAttachmentView.image = buffers[i].image;
