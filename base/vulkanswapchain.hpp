@@ -88,7 +88,7 @@ public:
 
 	// Creates an os specific surface
 	// Tries to find a graphics and a present queue
-	void initSwapChain(
+	void initSurface(
 #ifdef _WIN32
 		void* platformHandle, void* platformWindow
 #else
@@ -234,8 +234,8 @@ public:
 		GET_DEVICE_PROC_ADDR(device, QueuePresentKHR);
 	}
 
-	// Create the swap chain images with given width and height
-	void setup(VkCommandBuffer cmdBuffer, uint32_t *width, uint32_t *height)
+	// Create the swap chain and get images with given width and height
+	void create(VkCommandBuffer cmdBuffer, uint32_t *width, uint32_t *height)
 	{
 		VkResult err;
 		VkSwapchainKHR oldSwapchain = swapChain;
@@ -397,6 +397,7 @@ public:
 		return fpQueuePresentKHR(queue, &presentInfo);
 	}
 
+	// Free all Vulkan resources used by the swap chain
 	void cleanup()
 	{
 		for (uint32_t i = 0; i < imageCount; i++)
