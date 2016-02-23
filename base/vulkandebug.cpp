@@ -1,3 +1,11 @@
+/*
+* Vulkan examples debug wrapper
+*
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+*
+* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+*/
+
 #include "vulkandebug.h"
 #include <iostream>
 
@@ -69,7 +77,7 @@ namespace vkDebug
 		dbgCreateInfo.pNext = NULL;
 		dbgCreateInfo.pfnCallback = (PFN_vkDebugReportCallbackEXT)messageCallback;
 		dbgCreateInfo.pUserData = NULL;
-		dbgCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+		dbgCreateInfo.flags = flags;
 		VkDebugReportCallbackEXT debugReportCallback;
 		VkResult err = CreateDebugReportCallback(
 			instance,
