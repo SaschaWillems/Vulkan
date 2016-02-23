@@ -526,7 +526,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &depthFormat);
 	assert(validDepthFormat);
 
-	swapChain.init(instance, physicalDevice, device);
+	swapChain.connect(instance, physicalDevice, device);
 }
 
 #ifdef _WIN32 

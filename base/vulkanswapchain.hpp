@@ -217,8 +217,8 @@ public:
 		colorSpace = surfaceFormats[0].colorSpace;
 	}
 
-	// Assign instance und device handles and get all required function pointers
-	void init(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device)
+	// Connect to the instance und device and get all required function pointers
+	void connect(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device)
 	{
 		this->instance = instance;
 		this->physicalDevice = physicalDevice;
