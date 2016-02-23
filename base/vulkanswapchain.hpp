@@ -1,7 +1,7 @@
 /*
 * Class wrapping access to the swap chain
 *
-* Copyright (C) 2015 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -309,7 +309,7 @@ public:
 		swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
 		swapchainCI.imageArrayLayers = 1;
-		swapchainCI.queueFamilyIndexCount = VK_SHARING_MODE_EXCLUSIVE;
+		swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		swapchainCI.queueFamilyIndexCount = 0;
 		swapchainCI.pQueueFamilyIndices = NULL;
 		swapchainCI.presentMode = swapchainPresentMode;
