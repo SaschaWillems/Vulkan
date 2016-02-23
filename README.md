@@ -37,6 +37,10 @@ The android examples have only been tested on NVIDIA hardware yet.
 
 The examples are build against **API Version 1.0.3** and support **implementations starting with 1.0.1**. This ensures that beta drivers not updated to the most recent API-Version can run the examples.
 
+## Additional documentation
+
+Additional documentation for several base classes and functionality (e.g. the swap chain) can be found [in this directory](./documentation/additionaldocs.md).
+
 ## Examples
 
 ## [Triangle](triangle/)
@@ -204,10 +208,6 @@ More of a playground than an actual example. Renders multiple meshes with differ
 This repository also contains a few Android examples that are (for now) separated from the rest of the examples. See the [Android readme](./android/README.md) for details on what is included and how to build the examples.
 
 The examples already share a few source files with existing examples and might be integrated into them at some point.
-
-## Additional documentation
-- [Vulkan example base class](./documentation/examplebaseclass.md)
-- more to come...
 
 ## Credits
 Thanks to the authors of these libraries :
