@@ -364,6 +364,13 @@ VkCommandBufferAllocateInfo vkTools::initializers::commandBufferAllocateInfo(VkC
 	return commandBufferAllocateInfo;
 }
 
+VkCommandPoolCreateInfo vkTools::initializers::commandPoolCreateInfo()
+{
+	VkCommandPoolCreateInfo cmdPoolCreateInfo = {};
+	cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	return cmdPoolCreateInfo;
+}
+
 VkCommandBufferBeginInfo vkTools::initializers::commandBufferBeginInfo()
 {
 	VkCommandBufferBeginInfo cmdBufferBeginInfo = {};

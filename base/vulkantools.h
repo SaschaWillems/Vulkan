@@ -96,6 +96,7 @@ namespace vkTools
 			VkCommandBufferLevel level,
 			uint32_t bufferCount);
 
+		VkCommandPoolCreateInfo commandPoolCreateInfo();
 		VkCommandBufferBeginInfo commandBufferBeginInfo();
 
 		VkRenderPassBeginInfo renderPassBeginInfo();
