@@ -80,7 +80,7 @@ public:
 		int32_t texWidth = TEX_DIM;
 		int32_t texHeight = TEX_DIM;
 		float blurScale = 1.0f;
-		float blurStrength = 1.0f;
+		float blurStrength = 1.5f;
 		uint32_t horizontal;
 	};
 
