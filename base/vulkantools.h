@@ -98,6 +98,7 @@ namespace vkTools
 
 		VkCommandPoolCreateInfo commandPoolCreateInfo();
 		VkCommandBufferBeginInfo commandBufferBeginInfo();
+		VkCommandBufferInheritanceInfo commandBufferInheritanceInfo();
 
 		VkRenderPassBeginInfo renderPassBeginInfo();
 
