@@ -67,7 +67,7 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
-		glm::vec4 lightPos = glm::vec4(2.0f, 2.0f, -2.0f, 1.0f);
+		glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
 	} uboVS;
 
 	struct {
