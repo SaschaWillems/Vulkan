@@ -67,14 +67,14 @@ namespace glm
 	GLM_FUNC_DECL typename genType::value_type length2(
 		genType const & x);
 		
-	//! Returns the squared distance between p0 and p1, i.e., length(p0 - p1).
+	//! Returns the squared distance between p0 and p1, i.e., length2(p0 - p1).
 	//! From GLM_GTX_norm extension.
 	template <typename T>
 	GLM_FUNC_DECL T distance2(
 		T const & p0,
 		T const & p1);
 		
-	//! Returns the squared distance between p0 and p1, i.e., length(p0 - p1).
+	//! Returns the squared distance between p0 and p1, i.e., length2(p0 - p1).
 	//! From GLM_GTX_norm extension.
 	template <typename genType>
 	GLM_FUNC_DECL typename genType::value_type distance2(

@@ -444,6 +444,38 @@ namespace detail
 				x[3][0], x[3][1], x[3][2], x[3][3]);
 		}
 	};
+
+
+	template <typename T, precision P>
+	struct compute_to_string<tquat, T, P>
+	{
+		GLM_FUNC_QUALIFIER static std::string call(tquat<T, P> const & x)
+		{
+			char const * PrefixStr = prefix<T>::value();
+			char const * LiteralStr = literal<T, std::numeric_limits<T>::is_iec559>::value();
+			std::string FormatStr(detail::format("%squat(%s, %s, %s, %s)",
+				PrefixStr,
+				LiteralStr, LiteralStr, LiteralStr, LiteralStr));
+
+			return detail::format(FormatStr.c_str(), x[0], x[1], x[2], x[3]);
+		}
+	};
+
+	template <typename T, precision P>
+	struct compute_to_string<tdualquat, T, P>
+	{
+		GLM_FUNC_QUALIFIER static std::string call(tdualquat<T, P> const & x)
+		{
+			char const * PrefixStr = prefix<T>::value();
+			char const * LiteralStr = literal<T, std::numeric_limits<T>::is_iec559>::value();
+			std::string FormatStr(detail::format("%sdualquat((%s, %s, %s, %s), (%s, %s, %s, %s))",
+				PrefixStr,
+				LiteralStr, LiteralStr, LiteralStr, LiteralStr));
+
+			return detail::format(FormatStr.c_str(), x.real[0], x.real[1], x.real[2], x.real[3], x.dual[0], x.dual[1], x.dual[2], x.dual[3]);
+		}
+	};
+
 }//namespace detail
 
 template <template <typename, precision> class matType, typename T, precision P>

@@ -138,25 +138,25 @@ namespace detail
 		glm::uint64 REG2(y);
 		glm::uint64 REG3(z);
 
-		REG1 = ((REG1 << 32) | REG1) & glm::uint64(0xFFFF00000000FFFF);
-		REG2 = ((REG2 << 32) | REG2) & glm::uint64(0xFFFF00000000FFFF);
-		REG3 = ((REG3 << 32) | REG3) & glm::uint64(0xFFFF00000000FFFF);
+		REG1 = ((REG1 << 32) | REG1) & glm::uint64(0xFFFF00000000FFFFull);
+		REG2 = ((REG2 << 32) | REG2) & glm::uint64(0xFFFF00000000FFFFull);
+		REG3 = ((REG3 << 32) | REG3) & glm::uint64(0xFFFF00000000FFFFull);
 
-		REG1 = ((REG1 << 16) | REG1) & glm::uint64(0x00FF0000FF0000FF);
-		REG2 = ((REG2 << 16) | REG2) & glm::uint64(0x00FF0000FF0000FF);
-		REG3 = ((REG3 << 16) | REG3) & glm::uint64(0x00FF0000FF0000FF);
+		REG1 = ((REG1 << 16) | REG1) & glm::uint64(0x00FF0000FF0000FFull);
+		REG2 = ((REG2 << 16) | REG2) & glm::uint64(0x00FF0000FF0000FFull);
+		REG3 = ((REG3 << 16) | REG3) & glm::uint64(0x00FF0000FF0000FFull);
 
-		REG1 = ((REG1 <<  8) | REG1) & glm::uint64(0xF00F00F00F00F00F);
-		REG2 = ((REG2 <<  8) | REG2) & glm::uint64(0xF00F00F00F00F00F);
-		REG3 = ((REG3 <<  8) | REG3) & glm::uint64(0xF00F00F00F00F00F);
+		REG1 = ((REG1 <<  8) | REG1) & glm::uint64(0xF00F00F00F00F00Full);
+		REG2 = ((REG2 <<  8) | REG2) & glm::uint64(0xF00F00F00F00F00Full);
+		REG3 = ((REG3 <<  8) | REG3) & glm::uint64(0xF00F00F00F00F00Full);
 
-		REG1 = ((REG1 <<  4) | REG1) & glm::uint64(0x30C30C30C30C30C3);
-		REG2 = ((REG2 <<  4) | REG2) & glm::uint64(0x30C30C30C30C30C3);
-		REG3 = ((REG3 <<  4) | REG3) & glm::uint64(0x30C30C30C30C30C3);
+		REG1 = ((REG1 <<  4) | REG1) & glm::uint64(0x30C30C30C30C30C3ull);
+		REG2 = ((REG2 <<  4) | REG2) & glm::uint64(0x30C30C30C30C30C3ull);
+		REG3 = ((REG3 <<  4) | REG3) & glm::uint64(0x30C30C30C30C30C3ull);
 
-		REG1 = ((REG1 <<  2) | REG1) & glm::uint64(0x9249249249249249);
-		REG2 = ((REG2 <<  2) | REG2) & glm::uint64(0x9249249249249249);
-		REG3 = ((REG3 <<  2) | REG3) & glm::uint64(0x9249249249249249);
+		REG1 = ((REG1 <<  2) | REG1) & glm::uint64(0x9249249249249249ull);
+		REG2 = ((REG2 <<  2) | REG2) & glm::uint64(0x9249249249249249ull);
+		REG3 = ((REG3 <<  2) | REG3) & glm::uint64(0x9249249249249249ull);
 
 		return REG1 | (REG2 << 1) | (REG3 << 2);
 	}
@@ -168,25 +168,25 @@ namespace detail
 		glm::uint64 REG2(y);
 		glm::uint64 REG3(z);
 
-		REG1 = ((REG1 << 32) | REG1) & glm::uint64(0xFFFF00000000FFFF);
-		REG2 = ((REG2 << 32) | REG2) & glm::uint64(0xFFFF00000000FFFF);
-		REG3 = ((REG3 << 32) | REG3) & glm::uint64(0xFFFF00000000FFFF);
+		REG1 = ((REG1 << 32) | REG1) & glm::uint64(0xFFFF00000000FFFFull);
+		REG2 = ((REG2 << 32) | REG2) & glm::uint64(0xFFFF00000000FFFFull);
+		REG3 = ((REG3 << 32) | REG3) & glm::uint64(0xFFFF00000000FFFFull);
 
-		REG1 = ((REG1 << 16) | REG1) & glm::uint64(0x00FF0000FF0000FF);
-		REG2 = ((REG2 << 16) | REG2) & glm::uint64(0x00FF0000FF0000FF);
-		REG3 = ((REG3 << 16) | REG3) & glm::uint64(0x00FF0000FF0000FF);
+		REG1 = ((REG1 << 16) | REG1) & glm::uint64(0x00FF0000FF0000FFull);
+		REG2 = ((REG2 << 16) | REG2) & glm::uint64(0x00FF0000FF0000FFull);
+		REG3 = ((REG3 << 16) | REG3) & glm::uint64(0x00FF0000FF0000FFull);
 
-		REG1 = ((REG1 <<  8) | REG1) & glm::uint64(0xF00F00F00F00F00F);
-		REG2 = ((REG2 <<  8) | REG2) & glm::uint64(0xF00F00F00F00F00F);
-		REG3 = ((REG3 <<  8) | REG3) & glm::uint64(0xF00F00F00F00F00F);
+		REG1 = ((REG1 <<  8) | REG1) & glm::uint64(0xF00F00F00F00F00Full);
+		REG2 = ((REG2 <<  8) | REG2) & glm::uint64(0xF00F00F00F00F00Full);
+		REG3 = ((REG3 <<  8) | REG3) & glm::uint64(0xF00F00F00F00F00Full);
 
-		REG1 = ((REG1 <<  4) | REG1) & glm::uint64(0x30C30C30C30C30C3);
-		REG2 = ((REG2 <<  4) | REG2) & glm::uint64(0x30C30C30C30C30C3);
-		REG3 = ((REG3 <<  4) | REG3) & glm::uint64(0x30C30C30C30C30C3);
+		REG1 = ((REG1 <<  4) | REG1) & glm::uint64(0x30C30C30C30C30C3ull);
+		REG2 = ((REG2 <<  4) | REG2) & glm::uint64(0x30C30C30C30C30C3ull);
+		REG3 = ((REG3 <<  4) | REG3) & glm::uint64(0x30C30C30C30C30C3ull);
 
-		REG1 = ((REG1 <<  2) | REG1) & glm::uint64(0x9249249249249249);
-		REG2 = ((REG2 <<  2) | REG2) & glm::uint64(0x9249249249249249);
-		REG3 = ((REG3 <<  2) | REG3) & glm::uint64(0x9249249249249249);
+		REG1 = ((REG1 <<  2) | REG1) & glm::uint64(0x9249249249249249ull);
+		REG2 = ((REG2 <<  2) | REG2) & glm::uint64(0x9249249249249249ull);
+		REG3 = ((REG3 <<  2) | REG3) & glm::uint64(0x9249249249249249ull);
 
 		return REG1 | (REG2 << 1) | (REG3 << 2);
 	}
@@ -225,25 +225,25 @@ namespace detail
 		glm::uint64 REG3(z);
 		glm::uint64 REG4(w);
 
-		REG1 = ((REG1 << 24) | REG1) & glm::uint64(0x000000FF000000FF);
-		REG2 = ((REG2 << 24) | REG2) & glm::uint64(0x000000FF000000FF);
-		REG3 = ((REG3 << 24) | REG3) & glm::uint64(0x000000FF000000FF);
-		REG4 = ((REG4 << 24) | REG4) & glm::uint64(0x000000FF000000FF);
+		REG1 = ((REG1 << 24) | REG1) & glm::uint64(0x000000FF000000FFull);
+		REG2 = ((REG2 << 24) | REG2) & glm::uint64(0x000000FF000000FFull);
+		REG3 = ((REG3 << 24) | REG3) & glm::uint64(0x000000FF000000FFull);
+		REG4 = ((REG4 << 24) | REG4) & glm::uint64(0x000000FF000000FFull);
 
-		REG1 = ((REG1 << 12) | REG1) & glm::uint64(0x000F000F000F000F);
-		REG2 = ((REG2 << 12) | REG2) & glm::uint64(0x000F000F000F000F);
-		REG3 = ((REG3 << 12) | REG3) & glm::uint64(0x000F000F000F000F);
-		REG4 = ((REG4 << 12) | REG4) & glm::uint64(0x000F000F000F000F);
+		REG1 = ((REG1 << 12) | REG1) & glm::uint64(0x000F000F000F000Full);
+		REG2 = ((REG2 << 12) | REG2) & glm::uint64(0x000F000F000F000Full);
+		REG3 = ((REG3 << 12) | REG3) & glm::uint64(0x000F000F000F000Full);
+		REG4 = ((REG4 << 12) | REG4) & glm::uint64(0x000F000F000F000Full);
 
-		REG1 = ((REG1 <<  6) | REG1) & glm::uint64(0x0303030303030303);
-		REG2 = ((REG2 <<  6) | REG2) & glm::uint64(0x0303030303030303);
-		REG3 = ((REG3 <<  6) | REG3) & glm::uint64(0x0303030303030303);
-		REG4 = ((REG4 <<  6) | REG4) & glm::uint64(0x0303030303030303);
+		REG1 = ((REG1 <<  6) | REG1) & glm::uint64(0x0303030303030303ull);
+		REG2 = ((REG2 <<  6) | REG2) & glm::uint64(0x0303030303030303ull);
+		REG3 = ((REG3 <<  6) | REG3) & glm::uint64(0x0303030303030303ull);
+		REG4 = ((REG4 <<  6) | REG4) & glm::uint64(0x0303030303030303ull);
 
-		REG1 = ((REG1 <<  3) | REG1) & glm::uint64(0x1111111111111111);
-		REG2 = ((REG2 <<  3) | REG2) & glm::uint64(0x1111111111111111);
-		REG3 = ((REG3 <<  3) | REG3) & glm::uint64(0x1111111111111111);
-		REG4 = ((REG4 <<  3) | REG4) & glm::uint64(0x1111111111111111);
+		REG1 = ((REG1 <<  3) | REG1) & glm::uint64(0x1111111111111111ull);
+		REG2 = ((REG2 <<  3) | REG2) & glm::uint64(0x1111111111111111ull);
+		REG3 = ((REG3 <<  3) | REG3) & glm::uint64(0x1111111111111111ull);
+		REG4 = ((REG4 <<  3) | REG4) & glm::uint64(0x1111111111111111ull);
 
 		return REG1 | (REG2 << 1) | (REG3 << 2) | (REG4 << 3);
 	}

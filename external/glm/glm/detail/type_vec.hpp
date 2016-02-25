@@ -168,7 +168,6 @@ namespace glm
 
 	/// @}
 
-
 	/// @addtogroup core_precision
 	/// @{
 
@@ -374,8 +373,7 @@ namespace glm
 	/// @addtogroup core_types
 	/// @{
 
-	//////////////////////////
-	// Default float definition
+	// -- Default float definition --
 
 #if(defined(GLM_PRECISION_LOWP_FLOAT))
 	typedef lowp_vec2			vec2;
@@ -402,8 +400,7 @@ namespace glm
 	typedef highp_vec4			vec4;
 #endif//GLM_PRECISION
 
-	//////////////////////////
-	// Default double definition
+	// -- Default double definition --
 
 #if(defined(GLM_PRECISION_LOWP_DOUBLE))
 	typedef lowp_dvec2			dvec2;
@@ -418,21 +415,20 @@ namespace glm
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_dvec2			dvec2;
-	
+
 	//! 3 components vector of double-precision floating-point numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_dvec3			dvec3;
-	
+
 	//! 4 components vector of double-precision floating-point numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_dvec4			dvec4;
 #endif//GLM_PRECISION
-	
-	//////////////////////////
-	// Signed integer definition
-	
+
+	// -- Signed integer definition --
+
 #if(defined(GLM_PRECISION_LOWP_INT))
 	typedef lowp_ivec2			ivec2;
 	typedef lowp_ivec3			ivec3;
@@ -442,25 +438,24 @@ namespace glm
 	typedef mediump_ivec3		ivec3;
 	typedef mediump_ivec4		ivec4;
 #else //defined(GLM_PRECISION_HIGHP_INT)
-	//! 2 components vector of signed integer numbers.
+	/// 2 components vector of signed integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_ivec2			ivec2;
-	
-	//! 3 components vector of signed integer numbers.
+
+	/// 3 components vector of signed integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_ivec3			ivec3;
-	
-	//! 4 components vector of signed integer numbers.
+
+	/// 4 components vector of signed integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_ivec4			ivec4;
 #endif//GLM_PRECISION
-	
-	//////////////////////////
-	// Unsigned integer definition
-	
+
+	// -- Unsigned integer definition --
+
 #if(defined(GLM_PRECISION_LOWP_UINT))
 	typedef lowp_uvec2			uvec2;
 	typedef lowp_uvec3			uvec3;
@@ -474,20 +469,19 @@ namespace glm
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_uvec2			uvec2;
-	
+
 	/// 3 components vector of unsigned integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_uvec3			uvec3;
-	
+
 	/// 4 components vector of unsigned integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_uvec4			uvec4;
 #endif//GLM_PRECISION
-	
-	//////////////////////////
-	// Boolean definition
+
+	// -- Boolean definition --
 
 #if(defined(GLM_PRECISION_LOWP_BOOL))
 	typedef lowp_bvec2			bvec2;
@@ -498,21 +492,21 @@ namespace glm
 	typedef mediump_bvec3		bvec3;
 	typedef mediump_bvec4		bvec4;
 #else //defined(GLM_PRECISION_HIGHP_BOOL)
-	//! 2 components vector of boolean.
+	/// 2 components vector of boolean.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_bvec2			bvec2;
-	
-	//! 3 components vector of boolean.
+
+	/// 3 components vector of boolean.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_bvec3			bvec3;
-	
-	//! 4 components vector of boolean.
+
+	/// 4 components vector of boolean.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	typedef highp_bvec4			bvec4;
 #endif//GLM_PRECISION
-	
+
 	/// @}
 }//namespace glm

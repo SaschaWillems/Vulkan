@@ -92,7 +92,7 @@ namespace glm
 	/// 
 	/// @param m Input matrix multiplied by this rotation matrix.
 	/// @param angle Rotation angle expressed in radians.
-	/// @param axis Rotation axis, recommanded to be normalized.
+	/// @param axis Rotation axis, recommended to be normalized.
 	/// @tparam T Value type used to build the matrix. Supported: half, float or double.
 	/// @see gtc_matrix_transform
 	/// @see - rotate(tmat4x4<T, P> const & m, T angle, T x, T y, T z) 
@@ -173,7 +173,7 @@ namespace glm
 
 	/// Creates a matrix for a symetric perspective-view frustum based on the default handedness.
 	/// 
-	/// @param fovy Specifies the field of view angle, in degrees, in the y direction. Expressed in radians.
+	/// @param fovy Specifies the field of view angle in the y direction. Expressed in radians.
 	/// @param aspect Specifies the aspect ratio that determines the field of view in the x direction. The aspect ratio is the ratio of x (width) to y (height).
 	/// @param near Specifies the distance from the viewer to the near clipping plane (always positive).
 	/// @param far Specifies the distance from the viewer to the far clipping plane (always positive).
@@ -185,7 +185,6 @@ namespace glm
 		T aspect,
 		T near,
 		T far);
-
 
 	/// Creates a matrix for a right handed, symetric perspective-view frustum.
 	/// 

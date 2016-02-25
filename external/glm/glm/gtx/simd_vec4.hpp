@@ -8,14 +8,14 @@
 /// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 /// copies of the Software, and to permit persons to whom the Software is
 /// furnished to do so, subject to the following conditions:
-/// 
+///
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
-/// 
+///
 /// Restrictions:
 ///		By making use of the Software for military purposes, you choose to make
 ///		a Bunny unhappy.
-/// 
+///
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 /// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -33,9 +33,9 @@
 ///
 /// @defgroup gtx_simd_vec4 GLM_GTX_simd_vec4
 /// @ingroup gtx
-/// 
+///
 /// @brief SIMD implementation of vec4 type.
-/// 
+///
 /// <glm/gtx/simd_vec4.hpp> need to be included to use these functionalities.
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -92,12 +92,17 @@ namespace detail
 	/// \ingroup gtx_simd_vec4
 	GLM_ALIGNED_STRUCT(16) fvec4SIMD
 	{
-		typedef __m128 value_type;
+		typedef float value_type;
 		typedef std::size_t size_type;
-		static size_type value_size();
 
 		typedef fvec4SIMD type;
+		typedef tvec4<float, defaultp> pure_type;
 		typedef tvec4<bool, highp> bool_type;
+
+#		ifdef GLM_META_PROG_HELPERS
+			static GLM_RELAXED_CONSTEXPR length_t components = 4;
+			static GLM_RELAXED_CONSTEXPR precision prec = defaultp;
+#		endif//GLM_META_PROG_HELPERS
 
 #ifdef GLM_SIMD_ENABLE_XYZW_UNION
 		union
@@ -112,9 +117,9 @@ namespace detail
 		//////////////////////////////////////
 		// Implicit basic constructors
 
-		fvec4SIMD();
+		fvec4SIMD() GLM_DEFAULT_CTOR;
+		fvec4SIMD(fvec4SIMD const & v) GLM_DEFAULT;
 		fvec4SIMD(__m128 const & Data);
-		fvec4SIMD(fvec4SIMD const & v);
 
 		//////////////////////////////////////
 		// Explicit basic constructors
@@ -124,9 +129,9 @@ namespace detail
 		explicit fvec4SIMD(
 			float const & s);
 		explicit fvec4SIMD(
-			float const & x, 
-			float const & y, 
-			float const & z, 
+			float const & x,
+			float const & y,
+			float const & z,
 			float const & w);
 		explicit fvec4SIMD(
 			vec4 const & v);
@@ -145,7 +150,7 @@ namespace detail
 		//////////////////////////////////////
 		// Unary arithmetic operators
 
-		fvec4SIMD& operator= (fvec4SIMD const & v);
+		fvec4SIMD& operator= (fvec4SIMD const & v) GLM_DEFAULT;
 		fvec4SIMD& operator+=(fvec4SIMD const & v);
 		fvec4SIMD& operator-=(fvec4SIMD const & v);
 		fvec4SIMD& operator*=(fvec4SIMD const & v);
@@ -213,13 +218,13 @@ namespace detail
 
 	//! Returns a value equal to the nearest integer to x.
 	//! A fractional part of 0.5 will round toward the nearest even
-	//! integer. (Both 3.5 and 4.5 for x will return 4.0.) 
+	//! integer. (Both 3.5 and 4.5 for x will return 4.0.)
 	///
 	/// @see gtx_simd_vec4
 	//detail::fvec4SIMD roundEven(detail::fvec4SIMD const & x);
 
-	//! Returns a value equal to the nearest integer 
-	//! that is greater than or equal to x. 
+	//! Returns a value equal to the nearest integer
+	//! that is greater than or equal to x.
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD ceil(detail::fvec4SIMD const & x);
 
@@ -233,7 +238,7 @@ namespace detail
 	///
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD mod(
-		detail::fvec4SIMD const & x, 
+		detail::fvec4SIMD const & x,
 		detail::fvec4SIMD const & y);
 
 	//! Modulus. Returns x - y * floor(x / y)
@@ -241,7 +246,7 @@ namespace detail
 	///
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD mod(
-		detail::fvec4SIMD const & x, 
+		detail::fvec4SIMD const & x,
 		float const & y);
 
 	//! Returns the fractional part of x and sets i to the integer
@@ -250,51 +255,51 @@ namespace detail
 	//! sign as x.
 	//! (From GLM_GTX_simd_vec4 extension, common function)
 	//detail::fvec4SIMD modf(
-	//	detail::fvec4SIMD const & x, 
+	//	detail::fvec4SIMD const & x,
 	//	detail::fvec4SIMD & i);
 
 	//! Returns y if y < x; otherwise, it returns x.
-	/// 
+	///
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD min(
-		detail::fvec4SIMD const & x, 
+		detail::fvec4SIMD const & x,
 		detail::fvec4SIMD const & y);
 
 	detail::fvec4SIMD min(
-		detail::fvec4SIMD const & x, 
+		detail::fvec4SIMD const & x,
 		float const & y);
 
 	//! Returns y if x < y; otherwise, it returns x.
 	///
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD max(
-		detail::fvec4SIMD const & x, 
+		detail::fvec4SIMD const & x,
 		detail::fvec4SIMD const & y);
 
 	detail::fvec4SIMD max(
-		detail::fvec4SIMD const & x, 
+		detail::fvec4SIMD const & x,
 		float const & y);
 
-	//! Returns min(max(x, minVal), maxVal) for each component in x 
+	//! Returns min(max(x, minVal), maxVal) for each component in x
 	//! using the floating-point values minVal and maxVal.
 	///
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD clamp(
-		detail::fvec4SIMD const & x, 
-		detail::fvec4SIMD const & minVal, 
-		detail::fvec4SIMD const & maxVal); 
+		detail::fvec4SIMD const & x,
+		detail::fvec4SIMD const & minVal,
+		detail::fvec4SIMD const & maxVal);
 
 	detail::fvec4SIMD clamp(
-		detail::fvec4SIMD const & x, 
-		float const & minVal, 
-		float const & maxVal); 
+		detail::fvec4SIMD const & x,
+		float const & minVal,
+		float const & maxVal);
 
-	//! \return If genTypeU is a floating scalar or vector: 
-	//! Returns x * (1.0 - a) + y * a, i.e., the linear blend of 
-	//! x and y using the floating-point value a. 
+	//! \return If genTypeU is a floating scalar or vector:
+	//! Returns x * (1.0 - a) + y * a, i.e., the linear blend of
+	//! x and y using the floating-point value a.
 	//! The value for a is not restricted to the range [0, 1].
 	//!
-	//! \return If genTypeU is a boolean scalar or vector: 
+	//! \return If genTypeU is a boolean scalar or vector:
 	//! Selects which vector each returned component comes
 	//! from. For a component of a that is false, the
 	//! corresponding component of x is returned. For a
@@ -305,9 +310,9 @@ namespace detail
 	//! provides different functionality than
 	//! genType mix(genType x, genType y, genType(a))
 	//! where a is a Boolean vector.
-	//! 
+	//!
 	//! From GLSL 1.30.08 specification, section 8.3
-	//! 
+	//!
 	//! \param[in]  x Floating point scalar or vector.
 	//! \param[in]  y Floating point scalar or vector.
 	//! \param[in]  a Floating point or boolean scalar or vector.
@@ -316,19 +321,19 @@ namespace detail
 	///
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD mix(
-		detail::fvec4SIMD const & x, 
-		detail::fvec4SIMD const & y, 
+		detail::fvec4SIMD const & x,
+		detail::fvec4SIMD const & y,
 		detail::fvec4SIMD const & a);
 
 	//! Returns 0.0 if x < edge, otherwise it returns 1.0.
 	///
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD step(
-		detail::fvec4SIMD const & edge, 
+		detail::fvec4SIMD const & edge,
 		detail::fvec4SIMD const & x);
 
 	detail::fvec4SIMD step(
-		float const & edge, 
+		float const & edge,
 		detail::fvec4SIMD const & x);
 
 	//! Returns 0.0 if x <= edge0 and 1.0 if x >= edge1 and
@@ -343,13 +348,13 @@ namespace detail
 	///
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD smoothstep(
-		detail::fvec4SIMD const & edge0, 
-		detail::fvec4SIMD const & edge1, 
+		detail::fvec4SIMD const & edge0,
+		detail::fvec4SIMD const & edge1,
 		detail::fvec4SIMD const & x);
 
 	detail::fvec4SIMD smoothstep(
-		float const & edge0, 
-		float const & edge1, 
+		float const & edge0,
+		float const & edge1,
 		detail::fvec4SIMD const & x);
 
 	//! Returns true if x holds a NaN (not a number)
@@ -390,8 +395,8 @@ namespace detail
 	///
 	/// @see gtx_simd_vec4
 	detail::fvec4SIMD fma(
-		detail::fvec4SIMD const & a, 
-		detail::fvec4SIMD const & b, 
+		detail::fvec4SIMD const & a,
+		detail::fvec4SIMD const & b,
 		detail::fvec4SIMD const & c);
 
 	//! Splits x into a floating-point significand in the range

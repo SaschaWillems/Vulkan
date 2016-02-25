@@ -8,14 +8,14 @@
 /// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 /// copies of the Software, and to permit persons to whom the Software is
 /// furnished to do so, subject to the following conditions:
-/// 
+///
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
-/// 
+///
 /// Restrictions:
 ///		By making use of the Software for military purposes, you choose to make
 ///		a Bunny unhappy.
-/// 
+///
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 /// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -33,9 +33,9 @@
 ///
 /// @defgroup gtx_simd_quat GLM_GTX_simd_quat
 /// @ingroup gtx
-/// 
+///
 /// @brief SIMD implementation of quat type.
-/// 
+///
 /// <glm/gtx/simd_quat.hpp> need to be included to use these functionalities.
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -69,12 +69,17 @@ namespace detail
 {
 	GLM_ALIGNED_STRUCT(16) fquatSIMD
 	{
-		typedef __m128 value_type;
+		typedef float value_type;
 		typedef std::size_t size_type;
-		static size_type value_size();
 
 		typedef fquatSIMD type;
 		typedef tquat<bool, defaultp> bool_type;
+		typedef tquat<float, defaultp> pure_type;
+
+#		ifdef GLM_META_PROG_HELPERS
+			static GLM_RELAXED_CONSTEXPR length_t components = 4;
+			static GLM_RELAXED_CONSTEXPR precision prec = defaultp;
+#		endif//GLM_META_PROG_HELPERS
 
 #ifdef GLM_SIMD_ENABLE_XYZW_UNION
 		union
@@ -89,9 +94,9 @@ namespace detail
 		//////////////////////////////////////
 		// Implicit basic constructors
 
-		fquatSIMD();
+		fquatSIMD() GLM_DEFAULT_CTOR;
+		fquatSIMD(fquatSIMD const & q) GLM_DEFAULT;
 		fquatSIMD(__m128 const & Data);
-		fquatSIMD(fquatSIMD const & q);
 
 		//////////////////////////////////////
 		// Explicit basic constructors
@@ -99,20 +104,20 @@ namespace detail
 		explicit fquatSIMD(
 			ctor);
 		explicit fquatSIMD(
-			float const & w, 
-			float const & x, 
-			float const & y, 
+			float const & w,
+			float const & x,
+			float const & y,
 			float const & z);
 		explicit fquatSIMD(
 			quat const & v);
 		explicit fquatSIMD(
 			vec3 const & eulerAngles);
-		
+
 
 		//////////////////////////////////////
 		// Unary arithmetic operators
 
-		fquatSIMD& operator =(fquatSIMD const & q);
+		fquatSIMD& operator= (fquatSIMD const & q) GLM_DEFAULT;
 		fquatSIMD& operator*=(float const & s);
 		fquatSIMD& operator/=(float const & s);
 	};
@@ -124,16 +129,16 @@ namespace detail
 	detail::fquatSIMD operator- (
 		detail::fquatSIMD const & q);
 
-	detail::fquatSIMD operator+ ( 
-		detail::fquatSIMD const & q, 
-		detail::fquatSIMD const & p); 
+	detail::fquatSIMD operator+ (
+		detail::fquatSIMD const & q,
+		detail::fquatSIMD const & p);
 
-	detail::fquatSIMD operator* ( 
-		detail::fquatSIMD const & q, 
-		detail::fquatSIMD const & p); 
+	detail::fquatSIMD operator* (
+		detail::fquatSIMD const & q,
+		detail::fquatSIMD const & p);
 
 	detail::fvec4SIMD operator* (
-		detail::fquatSIMD const & q, 
+		detail::fquatSIMD const & q,
 		detail::fvec4SIMD const & v);
 
 	detail::fvec4SIMD operator* (
@@ -141,7 +146,7 @@ namespace detail
 		detail::fquatSIMD const & q);
 
 	detail::fquatSIMD operator* (
-		detail::fquatSIMD const & q, 
+		detail::fquatSIMD const & q,
 		float s);
 
 	detail::fquatSIMD operator* (
@@ -149,7 +154,7 @@ namespace detail
 		detail::fquatSIMD const & q);
 
 	detail::fquatSIMD operator/ (
-		detail::fquatSIMD const & q, 
+		detail::fquatSIMD const & q,
 		float s);
 
 }//namespace detail
@@ -192,64 +197,64 @@ namespace detail
 		detail::fquatSIMD const & q);
 
 
-	/// Returns the length of the quaternion. 
-	/// 
+	/// Returns the length of the quaternion.
+	///
 	/// @see gtx_simd_quat
 	float length(
 		detail::fquatSIMD const & x);
 
-	/// Returns the normalized quaternion. 
-	/// 
+	/// Returns the normalized quaternion.
+	///
 	/// @see gtx_simd_quat
 	detail::fquatSIMD normalize(
 		detail::fquatSIMD const & x);
 
-	/// Returns dot product of q1 and q2, i.e., q1[0] * q2[0] + q1[1] * q2[1] + ... 
-	/// 
+	/// Returns dot product of q1 and q2, i.e., q1[0] * q2[0] + q1[1] * q2[1] + ...
+	///
 	/// @see gtx_simd_quat
 	float dot(
-		detail::fquatSIMD const & q1, 
+		detail::fquatSIMD const & q1,
 		detail::fquatSIMD const & q2);
 
 	/// Spherical linear interpolation of two quaternions.
 	/// The interpolation is oriented and the rotation is performed at constant speed.
 	/// For short path spherical linear interpolation, use the slerp function.
-	/// 
+	///
 	/// @param x A quaternion
 	/// @param y A quaternion
 	/// @param a Interpolation factor. The interpolation is defined beyond the range [0, 1].
 	/// @tparam T Value type used to build the quaternion. Supported: half, float or double.
 	/// @see gtx_simd_quat
-	/// @see - slerp(detail::fquatSIMD const & x, detail::fquatSIMD const & y, T const & a) 
+	/// @see - slerp(detail::fquatSIMD const & x, detail::fquatSIMD const & y, T const & a)
 	detail::fquatSIMD mix(
-		detail::fquatSIMD const & x, 
-		detail::fquatSIMD const & y, 
+		detail::fquatSIMD const & x,
+		detail::fquatSIMD const & y,
 		float const & a);
 
-	/// Linear interpolation of two quaternions. 
+	/// Linear interpolation of two quaternions.
 	/// The interpolation is oriented.
-	/// 
+	///
 	/// @param x A quaternion
 	/// @param y A quaternion
 	/// @param a Interpolation factor. The interpolation is defined in the range [0, 1].
 	/// @tparam T Value type used to build the quaternion. Supported: half, float or double.
 	/// @see gtx_simd_quat
 	detail::fquatSIMD lerp(
-		detail::fquatSIMD const & x, 
-		detail::fquatSIMD const & y, 
+		detail::fquatSIMD const & x,
+		detail::fquatSIMD const & y,
 		float const & a);
 
 	/// Spherical linear interpolation of two quaternions.
 	/// The interpolation always take the short path and the rotation is performed at constant speed.
-	/// 
+	///
 	/// @param x A quaternion
 	/// @param y A quaternion
 	/// @param a Interpolation factor. The interpolation is defined beyond the range [0, 1].
 	/// @tparam T Value type used to build the quaternion. Supported: half, float or double.
 	/// @see gtx_simd_quat
 	detail::fquatSIMD slerp(
-		detail::fquatSIMD const & x, 
-		detail::fquatSIMD const & y, 
+		detail::fquatSIMD const & x,
+		detail::fquatSIMD const & y,
 		float const & a);
 
 
@@ -262,10 +267,10 @@ namespace detail
 	/// This will use the equivalent to fastAcos() and fastSin().
 	///
 	/// @see gtx_simd_quat
-	/// @see - mix(detail::fquatSIMD const & x, detail::fquatSIMD const & y, T const & a) 
+	/// @see - mix(detail::fquatSIMD const & x, detail::fquatSIMD const & y, T const & a)
 	detail::fquatSIMD fastMix(
-		detail::fquatSIMD const & x, 
-		detail::fquatSIMD const & y, 
+		detail::fquatSIMD const & x,
+		detail::fquatSIMD const & y,
 		float const & a);
 
 	/// Identical to fastMix() except takes the shortest path.
@@ -273,22 +278,22 @@ namespace detail
 	/// The same rules apply here as those in fastMix(). Both quaternions must be unit length and 'a' must be
 	/// in the range [0, 1].
 	///
-	/// @see - fastMix(detail::fquatSIMD const & x, detail::fquatSIMD const & y, T const & a) 
-	/// @see - slerp(detail::fquatSIMD const & x, detail::fquatSIMD const & y, T const & a) 
+	/// @see - fastMix(detail::fquatSIMD const & x, detail::fquatSIMD const & y, T const & a)
+	/// @see - slerp(detail::fquatSIMD const & x, detail::fquatSIMD const & y, T const & a)
 	detail::fquatSIMD fastSlerp(
-		detail::fquatSIMD const & x, 
-		detail::fquatSIMD const & y, 
+		detail::fquatSIMD const & x,
+		detail::fquatSIMD const & y,
 		float const & a);
 
 
-	/// Returns the q conjugate. 
-	/// 
+	/// Returns the q conjugate.
+	///
 	/// @see gtx_simd_quat
 	detail::fquatSIMD conjugate(
 		detail::fquatSIMD const & q);
 
-	/// Returns the q inverse. 
-	/// 
+	/// Returns the q inverse.
+	///
 	/// @see gtx_simd_quat
 	detail::fquatSIMD inverse(
 		detail::fquatSIMD const & q);
@@ -296,14 +301,14 @@ namespace detail
 	/// Build a quaternion from an angle and a normalized axis.
 	///
 	/// @param angle Angle expressed in radians.
-	/// @param axis Axis of the quaternion, must be normalized. 
+	/// @param axis Axis of the quaternion, must be normalized.
 	///
 	/// @see gtx_simd_quat
 	detail::fquatSIMD angleAxisSIMD(
-		float const & angle, 
+		float const & angle,
 		vec3 const & axis);
 
-	/// Build a quaternion from an angle and a normalized axis. 
+	/// Build a quaternion from an angle and a normalized axis.
 	///
 	/// @param angle Angle expressed in radians.
 	/// @param x x component of the x-axis, x, y, z must be a normalized axis
@@ -312,9 +317,9 @@ namespace detail
 	///
 	/// @see gtx_simd_quat
 	detail::fquatSIMD angleAxisSIMD(
-		float const & angle, 
-		float const & x, 
-		float const & y, 
+		float const & angle,
+		float const & x,
+		float const & y,
 		float const & z);
 
 	// TODO: Move this to somewhere more appropriate. Used with fastMix() and fastSlerp().

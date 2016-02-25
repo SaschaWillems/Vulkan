@@ -24,41 +24,58 @@
 /// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 /// THE SOFTWARE.
 ///
-/// @ref gtx_multiple
-/// @file glm/gtx/multiple.inl
-/// @date 2009-10-26 / 2011-06-07
+/// @ref gtc_color_space
+/// @file glm/gtc/color_space.hpp
+/// @date 2015-02-10 / 2015-08-02
 /// @author Christophe Riccio
+///
+/// @see core (dependence)
+/// @see gtc_color_space (dependence)
+///
+/// @defgroup gtc_color_space GLM_GTC_color_space
+/// @ingroup gtc
+/// 
+/// @brief Allow to perform bit operations on integer values
+/// 
+/// <glm/gtc/color.hpp> need to be included to use these functionalities.
 ///////////////////////////////////////////////////////////////////////////////////
+
+#pragma once
+
+// Dependencies
+#include "../detail/setup.hpp"
+#include "../detail/precision.hpp"
+#include "../exponential.hpp"
+#include "../vec3.hpp"
+#include "../vec4.hpp"
+#include <limits>
+
+#if(defined(GLM_MESSAGES) && !defined(GLM_EXT_INCLUDED))
+#	pragma message("GLM: GLM_GTC_color_space extension included")
+#endif
 
 namespace glm
 {
-	//////////////////////
-	// higherMultiple
+	/// @addtogroup gtc_color_space
+	/// @{
 
-	template <typename genType>
-	GLM_FUNC_QUALIFIER genType higherMultiple(genType Source, genType Multiple)
-	{
-		return detail::compute_ceilMultiple<std::numeric_limits<genType>::is_iec559, std::numeric_limits<genType>::is_signed>::call(Source, Multiple);
-	}
-
+	/// Convert a linear color to sRGB color using a standard gamma correction
 	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_QUALIFIER vecType<T, P> higherMultiple(vecType<T, P> const & Source, vecType<T, P> const & Multiple)
-	{
-		return detail::functor2<T, P, vecType>::call(higherMultiple, Source, Multiple);
-	}
+	GLM_FUNC_DECL vecType<T, P> convertLinearToSRGB(vecType<T, P> const & ColorLinear);
 
-	//////////////////////
-	// lowerMultiple
-
-	template <typename genType>
-	GLM_FUNC_QUALIFIER genType lowerMultiple(genType Source, genType Multiple)
-	{
-		return detail::compute_floorMultiple<std::numeric_limits<genType>::is_iec559, std::numeric_limits<genType>::is_signed>::call(Source, Multiple);
-	}
-
+	/// Convert a linear color to sRGB color using a custom gamma correction	
 	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_QUALIFIER vecType<T, P> lowerMultiple(vecType<T, P> const & Source, vecType<T, P> const & Multiple)
-	{
-		return detail::functor2<T, P, vecType>::call(lowerMultiple, Source, Multiple);
-	}
-}//namespace glm
+	GLM_FUNC_DECL vecType<T, P> convertLinearToSRGB(vecType<T, P> const & ColorLinear, T Gamma);
+
+	/// Convert a sRGB color to linear color using a standard gamma correction
+	template <typename T, precision P, template <typename, precision> class vecType>
+	GLM_FUNC_DECL vecType<T, P> convertSRGBToLinear(vecType<T, P> const & ColorSRGB);
+
+	/// Convert a sRGB color to linear color using a custom gamma correction
+	template <typename T, precision P, template <typename, precision> class vecType>
+	GLM_FUNC_DECL vecType<T, P> convertSRGBToLinear(vecType<T, P> const & ColorSRGB, T Gamma);
+
+	/// @}
+} //namespace glm
+
+#include "color_space.inl"

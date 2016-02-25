@@ -24,9 +24,9 @@
 /// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 /// THE SOFTWARE.
 ///
-/// @ref gtc_color
-/// @file glm/gtc/color.inl
-/// @date 2015-02-10 / 2015-02-10
+/// @ref gtc_color_space
+/// @file glm/gtc/color_space.inl
+/// @date 2015-02-10 / 2015-08-02
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -79,25 +79,25 @@ namespace detail
 }//namespace detail
 
 	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_QUALIFIER vecType<T, P> convertRgbToSrgb(vecType<T, P> const & ColorRGB)
+	GLM_FUNC_QUALIFIER vecType<T, P> convertLinearToSRGB(vecType<T, P> const & ColorLinear)
 	{
-		return detail::compute_rgbToSrgb<T, P, vecType>::call(ColorRGB, static_cast<T>(0.41666));
+		return detail::compute_rgbToSrgb<T, P, vecType>::call(ColorLinear, static_cast<T>(0.41666));
 	}
 
 	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_QUALIFIER vecType<T, P> convertRgbToSrgb(vecType<T, P> const & ColorRGB, T Gamma)
+	GLM_FUNC_QUALIFIER vecType<T, P> convertLinearToSRGB(vecType<T, P> const & ColorLinear, T Gamma)
 	{
-		return detail::compute_rgbToSrgb<T, P, vecType>::call(ColorRGB, static_cast<T>(1) / Gamma);
+		return detail::compute_rgbToSrgb<T, P, vecType>::call(ColorLinear, static_cast<T>(1) / Gamma);
 	}
 
 	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_QUALIFIER vecType<T, P> convertSrgbToRgb(vecType<T, P> const & ColorSRGB)
+	GLM_FUNC_QUALIFIER vecType<T, P> convertSRGBToLinear(vecType<T, P> const & ColorSRGB)
 	{
 		return detail::compute_srgbToRgb<T, P, vecType>::call(ColorSRGB, static_cast<T>(2.4));
 	}
 	
 	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_QUALIFIER vecType<T, P> convertSrgbToRgb(vecType<T, P> const & ColorSRGB, T Gamma)
+	GLM_FUNC_QUALIFIER vecType<T, P> convertSRGBToLinear(vecType<T, P> const & ColorSRGB, T Gamma)
 	{
 		return detail::compute_srgbToRgb<T, P, vecType>::call(ColorSRGB, Gamma);
 	}

@@ -39,6 +39,7 @@ namespace glm
 		highp,
 		mediump,
 		lowp,
+		simd,
 		defaultp = highp
 	};
 }//namespace glm

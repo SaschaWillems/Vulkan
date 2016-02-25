@@ -81,15 +81,15 @@ namespace glm
 		tmat4x4<T, P> PerspectiveMatrix(LocalMatrix);
 
 		for(length_t i = 0; i < 3; i++)
-			PerspectiveMatrix[i][3] = 0;
-		PerspectiveMatrix[3][3] = 1;
+			PerspectiveMatrix[i][3] = static_cast<T>(0);
+		PerspectiveMatrix[3][3] = static_cast<T>(1);
 
 		/// TODO: Fixme!
 		if(determinant(PerspectiveMatrix) == static_cast<T>(0))
 			return false;
 
 		// First, isolate perspective.  This is the messiest.
-		if(LocalMatrix[0][3] != 0 || LocalMatrix[1][3] != 0 || LocalMatrix[2][3] != 0)
+		if(LocalMatrix[0][3] != static_cast<T>(0) || LocalMatrix[1][3] != static_cast<T>(0) || LocalMatrix[2][3] != static_cast<T>(0))
 		{
 			// rightHandSide is the right hand side of the equation.
 			tvec4<T, P> RightHandSide;
@@ -108,8 +108,8 @@ namespace glm
 			//  v4MulPointByMatrix(rightHandSide, transposedInversePerspectiveMatrix, perspectivePoint);
 
 			// Clear the perspective partition
-			LocalMatrix[0][3] = LocalMatrix[1][3] = LocalMatrix[2][3] = 0;
-			LocalMatrix[3][3] = 1;
+			LocalMatrix[0][3] = LocalMatrix[1][3] = LocalMatrix[2][3] = static_cast<T>(0);
+			LocalMatrix[3][3] = static_cast<T>(1);
 		}
 		else
 		{
@@ -186,38 +186,38 @@ namespace glm
 
 		T s, t, x, y, z, w;
 
-		t = Row[0][0] + Row[1][1] + Row[2][2] + 1.0;
+		t = Row[0][0] + Row[1][1] + Row[2][2] + static_cast<T>(1);
 
-		if(t > 1e-4)
+		if(t > static_cast<T>(1e-4))
 		{
-			s = 0.5 / sqrt(t);
-			w = 0.25 / s;
+			s = static_cast<T>(0.5) / sqrt(t);
+			w = static_cast<T>(0.25) / s;
 			x = (Row[2][1] - Row[1][2]) * s;
 			y = (Row[0][2] - Row[2][0]) * s;
 			z = (Row[1][0] - Row[0][1]) * s;
 		}
 		else if(Row[0][0] > Row[1][1] && Row[0][0] > Row[2][2])
 		{ 
-			s = sqrt (1.0 + Row[0][0] - Row[1][1] - Row[2][2]) * 2.0; // S=4*qx 
-			x = 0.25 * s;
+			s = sqrt (static_cast<T>(1) + Row[0][0] - Row[1][1] - Row[2][2]) * static_cast<T>(2); // S=4*qx 
+			x = static_cast<T>(0.25) * s;
 			y = (Row[0][1] + Row[1][0]) / s; 
 			z = (Row[0][2] + Row[2][0]) / s; 
 			w = (Row[2][1] - Row[1][2]) / s;
 		}
 		else if(Row[1][1] > Row[2][2])
 		{ 
-			s = sqrt (1.0 + Row[1][1] - Row[0][0] - Row[2][2]) * 2.0; // S=4*qy
+			s = sqrt (static_cast<T>(1) + Row[1][1] - Row[0][0] - Row[2][2]) * static_cast<T>(2); // S=4*qy
 			x = (Row[0][1] + Row[1][0]) / s; 
-			y = 0.25 * s;
+			y = static_cast<T>(0.25) * s;
 			z = (Row[1][2] + Row[2][1]) / s; 
 			w = (Row[0][2] - Row[2][0]) / s;
 		}
 		else
 		{ 
-			s = sqrt(1.0 + Row[2][2] - Row[0][0] - Row[1][1]) * 2.0; // S=4*qz
+			s = sqrt(static_cast<T>(1) + Row[2][2] - Row[0][0] - Row[1][1]) * static_cast<T>(2); // S=4*qz
 			x = (Row[0][2] + Row[2][0]) / s;
 			y = (Row[1][2] + Row[2][1]) / s; 
-			z = 0.25 * s;
+			z = static_cast<T>(0.25) * s;
 			w = (Row[1][0] - Row[0][1]) / s;
 		}
 

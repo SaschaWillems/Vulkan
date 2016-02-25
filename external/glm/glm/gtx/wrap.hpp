@@ -63,6 +63,11 @@ namespace glm
 	template <typename genType> 
 	GLM_FUNC_DECL genType repeat(genType const & Texcoord);
 
+	/// Simulate GL_MIRRORED_REPEAT OpenGL wrap mode
+	/// @see gtx_wrap extension.
+	template <typename genType> 
+	GLM_FUNC_DECL genType mirrorClamp(genType const & Texcoord);
+
 	/// Simulate GL_MIRROR_REPEAT OpenGL wrap mode
 	/// @see gtx_wrap extension.
 	template <typename genType> 
