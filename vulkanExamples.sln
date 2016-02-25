@@ -53,6 +53,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "skeletalanimation", "skelet
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "distancefieldfonts", "distancefieldfonts\distancefieldfonts.vcxproj", "{ABBB2F3B-C176-4006-853F-FC695AEF5DA0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multithreading", "multithreading\multithreading.vcxproj", "{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -159,6 +161,10 @@ Global
 		{ABBB2F3B-C176-4006-853F-FC695AEF5DA0}.Debug|x64.Build.0 = Debug|x64
 		{ABBB2F3B-C176-4006-853F-FC695AEF5DA0}.Release|x64.ActiveCfg = Release|x64
 		{ABBB2F3B-C176-4006-853F-FC695AEF5DA0}.Release|x64.Build.0 = Release|x64
+		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Debug|x64.ActiveCfg = Debug|x64
+		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Debug|x64.Build.0 = Debug|x64
+		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Release|x64.ActiveCfg = Release|x64
+		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
