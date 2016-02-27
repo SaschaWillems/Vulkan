@@ -218,13 +218,16 @@ Thanks to the authors of these libraries :
 
 And a huge thanks to the Vulkan Working Group, Vulkan Adivsory Panel, the fine people at LunarG and everyone from the different IHVs that helped me get the examples up and working on their hardware!
 
-## Attributions
+## Attributions / Licenses
+Please note that (some) models and textures use separate licenses. Please comply to these when redistributing or using them in your own projects :
 - Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://www.humus.name/)
 - Armored knight model used in deferred example by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
 - Voyager model by [NASA](http://nasa3d.arc.nasa.gov/models)
 - Astroboy COLLADA model copyright 2008 Sony Computer Entertainment Inc.
 - Bear mug model used in tessellation example by [Aare](http://opengameart.org/users/aare)
 - Textures used in some examples by [Hugues Muller](http://www.yughues-folio.com)
+- Vulkan scene model (and derived models) by [Dominic Agoro-Ombaka](http://www.agorodesign.com/) and [Sascha Willems](http://www.saschawillems.de)
+- Vulkan and the Vulkan logo are trademarks of the [Khronos Group Inc.](http://www.khronos.org)
 
 ## External resources
 - [LunarG Vulkan SDK](https://vulkan.lunarg.com)
