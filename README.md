@@ -147,11 +147,11 @@ Demonstrates the use of multiple render targets to fill a G-Buffer for deferred 
 Deferred shading collects all values (color, normal, position) into different render targets in one pass thanks to multiple render targets, and then does all shading and lighting calculations based on these in scree space, thus allowing for much more light sources than traditional forward renderers.
 <br><br>
 
-## [Omnidirectional shadow mapping](shadowmap/)
+## [Omnidirectional shadow mapping](shadowmappingomni/)
 <img src="./screenshots/shadow_omnidirectional.png" height="96px" align="right">
 
 Uses a dynamic 32 bit floating point cube map for a point light source that casts shadows in all directions (unlike projective shadow mapping).
-The cube map faces contain thee distances from the light sources, which are then used in the scene rendering pass to determine if the fragment is shadowed or not.
+The cube map faces contain the distances from the light sources, which are then used in the scene rendering pass to determine if the fragment is shadowed or not.
 <br><br>
 
 ## [Spherical environment mapping](sphericalenvmapping/)

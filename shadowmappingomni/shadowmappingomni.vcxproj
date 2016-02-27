@@ -82,7 +82,7 @@
     <ClCompile Include="..\base\vulkandebug.cpp" />
     <ClCompile Include="..\base\vulkanexamplebase.cpp" />
     <ClCompile Include="..\base\vulkantools.cpp" />
-    <ClCompile Include="shadowmap.cpp" />
+    <ClCompile Include="shadowmappingomni.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\base\vulkandebug.h" />
