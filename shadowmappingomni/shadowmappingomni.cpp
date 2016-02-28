@@ -940,11 +940,11 @@ public:
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 #ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmap/scene.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmap/scene.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmapomni/scene.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmapomni/scene.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 #else
-		shaderStages[0] = loadShader("./../data/shaders/shadowmap/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/shadowmap/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader("./../data/shaders/shadowmapomni/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader("./../data/shaders/shadowmapomni/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 #endif
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
@@ -969,11 +969,11 @@ public:
 
 		// Cube map display pipeline
 #ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmap/cubemapdisplay.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmap/cubemapdisplay.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmapomni/cubemapdisplay.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmapomni/cubemapdisplay.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 #else
-		shaderStages[0] = loadShader("./../data/shaders/shadowmap/cubemapdisplay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/shadowmap/cubemapdisplay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader("./../data/shaders/shadowmapomni/cubemapdisplay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader("./../data/shaders/shadowmapomni/cubemapdisplay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 #endif
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.cubeMap);
@@ -981,11 +981,11 @@ public:
 
 		// Offscreen pipeline
 #ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmap/offscreen.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmap/offscreen.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmapomni/offscreen.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmapomni/offscreen.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 #else
-		shaderStages[0] = loadShader("./../data/shaders/shadowmap/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/shadowmap/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader("./../data/shaders/shadowmapomni/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader("./../data/shaders/shadowmapomni/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 #endif
 
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
