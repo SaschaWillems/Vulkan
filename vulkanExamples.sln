@@ -55,6 +55,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "distancefieldfonts", "dista
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multithreading", "multithreading\multithreading.vcxproj", "{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shadowmapping", "shadowmapping\shadowmapping.vcxproj", "{BF22CE41-AA83-45FE-813A-451E2EDF58D9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -165,6 +167,10 @@ Global
 		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Debug|x64.Build.0 = Debug|x64
 		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Release|x64.ActiveCfg = Release|x64
 		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Release|x64.Build.0 = Release|x64
+		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Debug|x64.ActiveCfg = Debug|x64
+		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Debug|x64.Build.0 = Debug|x64
+		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Release|x64.ActiveCfg = Release|x64
+		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
