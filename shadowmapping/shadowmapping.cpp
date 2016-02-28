@@ -224,7 +224,7 @@ public:
 		assert(!err);
 		vkGetImageMemoryRequirements(device, offScreenFrameBuf.textureTarget.image, &memReqs);
 		memAllocInfo.allocationSize = memReqs.size;
-		assert(getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex));
+		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex);
 		err = vkAllocateMemory(device, &memAllocInfo, nullptr, &offScreenFrameBuf.textureTarget.deviceMemory);
 		assert(!err);
 		err = vkBindImageMemory(device, offScreenFrameBuf.textureTarget.image, offScreenFrameBuf.textureTarget.deviceMemory, 0);
@@ -845,11 +845,11 @@ public:
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 #ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmap/quad.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmap/quad.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmapping/quad.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmapping/quad.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 #else
-		shaderStages[0] = loadShader("./../data/shaders/smap/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/smap/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader("./../data/shaders/shadowmapping/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader("./../data/shaders/shadowmapping/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 #endif
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
@@ -876,11 +876,11 @@ public:
 
 		// 3D scene
 #ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmap/scene.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmap/scene.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmapping/scene.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmapping/scene.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 #else
-		shaderStages[0] = loadShader("./../data/shaders/smap/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/smap/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader("./../data/shaders/shadowmapping/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader("./../data/shaders/shadowmapping/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 #endif
 
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
@@ -890,11 +890,11 @@ public:
 
 		// Offscreen pipeline
 #ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmap/offscreen.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmap/offscreen.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmapping/offscreen.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmapping/offscreen.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 #else
-		shaderStages[0] = loadShader("./../data/shaders/smap/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/smap/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader("./../data/shaders/shadowmapping/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader("./../data/shaders/shadowmapping/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 #endif
 
 		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
