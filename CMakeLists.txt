@@ -84,7 +84,8 @@ set(EXAMPLES
 	pipelines
 	pushconstants
 	radialblur
-	shadowmap
+	shadowmapping
+	shadowmappingomni
 	skeletalanimation
 	sphericalenvmapping
 	tessellation
