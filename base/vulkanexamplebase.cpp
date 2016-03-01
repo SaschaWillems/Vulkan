@@ -109,10 +109,12 @@ void VulkanExampleBase::createCommandBuffers()
 	VkResult vkRes = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data());
 	assert(!vkRes);
 
-	// Create one command buffer for submitting the
-	// post present image memory barrier
+	// Command buffers for submitting present barriers
 	cmdBufAllocateInfo.commandBufferCount = 1;
-
+	// Pre present
+	vkRes = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &prePresentCmdBuffer);
+	assert(!vkRes);
+	// Post present
 	vkRes = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &postPresentCmdBuffer);
 	assert(!vkRes);
 }
@@ -120,6 +122,7 @@ void VulkanExampleBase::createCommandBuffers()
 void VulkanExampleBase::destroyCommandBuffers()
 {
 	vkFreeCommandBuffers(device, cmdPool, (uint32_t)drawCmdBuffers.size(), drawCmdBuffers.data());
+	vkFreeCommandBuffers(device, cmdPool, 1, &prePresentCmdBuffer);
 	vkFreeCommandBuffers(device, cmdPool, 1, &postPresentCmdBuffer);
 }
 
@@ -347,7 +350,34 @@ void VulkanExampleBase::renderLoop()
 #endif
 }
 
-// todo : comment
+void VulkanExampleBase::submitPrePresentBarrier(VkImage image)
+{
+	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+
+	VkResult vkRes = vkBeginCommandBuffer(prePresentCmdBuffer, &cmdBufInfo);
+	assert(!vkRes);
+
+	VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(image);
+	vkCmdPipelineBarrier(
+		prePresentCmdBuffer,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_FLAGS_NONE,
+		0, nullptr, // No memory barriers,
+		0, nullptr, // No buffer barriers,
+		1, &prePresentBarrier);
+
+	vkRes = vkEndCommandBuffer(prePresentCmdBuffer);
+	assert(!vkRes);
+
+	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &prePresentCmdBuffer;
+
+	vkRes = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+	assert(!vkRes);
+}
+
 void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
 {
 	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
@@ -362,22 +392,18 @@ void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
 		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 		0,
-		0, NULL, // No memory barriers,
-		0, NULL, // No buffer barriers,
+		0, nullptr, // No memory barriers,
+		0, nullptr, // No buffer barriers,
 		1, &postPresentBarrier);
 
 	vkRes = vkEndCommandBuffer(postPresentCmdBuffer);
 	assert(!vkRes);
 
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &postPresentCmdBuffer;
 
 	vkRes = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-	assert(!vkRes);
-
-	vkRes = vkQueueWaitIdle(queue);
 	assert(!vkRes);
 }
 

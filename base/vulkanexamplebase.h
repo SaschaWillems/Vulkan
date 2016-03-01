@@ -68,8 +68,10 @@ protected:
 	VkCommandPool cmdPool;
 	// Command buffer used for setup
 	VkCommandBuffer setupCmdBuffer = VK_NULL_HANDLE;
-	// Command buffer for submitting a post present barrier
+	// Command buffer for submitting a post present image barrier
 	VkCommandBuffer postPresentCmdBuffer = VK_NULL_HANDLE;
+	// Command buffer for submitting a pre present image barrier
+	VkCommandBuffer prePresentCmdBuffer = VK_NULL_HANDLE;
 	// Command buffers used for rendering
 	std::vector<VkCommandBuffer> drawCmdBuffers;
 	// Global render pass for frame buffer writes
@@ -230,8 +232,12 @@ public:
 	// Start the main render loop
 	void renderLoop();
 
+	// Submit a pre present image barrier to the queue
+	// Transforms the (framebuffer) image layout from color attachment to present(khr) for presenting to the swap chain
+	void submitPrePresentBarrier(VkImage image);
+
 	// Submit a post present image barrier to the queue
-	// Transforms image layout back to color attachment layout
+	// Transforms the (framebuffer) image layout back from present(khr) to color attachment layout
 	void submitPostPresentBarrier(VkImage image);
 };
 
