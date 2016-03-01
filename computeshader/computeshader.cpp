@@ -99,6 +99,8 @@ public:
 
 		vkTools::destroyUniformData(device, &uniformDataVS);
 
+		vkFreeCommandBuffers(device, cmdPool, 1, &computeCmdBuffer);
+
 		textureLoader->destroyTexture(textureColorMap);
 	}
 
@@ -293,17 +295,12 @@ public:
 
 	}
 
-	void reBuildComputeCommandBuffer()
-	{
-		vkFreeCommandBuffers(device, cmdPool, 1, &computeCmdBuffer);
-		buildComputeCommandBuffer();
-	}
-
 	void buildComputeCommandBuffer()
 	{
-		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();;
+		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
-		vkBeginCommandBuffer(computeCmdBuffer, &cmdBufInfo);
+		VkResult err = vkBeginCommandBuffer(computeCmdBuffer, &cmdBufInfo);
+		assert(!err);
 
 		vkCmdBindPipeline(computeCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines.compute[pipelines.computeIndex]);
 		vkCmdBindDescriptorSets(computeCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, &computeDescriptorSet, 0, 0);
@@ -431,10 +428,8 @@ public:
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1)
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4),
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -658,7 +653,7 @@ public:
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Sampled image (read)
 			vkTools::initializers::descriptorSetLayoutBinding(
-			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				VK_SHADER_STAGE_COMPUTE_BIT,
 				0),
 			// Binding 1 : Sampled image (write)
@@ -858,12 +853,12 @@ public:
 		if ((dir < 0) && (pipelines.computeIndex > 0))
 		{
 			pipelines.computeIndex--;
-			reBuildComputeCommandBuffer();
+			buildComputeCommandBuffer();
 		}
 		if ((dir > 0) && (pipelines.computeIndex < pipelines.compute.size()-1))
 		{
 			pipelines.computeIndex++;
-			reBuildComputeCommandBuffer();
+			buildComputeCommandBuffer();
 		}
 	}
 };
