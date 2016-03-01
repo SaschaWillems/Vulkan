@@ -27,7 +27,7 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 //#define USE_GLSL
-#define ENABLE_VALIDATION true
+#define ENABLE_VALIDATION false
 
 // 16 bits of depth is enough for such a small scene
 #define DEPTH_FORMAT VK_FORMAT_D16_UNORM
@@ -552,6 +552,8 @@ public:
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
 		err = swapChain.queuePresent(queue, currentBuffer);
 		assert(!err);
 
@@ -560,13 +562,12 @@ public:
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
-		assert(err == VK_SUCCESS);
+		assert(!err);
 	}
 
 	void loadMeshes()
 	{
 		loadMesh("./../data/models/vulkanscene_shadow.dae", &meshes.scene, vertexLayout, 4.0f);
-		//		demoMesh->LoadMesh("./../data/models/shadowscene_torus.x")
 	}
 
 	void generateQuad()
@@ -736,7 +737,7 @@ public:
 		{
 			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
-			descriptorSet,
+				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformDataVS.descriptor),
@@ -758,7 +759,7 @@ public:
 		{
 			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
-			descriptorSets.offscreen,
+				descriptorSets.offscreen,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformDataOffscreenVS.descriptor),
@@ -932,7 +933,7 @@ public:
 		// Offsvreen vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			sizeof(uniformDataOffscreenVS),
+			sizeof(uboOffscreenVS),
 			nullptr,
 			&uniformDataOffscreenVS.buffer,
 			&uniformDataOffscreenVS.memory,
