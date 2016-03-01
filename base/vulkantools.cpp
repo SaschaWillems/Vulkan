@@ -134,6 +134,13 @@ namespace vkTools
 			imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 		}
 
+		// Old layout is depth/stencil attachment
+		// Make sure any writes to the depth/stencil buffer have been finished
+		if (oldImageLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+		{
+			imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		}
+
 		// Old layout is transfer source
 		// Make sure any reads from the image have been finished
 		if (oldImageLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
