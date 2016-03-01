@@ -11,10 +11,11 @@ layout (location = 2) in vec3 inNormal;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
-    vec3 r = reflect( inEyePos, inNormal );
-    float m = 2.0 * sqrt( pow(r.x, 2.0) + pow(r.y, 2.0) + pow(r.z + 1.0, 2.0));
-    vec2 vN = r.xy / m + .5;	
+	vec3 r = reflect( inEyePos, inNormal );
+	vec3 r2 = vec3( r.x, r.y, r.z + 1.0 );
+	float m = 2.0 * length( r2 );
+	vec2 vN = r.xy / m + .5;
 	outFragColor = vec4( texture( matCap, vN ).rgb * (clamp(inColor.r * 2, 0.0, 1.0)), 1.0 );
 }
