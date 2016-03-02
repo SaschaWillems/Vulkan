@@ -27,10 +27,8 @@ void main()
 	mat4 modelView = ubo.view * ubo.model;
 	outEyePos = normalize( vec3( modelView * inPos ) );
 	outTexIndex = ubo.texIndex;
-//	outNormal = normalize( mat3(ubo.normal) * inNormal );
-	outNormal = normalize(inNormal);
+	outNormal = normalize( mat3(ubo.normal) * inNormal );
 	vec3 r = reflect( outEyePos, outNormal );
 	float m = 2.0 * sqrt( pow(r.x, 2.0) + pow(r.y, 2.0) + pow(r.z + 1.0, 2.0));
-	//vN = r.xy / m + .5;
 	gl_Position = ubo.projection * modelView * inPos;	
 }
