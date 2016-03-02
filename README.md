@@ -27,11 +27,7 @@ Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found he
 Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder.
 
 ## Vendor support
-The examples have been tested on different vendors, but since **most drivers are beta** not all examples may work with all vendors.
-
-Currently all examples should run on NVIDIA, and most of them on AMD too. Demos that currently won't work with one IHV will be fixed as soon as possible.
-
-The android examples have only been tested on NVIDIA hardware yet.
+The examples have been tested to work on recent NVIDIA and AMD GPUs, but since **most drivers are beta** not all examples may work with all vendors.
 
 ## API-Version
 
@@ -164,7 +160,9 @@ The cube map faces contain the distances from the light sources, which are then 
 ## [Spherical environment mapping](sphericalenvmapping/)
 <img src="./screenshots/spherical_env_mapping.png" height="96px" align="right">
 
-Uses a matcap texture (spherical reflection map) to fake complex lighting. It's based on [this article](https://github.com/spite/spherical-environment-mapping).
+Uses a (spherical) material capture texture containing environment lighting and reflection information to fake complex lighting. The example also uses a texture array to store (and select) several material caps that can be toggled at runtime.
+
+ The technique is based on [this article](https://github.com/spite/spherical-environment-mapping).
 <br><br>
 
 ## [Parallax mapping](parallaxmapping/)
@@ -182,7 +180,7 @@ Generating curved PN-Triangles on the GPU using tessellation shaders to add deta
 ## [(Tessellation shader) Displacement mapping](tessellation/)
 <img src="./screenshots/tess_displacement.jpg" height="96px" align="right">
 
-Uses tessellation shaders to generate and displace geometry based on a displacement map (heightmap).
+Uses tessellation shaders to generate additional details and displace geometry based on a displacement map (heightmap).
 <br><br>
 
 ## [(Compute shader) Particle system](computeshader/)
