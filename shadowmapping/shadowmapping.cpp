@@ -1166,11 +1166,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 #else 
 
-static void handle_event(const xcb_generic_event_t *event)
+static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
 	{
-		vulkanExample->handle_event(event);
+		vulkanExample->handleEvent(event);
 	}
 }
 #endif
