@@ -459,6 +459,9 @@ public:
 			break;
 		}
 
+		// Render scene from cube face's point of view
+		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
 		// Update shader push constant block
 		// Contains current face view matrix
 		vkCmdPushConstants(
@@ -469,11 +472,8 @@ public:
 			sizeof(glm::mat4),
 			&viewMatrix);
 
-		// Render scene from cube face's point of view
-		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
 		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
+		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
 
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
@@ -820,7 +820,7 @@ public:
 		// Push constants for cube map face view matrices
 		VkPushConstantRange pushConstantRange =
 			vkTools::initializers::pushConstantRange(
-				VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+				VK_SHADER_STAGE_VERTEX_BIT,
 				sizeof(glm::mat4),
 				0);
 

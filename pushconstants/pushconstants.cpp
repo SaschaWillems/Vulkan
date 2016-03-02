@@ -172,17 +172,17 @@ public:
 #undef sin_t
 #undef cos_t
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
-
 			// Submit via push constant (rather than a UBO)
 			vkCmdPushConstants(
 				drawCmdBuffers[i],
 				pipelineLayout,
 				VK_SHADER_STAGE_VERTEX_BIT,
-				VK_FLAGS_NONE,
+				0,
 				sizeof(pushConstants),
 				pushConstants.data());
+
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
@@ -355,7 +355,7 @@ public:
 		// inside push constants
 		VkPushConstantRange pushConstantRange =
 			vkTools::initializers::pushConstantRange(
-				VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+				VK_SHADER_STAGE_VERTEX_BIT,
 				sizeof(pushConstants),
 				0);
 
