@@ -1,5 +1,5 @@
 /*
-* Vulkan Example - Spherical Environment Mapping
+* Vulkan Example - Spherical Environment Mapping, using different mat caps
 *
 * Based on https://www.clicktorelease.com/blog/creating-spherical-environment-mapping-shader
 *
@@ -15,6 +15,7 @@
 #include <vector>
 
 #define GLM_FORCE_RADIANS
+#define GLM_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -49,7 +50,7 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture matCap;
+		vkTools::VulkanTexture matCapArray;
 	} textures;
 
 	struct {
@@ -61,6 +62,7 @@ public:
 		glm::mat4 model;
 		glm::mat4 normal;
 		glm::mat4 view;
+		int32_t texIndex = 0;
 	} uboVS;
 
 	struct {
@@ -93,15 +95,18 @@ public:
 
 		vkTools::destroyUniformData(device, &uniformData.vertexShader);
 
-		textureLoader->destroyTexture(textures.matCap);
+		textureLoader->destroyTexture(textures.matCapArray);
 	}
 
 	void loadTextures()
 	{
-		textureLoader->loadTexture(
-			"./../data/textures/matcaps/jade.dds", 
-			VK_FORMAT_R8G8B8A8_UNORM, 
-			&textures.matCap);
+		// Several mat caps are stored in a single texture array
+		// so they can easily be switched inside the shader 
+		// just by updating the index in a uniform buffer
+		textureLoader->loadTextureArray(
+			"./../data/textures/matcap_array_rgba.ktx",
+			VK_FORMAT_R8G8B8A8_UNORM,
+			&textures.matCapArray);
 	}
 
 	void buildCommandBuffers()
@@ -158,16 +163,6 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_FLAGS_NONE, 
-				0, nullptr,
-				0, nullptr,
-				1, &prePresentBarrier);
-
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
 		}
@@ -196,6 +191,8 @@ public:
 		// Submit draw command buffer
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
+
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = swapChain.queuePresent(queue, currentBuffer);
 		assert(!err);
@@ -328,8 +325,8 @@ public:
 		// Color map image descriptor
 		VkDescriptorImageInfo texDescriptorColorMap =
 			vkTools::initializers::descriptorImageInfo(
-				textures.matCap.sampler,
-				textures.matCap.view,
+				textures.matCapArray.sampler,
+				textures.matCapArray.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -404,11 +401,11 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 #ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/sem.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/sem.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShaderGLSL("./../data/shaders/sphericalenvmapping/sem.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShaderGLSL("./../data/shaders/sphericalenvmapping/sem.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 #else
-		shaderStages[0] = loadShader("./../data/shaders/sem.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/sem.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader("./../data/shaders/sphericalenvmapping/sem.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader("./../data/shaders/sphericalenvmapping/sem.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 #endif
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
@@ -434,8 +431,6 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		VkResult err;
-
 		// Vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -450,7 +445,7 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
 
 		uboVS.view = glm::lookAt(
 			glm::vec3(0, 0, -zoom),
@@ -459,9 +454,9 @@ public:
 			);
 
 		uboVS.model = glm::mat4();
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uboVS.normal = glm::inverseTranspose(uboVS.view * uboVS.model);
 
@@ -501,6 +496,20 @@ public:
 		updateUniformBuffers();
 	}
 
+	void changeMatCapIndex(uint32_t delta)
+	{
+		uboVS.texIndex += delta;
+		if (uboVS.texIndex < 0)
+		{
+			uboVS.texIndex = 0;
+		}
+		if (uboVS.texIndex > textures.matCapArray.layerCount)
+		{
+			uboVS.texIndex = textures.matCapArray.layerCount;
+		}
+		updateUniformBuffers();
+	}
+
 };
 
 VulkanExample *vulkanExample;
@@ -512,6 +521,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
+		if (uMsg == WM_KEYDOWN)
+		{
+			switch (wParam)
+			{
+			case VK_ADD:
+				vulkanExample->changeMatCapIndex(1);
+				break;
+			case VK_SUBTRACT:
+				vulkanExample->changeMatCapIndex(-1);
+				break;
+			}
+		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
