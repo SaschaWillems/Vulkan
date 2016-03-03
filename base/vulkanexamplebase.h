@@ -163,6 +163,9 @@ public:
 	// Can be overriden in derived class to e.g. update uniform buffers 
 	// Containing view dependant matrices
 	virtual void viewChanged();
+	// Called if a key is pressed
+	// Can be overriden derived class to do custom key handling
+	virtual void keyPressed(uint32_t keyCode);
 
 	// Get memory type for a given memory allocation (flags and bits)
 	VkBool32 getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex);
