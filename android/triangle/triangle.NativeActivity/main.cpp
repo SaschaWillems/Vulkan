@@ -234,8 +234,8 @@ struct VulkanExample
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
 		// Swap chain
-		swapChain.init(instance, physicalDevice, device);
-		swapChain.initSwapChain(app->window);
+		swapChain.connect(instance, physicalDevice, device);
+		swapChain.initSurface(app->window);
 
 		// Command buffer pool
 		VkCommandPoolCreateInfo cmdPoolInfo = {};
@@ -254,14 +254,16 @@ struct VulkanExample
 		createSetupCommandBuffer();
 
 		startSetupCommandBuffer();
-		swapChain.setup(setupCmdBuffer, &width, &height);
-		flushSetupCommandBuffer();
 
-		createCommandBuffers();
+		swapChain.create(setupCmdBuffer, &width, &height);
 
 		setupDepthStencil();
 		setupRenderPass();
 		setupFrameBuffer();
+
+		flushSetupCommandBuffer();
+
+		createCommandBuffers();
 
 		prepareVertices();
 		prepareUniformBuffers();
