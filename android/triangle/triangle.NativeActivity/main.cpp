@@ -252,7 +252,6 @@ struct VulkanExample
 		assert(!err);
 
 		createSetupCommandBuffer();
-
 		startSetupCommandBuffer();
 
 		swapChain.create(setupCmdBuffer, &width, &height);
