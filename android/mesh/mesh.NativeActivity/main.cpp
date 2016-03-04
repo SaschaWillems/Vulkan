@@ -22,6 +22,7 @@
 #include "tiny_obj_loader.h"
 
 #define GLM_FORCE_RADIANS
+#define GLM_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -29,7 +30,6 @@
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define deg_to_rad(deg) deg * float(M_PI / 180)
 
 struct saved_state {
 	glm::vec3 rotation;
@@ -554,14 +554,14 @@ struct VulkanExample
 	void updateUniformBuffers()
 	{
 		// Update matrices
-		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
 
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, state.zoom));
 
 		uboVS.model = viewMatrix;
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(state.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(state.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(state.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(state.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(state.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(state.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 
 		// Map uniform buffer and update it

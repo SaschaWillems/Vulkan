@@ -17,6 +17,7 @@
 #include <android/asset_manager.h>
 
 #define GLM_FORCE_RADIANS
+#define GLM_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -24,7 +25,6 @@
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define deg_to_rad(deg) deg * float(M_PI / 180)
 #define PARTICLE_COUNT 4 * 1024
 
 struct saved_state {
@@ -568,8 +568,8 @@ struct VulkanExample
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
 		// Swap chain
-		swapChain.init(instance, physicalDevice, device);
-		swapChain.initSwapChain(app->window);
+		swapChain.connect(instance, physicalDevice, device);
+		swapChain.initSurface(app->window);
 
 		// Command buffer pool
 		VkCommandPoolCreateInfo cmdPoolInfo = {};
@@ -587,19 +587,21 @@ struct VulkanExample
 
 		createSetupCommandBuffer();
 		startSetupCommandBuffer();
-		swapChain.setup(setupCmdBuffer, &width, &height);
-		flushSetupCommandBuffer();
-
-		createCommandBuffers();
+		
+		swapChain.create(setupCmdBuffer, &width, &height);
 
 		setupDepthStencil();
 		setupRenderPass();
 		setupFrameBuffer();
 
+		flushSetupCommandBuffer();
+
 		loadTexture(
 			"textures/android_robot.ktx", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			false);
+
+		createCommandBuffers();
 
 		// Compute stuff
 		getComputeQueue();
@@ -785,8 +787,8 @@ struct VulkanExample
 	void updateUniformBuffers()
 	{
 		computeUbo.deltaT = (1.0f / 60.0f) * 4.0f;
-		computeUbo.destX = sin(deg_to_rad(timer*360.0)) * 0.75f;
-		computeUbo.destY = cos(deg_to_rad(timer*360.0)) * 0.10f;
+		computeUbo.destX = sin(glm::radians(timer*360.0)) * 0.75f;
+		computeUbo.destY = cos(glm::radians(timer*360.0)) * 0.10f;
 		uint8_t *pData;
 		VkResult err = vkMapMemory(device, uniformDataCompute.memory, 0, sizeof(computeUbo), 0, (void **)&pData);
 		assert(!err);
