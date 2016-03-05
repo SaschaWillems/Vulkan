@@ -772,6 +772,7 @@ public:
 
 		// Image descriptor for the shadow map texture
 		texDescriptor.sampler = offScreenFrameBuf.textureTarget.sampler;
+		texDescriptor.imageView = offScreenFrameBuf.textureTarget.view;
 
 		std::vector<VkWriteDescriptorSet> sceneDescriptorSets =
 		{
