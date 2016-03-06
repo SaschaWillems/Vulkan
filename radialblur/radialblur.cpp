@@ -584,7 +584,6 @@ public:
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			VkImageMemoryBarrier *pMemoryBarrier = &prePresentBarrier;
 			vkCmdPipelineBarrier(
 				drawCmdBuffers[i],
 				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,

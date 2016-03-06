@@ -189,7 +189,6 @@ public:
 			prePresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };			
 			prePresentBarrier.image = swapChain.buffers[i].image;
 
-			VkImageMemoryBarrier *pMemoryBarrier = &prePresentBarrier;
 			vkCmdPipelineBarrier(
 				drawCmdBuffers[i], 
 				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
@@ -407,13 +406,11 @@ public:
 		vertices.attributeDescriptions[0].location = 0;
 		vertices.attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 		vertices.attributeDescriptions[0].offset = 0;
-		vertices.attributeDescriptions[0].binding = 0;
 		// Location 1 : Color
 		vertices.attributeDescriptions[1].binding = VERTEX_BUFFER_BIND_ID;
 		vertices.attributeDescriptions[1].location = 1;
 		vertices.attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 		vertices.attributeDescriptions[1].offset = sizeof(float) * 3;
-		vertices.attributeDescriptions[1].binding = 0;
 
 		// Assign to vertex buffer
 		vertices.vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
