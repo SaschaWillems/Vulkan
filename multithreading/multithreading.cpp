@@ -356,16 +356,6 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_FLAGS_NONE,
-				0, nullptr,
-				0, nullptr,
-				1, &prePresentBarrier);
-
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
 		}
@@ -381,12 +371,11 @@ public:
 		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -407,12 +396,12 @@ public:
 		} while (err == VK_TIMEOUT);
 		assert(!err);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
 
 		vkDestroyFence(device, renderFence, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
 		assert(!err);

@@ -22,7 +22,6 @@
 #include "vulkanMeshLoader.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 // Vertex layout for this example
 std::vector<vkMeshLoader::VertexLayout> vertexLayout =
@@ -199,16 +198,6 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_FLAGS_NONE, 
-				0, nullptr,
-				0, nullptr,
-				1, &prePresentBarrier);
-
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
 		}
@@ -217,30 +206,25 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
 
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
+		// Get next image in the swap chain (back/front buffer)
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
-		assert(!err);
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
+		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
 		assert(!err);
@@ -472,17 +456,10 @@ public:
 		// Tessellation pipeline
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/displacement/base.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/displacement/base.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-		shaderStages[2] = loadShaderGLSL("./../data/shaders/displacement/displacement.tesc", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShaderGLSL("./../data/shaders/displacement/displacement.tese", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/displacement/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/displacement/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		shaderStages[2] = loadShader("./../data/shaders/displacement/displacement.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 		shaderStages[3] = loadShader("./../data/shaders/displacement/displacement.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
-#endif
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -513,13 +490,8 @@ public:
 
 		// Pass through pipelines
 		// Load pass through tessellation shaders (Vert and frag are reused)
-#ifdef USE_GLSL
-		shaderStages[2] = loadShaderGLSL("./../data/shaders/displacement/passthrough.tesc", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShaderGLSL("./../data/shaders/displacement/passthrough.tese", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
-#else
 		shaderStages[2] = loadShader("./../data/shaders/displacement/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 		shaderStages[3] = loadShader("./../data/shaders/displacement/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
-#endif		
 		// Solid
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solidPassThrough);

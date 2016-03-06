@@ -22,7 +22,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 
 // Vertex layout for this example
@@ -373,16 +372,6 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_FLAGS_NONE,
-				0, nullptr,
-				0, nullptr,
-				1, &prePresentBarrier);
-
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
 		}
@@ -391,32 +380,25 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
-		// Submit draw command buffer
+		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
 		assert(!err);
@@ -631,13 +613,8 @@ public:
 		// Skybox pipeline (background cube)
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/cubemap/skybox.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/cubemap/skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/cubemap/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/cubemap/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -660,13 +637,8 @@ public:
 		assert(!err);
 
 		// Cube map reflect pipeline
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/cubemap/reflect.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/cubemap/reflect.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/cubemap/reflect.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/cubemap/reflect.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.reflect);
 		assert(!err);

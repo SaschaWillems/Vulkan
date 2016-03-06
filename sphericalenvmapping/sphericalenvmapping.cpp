@@ -1,6 +1,8 @@
 /*
 * Vulkan Example - Spherical Environment Mapping, using different mat caps
 *
+* Use +/-/space toggle through different material captures
+*
 * Based on https://www.clicktorelease.com/blog/creating-spherical-environment-mapping-shader
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
@@ -24,7 +26,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 
 // Vertex layout for this example
@@ -171,34 +172,25 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
-		// Submit draw command buffer
+		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
 		assert(!err);
@@ -399,13 +391,8 @@ public:
 		// Spherical environment rendering pipeline
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/sphericalenvmapping/sem.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/sphericalenvmapping/sem.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/sphericalenvmapping/sem.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/sphericalenvmapping/sem.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -495,16 +482,30 @@ public:
 		updateUniformBuffers();
 	}
 
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x6B:
+		case 0x20:
+			changeMatCapIndex(1);
+			break;
+		case 0x6D:
+			changeMatCapIndex(-1);
+			break;
+		}
+	}
+
 	void changeMatCapIndex(uint32_t delta)
 	{
 		uboVS.texIndex += delta;
 		if (uboVS.texIndex < 0)
 		{
-			uboVS.texIndex = 0;
+			uboVS.texIndex = textures.matCapArray.layerCount-1;
 		}
-		if (uboVS.texIndex > textures.matCapArray.layerCount)
+		if (uboVS.texIndex >= textures.matCapArray.layerCount)
 		{
-			uboVS.texIndex = textures.matCapArray.layerCount;
+			uboVS.texIndex = 0;
 		}
 		updateUniformBuffers();
 	}
@@ -520,18 +521,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case VK_ADD:
-				vulkanExample->changeMatCapIndex(1);
-				break;
-			case VK_SUBTRACT:
-				vulkanExample->changeMatCapIndex(-1);
-				break;
-			}
-		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }

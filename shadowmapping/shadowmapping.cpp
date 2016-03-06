@@ -26,7 +26,6 @@
 #include "vulkanMeshLoader.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 
 // 16 bits of depth is enough for such a small scene
@@ -525,40 +524,29 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
+
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		// Gather command buffers to be sumitted to the queue
 		std::vector<VkCommandBuffer> submitCmdBuffers = {
 			offScreenCmdBuffer,
 			drawCmdBuffers[currentBuffer],
 		};
-
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
 		submitInfo.commandBufferCount = submitCmdBuffers.size();
 		submitInfo.pCommandBuffers = submitCmdBuffers.data();
 
-		// Submit draw command buffer
+		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
 		assert(!err);
@@ -845,13 +833,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmapping/quad.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmapping/quad.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/shadowmapping/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/shadowmapping/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -876,36 +859,20 @@ public:
 		assert(!err);
 
 		// 3D scene
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmapping/scene.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmapping/scene.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/shadowmapping/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/shadowmapping/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
-
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
-
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.scene);
 		assert(!err);
 
 		// Offscreen pipeline
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/shadowmapping/offscreen.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/shadowmapping/offscreen.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/shadowmapping/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/shadowmapping/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
-
 		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
-
 		// Cull front faces
 		depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-
 		// Enable depth bias
 		rasterizationState.depthBiasEnable = VK_TRUE;
-
 		// Add depth bias to dynamic state, so we can change it at runtime
 		dynamicStateEnables.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
 		dynamicState =
