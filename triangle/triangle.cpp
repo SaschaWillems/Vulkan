@@ -66,7 +66,11 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VkSemaphore presentCompleteSemaphore;
+	// Synchronization semaphores
+	struct {
+		VkSemaphore presentComplete;
+		VkSemaphore submitSignal;
+	} semaphores;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -92,7 +96,8 @@ public:
 		vkDestroyBuffer(device, indices.buf, nullptr);
 		vkFreeMemory(device, indices.mem, nullptr);
 
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
+		vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
+		vkDestroySemaphore(device, semaphores.submitSignal, nullptr);
 
 		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
 		vkFreeMemory(device, uniformDataVS.memory, nullptr);
@@ -202,27 +207,38 @@ public:
 	{
 		VkResult err;
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
 		// The submit infor strcuture contains a list of
 		// command buffers and semaphores to be submitted to a queue
 		// If you want to submit multiple command buffers, pass an array
+		VkPipelineStageFlags pipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pWaitDstStageMask = &pipelineStages;
+		// The wait semaphore ensures that the image is presented 
+		// before we start submitting command buffers agein
 		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 		// Submit the currently active command buffer
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		// The signal semaphore is used during queue presentation
+		// to ensure that the image is not rendered before all
+		// commands have been submitted
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.submitSignal;
 
 		// Submit to the graphics queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
 		// Present the current buffer to the swap chain
-		// This will display the image
-		err = swapChain.queuePresent(queue, currentBuffer);
+		// We pass the signal semaphore from the submit info
+		// to ensure that the image is not rendered until
+		// all commands have been submitted
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.submitSignal);
 		assert(!err);
 
 		// Add a post present image memory barrier
@@ -276,17 +292,21 @@ public:
 		assert(!err);
 	}
 
-	// Create a semaphore used to make sure that the image isn't rendered
-	// until all commands have been submitted
-	// This is used to ensure that the image isn't presented until
-	// it's ready for presentation
+	// Create synchronzation semaphores
 	void prepareSemaphore()
 	{
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = {};
-		presentCompleteSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		presentCompleteSemaphoreCreateInfo.pNext = NULL;
+		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		semaphoreCreateInfo.pNext = NULL;
 
-		VkResult err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
+		// This semaphore ensures that the image is complete
+		// before starting to submit again
+		VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
+		assert(!err);
+
+		// This semaphore ensures that all commands submitted
+		// have been finished before submitting the image to the queue
+		err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.submitSignal);
 		assert(!err);
 	}
 
