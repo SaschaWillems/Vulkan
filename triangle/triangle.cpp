@@ -25,11 +25,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-// Note : 
-//	Enabling this define will feed GLSL directly to the driver
-//	Unlike the SDK samples that convert it to SPIR-V
-//	This may or may not be supported depending on your ISV
-//#define USE_GLSL
 // Set to "true" to enable Vulkan's validation layers
 // See vulkandebug.cpp for details
 #define ENABLE_VALIDATION false
@@ -71,6 +66,8 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
+	VkSemaphore presentCompleteSemaphore;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		width = 1280;
@@ -94,6 +91,8 @@ public:
 
 		vkDestroyBuffer(device, indices.buf, nullptr);
 		vkFreeMemory(device, indices.mem, nullptr);
+
+		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
 
 		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
 		vkFreeMemory(device, uniformDataVS.memory, nullptr);
@@ -202,14 +201,6 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = {};
-		presentCompleteSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		presentCompleteSemaphoreCreateInfo.pNext = NULL;
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
-
 		// Get next image in the swap chain (back/front buffer)
 		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
 		assert(!err);
@@ -221,6 +212,7 @@ public:
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		// Submit the currently active command buffer
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -232,8 +224,6 @@ public:
 		// This will display the image
 		err = swapChain.queuePresent(queue, currentBuffer);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
 
 		// Add a post present image memory barrier
 		// This will transform the frame buffer color attachment back
@@ -283,6 +273,20 @@ public:
 		assert(!err);
 		
 		err = vkQueueWaitIdle(queue);
+		assert(!err);
+	}
+
+	// Create a semaphore used to make sure that the image isn't rendered
+	// until all commands have been submitted
+	// This is used to ensure that the image isn't presented until
+	// it's ready for presentation
+	void prepareSemaphore()
+	{
+		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = {};
+		presentCompleteSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		presentCompleteSemaphoreCreateInfo.pNext = NULL;
+
+		VkResult err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
 		assert(!err);
 	}
 
@@ -596,15 +600,10 @@ public:
 		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 		// Load shaders
+		// Shaders are loaded from the SPIR-V format, which can be generated from glsl
 		VkPipelineShaderStageCreateInfo shaderStages[2] = { {},{} };
-
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/_test/test.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/_test/test.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 
 		// Assign states
 		// Two shader stages
@@ -692,6 +691,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		prepareSemaphore();
 		prepareVertices();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
