@@ -1001,7 +1001,6 @@ struct VulkanExample
 		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = {};
 		presentCompleteSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		presentCompleteSemaphoreCreateInfo.pNext = NULL;
-		presentCompleteSemaphoreCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
 		assert(!err);
