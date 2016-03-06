@@ -112,8 +112,7 @@ namespace vkTools
 
 		VkFramebufferCreateInfo framebufferCreateInfo();
 
-		VkSemaphoreCreateInfo semaphoreCreateInfo(
-			VkSemaphoreCreateFlags flags);
+		VkSemaphoreCreateInfo semaphoreCreateInfo();
 
 		VkSubmitInfo submitInfo();
 

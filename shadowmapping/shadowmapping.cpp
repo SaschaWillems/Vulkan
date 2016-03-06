@@ -526,8 +526,7 @@ public:
 	{
 		VkResult err;
 		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo =
-			vkTools::initializers::semaphoreCreateInfo(VK_FLAGS_NONE);
+		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
 
 		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
 		assert(!err);

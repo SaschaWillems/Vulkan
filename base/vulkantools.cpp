@@ -460,13 +460,12 @@ VkFramebufferCreateInfo vkTools::initializers::framebufferCreateInfo()
 	return framebufferCreateInfo;
 }
 
-VkSemaphoreCreateInfo vkTools::initializers::semaphoreCreateInfo(
-	VkSemaphoreCreateFlags flags)
+VkSemaphoreCreateInfo vkTools::initializers::semaphoreCreateInfo()
 {
 	VkSemaphoreCreateInfo semaphoreCreateInfo = {};
 	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	semaphoreCreateInfo.pNext = NULL;
-	semaphoreCreateInfo.flags = flags;
+	semaphoreCreateInfo.flags = 0;
 	return semaphoreCreateInfo;
 }
 
