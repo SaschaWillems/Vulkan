@@ -72,6 +72,10 @@ protected:
 	VkCommandBuffer postPresentCmdBuffer = VK_NULL_HANDLE;
 	// Command buffer for submitting a pre present image barrier
 	VkCommandBuffer prePresentCmdBuffer = VK_NULL_HANDLE;
+	// Pipeline stage flags for the submit info structure
+	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	// Contains command buffers and semaphores to be presented to the queue
+	VkSubmitInfo submitInfo;
 	// Command buffers used for rendering
 	std::vector<VkCommandBuffer> drawCmdBuffers;
 	// Global render pass for frame buffer writes
@@ -88,8 +92,15 @@ protected:
 	VkPipelineCache pipelineCache;
 	// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VulkanSwapChain swapChain;
-	// Semaphore to synchronize image presentation 
-	VkSemaphore presentCompleteSemaphore;
+	// Synchronization semaphores
+	struct {
+		// Swap chain image presentation
+		VkSemaphore presentComplete;
+		// Command buffer submission and execution
+		VkSemaphore renderComplete;
+	} semaphores;
+
+
 	// Simple texture loader
 	vkTools::VulkanTextureLoader *textureLoader = nullptr;
 public: 
@@ -244,5 +255,11 @@ public:
 	// Submit a post present image barrier to the queue
 	// Transforms the (framebuffer) image layout back from present(khr) to color attachment layout
 	void submitPostPresentBarrier(VkImage image);
+
+	// Prepare a submit info structure containing
+	// semaphores and submit buffer info for vkQueueSubmit
+	VkSubmitInfo prepareSubmitInfo(
+		std::vector<VkCommandBuffer> commandBuffers,
+		VkPipelineStageFlags *pipelineStages);
 };
 

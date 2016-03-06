@@ -424,6 +424,21 @@ void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
 	assert(!vkRes);
 }
 
+VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
+	std::vector<VkCommandBuffer> commandBuffers, 
+	VkPipelineStageFlags *pipelineStages)
+{
+	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
+	submitInfo.pWaitDstStageMask = pipelineStages;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+	submitInfo.commandBufferCount = commandBuffers.size();
+	submitInfo.pCommandBuffers = commandBuffers.data();
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+	return submitInfo;
+}
+
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
 	// Check for validation command line flag
@@ -485,7 +500,8 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyCommandPool(device, cmdPool, nullptr);
 
-	vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
+	vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
+	vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
 
 	vkDestroyDevice(device, nullptr); 
 
@@ -573,10 +589,26 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 
 	swapChain.connect(instance, physicalDevice, device);
 
+	// Create synchronization objects
+	VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
 	// Create a semaphore used to synchronize image presentation
-	VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
-	err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
+	// Ensures that the image is displayed before we start submitting new commands to the queu
+	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
 	assert(!err);
+	// Create a semaphore used to synchronize command submission
+	// Ensures that the image is not presented until all commands have been sumbitted and executed
+	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
+	assert(!err);
+
+	// Set up submit info structure
+	// Semaphores will stay the same during application lifetime
+	// Command buffer submission info is set by each example
+	submitInfo = vkTools::initializers::submitInfo();
+	submitInfo.pWaitDstStageMask = &submitPipelineStages;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 }
 
 #ifdef _WIN32 
