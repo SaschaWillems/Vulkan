@@ -184,7 +184,6 @@ public:
 			prePresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };			
 			prePresentBarrier.image = swapChain.buffers[i].image;
 
-			VkImageMemoryBarrier *pMemoryBarrier = &prePresentBarrier;
 			vkCmdPipelineBarrier(
 				drawCmdBuffers[i], 
 				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
