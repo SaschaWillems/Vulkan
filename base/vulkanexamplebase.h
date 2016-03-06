@@ -88,6 +88,8 @@ protected:
 	VkPipelineCache pipelineCache;
 	// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VulkanSwapChain swapChain;
+	// Semaphore to synchronize image presentation 
+	VkSemaphore presentCompleteSemaphore;
 	// Simple texture loader
 	vkTools::VulkanTextureLoader *textureLoader = nullptr;
 public: 

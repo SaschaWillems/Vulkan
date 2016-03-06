@@ -485,6 +485,8 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyCommandPool(device, cmdPool, nullptr);
 
+	vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
+
 	vkDestroyDevice(device, nullptr); 
 
 	if (enableValidation)
@@ -570,6 +572,11 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	assert(validDepthFormat);
 
 	swapChain.connect(instance, physicalDevice, device);
+
+	// Create a semaphore used to synchronize image presentation
+	VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
+	err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
+	assert(!err);
 }
 
 #ifdef _WIN32 
