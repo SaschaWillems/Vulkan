@@ -11,6 +11,7 @@ layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
+	mat4 model;
 	vec4 lightPos;
 } ubo;
 
@@ -28,12 +29,12 @@ layout (location = 4) out vec3 outLightVec;
 void main() 
 {
 	outNormal = inNormal;
-	outColor = inColor * pushConsts.color;
+	outColor = inColor;// * pushConsts.color;
 	
-	gl_Position = ubo.projection * ubo.view * pushConsts.model * vec4(inPos.xyz, 1.0);
+	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos.xyz, 1.0);
 	
-    vec4 pos = ubo.view * pushConsts.model * vec4(inPos, 1.0);
-    outNormal = mat3(ubo.view * pushConsts.model) * inNormal;
+    vec4 pos = ubo.view * ubo.model * vec4(inPos, 1.0);
+    outNormal = mat3(ubo.view * ubo.model) * inNormal;
 	vec3 lPos = ubo.lightPos.xyz;
     outLightVec = lPos - pos.xyz;
     outViewVec = -pos.xyz;

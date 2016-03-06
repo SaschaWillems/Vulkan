@@ -1,5 +1,5 @@
 /*
-* Vulkan Example - Multi threaded command buffer generation and update (using push constants)
+* Vulkan Example - Multi threaded command buffer generation and rendering
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
@@ -12,7 +12,6 @@
 #include <assert.h>
 #include <vector>
 #include <thread>
-#include <iomanip> // todo : only for debug
 
 #define GLM_FORCE_RADIANS
 #define GLM_DEPTH_ZERO_TO_ONE
@@ -23,7 +22,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 
 // Vertex layout used in this example
@@ -48,15 +46,12 @@ public:
 		vkMeshLoader::MeshBuffer ufo;
 	} meshes;
 
-	struct {
-		vkTools::UniformData vsScene;
-	} uniformData;
-
-	struct {
+	struct UBO {
 		glm::mat4 projection;
 		glm::mat4 view;
+		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	} uboVS;
+	};
 
 	struct {
 		VkPipeline phong;
@@ -77,11 +72,31 @@ public:
 		glm::vec3 color;
 	};
 
+	struct MeshData {
+		glm::vec3 pos;
+		glm::vec3 rotation;
+		float deltaT;
+		vkMeshLoader::MeshBuffer *meshBuffer;
+	};
+
 	struct RenderThread {
+		uint32_t index;
 		std::thread thread;
+		ThreadPushConstantBlock pushConstantBlock;
+		MeshData meshData;
+		// Vulkan objects
 		VkCommandPool cmdPool;
 		std::vector<VkCommandBuffer> cmdBuffers;
-		ThreadPushConstantBlock pushConstantBlock;
+		VkViewport viewport;
+		VkRect2D scissor;
+		VkDevice device;
+		std::vector<VkCommandBufferInheritanceInfo> inheritanceInfo;
+		// todo : maybe move to mesh data if using different meshes per thread
+		VkPipeline pipeline;
+		VkPipelineLayout pipelineLayout;
+		VkDescriptorSet descriptorSet;
+		UBO ubo;
+		vkTools::UniformData uniformData;
 	};
 	std::vector<RenderThread> renderThreads;
 
@@ -101,6 +116,7 @@ public:
 		// todo : test, remove
 		std::cout << "numThreads = " << numThreads << std::endl;
 		srand(time(NULL));
+		numThreads *= 4; // todo : test
 	}
 
 	~VulkanExample()
@@ -112,7 +128,6 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.ufo);
 
@@ -120,13 +135,81 @@ public:
 		{
 			vkFreeCommandBuffers(device, thread.cmdPool, thread.cmdBuffers.size(), thread.cmdBuffers.data());
 			vkDestroyCommandPool(device, thread.cmdPool, nullptr);
+			vkTools::destroyUniformData(device, &thread.uniformData);
 		}
 	}
 
-	// Update command buffer and push constants
-	void threadUpdate(uint32_t index)
+	// Update thread's uniform buffer
+	static void threadUpdate(RenderThread *thread)
 	{
-		// todo : Update secondary command buffer
+		// Update
+		thread->meshData.rotation.y += 0.15f;
+		if (thread->meshData.rotation.y > 360.0f)
+			thread->meshData.rotation.y -= 360.0f;
+		thread->meshData.deltaT += 0.0005f;
+		if (thread->meshData.deltaT > 1.0f)
+			thread->meshData.deltaT -= 1.0f;
+		thread->meshData.pos.y = sin(glm::radians(thread->meshData.deltaT * 360.0f)) * 1.5f;
+
+		thread->ubo.model = glm::translate(glm::mat4(), thread->meshData.pos);
+		thread->ubo.model = glm::rotate(thread->ubo.model, -sinf(glm::radians(thread->meshData.deltaT * 360.0f)) * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
+		thread->ubo.model = glm::rotate(thread->ubo.model, glm::radians(thread->meshData.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		thread->ubo.model = glm::rotate(thread->ubo.model, glm::radians(thread->meshData.deltaT * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		uint8_t *pData;
+		VkResult err = vkMapMemory(thread->device, thread->uniformData.memory, 0, sizeof(UBO), 0, (void **)&pData);
+		assert(!err);
+		memcpy(pData, &thread->ubo, sizeof(UBO));
+		vkUnmapMemory(thread->device, thread->uniformData.memory);
+	}
+
+	// Update command buffer
+	static void threadSetup(RenderThread *thread)
+	{
+		// Push constant block
+		// Color
+		// todo : randomize
+		thread->pushConstantBlock.color = glm::vec3(1.0f, 1.0f, 1.0f);
+		// Model matrix
+		glm::mat4 modelMat = glm::translate(glm::mat4(), thread->meshData.pos);
+		modelMat = glm::rotate(modelMat, -sinf(glm::radians(thread->meshData.deltaT * 360.0f)) * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
+		modelMat = glm::rotate(modelMat, glm::radians(thread->meshData.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelMat = glm::rotate(modelMat, glm::radians(thread->meshData.deltaT * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		thread->pushConstantBlock.model = modelMat;
+
+		// Fill command buffers
+		for (uint32_t i = 0; i < thread->cmdBuffers.size(); ++i)
+		{
+			VkCommandBufferBeginInfo beginInfo = vkTools::initializers::commandBufferBeginInfo();
+			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+			beginInfo.pInheritanceInfo = &thread->inheritanceInfo[i];
+
+			vkBeginCommandBuffer(thread->cmdBuffers[i], &beginInfo);
+
+			vkCmdSetViewport(thread->cmdBuffers[i], 0, 1, &thread->viewport);
+			vkCmdSetScissor(thread->cmdBuffers[i], 0, 1, &thread->scissor);
+
+			// Update shader push constant block
+			// Contains model view matrix
+			vkCmdPushConstants(
+				thread->cmdBuffers[i],
+				thread->pipelineLayout,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				0,
+				sizeof(ThreadPushConstantBlock),
+				&thread->pushConstantBlock);
+
+			vkCmdBindPipeline(thread->cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, thread->pipeline);
+			vkCmdBindDescriptorSets(thread->cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, thread->pipelineLayout, 0, 1, &thread->descriptorSet, 0, NULL);
+
+			// Render mesh
+			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindVertexBuffers(thread->cmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &thread->meshData.meshBuffer->vertices.buf, offsets);
+			vkCmdBindIndexBuffer(thread->cmdBuffers[i], thread->meshData.meshBuffer->indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(thread->cmdBuffers[i], thread->meshData.meshBuffer->indexCount, 1, 0, 0, 0);
+
+			vkEndCommandBuffer(thread->cmdBuffers[i]);
+		}
 	}
 
 	// Create all threads and initialize shader push constants
@@ -138,14 +221,16 @@ public:
 		uint32_t index = 0;
 		for (auto& thread : renderThreads)
 		{
-			// Command pool
+			thread.index = index;
+
+			// Create command pool
 			VkCommandPoolCreateInfo cmdPoolInfo = vkTools::initializers::commandPoolCreateInfo();
 			cmdPoolInfo.queueFamilyIndex = swapChain.queueNodeIndex;
 			cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 			err = vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &thread.cmdPool);
 			assert(!err);
 
-			// Command buffer 
+			// Create command buffers
 			// Use secondary level command buffers
 			thread.cmdBuffers.resize(swapChain.imageCount);
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo =
@@ -157,74 +242,76 @@ public:
 			err = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, thread.cmdBuffers.data());
 			assert(!err);
 
-			// Push constant block
+			// Vulkan objects
+			thread.device = device;
 
-			// Color
-			// todo : randomize
-			thread.pushConstantBlock.color = glm::vec3(1.0f, 1.0f, 1.0f);
-			
-			// Model matrix
-			float rot = (float)(rand() % 360);
-			float deltaT = (float)(rand() % 255) / 255.0f;
+			// todo...
+			thread.viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+			thread.viewport.width = (float)width / (float)numThreads;
+			thread.viewport.height = (float)height;
+			thread.viewport.x = thread.viewport.width * thread.index;
 
-			glm::mat4 modelMat = glm::translate(glm::mat4(), glm::vec3((float)index * 4.0f - (float)(numThreads-1) * 2.0f, 0.0f, 0.0f));
-			modelMat = glm::rotate(modelMat, -sinf(glm::radians(deltaT * 360.0f)) * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
-			modelMat = glm::rotate(modelMat, glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
-			modelMat = glm::rotate(modelMat, glm::radians(deltaT * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			thread.pushConstantBlock.model = modelMat;
-
-			thread.thread = std::thread([=] { threadUpdate(index); });
-			index++;
-
-			// Viewport and scissor rect are shared
-			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
-
-			// Fill command buffers
+			thread.scissor = vkTools::initializers::rect2D(width, height, 0, 0);
+			thread.pipeline = pipelines.phong;
+			thread.pipelineLayout = pipelineLayout;
+			// Inheritance info for secondary command buffers
 			for (uint32_t i = 0; i < thread.cmdBuffers.size(); ++i)
 			{
-				// Inheritance infor for secondary command buffers
 				VkCommandBufferInheritanceInfo inheritanceInfo = vkTools::initializers::commandBufferInheritanceInfo();
 				inheritanceInfo.renderPass = renderPass;
 				inheritanceInfo.framebuffer = frameBuffers[i];
-
-				VkCommandBufferBeginInfo beginInfo = vkTools::initializers::commandBufferBeginInfo();
-				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-				beginInfo.pInheritanceInfo = &inheritanceInfo;
-
-				vkBeginCommandBuffer(thread.cmdBuffers[i], &beginInfo);
-
-				vkCmdSetViewport(thread.cmdBuffers[i], 0, 1, &viewport);
-				vkCmdSetScissor(thread.cmdBuffers[i], 0, 1, &scissor);
-
-				vkCmdBindPipeline(thread.cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
-
-				// Update shader push constant block
-				// Contains model view matrix
-				vkCmdPushConstants(
-					thread.cmdBuffers[i],
-					pipelineLayout,
-					VK_SHADER_STAGE_VERTEX_BIT,
-					0,
-					sizeof(ThreadPushConstantBlock),
-					&thread.pushConstantBlock);
-
-				// Render mesh
-				VkDeviceSize offsets[1] = { 0 };
-				vkCmdBindDescriptorSets(thread.cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-				vkCmdBindVertexBuffers(thread.cmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.ufo.vertices.buf, offsets);
-				vkCmdBindIndexBuffer(thread.cmdBuffers[i], meshes.ufo.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(thread.cmdBuffers[i], meshes.ufo.indexCount, 1, 0, 0, 0);
-
-				vkEndCommandBuffer(thread.cmdBuffers[i]);
+				thread.inheritanceInfo.push_back(inheritanceInfo);
 			}
+
+			// Separate vertex shader uniform buffer block for each thread
+			createBuffer(
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				sizeof(UBO),
+				&thread.ubo,
+				&thread.uniformData.buffer,
+				&thread.uniformData.memory,
+				&thread.uniformData.descriptor);
+
+			// Descriptor set
+			VkDescriptorSetAllocateInfo allocInfo =
+				vkTools::initializers::descriptorSetAllocateInfo(
+					descriptorPool,
+					&descriptorSetLayout,
+					1);
+
+			VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &thread.descriptorSet);
+			assert(!vkRes);
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+			{
+				// Binding 0 : Vertex shader uniform buffer
+				vkTools::initializers::writeDescriptorSet(
+					thread.descriptorSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+					0,
+					&thread.uniformData.descriptor)
+			};
+
+			vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+
+			// Initialize mesh data
+			thread.meshData.pos = glm::vec3(0.0f, 0.0f, 0.0f);
+//			thread.meshData.pos = glm::vec3((float)index * 4.0f - (float)(numThreads - 1) * 2.0f, 0.0f, 0.0f);
+			thread.meshData.rotation = glm::vec3(0.0f, (float)(rand() % 360), 0.0f);
+			thread.meshData.deltaT = (float)(rand() % 255) / 255.0f;
+			// todo : different models (and multiple meshes) per thread
+			thread.meshData.meshBuffer = &meshes.ufo;
+
+			// Create thread
+			thread.thread = std::thread(VulkanExample::threadSetup, &thread);
+
+			index++;
 		}
 
 		for (auto& thread : renderThreads)
 		{
 			thread.thread.join();
 		}
-
 	}
 
 	void buildCommandBuffers()
@@ -233,6 +320,7 @@ public:
 
 		VkClearValue clearValues[2];
 		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = { {0.0f, 0.0f, 0.2f, 0.0f} };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
@@ -285,12 +373,12 @@ public:
 
 	void draw()
 	{
-		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
+		if (!paused)
+		{
+			updateUniformBuffers();
+		}
 
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
+		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
 		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
@@ -302,14 +390,27 @@ public:
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
+		// Put a fence in here
+		// todo : reuse
+		VkFence renderFence = {};
+		VkFenceCreateInfo fenceCreateInfo = vkTools::initializers::fenceCreateInfo(VK_FLAGS_NONE);
+		vkCreateFence(device, &fenceCreateInfo, NULL, &renderFence);
+
 		// Submit draw command buffer
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(queue, 1, &submitInfo, renderFence);
+		assert(!err);
+
+		// Wait for fence to signal that all command buffers are ready
+		do 
+		{
+			err = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
+		} while (err == VK_TIMEOUT);
 		assert(!err);
 
 		err = swapChain.queuePresent(queue, currentBuffer);
 		assert(!err);
 
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
+		vkDestroyFence(device, renderFence, nullptr);
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
@@ -368,14 +469,14 @@ public:
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3)
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 + numThreads)
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
 				poolSizes.size(),
 				poolSizes.data(),
-				3);
+				3 + numThreads);
 
 		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
 		assert(!vkRes);
@@ -418,30 +519,6 @@ public:
 
 		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
-	}
-
-	void setupDescriptorSets()
-	{
-		VkDescriptorSetAllocateInfo allocInfo =
-			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
-
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
-			// Binding 0 : Vertex shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&uniformData.vsScene.descriptor)
-		};
-
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -497,13 +574,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/multithreading/phong.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/multithreading/phong.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/multithreading/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/multithreading/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -526,35 +598,27 @@ public:
 		assert(!err);
 	}
 
-	// Prepare and initialize uniform buffer containing shader uniforms
-	void prepareUniformBuffers()
-	{
-		// Vertex shader uniform buffer block
-		createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
-
-		updateUniformBuffers();
-	}
-
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
 
-		uboVS.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-		uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		for (auto& thread : renderThreads)
+		{
+			//thread.ubo.projection = projection;
+			thread.ubo.projection = glm::perspective(glm::radians(60.0f), (float)thread.viewport.width / (float)thread.viewport.height, 0.1f, 256.0f);
+			thread.ubo.view = view;
+			thread.thread = std::thread(VulkanExample::threadUpdate, &thread);
+		}
+
+		for (auto& thread : renderThreads)
+		{
+			thread.thread.join();
+		}
 	}
 
 	void prepare()
@@ -562,12 +626,11 @@ public:
 		VulkanExampleBase::prepare();
 		loadMeshes();
 		setupVertexDescriptions();
-		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
-		setupDescriptorSets();
 		prepareMultiThreadedRenderer();
+		updateUniformBuffers();
 		buildCommandBuffers();
 		prepared = true;
 	}
@@ -583,7 +646,11 @@ public:
 
 	virtual void viewChanged()
 	{
-		updateUniformBuffers();
+		if (paused)
+		{
+
+			updateUniformBuffers();
+		}
 	}
 };
 
