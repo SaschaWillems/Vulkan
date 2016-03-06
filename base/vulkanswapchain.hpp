@@ -399,6 +399,24 @@ public:
 		return fpQueuePresentKHR(queue, &presentInfo);
 	}
 
+	// Present the current image to the queue
+	VkResult queuePresent(VkQueue queue, uint32_t currentBuffer, VkSemaphore waitSemaphore)
+	{
+		VkPresentInfoKHR presentInfo = {};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.pNext = NULL;
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = &swapChain;
+		presentInfo.pImageIndices = &currentBuffer;
+		if (waitSemaphore != VK_NULL_HANDLE)
+		{
+			presentInfo.pWaitSemaphores = &waitSemaphore;
+			presentInfo.waitSemaphoreCount = 1;
+		}
+		return fpQueuePresentKHR(queue, &presentInfo);
+	}
+
+
 	// Free all Vulkan resources used by the swap chain
 	void cleanup()
 	{
