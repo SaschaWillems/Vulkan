@@ -4,6 +4,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="android_native_app_glue.h" />
     <ClInclude Include="..\..\..\base\vulkanandroid.h" />
+    <ClInclude Include="..\..\base\vulkanandroidbase.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
