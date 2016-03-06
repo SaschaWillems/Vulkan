@@ -220,18 +220,6 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(const char * fileN
 	return shaderStage;
 }
 
-VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShaderGLSL(const char * fileName, VkShaderStageFlagBits stage)
-{
-	VkPipelineShaderStageCreateInfo shaderStage = {};
-	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shaderStage.stage = stage;
-	shaderStage.module = vkTools::loadShaderGLSL(fileName, device, stage);
-	shaderStage.pName = "main"; // todo : make param
-	assert(shaderStage.module != NULL);
-	shaderModules.push_back(shaderStage.module);
-	return shaderStage;
-}
-
 VkBool32 VulkanExampleBase::createBuffer(
 	VkBufferUsageFlags usage, 
 	VkDeviceSize size, 

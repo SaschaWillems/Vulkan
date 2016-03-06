@@ -217,10 +217,7 @@ public:
 
 	// Load a SPIR-V shader
 	VkPipelineShaderStageCreateInfo loadShader(const char* fileName, VkShaderStageFlagBits stage);
-	// Load a GLSL shader
-	// NOTE : This may not work with any IHV and requires some magic
-	VkPipelineShaderStageCreateInfo loadShaderGLSL(const char* fileName, VkShaderStageFlagBits stage);
-
+	
 	// Create a buffer, fill it with data and bind buffer memory
 	// Can be used for e.g. vertex or index buffer based on mesh data
 	VkBool32 createBuffer(
