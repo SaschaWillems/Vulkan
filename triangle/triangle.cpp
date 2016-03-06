@@ -70,7 +70,7 @@ public:
 	// Synchronization semaphores
 	struct {
 		VkSemaphore presentComplete;
-		VkSemaphore submitSignal;
+		VkSemaphore renderComplete;
 	} semaphores;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
@@ -98,7 +98,7 @@ public:
 		vkFreeMemory(device, indices.mem, nullptr);
 
 		vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
-		vkDestroySemaphore(device, semaphores.submitSignal, nullptr);
+		vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
 
 		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
 		vkFreeMemory(device, uniformDataVS.memory, nullptr);
@@ -229,7 +229,7 @@ public:
 		// to ensure that the image is not rendered before all
 		// commands have been submitted
 		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &semaphores.submitSignal;
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 		// Submit to the graphics queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
@@ -239,7 +239,7 @@ public:
 		// We pass the signal semaphore from the submit info
 		// to ensure that the image is not rendered until
 		// all commands have been submitted
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.submitSignal);
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
 
 		// Add a post present image memory barrier
@@ -307,7 +307,7 @@ public:
 
 		// This semaphore ensures that all commands submitted
 		// have been finished before submitting the image to the queue
-		err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.submitSignal);
+		err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
 		assert(!err);
 	}
 
