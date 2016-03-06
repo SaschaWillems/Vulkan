@@ -1,7 +1,7 @@
 /*
 * Assorted commonly used Vulkan helper functions
 *
-* Copyright (C) 2015 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -26,7 +26,7 @@
 #else
 #endif
 
-// todo : remove if added to SDK
+// Custom define for better code readability
 #define VK_FLAGS_NONE 0
 
 namespace vkTools
@@ -113,6 +113,7 @@ namespace vkTools
 		VkFramebufferCreateInfo framebufferCreateInfo();
 
 		VkSemaphoreCreateInfo semaphoreCreateInfo();
+		VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags);
 
 		VkSubmitInfo submitInfo();
 
