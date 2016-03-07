@@ -358,13 +358,12 @@ public:
 		vkGetBufferMemoryRequirements(device, vertices.buf, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
- 		vkAllocateMemory(device, &memAlloc, nullptr, &vertices.mem);
+ 		err = vkAllocateMemory(device, &memAlloc, nullptr, &vertices.mem);
 		assert(!err);
 		err = vkMapMemory(device, vertices.mem, 0, memAlloc.allocationSize, 0, &data);
 		assert(!err);
 		memcpy(data, vertexBuffer.data(), vertexBufferSize);
 		vkUnmapMemory(device, vertices.mem);
-		assert(!err);
 		err = vkBindBufferMemory(device, vertices.buf, vertices.mem, 0);
 		assert(!err);
 
