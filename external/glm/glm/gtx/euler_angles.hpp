@@ -161,7 +161,7 @@ namespace glm
     /// Extracts the (X * Y * Z) Euler angles from the rotation matrix M
     /// @see gtx_euler_angles
     template <typename T>
-    GLM_FUNC_DECL void extractEulerAngleXYZ(tmat4x4<T, defaultp> & M,
+    GLM_FUNC_DECL void extractEulerAngleXYZ(tmat4x4<T, defaultp> const & M,
                                             T & t1,
                                             T & t2,
                                             T & t3);

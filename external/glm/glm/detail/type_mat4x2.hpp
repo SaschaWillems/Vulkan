@@ -57,6 +57,11 @@ namespace glm
 			static GLM_RELAXED_CONSTEXPR precision prec = P;
 #		endif//GLM_META_PROG_HELPERS
 
+#		ifdef GLM_STATIC_CONST_MEMBERS
+			static const type ZERO;
+			static const type IDENTITY;
+#		endif
+
 	private:
 		col_type value[4];
 
@@ -106,14 +111,14 @@ namespace glm
 		template <typename U, precision Q>
 		GLM_FUNC_DECL GLM_EXPLICIT tmat4x2(tmat4x2<U, Q> const & m);
 
-		GLM_FUNC_DECL explicit tmat4x2(tmat2x2<T, P> const & x);
-		GLM_FUNC_DECL explicit tmat4x2(tmat3x3<T, P> const & x);
-		GLM_FUNC_DECL explicit tmat4x2(tmat4x4<T, P> const & x);
-		GLM_FUNC_DECL explicit tmat4x2(tmat2x3<T, P> const & x);
-		GLM_FUNC_DECL explicit tmat4x2(tmat3x2<T, P> const & x);
-		GLM_FUNC_DECL explicit tmat4x2(tmat2x4<T, P> const & x);
-		GLM_FUNC_DECL explicit tmat4x2(tmat4x3<T, P> const & x);
-		GLM_FUNC_DECL explicit tmat4x2(tmat3x4<T, P> const & x);
+		GLM_FUNC_DECL GLM_EXPLICIT tmat4x2(tmat2x2<T, P> const & x);
+		GLM_FUNC_DECL GLM_EXPLICIT tmat4x2(tmat3x3<T, P> const & x);
+		GLM_FUNC_DECL GLM_EXPLICIT tmat4x2(tmat4x4<T, P> const & x);
+		GLM_FUNC_DECL GLM_EXPLICIT tmat4x2(tmat2x3<T, P> const & x);
+		GLM_FUNC_DECL GLM_EXPLICIT tmat4x2(tmat3x2<T, P> const & x);
+		GLM_FUNC_DECL GLM_EXPLICIT tmat4x2(tmat2x4<T, P> const & x);
+		GLM_FUNC_DECL GLM_EXPLICIT tmat4x2(tmat4x3<T, P> const & x);
+		GLM_FUNC_DECL GLM_EXPLICIT tmat4x2(tmat3x4<T, P> const & x);
 
 		// -- Accesses --
 
@@ -214,6 +219,16 @@ namespace glm
 
 	template <typename T, precision P>
 	GLM_FUNC_DECL bool operator!=(tmat4x2<T, P> const & m1, tmat4x2<T, P> const & m2);
+
+	// -- Is type --
+
+	template <typename T, precision P>
+	struct type<T, P, tmat4x2>
+	{
+		static bool const is_vec = false;
+		static bool const is_mat = true;
+		static bool const is_quat = false;
+	};
 }//namespace glm
 
 #ifndef GLM_EXTERNAL_TEMPLATE

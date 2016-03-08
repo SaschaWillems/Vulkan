@@ -32,6 +32,13 @@
 
 namespace glm
 {
+#	ifdef GLM_STATIC_CONST_MEMBERS
+		template<typename T, precision P>
+		const tmat2x4<T, P> tmat2x4<T, P>::ZERO(static_cast<T>(0));
+
+		template<typename T, precision P>
+		const tmat2x4<T, P> tmat2x4<T, P>::IDENTITY(static_cast<T>(1));
+#	endif
 	// -- Constructors --
 
 #	if !GLM_HAS_DEFAULTED_FUNCTIONS || !defined(GLM_FORCE_NO_CTOR_INIT)
@@ -493,7 +500,7 @@ namespace glm
 	}
 
 	template <typename T, precision P> 
-	GLM_FUNC_QUALIFIER tmat2x4<T, P> operator/(tmat2x4<T, P> const & m, T s)
+	GLM_FUNC_QUALIFIER tmat2x4<T, P> operator/(tmat2x4<T, P> const & m, const T& s)
 	{
 		return tmat2x4<T, P>(
 			m[0] / s,

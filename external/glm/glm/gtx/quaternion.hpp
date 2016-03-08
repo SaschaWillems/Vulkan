@@ -57,7 +57,7 @@ namespace glm
 	/// @addtogroup gtx_quaternion
 	/// @{
 
-	//! Compute a cross product between a quaternion and a vector.
+	/// Compute a cross product between a quaternion and a vector.
 	///
 	/// @see gtx_quaternion
 	template<typename T, precision P>

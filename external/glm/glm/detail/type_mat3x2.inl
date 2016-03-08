@@ -32,6 +32,13 @@
 
 namespace glm
 {
+#	ifdef GLM_STATIC_CONST_MEMBERS
+		template<typename T, precision P>
+		const tmat3x2<T, P> tmat3x2<T, P>::ZERO(static_cast<T>(0));
+
+		template<typename T, precision P>
+		const tmat3x2<T, P> tmat3x2<T, P>::IDENTITY(static_cast<T>(1));
+#	endif
 	// -- Constructors --
 
 #	if !GLM_HAS_DEFAULTED_FUNCTIONS || !defined(GLM_FORCE_NO_CTOR_INIT)

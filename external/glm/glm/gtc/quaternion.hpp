@@ -76,6 +76,26 @@ namespace glm
 
 		T x, y, z, w;
 
+#		ifdef GLM_STATIC_CONST_MEMBERS
+		static const type ZERO;
+		static const type IDENTITY;
+		static const type X;
+		static const type Y;
+		static const type Z;
+		static const type W;
+		static const type XY;
+		static const type XZ;
+		static const type XW;
+		static const type YZ;
+		static const type YW;
+		static const type ZW;
+		static const type XYZ;
+		static const type XYW;
+		static const type XZW;
+		static const type YZW;
+		static const type XYZW;
+#		endif
+
 		// -- Component accesses --
 
 #		ifdef GLM_FORCE_SIZE_FUNC
@@ -104,7 +124,7 @@ namespace glm
 		// -- Explicit basic constructors --
 
 		GLM_FUNC_DECL explicit tquat(ctor);
-		GLM_FUNC_DECL explicit tquat(T const & s, tvec3<T, P> const & v);
+		GLM_FUNC_DECL tquat(T const & s, tvec3<T, P> const & v);
 		GLM_FUNC_DECL tquat(T const & w, T const & x, T const & y, T const & z);
 
 		// -- Conversion constructors --
@@ -124,12 +144,12 @@ namespace glm
 		/// @param v A second normalized axis
 		/// @see gtc_quaternion
 		/// @see http://lolengine.net/blog/2013/09/18/beautiful-maths-quaternion-from-vectors
-		GLM_FUNC_DECL explicit tquat(tvec3<T, P> const & u,	tvec3<T, P> const & v);
+		GLM_FUNC_DECL tquat(tvec3<T, P> const & u, tvec3<T, P> const & v);
 
 		/// Build a quaternion from euler angles (pitch, yaw, roll), in radians.
-		GLM_FUNC_DECL explicit tquat(tvec3<T, P> const & eulerAngles);
-		GLM_FUNC_DECL explicit tquat(tmat3x3<T, P> const & m);
-		GLM_FUNC_DECL explicit tquat(tmat4x4<T, P> const & m);
+		GLM_FUNC_DECL GLM_EXPLICIT tquat(tvec3<T, P> const & eulerAngles);
+		GLM_FUNC_DECL GLM_EXPLICIT tquat(tmat3x3<T, P> const & m);
+		GLM_FUNC_DECL GLM_EXPLICIT tquat(tmat4x4<T, P> const & m);
 
 		// -- Unary arithmetic operators --
 
@@ -259,7 +279,7 @@ namespace glm
 	template <typename T, precision P>
 	GLM_FUNC_DECL tquat<T, P> rotate(tquat<T, P> const & q, T const & angle, tvec3<T, P> const & axis);
 
-	/// Returns euler angles, yitch as x, yaw as y, roll as z.
+	/// Returns euler angles, pitch as x, yaw as y, roll as z.
 	/// The result is expressed in radians if GLM_FORCE_RADIANS is defined or degrees otherwise.
 	/// 
 	/// @see gtc_quaternion
@@ -377,6 +397,16 @@ namespace glm
 	template <typename T, precision P>
 	GLM_FUNC_DECL tvec4<bool, P> notEqual(tquat<T, P> const & x, tquat<T, P> const & y);
 	/// @}
+
+	// -- Is type --
+
+	template <typename T, precision P>
+	struct type<T, P, tquat>
+	{
+		static bool const is_vec = false;
+		static bool const is_mat = false;
+		static bool const is_quat = true;
+	};
 } //namespace glm
 
 #include "quaternion.inl"

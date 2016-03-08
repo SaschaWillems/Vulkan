@@ -49,6 +49,73 @@ namespace detail
 	};
 }//namespace detail
 
+#	ifdef GLM_STATIC_CONST_MEMBERS
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::ZERO
+			(static_cast<T>(0), static_cast<T>(0), static_cast<T>(0), static_cast<T>(0));
+
+	template <typename T, precision P> const tquat<T, P> tquat<T, P>::IDENTITY;
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::X
+			(static_cast<T>(0), static_cast<T>(1), static_cast<T>(0), static_cast<T>(0));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::Y
+			(static_cast<T>(0), static_cast<T>(0), static_cast<T>(1), static_cast<T>(0));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::Z
+			(static_cast<T>(0), static_cast<T>(0), static_cast<T>(0), static_cast<T>(1));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::W
+			(static_cast<T>(1), static_cast<T>(0), static_cast<T>(0), static_cast<T>(0));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::XY
+			(static_cast<T>(0), static_cast<T>(1), static_cast<T>(1), static_cast<T>(0));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::XZ
+			(static_cast<T>(0), static_cast<T>(0), static_cast<T>(1), static_cast<T>(1));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::XW
+			(static_cast<T>(1), static_cast<T>(1), static_cast<T>(0), static_cast<T>(0));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::YZ
+			(static_cast<T>(0), static_cast<T>(0), static_cast<T>(1), static_cast<T>(1));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::YW
+			(static_cast<T>(1), static_cast<T>(0), static_cast<T>(1), static_cast<T>(0));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::ZW
+			(static_cast<T>(1), static_cast<T>(0), static_cast<T>(0), static_cast<T>(1));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::XYZ
+			(static_cast<T>(0), static_cast<T>(1), static_cast<T>(1), static_cast<T>(1));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::XYW
+			(static_cast<T>(1), static_cast<T>(1), static_cast<T>(1), static_cast<T>(0));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::XZW
+			(static_cast<T>(1), static_cast<T>(1), static_cast<T>(0), static_cast<T>(1));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::YZW
+			(static_cast<T>(1), static_cast<T>(0), static_cast<T>(1), static_cast<T>(1));
+
+	template <typename T, precision P>
+	const tquat<T, P> tquat<T, P>::XYZW
+			(static_cast<T>(1), static_cast<T>(1), static_cast<T>(1), static_cast<T>(1));
+#	endif
 	// -- Component accesses --
 
 #	ifdef GLM_FORCE_SIZE_FUNC
@@ -597,7 +664,7 @@ namespace detail
 	template <typename T, precision P>
 	GLM_FUNC_QUALIFIER T yaw(tquat<T, P> const & q)
 	{
-		return asin(T(-2) * (q.x * q.z - q.w * q.y));
+		return asin(clamp(T(-2) * (q.x * q.z - q.w * q.y), T(-1), T(1)));
 	}
 
 	template <typename T, precision P>

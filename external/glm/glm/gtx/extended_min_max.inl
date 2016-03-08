@@ -24,8 +24,8 @@
 /// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 /// THE SOFTWARE.
 ///
-/// @ref gtx_extented_min_max
-/// @file glm/gtx/extented_min_max.inl
+/// @ref gtx_extended_min_max
+/// @file glm/gtx/extended_min_max.inl
 /// @date 2007-03-14 / 2011-06-07
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////////////////////

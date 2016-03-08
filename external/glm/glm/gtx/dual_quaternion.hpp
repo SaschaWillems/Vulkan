@@ -103,7 +103,7 @@ namespace glm
 		// -- Explicit basic constructors --
 
 		GLM_FUNC_DECL explicit tdualquat(ctor);
-		GLM_FUNC_DECL explicit tdualquat(tquat<T, P> const & real);
+		GLM_FUNC_DECL tdualquat(tquat<T, P> const & real);
 		GLM_FUNC_DECL tdualquat(tquat<T, P> const & orientation, tvec3<T, P> const & translation);
 		GLM_FUNC_DECL tdualquat(tquat<T, P> const & real, tquat<T, P> const & dual);
 
@@ -112,8 +112,8 @@ namespace glm
 		template <typename U, precision Q>
 		GLM_FUNC_DECL GLM_EXPLICIT tdualquat(tdualquat<U, Q> const & q);
 
-		GLM_FUNC_DECL explicit tdualquat(tmat2x4<T, P> const & holder_mat);
-		GLM_FUNC_DECL explicit tdualquat(tmat3x4<T, P> const & aug_mat);
+		GLM_FUNC_DECL GLM_EXPLICIT tdualquat(tmat2x4<T, P> const & holder_mat);
+		GLM_FUNC_DECL GLM_EXPLICIT tdualquat(tmat3x4<T, P> const & aug_mat);
 
 		// -- Unary arithmetic operators --
 
@@ -295,6 +295,16 @@ namespace glm
 #endif
 
 	/// @}
+
+	// -- Is type --
+
+	template <typename T, precision P>
+	struct type<T, P, tdualquat>
+	{
+		static bool const is_vec = false;
+		static bool const is_mat = false;
+		static bool const is_quat = true;
+	};
 } //namespace glm
 
 #include "dual_quaternion.inl"

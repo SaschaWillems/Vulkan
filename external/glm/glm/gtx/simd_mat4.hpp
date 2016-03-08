@@ -83,6 +83,11 @@ namespace detail
 			static GLM_RELAXED_CONSTEXPR precision prec = defaultp;
 #		endif//GLM_META_PROG_HELPERS
 
+#		ifdef GLM_STATIC_CONST_MEMBERS
+			static const type ZERO;
+			static const type IDENTITY;
+#		endif
+
 		GLM_FUNC_DECL length_t length() const;
 
 		fvec4SIMD Data[4];

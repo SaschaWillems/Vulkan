@@ -58,6 +58,13 @@ namespace glm
 			static GLM_RELAXED_CONSTEXPR precision prec = P;
 #		endif//GLM_META_PROG_HELPERS
 
+#		ifdef GLM_STATIC_CONST_MEMBERS
+		static const type ZERO;
+		static const type X;
+		static const type Y;
+		static const type XY;
+#		endif
+
 		// -- Data --
 
 #		if GLM_HAS_ANONYMOUS_UNION
@@ -131,10 +138,10 @@ namespace glm
 
 		/// Explicit conversions (From section 5.4.1 Conversion and scalar constructors of GLSL 1.30.08 specification)
 		template <typename U, precision Q>
-		GLM_FUNC_DECL explicit tvec2(tvec3<U, Q> const & v);
+		GLM_FUNC_DECL GLM_EXPLICIT tvec2(tvec3<U, Q> const & v);
 		/// Explicit conversions (From section 5.4.1 Conversion and scalar constructors of GLSL 1.30.08 specification)
 		template <typename U, precision Q>
-		GLM_FUNC_DECL explicit tvec2(tvec4<U, Q> const & v);
+		GLM_FUNC_DECL GLM_EXPLICIT tvec2(tvec4<U, Q> const & v);
 
 		/// Explicit conversions (From section 5.4.1 Conversion and scalar constructors of GLSL 1.30.08 specification)
 		template <typename U, precision Q>
@@ -401,6 +408,22 @@ namespace glm
 
 	template <typename T, precision P>
 	GLM_FUNC_DECL bool operator!=(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
+
+	template <precision P>
+	GLM_FUNC_DECL tvec2<bool, P> operator&&(tvec2<bool, P> const & v1, tvec2<bool, P> const & v2);
+
+	template <precision P>
+	GLM_FUNC_DECL tvec2<bool, P> operator||(tvec2<bool, P> const & v1, tvec2<bool, P> const & v2);
+
+	// -- Is type --
+
+	template <typename T, precision P>
+	struct type<T, P, tvec2>
+	{
+		static bool const is_vec = true;
+		static bool const is_mat = false;
+		static bool const is_quat = false;
+	};
 }//namespace glm
 
 #ifndef GLM_EXTERNAL_TEMPLATE
