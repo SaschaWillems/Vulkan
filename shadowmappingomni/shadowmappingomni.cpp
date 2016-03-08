@@ -437,24 +437,24 @@ public:
 		switch (faceIndex)
 		{
 		case 0: // POSITIVE_X
-			viewMatrix = glm::rotate(viewMatrix, deg_to_rad(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			viewMatrix = glm::rotate(viewMatrix, deg_to_rad(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			break;
 		case 1:	// NEGATIVE_X
-			viewMatrix = glm::rotate(viewMatrix, deg_to_rad(-90), glm::vec3(0.0f, 1.0f, 0.0f));
-			viewMatrix = glm::rotate(viewMatrix, deg_to_rad(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			break;
 		case 2:	// POSITIVE_Y
-			viewMatrix = glm::rotate(viewMatrix, deg_to_rad(-90), glm::vec3(1.0f, 0.0f, 0.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			break;
 		case 3:	// NEGATIVE_Y
-			viewMatrix = glm::rotate(viewMatrix, deg_to_rad(90), glm::vec3(1.0f, 0.0f, 0.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			break;
 		case 4:	// POSITIVE_Z
-			viewMatrix = glm::rotate(viewMatrix, deg_to_rad(180), glm::vec3(1.0f, 0.0f, 0.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			break;
 		case 5:	// NEGATIVE_Z
-			viewMatrix = glm::rotate(viewMatrix, deg_to_rad(180), glm::vec3(0.0f, 0.0f, 1.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 			break;
 		}
 
@@ -986,13 +986,13 @@ public:
 	void updateUniformBuffers()
 	{
 		// 3D scene
-		uboVSscene.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, zNear, zFar);
+		uboVSscene.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, zNear, zFar);
 		uboVSscene.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, displayCubeMap ? 0.0f : zoom));
 
 		uboVSscene.model = glm::mat4();
-		uboVSscene.model = glm::rotate(uboVSscene.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVSscene.model = glm::rotate(uboVSscene.model, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVSscene.model = glm::rotate(uboVSscene.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVSscene.model = glm::rotate(uboVSscene.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVSscene.model = glm::rotate(uboVSscene.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVSscene.model = glm::rotate(uboVSscene.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uboVSscene.lightPos = lightPos;
 
@@ -1005,8 +1005,8 @@ public:
 
 	void updateUniformBufferOffscreen()
 	{
-		lightPos.x = sin(deg_to_rad(timer * 360.0f)) * 1.0f;
-		lightPos.z = cos(deg_to_rad(timer * 360.0f)) * 1.0f;
+		lightPos.x = sin(glm::radians(timer * 360.0f)) * 1.0f;
+		lightPos.z = cos(glm::radians(timer * 360.0f)) * 1.0f;
 
 		uboOffscreenVS.projection = glm::perspective((float)(M_PI / 2.0), 1.0f, zNear, zFar);
 

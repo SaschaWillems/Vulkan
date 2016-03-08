@@ -635,7 +635,7 @@ public:
 	void updateUniformBuffers()
 	{
 		computeUbo.deltaT = frameTimer * 5.0f;
-		computeUbo.destX = sin(deg_to_rad(timer*360.0)) * 0.75f;
+		computeUbo.destX = sin(glm::radians(timer*360.0)) * 0.75f;
 		computeUbo.destY = 0;
 		uint8_t *pData;
 		VkResult err = vkMapMemory(device, uniformData.computeShader.ubo.memory, 0, sizeof(computeUbo), 0, (void **)&pData);

@@ -35,8 +35,6 @@
 #include "vulkanTextureLoader.hpp"
 #include "vulkanMeshLoader.hpp"
 
-#define deg_to_rad(deg) deg * float(M_PI / 180)
-
 class VulkanExampleBase
 {
 private:	

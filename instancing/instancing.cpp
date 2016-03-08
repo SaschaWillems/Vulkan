@@ -426,7 +426,7 @@ public:
 				{
 					// Instance model matrix
 					uboVS.instance[index].model = glm::translate(glm::mat4(), glm::vec3(x * offset, y * offset, z * offset));
-					uboVS.instance[index].model = glm::rotate(uboVS.instance[index].model, deg_to_rad(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+					uboVS.instance[index].model = glm::rotate(uboVS.instance[index].model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 					// Instance color (randomized)
 					uboVS.instance[index].color = glm::vec4((float)(rand() % 255) / 255.0f, (float)(rand() % 255) / 255.0f, (float)(rand() % 255) / 255.0f, 1.0);
 					index++;
@@ -451,13 +451,13 @@ public:
 		// Only updates the uniform buffer block part containing the global matrices
 
 		// Projection
-		uboVS.matrices.projection = glm::perspective(deg_to_rad(60.0f), (float)width / (float)height, 0.001f, 256.0f);
+		uboVS.matrices.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
 
 		// View
 		uboVS.matrices.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Only update the matrices part of the uniform buffer
 		uint8_t *pData;

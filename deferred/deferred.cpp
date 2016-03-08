@@ -1193,11 +1193,11 @@ public:
 
 	void updateUniformBufferDeferredMatrices()
 	{
-		uboOffscreenVS.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboOffscreenVS.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
 		uboOffscreenVS.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-		uboOffscreenVS.view = glm::rotate(uboOffscreenVS.view, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboOffscreenVS.view = glm::rotate(uboOffscreenVS.view, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboOffscreenVS.view = glm::rotate(uboOffscreenVS.view, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboOffscreenVS.view = glm::rotate(uboOffscreenVS.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboOffscreenVS.view = glm::rotate(uboOffscreenVS.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboOffscreenVS.view = glm::rotate(uboOffscreenVS.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uboOffscreenVS.model = glm::mat4();
 		uboOffscreenVS.model = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.25f, 0.0f));

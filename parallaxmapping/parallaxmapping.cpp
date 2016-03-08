@@ -525,21 +525,21 @@ public:
 	{
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
-		ubos.vertexShader.projection = glm::perspective(deg_to_rad(45.0f), (float)(width* ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.001f, 256.0f);
+		ubos.vertexShader.projection = glm::perspective(glm::radians(45.0f), (float)(width* ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.001f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
 		ubos.vertexShader.model = glm::mat4();
 		ubos.vertexShader.model = viewMatrix * glm::translate(ubos.vertexShader.model, glm::vec3(0, 0, 0));
-		ubos.vertexShader.model = glm::rotate(ubos.vertexShader.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		ubos.vertexShader.model = glm::rotate(ubos.vertexShader.model, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubos.vertexShader.model = glm::rotate(ubos.vertexShader.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubos.vertexShader.model = glm::rotate(ubos.vertexShader.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		ubos.vertexShader.model = glm::rotate(ubos.vertexShader.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubos.vertexShader.model = glm::rotate(ubos.vertexShader.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		ubos.vertexShader.normal = glm::inverseTranspose(ubos.vertexShader.model);
 
 		if (!paused)
 		{
-			ubos.vertexShader.lightPos.x = sin(deg_to_rad(timer * 360.0f)) * 0.5;
-			ubos.vertexShader.lightPos.y = cos(deg_to_rad(timer * 360.0f)) * 0.5;
+			ubos.vertexShader.lightPos.x = sin(glm::radians(timer * 360.0f)) * 0.5;
+			ubos.vertexShader.lightPos.y = cos(glm::radians(timer * 360.0f)) * 0.5;
 		}
 
 		ubos.vertexShader.cameraPos = glm::vec4(0.0, 0.0, zoom, 0.0);

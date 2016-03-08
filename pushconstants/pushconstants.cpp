@@ -157,15 +157,15 @@ public:
 			// Update light positions
 			// w component = light radius scale
 #define r 7.5f
-#define sin_t sin(deg_to_rad(timer * 360))
-#define cos_t cos(deg_to_rad(timer * 360))
+#define sin_t sin(glm::radians(timer * 360))
+#define cos_t cos(glm::radians(timer * 360))
 #define y -4.0f
 			pushConstants[0] = glm::vec4(r * 1.1 * sin_t, y, r * 1.1 * cos_t, 1.0f);
 			pushConstants[1] = glm::vec4(-r * sin_t, y, -r * cos_t, 1.0f);
 			pushConstants[2] = glm::vec4(r * 0.85f * sin_t, y, -sin_t * 2.5f, 1.5f);
 			pushConstants[3] = glm::vec4(0.0f, y, r * 1.25f * cos_t, 1.5f);
 			pushConstants[4] = glm::vec4(r * 2.25f * cos_t, y, 0.0f, 1.25f);
-			pushConstants[5] = glm::vec4(r * 2.5f * cos(deg_to_rad(timer * 360)), y, r * 2.5f * sin_t, 1.25f);
+			pushConstants[5] = glm::vec4(r * 2.5f * cos(glm::radians(timer * 360)), y, r * 2.5f * sin_t, 1.25f);
 #undef r
 #undef y
 #undef sin_t
@@ -457,15 +457,15 @@ public:
 	{
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
-		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)width / (float)height, 0.001f, 256.0f);
+		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 2.0f, zoom));
 
 		float offset = 0.5f;
 		int uboIndex = 1;
 		uboVS.model = viewMatrix * glm::translate(glm::mat4(), glm::vec3(0, 0, 0));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
 		VkResult err = vkMapMemory(device, uniformData.vertexShader.memory, 0, sizeof(uboVS), 0, (void **)&pData);
