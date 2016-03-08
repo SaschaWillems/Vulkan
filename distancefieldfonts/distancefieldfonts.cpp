@@ -17,6 +17,7 @@
 #include <array>
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -152,7 +153,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -1.0f;
+		zoom = -1.5f;
 		rotation = { 0.0f, 0.0f, 0.0f };
 		title = "Vulkan Example - Distance field fonts";
 	}
@@ -688,8 +689,8 @@ public:
 	{
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
-		uboVS.projection = glm::perspective(glm::radians(splitScreen ? 45.0f : 60.0f), (float)width / (float)(height * ((splitScreen) ? 0.5f : 1.0f)), 0.001f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		uboVS.projection = glm::perspective(glm::radians(splitScreen ? 45.0f : 45.0f), (float)width / (float)(height * ((splitScreen) ? 0.5f : 1.0f)), 0.001f, 256.0f);
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, splitScreen ? zoom : zoom - 2.0f));
 
 		uboVS.model = glm::mat4();
 		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(0, 0, 0));

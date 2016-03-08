@@ -17,7 +17,7 @@
 #include <vector>
 
 #define GLM_FORCE_RADIANS
-#define GLM_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -438,7 +438,11 @@ public:
 		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
 
 		// Set depth bias (aka "Polygon offset")
-		vkCmdSetDepthBias(			offScreenCmdBuffer,			depthBiasConstant,			0.0f,			depthBiasSlope);
+		vkCmdSetDepthBias(
+			offScreenCmdBuffer,
+			depthBiasConstant,
+			0.0f,
+			depthBiasSlope);
 
 		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
