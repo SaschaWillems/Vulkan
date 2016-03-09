@@ -18,7 +18,7 @@
 #include <android/asset_manager.h>
 
 #define GLM_FORCE_RADIANS
-#define GLM_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -265,6 +265,8 @@ public:
 					texture.imageLayout);
 			}
 
+			flushSetupCommandBuffer();
+
 			// Clean up linear images 
 			// No longer required after mip levels
 			// have been transformed over to optimal tiling
@@ -338,9 +340,10 @@ public:
 				texture.image,
 				VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
 				texture.imageLayout);
+
+			flushSetupCommandBuffer();
 		}
 
-		flushSetupCommandBuffer();
 
 		// Create sampler
 		// In Vulkan textures are accessed by samplers
