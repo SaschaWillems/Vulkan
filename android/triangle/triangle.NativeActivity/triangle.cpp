@@ -17,7 +17,7 @@
 #include <android/asset_manager.h>
 
 #define GLM_FORCE_RADIANS
-#define GLM_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -58,6 +58,11 @@ struct VulkanExample
 	VkCommandBuffer setupCmdBuffer = VK_NULL_HANDLE;
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
 	std::vector<VkShaderModule> shaderModules;
+
+	struct {
+		VkSemaphore presentComplete;
+		VkSemaphore submitSignal;
+	} semaphores;
 
 	struct {
 		VkBuffer buf;
@@ -251,6 +256,15 @@ struct VulkanExample
 		VkResult err = vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache);
 		assert(!err);
 
+		// Create semaphores for synchronization
+		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
+		assert(!err);
+		err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.submitSignal);
+		assert(!err);
+
 		createSetupCommandBuffer();
 		startSetupCommandBuffer();
 
@@ -317,6 +331,9 @@ struct VulkanExample
 		vkDestroyImageView(device, depthStencil.view, nullptr);
 		vkDestroyImage(device, depthStencil.image, nullptr);
 		vkFreeMemory(device, depthStencil.mem, nullptr);
+
+		vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
+		vkDestroySemaphore(device, semaphores.submitSignal, nullptr);
 
 		vkDestroyPipelineCache(device, pipelineCache, nullptr);
 		vkDestroyDevice(device, nullptr);
@@ -983,27 +1000,24 @@ struct VulkanExample
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = {};
-		presentCompleteSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		presentCompleteSemaphoreCreateInfo.pNext = NULL;
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
 		// The submit infor strcuture contains a list of
 		// command buffers and semaphores to be submitted to a queue
 		// If you want to submit multiple command buffers, pass an array
+		VkPipelineStageFlags pipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		submitInfo.pWaitDstStageMask = &pipelineStages;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.submitSignal;
 
 		// Submit to the graphics queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
@@ -1011,10 +1025,8 @@ struct VulkanExample
 
 		// Present the current buffer to the swap chain
 		// This will display the image
-		err = swapChain.queuePresent(queue, currentBuffer);
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.submitSignal);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
 
 		// Add a post present image memory barrier
 		// This will transform the frame buffer color attachment back
