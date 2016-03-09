@@ -8,8 +8,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="..\..\..\base\vulkanandroid.cpp" />
     <ClCompile Include="..\..\..\base\vulkantools.cpp" />
+    <ClCompile Include="texture.cpp" />
   </ItemGroup>
 </Project>
