@@ -216,7 +216,7 @@
     <ClCompile Include="..\..\..\base\vulkanandroid.cpp" />
     <ClCompile Include="..\..\..\base\vulkantools.cpp" />
     <ClCompile Include="android_native_app_glue.c" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="computeparticles.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
