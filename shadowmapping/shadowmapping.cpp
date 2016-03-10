@@ -130,6 +130,7 @@ public:
 		int32_t width, height;
 		VkFramebuffer frameBuffer;
 		FrameBufferAttachment color, depth;
+		VkRenderPass renderPass;
 		vkTools::VulkanTexture textureTarget;
 	} offScreenFrameBuf;
 
@@ -268,6 +269,59 @@ public:
 		flushSetupCommandBuffer();
 	}
 
+	// Set up a separate render pass for the offscreen frame buffer
+	// This is necessary as the offscreen frame buffer attachments
+	// use formats different to the ones from the visible frame buffer
+	// and at least the depth one may not be compatible
+	void setupOffScreenRenderPass()
+	{
+		VkAttachmentDescription attDesc[2];
+		attDesc[0].format = FB_COLOR_FORMAT;
+		attDesc[0].samples = VK_SAMPLE_COUNT_1_BIT;
+		attDesc[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attDesc[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attDesc[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attDesc[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attDesc[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		attDesc[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		attDesc[1].format = DEPTH_FORMAT;
+		attDesc[1].samples = VK_SAMPLE_COUNT_1_BIT;
+		attDesc[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		// Since we need to copy the depth attachment contents to our texture
+		// used for shadow mapping we must use STORE_OP_STORE to make sure that
+		// the depth attachment contents are preserved after rendering to it 
+		// has finished
+		attDesc[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attDesc[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attDesc[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attDesc[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		attDesc[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference colorReference = {};
+		colorReference.attachment = 0;
+		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depthReference = {};
+		depthReference.attachment = 1;
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpass = {};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &colorReference;
+		subpass.pDepthStencilAttachment = &depthReference;
+
+		VkRenderPassCreateInfo renderPassCreateInfo = vkTools::initializers::renderPassCreateInfo();
+		renderPassCreateInfo.attachmentCount = 2;
+		renderPassCreateInfo.pAttachments = attDesc;
+		renderPassCreateInfo.subpassCount = 1;
+		renderPassCreateInfo.pSubpasses = &subpass;
+
+		VkResult err = vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &offScreenFrameBuf.renderPass);
+		assert(!err);
+	}
+
 	void prepareOffscreenFramebuffer()
 	{
 		createSetupCommandBuffer();
@@ -370,10 +424,11 @@ public:
 		attachments[0] = offScreenFrameBuf.color.view;
 		attachments[1] = offScreenFrameBuf.depth.view;
 
-		VkFramebufferCreateInfo fbufCreateInfo = {};
-		fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		fbufCreateInfo.pNext = NULL;
-		fbufCreateInfo.renderPass = renderPass;
+		setupOffScreenRenderPass();
+
+		// Create frame buffer
+		VkFramebufferCreateInfo fbufCreateInfo = vkTools::initializers::framebufferCreateInfo();
+		fbufCreateInfo.renderPass = offScreenFrameBuf.renderPass; 
 		fbufCreateInfo.attachmentCount = 2;
 		fbufCreateInfo.pAttachments = attachments;
 		fbufCreateInfo.width = offScreenFrameBuf.width;
@@ -408,10 +463,8 @@ public:
 		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
-		VkRenderPassBeginInfo renderPassBeginInfo = {};
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.pNext = NULL;
-		renderPassBeginInfo.renderPass = renderPass;
+		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = offScreenFrameBuf.renderPass;
 		renderPassBeginInfo.framebuffer = offScreenFrameBuf.frameBuffer;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
