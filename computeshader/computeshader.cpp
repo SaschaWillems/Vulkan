@@ -130,7 +130,9 @@ public:
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		// Texture will be sampled in a shader and is also the blit destination
-		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT |
+								VK_IMAGE_USAGE_STORAGE_BIT |
+								VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		imageCreateInfo.flags = 0;
 
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
@@ -630,12 +632,12 @@ public:
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Sampled image (read)
 			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 				VK_SHADER_STAGE_COMPUTE_BIT,
 				0),
 			// Binding 1 : Sampled image (write)
 			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 				VK_SHADER_STAGE_COMPUTE_BIT,
 				1),
 		};
@@ -676,12 +678,12 @@ public:
 		std::vector<VkDescriptorImageInfo> computeTexDescriptors =
 		{
 			vkTools::initializers::descriptorImageInfo(
-			textureColorMap.sampler,
+				VK_NULL_HANDLE,
 				textureColorMap.view,
 				VK_IMAGE_LAYOUT_GENERAL),
 
 			vkTools::initializers::descriptorImageInfo(
-				textureComputeTarget.sampler,
+				VK_NULL_HANDLE,
 				textureComputeTarget.view,
 				VK_IMAGE_LAYOUT_GENERAL)
 		};
@@ -691,13 +693,13 @@ public:
 			// Binding 0 : Sampled image (read)
 			vkTools::initializers::writeDescriptorSet(
 			computeDescriptorSet,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 				0,
 				&computeTexDescriptors[0]),
 			// Binding 1 : Sampled image (write)
 			vkTools::initializers::writeDescriptorSet(
 				computeDescriptorSet,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 				1,
 				&computeTexDescriptors[1])
 		};
