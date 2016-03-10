@@ -154,7 +154,9 @@ namespace vkTools
 
 				// Setup texture as blit target with optimal tiling
 				imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-				imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+				imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+										VK_IMAGE_USAGE_SAMPLED_BIT |
+										VK_IMAGE_USAGE_STORAGE_BIT;
 				imageCreateInfo.mipLevels = texture->mipLevels;
 				imageCreateInfo.extent = { texture->width, texture->height, 1 };
 
