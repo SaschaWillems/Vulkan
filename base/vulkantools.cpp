@@ -401,6 +401,14 @@ VkRenderPassBeginInfo vkTools::initializers::renderPassBeginInfo()
 	return renderPassBeginInfo;
 }
 
+VkRenderPassCreateInfo vkTools::initializers::renderPassCreateInfo()
+{
+	VkRenderPassCreateInfo renderPassCreateInfo = {};
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.pNext = NULL;
+	return renderPassCreateInfo;
+}
+
 VkImageMemoryBarrier vkTools::initializers::imageMemoryBarrier()
 {
 	VkImageMemoryBarrier imageMemoryBarrier = {};

@@ -101,6 +101,7 @@ namespace vkTools
 		VkCommandBufferInheritanceInfo commandBufferInheritanceInfo();
 
 		VkRenderPassBeginInfo renderPassBeginInfo();
+		VkRenderPassCreateInfo renderPassCreateInfo();
 
 		VkImageMemoryBarrier imageMemoryBarrier();
 		VkBufferMemoryBarrier bufferMemoryBarrier();
