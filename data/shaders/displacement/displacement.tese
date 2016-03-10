@@ -31,7 +31,7 @@ void main()
 	outUV = gl_TessCoord.x * inUV[0] + gl_TessCoord.y * inUV[1] + gl_TessCoord.z * inUV[2];
 	outNormal = gl_TessCoord.x * inNormal[0] + gl_TessCoord.y * inNormal[1] + gl_TessCoord.z * inNormal[2]; 
 				
-	gl_Position.xyz += normalize(outNormal) * (max(texture(displacementMap, outUV.st).r, 0.45) * ubo.tessStrength);
+	gl_Position.xyz += normalize(outNormal) * (max(textureLod(displacementMap, outUV.st, 0.0).r, 0.45) * ubo.tessStrength);
 				
 	outEyesPos = (gl_Position).xyz;
 	outLightVec = normalize(ubo.lightPos.xyz - outEyesPos);	
