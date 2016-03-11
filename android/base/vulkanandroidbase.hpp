@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <vector>
+#include <chrono>
 
 #include <vulkan/vulkan.h>
 #include "vulkanandroid.h"
@@ -25,6 +26,7 @@
 class VulkanAndroidExampleBase
 {
 private:
+	std::chrono::high_resolution_clock::time_point tStart;
 	VkShaderModule loadShaderModule(const char *fileName, VkShaderStageFlagBits stage)
 	{
 		// Load shader from compressed asset
@@ -58,6 +60,7 @@ public:
 	struct android_app* app;
 	uint32_t width;
 	uint32_t height;
+	float frameTimer = 0;
 
 	struct Texture {
 		VkSampler sampler;
@@ -861,6 +864,18 @@ public:
 	{
 		vkDestroyImage(device, texture->image, nullptr);
 		vkFreeMemory(device, texture->deviceMemory, nullptr);
+	}
+
+	void startTiming()
+	{
+		tStart = std::chrono::high_resolution_clock::now();
+	}
+
+	void endTiming()
+	{
+		auto tEnd = std::chrono::high_resolution_clock::now();
+		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+		frameTimer = (float)tDiff;
 	}
 
 };
