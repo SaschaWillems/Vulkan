@@ -196,7 +196,7 @@ public:
 
 	void updateUniformBuffers()
 	{
-		computeUbo.deltaT = (1.0f / 60.0f) * 4.0f;
+		computeUbo.deltaT = (1.0f / frameTimer) * 0.15f;
 		computeUbo.destX = sin(glm::radians(timer*360.0)) * 0.75f;
 		computeUbo.destY = cos(glm::radians(timer*360.0)) * 0.10f;
 		uint8_t *pData;
@@ -314,14 +314,15 @@ public:
 		pipelineCreateInfo.renderPass = renderPass;
 
 		// Additive blending
-		blendAttachmentState.colorWriteMask = 0xF;
 		blendAttachmentState.blendEnable = VK_TRUE;
+		blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
 		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
 		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
 		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_DST_ALPHA;
+
 
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
 		assert(!err);
@@ -714,6 +715,33 @@ public:
 		assert(!err);
 	}
 
+	void render()
+	{
+		// Render frame
+		if (prepared)
+		{
+			startTiming();
+			if (animating)
+			{
+				if (animStart > 0.0f)
+				{
+					animStart -= 0.15f * (1.0f / frameTimer);
+				}
+				if ((animate) & (animStart <= 0.0f))
+				{
+					timer += 0.5f * (1.0f / frameTimer);
+					if (timer > 1.0)
+					{
+						timer -= 1.0f;
+					}
+				}
+				updateUniformBuffers();
+			}
+			draw();
+			endTiming();
+		}
+	}
+
 };
 
 static int32_t handleInput(struct android_app* app, AInputEvent* event)
@@ -759,7 +787,6 @@ void android_main(struct android_app* state)
 {
 	VulkanExample *engine = new VulkanExample();
 
-	//memset(&engine, 0, sizeof(engine));
 	state->userData = engine;
 	state->onAppCmd = handleCommand;
 	state->onInputEvent = handleInput;
@@ -790,26 +817,6 @@ void android_main(struct android_app* state)
 			}
 		}
 
-		// Render frame
-		if (engine->prepared)
-		{
-			if (engine->animating)
-			{
-				if (engine->animStart > 0.0f)
-				{
-					engine->animStart -= (1.0f / 60.0f) * 5.0f;
-				}
-				if ((engine->animate) & (engine->animStart <= 0.0f))
-				{
-					engine->timer += (1.0f / 60.0f) * 0.1f;
-					if (engine->timer > 1.0)
-					{
-						engine->timer -= 1.0f;
-					}
-				}
-				engine->updateUniformBuffers();
-			}
-			engine->draw();
-		}
+		engine->render();
 	}
 }

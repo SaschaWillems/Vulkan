@@ -40,7 +40,7 @@ struct VulkanExample
 	uint32_t width;
 	uint32_t height;
 	struct saved_state state;
-	float frameTimer;
+	float frameTimer = 0;
 
 	// Vulkan
 	VkInstance instance;

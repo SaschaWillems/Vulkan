@@ -570,6 +570,26 @@ public:
 		assert(!err);
 	}
 
+	void render()
+	{
+		if (prepared)
+		{
+			startTiming();
+			if (animating)
+			{
+				// Update rotation
+				state.rotation.y += 0.15f * frameTimer;
+				if (state.rotation.y > 360.0f)
+				{
+					state.rotation.y -= 360.0f;
+
+				}
+				updateUniformBuffers();
+			}
+			draw();
+			endTiming();
+		}
+	}
 
 };
 
@@ -616,7 +636,6 @@ void android_main(struct android_app* state)
 {
 	VulkanExample *engine = new VulkanExample();
 
-	//memset(&engine, 0, sizeof(engine));
 	state->userData = engine;
 	state->onAppCmd = handleCommand;
 	state->onInputEvent = handleInput;
@@ -647,21 +666,7 @@ void android_main(struct android_app* state)
 			}
 		}
 
-		// Render frame
-		if (engine->prepared)
-		{
-			if (engine->animating)
-			{
-				// Update rotation
-				engine->state.rotation.y += 0.5f;
-				if (engine->state.rotation.y > 360.0f)
-				{
-					engine->state.rotation.y -= 360.0f;
+		engine->render();
 
-				}
-				engine->updateUniformBuffers();
-			}
-			engine->draw();
-		}
 	}
 }

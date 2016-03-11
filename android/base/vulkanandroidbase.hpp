@@ -60,7 +60,7 @@ public:
 	struct android_app* app;
 	uint32_t width;
 	uint32_t height;
-	float frameTimer = 0;
+	float frameTimer = 1.0f;
 
 	struct Texture {
 		VkSampler sampler;
