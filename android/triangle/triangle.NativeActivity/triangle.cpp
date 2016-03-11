@@ -15,6 +15,7 @@
 #include "vulkanandroid.h"
 #include "vulkanswapchain.hpp" 
 #include <android/asset_manager.h>
+#include <chrono>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -39,6 +40,7 @@ struct VulkanExample
 	uint32_t width;
 	uint32_t height;
 	struct saved_state state;
+	float frameTimer;
 
 	// Vulkan
 	VkInstance instance;
@@ -1159,10 +1161,12 @@ void android_main(struct android_app* state)
 		// Render frame
 		if (engine->prepared)
 		{
+			auto tStart = std::chrono::high_resolution_clock::now();
+
 			if (engine->animating)
 			{
 				// Update rotation
-				engine->state.rotation.y += 1.0f;
+				engine->state.rotation.y += engine->frameTimer * 0.1f;
 				if (engine->state.rotation.y > 360.0f)
 				{
 					engine->state.rotation.y -= 360.0f;
@@ -1171,6 +1175,12 @@ void android_main(struct android_app* state)
 				engine->updateUniformBuffers();
 			}
 			engine->draw();
+
+			auto tEnd = std::chrono::high_resolution_clock::now();
+			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+
+			engine->frameTimer = (float)tDiff;
+
 		}
 	}
 }
