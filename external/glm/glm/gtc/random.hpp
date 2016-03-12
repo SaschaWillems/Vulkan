@@ -60,13 +60,20 @@ namespace glm
 	/// 
 	/// @param Min 
 	/// @param Max 
-	/// @tparam genType Value type. Currently supported: half (not recommanded), float or double scalars and vectors.
+	/// @tparam genType Value type. Currently supported: float or double scalars.
 	/// @see gtc_random
 	template <typename genTYpe>
 	GLM_FUNC_DECL genTYpe linearRand(
 		genTYpe Min,
 		genTYpe Max);
 
+	/// Generate random numbers in the interval [Min, Max], according a linear distribution 
+	/// 
+	/// @param Min 
+	/// @param Max 
+	/// @tparam T Value type. Currently supported: float or double.
+	/// @tparam vecType A vertor type: tvec1, tvec2, tvec3, tvec4 or compatible
+	/// @see gtc_random
 	template <typename T, precision P, template <typename, precision> class vecType>
 	GLM_FUNC_DECL vecType<T, P> linearRand(
 		vecType<T, P> const & Min,

@@ -645,4 +645,12 @@ namespace io
 
 		return os;
 	}
+
+	template <typename CTy, typename CTr, typename T, precision P>
+	GLM_FUNC_QUALIFIER std::basic_ostream<CTy,CTr>& operator<<(
+		std::basic_ostream<CTy,CTr> & os,
+		std::pair<tmat4x4<T,P>, tmat4x4<T,P> > const& a)
+	{
+		return operator<<(os, static_cast<std::pair<tmat4x4<T,P> const, tmat4x4<T,P> const> const&>(a));
+	}
 }//namespace glm

@@ -13,6 +13,7 @@
 #include <vector>
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -20,7 +21,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 
 // Texture properties
@@ -80,7 +80,7 @@ public:
 		int32_t texWidth = TEX_DIM;
 		int32_t texHeight = TEX_DIM;
 		float blurScale = 1.0f;
-		float blurStrength = 1.0f;
+		float blurStrength = 1.5f;
 		uint32_t horizontal;
 	};
 
@@ -692,16 +692,6 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_FLAGS_NONE,
-				0, nullptr,
-				0, nullptr,
-				1, &prePresentBarrier);
-
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
 		}
@@ -715,47 +705,35 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo =
-			vkTools::initializers::semaphoreCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
+
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		// Gather command buffers to be sumitted to the queue
 		std::vector<VkCommandBuffer> submitCmdBuffers;
-
 		// Submit offscreen rendering command buffer 
 		if (bloom)
 		{
 			submitCmdBuffers.push_back(offScreenCmdBuffer);
 		}
-
 		submitCmdBuffers.push_back(drawCmdBuffers[currentBuffer]);
-
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
 		submitInfo.commandBufferCount = submitCmdBuffers.size();
 		submitInfo.pCommandBuffers = submitCmdBuffers.data();
 
-		// Submit draw command buffer
+		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
 
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
 		err = vkQueueWaitIdle(queue);
-		assert(err == VK_SUCCESS);
+		assert(!err);
 	}
 
 	void loadMeshes()
@@ -1091,13 +1069,8 @@ public:
 
 		// Vertical gauss blur
 		// Load shaders
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/bloom/gaussblur.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/bloom/gaussblur.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/bloom/gaussblur.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/bloom/gaussblur.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -1130,13 +1103,8 @@ public:
 		assert(!err);
 
 		// Phong pass (3D model)
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/bloom/phongpass.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/bloom/phongpass.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/bloom/phongpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/bloom/phongpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 
 		pipelineCreateInfo.layout = pipelineLayouts.scene;
 		blendAttachmentState.blendEnable = VK_FALSE;
@@ -1146,25 +1114,15 @@ public:
 		assert(!err);
 
 		// Color only pass (offscreen blur base)
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/bloom/colorpass.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/bloom/colorpass.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/bloom/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/bloom/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.colorPass);
 		assert(!err);
 
 		// Skybox (cubemap
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/bloom/skybox.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/bloom/skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/bloom/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/bloom/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 		depthStencilState.depthWriteEnable = VK_FALSE;
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skyBox);
 		assert(!err);
@@ -1228,17 +1186,17 @@ public:
 	void updateUniformBuffersScene()
 	{
 		// UFO
-		ubos.fullscreen.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, 0.1f, 256.0f);
+		ubos.fullscreen.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, -1.0f, zoom));
 
 		ubos.fullscreen.model = viewMatrix *
-			glm::translate(glm::mat4(), glm::vec3(sin(deg_to_rad(timer * 360.0f)) * 0.25f, 0.0f, cos(deg_to_rad(timer * 360.0f)) * 0.25f));
+			glm::translate(glm::mat4(), glm::vec3(sin(glm::radians(timer * 360.0f)) * 0.25f, 0.0f, cos(glm::radians(timer * 360.0f)) * 0.25f));
 
-		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, -sinf(deg_to_rad(timer * 360.0f)) * 0.15f, glm::vec3(1.0f, 0.0f, 0.0f));
-		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, deg_to_rad(timer * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, -sinf(glm::radians(timer * 360.0f)) * 0.15f, glm::vec3(1.0f, 0.0f, 0.0f));
+		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, glm::radians(timer * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
 		VkResult err = vkMapMemory(device, uniformData.vsFullScreen.memory, 0, sizeof(ubos.fullscreen), 0, (void **)&pData);
@@ -1247,12 +1205,12 @@ public:
 		vkUnmapMemory(device, uniformData.vsFullScreen.memory);
 
 		// Skybox
-		ubos.skyBox.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, 0.1f, 256.0f);
+		ubos.skyBox.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
 
 		ubos.skyBox.model = glm::mat4();
-		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		err = vkMapMemory(device, uniformData.vsSkyBox.memory, 0, sizeof(ubos.skyBox), 0, (void **)&pData);
 		assert(!err);

@@ -109,10 +109,12 @@ void VulkanExampleBase::createCommandBuffers()
 	VkResult vkRes = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data());
 	assert(!vkRes);
 
-	// Create one command buffer for submitting the
-	// post present image memory barrier
+	// Command buffers for submitting present barriers
 	cmdBufAllocateInfo.commandBufferCount = 1;
-
+	// Pre present
+	vkRes = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &prePresentCmdBuffer);
+	assert(!vkRes);
+	// Post present
 	vkRes = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &postPresentCmdBuffer);
 	assert(!vkRes);
 }
@@ -120,6 +122,7 @@ void VulkanExampleBase::createCommandBuffers()
 void VulkanExampleBase::destroyCommandBuffers()
 {
 	vkFreeCommandBuffers(device, cmdPool, (uint32_t)drawCmdBuffers.size(), drawCmdBuffers.data());
+	vkFreeCommandBuffers(device, cmdPool, 1, &prePresentCmdBuffer);
 	vkFreeCommandBuffers(device, cmdPool, 1, &postPresentCmdBuffer);
 }
 
@@ -211,18 +214,6 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(const char * fileN
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
 	shaderStage.module = vkTools::loadShader(fileName, device, stage);
-	shaderStage.pName = "main"; // todo : make param
-	assert(shaderStage.module != NULL);
-	shaderModules.push_back(shaderStage.module);
-	return shaderStage;
-}
-
-VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShaderGLSL(const char * fileName, VkShaderStageFlagBits stage)
-{
-	VkPipelineShaderStageCreateInfo shaderStage = {};
-	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shaderStage.stage = stage;
-	shaderStage.module = vkTools::loadShaderGLSL(fileName, device, stage);
 	shaderStage.pName = "main"; // todo : make param
 	assert(shaderStage.module != NULL);
 	shaderModules.push_back(shaderStage.module);
@@ -347,7 +338,43 @@ void VulkanExampleBase::renderLoop()
 #endif
 }
 
-// todo : comment
+void VulkanExampleBase::submitPrePresentBarrier(VkImage image)
+{
+	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+
+	VkResult vkRes = vkBeginCommandBuffer(prePresentCmdBuffer, &cmdBufInfo);
+	assert(!vkRes);
+
+	VkImageMemoryBarrier prePresentBarrier = vkTools::initializers::imageMemoryBarrier();
+	prePresentBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	prePresentBarrier.dstAccessMask = 0;
+	prePresentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	prePresentBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	prePresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	prePresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	prePresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	prePresentBarrier.image = image;
+
+	vkCmdPipelineBarrier(
+		prePresentCmdBuffer,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_FLAGS_NONE,
+		0, nullptr, // No memory barriers,
+		0, nullptr, // No buffer barriers,
+		1, &prePresentBarrier);
+
+	vkRes = vkEndCommandBuffer(prePresentCmdBuffer);
+	assert(!vkRes);
+
+	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &prePresentCmdBuffer;
+
+	vkRes = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+	assert(!vkRes);
+}
+
 void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
 {
 	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
@@ -355,30 +382,49 @@ void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
 	VkResult vkRes = vkBeginCommandBuffer(postPresentCmdBuffer, &cmdBufInfo);
 	assert(!vkRes);
 
-	VkImageMemoryBarrier postPresentBarrier = vkTools::postPresentBarrier(image);
+	VkImageMemoryBarrier postPresentBarrier = vkTools::initializers::imageMemoryBarrier();
+	postPresentBarrier.srcAccessMask = 0;
+	postPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	postPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	postPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	postPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	postPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	postPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	postPresentBarrier.image = image;
 
 	vkCmdPipelineBarrier(
 		postPresentCmdBuffer,
 		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 		0,
-		0, NULL, // No memory barriers,
-		0, NULL, // No buffer barriers,
+		0, nullptr, // No memory barriers,
+		0, nullptr, // No buffer barriers,
 		1, &postPresentBarrier);
 
 	vkRes = vkEndCommandBuffer(postPresentCmdBuffer);
 	assert(!vkRes);
 
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &postPresentCmdBuffer;
 
 	vkRes = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 	assert(!vkRes);
+}
 
-	vkRes = vkQueueWaitIdle(queue);
-	assert(!vkRes);
+VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
+	std::vector<VkCommandBuffer> commandBuffers, 
+	VkPipelineStageFlags *pipelineStages)
+{
+	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
+	submitInfo.pWaitDstStageMask = pipelineStages;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+	submitInfo.commandBufferCount = commandBuffers.size();
+	submitInfo.pCommandBuffers = commandBuffers.data();
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+	return submitInfo;
 }
 
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
@@ -441,6 +487,9 @@ VulkanExampleBase::~VulkanExampleBase()
 	}
 
 	vkDestroyCommandPool(device, cmdPool, nullptr);
+
+	vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
+	vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
 
 	vkDestroyDevice(device, nullptr); 
 
@@ -526,7 +575,28 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &depthFormat);
 	assert(validDepthFormat);
 
-	swapChain.init(instance, physicalDevice, device);
+	swapChain.connect(instance, physicalDevice, device);
+
+	// Create synchronization objects
+	VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
+	// Create a semaphore used to synchronize image presentation
+	// Ensures that the image is displayed before we start submitting new commands to the queu
+	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
+	assert(!err);
+	// Create a semaphore used to synchronize command submission
+	// Ensures that the image is not presented until all commands have been sumbitted and executed
+	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
+	assert(!err);
+
+	// Set up submit info structure
+	// Semaphores will stay the same during application lifetime
+	// Command buffer submission info is set by each example
+	submitInfo = vkTools::initializers::submitInfo();
+	submitInfo.pWaitDstStageMask = &submitPipelineStages;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 }
 
 #ifdef _WIN32 
@@ -568,7 +638,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	wndClass.hInstance = hinstance;
 	wndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	wndClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
 	wndClass.lpszMenuName = NULL;
 	wndClass.lpszClassName = name.c_str();
 	wndClass.hIconSm = LoadIcon(NULL, IDI_WINLOGO);
@@ -693,6 +763,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			exit(0);
 			break;
 		}
+		keyPressed((uint32_t)wParam);
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
@@ -723,8 +794,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 
 #else
 
-// Linux : Setup window 
-// TODO : Not finished...
+// Set up a window using XCB and request event types
 xcb_window_t VulkanExampleBase::setupWindow()
 {
 	uint32_t value_mask, value_list[32];
@@ -733,7 +803,8 @@ xcb_window_t VulkanExampleBase::setupWindow()
 
 	value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 	value_list[0] = screen->black_pixel;
-	value_list[1] = XCB_EVENT_MASK_KEY_RELEASE |
+	value_list[1] = 
+		XCB_EVENT_MASK_KEY_RELEASE |
 		XCB_EVENT_MASK_EXPOSURE |
 		XCB_EVENT_MASK_STRUCTURE_NOTIFY |
 		XCB_EVENT_MASK_POINTER_MOTION |
@@ -836,11 +907,10 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	break;
 	case XCB_KEY_RELEASE:
 	{
-		const xcb_key_release_event_t *key =
-			(const xcb_key_release_event_t *)event;
-
-		if (key->detail == 0x9)
+		const xcb_key_release_event_t *keyEvent = (const xcb_key_release_event_t *)event;
+		if (keyEvent->detail == 0x9)
 			quit = true;
+		keyPressed(keyEvent->detail);
 	}
 	break;
 	case XCB_DESTROY_NOTIFY:
@@ -854,7 +924,12 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 
 void VulkanExampleBase::viewChanged()
 {
-	// For overriding on derived class
+	// Can be overrdiden in derived class
+}
+
+void VulkanExampleBase::keyPressed(uint32_t keyCode)
+{
+	// Can be overriden in derived class
 }
 
 VkBool32 VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t * typeIndex)
@@ -1025,15 +1100,15 @@ void VulkanExampleBase::setupRenderPass()
 void VulkanExampleBase::initSwapchain()
 {
 #ifdef _WIN32
-	swapChain.initSwapChain(windowInstance, window);
+	swapChain.initSurface(windowInstance, window);
 #else
-	swapChain.initSwapChain(connection, window);
+	swapChain.initSurface(connection, window);
 #endif
 }
 
 void VulkanExampleBase::setupSwapChain()
 {
-	swapChain.setup(setupCmdBuffer, &width, &height);
+	swapChain.create(setupCmdBuffer, &width, &height);
 }
 
 

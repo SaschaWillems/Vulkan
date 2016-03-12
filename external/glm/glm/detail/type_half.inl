@@ -52,12 +52,12 @@ namespace detail
 			i(0)
 		{}
 
-		GLM_FUNC_QUALIFIER uif32(float f) :
-			f(f)
+		GLM_FUNC_QUALIFIER uif32(float f_) :
+			f(f_)
 		{}
 
-		GLM_FUNC_QUALIFIER uif32(uint32 i) :
-			i(i)
+		GLM_FUNC_QUALIFIER uif32(uint32 i_) :
+			i(i_)
 		{}
 
 		float f;

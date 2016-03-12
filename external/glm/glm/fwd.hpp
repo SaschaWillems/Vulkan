@@ -124,9 +124,6 @@ namespace glm
 // GLM_GTC_precision
 namespace glm
 {
-	/// @addtogroup gtc_type_precision
-	/// @{
-
 	/// Low precision 8 bit signed integer type.
 	/// @see gtc_type_precision
 	typedef detail::int8 lowp_int8;
@@ -1547,15 +1544,15 @@ namespace glm
 	typedef tvec1<float, lowp> lowp_vec1;
 
 	/// Low single-precision floating-point vector of 2 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec2<float, lowp> lowp_vec2;
 
 	/// Low single-precision floating-point vector of 3 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec3<float, lowp> lowp_vec3;
 
 	/// Low single-precision floating-point vector of 4 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec4<float, lowp> lowp_vec4;
 
 	/// Low single-precision floating-point vector of 1 component.
@@ -1580,15 +1577,15 @@ namespace glm
 	typedef tvec1<float, mediump> mediump_vec1;
 
 	/// Medium Single-precision floating-point vector of 2 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec2<float, mediump> mediump_vec2;
 
 	/// Medium Single-precision floating-point vector of 3 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec3<float, mediump> mediump_vec3;
 
 	/// Medium Single-precision floating-point vector of 4 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec4<float, mediump> mediump_vec4;
 
 	/// Medium single-precision floating-point vector of 1 component.
@@ -1613,15 +1610,15 @@ namespace glm
 	typedef tvec1<float, highp> highp_vec1;
 
 	/// High Single-precision floating-point vector of 2 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec2<float, highp> highp_vec2;
 
 	/// High Single-precision floating-point vector of 3 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec3<float, highp> highp_vec3;
 
 	/// High Single-precision floating-point vector of 4 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec4<float, highp> highp_vec4;
 
 	/// High single-precision floating-point vector of 1 component.
@@ -1629,15 +1626,15 @@ namespace glm
 	typedef tvec1<float, highp> highp_fvec1;
 
 	/// High Single-precision floating-point vector of 2 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec2<float, highp> highp_fvec2;
 
 	/// High Single-precision floating-point vector of 3 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec3<float, highp> highp_fvec3;
 
 	/// High Single-precision floating-point vector of 4 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec4<float, highp> highp_fvec4;
 
 
@@ -1646,15 +1643,15 @@ namespace glm
 	typedef tvec1<f32, lowp> lowp_f32vec1;
 
 	/// Low single-precision floating-point vector of 2 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec2<f32, lowp> lowp_f32vec2;
 
 	/// Low single-precision floating-point vector of 3 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec3<f32, lowp> lowp_f32vec3;
 
 	/// Low single-precision floating-point vector of 4 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec4<f32, lowp> lowp_f32vec4;
 
 	/// Medium single-precision floating-point vector of 1 component.
@@ -1662,15 +1659,15 @@ namespace glm
 	typedef tvec1<f32, mediump> mediump_f32vec1;
 
 	/// Medium single-precision floating-point vector of 2 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec2<f32, mediump> mediump_f32vec2;
 
 	/// Medium single-precision floating-point vector of 3 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec3<f32, mediump> mediump_f32vec3;
 
 	/// Medium single-precision floating-point vector of 4 components.
-	/// @see gtc_type_precision
+	/// @see core_precision
 	typedef tvec4<f32, mediump> mediump_f32vec4;
 
 	/// High single-precision floating-point vector of 1 component.
@@ -2598,4 +2595,5 @@ namespace glm
 	/// @see gtc_type_precision
 	typedef highp_f64quat			f64quat;
 #endif
+
 }//namespace glm
