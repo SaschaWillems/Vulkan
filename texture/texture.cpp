@@ -174,9 +174,9 @@ public:
 		gli::texture2D tex2D(gli::load(fileName));
 		assert(!tex2D.empty());
 
-		texture.width = tex2D[0].dimensions().x;
-		texture.height = tex2D[0].dimensions().y;
-		texture.mipLevels = tex2D.levels();
+		texture.width  = (uint32_t)tex2D[0].dimensions().x;
+		texture.height = (uint32_t)tex2D[0].dimensions().y;
+		texture.mipLevels = (uint32_t)tex2D.levels();
 
 		// Get device properites for the requested texture format
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
@@ -224,8 +224,8 @@ public:
 			// Copy mip levels
 			for (uint32_t level = 0; level < texture.mipLevels; ++level)
 			{
-				imageCreateInfo.extent.width = tex2D[level].dimensions().x;
-				imageCreateInfo.extent.height = tex2D[level].dimensions().y;
+				imageCreateInfo.extent.width  = (uint32_t)tex2D[level].dimensions().x;
+				imageCreateInfo.extent.height = (uint32_t)tex2D[level].dimensions().y;
 				imageCreateInfo.extent.depth = 1;
 
 				err = vkCreateImage(device, &imageCreateInfo, nullptr, &mipLevels[level].image);
@@ -307,8 +307,8 @@ public:
 				copyRegion.dstSubresource.layerCount = 1;
 				copyRegion.dstOffset = { 0, 0, 0 };
 
-				copyRegion.extent.width = tex2D[level].dimensions().x;
-				copyRegion.extent.height = tex2D[level].dimensions().y;
+				copyRegion.extent.width  = (uint32_t)tex2D[level].dimensions().x;
+				copyRegion.extent.height = (uint32_t)tex2D[level].dimensions().y;
 				copyRegion.extent.depth = 1;
 
 				// Put image copy into command buffer
@@ -467,8 +467,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -485,15 +485,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
+				(float)ScreenProperties.Width,
+				(float)ScreenProperties.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
+				ScreenProperties.Width,
+				ScreenProperties.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -580,7 +580,7 @@ public:
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-		indices.count = indexBuffer.size();
+		indices.count = (int)indexBuffer.size();
 
 		createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -619,9 +619,9 @@ public:
 				sizeof(float) * 3);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = (uint32_t)vertices.bindingDescriptions.size();
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = (uint32_t)vertices.attributeDescriptions.size();
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -636,7 +636,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = 
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				(uint32_t)poolSizes.size(),
 				poolSizes.data(),
 				2);
 
@@ -663,7 +663,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = 
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				(uint32_t)setLayoutBindings.size());
 
 		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
@@ -711,7 +711,7 @@ public:
 				&texDescriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -760,7 +760,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				(uint32_t)dynamicStateEnables.size(),
 				0);
 
 		// Load shaders
@@ -788,7 +788,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
@@ -814,7 +814,7 @@ public:
 	{
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
-		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)width / (float)height, 0.001f, 256.0f);
+		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.001f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
 		uboVS.model = glm::mat4();

@@ -603,8 +603,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -620,15 +620,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
+				(float)ScreenProperties.Width,
+				(float)ScreenProperties.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
+				ScreenProperties.Width,
+				ScreenProperties.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -692,7 +692,7 @@ public:
 		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
-		submitInfo.commandBufferCount = submitCmdBuffers.size();
+		submitInfo.commandBufferCount = (uint32_t)submitCmdBuffers.size();
 		submitInfo.pCommandBuffers = submitCmdBuffers.data();
 
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
@@ -757,9 +757,9 @@ public:
 				sizeof(float) * 8);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = (uint32_t)vertices.bindingDescriptions.size();
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = (uint32_t)vertices.attributeDescriptions.size();
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -774,7 +774,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				(uint32_t)poolSizes.size(),
 				poolSizes.data(),
 				3);
 
@@ -802,7 +802,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				(uint32_t)setLayoutBindings.size());
 
 		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
@@ -868,7 +868,7 @@ public:
 				1,
 				&texDescriptor)
 		};
-		vkUpdateDescriptorSets(device, sceneDescriptorSets.size(), sceneDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, (uint32_t)sceneDescriptorSets.size(), sceneDescriptorSets.data(), 0, NULL);
 
 		// Offscreen
 		vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.offscreen);
@@ -883,7 +883,7 @@ public:
 				0,
 				&uniformData.offscreen.descriptor),
 		};
-		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, (uint32_t)offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -932,7 +932,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				(uint32_t)dynamicStateEnables.size(),
 				0);
 
 		// 3D scene pipeline
@@ -961,7 +961,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.scene);
@@ -1023,7 +1023,7 @@ public:
 	void updateUniformBuffers()
 	{
 		// 3D scene
-		uboVSscene.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, zNear, zFar);
+		uboVSscene.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, zNear, zFar);
 		uboVSscene.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, displayCubeMap ? 0.0f : zoom));
 
 		uboVSscene.model = glm::mat4();

@@ -73,8 +73,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		width = 1280;
-		height = 720;
+		ScreenProperties.Width	= 1280;
+		ScreenProperties.Height = 720;
 		zoom = -2.5f;
 		title = "Vulkan Example - Basic indexed triangle";
 		// Values not set here are initialized in the base class constructor
@@ -118,8 +118,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width		= ScreenProperties.Width;
+		renderPassBeginInfo.renderArea.extent.height	= ScreenProperties.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -137,16 +137,16 @@ public:
 
 			// Update dynamic viewport state
 			VkViewport viewport = {};
-			viewport.height = (float)height;
-			viewport.width = (float)width;
+			viewport.width  = (float)ScreenProperties.Width;
+			viewport.height = (float)ScreenProperties.Height;
 			viewport.minDepth = (float) 0.0f;
 			viewport.maxDepth = (float) 1.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			// Update dynamic scissor state
 			VkRect2D scissor = {};
-			scissor.extent.width = width;
-			scissor.extent.height = height;
+			scissor.extent.width  = ScreenProperties.Width;
+			scissor.extent.height = ScreenProperties.Height;
 			scissor.offset.x = 0;
 			scissor.offset.y = 0;
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -303,11 +303,11 @@ public:
 			{ { -1.0f,  1.0f, 0.0f },{ 0.0f, 1.0f, 0.0f } },
 			{ { 0.0f, -1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
 		};
-		int vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+		int vertexBufferSize = static_cast<int>(vertexBuffer.size() * sizeof(Vertex));
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer = { 0, 1, 2 };
-		int indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
+		int indexBufferSize = static_cast<int>(indexBuffer.size() * sizeof(uint32_t));
 
 		VkMemoryAllocateInfo memAlloc = {};
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -367,7 +367,7 @@ public:
 		vkUnmapMemory(device, indices.mem);
 		err = vkBindBufferMemory(device, indices.buf, indices.mem, 0);
 		assert(!err);
-		indices.count = indexBuffer.size();
+		indices.count = static_cast<int>(indexBuffer.size());
 
 		// Binding description
 		vertices.bindingDescriptions.resize(1);
@@ -394,10 +394,10 @@ public:
 		// Assign to vertex buffer
 		vertices.vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertices.vi.pNext = NULL;
-		vertices.vi.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
-		vertices.vi.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.vi.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
-		vertices.vi.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
+		vertices.vi.vertexBindingDescriptionCount	= static_cast<uint32_t>( vertices.bindingDescriptions.size()	);
+		vertices.vi.pVertexBindingDescriptions		= vertices.bindingDescriptions.data();
+		vertices.vi.vertexAttributeDescriptionCount = static_cast<uint32_t>( vertices.attributeDescriptions.size()	);
+		vertices.vi.pVertexAttributeDescriptions	= vertices.attributeDescriptions.data();
 	}
 
 	void setupDescriptorPool()
@@ -570,8 +570,8 @@ public:
 		dynamicStateEnables.push_back(VK_DYNAMIC_STATE_VIEWPORT);
 		dynamicStateEnables.push_back(VK_DYNAMIC_STATE_SCISSOR);
 		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.pDynamicStates = dynamicStateEnables.data();
-		dynamicState.dynamicStateCount = dynamicStateEnables.size();
+		dynamicState.pDynamicStates		= dynamicStateEnables.data();
+		dynamicState.dynamicStateCount	= static_cast<uint32_t>( dynamicStateEnables.size() );
 
 		// Depth and stencil state
 		// Describes depth and stenctil test and compare ops
@@ -672,7 +672,7 @@ public:
 	void updateUniformBuffers()
 	{
 		// Update matrices
-		uboVS.projectionMatrix = glm::perspective(deg_to_rad(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projectionMatrix = glm::perspective(deg_to_rad(60.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
 
 		uboVS.viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 

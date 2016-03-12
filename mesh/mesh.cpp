@@ -80,8 +80,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		width = 1280;
-		height = 720;
+		ScreenProperties.Width = 1280;
+		ScreenProperties.Height = 720;
 		zoom = -5.5;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
@@ -121,15 +121,14 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
+		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i) {
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
@@ -139,15 +138,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
+				(float)ScreenProperties.Width,
+				(float)ScreenProperties.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
+				ScreenProperties.Width,
+				ScreenProperties.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -227,10 +226,8 @@ public:
 		std::vector<Vertex> vertexBuffer;
 		// Iterate through all meshes in the file
 		// and extract the vertex information used in this demo
-		for (uint32_t m = 0; m < meshLoader->m_Entries.size(); m++)
-		{
-			for (uint32_t i = 0; i < meshLoader->m_Entries[m].Vertices.size(); i++)
-			{
+		for (uint32_t m = 0; m < meshLoader->m_Entries.size(); m++) {
+			for (uint32_t i = 0; i < meshLoader->m_Entries[m].Vertices.size(); i++) {
 				Vertex vertex;
 
 				vertex.pos = meshLoader->m_Entries[m].Vertices[i].m_pos * scale;
@@ -245,11 +242,9 @@ public:
 
 		// Generate index buffer from loaded mesh file
 		std::vector<uint32_t> indexBuffer;
-		for (uint32_t m = 0; m < meshLoader->m_Entries.size(); m++)
-		{
+		for (uint32_t m = 0; m < meshLoader->m_Entries.size(); m++) {
 			uint32_t indexBase = indexBuffer.size();
-			for (uint32_t i = 0; i < meshLoader->m_Entries[m].Indices.size(); i++)
-			{
+			for (uint32_t i = 0; i < meshLoader->m_Entries[m].Indices.size(); i++) {
 				indexBuffer.push_back(meshLoader->m_Entries[m].Indices[i] + indexBase);
 			}
 		}
@@ -521,7 +516,7 @@ public:
 	{
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
-		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
 		float offset = 0.5f;
@@ -574,10 +569,10 @@ VulkanExample *vulkanExample;
 
 #ifdef _WIN32
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK 
+WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (vulkanExample != NULL)
-	{
+	if (vulkanExample != NULL) {
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
@@ -585,19 +580,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 #else 
 
-static void handleEvent(const xcb_generic_event_t *event)
+static void 
+handleEvent(const xcb_generic_event_t *event)
 {
-	if (vulkanExample != NULL)
-	{
+	if (vulkanExample != NULL) {
 		vulkanExample->handleEvent(event);
 	}
 }
 #endif
 
+int
 #ifdef _WIN32
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
 #else
-int main(const int argc, const char *argv[])
+main(const int argc, const char *argv[])
 #endif
 {
 	vulkanExample = new VulkanExample();

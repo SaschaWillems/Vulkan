@@ -116,8 +116,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -134,15 +134,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
+				(float)ScreenProperties.Width,
+				(float)ScreenProperties.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
+				ScreenProperties.Width,
+				ScreenProperties.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -450,7 +450,7 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
 
 		uboVS.view = glm::lookAt(
 			glm::vec3(0, 0, -zoom),

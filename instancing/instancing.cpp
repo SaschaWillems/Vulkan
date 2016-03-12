@@ -120,8 +120,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -138,15 +138,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
+				(float)ScreenProperties.Width,
+				(float)ScreenProperties.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
+				ScreenProperties.Width,
+				ScreenProperties.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -475,7 +475,7 @@ public:
 		// Only updates the uniform buffer block part containing the global matrices
 
 		// Projection
-		uboVS.matrices.projection = glm::perspective(deg_to_rad(60.0f), (float)width / (float)height, 0.001f, 256.0f);
+		uboVS.matrices.projection = glm::perspective(deg_to_rad(60.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.001f, 256.0f);
 
 		// View
 		uboVS.matrices.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));

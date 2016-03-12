@@ -37,61 +37,76 @@
 
 #define deg_to_rad(deg) deg * float(M_PI / 180)
 
+struct VulkanExampleScreen
+{
+	VulkanExampleScreen( void ):
+		Width	(1280),
+		Height	(720){}
+	uint32_t Width	;// = 1280;
+	uint32_t Height ;// = 720 ;
+};
+
+struct VulkanDepthStencil
+{
+	VkImage image;
+	VkDeviceMemory mem;
+	VkImageView view;
+};
+
 class VulkanExampleBase
 {
 private:	
 	// Set to true when example is created with enabled validation layers
-	bool enableValidation = false;
+	bool enableValidation;
 	// Create application wide Vulkan instance
 	VkResult createInstance(bool enableValidation);
 	// Create logical Vulkan device based on physical device
 	VkResult createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation);
 protected:
 	// Last frame time, measured using a high performance timer (if available)
-	float frameTimer = 1.0f;
+	float								frameTimer;
 	// Vulkan instance, stores all per-application states
-	VkInstance instance;
+	VkInstance							instance;
 	// Physical device (GPU) that Vulkan will ise
-	VkPhysicalDevice physicalDevice;
+	VkPhysicalDevice					physicalDevice;
 	// Stores all available memory (type) properties for the physical device
-	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
+	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;
 	// Logical device, application's view of the physical device (GPU)
-	VkDevice device;
+	VkDevice							device;
 	// Handle to the device graphics queue that command buffers are submitted to
-	VkQueue queue;
+	VkQueue								queue;
 	// Color buffer format
-	VkFormat colorformat = VK_FORMAT_B8G8R8A8_UNORM;
+	VkFormat							colorformat = VK_FORMAT_B8G8R8A8_UNORM;
 	// Depth buffer format
 	// Depth format is selected during Vulkan initialization
-	VkFormat depthFormat;
+	VkFormat							depthFormat;
 	// Command buffer pool
-	VkCommandPool cmdPool;
+	VkCommandPool						cmdPool;
 	// Command buffer used for setup
-	VkCommandBuffer setupCmdBuffer = VK_NULL_HANDLE;
+	VkCommandBuffer						setupCmdBuffer = VK_NULL_HANDLE;
 	// Command buffer for submitting a post present barrier
-	VkCommandBuffer postPresentCmdBuffer = VK_NULL_HANDLE;
+	VkCommandBuffer						postPresentCmdBuffer = VK_NULL_HANDLE;
 	// Command buffers used for rendering
-	std::vector<VkCommandBuffer> drawCmdBuffers;
+	std::vector<VkCommandBuffer>		drawCmdBuffers;
 	// Global render pass for frame buffer writes
-	VkRenderPass renderPass;
+	VkRenderPass						renderPass;
 	// List of available frame buffers (same as number of swap chain images)
-	std::vector<VkFramebuffer>frameBuffers;
+	std::vector<VkFramebuffer>			frameBuffers;
 	// Active frame buffer index
-	uint32_t currentBuffer = 0;
+	uint32_t							currentBuffer = 0;
 	// Descriptor set pool
-	VkDescriptorPool descriptorPool;
+	VkDescriptorPool					descriptorPool;
 	// List of shader modules created (stored for cleanup)
-	std::vector<VkShaderModule> shaderModules;
+	std::vector<VkShaderModule>			shaderModules;
 	// Pipeline cache object
-	VkPipelineCache pipelineCache;
+	VkPipelineCache						pipelineCache;
 	// Wraps the swap chain to present images (framebuffers) to the windowing system
-	VulkanSwapChain swapChain;
+	VulkanSwapChain						swapChain;
 	// Simple texture loader
-	vkTools::VulkanTextureLoader *textureLoader = nullptr;
+	vkTools::VulkanTextureLoader*		textureLoader = nullptr;
 public: 
 	bool prepared = false;
-	uint32_t width = 1280;
-	uint32_t height = 720;
+	VulkanExampleScreen ScreenProperties; 
 
 	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
 
@@ -116,12 +131,7 @@ public:
 	std::string title = "Vulkan Example";
 	std::string name = "vulkanExample";
 
-	struct 
-	{
-		VkImage image;
-		VkDeviceMemory mem;
-		VkImageView view;
-	} depthStencil;
+	VulkanDepthStencil depthStencil;
 
 	// OS specific 
 #ifdef _WIN32

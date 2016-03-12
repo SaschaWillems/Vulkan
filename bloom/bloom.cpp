@@ -532,8 +532,8 @@ public:
 		renderPassBeginInfo.renderArea.extent.width = offScreenFrameBufB.width;
 		renderPassBeginInfo.renderArea.extent.height = offScreenFrameBufB.height;
 
-		viewport.width = offScreenFrameBuf.width;
-		viewport.height = offScreenFrameBuf.height;
+		viewport.width =  (float)offScreenFrameBuf.width;
+		viewport.height = (float)offScreenFrameBuf.height;
 		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
 
 		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
@@ -631,8 +631,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -649,15 +649,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
+				(float)ScreenProperties.Width,
+				(float)ScreenProperties.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
+				ScreenProperties.Width,
+				ScreenProperties.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -740,7 +740,7 @@ public:
 		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
-		submitInfo.commandBufferCount = submitCmdBuffers.size();
+		submitInfo.commandBufferCount = (uint32_t)submitCmdBuffers.size();
 		submitInfo.pCommandBuffers = submitCmdBuffers.data();
 
 		// Submit draw command buffer
@@ -794,7 +794,7 @@ public:
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-		meshes.quad.indexCount = indexBuffer.size();
+		meshes.quad.indexCount = (uint32_t)indexBuffer.size();
 
 		createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -847,9 +847,9 @@ public:
 				sizeof(float) * 8);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = (uint32_t)vertices.bindingDescriptions.size();
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = (uint32_t)vertices.attributeDescriptions.size();
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -863,7 +863,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				(uint32_t)poolSizes.size(),
 				poolSizes.data(),
 				5);
 
@@ -897,7 +897,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				(uint32_t)setLayoutBindings.size());
 
 		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
@@ -956,7 +956,7 @@ public:
 				&uniformData.fsVertBlur.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Horizontal blur
 		err = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.horizontalBlur);
@@ -990,7 +990,7 @@ public:
 				&uniformData.fsHorzBlur.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// 3D scene
 		err = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene);
@@ -1006,7 +1006,7 @@ public:
 				&uniformData.vsFullScreen.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Skybox
 		err = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.skyBox);
@@ -1035,7 +1035,7 @@ public:
 				&cubeMapDescriptor),
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -1084,7 +1084,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				(uint32_t)dynamicStateEnables.size(),
 				0);
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
@@ -1113,7 +1113,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		// Additive blending
@@ -1228,7 +1228,7 @@ public:
 	void updateUniformBuffersScene()
 	{
 		// UFO
-		ubos.fullscreen.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, 0.1f, 256.0f);
+		ubos.fullscreen.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, -1.0f, zoom));
 
 		ubos.fullscreen.model = viewMatrix *
@@ -1247,7 +1247,7 @@ public:
 		vkUnmapMemory(device, uniformData.vsFullScreen.memory);
 
 		// Skybox
-		ubos.skyBox.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, 0.1f, 256.0f);
+		ubos.skyBox.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
 
 		ubos.skyBox.model = glm::mat4();
 		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
