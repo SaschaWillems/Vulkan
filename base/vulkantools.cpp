@@ -214,7 +214,7 @@ namespace vkTools
 	void exitFatal(std::string message, std::string caption)
 	{
 #ifdef _WIN32
-		MessageBox(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+		MessageBoxA(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
 #else
 		// TODO : Linux
 #endif
