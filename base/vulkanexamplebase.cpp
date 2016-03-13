@@ -1,7 +1,7 @@
 /*
 * Vulkan Example base class
 *
-* Copyright (C) 2015 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -29,8 +29,6 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	enabledExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #endif
 
-	// todo : check if all extensions are present
-
 	VkInstanceCreateInfo instanceCreateInfo = {};
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instanceCreateInfo.pNext = NULL;
@@ -46,7 +44,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	}
 	if (enableValidation)
 	{
-		instanceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount; // todo : change validation layer names!
+		instanceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount; 
 		instanceCreateInfo.ppEnabledLayerNames = vkDebug::validationLayerNames;
 	}
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
@@ -70,7 +68,7 @@ VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues
 	}
 	if (enableValidation)
 	{
-		deviceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount; // todo : validation layer names
+		deviceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount;
 		deviceCreateInfo.ppEnabledLayerNames = vkDebug::validationLayerNames;
 	}
 
@@ -1006,7 +1004,12 @@ void VulkanExampleBase::setupDepthStencil()
 
 	err = vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0);
 	assert(!err);
-	vkTools::setImageLayout(setupCmdBuffer, depthStencil.image, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+	vkTools::setImageLayout(
+		setupCmdBuffer, 
+		depthStencil.image, 
+		VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
+		VK_IMAGE_LAYOUT_UNDEFINED, 
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 	depthStencilView.image = depthStencil.image;
 	err = vkCreateImageView(device, &depthStencilView, nullptr, &depthStencil.view);
