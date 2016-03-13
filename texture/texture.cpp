@@ -111,7 +111,7 @@ public:
 
 	// Create an image memory barrier for changing the layout of
 	// an image and put it into an active command buffer
-	void setImageLayout(VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout)
+	void setImageLayout(VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, uint32_t mipLevel, uint32_t mipLevelCount)
 	{
 		// Create an image barrier object
 		VkImageMemoryBarrier imageMemoryBarrier = vkTools::initializers::imageMemoryBarrier();;
@@ -119,13 +119,20 @@ public:
 		imageMemoryBarrier.newLayout = newImageLayout;
 		imageMemoryBarrier.image = image;
 		imageMemoryBarrier.subresourceRange.aspectMask = aspectMask;
-		imageMemoryBarrier.subresourceRange.baseMipLevel = 0;
-		imageMemoryBarrier.subresourceRange.levelCount = 1;
+		imageMemoryBarrier.subresourceRange.baseMipLevel = mipLevel;
+		imageMemoryBarrier.subresourceRange.levelCount = mipLevelCount;
 		imageMemoryBarrier.subresourceRange.layerCount = 1;
 
 		// Only sets masks for layouts used in this example
 		// For a more complete version that can be used with
 		// other layouts see vkTools::setImageLayout
+
+		// Source layouts (new)
+
+		if (oldImageLayout == VK_IMAGE_LAYOUT_PREINITIALIZED)
+		{
+			imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+		}
 
 		// Target layouts (new)
 
@@ -204,6 +211,7 @@ public:
 		imageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
 		imageCreateInfo.usage = (useStaging) ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED; 
 		imageCreateInfo.flags = 0;
 		imageCreateInfo.extent = { texture.width, texture.height, 1 };
 
@@ -221,8 +229,8 @@ public:
 			std::vector<MipLevel> mipLevels;
 			mipLevels.resize(texture.mipLevels);
 
-			// Copy mip levels
-			for (uint32_t level = 0; level < texture.mipLevels; ++level)
+			// Load mip levels into linear textures that are used to copy from
+			for (uint32_t level = 0; level < texture.mipLevels; level++)
 			{
 				imageCreateInfo.extent.width = tex2D[level].dimensions().x;
 				imageCreateInfo.extent.height = tex2D[level].dimensions().y;
@@ -257,8 +265,10 @@ public:
 				setImageLayout(
 					mipLevels[level].image,
 					VK_IMAGE_ASPECT_COLOR_BIT,
-					VK_IMAGE_LAYOUT_UNDEFINED,
-					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+					VK_IMAGE_LAYOUT_PREINITIALIZED,
+					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					0,
+					1);
 			}
 
 			// Setup texture as blit target with optimal tiling
@@ -282,11 +292,15 @@ public:
 
 			// Image barrier for optimal image (target)
 			// Optimal image will be used as destination for the copy
+
+			// Set initial layout for all mip levels of the optimal (target) tiled texture
 			setImageLayout(
 				texture.image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+				VK_IMAGE_LAYOUT_PREINITIALIZED,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				0,
+				texture.mipLevels);
 
 			// Copy mip levels one by one
 			for (uint32_t level = 0; level < texture.mipLevels; ++level)
@@ -314,18 +328,22 @@ public:
 				// Put image copy into command buffer
 				vkCmdCopyImage(
 					setupCmdBuffer,
-					mipLevels[level].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-					texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					1, &copyRegion);
-
-				// Change texture image layout to shader read after the copy
-				texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				setImageLayout(
-					texture.image,
-					VK_IMAGE_ASPECT_COLOR_BIT,
+					mipLevels[level].image, 
+					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					texture.image, 
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					texture.imageLayout);
+					1, &copyRegion);
 			}
+
+			// Change texture image layout to shader read after all mip levels have been copied
+			texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			setImageLayout(
+				texture.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				texture.imageLayout,
+				0,
+				texture.mipLevels);
 
 			flushSetupCommandBuffer();
 			createSetupCommandBuffer();
@@ -398,7 +416,13 @@ public:
 			texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			
 			// Setup image memory barrier
-			setImageLayout(texture.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, texture.imageLayout);
+			setImageLayout(
+				texture.image, 
+				VK_IMAGE_ASPECT_COLOR_BIT, 
+				VK_IMAGE_LAYOUT_UNDEFINED, 
+				texture.imageLayout,
+				0,
+				1);
 		}
 
 		// Create sampler
