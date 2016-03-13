@@ -75,6 +75,14 @@ VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues
 	return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
 }
 
+std::string VulkanExampleBase::getWindowTitle()
+{
+	std::string device(deviceProperties.deviceName);
+	std::string windowTitle;
+	windowTitle = title + " - " + device + " - " + std::to_string(frameCounter) + " fps";
+	return windowTitle;
+}
+
 bool VulkanExampleBase::checkCommandBuffers()
 {
 	for (auto& cmdBuffer : drawCmdBuffers)
@@ -303,6 +311,7 @@ void VulkanExampleBase::renderLoop()
 			DispatchMessage(&msg);
 		}
 		render();
+		frameCounter++;
 		auto tEnd = std::chrono::high_resolution_clock::now();
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = (float)tDiff / 1000.0f;
@@ -314,6 +323,16 @@ void VulkanExampleBase::renderLoop()
 			{
 				timer -= 1.0f;
 			}
+		}
+		fpsTimer += (float)tDiff;
+		if (fpsTimer > 1000.0f)
+		{
+#ifdef _WIN32
+			std::string windowTitle = getWindowTitle();
+			SetWindowText(window, windowTitle.c_str());
+#endif
+			fpsTimer = 0.0f;
+			frameCounter = 0.0f;
 		}
 	}
 #else
@@ -563,6 +582,8 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	err = createDevice(queueCreateInfo, enableValidation);
 	assert(!err);
 
+	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+
 	// Gather physical device memory properties
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
@@ -710,10 +731,10 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
+	std::string windowTitle = getWindowTitle();
 	window = CreateWindowEx(0,
 		name.c_str(),
-		title.c_str(),
-		//		WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_SYSMENU,
+		windowTitle.c_str(),
 		dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
 		windowRect.left,
 		windowRect.top,
