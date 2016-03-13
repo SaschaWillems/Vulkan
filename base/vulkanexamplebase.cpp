@@ -17,7 +17,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	appInfo.pApplicationName = name.c_str();
 	appInfo.pEngineName = name.c_str();
 	// Temporary workaround for drivers not supporting SDK 1.0.3 upon launch
-	// todo : Use VK_API_VERSION 
+	// todo : Use VK_API_VERSION
 	appInfo.apiVersion = VK_MAKE_VERSION(1, 0, 2);
 
 	std::vector<const char*> enabledExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
@@ -44,7 +44,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	}
 	if (enableValidation)
 	{
-		instanceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount; 
+		instanceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount;
 		instanceCreateInfo.ppEnabledLayerNames = vkDebug::validationLayerNames;
 	}
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
@@ -97,16 +97,16 @@ bool VulkanExampleBase::checkCommandBuffers()
 
 void VulkanExampleBase::createCommandBuffers()
 {
-	// Create one command buffer per frame buffer 
+	// Create one command buffer per frame buffer
 	// in the swap chain
-	// Command buffers store a reference to the 
+	// Command buffers store a reference to the
 	// frame buffer inside their render pass info
-	// so for static usage withouth having to rebuild 
+	// so for static usage withouth having to rebuild
 	// them each frame, we use one per frame buffer
 
 	drawCmdBuffers.resize(swapChain.imageCount);
 
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo = 
+	VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 		vkTools::initializers::commandBufferAllocateInfo(
 			cmdPool,
 			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
@@ -210,7 +210,7 @@ void VulkanExampleBase::prepare()
 	flushSetupCommandBuffer();
 	// Recreate setup command buffer for derived class
 	createSetupCommandBuffer();
-	// Create a simple texture loader class 
+	// Create a simple texture loader class
 	textureLoader = new vkTools::VulkanTextureLoader(physicalDevice, device, queue, cmdPool);
 }
 
@@ -227,10 +227,10 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(const char * fileN
 }
 
 VkBool32 VulkanExampleBase::createBuffer(
-	VkBufferUsageFlags usage, 
-	VkDeviceSize size, 
-	void * data, 
-	VkBuffer *buffer, 
+	VkBufferUsageFlags usage,
+	VkDeviceSize size,
+	void * data,
+	VkBuffer *buffer,
 	VkDeviceMemory *memory)
 {
 	VkMemoryRequirements memReqs;
@@ -274,9 +274,9 @@ VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize 
 }
 
 void VulkanExampleBase::loadMesh(
-	const char * filename, 
-	vkMeshLoader::MeshBuffer * meshBuffer, 
-	std::vector<vkMeshLoader::VertexLayout> vertexLayout, 
+	const char * filename,
+	vkMeshLoader::MeshBuffer * meshBuffer,
+	std::vector<vkMeshLoader::VertexLayout> vertexLayout,
 	float scale)
 {
 	VulkanMeshLoader *mesh = new VulkanMeshLoader();
@@ -327,10 +327,8 @@ void VulkanExampleBase::renderLoop()
 		fpsTimer += (float)tDiff;
 		if (fpsTimer > 1000.0f)
 		{
-#ifdef _WIN32
 			std::string windowTitle = getWindowTitle();
 			SetWindowText(window, windowTitle.c_str());
-#endif
 			fpsTimer = 0.0f;
 			frameCounter = 0.0f;
 		}
@@ -342,15 +340,35 @@ void VulkanExampleBase::renderLoop()
 		auto tStart = std::chrono::high_resolution_clock::now();
 		xcb_generic_event_t *event;
 		event = xcb_poll_for_event(connection);
-		if (event) 
+		if (event)
 		{
 			handleEvent(event);
 			free(event);
 		}
 		render();
+		frameCounter++;
 		auto tEnd = std::chrono::high_resolution_clock::now();
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
+		// Convert to clamped timer value
+		if (!paused)
+		{
+			timer += timerSpeed * frameTimer;
+			if (timer > 1.0)
+			{
+				timer -= 1.0f;
+			}
+		}
+		fpsTimer += (float)tDiff;
+		if (fpsTimer > 1000.0f)
+		{
+			std::string windowTitle = getWindowTitle();
+			xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+				window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
+				windowTitle.size(), windowTitle.c_str());
+			fpsTimer = 0.0f;
+			frameCounter = 0.0f;
+		}
 }
 #endif
 }
@@ -430,7 +448,7 @@ void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
 }
 
 VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
-	std::vector<VkCommandBuffer> commandBuffers, 
+	std::vector<VkCommandBuffer> commandBuffers,
 	VkPipelineStageFlags *pipelineStages)
 {
 	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
@@ -463,7 +481,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	initVulkan(enableValidation);
 	// Enable console if validation is active
 	// Debug message callback will output to it
-#ifdef _WIN32 
+#ifdef _WIN32
 	if (enableValidation)
 	{
 		setupConsole("VulkanExample");
@@ -476,7 +494,7 @@ VulkanExampleBase::~VulkanExampleBase()
 	// Clean up Vulkan resources
 	swapChain.cleanup();
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-	if (setupCmdBuffer != VK_NULL_HANDLE) 
+	if (setupCmdBuffer != VK_NULL_HANDLE)
 	{
 		vkFreeCommandBuffers(device, cmdPool, 1, &setupCmdBuffer);
 
@@ -508,7 +526,7 @@ VulkanExampleBase::~VulkanExampleBase()
 	vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
 	vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
 
-	vkDestroyDevice(device, nullptr); 
+	vkDestroyDevice(device, nullptr);
 
 	if (enableValidation)
 	{
@@ -520,7 +538,7 @@ VulkanExampleBase::~VulkanExampleBase()
 #ifndef _WIN32
 	xcb_destroy_window(connection, window);
 	xcb_disconnect(connection);
-#endif 
+#endif
 }
 
 void VulkanExampleBase::initVulkan(bool enableValidation)
@@ -538,7 +556,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	uint32_t gpuCount = 0;
 	// Get number of available physical devices
 	err = vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr);
-	assert(!err);		
+	assert(!err);
 	assert(gpuCount > 0);
 	// Enumerate devices
 	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
@@ -548,9 +566,9 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 		vkTools::exitFatal("Could not enumerate phyiscal devices : \n" + vkTools::errorString(err), "Fatal error");
 	}
 
-	// Note : 
-	// This example will always use the first physical device reported, 
-	// change the vector index if you have multiple Vulkan devices installed 
+	// Note :
+	// This example will always use the first physical device reported,
+	// change the vector index if you have multiple Vulkan devices installed
 	// and want to use another one
 	physicalDevice = physicalDevices[0];
 
@@ -618,7 +636,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 }
 
-#ifdef _WIN32 
+#ifdef _WIN32
 // Win32 : Sets up a console window and redirects standard output to it
 void VulkanExampleBase::setupConsole(std::string title)
 {
@@ -745,7 +763,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		hinstance,
 		NULL);
 
-	if (!window) 
+	if (!window)
 	{
 		printf("Could not create window!\n");
 		fflush(stdout);
@@ -822,7 +840,7 @@ xcb_window_t VulkanExampleBase::setupWindow()
 
 	value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 	value_list[0] = screen->black_pixel;
-	value_list[1] = 
+	value_list[1] =
 		XCB_EVENT_MASK_KEY_RELEASE |
 		XCB_EVENT_MASK_EXPOSURE |
 		XCB_EVENT_MASK_STRUCTURE_NOTIFY |
@@ -849,9 +867,10 @@ xcb_window_t VulkanExampleBase::setupWindow()
 		window, (*reply).atom, 4, 32, 1,
 		&(*atom_wm_delete_window).atom);
 
+	std::string windowTitle = getWindowTitle();
 	xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
 		window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
-		title.size(), title.c_str());
+		title.size(), windowTitle.c_str());
 
 	free(reply);
 
@@ -1026,10 +1045,10 @@ void VulkanExampleBase::setupDepthStencil()
 	err = vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0);
 	assert(!err);
 	vkTools::setImageLayout(
-		setupCmdBuffer, 
-		depthStencil.image, 
-		VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
-		VK_IMAGE_LAYOUT_UNDEFINED, 
+		setupCmdBuffer,
+		depthStencil.image,
+		VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 	depthStencilView.image = depthStencil.image;
@@ -1134,5 +1153,3 @@ void VulkanExampleBase::setupSwapChain()
 {
 	swapChain.create(setupCmdBuffer, &width, &height);
 }
-
-
