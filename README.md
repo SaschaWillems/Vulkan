@@ -31,7 +31,7 @@ The examples have been tested to work on recent NVIDIA and AMD GPUs, but since *
 
 ## API-Version
 
-The examples are build against **API Version 1.0.3** and support **implementations starting with 1.0.1**. This ensures that beta drivers not updated to the most recent API-Version can run the examples.
+The examples are build against **API Version 1.0.5** and support **implementations starting with 1.0.2**. This ensures that beta drivers not updated to the most recent API-Version can run the examples.
 
 ## Additional documentation
 
