@@ -175,6 +175,8 @@ public:
 	// the offscreen framebuffer
 	void prepareTextureTarget(vkTools::VulkanTexture *tex, uint32_t width, uint32_t height, VkFormat format)
 	{
+		createSetupCommandBuffer();
+
 		VkFormatProperties formatProperties;
 		VkResult err;
 
@@ -196,6 +198,8 @@ public:
 		imageCreateInfo.arrayLayers = 1;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 		// Texture will be sampled in a shader and is also the blit destination
 		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
@@ -212,13 +216,13 @@ public:
 		err = vkBindImageMemory(device, tex->image, tex->deviceMemory, 0);
 		assert(!err);
 
-		// Transform image layout to transer destination
-		tex->imageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		// Transform image layout to transfer destination
+		tex->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		vkTools::setImageLayout(
 			setupCmdBuffer,
 			tex->image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_PREINITIALIZED,
 			tex->imageLayout);
 
 		// Create sampler
@@ -248,6 +252,8 @@ public:
 		view.image = tex->image;
 		err = vkCreateImageView(device, &view, nullptr, &tex->view);
 		assert(!err);
+
+		flushSetupCommandBuffer();
 	}
 
 	// Prepare a new framebuffer for offscreen rendering
@@ -348,7 +354,7 @@ public:
 		vkTools::setImageLayout(
 			setupCmdBuffer, 
 			offScreenFrameBuf.depth.image, 
-			VK_IMAGE_ASPECT_DEPTH_BIT, 
+			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
