@@ -172,6 +172,12 @@ namespace vkTools
 				err = vkBindImageMemory(device, texture->image, texture->deviceMemory, 0);
 				assert(!err);
 
+				VkImageSubresourceRange subresourceRange = {};
+				subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				subresourceRange.baseMipLevel = 0;
+				subresourceRange.levelCount = texture->mipLevels;
+				subresourceRange.layerCount = 1;
+
 				// Image barrier for optimal image (target)
 				// Optimal image will be used as destination for the copy
 				setImageLayout(
@@ -179,7 +185,8 @@ namespace vkTools
 					texture->image,
 					VK_IMAGE_ASPECT_COLOR_BIT,
 					VK_IMAGE_LAYOUT_PREINITIALIZED,
-					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					subresourceRange);
 
 				// Copy mip levels one by one
 				for (uint32_t level = 0; level < texture->mipLevels; ++level)
@@ -213,16 +220,17 @@ namespace vkTools
 						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						1, 
 						&copyRegion);
-
-					// Change texture image layout to shader read after the copy
-					texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					setImageLayout(
-						cmdBuffer,
-						texture->image,
-						VK_IMAGE_ASPECT_COLOR_BIT,
-						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						texture->imageLayout);
 				}
+
+				// Change texture image layout to shader read for all mip levels after the copy
+				texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				setImageLayout(
+					cmdBuffer,
+					texture->image,
+					VK_IMAGE_ASPECT_COLOR_BIT,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					texture->imageLayout,
+					subresourceRange);
 
 				// Submit command buffer containing copy and image layout commands
 				err = vkEndCommandBuffer(cmdBuffer);
