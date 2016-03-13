@@ -91,6 +91,7 @@ namespace vkTools
 			imageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
 			imageCreateInfo.usage = (useStaging) ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : VK_IMAGE_USAGE_SAMPLED_BIT;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 
 			VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 			VkMemoryRequirements memReqs;
@@ -148,7 +149,7 @@ namespace vkTools
 						cmdBuffer,
 						mipLevels[level].image,
 						VK_IMAGE_ASPECT_COLOR_BIT,
-						VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_PREINITIALIZED,
 						VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 				}
 
@@ -177,7 +178,7 @@ namespace vkTools
 					cmdBuffer,
 					texture->image,
 					VK_IMAGE_ASPECT_COLOR_BIT,
-					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_PREINITIALIZED,
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 				// Copy mip levels one by one
@@ -316,7 +317,7 @@ namespace vkTools
 					cmdBuffer,
 					texture->image, 
 					VK_IMAGE_ASPECT_COLOR_BIT, 
-					VK_IMAGE_LAYOUT_UNDEFINED, 
+					VK_IMAGE_LAYOUT_PREINITIALIZED, 
 					texture->imageLayout);
 
 				// Submit command buffer containing copy and image layout commands
@@ -437,7 +438,7 @@ namespace vkTools
 			imageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
 			imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			imageCreateInfo.flags = 0;
+			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 
 			VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 			VkMemoryRequirements memReqs;
@@ -487,7 +488,7 @@ namespace vkTools
 					cmdBuffer,
 					cubeFace[face].image,
 					VK_IMAGE_ASPECT_COLOR_BIT,
-					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_PREINITIALIZED,
 					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 			}
 
@@ -514,12 +515,21 @@ namespace vkTools
 
 			// Image barrier for optimal image (target)
 			// Optimal image will be used as destination for the copy
-			setImageLayout(
+
+			// Set initial layout for all array layers of the optimal (target) tiled texture
+			VkImageSubresourceRange subresourceRange = {};
+			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subresourceRange.baseMipLevel = 0;
+			subresourceRange.levelCount = 1;
+			subresourceRange.layerCount = 6;
+
+			vkTools::setImageLayout(
 				cmdBuffer,
 				texture->image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+				VK_IMAGE_LAYOUT_PREINITIALIZED,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				subresourceRange);
 
 			// Copy cube map faces one by one
 			for (uint32_t face = 0; face < 6; ++face)
@@ -550,15 +560,17 @@ namespace vkTools
 					texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					1, &copyRegion);
 
-				// Change texture image layout to shader read after the copy
-				texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				setImageLayout(
-					cmdBuffer,
-					texture->image,
-					VK_IMAGE_ASPECT_COLOR_BIT,
-					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					texture->imageLayout);
 			}
+
+			// Change texture image layout to shader read after the copy
+			texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			setImageLayout(
+				cmdBuffer,
+				texture->image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				texture->imageLayout,
+				subresourceRange);
 
 			err = vkEndCommandBuffer(cmdBuffer);
 			assert(!err);
@@ -639,7 +651,7 @@ namespace vkTools
 			imageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
 			imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			imageCreateInfo.flags = 0;
+			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 
 			VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 			VkMemoryRequirements memReqs;
@@ -700,7 +712,7 @@ namespace vkTools
 					cmdBuffer,
 					arrayLayer[i].image,
 					VK_IMAGE_ASPECT_COLOR_BIT,
-					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_PREINITIALIZED,
 					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 			}
 
@@ -726,12 +738,21 @@ namespace vkTools
 
 			// Image barrier for optimal image (target)
 			// Optimal image will be used as destination for the copy
+
+			// Set initial layout for all array layers of the optimal (target) tiled texture
+			VkImageSubresourceRange subresourceRange = {};
+			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subresourceRange.baseMipLevel = 0;
+			subresourceRange.levelCount = 1;
+			subresourceRange.layerCount = texture->layerCount;
+
 			vkTools::setImageLayout(
 				cmdBuffer,
 				texture->image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+				VK_IMAGE_LAYOUT_PREINITIALIZED,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				subresourceRange);
 
 			// Copy cube map faces one by one
 			for (uint32_t i = 0; i < texture->layerCount; ++i)
@@ -761,16 +782,17 @@ namespace vkTools
 					arrayLayer[i].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 					texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					1, &copyRegion);
-
-				// Change texture image layout to shader read after the copy
-				texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				vkTools::setImageLayout(
-					cmdBuffer,
-					texture->image,
-					VK_IMAGE_ASPECT_COLOR_BIT,
-					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					texture->imageLayout);
 			}
+
+			// Change texture image layout to shader read after the copy
+			texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			vkTools::setImageLayout(
+				cmdBuffer,
+				texture->image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				texture->imageLayout,
+				subresourceRange);
 
 			err = vkEndCommandBuffer(cmdBuffer);
 			assert(!err);
