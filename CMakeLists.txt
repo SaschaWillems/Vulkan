@@ -14,11 +14,11 @@ include_directories(base)
 
 IF(WIN32)
 	find_library(VULKAN_LIB NAMES vulkan-1 vulkan PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)
-	find_library(ASSIMP_LIB NAMES assimp PATHS ${CMAKE_SOURCE_DIR}/libs/assimp)
+	find_library(ASSIMP_LIB NAMES assimp libassimp.dll.a PATHS ${CMAKE_SOURCE_DIR}/libs/assimp)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_WIN32_KHR")
 ELSE(WIN32)
 	find_library(VULKAN_LIB NAMES libvulkan.so PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)
-	find_library(ASSIMP_LIB NAMES assimp libassimp.dll.a PATHS ${CMAKE_SOURCE_DIR}/libs/assimp)
+	find_library(ASSIMP_LIB NAMES assimp PATHS ${CMAKE_SOURCE_DIR}/libs/assimp)
 	find_package(XCB REQUIRED)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_XCB_KHR")
 	# Todo : android?
