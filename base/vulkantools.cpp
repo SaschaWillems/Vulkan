@@ -104,25 +104,28 @@ namespace vkTools
 	// Create an image memory barrier for changing the layout of
 	// an image and put it into an active command buffer
 	// See chapter 11.4 "Image Layout" for details
-	//todo : rename
-	void setImageLayout(VkCommandBuffer cmdbuffer, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout)
+
+	void setImageLayout(
+		VkCommandBuffer cmdbuffer, 
+		VkImage image, 
+		VkImageAspectFlags aspectMask, 
+		VkImageLayout oldImageLayout, 
+		VkImageLayout newImageLayout,
+		VkImageSubresourceRange subresourceRange)
 	{
 		// Create an image barrier object
 		VkImageMemoryBarrier imageMemoryBarrier = vkTools::initializers::imageMemoryBarrier();
 		imageMemoryBarrier.oldLayout = oldImageLayout;
 		imageMemoryBarrier.newLayout = newImageLayout;
 		imageMemoryBarrier.image = image;
-		imageMemoryBarrier.subresourceRange.aspectMask = aspectMask;
-		imageMemoryBarrier.subresourceRange.baseMipLevel = 0;
-		imageMemoryBarrier.subresourceRange.levelCount = 1;
-		imageMemoryBarrier.subresourceRange.layerCount = 1;
+		imageMemoryBarrier.subresourceRange = subresourceRange;
 
 		// Source layouts (old)
 
 		// Undefined layout
 		// Only allowed as initial layout!
 		// Make sure any writes to the image have been finished
-		if (oldImageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+		if (oldImageLayout == VK_IMAGE_LAYOUT_PREINITIALIZED)
 		{
 			imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
 		}
@@ -195,7 +198,6 @@ namespace vkTools
 			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		}
 
-
 		// Put barrier on top
 		VkPipelineStageFlags srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		VkPipelineStageFlags destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -209,6 +211,22 @@ namespace vkTools
 			0, nullptr,
 			0, nullptr,
 			1, &imageMemoryBarrier);
+	}
+
+	// Fixed sub resource on first mip level and layer
+	void setImageLayout(
+		VkCommandBuffer cmdbuffer,
+		VkImage image,
+		VkImageAspectFlags aspectMask,
+		VkImageLayout oldImageLayout,
+		VkImageLayout newImageLayout)
+	{
+		VkImageSubresourceRange subresourceRange = {};
+		subresourceRange.aspectMask = aspectMask;
+		subresourceRange.baseMipLevel = 0;
+		subresourceRange.levelCount = 1;
+		subresourceRange.layerCount = 1;
+		setImageLayout(cmdbuffer, image, aspectMask, oldImageLayout, newImageLayout, subresourceRange);
 	}
 
 	void exitFatal(std::string message, std::string caption)

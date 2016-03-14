@@ -199,6 +199,8 @@ public:
 	// the offscreen framebuffer
 	void prepareTextureTarget(vkTools::VulkanTexture *tex, uint32_t width, uint32_t height, VkFormat format)
 	{
+		createSetupCommandBuffer();
+
 		VkFormatProperties formatProperties;
 		VkResult err;
 
@@ -236,8 +238,7 @@ public:
 		err = vkBindImageMemory(device, tex->image, tex->deviceMemory, 0);
 		assert(!err);
 
-		// Transform image layout to transer destination
-		tex->imageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		tex->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		vkTools::setImageLayout(
 			setupCmdBuffer, 
 			tex->image,
@@ -272,6 +273,8 @@ public:
 		view.image = tex->image;
 		err = vkCreateImageView(device, &view, nullptr, &tex->view);
 		assert(!err);
+
+		flushSetupCommandBuffer();
 	}
 
 	// Prepare a new framebuffer for offscreen rendering
@@ -372,7 +375,7 @@ public:
 		vkTools::setImageLayout(
 			setupCmdBuffer,
 			frameBuf->depth.image, 
-			VK_IMAGE_ASPECT_DEPTH_BIT, 
+			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 

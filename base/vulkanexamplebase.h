@@ -57,10 +57,11 @@ struct VulkanDepthStencil
 class VulkanExampleBase
 {
 private:	
+	float								fpsTimer;
 	bool								enableValidation;	// Set to true when example is created with enabled validation layers
 	VkResult							createInstance(bool enableValidation);											// Create application wide Vulkan instance
 	VkResult							createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation);	// Create logical Vulkan device based on physical device
-
+	std::string							getWindowTitle();
 protected:
 	float								frameTimer;				// Last frame time, measured using a high performance timer (if available)
 	VkInstance							instance;				// Vulkan instance, stores all per-application states
@@ -84,6 +85,73 @@ protected:
 	std::vector<VkShaderModule>			shaderModules;			// List of shader modules created (stored for cleanup)
 	VkPipelineCache						pipelineCache;			// Pipeline cache object
 	VulkanSwapChain						swapChain;				// Wraps the swap chain to present images (framebuffers) to the windowing system
+	VkPhysicalDeviceProperties			deviceProperties;		// Stores physical device properties (for e.g. checking device limits)
+	uint32_t							frameCounter;			// Frame counter to display fps
+	
+
+//=======
+//	// Set to true when example is created with enabled validation layers
+//	bool enableValidation = false;
+//	// fps timer (one second interval)
+//	float fpsTimer = 0.0f;
+//	// Create application wide Vulkan instance
+//	VkResult createInstance(bool enableValidation);
+//	// Create logical Vulkan device based on physical device
+//	VkResult createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation);
+//	// Get window title with example name, device, et.
+//	std::string getWindowTitle();
+//protected:
+//	// Last frame time, measured using a high performance timer (if available)
+//	float frameTimer = 1.0f;
+//	// Frame counter to display fps
+//	uint32_t frameCounter = 0;
+//	// Vulkan instance, stores all per-application states
+//	VkInstance instance;
+//	// Physical device (GPU) that Vulkan will ise
+//	VkPhysicalDevice physicalDevice;
+//	// Stores physical device properties (for e.g. checking device limits)
+//	VkPhysicalDeviceProperties deviceProperties;
+//	// Stores all available memory (type) properties for the physical device
+//	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
+//	// Logical device, application's view of the physical device (GPU)
+//	VkDevice device;
+//	// Handle to the device graphics queue that command buffers are submitted to
+//	VkQueue queue;
+//	// Color buffer format
+//	VkFormat colorformat = VK_FORMAT_B8G8R8A8_UNORM;
+//	// Depth buffer format
+//	// Depth format is selected during Vulkan initialization
+//	VkFormat depthFormat;
+//	// Command buffer pool
+//	VkCommandPool cmdPool;
+//	// Command buffer used for setup
+//	VkCommandBuffer setupCmdBuffer = VK_NULL_HANDLE;
+//	// Command buffer for submitting a post present image barrier
+//	VkCommandBuffer postPresentCmdBuffer = VK_NULL_HANDLE;
+//	// Command buffer for submitting a pre present image barrier
+//	VkCommandBuffer prePresentCmdBuffer = VK_NULL_HANDLE;
+//	// Pipeline stage flags for the submit info structure
+//	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+//	// Contains command buffers and semaphores to be presented to the queue
+//	VkSubmitInfo submitInfo;
+//	// Command buffers used for rendering
+//	std::vector<VkCommandBuffer> drawCmdBuffers;
+//	// Global render pass for frame buffer writes
+//	VkRenderPass renderPass;
+//	// List of available frame buffers (same as number of swap chain images)
+//	std::vector<VkFramebuffer>frameBuffers;
+//	// Active frame buffer index
+//	uint32_t currentBuffer = 0;
+//	// Descriptor set pool
+//	VkDescriptorPool descriptorPool;
+//	// List of shader modules created (stored for cleanup)
+//	std::vector<VkShaderModule> shaderModules;
+//	// Pipeline cache object
+//	VkPipelineCache pipelineCache;
+//	// Wraps the swap chain to present images (framebuffers) to the windowing system
+//	VulkanSwapChain swapChain;
+//	// Synchronization semaphores
+//>>>>>>> 0b7dd41f1d1a9c45dbb9d1d12e6025015d00b117
 	struct {
 		// Swap chain image presentation
 		VkSemaphore presentComplete;

@@ -166,8 +166,11 @@ public:
 
 		vkDestroyFramebuffer(device, offScreenFrameBuf.frameBuffer, nullptr);
 
+		vkDestroyRenderPass(device, offScreenFrameBuf.renderPass, nullptr);
+
 		vkDestroyPipeline(device, pipelines.quad, nullptr);
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
+		vkDestroyPipeline(device, pipelines.scene, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayouts.quad, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayouts.offscreen, nullptr);
@@ -213,9 +216,8 @@ public:
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imageCreateInfo.flags = 0;
-		imageCreateInfo.pQueueFamilyIndices = 0;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -235,7 +237,7 @@ public:
 			setupCmdBuffer,
 			offScreenFrameBuf.textureTarget.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_PREINITIALIZED,
 			offScreenFrameBuf.textureTarget.imageLayout);
 
 		// Create sampler

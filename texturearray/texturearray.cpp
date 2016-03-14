@@ -135,6 +135,7 @@ public:
 		imageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
 		imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 		imageCreateInfo.flags = 0;
 
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
@@ -157,7 +158,7 @@ public:
 		err = vkAllocateCommandBuffers(device, &cmdBufAlllocatInfo, &cmdBuffer);
 		assert(!err);
 
-		VkCommandBufferBeginInfo cmdBufInfo = 
+		VkCommandBufferBeginInfo cmdBufInfo =
 			vkTools::initializers::commandBufferBeginInfo();
 
 		err = vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo);
@@ -196,7 +197,7 @@ public:
 				cmdBuffer,
 				arrayLayer[i].image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_PREINITIALIZED,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 		}
 
@@ -221,13 +222,20 @@ public:
 		assert(!err);
 
 		// Image barrier for optimal image (target)
-		// Optimal image will be used as destination for the copy
+		// Set initial layout for all array layers of the optimal (target) tiled texture
+		VkImageSubresourceRange subresourceRange = {};
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.baseMipLevel = 0;
+		subresourceRange.levelCount = 1;
+		subresourceRange.layerCount = layerCount;
+
 		vkTools::setImageLayout(
 			cmdBuffer,
 			textureArray.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			VK_IMAGE_LAYOUT_PREINITIALIZED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			subresourceRange);
 
 		// Copy cube map faces one by one
 		for (uint32_t i = 0; i < layerCount; ++i)
@@ -257,16 +265,17 @@ public:
 				arrayLayer[i].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				textureArray.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				1, &copyRegion);
-
-			// Change texture image layout to shader read after the copy
-			textureArray.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			vkTools::setImageLayout(
-				cmdBuffer,
-				textureArray.image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				textureArray.imageLayout);
 		}
+
+		// Change texture image layout to shader read after all layers have been copied
+		textureArray.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		vkTools::setImageLayout(
+			cmdBuffer,
+			textureArray.image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			textureArray.imageLayout,
+			subresourceRange);
 
 		err = vkEndCommandBuffer(cmdBuffer);
 		assert(!err);

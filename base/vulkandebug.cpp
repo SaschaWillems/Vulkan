@@ -14,7 +14,7 @@ namespace vkDebug
 	int validationLayerCount = 9;
 	const char *validationLayerNames[] = 
 	{
-		"VK_LAYER_LUNARG_threading",
+		"VK_LAYER_GOOGLE_threading",
 		"VK_LAYER_LUNARG_mem_tracker",
 		"VK_LAYER_LUNARG_object_tracker",
 		"VK_LAYER_LUNARG_draw_state",

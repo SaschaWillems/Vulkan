@@ -65,9 +65,6 @@ void parsebmFont()
 	std::ifstream fstream(filename);
 	assert(fstream.good());
 
-	// todo : from texture
-	const uint32_t texdim = 512;
-
 	while (!fstream.eof())
 	{
 		std::string line;
@@ -305,25 +302,12 @@ public:
 
 	// todo : function fill buffer with quads from font
 
-	void generateQuad()
+	// Creates a vertex buffer containing quads for the passed text
+	void generateText(std:: string text)
 	{
-		// Setup vertices for a single uv-mapped quad
-		/*
-#define dim 1.0f
-		std::vector<Vertex> vertexBuffer =
-		{
-			{ { dim,  dim, 0.0f },{ 1.0f, 1.0f } },
-			{ { -dim,  dim, 0.0f },{ 0.0f, 1.0f } },
-			{ { -dim, -dim, 0.0f },{ 0.0f, 0.0f } },
-			{ { dim, -dim, 0.0f },{ 1.0f, 0.0f } }
-		};
-#undef dim
-*/
 		std::vector<Vertex> vertexBuffer;
 		std::vector<uint32_t> indexBuffer;
 		uint32_t indexOffset = 0;
-
-		std::string text = "Vulkan";
 
 		float w = (float)textures.fontSDF.width;
 
@@ -366,6 +350,7 @@ public:
 			float advance = ((float)(charInfo->xadvance) / 36.0f);
 			posx += advance;
 		}
+		indices.count = static_cast<int>(indexBuffer.size());
 
 		// Center
 		for (auto& v : vertexBuffer)
@@ -374,33 +359,12 @@ public:
 			v.pos[1] -= 0.5f;
 		}
 
-		/*
-#define dim 1.0f
-		int charId = 'V';
-		float w = textures.fontSDF.width;
-		float sstart = fontChars[charId].x / w;
-		float send = (fontChars[charId].x + fontChars[charId].width) / w;
-		float tstart = fontChars[charId].y / w;
-		float tend = (fontChars[charId].y + fontChars[charId].height) / w;
-		std::vector<Vertex> vertexBuffer =
-		{
-			{ {  dim,  dim, 0.0f },{ send, tend } },
-			{ { -dim,  dim, 0.0f },{ sstart, tend } },
-			{ { -dim, -dim, 0.0f },{ sstart, tstart } },
-			{ {  dim, -dim, 0.0f },{ send, tstart } }
-		};
-#undef dim
-*/
 		createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			vertexBuffer.size() * sizeof(Vertex),
 			vertexBuffer.data(),
 			&vertices.buf,
 			&vertices.mem);
-
-		// Setup indices
-	//	std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-		indices.count = (int)indexBuffer.size();
 
 		createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -722,7 +686,7 @@ public:
 		VulkanExampleBase::prepare();
 		parsebmFont();
 		loadTextures();
-		generateQuad();
+		generateText("Vulkan");
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();

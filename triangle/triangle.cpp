@@ -181,7 +181,7 @@ public:
 			prePresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			prePresentBarrier.pNext = NULL;
 			prePresentBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			prePresentBarrier.dstAccessMask = 0;
+			prePresentBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 			prePresentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			prePresentBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 			prePresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -193,7 +193,7 @@ public:
 			vkCmdPipelineBarrier(
 				drawCmdBuffers[i], 
 				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				VK_FLAGS_NONE,
 				0, nullptr,
 				0, nullptr,
@@ -211,43 +211,10 @@ public:
 		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
-		// The submit infor strcuture contains a list of
-		// command buffers and semaphores to be submitted to a queue
-		// If you want to submit multiple command buffers, pass an array
-		VkPipelineStageFlags pipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.pWaitDstStageMask = &pipelineStages;
-		// The wait semaphore ensures that the image is presented 
-		// before we start submitting command buffers agein
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-		// Submit the currently active command buffer
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		// The signal semaphore is used during queue presentation
-		// to ensure that the image is not rendered before all
-		// commands have been submitted
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
-
-		// Submit to the graphics queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
-
-		// Present the current buffer to the swap chain
-		// We pass the signal semaphore from the submit info
-		// to ensure that the image is not rendered until
-		// all commands have been submitted
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
 		// Add a post present image memory barrier
 		// This will transform the frame buffer color attachment back
 		// to it's initial layout after it has been presented to the
 		// windowing system
-		// See buildCommandBuffers for the pre present barrier that 
-		// does the opposite transformation 
 		VkImageMemoryBarrier postPresentBarrier = {};
 		postPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		postPresentBarrier.pNext = NULL;
@@ -288,8 +255,38 @@ public:
 
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
-		
 		err = vkQueueWaitIdle(queue);
+		assert(!err);
+
+		// The submit infor strcuture contains a list of
+		// command buffers and semaphores to be submitted to a queue
+		// If you want to submit multiple command buffers, pass an array
+		VkPipelineStageFlags pipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pWaitDstStageMask = &pipelineStages;
+		// The wait semaphore ensures that the image is presented 
+		// before we start submitting command buffers agein
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		// Submit the currently active command buffer
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		// The signal semaphore is used during queue presentation
+		// to ensure that the image is not rendered before all
+		// commands have been submitted
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+
+		// Submit to the graphics queue
+		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		assert(!err);
+
+		// Present the current buffer to the swap chain
+		// We pass the signal semaphore from the submit info
+		// to ensure that the image is not rendered until
+		// all commands have been submitted
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
 	}
 
