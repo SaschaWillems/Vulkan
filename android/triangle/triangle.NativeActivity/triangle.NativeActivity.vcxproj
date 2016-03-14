@@ -149,7 +149,7 @@
       <CompileAs>CompileAsCpp</CompileAs>
       <PreprocessorDefinitions>VK_NO_PROTOTYPES;VK_USE_PLATFORM_ANDROID_KHR;__STDINT_LIMITS</PreprocessorDefinitions>
       <CppLanguageStandard>c++11</CppLanguageStandard>
-      <AdditionalIncludeDirectories>../../../external;../../../base;../../../external/glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../external;../../../base;../../../external/glm;../../base;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <LibraryDependencies>%(LibraryDependencies);GLESv1_CM;EGL;</LibraryDependencies>
@@ -215,7 +215,7 @@
     <ClCompile Include="..\..\..\base\vulkanandroid.cpp" />
     <ClCompile Include="..\..\..\base\vulkantools.cpp" />
     <ClCompile Include="android_native_app_glue.c" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="triangle.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

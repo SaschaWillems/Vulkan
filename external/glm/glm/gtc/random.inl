@@ -51,7 +51,7 @@ namespace detail
 		GLM_FUNC_QUALIFIER static tvec1<uint8, P> call()
 		{
 			return tvec1<uint8, P>(
-				std::rand()) % std::numeric_limits<uint8>::max();
+				std::rand() % std::numeric_limits<uint8>::max());
 		}
 	};
 
@@ -61,8 +61,8 @@ namespace detail
 		GLM_FUNC_QUALIFIER static tvec2<uint8, P> call()
 		{
 			return tvec2<uint8, P>(
-				std::rand(),
-				std::rand()) % std::numeric_limits<uint8>::max();
+				std::rand() % std::numeric_limits<uint8>::max(),
+				std::rand() % std::numeric_limits<uint8>::max());
 		}
 	};
 
@@ -72,9 +72,9 @@ namespace detail
 		GLM_FUNC_QUALIFIER static tvec3<uint8, P> call()
 		{
 			return tvec3<uint8, P>(
-				std::rand(),
-				std::rand(),
-				std::rand()) % std::numeric_limits<uint8>::max();
+				std::rand() % std::numeric_limits<uint8>::max(),
+				std::rand() % std::numeric_limits<uint8>::max(),
+				std::rand() % std::numeric_limits<uint8>::max());
 		}
 	};
 
@@ -84,10 +84,10 @@ namespace detail
 		GLM_FUNC_QUALIFIER static tvec4<uint8, P> call()
 		{
 			return tvec4<uint8, P>(
-				std::rand(),
-				std::rand(),
-				std::rand(),
-				std::rand()) % std::numeric_limits<uint8>::max();
+				std::rand() % std::numeric_limits<uint8>::max(),
+				std::rand() % std::numeric_limits<uint8>::max(),
+				std::rand() % std::numeric_limits<uint8>::max(),
+				std::rand() % std::numeric_limits<uint8>::max());
 		}
 	};
 

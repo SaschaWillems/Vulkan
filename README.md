@@ -27,15 +27,15 @@ Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found he
 Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder.
 
 ## Vendor support
-The examples have been tested on different vendors, but since **most drivers are beta** not all examples may work with all vendors.
-
-Currently all examples should run on NVIDIA, and most of them on AMD too. Demos that currently won't work with one IHV will be fixed as soon as possible.
-
-The android examples have only been tested on NVIDIA hardware yet.
+The examples have been tested to work on recent NVIDIA and AMD GPUs, but since **most drivers are beta** not all examples may work with all vendors.
 
 ## API-Version
 
 The examples are build against **API Version 1.0.3** and support **implementations starting with 1.0.1**. This ensures that beta drivers not updated to the most recent API-Version can run the examples.
+
+## Additional documentation
+
+Additional documentation for several base classes and functionality (e.g. the swap chain) can be found [in this directory](./documentation/additionaldocs.md).
 
 ## Examples
 
@@ -143,17 +143,26 @@ Demonstrates the use of multiple render targets to fill a G-Buffer for deferred 
 Deferred shading collects all values (color, normal, position) into different render targets in one pass thanks to multiple render targets, and then does all shading and lighting calculations based on these in scree space, thus allowing for much more light sources than traditional forward renderers.
 <br><br>
 
-## [Omnidirectional shadow mapping](shadowmap/)
+## [Shadowmapping](shadowmapping/)
+<img src="./screenshots/shadowmapping.png" height="96px" align="right">
+
+Shows how to implement directional dynamic shadows with a single shadow map in two passes. Pass one renders the scene from the light's point of view and copies the depth buffer to a depth texture.
+The second pass renders the scene from the camera's point of view using the depth texture to compare the depth value of the texels with the one stored in the depth texture to determine whether a texel is shadowed or not and also applies a PCF filter for smooth shadow borders.
+To avoid shadow artifacts the dynamic depth bias state ([vkCmdSetDepthBias](https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdSetDepthBias.html)) is used to apply a constant and slope dept bias factor.
+
+## [Omnidirectional shadow mapping](shadowmappingomni/)
 <img src="./screenshots/shadow_omnidirectional.png" height="96px" align="right">
 
 Uses a dynamic 32 bit floating point cube map for a point light source that casts shadows in all directions (unlike projective shadow mapping).
-The cube map faces contain thee distances from the light sources, which are then used in the scene rendering pass to determine if the fragment is shadowed or not.
+The cube map faces contain the distances from the light sources, which are then used in the scene rendering pass to determine if the fragment is shadowed or not.
 <br><br>
 
 ## [Spherical environment mapping](sphericalenvmapping/)
 <img src="./screenshots/spherical_env_mapping.png" height="96px" align="right">
 
-Uses a matcap texture (spherical reflection map) to fake complex lighting. It's based on [this article](https://github.com/spite/spherical-environment-mapping).
+Uses a (spherical) material capture texture containing environment lighting and reflection information to fake complex lighting. The example also uses a texture array to store (and select) several material caps that can be toggled at runtime.
+
+ The technique is based on [this article](https://github.com/spite/spherical-environment-mapping).
 <br><br>
 
 ## [Parallax mapping](parallaxmapping/)
@@ -171,7 +180,7 @@ Generating curved PN-Triangles on the GPU using tessellation shaders to add deta
 ## [(Tessellation shader) Displacement mapping](tessellation/)
 <img src="./screenshots/tess_displacement.jpg" height="96px" align="right">
 
-Uses tessellation shaders to generate and displace geometry based on a displacement map (heightmap).
+Uses tessellation shaders to generate additional details and displace geometry based on a displacement map (heightmap).
 <br><br>
 
 ## [(Compute shader) Particle system](computeshader/)
@@ -187,7 +196,6 @@ Demonstrates the use of a separate compute queue (and command buffer) to apply d
 <br><br>
 
 ## [(Geometry shader) Normal debugging](geometryshader/)
-----
 <img src="./screenshots/geom_normals.png" height="96px" align="right">
 
 Renders the vertex normals of a complex mesh with the use of a geometry shader. The mesh is rendered solid first and the a geometry shader that generates lines from the face normals is used in the second pass.
@@ -206,10 +214,6 @@ This repository also contains a few Android examples that are (for now) separate
 
 The examples already share a few source files with existing examples and might be integrated into them at some point.
 
-## Additional documentation
-- [Vulkan example base class](./documentation/examplebaseclass.md)
-- more to come...
-
 ## Credits
 Thanks to the authors of these libraries :
 - [OpenGL Mathematics (GLM)](https://github.com/g-truc/glm)
@@ -219,13 +223,16 @@ Thanks to the authors of these libraries :
 
 And a huge thanks to the Vulkan Working Group, Vulkan Adivsory Panel, the fine people at LunarG and everyone from the different IHVs that helped me get the examples up and working on their hardware!
 
-## Attributions
+## Attributions / Licenses
+Please note that (some) models and textures use separate licenses. Please comply to these when redistributing or using them in your own projects :
 - Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://www.humus.name/)
 - Armored knight model used in deferred example by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
 - Voyager model by [NASA](http://nasa3d.arc.nasa.gov/models)
 - Astroboy COLLADA model copyright 2008 Sony Computer Entertainment Inc.
 - Bear mug model used in tessellation example by [Aare](http://opengameart.org/users/aare)
-- Textures used in some examples by [Hugues Muller](www.yughues-folio.com)
+- Textures used in some examples by [Hugues Muller](http://www.yughues-folio.com)
+- Vulkan scene model (and derived models) by [Dominic Agoro-Ombaka](http://www.agorodesign.com/) and [Sascha Willems](http://www.saschawillems.de)
+- Vulkan and the Vulkan logo are trademarks of the [Khronos Group Inc.](http://www.khronos.org)
 
 ## External resources
 - [LunarG Vulkan SDK](https://vulkan.lunarg.com)

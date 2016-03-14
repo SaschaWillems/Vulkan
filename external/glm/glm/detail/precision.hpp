@@ -39,6 +39,15 @@ namespace glm
 		highp,
 		mediump,
 		lowp,
+		simd,
 		defaultp = highp
+	};
+
+	template <typename T, precision P, template <typename, precision> class genType>
+	struct type
+	{
+		static bool const is_vec = false;
+		static bool const is_mat = false;
+		static bool const is_quat = false;
 	};
 }//namespace glm

@@ -122,7 +122,6 @@
     <AntBuildXml Include="build.xml" />
     <AndroidManifest Include="AndroidManifest.xml" />
     <AntProjectPropertiesFile Include="project.properties" />
-    <Content Include="vulkantools.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\triangle.NativeActivity\triangle.NativeActivity.vcxproj">

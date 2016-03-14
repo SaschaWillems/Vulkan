@@ -1,7 +1,7 @@
 /*
 * Assorted commonly used Vulkan helper functions
 *
-* Copyright (C) 2015 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -134,6 +134,13 @@ namespace vkTools
 			imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 		}
 
+		// Old layout is depth/stencil attachment
+		// Make sure any writes to the depth/stencil buffer have been finished
+		if (oldImageLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+		{
+			imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		}
+
 		// Old layout is transfer source
 		// Make sure any reads from the image have been finished
 		if (oldImageLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
@@ -207,7 +214,7 @@ namespace vkTools
 	void exitFatal(std::string message, std::string caption)
 	{
 #ifdef _WIN32
-		MessageBox(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+		MessageBoxA(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
 #else
 		// TODO : Linux
 #endif
@@ -371,6 +378,13 @@ VkCommandBufferAllocateInfo vkTools::initializers::commandBufferAllocateInfo(VkC
 	return commandBufferAllocateInfo;
 }
 
+VkCommandPoolCreateInfo vkTools::initializers::commandPoolCreateInfo()
+{
+	VkCommandPoolCreateInfo cmdPoolCreateInfo = {};
+	cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	return cmdPoolCreateInfo;
+}
+
 VkCommandBufferBeginInfo vkTools::initializers::commandBufferBeginInfo()
 {
 	VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
@@ -379,12 +393,27 @@ VkCommandBufferBeginInfo vkTools::initializers::commandBufferBeginInfo()
 	return cmdBufferBeginInfo;
 }
 
+VkCommandBufferInheritanceInfo vkTools::initializers::commandBufferInheritanceInfo()
+{
+	VkCommandBufferInheritanceInfo cmdBufferInheritanceInfo = {};
+	cmdBufferInheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+	return cmdBufferInheritanceInfo;
+}
+
 VkRenderPassBeginInfo vkTools::initializers::renderPassBeginInfo()
 {
 	VkRenderPassBeginInfo renderPassBeginInfo = {};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassBeginInfo.pNext = NULL;
 	return renderPassBeginInfo;
+}
+
+VkRenderPassCreateInfo vkTools::initializers::renderPassCreateInfo()
+{
+	VkRenderPassCreateInfo renderPassCreateInfo = {};
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.pNext = NULL;
+	return renderPassCreateInfo;
 }
 
 VkImageMemoryBarrier vkTools::initializers::imageMemoryBarrier()
@@ -446,14 +475,21 @@ VkFramebufferCreateInfo vkTools::initializers::framebufferCreateInfo()
 	return framebufferCreateInfo;
 }
 
-VkSemaphoreCreateInfo vkTools::initializers::semaphoreCreateInfo(
-	VkSemaphoreCreateFlags flags)
+VkSemaphoreCreateInfo vkTools::initializers::semaphoreCreateInfo()
 {
 	VkSemaphoreCreateInfo semaphoreCreateInfo = {};
 	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	semaphoreCreateInfo.pNext = NULL;
-	semaphoreCreateInfo.flags = flags;
+	semaphoreCreateInfo.flags = 0;
 	return semaphoreCreateInfo;
+}
+
+VkFenceCreateInfo vkTools::initializers::fenceCreateInfo(VkFenceCreateFlags flags)
+{
+	VkFenceCreateInfo fenceCreateInfo = {};
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceCreateInfo.flags = flags;
+	return fenceCreateInfo;
 }
 
 VkSubmitInfo vkTools::initializers::submitInfo()

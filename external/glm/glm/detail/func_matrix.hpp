@@ -72,19 +72,19 @@ namespace detail
 	template <typename T, precision P>
 	struct outerProduct_trait<T, P, tvec2, tvec3>
 	{
-		typedef tmat2x3<T, P> type;
+		typedef tmat3x2<T, P> type;
 	};
 
 	template <typename T, precision P>
 	struct outerProduct_trait<T, P, tvec2, tvec4>
 	{
-		typedef tmat2x4<T, P> type;
+		typedef tmat4x2<T, P> type;
 	};
 
 	template <typename T, precision P>
 	struct outerProduct_trait<T, P, tvec3, tvec2>
 	{
-		typedef tmat3x2<T, P> type;
+		typedef tmat2x3<T, P> type;
 	};
 
 	template <typename T, precision P>
@@ -96,19 +96,19 @@ namespace detail
 	template <typename T, precision P>
 	struct outerProduct_trait<T, P, tvec3, tvec4>
 	{
-		typedef tmat3x4<T, P> type;
+		typedef tmat4x3<T, P> type;
 	};
 
 	template <typename T, precision P>
 	struct outerProduct_trait<T, P, tvec4, tvec2>
 	{
-		typedef tmat4x2<T, P> type;
+		typedef tmat2x4<T, P> type;
 	};
 
 	template <typename T, precision P>
 	struct outerProduct_trait<T, P, tvec4, tvec3>
 	{
-		typedef tmat4x3<T, P> type;
+		typedef tmat3x4<T, P> type;
 	};
 
 	template <typename T, precision P>

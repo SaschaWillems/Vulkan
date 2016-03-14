@@ -40,7 +40,3 @@ if (flags & VK_DBG_REPORT_WARN_BIT)
 }
 
 ```
-## TODO
-- Document helper classes like vulkandebug
-- Document texture loader
-- Document mesh loader

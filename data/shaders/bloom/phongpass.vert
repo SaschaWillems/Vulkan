@@ -11,13 +11,13 @@ layout (location = 3) in vec3 inNormal;
 layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
-	mat4 model;
+	mat4 modelview;
 } ubo;
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec2 outUV;
 layout (location = 2) out vec3 outColor;
-layout (location = 3) out vec3 outEyePos;
+layout (location = 3) out vec3 outViewVec;
 layout (location = 4) out vec3 outLightVec;
 
 void main() 
@@ -25,8 +25,11 @@ void main()
 	outNormal = inNormal;
 	outColor = inColor;
 	outUV = inUV;
-	gl_Position = ubo.projection * ubo.model * inPos;
-	outEyePos = vec3(ubo.model * inPos);
-	vec4 lightPos = vec4(-5.0, -5.0, 0.0, 1.0);
-	outLightVec = normalize(lightPos.xyz - inPos.xyz);
+	gl_Position = ubo.projection * ubo.modelview * inPos;
+
+	vec3 lightPos = vec3(-5.0, -5.0, 0.0);
+    vec4 pos = ubo.modelview * inPos;
+    outNormal = mat3(ubo.modelview) * inNormal;
+    outLightVec = lightPos - pos.xyz;
+    outViewVec = -pos.xyz;	
 }

@@ -14,7 +14,9 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#else
+#endif
+#ifdef __ANDROID__
+#include "vulkanandroid.h"
 #endif
 
 namespace vkDebug

@@ -18,6 +18,7 @@
 #include <vector>
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -25,11 +26,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-// Note : 
-//	Enabling this define will feed GLSL directly to the driver
-//	Unlike the SDK samples that convert it to SPIR-V
-//	This may or may not be supported depending on your ISV
-//#define USE_GLSL
 // Set to "true" to enable Vulkan's validation layers
 // See vulkandebug.cpp for details
 #define ENABLE_VALIDATION false
@@ -71,6 +67,12 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
+	// Synchronization semaphores
+	struct {
+		VkSemaphore presentComplete;
+		VkSemaphore renderComplete;
+	} semaphores;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		ScreenProperties.Width	= 1280;
@@ -94,6 +96,9 @@ public:
 
 		vkDestroyBuffer(device, indices.buf, nullptr);
 		vkFreeMemory(device, indices.mem, nullptr);
+
+		vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
+		vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
 
 		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
 		vkFreeMemory(device, uniformDataVS.memory, nullptr);
@@ -202,39 +207,40 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = {};
-		presentCompleteSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		presentCompleteSemaphoreCreateInfo.pNext = NULL;
-		presentCompleteSemaphoreCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
-
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
 		// The submit infor strcuture contains a list of
 		// command buffers and semaphores to be submitted to a queue
 		// If you want to submit multiple command buffers, pass an array
+		VkPipelineStageFlags pipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pWaitDstStageMask = &pipelineStages;
+		// The wait semaphore ensures that the image is presented 
+		// before we start submitting command buffers agein
 		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		// Submit the currently active command buffer
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		// The signal semaphore is used during queue presentation
+		// to ensure that the image is not rendered before all
+		// commands have been submitted
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 		// Submit to the graphics queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
 		// Present the current buffer to the swap chain
-		// This will display the image
-		err = swapChain.queuePresent(queue, currentBuffer);
+		// We pass the signal semaphore from the submit info
+		// to ensure that the image is not rendered until
+		// all commands have been submitted
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
 
 		// Add a post present image memory barrier
 		// This will transform the frame buffer color attachment back
@@ -287,6 +293,24 @@ public:
 		assert(!err);
 	}
 
+	// Create synchronzation semaphores
+	void prepareSemaphore()
+	{
+		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		semaphoreCreateInfo.pNext = NULL;
+
+		// This semaphore ensures that the image is complete
+		// before starting to submit again
+		VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
+		assert(!err);
+
+		// This semaphore ensures that all commands submitted
+		// have been finished before submitting the image to the queue
+		err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
+		assert(!err);
+	}
+
 	// Setups vertex and index buffers for an indexed triangle,
 	// uploads them to the VRAM and sets binding points and attribute
 	// descriptions to match locations inside the shaders
@@ -334,13 +358,12 @@ public:
 		vkGetBufferMemoryRequirements(device, vertices.buf, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
- 		vkAllocateMemory(device, &memAlloc, nullptr, &vertices.mem);
+ 		err = vkAllocateMemory(device, &memAlloc, nullptr, &vertices.mem);
 		assert(!err);
 		err = vkMapMemory(device, vertices.mem, 0, memAlloc.allocationSize, 0, &data);
 		assert(!err);
 		memcpy(data, vertexBuffer.data(), vertexBufferSize);
 		vkUnmapMemory(device, vertices.mem);
-		assert(!err);
 		err = vkBindBufferMemory(device, vertices.buf, vertices.mem, 0);
 		assert(!err);
 
@@ -597,15 +620,10 @@ public:
 		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 		// Load shaders
+		// Shaders are loaded from the SPIR-V format, which can be generated from glsl
 		VkPipelineShaderStageCreateInfo shaderStages[2] = { {},{} };
-
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/_test/test.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/_test/test.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
 		shaderStages[0] = loadShader("./../data/shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
 
 		// Assign states
 		// Two shader stages
@@ -673,13 +691,12 @@ public:
 	{
 		// Update matrices
 		uboVS.projectionMatrix = glm::perspective(deg_to_rad(60.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
-
 		uboVS.viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 
 		uboVS.modelMatrix = glm::mat4();
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Map uniform buffer and update it
 		uint8_t *pData;
@@ -693,6 +710,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		prepareSemaphore();
 		prepareVertices();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();

@@ -7,10 +7,6 @@
 // File    : glm/gtx/intersect.inl
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../geometric.hpp"
-#include <cfloat>
-#include <limits>
-
 namespace glm
 {
 	template <typename genType>
@@ -49,7 +45,7 @@ namespace glm
 		typename genType::value_type a = glm::dot(e1, p);
 
 		typename genType::value_type Epsilon = std::numeric_limits<typename genType::value_type>::epsilon();
-		if(a < Epsilon)
+		if(a < Epsilon && a > -Epsilon)
 			return false;
 
 		typename genType::value_type f = typename genType::value_type(1.0f) / a;
@@ -72,43 +68,6 @@ namespace glm
 
 		return baryPosition.z >= typename genType::value_type(0.0f);
 	}
-
-	//template <typename genType>
-	//GLM_FUNC_QUALIFIER bool intersectRayTriangle
-	//(
-	//	genType const & orig, genType const & dir,
-	//	genType const & vert0, genType const & vert1, genType const & vert2,
-	//	genType & position
-	//)
-	//{
-	//	typename genType::value_type Epsilon = std::numeric_limits<typename genType::value_type>::epsilon();
-	//
-	//	genType edge1 = vert1 - vert0;
-	//	genType edge2 = vert2 - vert0;
-	//
-	//	genType pvec = cross(dir, edge2);
-	//
-	//	float det = dot(edge1, pvec);
-	//	if(det < Epsilon)
-	//		return false;
-	//
-	//	genType tvec = orig - vert0;
-	//
-	//	position.y = dot(tvec, pvec);
-	//	if (position.y < typename genType::value_type(0) || position.y > det)
-	//		return typename genType::value_type(0);
-	//
-	//	genType qvec = cross(tvec, edge1);
-	//
-	//	position.z = dot(dir, qvec);
-	//	if (position.z < typename genType::value_type(0) || position.y + position.z > det)
-	//		return typename genType::value_type(0);
-	//
-	//	position.x = dot(edge2, qvec);
-	//	position *= typename genType::value_type(1) / det;
-	//
-	//	return typename genType::value_type(1);
-	//}
 
 	template <typename genType>
 	GLM_FUNC_QUALIFIER bool intersectLineTriangle
