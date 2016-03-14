@@ -41,17 +41,25 @@ class VulkanExampleBase
 private:	
 	// Set to true when example is created with enabled validation layers
 	bool enableValidation = false;
+	// fps timer (one second interval)
+	float fpsTimer = 0.0f;
 	// Create application wide Vulkan instance
 	VkResult createInstance(bool enableValidation);
 	// Create logical Vulkan device based on physical device
 	VkResult createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation);
+	// Get window title with example name, device, et.
+	std::string getWindowTitle();
 protected:
 	// Last frame time, measured using a high performance timer (if available)
 	float frameTimer = 1.0f;
+	// Frame counter to display fps
+	uint32_t frameCounter = 0;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
 	// Physical device (GPU) that Vulkan will ise
 	VkPhysicalDevice physicalDevice;
+	// Stores physical device properties (for e.g. checking device limits)
+	VkPhysicalDeviceProperties deviceProperties;
 	// Stores all available memory (type) properties for the physical device
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
 	// Logical device, application's view of the physical device (GPU)

@@ -42,7 +42,15 @@ namespace vkTools
 	// Returns false if none of the depth formats in the list is supported by the device
 	VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *depthFormat);
 
-	// Put an image memory barrier for setting an image layout into the given command buffer
+	// Put an image memory barrier for setting an image layout on the sub resource into the given command buffer
+	void setImageLayout(
+		VkCommandBuffer cmdbuffer,
+		VkImage image,
+		VkImageAspectFlags aspectMask,
+		VkImageLayout oldImageLayout,
+		VkImageLayout newImageLayout,
+		VkImageSubresourceRange subresourceRange);
+	// Uses a fixed sub resource layout with first mip level and layer
 	void setImageLayout(
 		VkCommandBuffer cmdbuffer, 
 		VkImage image, 
