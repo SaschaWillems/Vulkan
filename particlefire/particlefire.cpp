@@ -60,6 +60,10 @@ public:
 		struct {
 			vkTools::VulkanTexture smoke;
 			vkTools::VulkanTexture fire;
+			// We use a custom sampler to change some sampler
+			// attributes required for rotation the uv coordinates
+			// inside the shader for alpha blended textures
+			VkSampler sampler;
 		} particles;
 		struct {
 			vkTools::VulkanTexture colorMap;
@@ -146,6 +150,8 @@ public:
 		vkFreeMemory(device, uniformData.fire.memory, nullptr);
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.environment.buffers);
+
+		vkDestroySampler(device, textures.particles.sampler, nullptr);
 	}
 
 	void buildCommandBuffers()
@@ -353,6 +359,7 @@ public:
 			"./../data/textures/particle_fire.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.particles.fire);
+
 		// Floor
 		textureLoader->loadTexture(
 			"./../data/textures/fireplace_colormap_bc3.ktx",
@@ -362,6 +369,29 @@ public:
 			"./../data/textures/fireplace_normalmap_bc3.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.floor.normalMap);
+
+		// Create a custom sampler to be used with the particle textures
+		// Create sampler
+		VkSamplerCreateInfo samplerCreateInfo = vkTools::initializers::samplerCreateInfo();
+		samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+		samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+		samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		// Different address mode
+		samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		samplerCreateInfo.addressModeV = samplerCreateInfo.addressModeU;
+		samplerCreateInfo.addressModeW = samplerCreateInfo.addressModeU;
+		samplerCreateInfo.mipLodBias = 0.0f;
+		samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
+		samplerCreateInfo.minLod = 0.0f;
+		// Both particle textures have the same number of mip maps
+		samplerCreateInfo.maxLod = textures.particles.fire.mipLevels;
+		// Enable anisotropic filtering
+		samplerCreateInfo.maxAnisotropy = 8;
+		samplerCreateInfo.anisotropyEnable = VK_TRUE;
+		// Use a different border color (than the normal texture loader) for additive blending
+		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+		VkResult err = vkCreateSampler(device, &samplerCreateInfo, nullptr, &textures.particles.sampler);
+		assert(!err);
 	}
 
 	void loadMeshes()
@@ -503,12 +533,12 @@ public:
 		// Image descriptor for the color map texture
 		VkDescriptorImageInfo texDescriptorSmoke =
 			vkTools::initializers::descriptorImageInfo(
-				textures.particles.smoke.sampler,
+				textures.particles.sampler,
 				textures.particles.smoke.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 		VkDescriptorImageInfo texDescriptorFire =
 			vkTools::initializers::descriptorImageInfo(
-				textures.particles.fire.sampler,
+				textures.particles.sampler,
 				textures.particles.fire.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
