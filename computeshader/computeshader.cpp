@@ -184,7 +184,9 @@ public:
 		textureLoader->loadTexture(
 			"./../data/textures/igor_and_pal_rgba.ktx", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
-			&textureColorMap);
+			&textureColorMap,
+			false,
+			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 	}
 
 	void buildCommandBuffers()
