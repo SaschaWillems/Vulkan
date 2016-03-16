@@ -61,6 +61,12 @@ namespace vkTools
 		// Load a 2D texture
 		void loadTexture(const char* filename, VkFormat format, VulkanTexture *texture, bool forceLinear)
 		{
+			loadTexture(filename, format, texture, false, VK_IMAGE_USAGE_SAMPLED_BIT);
+		}
+
+		// Load a 2D texture
+		void loadTexture(const char* filename, VkFormat format, VulkanTexture *texture, bool forceLinear, VkImageUsageFlags imageUsageFlags)
+		{
 			gli::texture2D tex2D(gli::load(filename));
 			assert(!tex2D.empty());
 
@@ -155,7 +161,7 @@ namespace vkTools
 
 				// Setup texture as blit target with optimal tiling
 				imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-				imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+				imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | imageUsageFlags;
 				imageCreateInfo.mipLevels = texture->mipLevels;
 				imageCreateInfo.extent = { texture->width, texture->height, 1 };
 
