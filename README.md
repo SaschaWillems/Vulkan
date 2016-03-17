@@ -42,9 +42,9 @@ Additional documentation for several base classes and functionality (e.g. the sw
 ## [Triangle](triangle/)
 <img src="./screenshots/basic_triangle.png" height="96px" align="right">
 
-Most basic example. Renders a colored triangle using an indexed vertex buffer, only one pipeline with very simple shaders. Uses a single uniform buffer for the matrices.
+Most basic example. Renders a colored triangle using an indexed vertex buffer. Vertex and index data are uploaded to device local memory using so-called "staging buffers". Uses a single pipeline with basic shaders loaded from SPIR-V and and single uniform block for passing matrices that is updated on changing the view.
 
-This example won't make use of helper functions or initializers (like the other examples) and is much more of an explicit example then the others included in this repository. It contains lot's of boiler plate that you'd usually encapsulate in helper functions and classes.
+This example is far more explicit than the other examples and is meant to be a starting point for learning Vulkan from the ground up. Much of the code is boilerplate that you'd usually encapsulate in helper functions and classes (which is what the other examples do).
 <br><br>
 
 ## [Texture mapping](texture/)
