@@ -80,12 +80,16 @@ public:
 	glm::vec3 maxVel = glm::vec3(3.0f, 7.0f, 3.0f);
 
 	struct {
-		VkBuffer buf;
-		VkDeviceMemory mem;
+		VkBuffer buffer;
+		VkDeviceMemory memory;
+		// Store the mapped address of the particle data for reuse
+		void *mappedMemory;
+		// Size of the particle buffer in bytes
+		size_t size;
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
+	} particles;
 
 	struct {
 		vkTools::UniformData fire;
@@ -123,6 +127,7 @@ public:
 		zoom = -90.0f;
 		rotation = { -30.0f, 45.0f, 0.0f };
 		title = "Vulkan Example - Particle system";
+		zoomSpeed *= 1.5f;
 		timerSpeed *= 8.0f;
 		srand(time(NULL));
 	}
@@ -143,8 +148,9 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkDestroyBuffer(device, vertices.buf, nullptr);
-		vkFreeMemory(device, vertices.mem, nullptr);
+		vkUnmapMemory(device, particles.memory);
+		vkDestroyBuffer(device, particles.buffer, nullptr);
+		vkFreeMemory(device, particles.memory, nullptr);
 
 		vkDestroyBuffer(device, uniformData.fire.buffer, nullptr);
 		vkFreeMemory(device, uniformData.fire.memory, nullptr);
@@ -204,7 +210,7 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.particles);
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &particles.buffer, offsets);
 			vkCmdDraw(drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -306,12 +312,18 @@ public:
 			particle.alpha = 1.0f - (abs(particle.pos.y) / (FLAME_RADIUS * 2.0f));
 		}
 
+		particles.size = particleBuffer.size() * sizeof(Particle);
+
 		createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			particleBuffer.size() * sizeof(Particle),
+			particles.size,
 			particleBuffer.data(),
-			&vertices.buf,
-			&vertices.mem);
+			&particles.buffer,
+			&particles.memory);
+
+		// Map the memory and store the pointer for reuse
+		VkResult err = vkMapMemory(device, particles.memory, 0, particles.size, 0, &particles.mappedMemory);
+		assert(!err);
 	}
 
 	void updateParticles()
@@ -340,12 +352,8 @@ public:
 				transitionParticle(&particle);
 			}
 		}
-		void *mapped;
 		size_t size = particleBuffer.size() * sizeof(Particle);
-		VkResult err = vkMapMemory(device, vertices.mem, 0, size, 0, &mapped);
-		assert(!err);
-		memcpy(mapped, particleBuffer.data(), size);
-		vkUnmapMemory(device, vertices.mem);
+		memcpy(particles.mappedMemory, particleBuffer.data(), size);
 	}
 
 	void loadTextures()
@@ -403,8 +411,8 @@ public:
 	void setupVertexDescriptions()
 	{
 		// Binding description
-		vertices.bindingDescriptions.resize(1);
-		vertices.bindingDescriptions[0] =
+		particles.bindingDescriptions.resize(1);
+		particles.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
 				sizeof(Particle),
@@ -413,53 +421,53 @@ public:
 		// Attribute descriptions
 		// Describes memory layout and shader positions
 		// Location 0 : Position
-		vertices.attributeDescriptions.push_back(
+		particles.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				0,
 				VK_FORMAT_R32G32B32A32_SFLOAT,
 				0));
 		// Location 1 : Color
-		vertices.attributeDescriptions.push_back(
+		particles.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				1,
 				VK_FORMAT_R32G32B32A32_SFLOAT,
 				sizeof(float) * 4));
 		// Location 2 : Alpha
-		vertices.attributeDescriptions.push_back(
+		particles.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
 				VK_FORMAT_R32_SFLOAT,
 				sizeof(float) * 8));
 		// Location 3 : Size
-		vertices.attributeDescriptions.push_back(
+		particles.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				3,
 				VK_FORMAT_R32_SFLOAT,
 				sizeof(float) * 9));
 		// Location 4 : Rotation
-		vertices.attributeDescriptions.push_back(
+		particles.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				4,
 				VK_FORMAT_R32_SFLOAT,
 				sizeof(float) * 10));
 		// Location 5 : Type
-		vertices.attributeDescriptions.push_back(
+		particles.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				5,
 				VK_FORMAT_R32_SINT,
 				sizeof(float) * 11));
 
-		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
-		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
-		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
+		particles.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+		particles.inputState.vertexBindingDescriptionCount = particles.bindingDescriptions.size();
+		particles.inputState.pVertexBindingDescriptions = particles.bindingDescriptions.data();
+		particles.inputState.vertexAttributeDescriptionCount = particles.attributeDescriptions.size();
+		particles.inputState.pVertexAttributeDescriptions = particles.attributeDescriptions.data();
 	}
 
 	void setupDescriptorPool()
@@ -669,7 +677,7 @@ public:
 				renderPass,
 				0);
 
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
+		pipelineCreateInfo.pVertexInputState = &particles.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
