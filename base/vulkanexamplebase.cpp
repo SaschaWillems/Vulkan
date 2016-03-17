@@ -300,15 +300,17 @@ void VulkanExampleBase::renderLoop()
 	while (TRUE)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
-		if (msg.message == WM_QUIT)
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			break;
-		}
-		else
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			if (msg.message == WM_QUIT)
+			{
+				break;
+			}
+			else
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 		}
 		render();
 		frameCounter++;
@@ -807,6 +809,13 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		mousePos.x = (float)LOWORD(lParam);
 		mousePos.y = (float)HIWORD(lParam);
 		break;
+	case WM_MOUSEWHEEL:
+	{
+		short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+		zoom += (float)wheelDelta * 0.005f * zoomSpeed;
+		viewChanged();
+		break;
+	}
 	case WM_MOUSEMOVE:
 		if (wParam & MK_RBUTTON)
 		{
