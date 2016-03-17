@@ -21,6 +21,7 @@ ELSE(WIN32)
 	find_package(ASSIMP REQUIRED CONFIG)
 	find_package(XCB REQUIRED)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_XCB_KHR")
+	link_directories(${ASSIMP_LIBRARY_DIRS})
 	include_directories(${ASSIMP_INCLUDE_DIRS})
 	# Todo : android?
 ENDIF(WIN32)
