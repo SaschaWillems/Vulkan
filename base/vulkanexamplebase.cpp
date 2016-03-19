@@ -477,9 +477,11 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	}
 #endif
 
-#ifndef _WIN32
+	// Connect to the window system
+#ifdef __linux__
 	initxcbConnection();
 #endif
+
 	initVulkan(enableValidation);
 	// Enable console if validation is active
 	// Debug message callback will output to it
