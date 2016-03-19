@@ -125,7 +125,7 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -90.0f;
-		rotation = { -30.0f, 45.0f, 0.0f };
+		rotation = { -15.0f, 45.0f, 0.0f };
 		title = "Vulkan Example - Particle system";
 		zoomSpeed *= 1.5f;
 		timerSpeed *= 8.0f;
@@ -166,6 +166,7 @@ public:
 
 		VkClearValue clearValues[2];
 		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();

@@ -80,6 +80,7 @@ std::string VulkanExampleBase::getWindowTitle()
 	std::string device(deviceProperties.deviceName);
 	std::string windowTitle;
 	windowTitle = title + " - " + device + " - " + std::to_string(frameCounter) + " fps";
+	windowTitle = title;
 	return windowTitle;
 }
 
@@ -149,11 +150,8 @@ void VulkanExampleBase::createSetupCommandBuffer()
 	VkResult vkRes = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &setupCmdBuffer);
 	assert(!vkRes);
 
-	// todo : Command buffer is also started here, better put somewhere else
-	// todo : Check if necessaray at all...
 	VkCommandBufferBeginInfo cmdBufInfo = {};
 	cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	// todo : check null handles, flags?
 
 	vkRes = vkBeginCommandBuffer(setupCmdBuffer, &cmdBufInfo);
 	assert(!vkRes);
@@ -181,7 +179,7 @@ void VulkanExampleBase::flushSetupCommandBuffer()
 	assert(!err);
 
 	vkFreeCommandBuffers(device, cmdPool, 1, &setupCmdBuffer);
-	setupCmdBuffer = VK_NULL_HANDLE; // todo : check if still necessary
+	setupCmdBuffer = VK_NULL_HANDLE; 
 }
 
 void VulkanExampleBase::createPipelineCache()
