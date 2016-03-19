@@ -10,12 +10,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <vector>
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
 #endif
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
 #include "vulkanandroid.h"
 #endif
 

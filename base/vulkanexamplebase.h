@@ -8,7 +8,7 @@
 
 #pragma once
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #pragma comment(linker, "/subsystem:windows")
 #include <windows.h>
 #include <fcntl.h>
@@ -146,7 +146,7 @@ public:
 	} depthStencil;
 
 	// OS specific 
-#ifdef _WIN32
+#if defined(_WIN32)
 	HWND window;
 	HINSTANCE windowInstance;
 #else
@@ -168,7 +168,7 @@ public:
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
 	void initVulkan(bool enableValidation);
 
-#ifdef _WIN32 
+#if defined(_WIN32 )
 	void setupConsole(std::string title);
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
 	void handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

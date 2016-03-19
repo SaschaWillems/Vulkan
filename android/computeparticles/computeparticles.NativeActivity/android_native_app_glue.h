@@ -26,7 +26,7 @@
 #include <android/looper.h>
 #include <android/native_activity.h>
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -337,7 +337,7 @@ void android_app_post_exec_cmd(struct android_app* android_app, int8_t cmd);
  */
 extern void android_main(struct android_app* app);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

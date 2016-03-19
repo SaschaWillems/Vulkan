@@ -22,7 +22,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 
 	std::vector<const char*> enabledExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
-#ifdef _WIN32
+#if defined(_WIN32)
 	enabledExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #else
 	// todo : linux/android
@@ -293,7 +293,7 @@ void VulkanExampleBase::loadMesh(
 
 void VulkanExampleBase::renderLoop()
 {
-#ifdef _WIN32
+#if defined(_WIN32)
 	MSG msg;
 	while (TRUE)
 	{
@@ -465,7 +465,7 @@ VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
 	// Check for validation command line flag
-#ifdef _WIN32
+#if defined(_WIN32)
 	for (int32_t i = 0; i < __argc; i++)
 	{
 		if (__argv[i] == std::string("-validation"))
@@ -475,13 +475,13 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	}
 #endif
 
-#ifndef _WIN32
+#if !defined(_WIN32)
 	initxcbConnection();
 #endif
 	initVulkan(enableValidation);
 	// Enable console if validation is active
 	// Debug message callback will output to it
-#ifdef _WIN32
+#if defined(_WIN32)
 	if (enableValidation)
 	{
 		setupConsole("VulkanExample");
@@ -535,7 +535,7 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyInstance(instance, nullptr);
 
-#ifndef _WIN32
+#if !defined(_WIN32)
 	xcb_destroy_window(connection, window);
 	xcb_disconnect(connection);
 #endif
@@ -636,7 +636,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32)
 // Win32 : Sets up a console window and redirects standard output to it
 void VulkanExampleBase::setupConsole(std::string title)
 {
@@ -1149,7 +1149,7 @@ void VulkanExampleBase::setupRenderPass()
 
 void VulkanExampleBase::initSwapchain()
 {
-#ifdef _WIN32
+#if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
 #else
 	swapChain.initSurface(connection, window);

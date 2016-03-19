@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <vector>
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
@@ -27,7 +27,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkantools.h"
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
 #include "vulkanandroid.h"
 #endif
 
@@ -89,10 +89,10 @@ public:
 	// Creates an os specific surface
 	// Tries to find a graphics and a present queue
 	void initSurface(
-#ifdef _WIN32
+#if defined(_WIN32)
 		void* platformHandle, void* platformWindow
 #else
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
 		ANativeWindow* window
 #else
 		xcb_connection_t* connection, xcb_window_t window
@@ -103,14 +103,14 @@ public:
 		VkResult err;
 
 		// Create surface depending on OS
-#ifdef _WIN32
+#if defined(_WIN32)
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle;
 		surfaceCreateInfo.hwnd = (HWND)platformWindow;
 		err = vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 #else
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
 		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.window = window;

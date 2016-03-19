@@ -20,7 +20,7 @@
 
 #include "vulkan/vulkan.h"
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
 
 // Function pointer prototypes
 // Not complete, just the functions used in the caps viewer!
