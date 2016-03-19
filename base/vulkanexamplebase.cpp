@@ -475,9 +475,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			enableValidation = true;
 		}
 	}
-#endif
-
-#ifndef _WIN32
+#else
 	initxcbConnection();
 #endif
 	initVulkan(enableValidation);
