@@ -67,6 +67,8 @@ namespace vkTools
 		// Load a 2D texture
 		void loadTexture(const char* filename, VkFormat format, VulkanTexture *texture, bool forceLinear, VkImageUsageFlags imageUsageFlags)
 		{
+			std::cout << "Loading \"" << filename << "\"..." << std::endl;
+
 			gli::texture2D tex2D(gli::load(filename));
 			assert(!tex2D.empty());
 
@@ -204,7 +206,7 @@ namespace vkTools
 
 					copyRegion.extent.width = tex2D[level].dimensions().x;
 					copyRegion.extent.height = tex2D[level].dimensions().y;
-					copyRegion.extent.depth = 1;
+					copyRegion.extent.depth = 0;
 
 					// Put image copy into command buffer
 					vkCmdCopyImage(
@@ -241,15 +243,16 @@ namespace vkTools
 
 				vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, copyFence));
 
-				vkWaitForFences(device, 1, &copyFence, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
+				vkTools::checkResult(vkWaitForFences(device, 1, &copyFence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
 
 				vkDestroyFence(device, copyFence, nullptr);
 
 				// Destroy linear images used as staging buffers after copies have been finished
-				for (auto& level : mipLevels)
+				//for (auto& level : mipLevels)
+				for (uint32_t i = 0; i < mipLevels.size(); i++)
 				{
-					vkDestroyImage(device, level.image, nullptr);
-					vkFreeMemory(device, level.memory, nullptr);
+					vkDestroyImage(device, mipLevels[i].image, nullptr);
+					vkFreeMemory(device, mipLevels[i].memory, nullptr);
 				}
 			}
 			else
@@ -563,7 +566,7 @@ namespace vkTools
 
 			vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, copyFence));
 
-			vkWaitForFences(device, 1, &copyFence, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
+			vkTools::checkResult(vkWaitForFences(device, 1, &copyFence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
 
 			vkDestroyFence(device, copyFence, nullptr);
 
@@ -773,7 +776,7 @@ namespace vkTools
 
 			vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, copyFence));
 
-			vkWaitForFences(device, 1, &copyFence, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
+			vkTools::checkResult(vkWaitForFences(device, 1, &copyFence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
 
 			vkDestroyFence(device, copyFence, nullptr);
 
