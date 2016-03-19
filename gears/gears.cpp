@@ -84,7 +84,7 @@ public:
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
@@ -171,7 +171,7 @@ public:
 		std::vector<float> rotationStarts = { 0.0f, -9.0f, -30.0f };
 
 		gears.resize(positions.size());
-		for (int32_t i = 0; i < gears.size(); ++i)
+		for (uint32_t i = 0; i < gears.size(); ++i)
 		{
 			gears[i] = new VulkanGear(device, this);
 			gears[i]->generate(

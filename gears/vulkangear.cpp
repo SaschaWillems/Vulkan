@@ -181,8 +181,8 @@ void VulkanGear::generate(float inner_radius, float outer_radius, float width, i
 		newFace(&iBuffer, ix1, ix3, ix2);
 	}
 
-	int vertexBufferSize = vBuffer.size() * sizeof(Vertex);
-	int indexBufferSize = iBuffer.size() * sizeof(uint32_t);
+	uint32_t vertexBufferSize = vBuffer.size() * sizeof(Vertex);
+	uint32_t indexBufferSize = iBuffer.size() * sizeof(uint32_t);
 
 	VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 	VkMemoryRequirements memReqs;

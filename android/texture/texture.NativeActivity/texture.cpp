@@ -130,7 +130,7 @@ public:
 		vertexBuffer.push_back({ { -1.0f,  1.0f, 0.0f },{ 0.0f, 1.0f } });
 		vertexBuffer.push_back({ { -1.0f, -1.0f, 0.0f },{ 0.0f, 0.0f } });
 		vertexBuffer.push_back({ { 1.0f, -1.0f, 0.0f },{ 1.0f, 0.0f } });
-		int vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+		uint32_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer;
@@ -140,7 +140,7 @@ public:
 		indexBuffer.push_back(2);
 		indexBuffer.push_back(3);
 		indexBuffer.push_back(0);
-		int indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
+		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 
 		VkMemoryAllocateInfo memAlloc = {};
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -489,7 +489,7 @@ public:
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];

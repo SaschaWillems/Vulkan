@@ -415,14 +415,14 @@ struct VulkanExample
 		vertexBuffer.push_back({ { 1.0f,  1.0f, 0.0f },{ 1.0f, 0.0f, 0.0f } });
 		vertexBuffer.push_back({ { -1.0f,  1.0f, 0.0f },{ 0.0f, 1.0f, 0.0f } });
 		vertexBuffer.push_back({ { 0.0f, -1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } });
-		int vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+		uint32_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer;
 		indexBuffer.push_back(0);
 		indexBuffer.push_back(1);
 		indexBuffer.push_back(2);
-		int indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
+		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 
 		VkMemoryAllocateInfo memAlloc = {};
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -926,7 +926,7 @@ struct VulkanExample
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
