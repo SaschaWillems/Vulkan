@@ -230,8 +230,6 @@ public:
 
 			VkDeviceSize offsets[1] = { 0 };
 
-			glm::mat4 modelMatrix = glm::mat4();
-
 			// Occlusion pass
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.simple);
 

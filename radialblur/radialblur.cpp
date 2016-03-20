@@ -951,8 +951,6 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		VkResult err;
-
 		// Phong and color pass vertex shader uniform buffer
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,

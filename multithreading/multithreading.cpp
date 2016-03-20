@@ -589,8 +589,6 @@ public:
 
 	void updateUniformBuffers()
 	{
-		glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-
 		glm::mat4 view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -598,7 +596,6 @@ public:
 
 		for (auto& thread : renderThreads)
 		{
-			//thread.ubo.projection = projection;
 			thread.ubo.projection = glm::perspective(glm::radians(60.0f), (float)thread.viewport.width / (float)thread.viewport.height, 0.1f, 256.0f);
 			thread.ubo.view = view;
 			thread.thread = std::thread(VulkanExample::threadUpdate, &thread);

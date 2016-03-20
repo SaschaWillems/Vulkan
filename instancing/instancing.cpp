@@ -412,10 +412,6 @@ public:
 			&uniformData.vsScene.memory,
 			&uniformData.vsScene.descriptor);
 
-		VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			uboSize);
-
 		// Colors and model matrices are fixed
 		float offset = 5.0f;
 		uint32_t index = 0;
