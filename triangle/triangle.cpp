@@ -25,6 +25,10 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 
+#ifdef __ANDROID__
+#include "vulkanandroid.h"
+#endif
+
 #define VERTEX_BUFFER_BIND_ID 0
 // Set to "true" to enable Vulkan's validation layers
 // See vulkandebug.cpp for details
@@ -749,8 +753,14 @@ public:
 		// Load shaders
 		// Shaders are loaded from the SPIR-V format, which can be generated from glsl
 		VkPipelineShaderStageCreateInfo shaderStages[2] = { {},{} };
+		std::string shaderPath;
+#if defined(__ANDROID__)
+		shaderStages[0] = loadShader("shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader("shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+#else
 		shaderStages[0] = loadShader("./../data/shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader("./../data/shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+#endif
 
 		// Assign states
 		// Two shader stages
@@ -856,7 +866,6 @@ public:
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
-
 	}
 
 	virtual void viewChanged()
@@ -870,7 +879,6 @@ public:
 VulkanExample *vulkanExample;
 
 #ifdef _WIN32
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -879,9 +887,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
+#endif 
 
-#else 
-
+#ifdef __linux__
+#ifdef __ANDROID__
+	// todo : android event handling
+#else
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -890,22 +901,43 @@ static void handleEvent(const xcb_generic_event_t *event)
 	}
 }
 #endif
+#endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }
