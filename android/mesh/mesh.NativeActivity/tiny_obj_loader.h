@@ -150,7 +150,7 @@ void LoadMtl(std::map<std::string, int> &material_map, // [output]
              std::istream &inStream);
 }
 
-#ifdef TINYOBJLOADER_IMPLEMENTATION
+#if defined(TINYOBJLOADER_IMPLEMENTATION)
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
@@ -369,7 +369,7 @@ fail:
 }
 static inline float parseFloat(const char *&token) {
   token += strspn(token, " \t");
-#ifdef TINY_OBJ_LOADER_OLD_FLOAT_PARSER
+#if defined(TINY_OBJ_LOADER_OLD_FLOAT_PARSER)
   float f = (float)atof(token);
   token += strcspn(token, " \t\r");
 #else
@@ -639,7 +639,7 @@ void LoadMtl(std::map<std::string, int> &material_map,
       // set new mtl name
       char namebuf[TINYOBJ_SSCANF_BUFFER_SIZE];
       token += 7;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
       sscanf_s(token, "%s", namebuf, (unsigned)_countof(namebuf));
 #else
       sscanf(token, "%s", namebuf);
@@ -970,7 +970,7 @@ bool LoadObj(std::vector<shape_t> &shapes,       // [output]
 
       char namebuf[TINYOBJ_SSCANF_BUFFER_SIZE];
       token += 7;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
       sscanf_s(token, "%s", namebuf, (unsigned)_countof(namebuf));
 #else
       sscanf(token, "%s", namebuf);
@@ -1000,7 +1000,7 @@ bool LoadObj(std::vector<shape_t> &shapes,       // [output]
     if ((0 == strncmp(token, "mtllib", 6)) && isSpace((token[6]))) {
       char namebuf[TINYOBJ_SSCANF_BUFFER_SIZE];
       token += 7;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
       sscanf_s(token, "%s", namebuf, (unsigned)_countof(namebuf));
 #else
       sscanf(token, "%s", namebuf);
@@ -1071,7 +1071,7 @@ bool LoadObj(std::vector<shape_t> &shapes,       // [output]
       // @todo { multiple object name? }
       char namebuf[TINYOBJ_SSCANF_BUFFER_SIZE];
       token += 2;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
       sscanf_s(token, "%s", namebuf, (unsigned)_countof(namebuf));
 #else
       sscanf(token, "%s", namebuf);

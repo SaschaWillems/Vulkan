@@ -15,11 +15,10 @@
 #include <stdio.h>
 #include <vector>
 #include <map>
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#else
 #endif
 
 #include "vulkan/vulkan.h"

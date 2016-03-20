@@ -8,7 +8,7 @@
 
 #include "vulkantools.h"
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
 #include "vulkanandroid.h"
 #endif
 
@@ -251,9 +251,9 @@ namespace vkTools
 
 	void exitFatal(std::string message, std::string caption)
 	{
-#ifdef _WIN32
+#if defined(_WIN32)
 		MessageBox(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
-#else
+#elif defined(__linux__)
 		// TODO : Linux
 #endif
 		std::cerr << message << "\n";

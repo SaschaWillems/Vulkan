@@ -20,11 +20,10 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#else
 #endif
 
 // Custom define for better code readability

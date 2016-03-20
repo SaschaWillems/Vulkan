@@ -591,7 +591,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
+#if defined(_WIN32)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -602,7 +602,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
 
-#else 
+#elif defined(__linux__)
 
 static void handleEvent(const xcb_generic_event_t *event)
 {
@@ -611,18 +611,19 @@ static void handleEvent(const xcb_generic_event_t *event)
 		vulkanExample->handleEvent(event);
 	}
 }
+
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32)
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__linux__)
 int main(const int argc, const char *argv[])
 #endif
 {
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
 	vulkanExample->initSwapchain();

@@ -20,7 +20,7 @@
 
 #include "vulkan/vulkan.h"
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
 
 #include <android/log.h>
 
