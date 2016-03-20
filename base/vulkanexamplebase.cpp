@@ -341,7 +341,35 @@ void VulkanExampleBase::renderLoop()
 		}
 	}
 #elif defined(__ANDROID__)
-	// todo : Android renderlopp
+	// todo : Application moved to background
+	while (1)
+	{
+		// Read all pending events.
+		int ident;
+		int events;
+		struct android_poll_source* source;
+
+		while ((ident = ALooper_pollAll(animating ? 0 : -1, NULL, &events, (void**)&source)) >= 0)
+		{
+			if (source != NULL)
+			{
+				source->process(androidApp, source);
+			}
+
+			if (androidApp->destroyRequested != 0)
+			{
+				// todo : free resources
+				//delete(vulkanExample);
+				return;
+			}
+		}
+
+		// Render frame
+		if (prepared)
+		{
+			render();
+		}
+	}
 #elif defined(__linux__)
 	xcb_flush(connection);
 	while (!quit)

@@ -157,6 +157,7 @@ public:
 	HINSTANCE windowInstance;
 #elif defined(__ANDROID__)
 	android_app* androidApp;
+	bool animating = true;
 #elif defined(__linux__)
 	struct {
 		bool left = false;
