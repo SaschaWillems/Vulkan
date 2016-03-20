@@ -24,7 +24,6 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#else
 #endif
 
 // Custom define for better code readability

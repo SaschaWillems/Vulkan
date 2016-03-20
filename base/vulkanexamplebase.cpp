@@ -24,8 +24,9 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 
 #if defined(_WIN32)
 	enabledExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#else
-	// todo : linux/android
+#elif defined(__ANDROID__)
+	// todo : android
+#elif defined(__linux__)
 	enabledExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #endif
 
@@ -333,7 +334,7 @@ void VulkanExampleBase::renderLoop()
 			frameCounter = 0.0f;
 		}
 	}
-#else
+#elif defined(__linux__)
 	xcb_flush(connection);
 	while (!quit)
 	{
@@ -475,9 +476,10 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	}
 #endif
 
-#if !defined(_WIN32)
+#if defined(__linux__)
 	initxcbConnection();
 #endif
+
 	initVulkan(enableValidation);
 	// Enable console if validation is active
 	// Debug message callback will output to it
@@ -535,7 +537,7 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyInstance(instance, nullptr);
 
-#if !defined(_WIN32)
+#if defined(__linux__)
 	xcb_destroy_window(connection, window);
 	xcb_disconnect(connection);
 #endif
@@ -836,7 +838,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	}
 }
 
-#else
+#elif defined(__linux__)
 
 // Set up a window using XCB and request event types
 xcb_window_t VulkanExampleBase::setupWindow()
@@ -1151,7 +1153,7 @@ void VulkanExampleBase::initSwapchain()
 {
 #if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
-#else
+#elif defined(__linux__)
 	swapChain.initSurface(connection, window);
 #endif
 }

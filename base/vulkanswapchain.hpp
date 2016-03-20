@@ -21,7 +21,6 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#else
 #endif
 
 #include <vulkan/vulkan.h>
@@ -91,12 +90,10 @@ public:
 	void initSurface(
 #if defined(_WIN32)
 		void* platformHandle, void* platformWindow
-#else
-#if defined(__ANDROID__)
+#elif defined(__ANDROID__)
 		ANativeWindow* window
-#else
+#elif defined(__linux__)
 		xcb_connection_t* connection, xcb_window_t window
-#endif
 #endif
 	)
 	{
@@ -109,19 +106,17 @@ public:
 		surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle;
 		surfaceCreateInfo.hwnd = (HWND)platformWindow;
 		err = vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#else
-#if defined(__ANDROID__)
+#elif defined(__ANDROID__)
 		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.window = window;
 		err = vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
-#else
+#elif defined(__linux__)
 		VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.connection = connection;
 		surfaceCreateInfo.window = window;
 		err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#endif
 #endif
 
 		// Get available queue family properties

@@ -13,8 +13,9 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#else 
-// todo : split linux xcb/x11 and android
+#elif defined(__ANDROID__)
+// todo : android
+#elif defined(__linux__)
 #include <xcb/xcb.h>
 #endif
 
@@ -149,7 +150,7 @@ public:
 #if defined(_WIN32)
 	HWND window;
 	HINSTANCE windowInstance;
-#else
+#elif defined(__linux__)
 	struct {
 		bool left = false;
 		bool right = false;
@@ -159,7 +160,7 @@ public:
 	xcb_screen_t *screen;
 	xcb_window_t window;
 	xcb_intern_atom_reply_t *atom_wm_delete_window;
-#endif	
+#endif
 
 	VulkanExampleBase(bool enableValidation);
 	VulkanExampleBase() : VulkanExampleBase(false) {};
@@ -168,15 +169,16 @@ public:
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
 	void initVulkan(bool enableValidation);
 
-#if defined(_WIN32 )
+#if defined(_WIN32)
 	void setupConsole(std::string title);
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
 	void handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-#else
+#elif defined(__linux__)
 	xcb_window_t setupWindow();
 	void initxcbConnection();
 	void handleEvent(const xcb_generic_event_t *event);
 #endif
+
 	// Pure virtual render function (override in derived class)
 	virtual void render() = 0;
 	// Called when view change occurs

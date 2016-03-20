@@ -19,7 +19,6 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#else
 #endif
 
 #include "vulkan/vulkan.h"
