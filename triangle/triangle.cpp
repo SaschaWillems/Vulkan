@@ -876,14 +876,14 @@ public:
 	}
 };
 
-VulkanExample *vulkanExample;
+VulkanExample *vulkanExampleGlobal;
 
 #ifdef _WIN32
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (vulkanExample != NULL)
+	if (vulkanExampleGlobal != NULL)
 	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
+		vulkanExampleGlobal->handleMessages(hWnd, uMsg, wParam, lParam);
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
@@ -895,9 +895,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 #else
 static void handleEvent(const xcb_generic_event_t *event)
 {
-	if (vulkanExample != NULL)
+	if (vulkanExampleGlobal != NULL)
 	{
-		vulkanExample->handleEvent(event);
+		vulkanExampleGlobal->handleEvent(event);
 	}
 }
 #endif
@@ -920,25 +920,25 @@ int main(const int argc, const char *argv[])
 	// which would make the application crash at start
 	app_dummy();
 #endif
-	vulkanExample = new VulkanExample();
+	VulkanExample vulkanExample;
+	vulkanExampleGlobal = &vulkanExample;
 #if defined(_WIN32)
-	vulkanExample->setupWindow(hInstance, WndProc);
+	vulkanExample.setupWindow(hInstance, WndProc);
 #elif defined(__ANDROID__)
 	// Attach vulkan example to global android application state
-	state->userData = vulkanExample;
+	state->userData = &vulkanExample;
 	state->onAppCmd = VulkanExample::handleAppCommand;
 	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
+	vulkanExample.androidApp = state;
 #elif defined(__linux__)
-	vulkanExample->setupWindow();
+	vulkanExample.setupWindow();
 #endif
 #if !defined(__ANDROID__)
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
+	vulkanExample.initSwapchain();
+	vulkanExample.prepare();
 #endif
-	vulkanExample->renderLoop();
+	vulkanExample.renderLoop();
 #if !defined(__ANDROID__)
-	delete(vulkanExample);
 	return 0;
 #endif
 }

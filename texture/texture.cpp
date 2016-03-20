@@ -878,24 +878,24 @@ public:
 	}
 };
 
-VulkanExample *vulkanExample;
+VulkanExample *vulkanExampleGlobal;
 
 #ifdef _WIN32
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (vulkanExample != NULL)
+	if (vulkanExampleGlobal != NULL)
 	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
+		vulkanExampleGlobal->handleMessages(hWnd, uMsg, wParam, lParam);
 		if (uMsg == WM_KEYDOWN)
 		{
 			switch (wParam)
 			{
 			case VK_ADD:
-				vulkanExample->changeLodBias(0.1f);
+				vulkanExampleGlobal->changeLodBias(0.1f);
 				break;
 			case VK_SUBTRACT:
-				vulkanExample->changeLodBias(-0.1f);
+				vulkanExampleGlobal->changeLodBias(-0.1f);
 				break;
 			}
 		}
@@ -907,9 +907,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 static void handleEvent(const xcb_generic_event_t *event)
 {
-	if (vulkanExample != NULL)
+	if (vulkanExampleGlobal != NULL)
 	{
-		vulkanExample->handleEvent(event);
+		vulkanExampleGlobal->handleEvent(event);
 	}
 }
 #endif
@@ -920,15 +920,15 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 int main(const int argc, const char *argv[])
 #endif
 {
-	vulkanExample = new VulkanExample();
+	VulkanExample vulkanExample;
+	vulkanExampleGlobal = &vulkanExample;
 #ifdef _WIN32
-	vulkanExample->setupWindow(hInstance, WndProc);
+	vulkanExample.setupWindow(hInstance, WndProc);
 #else
-	vulkanExample->setupWindow();
+	vulkanExample.setupWindow();
 #endif
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-	vulkanExample->renderLoop();
-	delete(vulkanExample);
+	vulkanExample.initSwapchain();
+	vulkanExample.prepare();
+	vulkanExample.renderLoop();
 	return 0;
 }
