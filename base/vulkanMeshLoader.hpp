@@ -75,6 +75,74 @@ namespace vkMeshLoader
 		return vSize;
 	}
 
+	// Stores some additonal info and functions for 
+	// specifying pipelines, vertex bindings, etc.
+	class Mesh
+	{
+	public:
+		MeshBuffer buffers;
+
+		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+		VkPipeline pipeline = VK_NULL_HANDLE;
+		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+
+		uint32_t vertexBufferBinding = 0;
+
+		VkPipelineVertexInputStateCreateInfo vertexInputState;
+		VkVertexInputBindingDescription bindingDescription;
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+
+		void setupVertexInputState(std::vector<vkMeshLoader::VertexLayout> layout)
+		{
+			bindingDescription = vkTools::initializers::vertexInputBindingDescription(
+				vertexBufferBinding,
+				vertexSize(layout),
+				VK_VERTEX_INPUT_RATE_VERTEX);
+
+			attributeDescriptions.clear();
+			uint32_t offset = 0;
+			uint32_t binding = 0;
+			for (auto& layoutDetail : layout)
+			{
+				// Format (layout)
+				VkFormat format = (layoutDetail == VERTEX_LAYOUT_UV) ? VK_FORMAT_R32G32_SFLOAT : VK_FORMAT_R32G32B32_SFLOAT;
+
+				attributeDescriptions.push_back(
+					vkTools::initializers::vertexInputAttributeDescription(
+						vertexBufferBinding,
+						binding,
+						format,
+						offset));
+
+				// Offset
+				offset += (layoutDetail == VERTEX_LAYOUT_UV) ? (2 * sizeof(float)) : (3 * sizeof(float));
+				binding++;
+			}
+
+			vertexInputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+			vertexInputState.vertexBindingDescriptionCount = 1;
+			vertexInputState.pVertexBindingDescriptions = &bindingDescription;
+			vertexInputState.vertexAttributeDescriptionCount = attributeDescriptions.size();
+			vertexInputState.pVertexAttributeDescriptions = attributeDescriptions.data();
+		}
+
+		void drawIndexed(VkCommandBuffer cmdBuffer)
+		{
+			VkDeviceSize offsets[1] = { 0 };
+			if (pipeline != VK_NULL_HANDLE)
+			{
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+			}
+			if ((pipelineLayout != VK_NULL_HANDLE) && (descriptorSet != VK_NULL_HANDLE))
+			{
+				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			}
+			vkCmdBindVertexBuffers(cmdBuffer, vertexBufferBinding, 1, &buffers.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(cmdBuffer, buffers.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(cmdBuffer, buffers.indexCount, 1, 0, 0, 0);
+		}
+	};
+
 	static void freeMeshBufferResources(VkDevice device, vkMeshLoader::MeshBuffer *meshBuffer)
 	{
 		vkDestroyBuffer(device, meshBuffer->vertices.buf, nullptr);

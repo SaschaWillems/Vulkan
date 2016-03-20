@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <vector>
 #include <iostream>
+#include <stdexcept>
 #ifdef _WIN32
 #include <windows.h>
 #include <fcntl.h>
@@ -28,6 +29,8 @@
 
 // Custom define for better code readability
 #define VK_FLAGS_NONE 0
+// Default fence timeout in nanoseconds
+#define DEFAULT_FENCE_TIMEOUT 100000000000
 
 namespace vkTools
 {
@@ -37,7 +40,9 @@ namespace vkTools
 	VkBool32 checkDeviceExtensionPresent(VkPhysicalDevice physicalDevice, const char* extensionName);
 	// Return string representation of a vulkan error string
 	std::string errorString(VkResult errorCode);
-	
+	// Asserts and outputs the error message if the result is not VK_SUCCESS
+	VkResult checkResult(VkResult result);
+
 	// Selected a suitable supported depth format starting with 32 bit down to 16 bit
 	// Returns false if none of the depth formats in the list is supported by the device
 	VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *depthFormat);

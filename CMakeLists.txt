@@ -81,6 +81,7 @@ set(EXAMPLES
 	occlusionquery
 	offscreen
 	parallaxmapping
+	particlefire
 	pipelines
 	pushconstants
 	radialblur

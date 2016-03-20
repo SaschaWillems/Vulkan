@@ -80,6 +80,7 @@ std::string VulkanExampleBase::getWindowTitle()
 	std::string device(deviceProperties.deviceName);
 	std::string windowTitle;
 	windowTitle = title + " - " + device + " - " + std::to_string(frameCounter) + " fps";
+	windowTitle = title;
 	return windowTitle;
 }
 
@@ -149,11 +150,8 @@ void VulkanExampleBase::createSetupCommandBuffer()
 	VkResult vkRes = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &setupCmdBuffer);
 	assert(!vkRes);
 
-	// todo : Command buffer is also started here, better put somewhere else
-	// todo : Check if necessaray at all...
 	VkCommandBufferBeginInfo cmdBufInfo = {};
 	cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	// todo : check null handles, flags?
 
 	vkRes = vkBeginCommandBuffer(setupCmdBuffer, &cmdBufInfo);
 	assert(!vkRes);
@@ -181,7 +179,7 @@ void VulkanExampleBase::flushSetupCommandBuffer()
 	assert(!err);
 
 	vkFreeCommandBuffers(device, cmdPool, 1, &setupCmdBuffer);
-	setupCmdBuffer = VK_NULL_HANDLE; // todo : check if still necessary
+	setupCmdBuffer = VK_NULL_HANDLE; 
 }
 
 void VulkanExampleBase::createPipelineCache()
@@ -300,15 +298,17 @@ void VulkanExampleBase::renderLoop()
 	while (TRUE)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
-		if (msg.message == WM_QUIT)
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			break;
-		}
-		else
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			if (msg.message == WM_QUIT)
+			{
+				break;
+			}
+			else
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 		}
 		render();
 		frameCounter++;
@@ -807,6 +807,13 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		mousePos.x = (float)LOWORD(lParam);
 		mousePos.y = (float)HIWORD(lParam);
 		break;
+	case WM_MOUSEWHEEL:
+	{
+		short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+		zoom += (float)wheelDelta * 0.005f * zoomSpeed;
+		viewChanged();
+		break;
+	}
 	case WM_MOUSEMOVE:
 		if (wParam & MK_RBUTTON)
 		{

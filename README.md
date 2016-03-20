@@ -42,9 +42,9 @@ Additional documentation for several base classes and functionality (e.g. the sw
 ## [Triangle](triangle/)
 <img src="./screenshots/basic_triangle.png" height="96px" align="right">
 
-Most basic example. Renders a colored triangle using an indexed vertex buffer, only one pipeline with very simple shaders. Uses a single uniform buffer for the matrices.
+Most basic example. Renders a colored triangle using an indexed vertex buffer. Vertex and index data are uploaded to device local memory using so-called "staging buffers". Uses a single pipeline with basic shaders loaded from SPIR-V and and single uniform block for passing matrices that is updated on changing the view.
 
-This example won't make use of helper functions or initializers (like the other examples) and is much more of an explicit example then the others included in this repository. It contains lot's of boiler plate that you'd usually encapsulate in helper functions and classes.
+This example is far more explicit than the other examples and is meant to be a starting point for learning Vulkan from the ground up. Much of the code is boilerplate that you'd usually encapsulate in helper functions and classes (which is what the other examples do).
 <br><br>
 
 ## [Texture mapping](texture/)
@@ -104,6 +104,13 @@ Shows the use of instancing for rendering the same mesh with differing uniforms 
 
 Based on the mesh loading example, this example loads and displays a rigged COLLADA model including animations. Bone weights are extracted for each vertex and are passed to the vertex shader together with the final bone transformation matrices for vertex position calculations.
 <br><br>
+
+## [Particle system](particlefire/)
+<img src="./screenshots/particlefire.png" height="96px" align="right">
+
+Point sprite based particle system simulating a fire. Particles and their attributes are stored in a host visible vertex buffer that's updated on the CPU on each frame. Also makes use of pre-multiplied alpha for rendering particles with different blending modes (smoke and fire) in one single pass. 
+
+
 
 ## [Push constants](pushconstants/)
 <img src="./screenshots/push_constants.png" height="96px" align="right">
@@ -237,5 +244,6 @@ Please note that (some) models and textures use separate licenses. Please comply
 ## External resources
 - [LunarG Vulkan SDK](https://vulkan.lunarg.com)
 - [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
+- [Vulkan API specifications](https://www.khronos.org/registry/vulkan/specs/1.0/apispec.html) ([quick reference cards](https://www.khronos.org/registry/vulkan/specs/1.0/refguide/Vulkan-1.0-web.pdf))
 - [SPIR-V specifications](https://www.khronos.org/registry/spir-v/specs/1.0/SPIRV.html)
 - [My personal view on Vulkan (as a hobby developer)](http://www.saschawillems.de/?p=1886)

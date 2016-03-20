@@ -20,7 +20,14 @@
 
 #include "vulkan/vulkan.h"
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
+
+#include <android/log.h>
+
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vulkanExample", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vulkanExample", __VA_ARGS__))
+#define LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG, "vulkanExample", __VA_ARGS__))
+#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "vulkanExample", __VA_ARGS__))
 
 // Function pointer prototypes
 // Not complete, just the functions used in the caps viewer!
@@ -49,8 +56,10 @@ extern PFN_vkDestroyBuffer vkDestroyBuffer;
 extern PFN_vkAllocateMemory vkAllocateMemory;
 extern PFN_vkBindImageMemory vkBindImageMemory;
 extern PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
+extern PFN_vkCmdCopyBuffer vkCmdCopyBuffer;
 extern PFN_vkCmdCopyImage vkCmdCopyImage;
 extern PFN_vkCreateSampler vkCreateSampler;
+extern PFN_vkDestroySampler vkDestroySampler;
 extern PFN_vkDestroyImage vkDestroyImage;
 extern PFN_vkFreeMemory vkFreeMemory;
 extern PFN_vkCreateRenderPass vkCreateRenderPass;
@@ -62,13 +71,18 @@ extern PFN_vkCreateImageView vkCreateImageView;
 extern PFN_vkDestroyImageView vkDestroyImageView;
 extern PFN_vkCreateSemaphore vkCreateSemaphore;
 extern PFN_vkDestroySemaphore vkDestroySemaphore;
+extern PFN_vkCreateFence vkCreateFence;
+extern PFN_vkDestroyFence vkDestroyFence;
+extern PFN_vkWaitForFences vkWaitForFences;
 extern PFN_vkCreateCommandPool vkCreateCommandPool;
+extern PFN_vkDestroyCommandPool vkDestroyCommandPool;
 extern PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
 extern PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
 extern PFN_vkEndCommandBuffer vkEndCommandBuffer;
 extern PFN_vkGetDeviceQueue vkGetDeviceQueue;
 extern PFN_vkQueueSubmit vkQueueSubmit;
 extern PFN_vkQueueWaitIdle vkQueueWaitIdle;
+extern PFN_vkDeviceWaitIdle vkDeviceWaitIdle;
 extern PFN_vkCreateFramebuffer vkCreateFramebuffer;
 extern PFN_vkCreatePipelineCache vkCreatePipelineCache;
 extern PFN_vkCreatePipelineLayout vkCreatePipelineLayout;

@@ -57,6 +57,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multithreading", "multithre
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shadowmapping", "shadowmapping\shadowmapping.vcxproj", "{BF22CE41-AA83-45FE-813A-451E2EDF58D9}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "particlefire", "particlefire\particlefire.vcxproj", "{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -171,6 +173,10 @@ Global
 		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Debug|x64.Build.0 = Debug|x64
 		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Release|x64.ActiveCfg = Release|x64
 		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Release|x64.Build.0 = Release|x64
+		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Debug|x64.ActiveCfg = Debug|x64
+		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Debug|x64.Build.0 = Debug|x64
+		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Release|x64.ActiveCfg = Release|x64
+		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
