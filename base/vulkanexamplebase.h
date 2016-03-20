@@ -158,6 +158,17 @@ public:
 #elif defined(__ANDROID__)
 	android_app* androidApp;
 	bool animating = true;
+	// Gamepad state (only one)
+	struct
+	{
+		struct
+		{
+			float x = 0.0f;
+			float y = 0.0f;
+			float z = 0.0f;
+			float rz = 0.0f;
+		} axes;
+	} gamePadState;
 #elif defined(__linux__)
 	struct {
 		bool left = false;
@@ -182,6 +193,7 @@ public:
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
 	void handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #elif defined(__ANDROID__)
+	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
 	static void handleAppCommand(android_app* app, int32_t cmd);
 #elif defined(__linux__)
 	xcb_window_t setupWindow();

@@ -368,6 +368,34 @@ void VulkanExampleBase::renderLoop()
 		if (prepared)
 		{
 			render();
+			// Check gamepad state
+			const float deadZone = 0.10f;
+			// todo : check if gamepad is present
+			// todo : time based and relative axis positions
+			bool updateView = false;
+			// Rotate
+			if (abs(gamePadState.axes.x) > deadZone)
+			{
+				rotation.y += gamePadState.axes.x * 0.25f * rotationSpeed;
+				updateView = true;
+			}
+			if (abs(gamePadState.axes.y) > deadZone)
+			{
+				rotation.x -= gamePadState.axes.y * 0.25f * rotationSpeed;
+				updateView = true;
+			}
+			// Zoom
+			if (abs(gamePadState.axes.rz) > deadZone)
+			{
+				zoom -= gamePadState.axes.rz * 0.005f * zoomSpeed;
+				updateView = true;
+			}
+			if (updateView)
+			{
+				viewChanged();
+			}
+
+
 		}
 	}
 #elif defined(__linux__)
@@ -892,6 +920,27 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	}
 }
 #elif defined(__ANDROID__)
+int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* event)
+{
+	VulkanExampleBase* vulkanExample = (VulkanExampleBase*)app->userData;
+	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
+	{
+		if (AInputEvent_getSource(event) == AINPUT_SOURCE_JOYSTICK)
+		{
+			vulkanExample->gamePadState.axes.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_X, 0);
+			vulkanExample->gamePadState.axes.y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Y, 0);
+			vulkanExample->gamePadState.axes.z = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Z, 0);
+			vulkanExample->gamePadState.axes.rz = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RZ, 0);
+		}
+		else
+		{
+			// todo : touch input
+		}
+		return 1;
+	}
+	return 0;
+}
+
 void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 {
 	assert(app->userData != NULL);

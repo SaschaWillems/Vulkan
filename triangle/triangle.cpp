@@ -927,6 +927,7 @@ int main(const int argc, const char *argv[])
 	// Attach vulkan example to global android application state
 	state->userData = vulkanExample;
 	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
 	vulkanExample->androidApp = state;
 #elif defined(__linux__)
 	vulkanExample->setupWindow();
