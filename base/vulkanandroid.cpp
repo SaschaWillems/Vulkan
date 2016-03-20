@@ -8,7 +8,7 @@
 
 #include "vulkanandroid.h"
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
     #include <android/log.h>
     #include <dlfcn.h>
 
