@@ -22,10 +22,12 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 
 	std::vector<const char*> enabledExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
-#ifdef _WIN32
+	// Enable surface extensions depending on os
+#if defined(_WIN32)
 	enabledExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#else
-	// todo : linux/android
+#elif defined(__ANDROID__)
+	enabledExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#elif defined(__linux__)
 	enabledExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #endif
 
@@ -196,7 +198,6 @@ void VulkanExampleBase::prepare()
 	{
 		vkDebug::setupDebugging(instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, NULL);
 	}
-
 	createCommandPool();
 	createSetupCommandBuffer();
 	setupSwapChain();
@@ -271,6 +272,7 @@ VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize 
 	}
 }
 
+#ifndef __ANDROID__
 void VulkanExampleBase::loadMesh(
 	const char * filename,
 	vkMeshLoader::MeshBuffer * meshBuffer,
@@ -290,10 +292,11 @@ void VulkanExampleBase::loadMesh(
 
 	delete(mesh);
 }
+#endif
 
 void VulkanExampleBase::renderLoop()
 {
-#ifdef _WIN32
+#if defined(_WIN32)
 	MSG msg;
 	while (TRUE)
 	{
@@ -333,7 +336,9 @@ void VulkanExampleBase::renderLoop()
 			frameCounter = 0.0f;
 		}
 	}
-#else
+#elif defined(__ANDROID__)
+	// todo : Android renderlopp
+#elif defined(__linux__)
 	xcb_flush(connection);
 	while (!quit)
 	{
@@ -369,7 +374,7 @@ void VulkanExampleBase::renderLoop()
 			fpsTimer = 0.0f;
 			frameCounter = 0.0f;
 		}
-}
+	}
 #endif
 }
 
@@ -465,7 +470,7 @@ VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
 	// Check for validation command line flag
-#ifdef _WIN32
+#if defined(_WIN32)
 	for (int32_t i = 0; i < __argc; i++)
 	{
 		if (__argv[i] == std::string("-validation"))
@@ -473,15 +478,22 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			enableValidation = true;
 		}
 	}
-#endif
-
-#ifndef _WIN32
+#elif defined(__ANDROID__)
+	// Vulkan library is loaded dynamically on Android
+	bool libLoaded = loadVulkanLibrary();
+	assert(libLoaded);
+#elif defined(__linux__)
 	initxcbConnection();
 #endif
+
+#if !defined(__ANDROID__)
+	// Android Vulkan initialization is handled in APP_CMD_INIT_WINDOW event
 	initVulkan(enableValidation);
+#endif
+
+#if defined(_WIN32)
 	// Enable console if validation is active
 	// Debug message callback will output to it
-#ifdef _WIN32
 	if (enableValidation)
 	{
 		setupConsole("VulkanExample");
@@ -535,9 +547,13 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyInstance(instance, nullptr);
 
-#ifndef _WIN32
+#if defined(__linux)
+#if defined(__ANDROID__)
+	// todo : android cleanup (if required)
+#else
 	xcb_destroy_window(connection, window);
 	xcb_disconnect(connection);
+#endif
 #endif
 }
 
@@ -551,6 +567,10 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	{
 		vkTools::exitFatal("Could not create Vulkan instance : \n" + vkTools::errorString(err), "Fatal error");
 	}
+
+#if defined(__ANDROID__)
+	loadVulkanFunctions(instance);
+#endif
 
 	// Physical device
 	uint32_t gpuCount = 0;
@@ -602,6 +622,10 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 
+#if defined(__ANDROID__)
+	LOGD(deviceProperties.deviceName);
+#endif
+
 	// Gather physical device memory properties
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
@@ -636,7 +660,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32)
 // Win32 : Sets up a console window and redirects standard output to it
 void VulkanExampleBase::setupConsole(std::string title)
 {
@@ -835,9 +859,9 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		break;
 	}
 }
-
-#else
-
+#elif defined(__ANDROID__)
+	// todo : Android event handling
+#elif defined(__linux__)
 // Set up a window using XCB and request event types
 xcb_window_t VulkanExampleBase::setupWindow()
 {
@@ -1149,9 +1173,11 @@ void VulkanExampleBase::setupRenderPass()
 
 void VulkanExampleBase::initSwapchain()
 {
-#ifdef _WIN32
+#if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
-#else
+#elif defined(__ANDROID__)	
+	swapChain.initSurface(window);
+#elif defined(__linux__)
 	swapChain.initSurface(connection, window);
 #endif
 }
