@@ -218,7 +218,11 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(const char * fileN
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
+#if defined(__ANDROID__)
+	shaderStage.module = vkTools::loadShader(androidApp->activity->assetManager, fileName, device, stage);
+#else
 	shaderStage.module = vkTools::loadShader(fileName, device, stage);
+#endif
 	shaderStage.pName = "main"; // todo : make param
 	assert(shaderStage.module != NULL);
 	shaderModules.push_back(shaderStage.module);
@@ -1176,7 +1180,7 @@ void VulkanExampleBase::initSwapchain()
 #if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
 #elif defined(__ANDROID__)	
-	swapChain.initSurface(window);
+	swapChain.initSurface(androidApp->window);
 #elif defined(__linux__)
 	swapChain.initSurface(connection, window);
 #endif

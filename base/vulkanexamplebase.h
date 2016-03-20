@@ -15,6 +15,8 @@
 #include <io.h>
 #elif defined(__ANDROID__)
 #include <android/native_activity.h>
+#include <android/asset_manager.h>
+#include <android_native_app_glue.h>
 #include "vulkanandroid.h"
 #elif defined(__linux__)
 #include <xcb/xcb.h>
@@ -154,7 +156,7 @@ public:
 	HWND window;
 	HINSTANCE windowInstance;
 #elif defined(__ANDROID__)
-	ANativeWindow* window;
+	android_app* androidApp;
 #elif defined(__linux__)
 	struct {
 		bool left = false;
