@@ -864,7 +864,40 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	}
 }
 #elif defined(__ANDROID__)
-	// todo : Android event handling
+void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
+{
+	assert(app->userData != NULL);
+	VulkanExampleBase* vulkanExample = (VulkanExampleBase*)app->userData;
+	switch (cmd)
+	{
+	case APP_CMD_SAVE_STATE:
+		/*
+		vulkanExample->app->savedState = malloc(sizeof(struct saved_state));
+		*((struct saved_state*)vulkanExample->app->savedState) = vulkanExample->state;
+		vulkanExample->app->savedStateSize = sizeof(struct saved_state);
+		*/
+		break;
+	case APP_CMD_INIT_WINDOW:
+		LOGD("APP_CMD_INIT_WINDOW");
+		if (vulkanExample->androidApp->window != NULL)
+		{
+			LOGI("Initializing Vulkan...");
+			vulkanExample->initVulkan(false);
+			vulkanExample->initSwapchain();
+			vulkanExample->prepare();
+			assert(vulkanExample->prepared);
+			LOGI("Vulkan initialized");
+		}
+		else
+		{
+			LOGE("No window assigned!");
+		}
+		break;
+	case APP_CMD_LOST_FOCUS:
+		//vulkanExample->animating = 0;
+		break;
+	}
+}
 #elif defined(__linux__)
 // Set up a window using XCB and request event types
 xcb_window_t VulkanExampleBase::setupWindow()
@@ -1190,3 +1223,4 @@ void VulkanExampleBase::setupSwapChain()
 {
 	swapChain.create(setupCmdBuffer, &width, &height);
 }
+

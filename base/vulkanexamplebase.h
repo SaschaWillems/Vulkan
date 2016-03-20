@@ -181,7 +181,7 @@ public:
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
 	void handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #elif defined(__ANDROID__)
-	// todo : add event handler for Android
+	static void handleAppCommand(android_app* app, int32_t cmd);
 #elif defined(__linux__)
 	xcb_window_t setupWindow();
 	void initxcbConnection();
@@ -231,7 +231,7 @@ public:
 	void createPipelineCache();
 
 	// Prepare commonly used Vulkan functions
-	void prepare();
+	virtual void prepare();
 
 	// Load a SPIR-V shader
 	VkPipelineShaderStageCreateInfo loadShader(const char* fileName, VkShaderStageFlagBits stage);
