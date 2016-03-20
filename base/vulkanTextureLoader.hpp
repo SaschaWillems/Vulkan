@@ -398,7 +398,7 @@ namespace vkTools
 			cmdBufInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 			cmdBufInfo.commandBufferCount = 1;
 
-			vkTools:checkResult(vkAllocateCommandBuffers(device, &cmdBufInfo, &cmdBuffer));
+			vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufInfo, &cmdBuffer));
 		}
 
 		~VulkanTextureLoader()
