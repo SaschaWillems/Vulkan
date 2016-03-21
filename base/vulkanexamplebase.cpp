@@ -82,7 +82,6 @@ std::string VulkanExampleBase::getWindowTitle()
 	std::string device(deviceProperties.deviceName);
 	std::string windowTitle;
 	windowTitle = title + " - " + device + " - " + std::to_string(frameCounter) + " fps";
-	windowTitle = title;
 	return windowTitle;
 }
 
