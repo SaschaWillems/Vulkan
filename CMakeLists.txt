@@ -6,10 +6,10 @@ set(NAME vulkanExamples)
 
 project(${NAME})
 
-include_directories(external)
 include_directories(external/glm)
 include_directories(external/gli)
-include_directories(external/assimp)
+include_directories(external/assimp/include)
+include_directories(external/vulkan/src)
 include_directories(base)
 
 IF(WIN32)
