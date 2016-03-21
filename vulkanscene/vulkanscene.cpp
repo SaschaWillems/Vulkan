@@ -137,7 +137,7 @@ public:
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
@@ -239,9 +239,9 @@ public:
 		{
 			// Generate vertex buffer (pos, normal, uv, color)
 			std::vector<Vertex> vertexBuffer;
-			for (int m = 0; m < mesh->m_Entries.size(); m++)
+			for (uint32_t m = 0; m < mesh->m_Entries.size(); m++)
 			{
-				for (int i = 0; i < mesh->m_Entries[m].Vertices.size(); i++) {
+				for (uint32_t i = 0; i < mesh->m_Entries[m].Vertices.size(); i++) {
 					glm::vec3 pos = mesh->m_Entries[m].Vertices[i].m_pos * scale;
 					glm::vec3 normal = mesh->m_Entries[m].Vertices[i].m_normal;
 					glm::vec2 uv = mesh->m_Entries[m].Vertices[i].m_tex;
@@ -273,10 +273,10 @@ public:
 			uint32_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 
 			std::vector<uint32_t> indexBuffer;
-			for (int m = 0; m < mesh->m_Entries.size(); m++)
+			for (uint32_t m = 0; m < mesh->m_Entries.size(); m++)
 			{
-				int indexBase = indexBuffer.size();
-				for (int i = 0; i < mesh->m_Entries[m].Indices.size(); i++) {
+				uint32_t indexBase = indexBuffer.size();
+				for (uint32_t i = 0; i < mesh->m_Entries[m].Indices.size(); i++) {
 					indexBuffer.push_back(mesh->m_Entries[m].Indices[i] + indexBase);
 				}
 			}

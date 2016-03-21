@@ -139,7 +139,7 @@ public:
 
 		VkResult err;
 		
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
@@ -333,7 +333,7 @@ public:
 			{ { -1.0f,  1.0f, 0.0f },{ 0.0f, 1.0f, 0.0f } },
 			{ { 0.0f, -1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
 		};
-		int vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+		uint32_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer = { 0, 1, 2 };

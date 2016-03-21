@@ -274,14 +274,14 @@ public:
 		m_Entries.resize(pScene->mNumMeshes);
 
 		// Counters
-		for (unsigned int i = 0; i < m_Entries.size(); i++)
+		for (uint32_t i = 0; i < m_Entries.size(); i++)
 		{
 			m_Entries[i].vertexBase = numVertices;
 			numVertices += pScene->mMeshes[i]->mNumVertices;;
 		}
 
 		// Initialize the meshes in the scene one by one
-		for (unsigned int i = 0; i < m_Entries.size(); i++) 
+		for (uint32_t i = 0; i < m_Entries.size(); i++) 
 		{
 			const aiMesh* paiMesh = pScene->mMeshes[i];
 			InitMesh(i, paiMesh, pScene);
@@ -363,9 +363,9 @@ public:
 	{
 
 		std::vector<float> vertexBuffer;
-		for (int m = 0; m < m_Entries.size(); m++)
+		for (uint32_t m = 0; m < m_Entries.size(); m++)
 		{
-			for (int i = 0; i < m_Entries[m].Vertices.size(); i++)
+			for (uint32_t i = 0; i < m_Entries[m].Vertices.size(); i++)
 			{
 				// Push vertex data depending on layout
 				for (auto& layoutDetail : layout)
