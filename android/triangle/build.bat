@@ -12,10 +12,6 @@ if %ERRORLEVEL% EQU 0 (
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y
 
 	call ant debug -Dout.final.file=vulkanTriangle.apk
-
-	if "%1" == "-deploy" (
-		adb install -r vulkanTriangle.apk
-	)
 ) ELSE (
 	echo error : ndk-build failed with errors!
 	cd..

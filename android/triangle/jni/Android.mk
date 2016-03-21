@@ -2,13 +2,11 @@ LOCAL_PATH := $(call my-dir)/..
 
 # assimp
 
-include $(CLEAR_VARS)
+#include $(CLEAR_VARS)
 
-LOCAL_MODULE := assimp
-
-LOCAL_SRC_FILES = $(LOCAL_PATH)/../../libs/assimp/$(TARGET_ARCH_ABI)/libassimp.so
-LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../external/assimp/include
-include $(PREBUILT_SHARED_LIBRARY)
+#LOCAL_MODULE := assimp
+#LOCAL_SRC_FILES := $(LOCAL_PATH)/../../libs/assimp/$(TARGET_ARCH_ABI)/libassimp.a
+#include $(PREBUILT_STATIC_LIBRARY)
 
 # vulkan example
 
@@ -18,7 +16,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := vulkanTriangle
 
-PROJECT_FILES := $(wildcard $(LOCAL_PATH)/../triangle.cpp)
+PROJECT_FILES := $(wildcard $(LOCAL_PATH)/../../triangle/*.cpp)
 PROJECT_FILES += $(wildcard $(LOCAL_PATH)/../../base/*.cpp)
 
 LOCAL_CPPFLAGS := -std=c++11
@@ -36,13 +34,13 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../base/
 LOCAL_SRC_FILES := $(PROJECT_FILES)
 
 LOCAL_LDLIBS := -landroid -llog
+#LOCAL_SHARED_LIBRARIES += assimp
 
 LOCAL_DISABLE_FORMAT_STRING_CHECKS := true
 
-#LOCAL_SHARED_LIBRARIES += assimp
-
 LOCAL_STATIC_LIBRARIES += android_native_app_glue
 LOCAL_STATIC_LIBRARIES += cpufeatures
+LOCAL_STATIC_LIBRARIES += libassimp
 
 include $(BUILD_SHARED_LIBRARY)
 
