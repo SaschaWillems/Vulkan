@@ -8,10 +8,9 @@
 
 #include "vulkanexamplebase.h"
 
-VkResult 
-VulkanExampleBase::createInstance(bool aEnableValidation)
+VkResult VulkanExampleBase::createInstance(bool enableValidation)
 {
-	this->enableValidation = aEnableValidation;
+	this->enableValidation = enableValidation;
 
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -36,14 +35,16 @@ VulkanExampleBase::createInstance(bool aEnableValidation)
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instanceCreateInfo.pNext = NULL;
 	instanceCreateInfo.pApplicationInfo = &appInfo;
-	if (enabledExtensions.size() > 0) {
-		if (aEnableValidation) {
+	if (enabledExtensions.size() > 0)
+	{
+		if (enableValidation)
+		{
 			enabledExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 		}
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
 	}
-	if (aEnableValidation)
+	if (enableValidation)
 	{
 		instanceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount;
 		instanceCreateInfo.ppEnabledLayerNames = vkDebug::validationLayerNames;
@@ -51,8 +52,7 @@ VulkanExampleBase::createInstance(bool aEnableValidation)
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
 
-VkResult 
-VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo aRequestedQueues, bool aEnableValidation)
+VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation)
 {
 	std::vector<const char*> enabledExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
@@ -60,15 +60,15 @@ VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo aRequestedQueues, bool a
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.pNext = NULL;
 	deviceCreateInfo.queueCreateInfoCount = 1;
-	deviceCreateInfo.pQueueCreateInfos = &aRequestedQueues;
+	deviceCreateInfo.pQueueCreateInfos = &requestedQueues;
 	deviceCreateInfo.pEnabledFeatures = NULL;
 
-	if (enabledExtensions.size() > 0) {
+	if (enabledExtensions.size() > 0)
+	{
 		deviceCreateInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
 		deviceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
 	}
-
-	if (aEnableValidation)
+	if (enableValidation)
 	{
 		deviceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount;
 		deviceCreateInfo.ppEnabledLayerNames = vkDebug::validationLayerNames;
@@ -88,16 +88,17 @@ std::string VulkanExampleBase::getWindowTitle()
 
 bool VulkanExampleBase::checkCommandBuffers()
 {
-	for (auto& cmdBuffer : drawCmdBuffers) {
-		if (cmdBuffer == VK_NULL_HANDLE) {
+	for (auto& cmdBuffer : drawCmdBuffers)
+	{
+		if (cmdBuffer == VK_NULL_HANDLE)
+		{
 			return false;
 		}
 	}
 	return true;
 }
 
-void 
-VulkanExampleBase::createCommandBuffers()
+void VulkanExampleBase::createCommandBuffers()
 {
 	// Create one command buffer per frame buffer
 	// in the swap chain
@@ -127,16 +128,14 @@ VulkanExampleBase::createCommandBuffers()
 	assert(!vkRes);
 }
 
-void 
-VulkanExampleBase::destroyCommandBuffers()
+void VulkanExampleBase::destroyCommandBuffers()
 {
 	vkFreeCommandBuffers(device, cmdPool, (uint32_t)drawCmdBuffers.size(), drawCmdBuffers.data());
 	vkFreeCommandBuffers(device, cmdPool, 1, &prePresentCmdBuffer);
 	vkFreeCommandBuffers(device, cmdPool, 1, &postPresentCmdBuffer);
 }
 
-void 
-VulkanExampleBase::createSetupCommandBuffer()
+void VulkanExampleBase::createSetupCommandBuffer()
 {
 	if (setupCmdBuffer != VK_NULL_HANDLE)
 	{
@@ -160,8 +159,7 @@ VulkanExampleBase::createSetupCommandBuffer()
 	assert(!vkRes);
 }
 
-void 
-VulkanExampleBase::flushSetupCommandBuffer()
+void VulkanExampleBase::flushSetupCommandBuffer()
 {
 	VkResult err;
 
@@ -186,8 +184,7 @@ VulkanExampleBase::flushSetupCommandBuffer()
 	setupCmdBuffer = VK_NULL_HANDLE; 
 }
 
-void 
-VulkanExampleBase::createPipelineCache()
+void VulkanExampleBase::createPipelineCache()
 {
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 	pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
@@ -195,10 +192,10 @@ VulkanExampleBase::createPipelineCache()
 	assert(!err);
 }
 
-void 
-VulkanExampleBase::prepare()
+void VulkanExampleBase::prepare()
 {
-	if (enableValidation) {
+	if (enableValidation)
+	{
 		vkDebug::setupDebugging(instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, NULL);
 	}
 	createCommandPool();
@@ -216,8 +213,7 @@ VulkanExampleBase::prepare()
 	textureLoader = new vkTools::VulkanTextureLoader(physicalDevice, device, queue, cmdPool);
 }
 
-VkPipelineShaderStageCreateInfo 
-VulkanExampleBase::loadShader(const char * fileName, VkShaderStageFlagBits stage)
+VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(const char * fileName, VkShaderStageFlagBits stage)
 {
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -264,8 +260,7 @@ VkBool32 VulkanExampleBase::createBuffer(
 	return true;
 }
 
-VkBool32 
-VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
+VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
 {
 	VkBool32 res = createBuffer(usage, size, data, buffer, memory);
 	if (res)
@@ -303,12 +298,12 @@ void VulkanExampleBase::loadMesh(
 }
 #endif
 
-void 
-VulkanExampleBase::renderLoop()
+void VulkanExampleBase::renderLoop()
 {
 #if defined(_WIN32)
 	MSG msg;
-	while (TRUE) {
+	while (TRUE)
+	{
 		auto tStart = std::chrono::high_resolution_clock::now();
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
@@ -328,9 +323,11 @@ VulkanExampleBase::renderLoop()
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = (float)tDiff / 1000.0f;
 		// Convert to clamped timer value
-		if (!paused) {
+		if (!paused)
+		{
 			timer += timerSpeed * frameTimer;
-			if (timer > 1.0) {
+			if (timer > 1.0)
+			{
 				timer -= 1.0f;
 			}
 		}
@@ -403,7 +400,8 @@ VulkanExampleBase::renderLoop()
 	}
 #elif defined(__linux__)
 	xcb_flush(connection);
-	while (!quit) {
+	while (!quit)
+	{
 		auto tStart = std::chrono::high_resolution_clock::now();
 		xcb_generic_event_t *event;
 		event = xcb_poll_for_event(connection);
@@ -440,88 +438,79 @@ VulkanExampleBase::renderLoop()
 #endif
 }
 
-void VulkanExampleBase::submitPrePresentBarrier(VkImage image) 
-{ 
-	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo(); 
+void VulkanExampleBase::submitPrePresentBarrier(VkImage image)
+{
+	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
+	VkResult vkRes = vkBeginCommandBuffer(prePresentCmdBuffer, &cmdBufInfo);
+	assert(!vkRes);
 
-	VkResult vkRes = vkBeginCommandBuffer(prePresentCmdBuffer, &cmdBufInfo); 
-	assert(!vkRes); 
+	VkImageMemoryBarrier prePresentBarrier = vkTools::initializers::imageMemoryBarrier();
+	prePresentBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	prePresentBarrier.dstAccessMask = 0;
+	prePresentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	prePresentBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	prePresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	prePresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	prePresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	prePresentBarrier.image = image;
 
+	vkCmdPipelineBarrier(
+		prePresentCmdBuffer,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_FLAGS_NONE,
+		0, nullptr, // No memory barriers,
+		0, nullptr, // No buffer barriers,
+		1, &prePresentBarrier);
 
-	VkImageMemoryBarrier prePresentBarrier = vkTools::initializers::imageMemoryBarrier(); 
-	prePresentBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; 
-	prePresentBarrier.dstAccessMask = 0; 
-	prePresentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; 
-	prePresentBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; 
-	prePresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; 
-	prePresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; 
-	prePresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }; 
-	prePresentBarrier.image = image; 
+	vkRes = vkEndCommandBuffer(prePresentCmdBuffer);
+	assert(!vkRes);
 
+	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &prePresentCmdBuffer;
 
-	vkCmdPipelineBarrier( 
-		prePresentCmdBuffer, 
-		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
-		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
-		VK_FLAGS_NONE, 
-		0, nullptr, // No memory barriers, 
-		0, nullptr, // No buffer barriers, 
-		1, &prePresentBarrier); 
+	vkRes = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+	assert(!vkRes);
+}
 
+void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
+{
+	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
-	vkRes = vkEndCommandBuffer(prePresentCmdBuffer); 
-	assert(!vkRes); 
+	VkResult vkRes = vkBeginCommandBuffer(postPresentCmdBuffer, &cmdBufInfo);
+	assert(!vkRes);
 
+	VkImageMemoryBarrier postPresentBarrier = vkTools::initializers::imageMemoryBarrier();
+	postPresentBarrier.srcAccessMask = 0;
+	postPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	postPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	postPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	postPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	postPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	postPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	postPresentBarrier.image = image;
 
-	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo(); 
-	submitInfo.commandBufferCount = 1; 
-	submitInfo.pCommandBuffers = &prePresentCmdBuffer; 
+	vkCmdPipelineBarrier(
+		postPresentCmdBuffer,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		0,
+		0, nullptr, // No memory barriers,
+		0, nullptr, // No buffer barriers,
+		1, &postPresentBarrier);
 
+	vkRes = vkEndCommandBuffer(postPresentCmdBuffer);
+	assert(!vkRes);
 
-	vkRes = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE); 
-	assert(!vkRes); 
-} 
+	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &postPresentCmdBuffer;
 
-void VulkanExampleBase::submitPostPresentBarrier(VkImage image) 
-{ 
-	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo(); 
-
-
-	VkResult vkRes = vkBeginCommandBuffer(postPresentCmdBuffer, &cmdBufInfo); 
-	assert(!vkRes); 
-
-	VkImageMemoryBarrier postPresentBarrier = vkTools::initializers::imageMemoryBarrier(); 
-	postPresentBarrier.srcAccessMask = 0; 
-	postPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; 
-	postPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; 
-	postPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; 
-	postPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; 
-	postPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; 
-	postPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }; 
-	postPresentBarrier.image = image; 
-
-	vkCmdPipelineBarrier( 
-		postPresentCmdBuffer, 
-		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
-		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
-		0, 
-		0, nullptr, // No memory barriers, 
-		0, nullptr, // No buffer barriers, 
-		1, &postPresentBarrier); 
-
-	vkRes = vkEndCommandBuffer(postPresentCmdBuffer); 
-	assert(!vkRes); 
-
-
-	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo(); 
-	submitInfo.commandBufferCount = 1; 
-	submitInfo.pCommandBuffers = &postPresentCmdBuffer; 
-
-
-	vkRes = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE); 
-	assert(!vkRes); 
-} 
+	vkRes = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+	assert(!vkRes);
+}
 
 VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
 	std::vector<VkCommandBuffer> commandBuffers,
@@ -538,31 +527,7 @@ VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
 	return submitInfo;
 }
 
-VulkanExampleBase::VulkanExampleBase(bool _enableValidation)
-	:	enableValidation		(enableValidation)
-		,frameTimer				(1.0f)
-		,setupCmdBuffer			(VK_NULL_HANDLE)
-		,postPresentCmdBuffer	(VK_NULL_HANDLE)
-		,colorformat			(VK_FORMAT_B8G8R8A8_UNORM)
-		,currentBuffer			(0)
-		,textureLoader			(nullptr)
-		,defaultClearColor		({ { 0.025f, 0.025f, 0.025f, 1.0f } })
-		,zoom					(0)
-		// Defines a frame rate independent timer value clamped from -1.0...1.0
-		// For use in animations, rotations, etc.
-		,timer					(0.0f)
-		// Multiplier for speeding up (or slowing down) the global timer
-		,timerSpeed				(0.25f)
-		,paused					(false)
-		// Use to adjust mouse rotation speed
-		,rotationSpeed			(1.0f)
-		// Use to adjust mouse zoom speed
-		,zoomSpeed				(1.0f)
-		,rotation				(glm::vec3())
-		,title					("Vulkan Example")
-		,name					("vulkanExample")
-		,fpsTimer				(0.0f)
-		,frameCounter			(0)
+VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
 	// Check for validation command line flag
 #if defined(_WIN32)
@@ -604,26 +569,27 @@ VulkanExampleBase::~VulkanExampleBase()
 	if (setupCmdBuffer != VK_NULL_HANDLE)
 	{
 		vkFreeCommandBuffers(device, cmdPool, 1, &setupCmdBuffer);
-	}
 
+	}
 	destroyCommandBuffers();
 	vkDestroyRenderPass(device, renderPass, nullptr);
-
-	for (VkFramebuffer& frameBuffer : frameBuffers) {
-		vkDestroyFramebuffer(device, frameBuffer, nullptr);
+	for (uint32_t i = 0; i < frameBuffers.size(); i++)
+	{
+		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
 	}
 
-	for (auto& shaderModule : shaderModules) {
+	for (auto& shaderModule : shaderModules)
+	{
 		vkDestroyShaderModule(device, shaderModule, nullptr);
 	}
-
 	vkDestroyImageView(device, depthStencil.view, nullptr);
 	vkDestroyImage(device, depthStencil.image, nullptr);
 	vkFreeMemory(device, depthStencil.mem, nullptr);
 
 	vkDestroyPipelineCache(device, pipelineCache, nullptr);
 
-	if (textureLoader) {
+	if (textureLoader)
+	{
 		delete textureLoader;
 	}
 
@@ -634,7 +600,8 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyDevice(device, nullptr);
 
-	if (enableValidation) {
+	if (enableValidation)
+	{
 		vkDebug::freeDebugCallback(instance);
 	}
 
@@ -650,14 +617,14 @@ VulkanExampleBase::~VulkanExampleBase()
 #endif
 }
 
-void 
-VulkanExampleBase::initVulkan(bool aEnableValidation)
+void VulkanExampleBase::initVulkan(bool enableValidation)
 {
 	VkResult err;
 
 	// Vulkan instance
-	err = createInstance(aEnableValidation);
-	if (err) {
+	err = createInstance(enableValidation);
+	if (err)
+	{
 		vkTools::exitFatal("Could not create Vulkan instance : \n" + vkTools::errorString(err), "Fatal error");
 	}
 
@@ -674,7 +641,8 @@ VulkanExampleBase::initVulkan(bool aEnableValidation)
 	// Enumerate devices
 	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
 	err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
-	if (err) {
+	if (err)
+	{
 		vkTools::exitFatal("Could not enumerate phyiscal devices : \n" + vkTools::errorString(err), "Fatal error");
 	}
 
@@ -694,7 +662,8 @@ VulkanExampleBase::initVulkan(bool aEnableValidation)
 	queueProps.resize(queueCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queueProps.data());
 
-	for (graphicsQueueIndex = 0; graphicsQueueIndex < queueCount; graphicsQueueIndex++) {
+	for (graphicsQueueIndex = 0; graphicsQueueIndex < queueCount; graphicsQueueIndex++)
+	{
 		if (queueProps[graphicsQueueIndex].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 			break;
 	}
@@ -708,7 +677,7 @@ VulkanExampleBase::initVulkan(bool aEnableValidation)
 	queueCreateInfo.queueCount = 1;
 	queueCreateInfo.pQueuePriorities = queuePriorities.data();
 
-	err = createDevice(queueCreateInfo, aEnableValidation);
+	err = createDevice(queueCreateInfo, enableValidation);
 	assert(!err);
 
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
@@ -753,41 +722,38 @@ VulkanExampleBase::initVulkan(bool aEnableValidation)
 
 #if defined(_WIN32)
 // Win32 : Sets up a console window and redirects standard output to it
-void 
-VulkanExampleBase::setupConsole(std::string aTitle)
+void VulkanExampleBase::setupConsole(std::string title)
 {
 	AllocConsole();
 	AttachConsole(GetCurrentProcessId());
-#if defined(WIN32) || defined(_WIN32)
-#pragma warning(disable: 4996)
+#pragma warning(disable : 4996)
 	freopen("CON", "w", stdout);
-#pragma warning(default: 4996)
-#else
-	freopen("CON", "w", stdout);
-#endif
-	SetConsoleTitleA(aTitle.c_str());
-	if (enableValidation) {
+#pragma warning(default : 4996)
+	SetConsoleTitleA(title.c_str());
+	if (enableValidation)
+	{
 		std::cout << "Validation enabled:\n";
 	}
 }
 
-HWND 
-VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
+HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 {
 	this->windowInstance = hinstance;
 
 	bool fullscreen = false;
 
 	// Check command line arguments
-	for (int32_t i = 0; i < __argc; i++) {
-		if (__argv[i] == std::string("-fullscreen")) {
+	for (int32_t i = 0; i < __argc; i++)
+	{
+		if (__argv[i] == std::string("-fullscreen"))
+		{
 			fullscreen = true;
 		}
 	}
 
 	WNDCLASSEXA wndClass;
 
-	wndClass.cbSize = sizeof(WNDCLASSEX);
+	wndClass.cbSize = sizeof(WNDCLASSEXA);
 	wndClass.style = CS_HREDRAW | CS_VREDRAW;
 	wndClass.lpfnWndProc = wndproc;
 	wndClass.cbClsExtra = 0;
@@ -800,7 +766,8 @@ VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	wndClass.lpszClassName = name.c_str();
 	wndClass.hIconSm = LoadIcon(NULL, IDI_WINLOGO);
 
-	if (!RegisterClassExA(&wndClass)) {
+	if (!RegisterClassExA(&wndClass))
+	{
 		std::cout << "Could not register window class!\n";
 		fflush(stdout);
 		exit(1);
@@ -809,7 +776,8 @@ VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	int screenWidth = GetSystemMetrics(SM_CXSCREEN);
 	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-	if (fullscreen) {
+	if (fullscreen)
+	{
 		DEVMODE dmScreenSettings;
 		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
@@ -818,35 +786,47 @@ VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		dmScreenSettings.dmBitsPerPel = 32;
 		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
-		if ((ScreenProperties.Width != screenWidth) && (ScreenProperties.Height != screenHeight)) {
-			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
-				if (MessageBoxA(NULL, "Fullscreen Mode not supported!\n Switch to window mode?", "Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES) {
+		if ((ScreenProperties.Width != screenWidth) && (ScreenProperties.Height != screenHeight))
+		{
+			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+			{
+				if (MessageBoxA(NULL, "Fullscreen Mode not supported!\n Switch to window mode?", "Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
+				{
 					fullscreen = FALSE;
-				} else {
+				}
+				else
+				{
 					return FALSE;
 				}
 			}
 		}
+
 	}
 
 	DWORD dwExStyle;
 	DWORD dwStyle;
 
-	if (fullscreen) {
+	if (fullscreen)
+	{
 		dwExStyle = WS_EX_APPWINDOW;
 		dwStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
-	} else {
+	}
+	else
+	{
 		dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
 		dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 	}
 
 	RECT windowRect;
-	if (fullscreen) {
+	if (fullscreen)
+	{
 		windowRect.left = (long)0;
 		windowRect.right = (long)screenWidth;
 		windowRect.top = (long)0;
 		windowRect.bottom = (long)screenHeight;
-	} else {
+	}
+	else
+	{
 		windowRect.left = (long)screenWidth / 2 - ScreenProperties.Width / 2;
 		windowRect.right = (long)ScreenProperties.Width;
 		windowRect.top = (long)screenHeight / 2 - ScreenProperties.Height / 2;
@@ -884,10 +864,10 @@ VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	return window;
 }
 
-void 
-VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	switch (uMsg) {
+	switch (uMsg)
+	{
 	case WM_CLOSE:
 		prepared = false;
 		DestroyWindow(hWnd);
@@ -897,7 +877,8 @@ VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		ValidateRect(window, NULL);
 		break;
 	case WM_KEYDOWN:
-		switch (wParam) {
+		switch (wParam)
+		{
 		case 0x50:
 			paused = !paused;
 			break;
@@ -920,14 +901,16 @@ VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		break;
 	}
 	case WM_MOUSEMOVE:
-		if (wParam & MK_RBUTTON) {
+		if (wParam & MK_RBUTTON)
+		{
 			int32_t posx = LOWORD(lParam);
 			int32_t posy = HIWORD(lParam);
 			zoom += (mousePos.y - (float)posy) * .005f * zoomSpeed;
 			mousePos = glm::vec2((float)posx, (float)posy);
 			viewChanged();
 		}
-		if (wParam & MK_LBUTTON) {
+		if (wParam & MK_LBUTTON)
+		{
 			int32_t posx = LOWORD(lParam);
 			int32_t posy = HIWORD(lParam);
 			rotation.x += (mousePos.y - (float)posy) * 1.25f * rotationSpeed;
@@ -995,7 +978,6 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 	}
 }
 #elif defined(__linux__)
-
 // Set up a window using XCB and request event types
 xcb_window_t VulkanExampleBase::setupWindow()
 {
@@ -1067,36 +1049,41 @@ void VulkanExampleBase::initxcbConnection()
 
 void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 {
-	switch (event->response_type & 0x7f) {
+	switch (event->response_type & 0x7f)
+	{
 	case XCB_CLIENT_MESSAGE:
 		if ((*(xcb_client_message_event_t*)event).data.data32[0] ==
 			(*atom_wm_delete_window).atom) {
 			quit = true;
 		}
 		break;
-	case XCB_MOTION_NOTIFY: {
+	case XCB_MOTION_NOTIFY:
+	{
 		xcb_motion_notify_event_t *motion = (xcb_motion_notify_event_t *)event;
-		if (mouseButtons.left) {
+		if (mouseButtons.left)
+		{
 			rotation.x += (mousePos.y - (float)motion->event_y) * 1.25f;
 			rotation.y -= (mousePos.x - (float)motion->event_x) * 1.25f;
 			viewChanged();
 		}
-		if (mouseButtons.right) {
+		if (mouseButtons.right)
+		{
 			zoom += (mousePos.y - (float)motion->event_y) * .005f;
 			viewChanged();
 		}
 		mousePos = glm::vec2((float)motion->event_x, (float)motion->event_y);
 	}
 	break;
-	case XCB_BUTTON_PRESS: {
-		xcb_button_press_event_t *press = (xcb_button_press_event_t *) event;
+	case XCB_BUTTON_PRESS:
+	{
+		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
 		mouseButtons.left = (press->detail & XCB_BUTTON_INDEX_1);
 		mouseButtons.right = (press->detail & XCB_BUTTON_INDEX_3);
 	}
 	break;
-	case XCB_BUTTON_RELEASE: 
+	case XCB_BUTTON_RELEASE:
 	{
-		xcb_button_press_event_t *press = (xcb_button_press_event_t *) event;
+		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
 		if (press->detail & XCB_BUTTON_INDEX_1)
 			mouseButtons.left = false;
 		if (press->detail & XCB_BUTTON_INDEX_3)
@@ -1120,8 +1107,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-void 
-VulkanExampleBase::viewChanged()
+void VulkanExampleBase::viewChanged()
 {
 	// Can be overrdiden in derived class
 }
@@ -1131,12 +1117,14 @@ void VulkanExampleBase::keyPressed(uint32_t keyCode)
 	// Can be overriden in derived class
 }
 
-VkBool32 
-VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t * typeIndex)
+VkBool32 VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t * typeIndex)
 {
-	for (uint32_t i = 0; i < 32; i++) {
-		if ((typeBits & 1) == 1) {
-			if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+	for (uint32_t i = 0; i < 32; i++)
+	{
+		if ((typeBits & 1) == 1)
+		{
+			if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			{
 				*typeIndex = i;
 				return true;
 			}
@@ -1146,8 +1134,7 @@ VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t
 	return false;
 }
 
-void 
-VulkanExampleBase::createCommandPool()
+void VulkanExampleBase::createCommandPool()
 {
 	VkCommandPoolCreateInfo cmdPoolInfo = {};
 	cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1157,8 +1144,7 @@ VulkanExampleBase::createCommandPool()
 	assert(!vkRes);
 }
 
-void 
-VulkanExampleBase::setupDepthStencil()
+void VulkanExampleBase::setupDepthStencil()
 {
 	VkImageCreateInfo image = {};
 	image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1217,8 +1203,7 @@ VulkanExampleBase::setupDepthStencil()
 	assert(!err);
 }
 
-void 
-VulkanExampleBase::setupFrameBuffer()
+void VulkanExampleBase::setupFrameBuffer()
 {
 	VkImageView attachments[2];
 
@@ -1231,21 +1216,21 @@ VulkanExampleBase::setupFrameBuffer()
 	frameBufferCreateInfo.renderPass = renderPass;
 	frameBufferCreateInfo.attachmentCount = 2;
 	frameBufferCreateInfo.pAttachments = attachments;
-	frameBufferCreateInfo.width		= ScreenProperties.Width;
-	frameBufferCreateInfo.height	= ScreenProperties.Height;
+	frameBufferCreateInfo.width = ScreenProperties.Width;
+	frameBufferCreateInfo.height = ScreenProperties.Height;
 	frameBufferCreateInfo.layers = 1;
 
 	// Create frame buffers for every swap chain image
 	frameBuffers.resize(swapChain.imageCount);
-	for (uint32_t i = 0; i < frameBuffers.size(); i++) {
+	for (uint32_t i = 0; i < frameBuffers.size(); i++)
+	{
 		attachments[0] = swapChain.buffers[i].view;
 		VkResult err = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]);
 		assert(!err);
 	}
 }
 
-void 
-VulkanExampleBase::setupRenderPass()
+void VulkanExampleBase::setupRenderPass()
 {
 	VkAttachmentDescription attachments[2];
 	attachments[0].format = colorformat;
@@ -1302,8 +1287,7 @@ VulkanExampleBase::setupRenderPass()
 	assert(!err);
 }
 
-void 
-VulkanExampleBase::initSwapchain()
+void VulkanExampleBase::initSwapchain()
 {
 #if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
@@ -1314,8 +1298,7 @@ VulkanExampleBase::initSwapchain()
 #endif
 }
 
-void 
-VulkanExampleBase::setupSwapChain()
+void VulkanExampleBase::setupSwapChain()
 {
 	swapChain.create(setupCmdBuffer, &ScreenProperties.Width, &ScreenProperties.Height);
 }
