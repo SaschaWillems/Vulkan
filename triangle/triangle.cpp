@@ -25,10 +25,6 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 
-#ifdef __ANDROID__
-#include "vulkanandroid.h"
-#endif
-
 #define VERTEX_BUFFER_BIND_ID 0
 // Set to "true" to enable Vulkan's validation layers
 // See vulkandebug.cpp for details
@@ -871,7 +867,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -880,12 +876,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-#endif 
-
-#ifdef __linux__
-#ifdef __ANDROID__
-	// todo : android event handling
-#else
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -893,7 +884,6 @@ static void handleEvent(const xcb_generic_event_t *event)
 		vulkanExample->handleEvent(event);
 	}
 }
-#endif
 #endif
 
 // Main entry point
