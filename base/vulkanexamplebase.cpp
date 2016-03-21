@@ -23,10 +23,12 @@ VulkanExampleBase::createInstance(bool aEnableValidation)
 
 	std::vector<const char*> enabledExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
-#ifdef _WIN32
+	// Enable surface extensions depending on os
+#if defined(_WIN32)
 	enabledExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#else
-	// todo : linux/android
+#elif defined(__ANDROID__)
+	enabledExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#elif defined(__linux__)
 	enabledExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #endif
 
@@ -199,7 +201,6 @@ VulkanExampleBase::prepare()
 	if (enableValidation) {
 		vkDebug::setupDebugging(instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, NULL);
 	}
-
 	createCommandPool();
 	createSetupCommandBuffer();
 	setupSwapChain();
@@ -221,7 +222,11 @@ VulkanExampleBase::loadShader(const char * fileName, VkShaderStageFlagBits stage
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
+#if defined(__ANDROID__)
+	shaderStage.module = vkTools::loadShader(androidApp->activity->assetManager, fileName, device, stage);
+#else
 	shaderStage.module = vkTools::loadShader(fileName, device, stage);
+#endif
 	shaderStage.pName = "main"; // todo : make param
 	assert(shaderStage.module != NULL);
 	shaderModules.push_back(shaderStage.module);
@@ -276,6 +281,7 @@ VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, voi
 	}
 }
 
+#ifndef __ANDROID__
 void VulkanExampleBase::loadMesh(
 	const char * filename,
 	vkMeshLoader::MeshBuffer * meshBuffer,
@@ -295,11 +301,12 @@ void VulkanExampleBase::loadMesh(
 
 	delete(mesh);
 }
+#endif
 
 void 
 VulkanExampleBase::renderLoop()
 {
-#ifdef _WIN32
+#if defined(_WIN32)
 	MSG msg;
 	while (TRUE) {
 		auto tStart = std::chrono::high_resolution_clock::now();
@@ -336,7 +343,65 @@ VulkanExampleBase::renderLoop()
 			frameCounter = 0;
 		}
 	}
-#else
+#elif defined(__ANDROID__)
+	// todo : Application moved to background
+	while (1)
+	{
+		// Read all pending events.
+		int ident;
+		int events;
+		struct android_poll_source* source;
+
+		while ((ident = ALooper_pollAll(animating ? 0 : -1, NULL, &events, (void**)&source)) >= 0)
+		{
+			if (source != NULL)
+			{
+				source->process(androidApp, source);
+			}
+
+			if (androidApp->destroyRequested != 0)
+			{
+				// todo : free resources
+				//delete(vulkanExample);
+				return;
+			}
+		}
+
+		// Render frame
+		if (prepared)
+		{
+			render();
+			// Check gamepad state
+			const float deadZone = 0.10f;
+			// todo : check if gamepad is present
+			// todo : time based and relative axis positions
+			bool updateView = false;
+			// Rotate
+			if (abs(gamePadState.axes.x) > deadZone)
+			{
+				rotation.y += gamePadState.axes.x * 0.25f * rotationSpeed;
+				updateView = true;
+			}
+			if (abs(gamePadState.axes.y) > deadZone)
+			{
+				rotation.x -= gamePadState.axes.y * 0.25f * rotationSpeed;
+				updateView = true;
+			}
+			// Zoom
+			if (abs(gamePadState.axes.rz) > deadZone)
+			{
+				zoom -= gamePadState.axes.rz * 0.005f * zoomSpeed;
+				updateView = true;
+			}
+			if (updateView)
+			{
+				viewChanged();
+			}
+
+
+		}
+	}
+#elif defined(__linux__)
 	xcb_flush(connection);
 	while (!quit) {
 		auto tStart = std::chrono::high_resolution_clock::now();
@@ -500,21 +565,30 @@ VulkanExampleBase::VulkanExampleBase(bool _enableValidation)
 		,frameCounter			(0)
 {
 	// Check for validation command line flag
-#ifdef _WIN32
-	for (int32_t i = 0; i < __argc; i++) {
-		if (__argv[i] == std::string("-validation")) {
-			_enableValidation = true;
+#if defined(_WIN32)
+	for (int32_t i = 0; i < __argc; i++)
+	{
+		if (__argv[i] == std::string("-validation"))
+		{
+			enableValidation = true;
 		}
 	}
-#endif
-
-#ifndef _WIN32
+#elif defined(__ANDROID__)
+	// Vulkan library is loaded dynamically on Android
+	bool libLoaded = loadVulkanLibrary();
+	assert(libLoaded);
+#elif defined(__linux__)
 	initxcbConnection();
 #endif
-	initVulkan(_enableValidation);
+
+#if !defined(__ANDROID__)
+	// Android Vulkan initialization is handled in APP_CMD_INIT_WINDOW event
+	initVulkan(enableValidation);
+#endif
+
+#if defined(_WIN32)
 	// Enable console if validation is active
 	// Debug message callback will output to it
-#ifdef _WIN32
 	if (enableValidation)
 	{
 		setupConsole("VulkanExample");
@@ -566,9 +640,13 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyInstance(instance, nullptr);
 
-#ifndef _WIN32
+#if defined(__linux)
+#if defined(__ANDROID__)
+	// todo : android cleanup (if required)
+#else
 	xcb_destroy_window(connection, window);
 	xcb_disconnect(connection);
+#endif
 #endif
 }
 
@@ -582,6 +660,10 @@ VulkanExampleBase::initVulkan(bool aEnableValidation)
 	if (err) {
 		vkTools::exitFatal("Could not create Vulkan instance : \n" + vkTools::errorString(err), "Fatal error");
 	}
+
+#if defined(__ANDROID__)
+	loadVulkanFunctions(instance);
+#endif
 
 	// Physical device
 	uint32_t gpuCount = 0;
@@ -631,6 +713,10 @@ VulkanExampleBase::initVulkan(bool aEnableValidation)
 
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 
+#if defined(__ANDROID__)
+	LOGD(deviceProperties.deviceName);
+#endif
+
 	// Gather physical device memory properties
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
@@ -665,7 +751,7 @@ VulkanExampleBase::initVulkan(bool aEnableValidation)
 	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32)
 // Win32 : Sets up a console window and redirects standard output to it
 void 
 VulkanExampleBase::setupConsole(std::string aTitle)
@@ -852,11 +938,66 @@ VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		break;
 	}
 }
+#elif defined(__ANDROID__)
+int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* event)
+{
+	VulkanExampleBase* vulkanExample = (VulkanExampleBase*)app->userData;
+	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
+	{
+		if (AInputEvent_getSource(event) == AINPUT_SOURCE_JOYSTICK)
+		{
+			vulkanExample->gamePadState.axes.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_X, 0);
+			vulkanExample->gamePadState.axes.y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Y, 0);
+			vulkanExample->gamePadState.axes.z = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Z, 0);
+			vulkanExample->gamePadState.axes.rz = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RZ, 0);
+		}
+		else
+		{
+			// todo : touch input
+		}
+		return 1;
+	}
+	return 0;
+}
 
-#else
+void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
+{
+	assert(app->userData != NULL);
+	VulkanExampleBase* vulkanExample = (VulkanExampleBase*)app->userData;
+	switch (cmd)
+	{
+	case APP_CMD_SAVE_STATE:
+		/*
+		vulkanExample->app->savedState = malloc(sizeof(struct saved_state));
+		*((struct saved_state*)vulkanExample->app->savedState) = vulkanExample->state;
+		vulkanExample->app->savedStateSize = sizeof(struct saved_state);
+		*/
+		break;
+	case APP_CMD_INIT_WINDOW:
+		LOGD("APP_CMD_INIT_WINDOW");
+		if (vulkanExample->androidApp->window != NULL)
+		{
+			LOGI("Initializing Vulkan...");
+			vulkanExample->initVulkan(false);
+			vulkanExample->initSwapchain();
+			vulkanExample->prepare();
+			assert(vulkanExample->prepared);
+			LOGI("Vulkan initialized");
+		}
+		else
+		{
+			LOGE("No window assigned!");
+		}
+		break;
+	case APP_CMD_LOST_FOCUS:
+		//vulkanExample->animating = 0;
+		break;
+	}
+}
+#elif defined(__linux__)
+
 // Set up a window using XCB and request event types
-xcb_window_t 
-VulkanExampleBase::setupWindow()
+xcb_window_t VulkanExampleBase::setupWindow()
 {
 	uint32_t value_mask, value_list[32];
 
@@ -904,8 +1045,7 @@ VulkanExampleBase::setupWindow()
 }
 
 // Initialize XCB connection
-void 
-VulkanExampleBase::initxcbConnection()
+void VulkanExampleBase::initxcbConnection()
 {
 	const xcb_setup_t *setup;
 	xcb_screen_iterator_t iter;
@@ -925,8 +1065,7 @@ VulkanExampleBase::initxcbConnection()
 	screen = iter.data;
 }
 
-void 
-VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
+void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 {
 	switch (event->response_type & 0x7f) {
 	case XCB_CLIENT_MESSAGE:
@@ -1166,9 +1305,11 @@ VulkanExampleBase::setupRenderPass()
 void 
 VulkanExampleBase::initSwapchain()
 {
-#ifdef _WIN32
+#if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
-#else
+#elif defined(__ANDROID__)	
+	swapChain.initSurface(androidApp->window);
+#elif defined(__linux__)
 	swapChain.initSurface(connection, window);
 #endif
 }
@@ -1178,3 +1319,4 @@ VulkanExampleBase::setupSwapChain()
 {
 	swapChain.create(setupCmdBuffer, &ScreenProperties.Width, &ScreenProperties.Height);
 }
+

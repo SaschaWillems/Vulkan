@@ -13,8 +13,12 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#else 
-// todo : split linux xcb/x11 and android
+#elif defined(__ANDROID__)
+#include <android/native_activity.h>
+#include <android/asset_manager.h>
+#include <android_native_app_glue.h>
+#include "vulkanandroid.h"
+#elif defined(__linux__)
 #include <xcb/xcb.h>
 #endif
 
@@ -34,7 +38,9 @@
 
 #include "vulkanswapchain.hpp"
 #include "vulkanTextureLoader.hpp"
+#ifndef __ANDROID__
 #include "vulkanMeshLoader.hpp"
+#endif
 
 #define deg_to_rad(deg) deg * float(M_PI / 180)
 
@@ -189,10 +195,24 @@ public:
 	VulkanDepthStencil depthStencil;
 
 	// OS specific 
-#ifdef _WIN32
+#if defined(_WIN32)
 	HWND window;
 	HINSTANCE windowInstance;
-#else
+#elif defined(__ANDROID__)
+	android_app* androidApp;
+	bool animating = true;
+	// Gamepad state (only one)
+	struct
+	{
+		struct
+		{
+			float x = 0.0f;
+			float y = 0.0f;
+			float z = 0.0f;
+			float rz = 0.0f;
+		} axes;
+	} gamePadState;
+#elif defined(__linux__)
 	struct {
 		bool left = false;
 		bool right = false;
@@ -202,7 +222,7 @@ public:
 	xcb_screen_t *screen;
 	xcb_window_t window;
 	xcb_intern_atom_reply_t *atom_wm_delete_window;
-#endif	
+#endif
 
 	VulkanExampleBase(bool enableValidation);
 	VulkanExampleBase() : VulkanExampleBase(false) {};
@@ -211,15 +231,19 @@ public:
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
 	void initVulkan(bool enableValidation);
 
-#ifdef _WIN32 
+#if defined(_WIN32)
 	void setupConsole(std::string title);
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
 	void handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-#else
+#elif defined(__ANDROID__)
+	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
+	static void handleAppCommand(android_app* app, int32_t cmd);
+#elif defined(__linux__)
 	xcb_window_t setupWindow();
 	void initxcbConnection();
 	void handleEvent(const xcb_generic_event_t *event);
 #endif
+
 	// Pure virtual render function (override in derived class)
 	virtual void render() = 0;
 	// Called when view change occurs
@@ -263,7 +287,7 @@ public:
 	void createPipelineCache();
 
 	// Prepare commonly used Vulkan functions
-	void prepare();
+	virtual void prepare();
 
 	// Load a SPIR-V shader
 	VkPipelineShaderStageCreateInfo loadShader(const char* fileName, VkShaderStageFlagBits stage);
@@ -286,12 +310,14 @@ public:
 		VkDescriptorBufferInfo *descriptor);
 
 	// Load a mesh (using ASSIMP) and create vulkan vertex and index buffers with given vertex layout
+	// todo : mesh loader not yet enabled for Android
+#ifndef __ANDROID__
 	void loadMesh(
 		const char *filename,
 		vkMeshLoader::MeshBuffer *meshBuffer,
 		std::vector<vkMeshLoader::VertexLayout> vertexLayout,
 		float scale);
-
+#endif
 	// Start the main render loop
 	void renderLoop();
 

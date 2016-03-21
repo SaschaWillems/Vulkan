@@ -20,11 +20,13 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#else
+#elif defined(__ANDROID__)
+#include "vulkanandroid.h"
+#include <android/asset_manager.h>
 #endif
 
 // Custom define for better code readability
@@ -69,8 +71,14 @@ namespace vkTools
 	std::string readTextFile(const char *fileName);
 	// Load a binary file into a buffer (e.g. SPIR-V)
 	char *readBinaryFile(const char *filename, size_t *psize);
+
 	// Load a SPIR-V shader
+#if defined(__ANDROID__)
+	VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
+#else
 	VkShaderModule loadShader(const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
+#endif
+
 	// Load a GLSL shader
 	// Note : Only for testing purposes, support for directly feeding GLSL shaders into Vulkan
 	// may be dropped at some point	
