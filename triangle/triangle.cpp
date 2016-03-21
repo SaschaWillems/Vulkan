@@ -752,20 +752,14 @@ public:
 
 		// Load shaders
 		// Shaders are loaded from the SPIR-V format, which can be generated from glsl
-		VkPipelineShaderStageCreateInfo shaderStages[2] = { {},{} };
-		std::string shaderPath;
-#if defined(__ANDROID__)
-		shaderStages[0] = loadShader("shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
-		shaderStages[0] = loadShader("./../data/shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Assign states
-		// Two shader stages
-		pipelineCreateInfo.stageCount = 2;
 		// Assign pipeline state create information
+		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.pStages = shaderStages.data();
 		pipelineCreateInfo.pVertexInputState = &vertices.vi;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
@@ -773,7 +767,6 @@ public:
 		pipelineCreateInfo.pMultisampleState = &multisampleState;
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.pStages = shaderStages;
 		pipelineCreateInfo.renderPass = renderPass;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 
