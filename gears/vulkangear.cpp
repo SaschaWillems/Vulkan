@@ -264,7 +264,6 @@ void VulkanGear::updateUniformBuffer(glm::mat4 perspective, glm::vec3 rotation, 
 	assert(!err);
 	memcpy(pData, &ubo, sizeof(ubo));
 	vkUnmapMemory(device, uniformData.memory);
-
 }
 
 void VulkanGear::setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout descriptorSetLayout)
