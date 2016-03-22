@@ -29,6 +29,9 @@ message(STATUS ${VULKAN_LIB})
 # Set preprocessor defines
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX -DVK_PROTOTYPES -D_USE_MATH_DEFINES")
 
+# Debug flags
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -Wundef")
+
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 add_definitions(-std=c++11)
 add_definitions(-std=c++0x)
