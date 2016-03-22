@@ -38,9 +38,7 @@
 
 #include "vulkanswapchain.hpp"
 #include "vulkanTextureLoader.hpp"
-#ifndef __ANDROID__
 #include "vulkanMeshLoader.hpp"
-#endif
 
 class VulkanExampleBase
 {
@@ -267,14 +265,12 @@ public:
 		VkDescriptorBufferInfo *descriptor);
 
 	// Load a mesh (using ASSIMP) and create vulkan vertex and index buffers with given vertex layout
-	// todo : mesh loader not yet enabled for Android
-#ifndef __ANDROID__
 	void loadMesh(
 		const char *filename,
 		vkMeshLoader::MeshBuffer *meshBuffer,
 		std::vector<vkMeshLoader::VertexLayout> vertexLayout,
 		float scale);
-#endif
+
 	// Start the main render loop
 	void renderLoop();
 

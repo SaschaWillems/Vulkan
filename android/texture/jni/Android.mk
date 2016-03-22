@@ -2,11 +2,11 @@ LOCAL_PATH := $(call my-dir)/../../texture
 
 # assimp
 
-#include $(CLEAR_VARS)
+include $(CLEAR_VARS)
 
-#LOCAL_MODULE := assimp
-#LOCAL_SRC_FILES := $(LOCAL_PATH)/../../libs/assimp/$(TARGET_ARCH_ABI)/libassimp.a
-#include $(PREBUILT_STATIC_LIBRARY)
+LOCAL_MODULE := assimp
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../libs/assimp/$(TARGET_ARCH_ABI)/libassimp.a
+include $(PREBUILT_STATIC_LIBRARY)
 
 # vulkan example
 
@@ -33,14 +33,13 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../base/
 
 LOCAL_SRC_FILES := $(PROJECT_FILES)
 
-LOCAL_LDLIBS := -landroid -llog
-#LOCAL_SHARED_LIBRARIES += assimp
+LOCAL_LDLIBS := -landroid -llog -lz
 
 LOCAL_DISABLE_FORMAT_STRING_CHECKS := true
 
 LOCAL_STATIC_LIBRARIES += android_native_app_glue
 LOCAL_STATIC_LIBRARIES += cpufeatures
-#LOCAL_STATIC_LIBRARIES += libassimp
+LOCAL_STATIC_LIBRARIES += libassimp
 
 include $(BUILD_SHARED_LIBRARY)
 

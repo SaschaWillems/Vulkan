@@ -284,7 +284,6 @@ VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize 
 	}
 }
 
-#ifndef __ANDROID__
 void VulkanExampleBase::loadMesh(
 	const char * filename,
 	vkMeshLoader::MeshBuffer * meshBuffer,
@@ -304,7 +303,6 @@ void VulkanExampleBase::loadMesh(
 
 	delete(mesh);
 }
-#endif
 
 void VulkanExampleBase::renderLoop()
 {
