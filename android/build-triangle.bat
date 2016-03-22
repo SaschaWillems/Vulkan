@@ -1,1 +1,1 @@
-_build triangle
+_build triangle %1

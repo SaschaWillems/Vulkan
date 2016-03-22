@@ -1,4 +1,4 @@
-LOCAL_PATH := $(call my-dir)/../../triangle
+LOCAL_PATH := $(call my-dir)/../../mesh
 
 # assimp
 
@@ -14,9 +14,9 @@ DATADIR := $(LOCAL_PATH)/../../data
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := vulkanTriangle
+LOCAL_MODULE := vulkanMesh
 
-PROJECT_FILES := $(wildcard $(LOCAL_PATH)/../../triangle/*.cpp)
+PROJECT_FILES := $(wildcard $(LOCAL_PATH)/../../mesh/*.cpp)
 PROJECT_FILES += $(wildcard $(LOCAL_PATH)/../../base/*.cpp)
 
 LOCAL_CPPFLAGS := -std=c++11

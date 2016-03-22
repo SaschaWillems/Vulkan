@@ -11,6 +11,10 @@
 #include <vulkan/vulkan.h>
 #include <gli/gli.hpp>
 
+#if defined(__ANDROID__)
+#include <android/asset_manager.h>
+#endif
+
 namespace vkTools 
 {
 
@@ -52,24 +56,44 @@ namespace vkTools
 			return false;
 		}
 	public:
+#if defined(__ANDROID__)
+		AAssetManager* assetManager = nullptr;
+#endif
 		// Load a 2D texture
-		void loadTexture(const char* filename, VkFormat format, VulkanTexture *texture)
+		void loadTexture(std::string filename, VkFormat format, VulkanTexture *texture)
 		{
 			loadTexture(filename, format, texture, false);
 		}
 
 		// Load a 2D texture
-		void loadTexture(const char* filename, VkFormat format, VulkanTexture *texture, bool forceLinear)
+		void loadTexture(std::string filename, VkFormat format, VulkanTexture *texture, bool forceLinear)
 		{
 			loadTexture(filename, format, texture, false, VK_IMAGE_USAGE_SAMPLED_BIT);
 		}
 
 		// Load a 2D texture
-		void loadTexture(const char* filename, VkFormat format, VulkanTexture *texture, bool forceLinear, VkImageUsageFlags imageUsageFlags)
+		void loadTexture(std::string filename, VkFormat format, VulkanTexture *texture, bool forceLinear, VkImageUsageFlags imageUsageFlags)
 		{
-			std::cout << "Loading \"" << filename << "\"..." << std::endl;
+#if defined(__ANDROID__)
+			assert(assetManager != nullptr);
 
-			gli::texture2D tex2D(gli::load(filename));
+			// Textures are stored inside the apk on Android (compressed)
+			// So they need to be loaded via the asset manager
+			AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+			assert(asset);
+			size_t size = AAsset_getLength(asset);
+			assert(size > 0);
+
+			void *textureData = malloc(size);
+			AAsset_read(asset, textureData, size);
+			AAsset_close(asset);
+
+			gli::texture2D tex2D(gli::load((const char*)textureData, size));
+
+			free(textureData);
+#else
+			gli::texture2D tex2D(gli::load(filename.c_str()));
+#endif		
 			assert(!tex2D.empty());
 
 			texture->width = (uint32_t)tex2D[0].dimensions().x;

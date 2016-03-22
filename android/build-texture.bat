@@ -1,1 +1,1 @@
-_build texture
+_build texture %1
