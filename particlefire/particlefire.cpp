@@ -361,21 +361,21 @@ public:
 	{
 		// Particles
 		textureLoader->loadTexture(
-			"./../data/textures/particle_smoke.ktx",
+			getAssetPath() + "textures/particle_smoke.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.particles.smoke);
 		textureLoader->loadTexture(
-			"./../data/textures/particle_fire.ktx",
+			getAssetPath() + "textures/particle_fire.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.particles.fire);
 
 		// Floor
 		textureLoader->loadTexture(
-			"./../data/textures/fireplace_colormap_bc3.ktx",
+			getAssetPath() + "textures/fireplace_colormap_bc3.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.floor.colorMap);
 		textureLoader->loadTexture(
-			"./../data/textures/fireplace_normalmap_bc3.ktx",
+			getAssetPath() + "textures/fireplace_normalmap_bc3.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.floor.normalMap);
 
@@ -405,7 +405,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/fireplace.obj", &meshes.environment.buffers, vertexLayout, 10.0f);
+		loadMesh(getAssetPath() + "models/fireplace.obj", &meshes.environment.buffers, vertexLayout, 10.0f);
 		meshes.environment.setupVertexInputState(vertexLayout);
 	}
 
@@ -669,8 +669,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/particlefire/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/particlefire/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/particlefire/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/particlefire/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -705,8 +705,8 @@ public:
 		assert(!err);
 
 		// Environment rendering pipeline (normal mapped)
-		shaderStages[0] = loadShader("./../data/shaders/particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/particlefire/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/particlefire/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		pipelineCreateInfo.pVertexInputState = &meshes.environment.vertexInputState;
 		blendAttachmentState.blendEnable = VK_FALSE;
 		depthStencilState.depthWriteEnable = VK_TRUE;
@@ -822,10 +822,10 @@ public:
 	}
 };
 
+
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -834,9 +834,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -846,21 +844,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }

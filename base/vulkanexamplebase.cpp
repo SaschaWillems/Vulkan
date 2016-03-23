@@ -288,7 +288,7 @@ VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize 
 }
 
 void VulkanExampleBase::loadMesh(
-	const char * filename,
+	std::string filename,
 	vkMeshLoader::MeshBuffer * meshBuffer,
 	std::vector<vkMeshLoader::VertexLayout> vertexLayout,
 	float scale)

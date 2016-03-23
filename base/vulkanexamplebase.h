@@ -266,7 +266,7 @@ public:
 
 	// Load a mesh (using ASSIMP) and create vulkan vertex and index buffers with given vertex layout
 	void loadMesh(
-		const char *filename,
+		std::string fiename,
 		vkMeshLoader::MeshBuffer *meshBuffer,
 		std::vector<vkMeshLoader::VertexLayout> vertexLayout,
 		float scale);
