@@ -219,6 +219,9 @@ void VulkanExampleBase::prepare()
 	createSetupCommandBuffer();
 	// Create a simple texture loader class
 	textureLoader = new vkTools::VulkanTextureLoader(physicalDevice, device, queue, cmdPool);
+#if defined(__ANDROID__)
+	textureLoader->assetManager = androidApp->activity->assetManager;
+#endif
 }
 
 VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileName, VkShaderStageFlagBits stage)
@@ -291,6 +294,11 @@ void VulkanExampleBase::loadMesh(
 	float scale)
 {
 	VulkanMeshLoader *mesh = new VulkanMeshLoader();
+
+#if defined(__ANDROID__)
+	mesh->assetManager = androidApp->activity->assetManager;
+#endif
+
 	mesh->LoadMesh(filename);
 	assert(mesh->m_Entries.size() > 0);
 

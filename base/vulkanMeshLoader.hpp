@@ -32,6 +32,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#if defined(__ANDROID__)
+#include <android/asset_manager.h>
+#endif
+
 namespace vkMeshLoader 
 {
 	typedef enum VertexLayout {
@@ -208,6 +212,10 @@ private:
 	}
 
 public:
+#if defined(__ANDROID__)
+	AAssetManager* assetManager = nullptr;
+#endif
+
 	std::vector<MeshEntry> m_Entries;
 
 	struct Dimension 
@@ -246,25 +254,43 @@ public:
 	}
 
 	// Loads the mesh with some default flags
-	bool LoadMesh(const std::string& Filename) 
+	bool LoadMesh(const std::string& filename) 
 	{
 		int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
 
-		return LoadMesh(Filename, flags);
+		return LoadMesh(filename, flags);
 	}
 
 	// Load the mesh with custom flags
-	bool LoadMesh(const std::string& Filename, int flags)
+	bool LoadMesh(const std::string& filename, int flags)
 	{
-		pScene = Importer.ReadFile(Filename.c_str(), flags);
+#if defined(__ANDROID__)
+		// Meshes are stored inside the apk on Android (compressed)
+		// So they need to be loaded via the asset manager
+
+		AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+		assert(asset);
+		size_t size = AAsset_getLength(asset);
+		assert(size > 0);
+
+		void *meshData = malloc(size);
+		AAsset_read(asset, meshData, size);
+		AAsset_close(asset);
+
+		pScene = Importer.ReadFileFromMemory(meshData, size, flags);
+
+		free(meshData);
+#else
+		pScene = Importer.ReadFile(filename.c_str(), flags);
+#endif
 
 		if (pScene)
 		{
-			return InitFromScene(pScene, Filename);
+			return InitFromScene(pScene, filename);
 		}
 		else 
 		{
-			printf("Error parsing '%s': '%s'\n", Filename.c_str(), Importer.GetErrorString());
+			printf("Error parsing '%s': '%s'\n", filename.c_str(), Importer.GetErrorString());
 			return false;
 		}
 	}
