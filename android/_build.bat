@@ -12,8 +12,9 @@ if "%1" == "" (
 	call build %2
 	IF EXIST vulkan%1.apk (
 		if "%2" == "-deploy" (
+            echo deploying to device
 			IF EXIST vulkan%1.apk (
-			adb install -r vulkan%1.apk
+			    adb install -r vulkan%1.apk
 			)
 		)	
 		xcopy vulkan%1.apk "..\bin\" /Y
