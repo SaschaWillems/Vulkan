@@ -25,10 +25,6 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 
-#ifdef __ANDROID__
-#include "vulkanandroid.h"
-#endif
-
 #define VERTEX_BUFFER_BIND_ID 0
 // Set to "true" to enable Vulkan's validation layers
 // See vulkandebug.cpp for details
@@ -752,20 +748,14 @@ public:
 
 		// Load shaders
 		// Shaders are loaded from the SPIR-V format, which can be generated from glsl
-		VkPipelineShaderStageCreateInfo shaderStages[2] = { {},{} };
-		std::string shaderPath;
-#if defined(__ANDROID__)
-		shaderStages[0] = loadShader("shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
-		shaderStages[0] = loadShader("./../data/shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Assign states
-		// Two shader stages
-		pipelineCreateInfo.stageCount = 2;
 		// Assign pipeline state create information
+		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.pStages = shaderStages.data();
 		pipelineCreateInfo.pVertexInputState = &vertices.vi;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
@@ -773,7 +763,6 @@ public:
 		pipelineCreateInfo.pMultisampleState = &multisampleState;
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.pStages = shaderStages;
 		pipelineCreateInfo.renderPass = renderPass;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 
@@ -878,7 +867,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -887,12 +876,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-#endif 
-
-#ifdef __linux__
-#ifdef __ANDROID__
-	// todo : android event handling
-#else
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -900,7 +884,6 @@ static void handleEvent(const xcb_generic_event_t *event)
 		vulkanExample->handleEvent(event);
 	}
 }
-#endif
 #endif
 
 // Main entry point

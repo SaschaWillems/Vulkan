@@ -113,7 +113,7 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadCubemap(
-			"./../data/textures/cubemap_vulkan.ktx", 
+			getAssetPath() + "textures/cubemap_vulkan.ktx", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textures.skybox);
 	}
@@ -216,13 +216,21 @@ public:
 
 		// Load meshes for demos scene
 		demoMeshes.logos = new VulkanMeshLoader();
-		demoMeshes.logos->LoadMesh("../data/models/vulkanscenelogos.dae");
 		demoMeshes.background = new VulkanMeshLoader();
-		demoMeshes.background->LoadMesh("../data/models/vulkanscenebackground.dae");
 		demoMeshes.models = new VulkanMeshLoader();
-		demoMeshes.models->LoadMesh("../data/models/vulkanscenemodels.dae");
 		demoMeshes.skybox = new VulkanMeshLoader();
-		demoMeshes.skybox->LoadMesh("../data/models/cube.obj");
+
+#if defined(__ANDROID__)
+		demoMeshes.logos->assetManager = androidApp->activity->assetManager;
+		demoMeshes.background->assetManager = androidApp->activity->assetManager;
+		demoMeshes.models->assetManager = androidApp->activity->assetManager;
+		demoMeshes.skybox->assetManager = androidApp->activity->assetManager;
+#endif
+
+		demoMeshes.logos->LoadMesh(getAssetPath() + "models/vulkanscenelogos.dae");
+		demoMeshes.background->LoadMesh(getAssetPath() + "models/vulkanscenebackground.dae");
+		demoMeshes.models->LoadMesh(getAssetPath() + "models/vulkanscenemodels.dae");
+		demoMeshes.skybox->LoadMesh(getAssetPath() + "models/cube.obj");
 
 		std::vector<VulkanMeshLoader*> meshList;
 		meshList.push_back(demoMeshes.skybox); // skybox first because of depth writes
@@ -478,8 +486,8 @@ public:
 		// Pipeline for the meshes (armadillo, bunny, etc.)
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-		shaderStages[0] = loadShader("./../data/shaders/vulkanscene/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/vulkanscene/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -502,16 +510,16 @@ public:
 		assert(!err);
 
 		// Pipeline for the logos
-		shaderStages[0] = loadShader("./../data/shaders/vulkanscene/logo.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/vulkanscene/logo.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/logo.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/logo.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.logos);
 		assert(!err);
 
 		// Pipeline for the sky sphere (todo)
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT; // Inverted culling
 		depthStencilState.depthWriteEnable = VK_FALSE; // No depth writes
-		shaderStages[0] = loadShader("./../data/shaders/vulkanscene/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/vulkanscene/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skybox);
 		assert(!err);
 
@@ -595,8 +603,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -605,33 +612,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleEvent(event);
-	}
 }
+		}
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }

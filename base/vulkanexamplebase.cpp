@@ -82,8 +82,16 @@ std::string VulkanExampleBase::getWindowTitle()
 	std::string device(deviceProperties.deviceName);
 	std::string windowTitle;
 	windowTitle = title + " - " + device + " - " + std::to_string(frameCounter) + " fps";
-	windowTitle = title;
 	return windowTitle;
+}
+
+const std::string VulkanExampleBase::getAssetPath()
+{
+#if defined(__ANDROID__)
+	return "";
+#else
+	return "./../data/";
+#endif
 }
 
 bool VulkanExampleBase::checkCommandBuffers()
@@ -211,17 +219,20 @@ void VulkanExampleBase::prepare()
 	createSetupCommandBuffer();
 	// Create a simple texture loader class
 	textureLoader = new vkTools::VulkanTextureLoader(physicalDevice, device, queue, cmdPool);
+#if defined(__ANDROID__)
+	textureLoader->assetManager = androidApp->activity->assetManager;
+#endif
 }
 
-VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(const char * fileName, VkShaderStageFlagBits stage)
+VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileName, VkShaderStageFlagBits stage)
 {
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
 #if defined(__ANDROID__)
-	shaderStage.module = vkTools::loadShader(androidApp->activity->assetManager, fileName, device, stage);
+	shaderStage.module = vkTools::loadShader(androidApp->activity->assetManager, fileName.c_str(), device, stage);
 #else
-	shaderStage.module = vkTools::loadShader(fileName, device, stage);
+	shaderStage.module = vkTools::loadShader(fileName.c_str(), device, stage);
 #endif
 	shaderStage.pName = "main"; // todo : make param
 	assert(shaderStage.module != NULL);
@@ -276,14 +287,18 @@ VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize 
 	}
 }
 
-#ifndef __ANDROID__
 void VulkanExampleBase::loadMesh(
-	const char * filename,
+	std::string filename,
 	vkMeshLoader::MeshBuffer * meshBuffer,
 	std::vector<vkMeshLoader::VertexLayout> vertexLayout,
 	float scale)
 {
 	VulkanMeshLoader *mesh = new VulkanMeshLoader();
+
+#if defined(__ANDROID__)
+	mesh->assetManager = androidApp->activity->assetManager;
+#endif
+
 	mesh->LoadMesh(filename);
 	assert(mesh->m_Entries.size() > 0);
 
@@ -296,7 +311,6 @@ void VulkanExampleBase::loadMesh(
 
 	delete(mesh);
 }
-#endif
 
 void VulkanExampleBase::renderLoop()
 {
@@ -367,7 +381,12 @@ void VulkanExampleBase::renderLoop()
 		// Render frame
 		if (prepared)
 		{
+			auto tStart = std::chrono::high_resolution_clock::now();
 			render();
+			frameCounter++;
+			auto tEnd = std::chrono::high_resolution_clock::now();
+			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+			frameTimer = tDiff / 1000.0f;
 			// Check gamepad state
 			const float deadZone = 0.10f;
 			// todo : check if gamepad is present

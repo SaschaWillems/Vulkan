@@ -38,9 +38,7 @@
 
 #include "vulkanswapchain.hpp"
 #include "vulkanTextureLoader.hpp"
-#ifndef __ANDROID__
 #include "vulkanMeshLoader.hpp"
-#endif
 
 class VulkanExampleBase
 {
@@ -112,10 +110,10 @@ protected:
 		// Command buffer submission and execution
 		VkSemaphore renderComplete;
 	} semaphores;
-
-
 	// Simple texture loader
 	vkTools::VulkanTextureLoader *textureLoader = nullptr;
+	// Returns the base asset path (for shaders, models, textures) depending on the os
+	const std::string getAssetPath();
 public: 
 	bool prepared = false;
 	uint32_t width = 1280;
@@ -247,7 +245,7 @@ public:
 	virtual void prepare();
 
 	// Load a SPIR-V shader
-	VkPipelineShaderStageCreateInfo loadShader(const char* fileName, VkShaderStageFlagBits stage);
+	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 	
 	// Create a buffer, fill it with data and bind buffer memory
 	// Can be used for e.g. vertex or index buffer based on mesh data
@@ -267,14 +265,12 @@ public:
 		VkDescriptorBufferInfo *descriptor);
 
 	// Load a mesh (using ASSIMP) and create vulkan vertex and index buffers with given vertex layout
-	// todo : mesh loader not yet enabled for Android
-#ifndef __ANDROID__
 	void loadMesh(
-		const char *filename,
+		std::string fiename,
 		vkMeshLoader::MeshBuffer *meshBuffer,
 		std::vector<vkMeshLoader::VertexLayout> vertexLayout,
 		float scale);
-#endif
+
 	// Start the main render loop
 	void renderLoop();
 
