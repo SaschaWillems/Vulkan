@@ -387,6 +387,15 @@ void VulkanExampleBase::renderLoop()
 			auto tEnd = std::chrono::high_resolution_clock::now();
 			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 			frameTimer = tDiff / 1000.0f;
+			// Convert to clamped timer value
+			if (!paused)
+			{
+				timer += timerSpeed * frameTimer;
+				if (timer > 1.0)
+				{
+					timer -= 1.0f;
+				}
+			}
 			// Check gamepad state
 			const float deadZone = 0.10f;
 			// todo : check if gamepad is present

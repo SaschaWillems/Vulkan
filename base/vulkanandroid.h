@@ -58,6 +58,7 @@ extern PFN_vkBindImageMemory vkBindImageMemory;
 extern PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
 extern PFN_vkCmdCopyBuffer vkCmdCopyBuffer;
 extern PFN_vkCmdCopyImage vkCmdCopyImage;
+extern PFN_vkCmdBlitImage vkCmdBlitImage;
 extern PFN_vkCreateSampler vkCreateSampler;
 extern PFN_vkDestroySampler vkDestroySampler;
 extern PFN_vkDestroyImage vkDestroyImage;
