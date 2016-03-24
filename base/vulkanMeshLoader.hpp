@@ -271,8 +271,9 @@ public:
 		AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 		assert(asset);
 		size_t size = AAsset_getLength(asset);
-		assert(size > 0);
 
+		assert(size > 0);
+		
 		void *meshData = malloc(size);
 		AAsset_read(asset, meshData, size);
 		AAsset_close(asset);
@@ -291,6 +292,9 @@ public:
 		else 
 		{
 			printf("Error parsing '%s': '%s'\n", filename.c_str(), Importer.GetErrorString());
+#if defined(__ANDROID__)
+			LOGE("Error parsing '%s': '%s'", filename.c_str(), Importer.GetErrorString());
+#endif
 			return false;
 		}
 	}
@@ -303,7 +307,7 @@ public:
 		for (unsigned int i = 0; i < m_Entries.size(); i++)
 		{
 			m_Entries[i].vertexBase = numVertices;
-			numVertices += pScene->mMeshes[i]->mNumVertices;;
+			numVertices += pScene->mMeshes[i]->mNumVertices;
 		}
 
 		// Initialize the meshes in the scene one by one
