@@ -59,7 +59,7 @@ private:
 	VkDevice device;
 
 	// Reference to example for getting memory types
-	VulkanExampleBase *exampleBase;
+	CVulkanFramework *exampleBase;
 
 	glm::vec3 color;
 	glm::vec3 pos;
@@ -93,7 +93,7 @@ public:
 
 	void setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout descriptorSetLayout);
 
-	VulkanGear(VkDevice device, VulkanExampleBase *example);
+	VulkanGear(VkDevice device, CVulkanFramework *example);
 	~VulkanGear();
 
 	void generate(float inner_radius, float outer_radius, float width, int teeth, float tooth_depth, glm::vec3 color, glm::vec3 pos, float rotSpeed, float rotOffset);

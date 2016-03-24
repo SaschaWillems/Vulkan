@@ -30,7 +30,7 @@ struct Vertex {
 	float uv[2];
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	// Number of array layers in texture array
@@ -78,7 +78,7 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
 		zoom = -15.0f;
 		rotationSpeed = 0.25f;
@@ -715,9 +715,9 @@ public:
 		vkUnmapMemory(device, uniformData.vertexShader.memory);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		setupVertexDescriptions();
 		loadTextures();
 		generateQuad();
@@ -728,15 +728,17 @@ public:
 		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
+		return 0;
 	}
 
 	virtual void viewChanged()

@@ -41,7 +41,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_NORMAL
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	bool bloom = true;
@@ -130,7 +130,7 @@ public:
 	// the offscreen scene
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
 		zoom = -10.25f;
 		rotation = { 7.5f, -343.0f, 0.0f };
@@ -1249,9 +1249,9 @@ public:
 		vkUnmapMemory(device, uniformData.fsHorzBlur.memory);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadTextures();
 		generateQuad();
 		loadMeshes();
@@ -1268,12 +1268,13 @@ public:
 		prepareOffscreenFramebuffer(&offScreenFrameBufB);
 		buildCommandBuffers();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
@@ -1281,6 +1282,7 @@ public:
 		{
 			updateUniformBuffersScene();
 		}
+		return 0;
 	}
 
 	virtual void viewChanged()

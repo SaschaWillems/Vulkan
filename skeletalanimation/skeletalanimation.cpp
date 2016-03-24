@@ -35,7 +35,7 @@ struct Vertex {
 	uint32_t boneIDs[4];
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	struct {
@@ -131,10 +131,8 @@ public:
 
 	float runningTime = 0.0f;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
-		ScreenProperties.Width = 1280;
-		ScreenProperties.Height = 720;
 		zoom = -8.0f;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
@@ -824,9 +822,9 @@ public:
 		vkUnmapMemory(device, uniformData.vsScene.memory);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadTextures();
 		loadMesh();
 		setupVertexDescriptions();
@@ -837,12 +835,13 @@ public:
 		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
@@ -851,6 +850,7 @@ public:
 			runningTime += frameTimer * 0.75f;
 			updateUniformBuffers();
 		}
+		return 0;
 	}
 
 	virtual void viewChanged()

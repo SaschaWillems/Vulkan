@@ -95,7 +95,7 @@ void parsebmFont()
 
 }
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	bool splitScreen = true;
@@ -148,7 +148,7 @@ public:
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
 		zoom = -1.5f;
 		rotation = { 0.0f, 0.0f, 0.0f };
@@ -681,9 +681,9 @@ public:
 		vkUnmapMemory(device, uniformData.fs.memory);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		parsebmFont();
 		loadTextures();
 		generateText("Vulkan");
@@ -695,15 +695,17 @@ public:
 		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
+		return 0;
 	}
 
 	virtual void viewChanged()

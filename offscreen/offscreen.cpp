@@ -41,7 +41,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_NORMAL
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	bool debugDisplay = false;
@@ -117,7 +117,7 @@ public:
 
 	glm::vec3 meshPos = glm::vec3(0.0f, -1.5f, 0.0f);
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
 		zoom = -6.5f;
 		rotation = { -11.25f, 45.0f, 0.0f };
@@ -1092,9 +1092,9 @@ public:
 		vkUnmapMemory(device, uniformData.vsOffScreen.memory);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadTextures();
 		generateQuad();
 		loadMeshes();
@@ -1110,12 +1110,13 @@ public:
 		buildCommandBuffers();
 		buildOffscreenCommandBuffer(); 
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
@@ -1124,6 +1125,7 @@ public:
 			updateUniformBuffers();
 			updateUniformBufferOffscreen();
 		}
+		return 0;
 	}
 
 	virtual void viewChanged()

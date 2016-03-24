@@ -33,7 +33,7 @@ struct Vertex {
 	float normal[3];
 };
 
-class VulkanExample: public VulkanExampleBase 
+class VulkanExample: public CVulkanFramework 
 {
 private:
 	vkTools::VulkanTexture textureColorMap;
@@ -68,7 +68,7 @@ public:
 		VkPipeline texture;
 	} pipelines;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
 		zoom = -5.0f;
 		rotation = glm::vec3(-32.5f, 45.0f, 0.0f);
@@ -557,9 +557,9 @@ public:
 		assert(!err);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadTextures();
 		prepareVertices();
 		prepareUniformBuffers();
@@ -570,15 +570,17 @@ public:
 		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
+		return 0;
 	}
 
 	virtual void viewChanged()

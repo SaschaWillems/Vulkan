@@ -29,7 +29,7 @@ struct Vertex {
 	float uv[2];
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework, public IVulkanExample
 {
 private:
 	vkTools::VulkanTexture textureColorMap;
@@ -73,10 +73,8 @@ public:
 	VkDescriptorSet descriptorSetPostCompute, descriptorSetBaseImage;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
-		ScreenProperties.Width = 1280;
-		ScreenProperties.Height = 720;
 		zoom = -2.0f;
 		title = "Vulkan Example - Compute shader image processing";
 	}
@@ -792,9 +790,9 @@ public:
 		vkGetDeviceQueue(device, queueIndex, 0, &computeQueue);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadTextures();
 		generateQuad();
 		getComputeQueue();
@@ -810,16 +808,18 @@ public:
 		buildCommandBuffers(); 
 		buildComputeCommandBuffer();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;	// WARNING_NOT_PREPARED
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
+		return 0;
 	}
 
 	virtual void viewChanged()

@@ -34,7 +34,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_BITANGENT
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	bool splitScreen = true;
@@ -92,7 +92,7 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
 		zoom = -1.25f;
 		rotation = glm::vec3(40.0, -33.0, 0.0);
@@ -559,9 +559,9 @@ public:
 		vkUnmapMemory(device, uniformData.fragmentShader.memory);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadTextures();
 		loadMeshes();
 		setupVertexDescriptions();
@@ -572,12 +572,13 @@ public:
 		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
@@ -585,6 +586,7 @@ public:
 		{
 			updateUniformBuffers();
 		}
+		return 0;
 	}
 
 	virtual void viewChanged()

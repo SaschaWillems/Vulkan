@@ -33,7 +33,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_UV
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	vkTools::VulkanTexture cubeMap;
@@ -71,7 +71,7 @@ public:
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
 		zoom = -4.0f;
 		rotationSpeed = 0.25f;
@@ -716,9 +716,9 @@ public:
 		vkUnmapMemory(device, uniformData.skyboxVS.memory);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
@@ -732,16 +732,18 @@ public:
 		setupDescriptorSets();
 		buildCommandBuffers();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
+		return 0;
 	}
 
 	virtual void viewChanged()

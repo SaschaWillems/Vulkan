@@ -39,7 +39,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_NORMAL
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	bool debugDisplay = true;
@@ -127,12 +127,10 @@ public:
 
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
 		zoom = -8.0f;
 		rotation = { 0.0f, 0.0f, 0.0f };
-		ScreenProperties.Width = 1024;
-		ScreenProperties.Height = 1024;
 		title = "Vulkan Example - Deferred shading";
 	}
 
@@ -1256,9 +1254,9 @@ public:
 	}
 
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadTextures();
 		generateQuads();
 		loadMeshes();
@@ -1273,15 +1271,17 @@ public:
 		buildCommandBuffers();
 		buildDeferredCommandBuffer(); 
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
+		return 0;
 	}
 
 	virtual void viewChanged()

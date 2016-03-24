@@ -31,7 +31,7 @@ struct Vertex {
 	glm::vec3 color;
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	struct {
@@ -78,10 +78,8 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
-		ScreenProperties.Width = 1280;
-		ScreenProperties.Height = 720;
 		zoom = -5.5;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
@@ -201,7 +199,10 @@ public:
 	void loadMesh()
 	{
 		VulkanMeshLoader *meshLoader = new VulkanMeshLoader();
-		meshLoader->LoadMesh("./../data/models/voyager/voyager.obj");
+#if defined(__ANDROID__)
+		meshLoader->assetManager = androidApp->activity->assetManager;
+#endif
+		meshLoader->LoadMesh(getAssetPath() + "models/voyager/voyager.obj");
 
 		// Generate vertex buffer
 		float scale = 1.0f;
@@ -255,7 +256,7 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			"./../data/models/voyager/voyager.ktx",
+			getAssetPath() + "models/voyager/voyager.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.colorMap);
 	}
@@ -450,8 +451,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/mesh/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/mesh/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -511,9 +512,9 @@ public:
 		vkUnmapMemory(device, uniformData.vsScene.memory);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadTextures();
 		loadMesh();
 		setupVertexDescriptions();
@@ -524,16 +525,18 @@ public:
 		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
+		return 0;
 	}
 
 	virtual void viewChanged()
@@ -544,21 +547,16 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
-LRESULT CALLBACK 
-WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+#if defined(_WIN32)
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL) {
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
-static void 
-handleEvent(const xcb_generic_event_t *event)
+#elif defined(__linux__) && !defined(__ANDROID__)
+static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL) {
 		vulkanExample->handleEvent(event);
@@ -566,22 +564,42 @@ handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-int
-#ifdef _WIN32
-APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
-main(const int argc, const char *argv[])
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
+int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }

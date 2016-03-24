@@ -8,7 +8,7 @@
 
 #include "vulkanexamplebase.h"
 
-VkResult VulkanExampleBase::createInstance(bool enableValidation)
+VkResult CVulkanFramework::createInstance(bool enableValidation)
 {
 	this->enableValidation = enableValidation;
 
@@ -52,7 +52,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
 
-VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation)
+VkResult CVulkanFramework::createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation)
 {
 	std::vector<const char*> enabledExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
@@ -77,16 +77,24 @@ VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues
 	return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
 }
 
-std::string VulkanExampleBase::getWindowTitle()
+std::string CVulkanFramework::getWindowTitle()
 {
 	std::string device(deviceProperties.deviceName);
 	std::string windowTitle;
 	windowTitle = title + " - " + device + " - " + std::to_string(frameCounter) + " fps";
-	windowTitle = title;
 	return windowTitle;
 }
 
-bool VulkanExampleBase::checkCommandBuffers()
+std::string CVulkanFramework::getAssetPath()
+{
+#if defined(__ANDROID__)
+	return "";
+#else
+	return "./../data/";
+#endif
+}
+
+bool CVulkanFramework::checkCommandBuffers()
 {
 	for (auto& cmdBuffer : drawCmdBuffers)
 	{
@@ -98,7 +106,7 @@ bool VulkanExampleBase::checkCommandBuffers()
 	return true;
 }
 
-void VulkanExampleBase::createCommandBuffers()
+void CVulkanFramework::createCommandBuffers()
 {
 	// Create one command buffer per frame buffer
 	// in the swap chain
@@ -128,14 +136,14 @@ void VulkanExampleBase::createCommandBuffers()
 	assert(!vkRes);
 }
 
-void VulkanExampleBase::destroyCommandBuffers()
+void CVulkanFramework::destroyCommandBuffers()
 {
 	vkFreeCommandBuffers(device, cmdPool, (uint32_t)drawCmdBuffers.size(), drawCmdBuffers.data());
 	vkFreeCommandBuffers(device, cmdPool, 1, &prePresentCmdBuffer);
 	vkFreeCommandBuffers(device, cmdPool, 1, &postPresentCmdBuffer);
 }
 
-void VulkanExampleBase::createSetupCommandBuffer()
+void CVulkanFramework::createSetupCommandBuffer()
 {
 	if (setupCmdBuffer != VK_NULL_HANDLE)
 	{
@@ -159,7 +167,7 @@ void VulkanExampleBase::createSetupCommandBuffer()
 	assert(!vkRes);
 }
 
-void VulkanExampleBase::flushSetupCommandBuffer()
+void CVulkanFramework::flushSetupCommandBuffer()
 {
 	VkResult err;
 
@@ -184,7 +192,7 @@ void VulkanExampleBase::flushSetupCommandBuffer()
 	setupCmdBuffer = VK_NULL_HANDLE; 
 }
 
-void VulkanExampleBase::createPipelineCache()
+void CVulkanFramework::createPipelineCache()
 {
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 	pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
@@ -192,7 +200,7 @@ void VulkanExampleBase::createPipelineCache()
 	assert(!err);
 }
 
-void VulkanExampleBase::prepare()
+int32_t	CVulkanFramework::prepare()
 {
 	if (enableValidation)
 	{
@@ -211,17 +219,21 @@ void VulkanExampleBase::prepare()
 	createSetupCommandBuffer();
 	// Create a simple texture loader class
 	textureLoader = new vkTools::VulkanTextureLoader(physicalDevice, device, queue, cmdPool);
+#if defined(__ANDROID__)
+	textureLoader->assetManager = androidApp->activity->assetManager;
+#endif
+	return 0;
 }
 
-VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(const char * fileName, VkShaderStageFlagBits stage)
+VkPipelineShaderStageCreateInfo CVulkanFramework::loadShader(std::string fileName, VkShaderStageFlagBits stage)
 {
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
 #if defined(__ANDROID__)
-	shaderStage.module = vkTools::loadShader(androidApp->activity->assetManager, fileName, device, stage);
+	shaderStage.module = vkTools::loadShader(androidApp->activity->assetManager, fileName.c_str(), device, stage);
 #else
-	shaderStage.module = vkTools::loadShader(fileName, device, stage);
+	shaderStage.module = vkTools::loadShader(fileName.c_str(), device, stage);
 #endif
 	shaderStage.pName = "main"; // todo : make param
 	assert(shaderStage.module != NULL);
@@ -229,7 +241,7 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(const char * fileN
 	return shaderStage;
 }
 
-VkBool32 VulkanExampleBase::createBuffer(
+VkBool32 CVulkanFramework::createBuffer(
 	VkBufferUsageFlags usage,
 	VkDeviceSize size,
 	void * data,
@@ -260,7 +272,7 @@ VkBool32 VulkanExampleBase::createBuffer(
 	return true;
 }
 
-VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
+VkBool32 CVulkanFramework::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
 {
 	VkBool32 res = createBuffer(usage, size, data, buffer, memory);
 	if (res)
@@ -276,14 +288,18 @@ VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize 
 	}
 }
 
-#ifndef __ANDROID__
-void VulkanExampleBase::loadMesh(
-	const char * filename,
+void CVulkanFramework::loadMesh(
+	std::string filename,
 	vkMeshLoader::MeshBuffer * meshBuffer,
 	std::vector<vkMeshLoader::VertexLayout> vertexLayout,
 	float scale)
 {
 	VulkanMeshLoader *mesh = new VulkanMeshLoader();
+
+#if defined(__ANDROID__)
+	mesh->assetManager = androidApp->activity->assetManager;
+#endif
+
 	mesh->LoadMesh(filename);
 	assert(mesh->m_Entries.size() > 0);
 
@@ -296,9 +312,8 @@ void VulkanExampleBase::loadMesh(
 
 	delete(mesh);
 }
-#endif
 
-void VulkanExampleBase::renderLoop()
+void CVulkanFramework::renderLoop()
 {
 #if defined(_WIN32)
 	MSG msg;
@@ -367,7 +382,12 @@ void VulkanExampleBase::renderLoop()
 		// Render frame
 		if (prepared)
 		{
+			auto tStart = std::chrono::high_resolution_clock::now();
 			render();
+			frameCounter++;
+			auto tEnd = std::chrono::high_resolution_clock::now();
+			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+			frameTimer = tDiff / 1000.0f;
 			// Check gamepad state
 			const float deadZone = 0.10f;
 			// todo : check if gamepad is present
@@ -438,7 +458,7 @@ void VulkanExampleBase::renderLoop()
 #endif
 }
 
-void VulkanExampleBase::submitPrePresentBarrier(VkImage image)
+void CVulkanFramework::submitPrePresentBarrier(VkImage image)
 {
 	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
@@ -475,7 +495,7 @@ void VulkanExampleBase::submitPrePresentBarrier(VkImage image)
 	assert(!vkRes);
 }
 
-void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
+void CVulkanFramework::submitPostPresentBarrier(VkImage image)
 {
 	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
@@ -512,7 +532,7 @@ void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
 	assert(!vkRes);
 }
 
-VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
+VkSubmitInfo CVulkanFramework::prepareSubmitInfo(
 	std::vector<VkCommandBuffer> commandBuffers,
 	VkPipelineStageFlags *pipelineStages)
 {
@@ -527,7 +547,7 @@ VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
 	return submitInfo;
 }
 
-VulkanExampleBase::VulkanExampleBase(bool enableValidation)
+CVulkanFramework::CVulkanFramework(bool enableValidation)
 {
 	// Check for validation command line flag
 #if defined(_WIN32)
@@ -561,7 +581,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 #endif
 }
 
-VulkanExampleBase::~VulkanExampleBase()
+CVulkanFramework::~CVulkanFramework()
 {
 	// Clean up Vulkan resources
 	swapChain.cleanup();
@@ -617,7 +637,7 @@ VulkanExampleBase::~VulkanExampleBase()
 #endif
 }
 
-void VulkanExampleBase::initVulkan(bool enableValidation)
+void CVulkanFramework::initVulkan(bool enableValidation)
 {
 	VkResult err;
 
@@ -722,7 +742,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 
 #if defined(_WIN32)
 // Win32 : Sets up a console window and redirects standard output to it
-void VulkanExampleBase::setupConsole(std::string title)
+void CVulkanFramework::setupConsole(std::string title)
 {
 	AllocConsole();
 	AttachConsole(GetCurrentProcessId());
@@ -736,7 +756,7 @@ void VulkanExampleBase::setupConsole(std::string title)
 	}
 }
 
-HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
+HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 {
 	this->windowInstance = hinstance;
 
@@ -864,7 +884,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	return window;
 }
 
-void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+void CVulkanFramework::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
@@ -922,7 +942,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	}
 }
 #elif defined(__ANDROID__)
-int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* event)
+int32_t CVulkanFramework::handleAppInput(struct android_app* app, AInputEvent* event)
 {
 	VulkanExampleBase* vulkanExample = (VulkanExampleBase*)app->userData;
 	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
@@ -943,7 +963,7 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 	return 0;
 }
 
-void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
+void CVulkanFramework::handleAppCommand(android_app * app, int32_t cmd)
 {
 	assert(app->userData != NULL);
 	VulkanExampleBase* vulkanExample = (VulkanExampleBase*)app->userData;
@@ -979,7 +999,7 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 }
 #elif defined(__linux__)
 // Set up a window using XCB and request event types
-xcb_window_t VulkanExampleBase::setupWindow()
+xcb_window_t CVulkanFramework::setupWindow()
 {
 	uint32_t value_mask, value_list[32];
 
@@ -1027,7 +1047,7 @@ xcb_window_t VulkanExampleBase::setupWindow()
 }
 
 // Initialize XCB connection
-void VulkanExampleBase::initxcbConnection()
+void CVulkanFramework::initxcbConnection()
 {
 	const xcb_setup_t *setup;
 	xcb_screen_iterator_t iter;
@@ -1047,7 +1067,7 @@ void VulkanExampleBase::initxcbConnection()
 	screen = iter.data;
 }
 
-void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
+void CVulkanFramework::handleEvent(const xcb_generic_event_t *event)
 {
 	switch (event->response_type & 0x7f)
 	{
@@ -1107,17 +1127,17 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-void VulkanExampleBase::viewChanged()
+void CVulkanFramework::viewChanged()
 {
 	// Can be overrdiden in derived class
 }
 
-void VulkanExampleBase::keyPressed(uint32_t keyCode)
+void CVulkanFramework::keyPressed(uint32_t keyCode)
 {
 	// Can be overriden in derived class
 }
 
-VkBool32 VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t * typeIndex)
+VkBool32 CVulkanFramework::getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t * typeIndex)
 {
 	for (uint32_t i = 0; i < 32; i++)
 	{
@@ -1134,7 +1154,7 @@ VkBool32 VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties,
 	return false;
 }
 
-void VulkanExampleBase::createCommandPool()
+void CVulkanFramework::createCommandPool()
 {
 	VkCommandPoolCreateInfo cmdPoolInfo = {};
 	cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1144,7 +1164,7 @@ void VulkanExampleBase::createCommandPool()
 	assert(!vkRes);
 }
 
-void VulkanExampleBase::setupDepthStencil()
+void CVulkanFramework::setupDepthStencil()
 {
 	VkImageCreateInfo image = {};
 	image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1203,7 +1223,7 @@ void VulkanExampleBase::setupDepthStencil()
 	assert(!err);
 }
 
-void VulkanExampleBase::setupFrameBuffer()
+void CVulkanFramework::setupFrameBuffer()
 {
 	VkImageView attachments[2];
 
@@ -1230,7 +1250,7 @@ void VulkanExampleBase::setupFrameBuffer()
 	}
 }
 
-void VulkanExampleBase::setupRenderPass()
+void CVulkanFramework::setupRenderPass()
 {
 	VkAttachmentDescription attachments[2];
 	attachments[0].format = colorformat;
@@ -1287,7 +1307,7 @@ void VulkanExampleBase::setupRenderPass()
 	assert(!err);
 }
 
-void VulkanExampleBase::initSwapchain()
+void CVulkanFramework::initSwapchain()
 {
 #if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
@@ -1298,8 +1318,85 @@ void VulkanExampleBase::initSwapchain()
 #endif
 }
 
-void VulkanExampleBase::setupSwapChain()
+void CVulkanFramework::setupSwapChain()
 {
 	swapChain.create(setupCmdBuffer, &ScreenProperties.Width, &ScreenProperties.Height);
 }
-
+//
+//VulkanExampleBase *vulkanExample;
+//
+//#if defined(_WIN32)
+//LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+//{
+//	if (vulkanExample != NULL)
+//	{
+//		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
+//		if (uMsg == WM_KEYDOWN)
+//		{
+//			switch (wParam)
+//			{
+//			case 0x42:
+//				//vulkanExample->toggleBloom();
+//				break;
+//			case VK_ADD:
+//				//vulkanExample->changeBlurScale(0.25f);
+//				break;
+//			case VK_SUBTRACT:
+//				//vulkanExample->changeBlurScale(-0.25f);
+//				break;
+//			}
+//		}
+//	}
+//	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+//}
+//
+//#else 
+//
+//static void handleEvent(const xcb_generic_event_t *event)
+//{
+//	if (vulkanExample != NULL)
+//	{
+//		vulkanExample->handleEvent(event);
+//	}
+//}
+//#endif
+//
+//// Main entry point
+//#if defined(_WIN32)
+//// Windows entry point
+//int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+//#elif defined(__ANDROID__)
+//// Android entry point
+//void android_main(android_app* state)
+//#elif defined(__linux__)
+//// Linux entry point
+//int main(const int argc, const char *argv[])
+//#endif
+//{
+//#if defined(__ANDROID__)
+//	// Removing this may cause the compiler to omit the main entry point 
+//	// which would make the application crash at start
+//	app_dummy();
+//#endif
+//	vulkanExample = new VulkanExampleBase(ENABLE_VALIDATION);
+//#if defined(_WIN32)
+//	vulkanExample->setupWindow(hInstance, WndProc);
+//#elif defined(__ANDROID__)
+//	// Attach vulkan example to global android application state
+//	state->userData = vulkanExample;
+//	state->onAppCmd = VulkanExample::handleAppCommand;
+//	state->onInputEvent = VulkanExample::handleAppInput;
+//	vulkanExample->androidApp = state;
+//#elif defined(__linux__)
+//	vulkanExample->setupWindow();
+//#endif
+//#if !defined(__ANDROID__)
+//	vulkanExample->initSwapchain();
+//	vulkanExample->prepare();
+//#endif
+//	vulkanExample->renderLoop();
+//#if !defined(__ANDROID__)
+//	delete(vulkanExample);
+//	return 0;
+//#endif
+//}

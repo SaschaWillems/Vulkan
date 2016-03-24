@@ -6,7 +6,11 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#pragma once
+#ifndef __VULKANEXAMPLEBASE_H__
+#define __VULKANEXAMPLEBASE_H__
+
+
+#define ENABLE_VALIDATION false
 
 #ifdef _WIN32
 #pragma comment(linker, "/subsystem:windows")
@@ -38,19 +42,40 @@
 
 #include "vulkanswapchain.hpp"
 #include "vulkanTextureLoader.hpp"
-#ifndef __ANDROID__
 #include "vulkanMeshLoader.hpp"
-#endif
 
 #define deg_to_rad(deg) deg * float(M_PI / 180)
+
+class IVulkanFramework
+{
+public:
+	IVulkanFramework(){};
+	virtual ~IVulkanFramework(){};
+
+	virtual std::string		getAssetPath	()=0;
+	virtual int32_t			prepare			()=0;	// Prepare commonly used Vulkan functions
+	//virtual int32_t			()=0;
+};
+
+class IVulkanExample
+{
+public:
+	IVulkanExample(){};
+	virtual ~IVulkanExample(){};
+
+//	virtual int32_t			init(IVulkanFramework* pFramework)=0;
+	virtual int32_t			prepare			()=0;	// Prepare commonly used Vulkan functions
+	virtual int32_t			render			()=0;
+};
 
 struct VulkanExampleScreen
 {
 	VulkanExampleScreen( void ):
 		Width	(1280),
-		Height	(720){}
-	uint32_t Width	;// = 1280;
-	uint32_t Height ;// = 720 ;
+		Height	(720)
+	{}
+	uint32_t Width;
+	uint32_t Height;
 };
 
 struct VulkanDepthStencil
@@ -60,144 +85,74 @@ struct VulkanDepthStencil
 	VkImageView view;
 };
 
-class VulkanExampleBase
+class CVulkanFramework : public IVulkanFramework
 {
 private:	
-	float								fpsTimer;
-	bool								enableValidation;	// Set to true when example is created with enabled validation layers
-	VkResult							createInstance(bool enableValidation);											// Create application wide Vulkan instance
-	VkResult							createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation);	// Create logical Vulkan device based on physical device
+	float								fpsTimer			= 0;
+	bool								enableValidation	= false;			// Set to true when example is created with enabled validation layers
+	VkResult							createInstance(bool enableValidation);	// Create application wide Vulkan instance
+	VkResult							createDevice(
+		VkDeviceQueueCreateInfo requestedQueues, 
+		bool enableValidation
+		);	// Create logical Vulkan device based on physical device
 	std::string							getWindowTitle();
 protected:
-	float								frameTimer;				// Last frame time, measured using a high performance timer (if available)
-	VkInstance							instance;				// Vulkan instance, stores all per-application states
-	VkPhysicalDevice					physicalDevice;			// Physical device (GPU) that Vulkan will ise
-	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;	// Stores all available memory (type) properties for the physical device
-	VkDevice							device;					// Logical device, application's view of the physical device (GPU)
-	VkQueue								queue;					// Handle to the device graphics queue that command buffers are submitted to
-	VkFormat							colorformat				= VK_FORMAT_B8G8R8A8_UNORM;		// Color buffer format
-	VkFormat							depthFormat;			// Depth buffer format - Depth format is selected during Vulkan initialization
-	VkCommandPool						cmdPool;				// Command buffer pool
-	VkCommandBuffer						setupCmdBuffer			= VK_NULL_HANDLE;	// Command buffer used for setup
-	VkCommandBuffer						postPresentCmdBuffer	= VK_NULL_HANDLE;	// Command buffer for submitting a post present image barrier
-	VkCommandBuffer						prePresentCmdBuffer		= VK_NULL_HANDLE;	// Command buffer for submitting a pre present image barrier
-	VkPipelineStageFlags				submitPipelineStages	= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;	// Pipeline stage flags for the submit info structure
-	VkSubmitInfo						submitInfo;				// Contains command buffers and semaphores to be presented to the queue
-	std::vector<VkCommandBuffer>		drawCmdBuffers;			// Command buffers used for rendering
-	VkRenderPass						renderPass;				// Global render pass for frame buffer writes
-	std::vector<VkFramebuffer>			frameBuffers;			// List of available frame buffers (same as number of swap chain images)
-	uint32_t							currentBuffer = 0;		// Active frame buffer index
-	VkDescriptorPool					descriptorPool;			// Descriptor set pool
-	std::vector<VkShaderModule>			shaderModules;			// List of shader modules created (stored for cleanup)
-	VkPipelineCache						pipelineCache;			// Pipeline cache object
-	VulkanSwapChain						swapChain;				// Wraps the swap chain to present images (framebuffers) to the windowing system
-	VkPhysicalDeviceProperties			deviceProperties;		// Stores physical device properties (for e.g. checking device limits)
-	uint32_t							frameCounter;			// Frame counter to display fps
-	
+	float								frameTimer					= 0;	// Last frame time, measured using a high performance timer (if available)
+	VkInstance							instance					= 0;	// Vulkan instance, stores all per-application states
+	VkPhysicalDevice					physicalDevice				= 0;	// Physical device (GPU) that Vulkan will ise
+	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;				// Stores all available memory (type) properties for the physical device
+	VkDevice							device						= 0;	// Logical device, application's view of the physical device (GPU)
+	VkQueue								queue						= 0;	// Handle to the device graphics queue that command buffers are submitted to
+	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
+	VkFormat							depthFormat;						// Depth buffer format - Depth format is selected during Vulkan initialization
+	VkCommandPool						cmdPool						= VK_NULL_HANDLE;	// Command buffer pool
+	VkCommandBuffer						setupCmdBuffer				= VK_NULL_HANDLE;	// Command buffer used for setup
+	VkCommandBuffer						postPresentCmdBuffer		= VK_NULL_HANDLE;	// Command buffer for submitting a post present image barrier
+	VkCommandBuffer						prePresentCmdBuffer			= VK_NULL_HANDLE;	// Command buffer for submitting a pre present image barrier
+	VkPipelineStageFlags				submitPipelineStages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;	// Pipeline stage flags for the submit info structure
+	VkSubmitInfo						submitInfo;										// Contains command buffers and semaphores to be presented to the queue
+	std::vector<VkCommandBuffer>		drawCmdBuffers;									// Command buffers used for rendering
+	VkRenderPass						renderPass					= VK_NULL_HANDLE;	// Global render pass for frame buffer writes
+	std::vector<VkFramebuffer>			frameBuffers;									// List of available frame buffers (same as number of swap chain images)
+	uint32_t							currentBuffer				= 0;				// Active frame buffer index
+	VkDescriptorPool					descriptorPool				= VK_NULL_HANDLE;	// Descriptor set pool
+	std::vector<VkShaderModule>			shaderModules;									// List of shader modules created (stored for cleanup)
+	VkPipelineCache						pipelineCache				= VK_NULL_HANDLE;	// Pipeline cache object
+	VulkanSwapChain						swapChain;										// Wraps the swap chain to present images (framebuffers) to the windowing system
+	VkPhysicalDeviceProperties			deviceProperties;								// Stores physical device properties (for e.g. checking device limits)
+	uint32_t							frameCounter				= 0;				// Frame counter to display fps
+	vkTools::VulkanTextureLoader		*textureLoader				= nullptr;			// Simple texture loader
 
-//=======
-//	// Set to true when example is created with enabled validation layers
-//	bool enableValidation = false;
-//	// fps timer (one second interval)
-//	float fpsTimer = 0.0f;
-//	// Create application wide Vulkan instance
-//	VkResult createInstance(bool enableValidation);
-//	// Create logical Vulkan device based on physical device
-//	VkResult createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation);
-//	// Get window title with example name, device, et.
-//	std::string getWindowTitle();
-//protected:
-//	// Last frame time, measured using a high performance timer (if available)
-//	float frameTimer = 1.0f;
-//	// Frame counter to display fps
-//	uint32_t frameCounter = 0;
-//	// Vulkan instance, stores all per-application states
-//	VkInstance instance;
-//	// Physical device (GPU) that Vulkan will ise
-//	VkPhysicalDevice physicalDevice;
-//	// Stores physical device properties (for e.g. checking device limits)
-//	VkPhysicalDeviceProperties deviceProperties;
-//	// Stores all available memory (type) properties for the physical device
-//	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
-//	// Logical device, application's view of the physical device (GPU)
-//	VkDevice device;
-//	// Handle to the device graphics queue that command buffers are submitted to
-//	VkQueue queue;
-//	// Color buffer format
-//	VkFormat colorformat = VK_FORMAT_B8G8R8A8_UNORM;
-//	// Depth buffer format
-//	// Depth format is selected during Vulkan initialization
-//	VkFormat depthFormat;
-//	// Command buffer pool
-//	VkCommandPool cmdPool;
-//	// Command buffer used for setup
-//	VkCommandBuffer setupCmdBuffer = VK_NULL_HANDLE;
-//	// Command buffer for submitting a post present image barrier
-//	VkCommandBuffer postPresentCmdBuffer = VK_NULL_HANDLE;
-//	// Command buffer for submitting a pre present image barrier
-//	VkCommandBuffer prePresentCmdBuffer = VK_NULL_HANDLE;
-//	// Pipeline stage flags for the submit info structure
-//	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-//	// Contains command buffers and semaphores to be presented to the queue
-//	VkSubmitInfo submitInfo;
-//	// Command buffers used for rendering
-//	std::vector<VkCommandBuffer> drawCmdBuffers;
-//	// Global render pass for frame buffer writes
-//	VkRenderPass renderPass;
-//	// List of available frame buffers (same as number of swap chain images)
-//	std::vector<VkFramebuffer>frameBuffers;
-//	// Active frame buffer index
-//	uint32_t currentBuffer = 0;
-//	// Descriptor set pool
-//	VkDescriptorPool descriptorPool;
-//	// List of shader modules created (stored for cleanup)
-//	std::vector<VkShaderModule> shaderModules;
-//	// Pipeline cache object
-//	VkPipelineCache pipelineCache;
-//	// Wraps the swap chain to present images (framebuffers) to the windowing system
-//	VulkanSwapChain swapChain;
-//	// Synchronization semaphores
-//>>>>>>> 0b7dd41f1d1a9c45dbb9d1d12e6025015d00b117
-	struct {
-		// Swap chain image presentation
-		VkSemaphore presentComplete;
-		// Command buffer submission and execution
-		VkSemaphore renderComplete;
-	} semaphores;	// Synchronization semaphores
-	vkTools::VulkanTextureLoader*		textureLoader = nullptr;	// Simple texture loader
+	struct SVulkanSwapChainSemaphores 
+	{
+		VkSemaphore presentComplete;	// Swap chain image presentation
+		VkSemaphore renderComplete;		// Command buffer submission and execution
+	} semaphores;																// Synchronization semaphores
+
+	//--------------------------------------------------------------
+	std::string							getAssetPath();							// Returns the base asset path (for shaders, models, textures) depending on the os
+	IVulkanExample*						m_pVulkanExample			= nullptr;	
+
 public: 
-	bool prepared = false;
-	VulkanExampleScreen ScreenProperties; 
-
-	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
-
-	float zoom = 0;
-
-	// Defines a frame rate independent timer value clamped from -1.0...1.0
-	// For use in animations, rotations, etc.
-	float timer = 0.0f;
-	// Multiplier for speeding up (or slowing down) the global timer
-	float timerSpeed = 0.25f;
-	
-	bool paused = false;
-
-	// Use to adjust mouse rotation speed
-	float rotationSpeed = 1.0f;
-	// Use to adjust mouse zoom speed
-	float zoomSpeed = 1.0f;
-
-	glm::vec3 rotation = glm::vec3();
-	glm::vec2 mousePos;
-
-	std::string title = "Vulkan Example";
-	std::string name = "vulkanExample";
-
-	VulkanDepthStencil depthStencil;
+	VulkanExampleScreen		ScreenProperties; 
+	bool					prepared			= false;
+	VkClearColorValue		defaultClearColor	= { { 0.025f, 0.025f, 0.025f, 1.0f } };
+	float					zoom				= 0;
+	float					timer				= 0.0f;		// Defines a frame rate independent timer value clamped from -1.0...1.0 for use in animations, rotations, etc.
+	float					timerSpeed			= 0.25f;	// Multiplier for speeding up (or slowing down) the global timer
+	bool					paused				= false;
+	float					rotationSpeed		= 1.0f;		// Use to adjust mouse rotation speed
+	float					zoomSpeed			= 1.0f;		// Use to adjust mouse zoom speed
+	glm::vec3				rotation			= glm::vec3();
+	glm::vec2				mousePos;
+	std::string				title				= "Vulkan Example";
+	std::string				name				= "vulkanExample";
+	VulkanDepthStencil		depthStencil;
 
 	// OS specific 
 #if defined(_WIN32)
-	HWND window;
-	HINSTANCE windowInstance;
+	HWND					window				= 0;
+	HINSTANCE				windowInstance		= 0;
 #elif defined(__ANDROID__)
 	android_app* androidApp;
 	bool animating = true;
@@ -218,19 +173,18 @@ public:
 		bool right = false;
 	} mouseButtons;
 	bool quit;
-	xcb_connection_t *connection;
-	xcb_screen_t *screen;
+	xcb_connection_t *connection=0;
+	xcb_screen_t *screen=0;
 	xcb_window_t window;
-	xcb_intern_atom_reply_t *atom_wm_delete_window;
+	xcb_intern_atom_reply_t *atom_wm_delete_window=0;
 #endif
 
-	VulkanExampleBase(bool enableValidation);
-	VulkanExampleBase() : VulkanExampleBase(false) {};
-	~VulkanExampleBase();
+	CVulkanFramework(bool enableValidation);
+	CVulkanFramework() : CVulkanFramework(ENABLE_VALIDATION) {};
+	~CVulkanFramework();
 
-	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
-	void initVulkan(bool enableValidation);
-
+	void initVulkan(bool enableValidation);	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
+	
 #if defined(_WIN32)
 	void setupConsole(std::string title);
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
@@ -245,81 +199,31 @@ public:
 #endif
 
 	// Pure virtual render function (override in derived class)
-	virtual void render() = 0;
-	// Called when view change occurs
-	// Can be overriden in derived class to e.g. update uniform buffers 
-	// Containing view dependant matrices
-	virtual void viewChanged();
-	// Called if a key is pressed
-	// Can be overriden derived class to do custom key handling
-	virtual void keyPressed(uint32_t keyCode);
+	virtual int32_t		render() = 0;
+
+	// Called when view change occurs. Can be overriden in derived class to e.g. update uniform buffers containing view dependant matrices
+	virtual void		viewChanged();
+	virtual void		keyPressed(uint32_t keyCode);	// Called if a key is pressed 
 
 	// Get memory type for a given memory allocation (flags and bits)
-	VkBool32 getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex);
+	VkBool32			getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex);
+	void				createCommandPool();	// Creates a new (graphics) command pool object storing command buffers
+	void				setupDepthStencil();	// Setup default depth and stencil views
+	void				setupFrameBuffer();		// Create framebuffers for all requested swap chain images
+	void				setupRenderPass();		// Setup a default render pass
+	void				initSwapchain();		// Connect and prepare the swap chain
+	void				setupSwapChain();		// Create swap chain images
+	bool				checkCommandBuffers();	// Check if command buffers are valid (!= VK_NULL_HANDLE)
+	void				createCommandBuffers();	// Create command buffers for drawing commands
 
-	// Creates a new (graphics) command pool object storing command buffers
-	void createCommandPool();
-	// Setup default depth and stencil views
-	void setupDepthStencil();
-	// Create framebuffers for all requested swap chain images
-	void setupFrameBuffer();
-	// Setup a default render pass
-	void setupRenderPass();
+	// Destroy all command buffers and set their handles to VK_NULL_HANDLE. May be necessary during runtime if options are toggled 
+	void				destroyCommandBuffers();
+	void				createSetupCommandBuffer();	// Create command buffer for setup commands
+	void				flushSetupCommandBuffer();	// Finalize setup command bufferm submit it to the queue and remove it
+	void				createPipelineCache();		// Create a cache pool for rendering pipelines
+	void				renderLoop();				// Start the main render loop
+	virtual int32_t		prepare();					// Prepare commonly used Vulkan functions
 
-	// Connect and prepare the swap chain
-	void initSwapchain();
-	// Create swap chain images
-	void setupSwapChain();
-
-	// Check if command buffers are valid (!= VK_NULL_HANDLE)
-	bool checkCommandBuffers();
-	// Create command buffers for drawing commands
-	void createCommandBuffers();
-	// Destroy all command buffers and set their handles to VK_NULL_HANDLE
-	// May be necessary during runtime if options are toggled 
-	void destroyCommandBuffers();
-	// Create command buffer for setup commands
-	void createSetupCommandBuffer();
-	// Finalize setup command bufferm submit it to the queue and remove it
-	void flushSetupCommandBuffer();
-
-	// Create a cache pool for rendering pipelines
-	void createPipelineCache();
-
-	// Prepare commonly used Vulkan functions
-	virtual void prepare();
-
-	// Load a SPIR-V shader
-	VkPipelineShaderStageCreateInfo loadShader(const char* fileName, VkShaderStageFlagBits stage);
-	
-	// Create a buffer, fill it with data and bind buffer memory
-	// Can be used for e.g. vertex or index buffer based on mesh data
-	VkBool32 createBuffer(
-		VkBufferUsageFlags usage,
-		VkDeviceSize size,
-		void *data,
-		VkBuffer *buffer,
-		VkDeviceMemory *memory);
-	// Overload that assigns buffer info to descriptor
-	VkBool32 createBuffer(
-		VkBufferUsageFlags usage,
-		VkDeviceSize size,
-		void *data,
-		VkBuffer *buffer,
-		VkDeviceMemory *memory,
-		VkDescriptorBufferInfo *descriptor);
-
-	// Load a mesh (using ASSIMP) and create vulkan vertex and index buffers with given vertex layout
-	// todo : mesh loader not yet enabled for Android
-#ifndef __ANDROID__
-	void loadMesh(
-		const char *filename,
-		vkMeshLoader::MeshBuffer *meshBuffer,
-		std::vector<vkMeshLoader::VertexLayout> vertexLayout,
-		float scale);
-#endif
-	// Start the main render loop
-	void renderLoop();
 
 	// Submit a pre present image barrier to the queue
 	// Transforms the (framebuffer) image layout from color attachment to present(khr) for presenting to the swap chain
@@ -334,5 +238,33 @@ public:
 	VkSubmitInfo prepareSubmitInfo(
 		std::vector<VkCommandBuffer> commandBuffers,
 		VkPipelineStageFlags *pipelineStages);
+
+	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);	// Load a SPIR-V shader
+
+	// Create a buffer, fill it with data and bind buffer memory
+	// Can be used for e.g. vertex or index buffer based on mesh data
+	VkBool32 createBuffer(
+		VkBufferUsageFlags usage,
+		VkDeviceSize size,
+		void *data,
+		VkBuffer *buffer,
+		VkDeviceMemory *memory);
+
+	// Overload that assigns buffer info to descriptor
+	VkBool32 createBuffer(
+		VkBufferUsageFlags usage,
+		VkDeviceSize size,
+		void *data,
+		VkBuffer *buffer,
+		VkDeviceMemory *memory,
+		VkDescriptorBufferInfo *descriptor);
+
+	// Load a mesh (using ASSIMP) and create vulkan vertex and index buffers with given vertex layout
+	void loadMesh(
+		std::string fiename,
+		vkMeshLoader::MeshBuffer *meshBuffer,
+		std::vector<vkMeshLoader::VertexLayout> vertexLayout,
+		float scale);
 };
 
+#endif	// __VULKANEXAMPLEBASE_H__

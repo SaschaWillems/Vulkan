@@ -32,7 +32,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_COLOR
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CVulkanFramework
 {
 public:
 	bool animate = true;
@@ -69,10 +69,8 @@ public:
 	// and will be updated via a push constant
 	std::array<glm::vec4, 6> pushConstants;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
 	{
-		ScreenProperties.Width = 1280;
-		ScreenProperties.Height = 720;
 		zoom = -30.0;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
@@ -476,9 +474,9 @@ public:
 		vkUnmapMemory(device, uniformData.vertexShader.memory);
 	}
 
-	void prepare()
+	int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		CVulkanFramework::prepare();
 		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
@@ -488,12 +486,13 @@ public:
 		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
 		if (!prepared)
-			return;
+			return 1;
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
@@ -501,6 +500,7 @@ public:
 		{
 			reBuildCommandBuffers();
 		}
+		return 0;
 	}
 
 	virtual void viewChanged()

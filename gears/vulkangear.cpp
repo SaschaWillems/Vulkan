@@ -28,7 +28,7 @@ void VulkanGear::newFace(std::vector<uint32_t> *iBuffer, int a, int b, int c)
 	iBuffer->push_back(c);
 }
 
-VulkanGear::VulkanGear(VkDevice device, VulkanExampleBase *example)
+VulkanGear::VulkanGear(VkDevice device, CVulkanFramework *example)
 {
 	this->device = device;
 	this->exampleBase = example;

@@ -18,7 +18,7 @@ Use it to generate a platform-specific build configuration for building all exam
 
 ### [Android](android/)
 
-The repository also contains a few Android examples to get started, check the [Android readme](./android/README.md) for details.
+I'm currently adding Android support to the examples, replacing the initial separate examples. Please see the [Android readme](./android/README.md) on how to build these and a few notes on the platform.
 
 ## Binaries
 
@@ -108,7 +108,7 @@ Based on the mesh loading example, this example loads and displays a rigged COLL
 ## [Particle system](particlefire/)
 <img src="./screenshots/particlefire.png" height="96px" align="right">
 
-Point sprite based particle system simulating a fire. Particles and their attributes are stored in a host visible vertex buffer that's updated on the CPU on each frame. Also makes use of pre-multiplied alpha for rendering particles with different blending modes (smoke and fire) in one single pass. 
+Point sprite based particle system simulating a fire. Particles and their attributes are stored in a host visible vertex buffer that's updated on the CPU on each frame. Also makes use of pre-multiplied alpha for rendering particles with different blending modes (smoke and fire) in one single pass.
 
 
 
