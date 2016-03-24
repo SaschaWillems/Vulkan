@@ -39,6 +39,7 @@ PFN_vkBindImageMemory vkBindImageMemory;
 PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
 PFN_vkCmdCopyBuffer vkCmdCopyBuffer;
 PFN_vkCmdCopyImage vkCmdCopyImage;
+PFN_vkCmdBlitImage vkCmdBlitImage;
 PFN_vkCreateSampler vkCreateSampler;
 PFN_vkDestroySampler vkDestroySampler;
 PFN_vkDestroyImage vkDestroyImage;
@@ -160,6 +161,7 @@ void loadVulkanFunctions(VkInstance instance)
 	vkBindImageMemory = reinterpret_cast<PFN_vkBindImageMemory>(vkGetInstanceProcAddr(instance, "vkBindImageMemory"));
 	vkGetImageSubresourceLayout = reinterpret_cast<PFN_vkGetImageSubresourceLayout>(vkGetInstanceProcAddr(instance, "vkGetImageSubresourceLayout"));
 	vkCmdCopyImage = reinterpret_cast<PFN_vkCmdCopyImage>(vkGetInstanceProcAddr(instance, "vkCmdCopyImage"));
+	vkCmdBlitImage = reinterpret_cast<PFN_vkCmdBlitImage>(vkGetInstanceProcAddr(instance, "vkCmdBlitImage"));
 	vkDestroyImage = reinterpret_cast<PFN_vkDestroyImage>(vkGetInstanceProcAddr(instance, "vkDestroyImage"));
 
 	vkCmdCopyBuffer = reinterpret_cast<PFN_vkCmdCopyBuffer>(vkGetInstanceProcAddr(instance, "vkCmdCopyBuffer"));
