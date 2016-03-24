@@ -607,7 +607,7 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadCubemap(
-			"./../data/textures/cubemap_space.ktx",
+			getAssetPath() + "textures/cubemap_space.ktx",
 			VK_FORMAT_R8G8B8A8_UNORM,
 			&textures.cubemap);
 	}
@@ -741,9 +741,9 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/retroufo.X", &meshes.ufo, vertexLayout, 0.05f);
-		loadMesh("./../data/models/retroufo_glow.X", &meshes.ufoGlow, vertexLayout, 0.05f);
-		loadMesh("./../data/models/cube.obj", &meshes.skyBox, vertexLayout, 1.0f);
+		loadMesh(getAssetPath() + "models/retroufo.dae", &meshes.ufo, vertexLayout, 0.05f);
+		loadMesh(getAssetPath() + "models/retroufo_glow.dae", &meshes.ufoGlow, vertexLayout, 0.05f);
+		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skyBox, vertexLayout, 1.0f);
 	}
 
 	// Setup vertices for a single uv-mapped quad
@@ -1072,8 +1072,8 @@ public:
 
 		// Vertical gauss blur
 		// Load shaders
-		shaderStages[0] = loadShader("./../data/shaders/bloom/gaussblur.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/bloom/gaussblur.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/gaussblur.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/gaussblur.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -1106,8 +1106,8 @@ public:
 		assert(!err);
 
 		// Phong pass (3D model)
-		shaderStages[0] = loadShader("./../data/shaders/bloom/phongpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/bloom/phongpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/phongpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/phongpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		pipelineCreateInfo.layout = pipelineLayouts.scene;
 		blendAttachmentState.blendEnable = VK_FALSE;
@@ -1117,15 +1117,15 @@ public:
 		assert(!err);
 
 		// Color only pass (offscreen blur base)
-		shaderStages[0] = loadShader("./../data/shaders/bloom/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/bloom/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.colorPass);
 		assert(!err);
 
 		// Skybox (cubemap
-		shaderStages[0] = loadShader("./../data/shaders/bloom/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/bloom/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		depthStencilState.depthWriteEnable = VK_FALSE;
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skyBox);
 		assert(!err);
@@ -1305,8 +1305,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -1330,9 +1329,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -1342,21 +1339,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }

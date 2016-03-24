@@ -182,7 +182,7 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			"./../data/textures/igor_and_pal_rgba.ktx", 
+			getAssetPath() + "textures/igor_and_pal_rgba.ktx", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textureColorMap,
 			false,
@@ -602,8 +602,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/computeshader/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/computeshader/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/computeshader/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/computeshader/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -721,7 +721,7 @@ public:
 
 		for (auto& shaderName : shaderNames)
 		{
-			std::string fileName = "./../data/shaders/computeshader/" + shaderName + ".comp.spv";
+			std::string fileName = getAssetPath() + "shaders/computeshader/" + shaderName + ".comp.spv";
 			computePipelineCreateInfo.stage = loadShader(fileName.c_str(), VK_SHADER_STAGE_COMPUTE_BIT);
 			VkPipeline pipeline;
 			err = vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &pipeline);
@@ -843,29 +843,23 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
+		switch (wParam)
 		{
-			switch (wParam)
-			{
-			case VK_ADD:
-			case VK_SUBTRACT:
-				vulkanExample->switchComputePipeline((wParam == VK_ADD) ? 1 : -1);
-				break;
-			}
+		case VK_ADD:
+		case VK_SUBTRACT:
+			vulkanExample->switchComputePipeline((wParam == VK_ADD) ? 1 : -1);
+			break;
 		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -875,21 +869,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }
