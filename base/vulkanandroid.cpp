@@ -40,6 +40,7 @@ PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
 PFN_vkCmdCopyBuffer vkCmdCopyBuffer;
 PFN_vkCmdCopyImage vkCmdCopyImage;
 PFN_vkCmdBlitImage vkCmdBlitImage;
+PFN_vkCmdClearAttachments vkCmdClearAttachments;
 PFN_vkCreateSampler vkCreateSampler;
 PFN_vkDestroySampler vkDestroySampler;
 PFN_vkDestroyImage vkDestroyImage;
@@ -97,6 +98,13 @@ PFN_vkDestroyRenderPass vkDestroyRenderPass;
 PFN_vkDestroyFramebuffer vkDestroyFramebuffer;
 PFN_vkDestroyShaderModule vkDestroyShaderModule;
 PFN_vkDestroyPipelineCache vkDestroyPipelineCache;
+PFN_vkCreateQueryPool vkCreateQueryPool;
+PFN_vkDestroyQueryPool vkDestroyQueryPool;
+PFN_vkGetQueryPoolResults vkGetQueryPoolResults;
+PFN_vkCmdBeginQuery vkCmdBeginQuery;
+PFN_vkCmdEndQuery vkCmdEndQuery;
+PFN_vkCmdResetQueryPool vkCmdResetQueryPool;
+PFN_vkCmdCopyQueryPoolResults vkCmdCopyQueryPoolResults;
 
 PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
@@ -166,6 +174,8 @@ void loadVulkanFunctions(VkInstance instance)
 	vkCmdCopyImage = reinterpret_cast<PFN_vkCmdCopyImage>(vkGetInstanceProcAddr(instance, "vkCmdCopyImage"));
 	vkCmdBlitImage = reinterpret_cast<PFN_vkCmdBlitImage>(vkGetInstanceProcAddr(instance, "vkCmdBlitImage"));
 	vkDestroyImage = reinterpret_cast<PFN_vkDestroyImage>(vkGetInstanceProcAddr(instance, "vkDestroyImage"));
+	
+	vkCmdClearAttachments = reinterpret_cast<PFN_vkCmdClearAttachments>(vkGetInstanceProcAddr(instance, "vkCmdClearAttachments"));
 
 	vkCmdCopyBuffer = reinterpret_cast<PFN_vkCmdCopyBuffer>(vkGetInstanceProcAddr(instance, "vkCmdCopyBuffer"));
 
@@ -232,6 +242,15 @@ void loadVulkanFunctions(VkInstance instance)
 	vkDestroyShaderModule = reinterpret_cast<PFN_vkDestroyShaderModule>(vkGetInstanceProcAddr(instance, "vkDestroyShaderModule"));
 	vkDestroyPipelineCache = reinterpret_cast<PFN_vkDestroyPipelineCache>(vkGetInstanceProcAddr(instance, "vkDestroyPipelineCache"));
 
+	vkCreateQueryPool = reinterpret_cast<PFN_vkCreateQueryPool>(vkGetInstanceProcAddr(instance, "vkCreateQueryPool"));
+	vkDestroyQueryPool = reinterpret_cast<PFN_vkDestroyQueryPool>(vkGetInstanceProcAddr(instance, "vkDestroyQueryPool"));
+	vkGetQueryPoolResults = reinterpret_cast<PFN_vkGetQueryPoolResults>(vkGetInstanceProcAddr(instance, "vkGetQueryPoolResults"));
+
+	vkCmdBeginQuery = reinterpret_cast<PFN_vkCmdBeginQuery>(vkGetInstanceProcAddr(instance, "vkCmdBeginQuery"));
+	vkCmdEndQuery = reinterpret_cast<PFN_vkCmdEndQuery>(vkGetInstanceProcAddr(instance, "vkCmdEndQuery"));
+	vkCmdResetQueryPool = reinterpret_cast<PFN_vkCmdResetQueryPool>(vkGetInstanceProcAddr(instance, "vkCmdResetQueryPool"));
+	vkCmdCopyQueryPoolResults = reinterpret_cast<PFN_vkCmdCopyQueryPoolResults>(vkGetInstanceProcAddr(instance, "vkCmdCopyQueryPoolResults"));
+	
 	vkCreateAndroidSurfaceKHR = reinterpret_cast<PFN_vkCreateAndroidSurfaceKHR>(vkGetInstanceProcAddr(instance, "vkCreateAndroidSurfaceKHR"));
 	vkDestroySurfaceKHR = reinterpret_cast<PFN_vkDestroySurfaceKHR>(vkGetInstanceProcAddr(instance, "vkDestroySurfaceKHR"));
 }
