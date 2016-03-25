@@ -68,7 +68,7 @@ namespace vkTools
 		// Load a 2D texture
 		void loadTexture(std::string filename, VkFormat format, VulkanTexture *texture, bool forceLinear)
 		{
-			loadTexture(filename, format, texture, false, VK_IMAGE_USAGE_SAMPLED_BIT);
+			loadTexture(filename, format, texture, forceLinear, VK_IMAGE_USAGE_SAMPLED_BIT);
 		}
 
 		// Load a 2D texture
@@ -230,7 +230,7 @@ namespace vkTools
 
 					copyRegion.extent.width = tex2D[level].dimensions().x;
 					copyRegion.extent.height = tex2D[level].dimensions().y;
-					copyRegion.extent.depth = 0;
+					copyRegion.extent.depth = 1;
 
 					// Put image copy into command buffer
 					vkCmdCopyImage(
