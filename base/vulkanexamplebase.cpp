@@ -397,25 +397,25 @@ void VulkanExampleBase::renderLoop()
 				}
 			}
 			// Check gamepad state
-			const float deadZone = 0.10f;
+			const float deadZone = 0.0015f;
 			// todo : check if gamepad is present
 			// todo : time based and relative axis positions
 			bool updateView = false;
 			// Rotate
-			if (abs(gamePadState.axes.x) > deadZone)
+			if (std::abs(gamePadState.axes.x - deadZone) > 0.0f)
 			{
-				rotation.y += gamePadState.axes.x * 0.25f * rotationSpeed;
+				rotation.y += gamePadState.axes.x * 0.5f * rotationSpeed;
 				updateView = true;
 			}
-			if (abs(gamePadState.axes.y) > deadZone)
+			if (std::abs(gamePadState.axes.y - deadZone) > 0.0f)
 			{
-				rotation.x -= gamePadState.axes.y * 0.25f * rotationSpeed;
+				rotation.x -= gamePadState.axes.y * 0.5f * rotationSpeed;
 				updateView = true;
 			}
 			// Zoom
-			if (abs(gamePadState.axes.rz) > deadZone)
+			if (std::abs(gamePadState.axes.rz - deadZone) > 0.0f)
 			{
-				zoom -= gamePadState.axes.rz * 0.005f * zoomSpeed;
+				zoom -= gamePadState.axes.rz * 0.01f * zoomSpeed;
 				updateView = true;
 			}
 			if (updateView)
