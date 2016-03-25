@@ -99,6 +99,7 @@ extern PFN_vkCmdBindVertexBuffers vkCmdBindVertexBuffers;
 extern PFN_vkCmdBindIndexBuffer vkCmdBindIndexBuffer;
 extern PFN_vkCmdSetViewport vkCmdSetViewport;
 extern PFN_vkCmdSetScissor vkCmdSetScissor;
+extern PFN_vkCmdSetLineWidth vkCmdSetLineWidth;
 extern PFN_vkCmdDrawIndexed vkCmdDrawIndexed;
 extern PFN_vkCmdDraw vkCmdDraw;
 extern PFN_vkCmdDispatch vkCmdDispatch;
