@@ -81,6 +81,8 @@ PFN_vkCmdBindIndexBuffer vkCmdBindIndexBuffer;
 PFN_vkCmdSetViewport vkCmdSetViewport;
 PFN_vkCmdSetScissor vkCmdSetScissor;
 PFN_vkCmdSetLineWidth vkCmdSetLineWidth;
+PFN_vkCmdSetDepthBias vkCmdSetDepthBias;
+PFN_vkCmdPushConstants vkCmdPushConstants;
 PFN_vkCmdDrawIndexed vkCmdDrawIndexed;
 PFN_vkCmdDraw vkCmdDraw;
 PFN_vkCmdDispatch vkCmdDispatch;
@@ -210,7 +212,9 @@ void loadVulkanFunctions(VkInstance instance)
 
 	vkCmdSetViewport = reinterpret_cast<PFN_vkCmdSetViewport>(vkGetInstanceProcAddr(instance, "vkCmdSetViewport"));
 	vkCmdSetScissor = reinterpret_cast<PFN_vkCmdSetScissor>(vkGetInstanceProcAddr(instance, "vkCmdSetScissor"));
-	vkCmdSetLineWidth = reinterpret_cast<PFN_vkCmdSetLineWidth>(vkGetInstanceProcAddr(instance, "vkCmdSetLineWidth"));;
+	vkCmdSetLineWidth = reinterpret_cast<PFN_vkCmdSetLineWidth>(vkGetInstanceProcAddr(instance, "vkCmdSetLineWidth"));
+	vkCmdSetDepthBias = reinterpret_cast<PFN_vkCmdSetDepthBias>(vkGetInstanceProcAddr(instance, "vkCmdSetDepthBias"));
+	vkCmdPushConstants = reinterpret_cast<PFN_vkCmdPushConstants>(vkGetInstanceProcAddr(instance, "vkCmdPushConstants"));;
 
 	vkCmdDrawIndexed = reinterpret_cast<PFN_vkCmdDrawIndexed>(vkGetInstanceProcAddr(instance, "vkCmdDrawIndexed"));
 	vkCmdDraw = reinterpret_cast<PFN_vkCmdDraw>(vkGetInstanceProcAddr(instance, "vkCmdDraw"));
