@@ -58,43 +58,6 @@ int32_t nextValuePair(std::stringstream *stream)
 	return val;
 }
 
-void parsebmFont()
-{
-	const char *filename = "../data/font.fnt";
-
-	std::ifstream fstream(filename);
-	assert(fstream.good());
-
-	while (!fstream.eof())
-	{
-		std::string line;
-		std::stringstream lineStream;
-		std::getline(fstream, line);
-		lineStream << line;
-
-		std::string info;
-		lineStream >> info;
-
-		if (info == "char")
-		{
-			std::string pair;
-
-			// char id
-			uint32_t charid = nextValuePair(&lineStream);
-			// Char properties
-			fontChars[charid].x = nextValuePair(&lineStream);
-			fontChars[charid].y = nextValuePair(&lineStream);
-			fontChars[charid].width = nextValuePair(&lineStream);
-			fontChars[charid].height = nextValuePair(&lineStream);
-			fontChars[charid].xoffset = nextValuePair(&lineStream);
-			fontChars[charid].yoffset = nextValuePair(&lineStream);
-			fontChars[charid].xadvance = nextValuePair(&lineStream);
-			fontChars[charid].page = nextValuePair(&lineStream);
-		}
-	}
-
-}
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -179,14 +142,73 @@ public:
 		vkFreeMemory(device, uniformData.vs.memory, nullptr);
 	}
 
+	// Basic parser fpr AngelCode bitmap font format files
+	// See http://www.angelcode.com/products/bmfont/doc/file_format.html for details
+	void parsebmFont()
+	{
+		std::string fileName = getAssetPath() + "font.fnt";
+
+#if defined(__ANDROID__)
+		// Font description file is stored inside the apk
+		// So we need to load it using the asset manager
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, fileName.c_str(), AASSET_MODE_STREAMING);
+		assert(asset);
+		size_t size = AAsset_getLength(asset);
+
+		assert(size > 0);
+
+		void *fileData = malloc(size);
+		AAsset_read(asset, fileData, size);
+		AAsset_close(asset);
+
+		std::stringbuf sbuf((const char*)fileData);
+		std::istream istream(&sbuf);
+#else
+		FILE *file = fopen(fileName.c_str(), "r");
+		std::filebuf fileBuffer(file);
+		std::istream istream(&fileBuffer);
+#endif
+
+		assert(istream.good());
+
+		while (!istream.eof())
+		{
+			std::string line;
+			std::stringstream lineStream;
+			std::getline(istream, line);
+			lineStream << line;
+
+			std::string info;
+			lineStream >> info;
+
+			if (info == "char")
+			{
+				std::string pair;
+
+				// char id
+				uint32_t charid = nextValuePair(&lineStream);
+				// Char properties
+				fontChars[charid].x = nextValuePair(&lineStream);
+				fontChars[charid].y = nextValuePair(&lineStream);
+				fontChars[charid].width = nextValuePair(&lineStream);
+				fontChars[charid].height = nextValuePair(&lineStream);
+				fontChars[charid].xoffset = nextValuePair(&lineStream);
+				fontChars[charid].yoffset = nextValuePair(&lineStream);
+				fontChars[charid].xadvance = nextValuePair(&lineStream);
+				fontChars[charid].page = nextValuePair(&lineStream);
+			}
+		}
+
+	}
+
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			"./../data/textures/font_sdf_rgba.ktx",
+			getAssetPath() + "textures/font_sdf_rgba.ktx",
 			VK_FORMAT_R8G8B8A8_UNORM,
 			&textures.fontSDF);
 		textureLoader->loadTexture(
-			"./../data/textures/font_bitmap_rgba.ktx",
+			getAssetPath() + "textures/font_bitmap_rgba.ktx",
 			VK_FORMAT_R8G8B8A8_UNORM,
 			&textures.fontBitmap);
 	}
@@ -207,7 +229,6 @@ public:
 
 		VkClearValue clearValues[2];
 		clearValues[0].color = defaultClearColor;
-		clearValues[0].color = { {0.0f, 0.0f, 0.2f, 0.0f} };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
@@ -555,13 +576,14 @@ public:
 				0xf,
 				VK_TRUE);
 
+		blendAttachmentState.blendEnable = VK_TRUE;
+		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
-		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		blendAttachmentState.blendEnable = VK_FALSE;
+		blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 		VkPipelineColorBlendStateCreateInfo colorBlendState =
 			vkTools::initializers::pipelineColorBlendStateCreateInfo(
@@ -595,8 +617,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/distancefieldfonts/sdf.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/distancefieldfonts/sdf.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/distancefieldfonts/sdf.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/distancefieldfonts/sdf.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -619,8 +641,8 @@ public:
 		assert(!err);
 
 		// Default bitmap font rendering pipeline
-		shaderStages[0] = loadShader("./../data/shaders/distancefieldfonts/bitmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/distancefieldfonts/bitmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/distancefieldfonts/bitmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/distancefieldfonts/bitmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.bitmap);
 		assert(!err);
 	}
@@ -728,8 +750,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -750,9 +771,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -762,21 +781,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }
