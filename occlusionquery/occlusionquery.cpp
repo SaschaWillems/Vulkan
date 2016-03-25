@@ -354,9 +354,9 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/plane_z.3ds", &meshes.plane, vertexLayout, 0.4f);
-		loadMesh("./../data/models/teapot.3ds", &meshes.teapot, vertexLayout, 0.3f);
-		loadMesh("./../data/models/sphere.3ds", &meshes.sphere, vertexLayout, 0.3f);
+		loadMesh(getAssetPath() + "models/plane_z.3ds", &meshes.plane, vertexLayout, 0.4f);
+		loadMesh(getAssetPath() + "models/teapot.3ds", &meshes.teapot, vertexLayout, 0.3f);
+		loadMesh(getAssetPath() + "models/sphere.3ds", &meshes.sphere, vertexLayout, 0.3f);
 	}
 
 	void setupVertexDescriptions()
@@ -538,8 +538,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/occlusionquery/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/occlusionquery/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/occlusionquery/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/occlusionquery/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -562,16 +562,16 @@ public:
 		assert(!err);
 
 		// Simple pipeline
-		shaderStages[0] = loadShader("./../data/shaders/occlusionquery/simple.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/occlusionquery/simple.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/occlusionquery/simple.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/occlusionquery/simple.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.simple);
 		assert(!err);
 
 		// Visual pipeline for the occluder
-		shaderStages[0] = loadShader("./../data/shaders/occlusionquery/occluder.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/occlusionquery/occluder.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/occlusionquery/occluder.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/occlusionquery/occluder.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Enable blending
 		blendAttachmentState.blendEnable = VK_TRUE;
@@ -691,8 +691,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -701,9 +700,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -713,21 +710,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }
