@@ -19,7 +19,7 @@ if %ERRORLEVEL% EQU 0 (
 	mkdir "res\drawable"
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y
 
-	call ant debug -Dout.final.file=vulkanScene.apk
+	call ant debug -Dout.final.file=vulkanVulkanscene.apk
 ) ELSE (
 	echo error : ndk-build failed with errors!
 	cd..
