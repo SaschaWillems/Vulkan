@@ -12,7 +12,7 @@
 	
     <application android:label="vulkanComputeparticles" android:icon="@drawable/icon" android:hasCode="false">
 		<activity android:name="android.app.NativeActivity"
-                android:label="Vulkan Compute Particles"
+                android:label="Compute Particles"
                 android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
 				android:launchMode="singleTask"
                 android:configChanges="orientation|screenSize|keyboardHidden">

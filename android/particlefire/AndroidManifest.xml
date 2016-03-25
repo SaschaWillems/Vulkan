@@ -12,7 +12,7 @@
 
     <application android:label="vulkanParticlefire" android:icon="@drawable/icon" android:hasCode="false">
 		<activity android:name="android.app.NativeActivity"
-                android:label="Vulkan Particle Fire"
+                android:label="Particle Fire"
                 android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
 				android:launchMode="singleTask"
                 android:configChanges="orientation|screenSize|keyboardHidden">
