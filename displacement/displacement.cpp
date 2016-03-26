@@ -40,6 +40,15 @@ private:
 		vkTools::VulkanTexture heightMap;
 	} textures;
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		CBaseVulkanGame::init(pFramework);
+		m_pFramework->zoom = -35;
+		m_pFramework->rotation = glm::vec3(-35.0, 0.0, 0);
+		m_pFramework->title = "Vulkan Example - Tessellation shader displacement mapping";
+		return 0;
+	}
+
 	bool splitScreen = true;
 
 	struct {
@@ -79,55 +88,52 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
+	VulkanExample()
 	{
-		zoom = -35;
-		rotation = glm::vec3(-35.0, 0.0, 0);
-		title = "Vulkan Example - Tessellation shader displacement mapping";
 	}
 
 	~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
-		vkDestroyPipeline(device, pipelines.wire, nullptr);
-		vkDestroyPipeline(device, pipelines.solidPassThrough, nullptr);
-		vkDestroyPipeline(device, pipelines.wirePassThrough, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.solid, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.wire, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.solidPassThrough, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.wirePassThrough, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
+		vkMeshLoader::freeMeshBufferResources(m_pFramework->device, &meshes.object);
 
-		vkDestroyBuffer(device, uniformDataTC.buffer, nullptr);
-		vkFreeMemory(device, uniformDataTC.memory, nullptr);
+		vkDestroyBuffer(m_pFramework->device, uniformDataTC.buffer, nullptr);
+		vkFreeMemory(m_pFramework->device, uniformDataTC.memory, nullptr);
 
-		vkDestroyBuffer(device, uniformDataTE.buffer, nullptr);
-		vkFreeMemory(device, uniformDataTE.memory, nullptr);
+		vkDestroyBuffer(m_pFramework->device, uniformDataTE.buffer, nullptr);
+		vkFreeMemory(m_pFramework->device, uniformDataTE.memory, nullptr);
 
-		textureLoader->destroyTexture(textures.colorMap);
-		textureLoader->destroyTexture(textures.heightMap);
+		m_pFramework->textureLoader->destroyTexture(textures.colorMap);
+		m_pFramework->textureLoader->destroyTexture(textures.heightMap);
 	}
 
 	void loadTextures()
 	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/stonewall_colormap_bc3.dds", 
+		m_pFramework->textureLoader->loadTexture(
+			m_pFramework->getAssetPath() + "textures/stonewall_colormap_bc3.dds", 
 			VK_FORMAT_BC3_UNORM_BLOCK, 
 			&textures.colorMap);
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/stonewall_heightmap_rgba.dds", 
+		m_pFramework->textureLoader->loadTexture(
+			m_pFramework->getAssetPath() + "textures/stonewall_heightmap_rgba.dds", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textures.heightMap);
 	}
 
 	void reBuildCommandBuffers()
 	{
-		if (!checkCommandBuffers())
+		if (!m_pFramework->checkCommandBuffers())
 		{
-			destroyCommandBuffers();
-			createCommandBuffers();
+			m_pFramework->destroyCommandBuffers();
+			m_pFramework->createCommandBuffers();
 		}
 		buildCommandBuffers();
 	}
@@ -137,69 +143,69 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = m_pFramework->defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = ScreenRect.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
+		renderPassBeginInfo.renderArea.extent.width  = m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
+			err = vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo);
 			assert(!err);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				splitScreen ? (float)ScreenRect.Width / 2.0f : (float)ScreenRect.Width,
-				(float)ScreenRect.Height,
+				splitScreen ? (float)m_pFramework->ScreenRect.Width / 2.0f : (float)m_pFramework->ScreenRect.Width,
+				(float)m_pFramework->ScreenRect.Height,
 				0.0f,
 				1.0f
 				);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenRect.Width,
-				ScreenRect.Height,
+				m_pFramework->ScreenRect.Width,
+				m_pFramework->ScreenRect.Height,
 				0,
 				0
 				);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+			vkCmdSetScissor(m_pFramework->drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdSetLineWidth(drawCmdBuffers[i], 1.0f);
+			vkCmdSetLineWidth(m_pFramework->drawCmdBuffers[i], 1.0f);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.object.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.object.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.object.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.object.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
 			if (splitScreen)
 			{
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineLeft);
-				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
-				viewport.x = float(ScreenRect.Width) / 2;
+				vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
+				vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineLeft);
+				vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
+				viewport.x = float(m_pFramework->ScreenRect.Width) / 2;
 			}
 
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineRight);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineRight);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
+			err = vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]);
 			assert(!err);
 		}
 	}
@@ -209,31 +215,31 @@ public:
 		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		err = m_pFramework->swapChain.acquireNextImage(m_pFramework->semaphores.presentComplete, &m_pFramework->currentBuffer);
 		assert(!err);
 
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPostPresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
 		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPrePresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		err = m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, m_pFramework->semaphores.renderComplete);
 		assert(!err);
 
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 	}
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/torus.obj", &meshes.object, vertexLayout, 0.25f);
+		m_pFramework->loadMesh(m_pFramework->getAssetPath() + "models/torus.obj", &meshes.object, vertexLayout, 0.25f);
 	}
 
 	void setupVertexDescriptions()
@@ -296,7 +302,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
+		VkResult vkRes = vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool);
 		assert(!vkRes);
 	}
 
@@ -331,7 +337,7 @@ public:
 				setLayoutBindings.data(),
 				(uint32_t)setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
@@ -339,7 +345,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+		err = vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
 	}
 
@@ -347,11 +353,11 @@ public:
 	{
 		VkDescriptorSetAllocateInfo allocInfo = 
 			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
+				m_pFramework->descriptorPool,
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
+		VkResult vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSet);
 		assert(!vkRes);
 
 		// Displacement map image descriptor
@@ -396,7 +402,7 @@ public:
 				&texDescriptorColorMap),
 		};
 
-		vkUpdateDescriptorSets(device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -457,15 +463,15 @@ public:
 		// Tessellation pipeline
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/displacement/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/displacement/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		shaderStages[2] = loadShader(getAssetPath() + "shaders/displacement/displacement.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader(getAssetPath() + "shaders/displacement/displacement.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/displacement/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/displacement/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[2] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/displacement/displacement.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/displacement/displacement.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
-				renderPass,
+				m_pFramework->renderPass,
 				0);
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
@@ -479,27 +485,27 @@ public:
 		pipelineCreateInfo.pTessellationState = &tessellationState;
 		pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
-		pipelineCreateInfo.renderPass = renderPass;
+		pipelineCreateInfo.renderPass = m_pFramework->renderPass;
 
 		// Solid pipeline
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
+		err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
 		assert(!err);
 		// Wireframe pipeline
 		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wire);
+		err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wire);
 		assert(!err);
 
 		// Pass through pipelines
 		// Load pass through tessellation shaders (Vert and frag are reused)
-		shaderStages[2] = loadShader(getAssetPath() + "shaders/displacement/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader(getAssetPath() + "shaders/displacement/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[2] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/displacement/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/displacement/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 		// Solid
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solidPassThrough);
+		err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solidPassThrough);
 		assert(!err);
 		// Wireframe
 		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wirePassThrough);
+		err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wirePassThrough);
 		assert(!err);
 	}
 
@@ -507,7 +513,7 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Tessellation evaluation shader uniform buffer
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboTE),
 			&uboTE,
@@ -516,7 +522,7 @@ public:
 			&uniformDataTE.descriptor);
 
 		// Tessellation control shader uniform buffer
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboTC),
 			&uboTC,
@@ -531,33 +537,33 @@ public:
 	{
 		// Tessellation eval
 		glm::mat4 viewMatrix = glm::mat4();
-		uboTE.projection = glm::perspective(deg_to_rad(45.0f), (float)(ScreenRect.Width* ((splitScreen) ? 0.5f : 1.0f)) / (float)ScreenRect.Height, 0.1f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		uboTE.projection = glm::perspective(deg_to_rad(45.0f), (float)(m_pFramework->ScreenRect.Width* ((splitScreen) ? 0.5f : 1.0f)) / (float)m_pFramework->ScreenRect.Height, 0.1f, 256.0f);
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, m_pFramework->zoom));
 
 		float offset = 0.5f;
 		int uboIndex = 1;
 		uboTE.model = glm::mat4();
 		uboTE.model = viewMatrix * glm::translate(uboTE.model, glm::vec3(0, 0, 0));
-		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboTE.model = glm::rotate(uboTE.model, glm::radians(m_pFramework->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboTE.model = glm::rotate(uboTE.model, glm::radians(m_pFramework->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboTE.model = glm::rotate(uboTE.model, glm::radians(m_pFramework->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformDataTE.memory, 0, sizeof(uboTE), 0, (void **)&pData);
+		VkResult err = vkMapMemory(m_pFramework->device, uniformDataTE.memory, 0, sizeof(uboTE), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboTE, sizeof(uboTE));
-		vkUnmapMemory(device, uniformDataTE.memory);
+		vkUnmapMemory(m_pFramework->device, uniformDataTE.memory);
 
 		// Tessellation control
-		err = vkMapMemory(device, uniformDataTC.memory, 0, sizeof(uboTC), 0, (void **)&pData);
+		err = vkMapMemory(m_pFramework->device, uniformDataTC.memory, 0, sizeof(uboTC), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboTC, sizeof(uboTC));
-		vkUnmapMemory(device, uniformDataTC.memory);
+		vkUnmapMemory(m_pFramework->device, uniformDataTC.memory);
 	}
 
 	int32_t	prepare()
 	{
-		CVulkanFramework::prepare();
+		//CVulkanFramework::prepare();
 		loadMeshes();
 		loadTextures();
 		setupVertexDescriptions();
@@ -567,17 +573,17 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSet();
 		buildCommandBuffers();
-		prepared = true;
+		m_pFramework->prepared = true;
 		return 0;
 	}
 
 	virtual int32_t render()
 	{
-		if (!prepared)
+		if (!m_pFramework->prepared)
 			return 1;
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		return 0;
 	}
 
@@ -616,47 +622,26 @@ public:
 		updateUniformBuffers();
 	}
 
+	virtual void	keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case VK_ADD:
+			changeTessellationLevel(0.25);
+			break;
+		case VK_SUBTRACT:
+			changeTessellationLevel(-0.25);
+			break;
+		case 0x57:
+			togglePipelines();
+			break;
+		case 0x53:
+			toggleSplitScreen();
+			break;
+		}
+	}
 
 
 };
-
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case VK_ADD:
-				vulkanExample->changeTessellationLevel(0.25);
-				break;
-			case VK_SUBTRACT:
-				vulkanExample->changeTessellationLevel(-0.25);
-				break;
-			case 0x57:
-				vulkanExample->togglePipelines();
-				break;
-			case 0x53:
-				vulkanExample->toggleSplitScreen();
-				break;
-			}
-		}
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()

@@ -37,6 +37,17 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 class VulkanExample : public CBaseVulkanGame
 {
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		CBaseVulkanGame::init(pFramework);
+		m_pFramework->zoom = -36.0f;
+		m_pFramework->rotationSpeed = 0.15f;
+		m_pFramework->rotation = glm::vec3(-20.0f, 45.0f, 0.0f);
+		m_pFramework->title = "Vulkan Example - Instanced mesh rendering";
+		srand(time(NULL));
+		return 0;
+	}
+
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
@@ -81,29 +92,24 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
+	VulkanExample()
 	{
-		zoom = -36.0f;
-		rotationSpeed = 0.15f;
-		rotation = glm::vec3(-20.0f, 45.0f, 0.0f);
-		title = "Vulkan Example - Instanced mesh rendering";
-		srand(time(NULL));
 	}
 
 	~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.solid, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
 
 		// Meshes
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
+		vkMeshLoader::freeMeshBufferResources(m_pFramework->device, &meshes.example);
 
 		// Uniform buffers
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
+		vkTools::destroyUniformData(m_pFramework->device, &uniformData.vsScene);
 
 		delete[] uboVS.instance;
 	}
@@ -117,53 +123,53 @@ public:
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = ScreenRect.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
+		renderPassBeginInfo.renderArea.extent.width  = m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
+			err = vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo);
 			assert(!err);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)ScreenRect.Width,
-				(float)ScreenRect.Height,
+				(float)m_pFramework->ScreenRect.Width,
+				(float)m_pFramework->ScreenRect.Height,
 				0.0f,
 				1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenRect.Width,
-				ScreenRect.Height,
+				m_pFramework->ScreenRect.Width,
+				m_pFramework->ScreenRect.Height,
 				0,
 				0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+			vkCmdSetScissor(m_pFramework->drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
 			// Render instances
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.example.indexCount, instanceCount, 0, 0, 0);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.example.indexCount, instanceCount, 0, 0, 0);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
+			err = vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]);
 			assert(!err);
 		}
 	}
@@ -173,31 +179,31 @@ public:
 		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		err = m_pFramework->swapChain.acquireNextImage(m_pFramework->semaphores.presentComplete, &m_pFramework->currentBuffer);
 		assert(!err);
 
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPostPresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
 		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPrePresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		err = m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, m_pFramework->semaphores.renderComplete);
 		assert(!err);
 
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 	}
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/angryteapot.3ds", &meshes.example, vertexLayout, 0.05f);
+		m_pFramework->loadMesh(m_pFramework->getAssetPath() + "models/angryteapot.3ds", &meshes.example, vertexLayout, 0.05f);
 	}
 
 	void setupVertexDescriptions()
@@ -263,7 +269,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
+		VkResult vkRes = vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool);
 		assert(!vkRes);
 	}
 
@@ -283,7 +289,7 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
@@ -291,7 +297,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+		err = vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
 	}
 
@@ -299,11 +305,11 @@ public:
 	{
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
+				m_pFramework->descriptorPool,
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
+		VkResult vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSet);
 		assert(!vkRes);
 
 		// Binding 0 : Vertex shader uniform buffer
@@ -314,7 +320,7 @@ public:
 				0,
 				&uniformData.vsScene.descriptor);
 
-		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, 1, &writeDescriptorSet, 0, NULL);
 	}
 
 	void preparePipelines()
@@ -370,13 +376,13 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/instancing/instancing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/instancing/instancing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/instancing/instancing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/instancing/instancing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
-				renderPass,
+				m_pFramework->renderPass,
 				0);
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
@@ -390,7 +396,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
+		VkResult err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
 		assert(!err);
 	}
 
@@ -404,7 +410,7 @@ public:
 		// Vertex shader uniform buffer block
 		uint32_t uboSize = sizeof(uboVS.matrices) + (instanceCount * sizeof(UboInstanceData));
 
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			uboSize,
 			nullptr,
@@ -439,10 +445,10 @@ public:
 		uint8_t *pData;
 		uint32_t dataOffset = sizeof(uboVS.matrices);
 		uint32_t dataSize = instanceCount * sizeof(UboInstanceData);
-		err = vkMapMemory(device, uniformData.vsScene.memory, dataOffset, dataSize, 0, (void **)&pData);
+		err = vkMapMemory(m_pFramework->device, uniformData.vsScene.memory, dataOffset, dataSize, 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, uboVS.instance, dataSize);
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.vsScene.memory);
 
 		updateUniformBufferMatrices();
 	}
@@ -452,25 +458,25 @@ public:
 		// Only updates the uniform buffer block part containing the global matrices
 
 		// Projection
-		uboVS.matrices.projection = glm::perspective(deg_to_rad(60.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.001f, 256.0f);
+		uboVS.matrices.projection = glm::perspective(deg_to_rad(60.0f), (float)m_pFramework->ScreenRect.Width / (float)m_pFramework->ScreenRect.Height, 0.001f, 256.0f);
 
 		// View
-		uboVS.matrices.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.matrices.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, m_pFramework->zoom));
+		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(m_pFramework->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(m_pFramework->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(m_pFramework->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Only update the matrices part of the uniform buffer
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS.matrices), 0, (void **)&pData);
+		VkResult err = vkMapMemory(m_pFramework->device, uniformData.vsScene.memory, 0, sizeof(uboVS.matrices), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboVS.matrices, sizeof(uboVS.matrices));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.vsScene.memory);
 	}
 
 	int32_t	prepare()
 	{
-		CVulkanFramework::prepare();
+		//CVulkanFramework::prepare();
 		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
@@ -479,17 +485,17 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSet();
 		buildCommandBuffers();
-		prepared = true;
+		m_pFramework->prepared = true;
 		return 0;
 	}
 
 	virtual int32_t render()
 	{
-		if (!prepared)
+		if (!m_pFramework->prepared)
 			return 1;
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		return 0;
 	}
 
@@ -498,29 +504,10 @@ public:
 		updateUniformBufferMatrices();
 	}
 
-
+	virtual void	keyPressed(uint32_t keyCode)
+	{
+	}
 
 };
-
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
