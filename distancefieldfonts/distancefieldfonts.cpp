@@ -886,27 +886,3 @@ int main(const int argc, const char *argv[])
 }
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
-//int32_t createVulkanGame(IVulkanGame** ppCreated)											
-//{																							
-//	VulkanExample* newVulkanExample = new VulkanExample(), *oldVulkanExample=*reinterpret_cast<VulkanExample**>(ppCreated);	
-//	*ppCreated = newVulkanExample;															
-//	if(oldVulkanExample)																	
-//		delete (oldVulkanExample);															
-//	return 0;																				
-//}																							
-//																							
-//int32_t releaseVulkanGame(IVulkanGame** ppInstance)											
-//{																							
-//	VulkanExample* oldVulkanExample=*reinterpret_cast<VulkanExample**>(ppInstance);			
-//	*ppInstance = 0;																		
-//	if(oldVulkanExample)																	
-//		delete (oldVulkanExample);															
-//	return 0;																				
-//}						
-//=======
-//#if !defined(__ANDROID__)
-//	delete(vulkanExample);
-//	return 0;
-//#endif
-//}
-//>>>>>>> 606c8c3c79dac94b17652fd33263146df5e652cb

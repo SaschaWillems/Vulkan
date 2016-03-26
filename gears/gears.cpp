@@ -489,10 +489,3 @@ int main(const int argc, const char *argv[])
 }
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
-//=======
-//#if !defined(__ANDROID__)
-//	delete(vulkanExample);
-//	return 0;
-//#endif
-//}
-//>>>>>>> 606c8c3c79dac94b17652fd33263146df5e652cb
