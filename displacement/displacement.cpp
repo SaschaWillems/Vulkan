@@ -113,11 +113,11 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			"./../data/textures/stonewall_colormap_bc3.dds", 
+			getAssetPath() + "textures/stonewall_colormap_bc3.dds", 
 			VK_FORMAT_BC3_UNORM_BLOCK, 
 			&textures.colorMap);
 		textureLoader->loadTexture(
-			"./../data/textures/stonewall_heightmap_rgba.dds", 
+			getAssetPath() + "textures/stonewall_heightmap_rgba.dds", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textures.heightMap);
 	}
@@ -233,7 +233,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/torus.obj", &meshes.object, vertexLayout, 0.25f);
+		loadMesh(getAssetPath() + "models/torus.obj", &meshes.object, vertexLayout, 0.25f);
 	}
 
 	void setupVertexDescriptions()
@@ -457,10 +457,10 @@ public:
 		// Tessellation pipeline
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
-		shaderStages[0] = loadShader("./../data/shaders/displacement/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/displacement/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		shaderStages[2] = loadShader("./../data/shaders/displacement/displacement.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader("./../data/shaders/displacement/displacement.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/displacement/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/displacement/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[2] = loadShader(getAssetPath() + "shaders/displacement/displacement.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = loadShader(getAssetPath() + "shaders/displacement/displacement.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -491,8 +491,8 @@ public:
 
 		// Pass through pipelines
 		// Load pass through tessellation shaders (Vert and frag are reused)
-		shaderStages[2] = loadShader("./../data/shaders/displacement/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader("./../data/shaders/displacement/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[2] = loadShader(getAssetPath() + "shaders/displacement/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = loadShader(getAssetPath() + "shaders/displacement/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 		// Solid
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solidPassThrough);
@@ -618,8 +618,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -646,34 +645,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleEvent(event);
-		// TODO : Keys for tessellation level changes
 	}
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }

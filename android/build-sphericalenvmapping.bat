@@ -1,0 +1,1 @@
+_build sphericalenvmapping %1

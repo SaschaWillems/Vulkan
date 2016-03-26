@@ -1,6 +1,6 @@
-@echo off
-if "%1" == "" (
-	echo Please specify the project folder for running the build
+rem @echo off
+if NOT EXIST %1 (
+	echo Please specify a valid project folder for running the build
 ) else (
 	mkdir bin
 	cd %1

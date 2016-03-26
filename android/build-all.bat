@@ -1,0 +1,17 @@
+call build-bloom.bat %1
+call build-computeparticles.bat %1
+call build-computeshader.bat %1
+call build-deferred.bat %1
+call build-displacement.bat %1
+rem call build-distancefieldfonts.bat
+call build-mesh.bat %1
+call build-offscreen.bat %1
+call build-particlefire.bat %1
+call build-shadowmapping.bat %1
+call build-shadowmappingomni.bat %1
+call build-sphericalenvmapping.bat %1
+call build-texture.bat %1
+call build-texturearray.bat %1
+call build-texturecubemap.bat %1
+call build-triangle.bat %1
+call build-vulkanscene.bat %1

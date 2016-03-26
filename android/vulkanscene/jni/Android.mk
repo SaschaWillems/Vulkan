@@ -14,7 +14,7 @@ DATADIR := $(LOCAL_PATH)/../../data
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := vulkanScene
+LOCAL_MODULE := vulkanVulkanscene
 
 PROJECT_FILES := $(wildcard $(LOCAL_PATH)/../../vulkanscene/*.cpp)
 PROJECT_FILES += $(wildcard $(LOCAL_PATH)/../../base/*.cpp)

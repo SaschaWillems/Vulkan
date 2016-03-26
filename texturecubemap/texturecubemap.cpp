@@ -103,18 +103,32 @@ public:
 		vkTools::destroyUniformData(device, &uniformData.skyboxVS);
 	}
 
-	void loadTexture(const char* filename, VkFormat format, bool forceLinearTiling)
+	void loadCubemap(std::string filename, VkFormat format, bool forceLinearTiling)
 	{
-		VkFormatProperties formatProperties;
-		VkResult err;
+#if defined(__ANDROID__)
+		// Textures are stored inside the apk on Android (compressed)
+		// So they need to be loaded via the asset manager
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+		assert(asset);
+		size_t size = AAsset_getLength(asset);
+		assert(size > 0);
 
+		void *textureData = malloc(size);
+		AAsset_read(asset, textureData, size);
+		AAsset_close(asset);
+
+		gli::textureCube texCube(gli::load((const char*)textureData, size));
+#else
 		gli::textureCube texCube(gli::load(filename));
+#endif
+
 		assert(!texCube.empty());
 
 		cubeMap.width = texCube[0].dimensions().x;
 		cubeMap.height = texCube[0].dimensions().y;
 
 		// Get device properites for the requested texture format
+		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 
 		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
@@ -145,7 +159,7 @@ public:
 				cmdPool,
 				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				1);
-		err = vkAllocateCommandBuffers(device, &cmdBufAlllocatInfo, &cmdBuffer);
+		VkResult err = vkAllocateCommandBuffers(device, &cmdBufAlllocatInfo, &cmdBuffer);
 		assert(!err);
 
 		VkCommandBufferBeginInfo cmdBufInfo =
@@ -420,8 +434,8 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/sphere.obj", &meshes.object, vertexLayout, 0.05f);
-		loadMesh("./../data/models/cube.obj", &meshes.skybox, vertexLayout, 0.05f);
+		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.object, vertexLayout, 0.05f);
+		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skybox, vertexLayout, 0.05f);
 	}
 
 	void setupVertexDescriptions()
@@ -627,8 +641,8 @@ public:
 		// Skybox pipeline (background cube)
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/cubemap/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/cubemap/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/cubemap/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/cubemap/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -651,8 +665,8 @@ public:
 		assert(!err);
 
 		// Cube map reflect pipeline
-		shaderStages[0] = loadShader("./../data/shaders/cubemap/reflect.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/cubemap/reflect.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/cubemap/reflect.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/cubemap/reflect.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.reflect);
 		assert(!err);
@@ -721,8 +735,8 @@ public:
 		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		loadTexture(
-			"./../data/textures/cubemap_yokohama.ktx",
+		loadCubemap(
+			getAssetPath() + "textures/cubemap_yokohama.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			false);
 		setupDescriptorSetLayout();
@@ -751,8 +765,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -761,9 +774,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -773,21 +784,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+#if !defined(__ANDROID__)
 	delete(vulkanExample);
 	return 0;
+#endif
 }
