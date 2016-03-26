@@ -1,1 +1,0 @@
-_build shadowmappingomni %1
