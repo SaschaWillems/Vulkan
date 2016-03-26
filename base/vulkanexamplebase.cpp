@@ -222,6 +222,7 @@ int32_t	CVulkanFramework::prepare()
 #if defined(__ANDROID__)
 	textureLoader->assetManager = androidApp->activity->assetManager;
 #endif
+	m_pVulkanExample->prepare();
 	return 0;
 }
 
@@ -320,7 +321,7 @@ void CVulkanFramework::renderLoop()
 	while (TRUE)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		if (PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			if (msg.message == WM_QUIT)
 			{
@@ -329,7 +330,7 @@ void CVulkanFramework::renderLoop()
 			else
 			{
 				TranslateMessage(&msg);
-				DispatchMessage(&msg);
+				DispatchMessageA(&msg);
 			}
 		}
 		render();
@@ -373,15 +374,15 @@ void CVulkanFramework::renderLoop()
 			}
 			if (androidApp->destroyRequested != 0)
 			{
-<<<<<<< HEAD
-				// todo : free resources
-				//releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
-				return;
-=======
+//<<<<<<< HEAD
+//				// todo : free resources
+//				//releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
+//				return;
+//=======
 				LOGD("Android app destroy requested");
 				destroy = true;
 				break;
->>>>>>> fc71e4445d508e13e9796e94a59281de836a2224
+//>>>>>>> fc71e4445d508e13e9796e94a59281de836a2224
 			}
 		}
 
@@ -601,10 +602,15 @@ CVulkanFramework::CVulkanFramework(bool enableValidation)
 		setupConsole("VulkanExample");
 	}
 #endif
+
+	createVulkanGame(&m_pVulkanExample);
+	m_pVulkanExample->init(this);
 }
 
 CVulkanFramework::~CVulkanFramework()
 {
+	releaseVulkanGame(&m_pVulkanExample);
+
 	// Clean up Vulkan resources
 	swapChain.cleanup();
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -820,7 +826,7 @@ HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 
 	if (fullscreen)
 	{
-		DEVMODE dmScreenSettings;
+		DEVMODEA dmScreenSettings;
 		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
 		dmScreenSettings.dmPelsWidth = screenWidth;
@@ -830,7 +836,7 @@ HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 
 		if ((ScreenRect.Width != screenWidth) && (ScreenRect.Height != screenHeight))
 		{
-			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+			if (ChangeDisplaySettingsA(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 			{
 				if (MessageBoxA(NULL, "Fullscreen Mode not supported!\n Switch to window mode?", "Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
 				{
@@ -1156,12 +1162,15 @@ void CVulkanFramework::handleEvent(const xcb_generic_event_t *event)
 void CVulkanFramework::viewChanged()
 {
 	// Can be overrdiden in derived class
+	m_pVulkanExample->viewChanged();
 }
 
 void CVulkanFramework::keyPressed(uint32_t keyCode)
 {
 	// Can be overriden in derived class
+	m_pVulkanExample->keyPressed(keyCode);
 }
+
 
 VkBool32 CVulkanFramework::getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t * typeIndex)
 {
@@ -1348,85 +1357,69 @@ void CVulkanFramework::setupSwapChain()
 {
 	swapChain.create(setupCmdBuffer, &ScreenRect.Width, &ScreenRect.Height);
 }
-//
-//VulkanExampleBase *vulkanExample;
-//
-//#if defined(_WIN32)
-//LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-//{
-//	if (vulkanExample != NULL)
-//	{
-//		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-//		if (uMsg == WM_KEYDOWN)
-//		{
-//			switch (wParam)
-//			{
-//			case 0x42:
-//				//vulkanExample->toggleBloom();
-//				break;
-//			case VK_ADD:
-//				//vulkanExample->changeBlurScale(0.25f);
-//				break;
-//			case VK_SUBTRACT:
-//				//vulkanExample->changeBlurScale(-0.25f);
-//				break;
-//			}
-//		}
-//	}
-//	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-//}
-//
-//#else 
-//
-//static void handleEvent(const xcb_generic_event_t *event)
-//{
-//	if (vulkanExample != NULL)
-//	{
-//		vulkanExample->handleEvent(event);
-//	}
-//}
-//#endif
-//
-//// Main entry point
-//#if defined(_WIN32)
-//// Windows entry point
-//int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-//#elif defined(__ANDROID__)
-//// Android entry point
-//void android_main(android_app* state)
-//#elif defined(__linux__)
-//// Linux entry point
-//int main(const int argc, const char *argv[])
-//#endif
-//{
-//#if defined(__ANDROID__)
-//	// Removing this may cause the compiler to omit the main entry point 
-//	// which would make the application crash at start
-//	app_dummy();
-//#elif defined(_WIN32)
-//#if defined(DEBUG) || defined(_DEBUG)
-//	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
-//#endif
-//#endif
-//	vulkanExample = new VulkanExampleBase(ENABLE_VALIDATION);
-//#if defined(_WIN32)
-//	vulkanExample->setupWindow(hInstance, WndProc);
-//#elif defined(__ANDROID__)
-//	// Attach vulkan example to global android application state
-//	state->userData = vulkanExample;
-//	state->onAppCmd = VulkanExample::handleAppCommand;
-//	state->onInputEvent = VulkanExample::handleAppInput;
-//	vulkanExample->androidApp = state;
-//#elif defined(__linux__)
-//	vulkanExample->setupWindow();
-//#endif
-//#if !defined(__ANDROID__)
-//	vulkanExample->initSwapchain();
-//	vulkanExample->prepare();
-//#endif
-//	vulkanExample->renderLoop();
-//#if !defined(__ANDROID__)
-//	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
-//	return 0;
-//#endif
-//}
+
+
+CVulkanFramework* vulkanFramework;
+
+#if defined(_WIN32)
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (vulkanFramework != NULL)
+	{
+		vulkanFramework->handleMessages(hWnd, uMsg, wParam, lParam);
+	}
+	return DefWindowProcA(hWnd, uMsg, wParam, lParam);
+}
+#elif defined(__linux__) && !defined(__ANDROID__)
+static void handleEvent(const xcb_generic_event_t *event)
+{
+	if (vulkanFramework != NULL)
+	{
+		vulkanFramework->handleEvent(event);
+	}
+}
+#endif
+
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
+int main(const int argc, const char *argv[])
+#endif
+{
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#elif defined(_WIN32)
+#if defined(DEBUG) || defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
+#endif
+#endif
+	vulkanFramework = new CVulkanFramework(ENABLE_VALIDATION);
+#if defined(_WIN32)
+	vulkanFramework->setupWindow(hInstance, WndProc);
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
+	vulkanExample->setupWindow();
+#endif
+#if !defined(__ANDROID__)
+	vulkanFramework->initSwapchain();
+	vulkanFramework->prepare();
+#endif
+	vulkanFramework->renderLoop();
+#if !defined(__ANDROID__)
+	delete(vulkanFramework);
+	return 0;
+#endif
+}

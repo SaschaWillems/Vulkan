@@ -35,9 +35,18 @@
 // and on why to use it
 #define USE_STAGING true
 
-class VulkanExample : public CVulkanFramework, public IVulkanGame
+class VulkanExample : public CBaseVulkanGame
 {
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		CBaseVulkanGame::init(pFramework);
+		m_pFramework->zoom = -2.5f;
+		m_pFramework->title = "Vulkan Example - Basic indexed triangle";
+		// Values not set here are initialized in the base class constructor
+		return 0;
+	};
+
 	struct SVertexBuffer {
 		VkBuffer buf;
 		VkDeviceMemory mem;
@@ -78,33 +87,30 @@ public:
 		VkSemaphore renderComplete;
 	} semaphores;
 
-	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
+	VulkanExample() 
 	{
-		zoom = -2.5f;
-		title = "Vulkan Example - Basic indexed triangle";
-		// Values not set here are initialized in the base class constructor
 	}
 
 	~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.solid, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
 
-		vkDestroyBuffer(device, vertices.buf, nullptr);
-		vkFreeMemory(device, vertices.mem, nullptr);
+		vkDestroyBuffer(m_pFramework->device, vertices.buf, nullptr);
+		vkFreeMemory(m_pFramework->device, vertices.mem, nullptr);
 
-		vkDestroyBuffer(device, indices.buf, nullptr);
-		vkFreeMemory(device, indices.mem, nullptr);
+		vkDestroyBuffer(m_pFramework->device, indices.buf, nullptr);
+		vkFreeMemory(m_pFramework->device, indices.mem, nullptr);
 
-		vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
-		vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
+		vkDestroySemaphore(m_pFramework->device, semaphores.presentComplete, nullptr);
+		vkDestroySemaphore(m_pFramework->device, semaphores.renderComplete, nullptr);
 
-		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
-		vkFreeMemory(device, uniformDataVS.memory, nullptr);
+		vkDestroyBuffer(m_pFramework->device, uniformDataVS.buffer, nullptr);
+		vkFreeMemory(m_pFramework->device, uniformDataVS.memory, nullptr);
 	}
 
 	// Build separate command buffers for every framebuffer image
@@ -117,65 +123,65 @@ public:
 		cmdBufInfo.pNext = NULL;
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = m_pFramework->defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = NULL;
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width		= ScreenRect.Width;
-		renderPassBeginInfo.renderArea.extent.height	= ScreenRect.Height;
+		renderPassBeginInfo.renderArea.extent.width		= m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height	= m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 		
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
+			err = vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo);
 			assert(!err);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			// Update dynamic viewport state
 			VkViewport viewport = {};
-			viewport.width  = (float)ScreenRect.Width;
-			viewport.height = (float)ScreenRect.Height;
+			viewport.width  = (float)m_pFramework->ScreenRect.Width;
+			viewport.height = (float)m_pFramework->ScreenRect.Height;
 			viewport.minDepth = (float) 0.0f;
 			viewport.maxDepth = (float) 1.0f;
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
 
 			// Update dynamic scissor state
 			VkRect2D scissor = {};
-			scissor.extent.width  = ScreenRect.Width;
-			scissor.extent.height = ScreenRect.Height;
+			scissor.extent.width  = m_pFramework->ScreenRect.Width;
+			scissor.extent.height = m_pFramework->ScreenRect.Height;
 			scissor.offset.x = 0;
 			scissor.offset.y = 0;
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+			vkCmdSetScissor(m_pFramework->drawCmdBuffers[i], 0, 1, &scissor);
 
 			// Bind descriptor sets describing shader binding points
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			// Bind the rendering pipeline (including the shaders)
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			// Bind triangle vertices
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
 
 			// Bind triangle indices
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
 			// Draw indexed triangle
-			vkCmdDrawIndexed(drawCmdBuffers[i], indices.count, 1, 0, 0, 1);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], indices.count, 1, 0, 0, 1);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
 			// Add a present memory barrier to the end of the command buffer
 			// This will transform the frame buffer color attachment to a
@@ -190,11 +196,11 @@ public:
 			prePresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			prePresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			prePresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };			
-			prePresentBarrier.image = swapChain.buffers[i].image;
+			prePresentBarrier.image = m_pFramework->swapChain.buffers[i].image;
 
 			VkImageMemoryBarrier *pMemoryBarrier = &prePresentBarrier;
 			vkCmdPipelineBarrier(
-				drawCmdBuffers[i], 
+				m_pFramework->drawCmdBuffers[i], 
 				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
 				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				VK_FLAGS_NONE,
@@ -202,7 +208,7 @@ public:
 				0, nullptr,
 				1, &prePresentBarrier);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
+			err = vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]);
 			assert(!err);
 		}
 	}
@@ -211,7 +217,7 @@ public:
 	{
 		VkResult err;
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		err = m_pFramework->swapChain.acquireNextImage(semaphores.presentComplete, &m_pFramework->currentBuffer);
 		assert(!err);
 
 		// Add a post present image memory barrier
@@ -228,18 +234,18 @@ public:
 		postPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		postPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		postPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		postPresentBarrier.image = swapChain.buffers[currentBuffer].image;
+		postPresentBarrier.image = m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image;
 
 		// Use dedicated command buffer from example base class for submitting the post present barrier
 		VkCommandBufferBeginInfo cmdBufInfo = {};
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-		err = vkBeginCommandBuffer(postPresentCmdBuffer, &cmdBufInfo);
+		err = vkBeginCommandBuffer(m_pFramework->postPresentCmdBuffer, &cmdBufInfo);
 		assert(!err);
 
 		// Put post present barrier into command buffer
 		vkCmdPipelineBarrier(
-			postPresentCmdBuffer,
+			m_pFramework->postPresentCmdBuffer,
 			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 			VK_FLAGS_NONE,
@@ -247,18 +253,18 @@ public:
 			0, nullptr,
 			1, &postPresentBarrier);
 
-		err = vkEndCommandBuffer(postPresentCmdBuffer);
+		err = vkEndCommandBuffer(m_pFramework->postPresentCmdBuffer);
 		assert(!err);
 
 		// Submit to the queue
-		submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &postPresentCmdBuffer;
+		m_pFramework->submitInfo = {};
+		m_pFramework->submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->postPresentCmdBuffer;
 
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, VK_NULL_HANDLE);
 		assert(!err);
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 
 		// The submit infor strcuture contains a list of
@@ -274,7 +280,7 @@ public:
 		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 		// Submit the currently active command buffer
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 		// The signal semaphore is used during queue presentation
 		// to ensure that the image is not rendered before all
 		// commands have been submitted
@@ -282,14 +288,14 @@ public:
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 		// Submit to the graphics queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
 		// Present the current buffer to the swap chain
 		// We pass the signal semaphore from the submit info
 		// to ensure that the image is not rendered until
 		// all commands have been submitted
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		err = m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, semaphores.renderComplete);
 		assert(!err);
 	}
 
@@ -302,12 +308,12 @@ public:
 
 		// This semaphore ensures that the image is complete
 		// before starting to submit again
-		VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
+		VkResult err = vkCreateSemaphore(m_pFramework->device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
 		assert(!err);
 
 		// This semaphore ensures that all commands submitted
 		// have been finished before submitting the image to the queue
-		err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
+		err = vkCreateSemaphore(m_pFramework->device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
 		assert(!err);
 	}
 
@@ -365,12 +371,12 @@ public:
 			// Buffer copies are done on the queue, so we need a command buffer for them
 			VkCommandBufferAllocateInfo cmdBufInfo = {};
 			cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			cmdBufInfo.commandPool = cmdPool;
+			cmdBufInfo.commandPool = m_pFramework->cmdPool;
 			cmdBufInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 			cmdBufInfo.commandBufferCount = 1;
 
 			VkCommandBuffer copyCommandBuffer;
-			vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufInfo, &copyCommandBuffer));
+			vkTools::checkResult(vkAllocateCommandBuffers(m_pFramework->device, &cmdBufInfo, &copyCommandBuffer));
 
 			// Vertex buffer
 			VkBufferCreateInfo vertexBufferInfo = {};
@@ -379,26 +385,26 @@ public:
 			// Buffer is used as the copy source
 			vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			// Create a host-visible buffer to copy the vertex data to (staging buffer)
-			vkTools::checkResult(vkCreateBuffer(device, &vertexBufferInfo, nullptr, &stagingBuffers.vertices.buffer));
-			vkGetBufferMemoryRequirements(device, stagingBuffers.vertices.buffer, &memReqs);
+			vkTools::checkResult(vkCreateBuffer(m_pFramework->device, &vertexBufferInfo, nullptr, &stagingBuffers.vertices.buffer));
+			vkGetBufferMemoryRequirements(m_pFramework->device, stagingBuffers.vertices.buffer, &memReqs);
 			memAlloc.allocationSize = memReqs.size;
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-			vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffers.vertices.memory));
+			m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
+			vkTools::checkResult(vkAllocateMemory(m_pFramework->device, &memAlloc, nullptr, &stagingBuffers.vertices.memory));
 			// Map and copy
-			vkTools::checkResult(vkMapMemory(device, stagingBuffers.vertices.memory, 0, memAlloc.allocationSize, 0, &data));
+			vkTools::checkResult(vkMapMemory(m_pFramework->device, stagingBuffers.vertices.memory, 0, memAlloc.allocationSize, 0, &data));
 			memcpy(data, vertexBuffer.data(), vertexBufferSize);
-			vkUnmapMemory(device, stagingBuffers.vertices.memory);
-			vkTools::checkResult(vkBindBufferMemory(device, stagingBuffers.vertices.buffer, stagingBuffers.vertices.memory, 0));
+			vkUnmapMemory(m_pFramework->device, stagingBuffers.vertices.memory);
+			vkTools::checkResult(vkBindBufferMemory(m_pFramework->device, stagingBuffers.vertices.buffer, stagingBuffers.vertices.memory, 0));
 
 			// Create the destination buffer with device only visibility
 			// Buffer will be used as a vertex buffer and is the copy destination
 			vertexBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-			vkTools::checkResult(vkCreateBuffer(device, &vertexBufferInfo, nullptr, &vertices.buf));
-			vkGetBufferMemoryRequirements(device, vertices.buf, &memReqs);
+			vkTools::checkResult(vkCreateBuffer(m_pFramework->device, &vertexBufferInfo, nullptr, &vertices.buf));
+			vkGetBufferMemoryRequirements(m_pFramework->device, vertices.buf, &memReqs);
 			memAlloc.allocationSize = memReqs.size;
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
-			vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &vertices.mem));
-			vkTools::checkResult(vkBindBufferMemory(device, vertices.buf, vertices.mem, 0));
+			m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
+			vkTools::checkResult(vkAllocateMemory(m_pFramework->device, &memAlloc, nullptr, &vertices.mem));
+			vkTools::checkResult(vkBindBufferMemory(m_pFramework->device, vertices.buf, vertices.mem, 0));
 
 			// Index buffer
 			// todo : comment
@@ -407,24 +413,24 @@ public:
 			indexbufferInfo.size = indexBufferSize;
 			indexbufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			// Copy index data to a buffer visible to the host (staging buffer)
-			vkTools::checkResult(vkCreateBuffer(device, &indexbufferInfo, nullptr, &stagingBuffers.indices.buffer));
-			vkGetBufferMemoryRequirements(device, stagingBuffers.indices.buffer, &memReqs);
+			vkTools::checkResult(vkCreateBuffer(m_pFramework->device, &indexbufferInfo, nullptr, &stagingBuffers.indices.buffer));
+			vkGetBufferMemoryRequirements(m_pFramework->device, stagingBuffers.indices.buffer, &memReqs);
 			memAlloc.allocationSize = memReqs.size;
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-			vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffers.indices.memory));
-			vkTools::checkResult(vkMapMemory(device, stagingBuffers.indices.memory, 0, indexBufferSize, 0, &data));
+			m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
+			vkTools::checkResult(vkAllocateMemory(m_pFramework->device, &memAlloc, nullptr, &stagingBuffers.indices.memory));
+			vkTools::checkResult(vkMapMemory(m_pFramework->device, stagingBuffers.indices.memory, 0, indexBufferSize, 0, &data));
 			memcpy(data, indexBuffer.data(), indexBufferSize);
-			vkUnmapMemory(device, stagingBuffers.indices.memory);
-			vkTools::checkResult(vkBindBufferMemory(device, stagingBuffers.indices.buffer, stagingBuffers.indices.memory, 0));
+			vkUnmapMemory(m_pFramework->device, stagingBuffers.indices.memory);
+			vkTools::checkResult(vkBindBufferMemory(m_pFramework->device, stagingBuffers.indices.buffer, stagingBuffers.indices.memory, 0));
 
 			// Create destination buffer with device only visibility
 			indexbufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-			vkTools::checkResult(vkCreateBuffer(device, &indexbufferInfo, nullptr, &indices.buf));
-			vkGetBufferMemoryRequirements(device, indices.buf, &memReqs);
+			vkTools::checkResult(vkCreateBuffer(m_pFramework->device, &indexbufferInfo, nullptr, &indices.buf));
+			vkGetBufferMemoryRequirements(m_pFramework->device, indices.buf, &memReqs);
 			memAlloc.allocationSize = memReqs.size;
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
-			vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &indices.mem));
-			vkTools::checkResult(vkBindBufferMemory(device, indices.buf, indices.mem, 0));
+			m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
+			vkTools::checkResult(vkAllocateMemory(m_pFramework->device, &memAlloc, nullptr, &indices.mem));
+			vkTools::checkResult(vkBindBufferMemory(m_pFramework->device, indices.buf, indices.mem, 0));
 			indices.count = (int)indexBuffer.size();
 
 			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
@@ -463,16 +469,16 @@ public:
 			copySubmitInfo.commandBufferCount = 1;
 			copySubmitInfo.pCommandBuffers = &copyCommandBuffer;
 
-			vkTools::checkResult(vkQueueSubmit(queue, 1, &copySubmitInfo, VK_NULL_HANDLE));
-			vkTools::checkResult(vkQueueWaitIdle(queue));
+			vkTools::checkResult(vkQueueSubmit(m_pFramework->queue, 1, &copySubmitInfo, VK_NULL_HANDLE));
+			vkTools::checkResult(vkQueueWaitIdle(m_pFramework->queue));
 
 			// todo : sync necessary (fence, semaphore?)
 
 			// Destroy staging buffers
-			vkDestroyBuffer(device, stagingBuffers.vertices.buffer, nullptr);
-			vkFreeMemory(device, stagingBuffers.vertices.memory, nullptr);
-			vkDestroyBuffer(device, stagingBuffers.indices.buffer, nullptr);
-			vkFreeMemory(device, stagingBuffers.indices.memory, nullptr);
+			vkDestroyBuffer(m_pFramework->device, stagingBuffers.vertices.buffer, nullptr);
+			vkFreeMemory(m_pFramework->device, stagingBuffers.vertices.memory, nullptr);
+			vkDestroyBuffer(m_pFramework->device, stagingBuffers.indices.buffer, nullptr);
+			vkFreeMemory(m_pFramework->device, stagingBuffers.indices.memory, nullptr);
 		}
 		else
 		{
@@ -488,15 +494,15 @@ public:
 			vertexBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
 			// Copy vertex data to a buffer visible to the host
-			vkTools::checkResult(vkCreateBuffer(device, &vertexBufferInfo, nullptr, &vertices.buf));
-			vkGetBufferMemoryRequirements(device, vertices.buf, &memReqs);
+			vkTools::checkResult(vkCreateBuffer(m_pFramework->device, &vertexBufferInfo, nullptr, &vertices.buf));
+			vkGetBufferMemoryRequirements(m_pFramework->device, vertices.buf, &memReqs);
 			memAlloc.allocationSize = memReqs.size;
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-			vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &vertices.mem));
-			vkTools::checkResult(vkMapMemory(device, vertices.mem, 0, memAlloc.allocationSize, 0, &data));
+			m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
+			vkTools::checkResult(vkAllocateMemory(m_pFramework->device, &memAlloc, nullptr, &vertices.mem));
+			vkTools::checkResult(vkMapMemory(m_pFramework->device, vertices.mem, 0, memAlloc.allocationSize, 0, &data));
 			memcpy(data, vertexBuffer.data(), vertexBufferSize);
-			vkUnmapMemory(device, vertices.mem);
-			vkTools::checkResult(vkBindBufferMemory(device, vertices.buf, vertices.mem, 0));
+			vkUnmapMemory(m_pFramework->device, vertices.mem);
+			vkTools::checkResult(vkBindBufferMemory(m_pFramework->device, vertices.buf, vertices.mem, 0));
 
 			// Index buffer
 			VkBufferCreateInfo indexbufferInfo = {};
@@ -506,15 +512,15 @@ public:
 
 			// Copy index data to a buffer visible to the host
 			memset(&indices, 0, sizeof(indices));
-			vkTools::checkResult(vkCreateBuffer(device, &indexbufferInfo, nullptr, &indices.buf));
-			vkGetBufferMemoryRequirements(device, indices.buf, &memReqs);
+			vkTools::checkResult(vkCreateBuffer(m_pFramework->device, &indexbufferInfo, nullptr, &indices.buf));
+			vkGetBufferMemoryRequirements(m_pFramework->device, indices.buf, &memReqs);
 			memAlloc.allocationSize = memReqs.size;
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-			vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &indices.mem));
-			vkTools::checkResult(vkMapMemory(device, indices.mem, 0, indexBufferSize, 0, &data));
+			m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
+			vkTools::checkResult(vkAllocateMemory(m_pFramework->device, &memAlloc, nullptr, &indices.mem));
+			vkTools::checkResult(vkMapMemory(m_pFramework->device, indices.mem, 0, indexBufferSize, 0, &data));
 			memcpy(data, indexBuffer.data(), indexBufferSize);
-			vkUnmapMemory(device, indices.mem);
-			vkTools::checkResult(vkBindBufferMemory(device, indices.buf, indices.mem, 0));
+			vkUnmapMemory(m_pFramework->device, indices.mem);
+			vkTools::checkResult(vkBindBufferMemory(m_pFramework->device, indices.buf, indices.mem, 0));
 			indices.count = (int)indexBuffer.size();
 		}
 
@@ -573,7 +579,7 @@ public:
 		// Requesting descriptors beyond maxSets will result in an error
 		descriptorPoolInfo.maxSets = 1;
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
+		VkResult vkRes = vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool);
 		assert(!vkRes);
 	}
 
@@ -598,7 +604,7 @@ public:
 		descriptorLayout.bindingCount = 1;
 		descriptorLayout.pBindings = &layoutBinding;
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, NULL, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, NULL, &descriptorSetLayout);
 		assert(!err);
 
 		// Create the pipeline layout that is used to generate the rendering pipelines that
@@ -611,7 +617,7 @@ public:
 		pPipelineLayoutCreateInfo.setLayoutCount = 1;
 		pPipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+		err = vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
 	}
 
@@ -624,11 +630,11 @@ public:
 
 		VkDescriptorSetAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = descriptorPool;
+		allocInfo.descriptorPool = m_pFramework->descriptorPool;
 		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = &descriptorSetLayout;
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
+		VkResult vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSet);
 		assert(!vkRes);
 
 		// Binding 0 : Uniform buffer
@@ -640,7 +646,7 @@ public:
 		// Binds this uniform buffer to binding point 0
 		writeDescriptorSet.dstBinding = 0;
 
-		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, 1, &writeDescriptorSet, 0, NULL);
 	}
 
 	void preparePipelines()
@@ -667,7 +673,7 @@ public:
 		// The layout used for this pipeline
 		pipelineCreateInfo.layout = pipelineLayout;
 		// Renderpass this pipeline is attached to
-		pipelineCreateInfo.renderPass = renderPass;
+		pipelineCreateInfo.renderPass = m_pFramework->renderPass;
 
 		// Vertex input state
 		// Describes the topoloy used with this pipeline
@@ -748,8 +754,8 @@ public:
 		// Load shaders
 		// Shaders are loaded from the SPIR-V format, which can be generated from glsl
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Assign states
 		// Assign pipeline state create information
@@ -762,11 +768,11 @@ public:
 		pipelineCreateInfo.pMultisampleState = &multisampleState;
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.renderPass = renderPass;
+		pipelineCreateInfo.renderPass = m_pFramework->renderPass;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 
 		// Create rendering pipeline
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
+		err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
 		assert(!err);
 	}
 
@@ -789,19 +795,19 @@ public:
 		bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
 		// Create a new buffer
-		err = vkCreateBuffer(device, &bufferInfo, nullptr, &uniformDataVS.buffer);
+		err = vkCreateBuffer(m_pFramework->device, &bufferInfo, nullptr, &uniformDataVS.buffer);
 		assert(!err);
 		// Get memory requirements including size, alignment and memory type 
-		vkGetBufferMemoryRequirements(device, uniformDataVS.buffer, &memReqs);
+		vkGetBufferMemoryRequirements(m_pFramework->device, uniformDataVS.buffer, &memReqs);
 		allocInfo.allocationSize = memReqs.size;
 		// Gets the appropriate memory type for this type of buffer allocation
 		// Only memory types that are visible to the host
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
+		m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
 		// Allocate memory for the uniform buffer
-		err = vkAllocateMemory(device, &allocInfo, nullptr, &(uniformDataVS.memory));
+		err = vkAllocateMemory(m_pFramework->device, &allocInfo, nullptr, &(uniformDataVS.memory));
 		assert(!err);
 		// Bind memory to buffer
-		err = vkBindBufferMemory(device, uniformDataVS.buffer, uniformDataVS.memory, 0);
+		err = vkBindBufferMemory(m_pFramework->device, uniformDataVS.buffer, uniformDataVS.memory, 0);
 		assert(!err);
 		
 		// Store information in the uniform's descriptor
@@ -815,26 +821,25 @@ public:
 	void updateUniformBuffers()
 	{
 		// Update matrices
-		uboVS.projectionMatrix = glm::perspective(deg_to_rad(60.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.1f, 256.0f);
-		uboVS.viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		uboVS.projectionMatrix = glm::perspective(deg_to_rad(60.0f), (float)m_pFramework->ScreenRect.Width / (float)m_pFramework->ScreenRect.Height, 0.1f, 256.0f);
+		uboVS.viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, m_pFramework->zoom));
 
 		uboVS.modelMatrix = glm::mat4();
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(m_pFramework->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(m_pFramework->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(m_pFramework->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Map uniform buffer and update it
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData);
+		VkResult err = vkMapMemory(m_pFramework->device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformDataVS.memory);
+		vkUnmapMemory(m_pFramework->device, uniformDataVS.memory);
 		assert(!err);
 	}
 
 	int32_t prepare()
 	{
-		CVulkanFramework::prepare();
 		prepareSemaphore();
 		prepareVertices(USE_STAGING);
 		prepareUniformBuffers();
@@ -843,17 +848,17 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSet();
 		buildCommandBuffers();
-		prepared = true;
+		m_pFramework->prepared = true;
 		return 0;
 	}
 
 	virtual int32_t render()
 	{
-		if (!prepared)
+		if (!m_pFramework->prepared)
 			return 1;
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		return 0;
 	}
 
@@ -864,77 +869,7 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void* getActualPointer() {return this;}
-
+	void keyPressed(uint32_t keyCode){};
 };
-
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
-
-// Main entry point
-#if defined(_WIN32)
-// Windows entry point
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#elif defined(__ANDROID__)
-// Android entry point
-void android_main(android_app* state)
-#elif defined(__linux__)
-// Linux entry point
-int main(const int argc, const char *argv[])
-#endif
-{
-#if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
-	// which would make the application crash at start
-	app_dummy();
-#elif defined(_WIN32)
-#if defined(DEBUG) || defined(_DEBUG)
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
-#endif
-#endif
-	vulkanExample = 0;
-	//vulkanExample = new VulkanExample();
-	IVulkanGame* newGame=0;
-	createVulkanGame(&newGame);
-
-	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
-#if defined(_WIN32)
-	vulkanExample->setupWindow(hInstance, WndProc);
-#elif defined(__ANDROID__)
-	// Attach vulkan example to global android application state
-	state->userData = vulkanExample;
-	state->onAppCmd = VulkanExample::handleAppCommand;
-	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
-#elif defined(__linux__)
-	vulkanExample->setupWindow();
-#endif
-#if !defined(__ANDROID__)
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-#endif
-	vulkanExample->renderLoop();
-
-	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
-	return 0;
-}
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()

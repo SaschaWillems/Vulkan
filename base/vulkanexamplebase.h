@@ -46,6 +46,7 @@
 
 #define deg_to_rad(deg) deg * float(M_PI / 180)
 
+
 class IVulkanFramework
 {
 public:
@@ -57,16 +58,20 @@ public:
 	//virtual int32_t		()=0;
 };
 
+class CVulkanFramework;
+
 class IVulkanGame
 {
 public:
 	IVulkanGame(){};
 	virtual ~IVulkanGame(){};
 
-//	virtual int32_t			init(IVulkanFramework* pFramework)=0;
-	virtual int32_t			prepare				()=0;	// Prepare commonly used Vulkan functions
-	virtual int32_t			render				()=0;
-	virtual void*			getActualPointer	()=0;
+	//virtual int32_t			init(IVulkanFramework* pFramework)=0; at the moment we don't support the IVulkanFramework interface so just work with the CVulkanFramework class instead.
+	virtual int32_t			init(CVulkanFramework* pFramework)=0;
+	virtual int32_t			prepare							()=0;	// Prepare commonly used Vulkan functions
+	virtual int32_t			render							()=0;
+	virtual void			keyPressed		(uint32_t keyCode)=0;
+	virtual void			viewChanged						()=0;
 
 };
 
@@ -80,15 +85,33 @@ int32_t createVulkanGame(IVulkanGame** ppCreated)											\
 	return 0;																				\
 }																							\
 																							\
-int32_t releaseVulkanGame(IVulkanGame** ppInstance)											\
-{																							\
-	VulkanExample* oldVulkanExample=reinterpret_cast<VulkanExample*>(*ppInstance);			\
-	*ppInstance = 0;																		\
-	if(oldVulkanExample)																	\
-		delete (oldVulkanExample);															\
-	return 0;																				\
-}																							\
+int32_t releaseVulkanGame(IVulkanGame** ppInstance)		\
+{														\
+	/*VulkanExample* oldVulkanExample=reinterpret_cast<VulkanExample*>(*ppInstance);*/			\
+	IVulkanGame* oldVulkanExample=*ppInstance;			\
+	*ppInstance = 0;									\
+	if(oldVulkanExample)								\
+		delete (oldVulkanExample);						\
+	return 0;											\
+}														\
 
+class CBaseVulkanGame : public IVulkanGame
+{
+public:
+	CBaseVulkanGame (){};
+	virtual ~CBaseVulkanGame (){};
+
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		m_pFramework = pFramework;
+		return 0;
+	};
+	virtual int32_t			prepare				()=0;	// Prepare commonly used Vulkan functions
+	virtual int32_t			render				()=0;
+
+protected:
+	CVulkanFramework*		m_pFramework;	
+};
 struct SScreenRect
 {
 	SScreenRect( void ):
@@ -130,24 +153,12 @@ protected:
 	VkInstance							instance					= 0;	// Vulkan instance, stores all per-application states
 	VkPhysicalDevice					physicalDevice				= 0;	// Physical device (GPU) that Vulkan will ise
 	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;				// Stores all available memory (type) properties for the physical device
-	VkDevice							device						= 0;	// Logical device, application's view of the physical device (GPU)
-	VkQueue								queue						= 0;	// Handle to the device graphics queue that command buffers are submitted to
 	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
 	VkFormat							depthFormat;						// Depth buffer format - Depth format is selected during Vulkan initialization
-	VkCommandPool						cmdPool						= VK_NULL_HANDLE;	// Command buffer pool
 	VkCommandBuffer						setupCmdBuffer				= VK_NULL_HANDLE;	// Command buffer used for setup
-	VkCommandBuffer						postPresentCmdBuffer		= VK_NULL_HANDLE;	// Command buffer for submitting a post present image barrier
 	VkCommandBuffer						prePresentCmdBuffer			= VK_NULL_HANDLE;	// Command buffer for submitting a pre present image barrier
 	VkPipelineStageFlags				submitPipelineStages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;	// Pipeline stage flags for the submit info structure
-	VkSubmitInfo						submitInfo;										// Contains command buffers and semaphores to be presented to the queue
-	std::vector<VkCommandBuffer>		drawCmdBuffers;									// Command buffers used for rendering
-	VkRenderPass						renderPass					= VK_NULL_HANDLE;	// Global render pass for frame buffer writes
-	std::vector<VkFramebuffer>			frameBuffers;									// List of available frame buffers (same as number of swap chain images)
-	uint32_t							currentBuffer				= 0;				// Active frame buffer index
-	VkDescriptorPool					descriptorPool				= VK_NULL_HANDLE;	// Descriptor set pool
 	std::vector<VkShaderModule>			shaderModules;									// List of shader modules created (stored for cleanup)
-	VkPipelineCache						pipelineCache				= VK_NULL_HANDLE;	// Pipeline cache object
-	VulkanSwapChain						swapChain;										// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VkPhysicalDeviceProperties			deviceProperties;								// Stores physical device properties (for e.g. checking device limits)
 	uint32_t							frameCounter				= 0;				// Frame counter to display fps
 	vkTools::VulkanTextureLoader		*textureLoader				= nullptr;			// Simple texture loader
@@ -159,10 +170,25 @@ protected:
 	} semaphores;																// Synchronization semaphores
 
 	//--------------------------------------------------------------
-	std::string							getAssetPath();							// Returns the base asset path (for shaders, models, textures) depending on the os
 	IVulkanGame*						m_pVulkanExample			= nullptr;	
+public:	// these were made public in order to enable decoupling of the CVulkanFramework class
+	VulkanSwapChain						swapChain;										// Wraps the swap chain to present images (framebuffers) to the windowing system
+	VkDevice							device						= 0;	// Logical device, application's view of the physical device (GPU)
+	VkPipelineCache						pipelineCache				= VK_NULL_HANDLE;	// Pipeline cache object
+	VkRenderPass						renderPass					= VK_NULL_HANDLE;	// Global render pass for frame buffer writes
+	VkDescriptorPool					descriptorPool				= VK_NULL_HANDLE;	// Descriptor set pool
+	VkQueue								queue						= 0;	// Handle to the device graphics queue that command buffers are submitted to
+	VkCommandPool						cmdPool						= VK_NULL_HANDLE;	// Command buffer pool
+	uint32_t							currentBuffer				= 0;				// Active frame buffer index
+	VkSubmitInfo						submitInfo;										// Contains command buffers and semaphores to be presented to the queue
+	VkCommandBuffer						postPresentCmdBuffer		= VK_NULL_HANDLE;	// Command buffer for submitting a post present image barrier
+	std::vector<VkCommandBuffer>		drawCmdBuffers;									// Command buffers used for rendering
+	std::vector<VkFramebuffer>			frameBuffers;									// List of available frame buffers (same as number of swap chain images)
+
 
 public: 
+	std::string							getAssetPath();							// Returns the base asset path (for shaders, models, textures) depending on the os
+
 	SScreenRect				ScreenRect; 
 	bool					prepared			= false;
 	VkClearColorValue		defaultClearColor	= { { 0.025f, 0.025f, 0.025f, 1.0f } };
@@ -228,8 +254,10 @@ public:
 	void handleEvent(const xcb_generic_event_t *event);
 #endif
 
-	// Pure virtual render function (override in derived class)
-	virtual int32_t		render() = 0;
+	int32_t				render()
+	{
+		return m_pVulkanExample->render();
+	};
 
 	// Called when view change occurs. Can be overriden in derived class to e.g. update uniform buffers containing view dependant matrices
 	virtual void		viewChanged();
