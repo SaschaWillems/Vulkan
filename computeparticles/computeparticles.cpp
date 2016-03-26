@@ -29,6 +29,14 @@ class VulkanExample : public CBaseVulkanGame
 private:
 	vkTools::VulkanTexture textureColorMap;
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		CBaseVulkanGame::init(pFramework);
+		m_pFramework->zoom = -2.0f;
+		m_pFramework->title = "Vulkan Example - Compute shader particle system";
+		return 0;
+	}
+
 	float timer = 0.0f;
 	float animStart = 50.0f;
 	bool animate = true;
@@ -77,10 +85,8 @@ public:
 	VkDescriptorSet descriptorSetPostCompute;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
+	VulkanExample()
 	{
-		zoom = -2.0f;
-		title = "Vulkan Example - Compute shader particle system";
 	}
 
 	~VulkanExample()
@@ -88,27 +94,27 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		vkDestroyPipeline(device, pipelines.postCompute, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.postCompute, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		vkDestroyBuffer(device, computeStorageBuffer.buffer, nullptr);
-		vkFreeMemory(device, computeStorageBuffer.memory, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
+		vkDestroyBuffer(m_pFramework->device, computeStorageBuffer.buffer, nullptr);
+		vkFreeMemory(m_pFramework->device, computeStorageBuffer.memory, nullptr);
 
-		vkTools::destroyUniformData(device, &uniformData.computeShader.ubo);
+		vkTools::destroyUniformData(m_pFramework->device, &uniformData.computeShader.ubo);
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &computeCmdBuffer);
-		vkDestroyPipelineLayout(device, computePipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, computeDescriptorSetLayout, nullptr);
-		vkDestroyPipeline(device, pipelines.compute, nullptr);
+		vkFreeCommandBuffers(m_pFramework->device, m_pFramework->cmdPool, 1, &computeCmdBuffer);
+		vkDestroyPipelineLayout(m_pFramework->device, computePipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, computeDescriptorSetLayout, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.compute, nullptr);
 
-		textureLoader->destroyTexture(textureColorMap);
+		m_pFramework->textureLoader->destroyTexture(textureColorMap);
 	}
 
 	void loadTextures()
 	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/particle01_rgba.ktx", 
+		m_pFramework->textureLoader->loadTexture(
+			m_pFramework->getAssetPath() + "textures/particle01_rgba.ktx", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textureColorMap, 
 			false);
@@ -117,35 +123,35 @@ public:
 	void buildCommandBuffers()
 	{
 		// Destroy command buffers if already present
-		if (!checkCommandBuffers())
+		if (!m_pFramework->checkCommandBuffers())
 		{
-			destroyCommandBuffers();
-			createCommandBuffers();
+			m_pFramework->destroyCommandBuffers();
+			m_pFramework->createCommandBuffers();
 		}
 
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = m_pFramework->defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = ScreenRect.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
+		renderPassBeginInfo.renderArea.extent.width  = m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
+			err = vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo);
 			assert(!err);
 
 			// Buffer memory barrier to make sure that compute shader
@@ -163,7 +169,7 @@ public:
 			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
+				m_pFramework->drawCmdBuffers[i],
 				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 				VK_FLAGS_NONE, 
@@ -171,34 +177,34 @@ public:
 				1, &bufferBarrier,
 				0, nullptr);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)ScreenRect.Width,
-				(float)ScreenRect.Height,
+				(float)m_pFramework->ScreenRect.Width,
+				(float)m_pFramework->ScreenRect.Height,
 				0.0f,
 				1.0f
 				);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenRect.Width,
-				ScreenRect.Height,
+				m_pFramework->ScreenRect.Width,
+				m_pFramework->ScreenRect.Height,
 				0,
 				0
 				);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+			vkCmdSetScissor(m_pFramework->drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetPostCompute, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.postCompute);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetPostCompute, 0, NULL);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.postCompute);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &computeStorageBuffer.buffer, offsets);
-			vkCmdDraw(drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &computeStorageBuffer.buffer, offsets);
+			vkCmdDraw(m_pFramework->drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
+			err = vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]);
 			assert(!err);
 		}
 
@@ -223,25 +229,25 @@ public:
 		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		err = m_pFramework->swapChain.acquireNextImage(m_pFramework->semaphores.presentComplete, &m_pFramework->currentBuffer);
 		assert(!err);
 
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPostPresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
 		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPrePresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		err = m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, m_pFramework->semaphores.renderComplete);
 		assert(!err);
 
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 
 		// Compute
@@ -268,7 +274,7 @@ public:
 		for (int i = 0; i < PARTICLE_COUNT; ++i)
 		{
 			// Position
-			float aspectRatio = (float)ScreenRect.Height / (float)ScreenRect.Width;
+			float aspectRatio = (float)m_pFramework->ScreenRect.Height / (float)m_pFramework->ScreenRect.Width;
 			float rndVal = (float)rand() / (float)(RAND_MAX / (360.0f * 3.14f * 2.0f));
 			float rndRad = (float)rand() / (float)(RAND_MAX) * 0.5f;
 			Particle p;
@@ -307,42 +313,42 @@ public:
 			vkTools::initializers::bufferCreateInfo(
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
 				storageBufferSize);
-		vkTools::checkResult(vkCreateBuffer(device, &vBufferInfo, nullptr, &stagingBuffer.buffer));
-		vkGetBufferMemoryRequirements(device, stagingBuffer.buffer, &memReqs);
+		vkTools::checkResult(vkCreateBuffer(m_pFramework->device, &vBufferInfo, nullptr, &stagingBuffer.buffer));
+		vkGetBufferMemoryRequirements(m_pFramework->device, stagingBuffer.buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffer.memory));
-		vkTools::checkResult(vkMapMemory(device, stagingBuffer.memory, 0, storageBufferSize, 0, &data));
+		m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
+		vkTools::checkResult(vkAllocateMemory(m_pFramework->device, &memAlloc, nullptr, &stagingBuffer.memory));
+		vkTools::checkResult(vkMapMemory(m_pFramework->device, stagingBuffer.memory, 0, storageBufferSize, 0, &data));
 		memcpy(data, particleBuffer.data(), storageBufferSize);
-		vkUnmapMemory(device, stagingBuffer.memory);
-		vkTools::checkResult(vkBindBufferMemory(device, stagingBuffer.buffer, stagingBuffer.memory, 0));
+		vkUnmapMemory(m_pFramework->device, stagingBuffer.memory);
+		vkTools::checkResult(vkBindBufferMemory(m_pFramework->device, stagingBuffer.buffer, stagingBuffer.memory, 0));
 
 		// Allocate device local storage buffer ojbect
 		vBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		vkTools::checkResult(vkCreateBuffer(device, &vBufferInfo, nullptr, &computeStorageBuffer.buffer));
-		vkGetBufferMemoryRequirements(device, computeStorageBuffer.buffer, &memReqs);
+		vkTools::checkResult(vkCreateBuffer(m_pFramework->device, &vBufferInfo, nullptr, &computeStorageBuffer.buffer));
+		vkGetBufferMemoryRequirements(m_pFramework->device, computeStorageBuffer.buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
-		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &computeStorageBuffer.memory));
-		vkTools::checkResult(vkBindBufferMemory(device, computeStorageBuffer.buffer, computeStorageBuffer.memory, 0));
+		m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
+		vkTools::checkResult(vkAllocateMemory(m_pFramework->device, &memAlloc, nullptr, &computeStorageBuffer.memory));
+		vkTools::checkResult(vkBindBufferMemory(m_pFramework->device, computeStorageBuffer.buffer, computeStorageBuffer.memory, 0));
 
 		// Copy from host to device
-		createSetupCommandBuffer();
+		m_pFramework->createSetupCommandBuffer();
 
 		VkBufferCopy copyRegion = {};
 		copyRegion.size = storageBufferSize;
 		vkCmdCopyBuffer(
-			setupCmdBuffer,
+			m_pFramework->setupCmdBuffer,
 			stagingBuffer.buffer,
 			computeStorageBuffer.buffer,
 			1,
 			&copyRegion);
 
-		flushSetupCommandBuffer();
+		m_pFramework->flushSetupCommandBuffer();
 
 		// Destroy staging buffer
-		vkDestroyBuffer(device, stagingBuffer.buffer, nullptr);
-		vkFreeMemory(device, stagingBuffer.memory, nullptr);
+		vkDestroyBuffer(m_pFramework->device, stagingBuffer.buffer, nullptr);
+		vkFreeMemory(m_pFramework->device, stagingBuffer.memory, nullptr);
 
 		computeStorageBuffer.descriptor.buffer = computeStorageBuffer.buffer;
 		computeStorageBuffer.descriptor.offset = 0;
@@ -397,7 +403,7 @@ public:
 				poolSizes.data(),
 				3);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
+		VkResult vkRes = vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool);
 		assert(!vkRes);
 	}
 
@@ -417,7 +423,7 @@ public:
 				setLayoutBindings.data(),
 				(uint32_t)setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
@@ -425,7 +431,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+		err = vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
 	}
 
@@ -433,11 +439,11 @@ public:
 	{
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
+				m_pFramework->descriptorPool,
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSetPostCompute);
+		VkResult vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSetPostCompute);
 		assert(!vkRes);
 
 		// Image descriptor for the color map texture
@@ -457,7 +463,7 @@ public:
 				&texDescriptor)
 		};
 
-		vkUpdateDescriptorSets(device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	// Create a separate command buffer for compute commands
@@ -465,11 +471,11 @@ public:
 	{
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 			vkTools::initializers::commandBufferAllocateInfo(
-				cmdPool,
+				m_pFramework->cmdPool,
 				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				1);
 
-		VkResult vkRes = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &computeCmdBuffer);
+		VkResult vkRes = vkAllocateCommandBuffers(m_pFramework->device, &cmdBufAllocateInfo, &computeCmdBuffer);
 		assert(!vkRes);
 	}
 
@@ -528,13 +534,13 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/computeparticles/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/computeparticles/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/computeparticles/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/computeparticles/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
-				renderPass,
+				m_pFramework->renderPass,
 				0);
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
@@ -547,7 +553,7 @@ public:
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 		pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
-		pipelineCreateInfo.renderPass = renderPass;
+		pipelineCreateInfo.renderPass = m_pFramework->renderPass;
 
 		// Additive blending
 		blendAttachmentState.colorWriteMask = 0xF;
@@ -559,7 +565,7 @@ public:
 		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_DST_ALPHA;
 
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.postCompute);
+		err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.postCompute);
 		assert(!err);
 	}
 
@@ -588,7 +594,7 @@ public:
 				(uint32_t)setLayoutBindings.size());
 
 		VkResult err = vkCreateDescriptorSetLayout(
-			device,
+			m_pFramework->device,
 			&descriptorLayout,
 			nullptr,
 			&computeDescriptorSetLayout);
@@ -601,7 +607,7 @@ public:
 				1);
 
 		err = vkCreatePipelineLayout(
-			device,
+			m_pFramework->device,
 			&pPipelineLayoutCreateInfo,
 			nullptr,
 			&computePipelineLayout);
@@ -609,11 +615,11 @@ public:
 
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
+				m_pFramework->descriptorPool,
 				&computeDescriptorSetLayout,
 				1);
 
-		err = vkAllocateDescriptorSets(device, &allocInfo, &computeDescriptorSet);
+		err = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &computeDescriptorSet);
 		assert(!err);
 
 		std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets =
@@ -632,15 +638,15 @@ public:
 				&uniformData.computeShader.ubo.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, (uint32_t)computeWriteDescriptorSets.size(), computeWriteDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, (uint32_t)computeWriteDescriptorSets.size(), computeWriteDescriptorSets.data(), 0, NULL);
 
 		// Create pipeline		
 		VkComputePipelineCreateInfo computePipelineCreateInfo =
 			vkTools::initializers::computePipelineCreateInfo(
 				computePipelineLayout,
 				0);
-		computePipelineCreateInfo.stage = loadShader(getAssetPath() + "shaders/computeparticles/particle.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
-		err = vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &pipelines.compute);
+		computePipelineCreateInfo.stage = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/computeparticles/particle.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
+		err = vkCreateComputePipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &computePipelineCreateInfo, nullptr, &pipelines.compute);
 		assert(!err);
 	}
 
@@ -648,7 +654,7 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Compute shader uniform buffer block
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(computeUbo),
 			&computeUbo,
@@ -661,16 +667,16 @@ public:
 
 	void updateUniformBuffers()
 	{
-		computeUbo.deltaT = frameTimer * 5.0f;
+		computeUbo.deltaT = m_pFramework->frameTimer * 5.0f;
 
 		computeUbo.destX = (float)(sin(deg_to_rad(timer*360.0)) * 0.75);
 
 		computeUbo.destY = 0;
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.computeShader.ubo.memory, 0, sizeof(computeUbo), 0, (void **)&pData);
+		VkResult err = vkMapMemory(m_pFramework->device, uniformData.computeShader.ubo.memory, 0, sizeof(computeUbo), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &computeUbo, sizeof(computeUbo));
-		vkUnmapMemory(device, uniformData.computeShader.ubo.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.computeShader.ubo.memory);
 	}
 
 	// Find and create a compute capable device queue
@@ -678,12 +684,12 @@ public:
 	{
 		uint32_t queueIndex = 0;
 		uint32_t queueCount;
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, NULL);
+		vkGetPhysicalDeviceQueueFamilyProperties(m_pFramework->physicalDevice, &queueCount, NULL);
 		assert(queueCount >= 1);
 
 		std::vector<VkQueueFamilyProperties> queueProps;
 		queueProps.resize(queueCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queueProps.data());
+		vkGetPhysicalDeviceQueueFamilyProperties(m_pFramework->physicalDevice, &queueCount, queueProps.data());
 		
 		for (queueIndex = 0; queueIndex < queueCount; queueIndex++)
 		{
@@ -695,12 +701,12 @@ public:
 		VkDeviceQueueCreateInfo queueCreateInfo = {};
 		queueCreateInfo.queueFamilyIndex = queueIndex;
 		queueCreateInfo.queueCount = 1;
-		vkGetDeviceQueue(device, queueIndex, 0, &computeQueue);
+		vkGetDeviceQueue(m_pFramework->device, queueIndex, 0, &computeQueue);
 	}
 
 	int32_t	prepare()
 	{
-		CVulkanFramework::prepare();
+		//CVulkanFramework::prepare();
 		loadTextures();
 		getComputeQueue();
 		createComputeCommandBuffer();
@@ -713,24 +719,24 @@ public:
 		prepareCompute();
 		buildCommandBuffers(); 
 		buildComputeCommandBuffer();
-		prepared = true;
+		m_pFramework->prepared = true;
 		return 0;
 	}
 
 	virtual int32_t render()
 	{
-		if (!prepared)
+		if (!m_pFramework->prepared)
 			return 1;
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		if (animStart > 0.0f)
 		{
-			animStart -= frameTimer * 5.0f;
+			animStart -= m_pFramework->frameTimer * 5.0f;
 		}
 		if ((animate) & (animStart <= 0.0f))
 		{
-			timer += frameTimer * 0.1f;
+			timer += m_pFramework->frameTimer * 0.1f;
 			if (timer > 1.0)
 			{
 				timer -= 1.0f;
@@ -745,38 +751,20 @@ public:
 		animate = !animate;
 	}
 
-
-
-};
-
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
+	virtual void	viewChanged()
 	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
+	}
+
+	virtual void	keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
 		{
-			switch (wParam)
-			{
-			case 0x41:
-				vulkanExample->toggleAnimation();
-				break;
-			}
+		case 0x41:
+			toggleAnimation();
+			break;
 		}
 	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
+
+};
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
