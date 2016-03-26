@@ -149,7 +149,6 @@ private:
 	);	// Create logical Vulkan device based on physical device
 	std::string							getWindowTitle();
 protected:
-	float								frameTimer					= 0;	// Last frame time, measured using a high performance timer (if available)
 	uint32_t							frameCounter				= 0;	// Frame counter to display fps
 	VkInstance							instance					= 0;	// Vulkan instance, stores all per-application states
 	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;				// Stores all available memory (type) properties for the physical device
@@ -164,6 +163,7 @@ protected:
 	//--------------------------------------------------------------
 	IVulkanGame*						m_pVulkanExample			= nullptr;	
 public:	// these were made public in order to enable decoupling of the CVulkanFramework class
+	float								frameTimer					= 0;	// Last frame time, measured using a high performance timer (if available)
 	VulkanSwapChain						swapChain;										// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VkDevice							device						= 0;	// Logical device, application's view of the physical device (GPU)
 	VkPipelineCache						pipelineCache				= VK_NULL_HANDLE;	// Pipeline cache object
