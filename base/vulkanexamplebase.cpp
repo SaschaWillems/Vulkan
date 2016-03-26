@@ -356,27 +356,40 @@ void CVulkanFramework::renderLoop()
 		}
 	}
 #elif defined(__ANDROID__)
-	// todo : Application moved to background
 	while (1)
 	{
-		// Read all pending events.
 		int ident;
 		int events;
 		struct android_poll_source* source;
+		bool destroy = false;
 
-		while ((ident = ALooper_pollAll(animating ? 0 : -1, NULL, &events, (void**)&source)) >= 0)
+		focused = true;
+
+		while ((ident = ALooper_pollAll(focused ? 0 : -1, NULL, &events, (void**)&source)) >= 0)
 		{
 			if (source != NULL)
 			{
 				source->process(androidApp, source);
 			}
-
 			if (androidApp->destroyRequested != 0)
 			{
+<<<<<<< HEAD
 				// todo : free resources
 				//releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
 				return;
+=======
+				LOGD("Android app destroy requested");
+				destroy = true;
+				break;
+>>>>>>> fc71e4445d508e13e9796e94a59281de836a2224
 			}
+		}
+
+		// App destruction requested
+		// Exit loop, example will be destroyed in application main
+		if (destroy)
+		{
+			break;
 		}
 
 		// Render frame
@@ -979,6 +992,7 @@ void CVulkanFramework::handleAppCommand(android_app * app, int32_t cmd)
 	switch (cmd)
 	{
 	case APP_CMD_SAVE_STATE:
+		LOGD("APP_CMD_SAVE_STATE");
 		/*
 		vulkanExample->app->savedState = malloc(sizeof(struct saved_state));
 		*((struct saved_state*)vulkanExample->app->savedState) = vulkanExample->state;
@@ -989,12 +1003,10 @@ void CVulkanFramework::handleAppCommand(android_app * app, int32_t cmd)
 		LOGD("APP_CMD_INIT_WINDOW");
 		if (vulkanExample->androidApp->window != NULL)
 		{
-			LOGI("Initializing Vulkan...");
 			vulkanExample->initVulkan(false);
 			vulkanExample->initSwapchain();
 			vulkanExample->prepare();
 			assert(vulkanExample->prepared);
-			LOGI("Vulkan initialized");
 		}
 		else
 		{
@@ -1002,7 +1014,12 @@ void CVulkanFramework::handleAppCommand(android_app * app, int32_t cmd)
 		}
 		break;
 	case APP_CMD_LOST_FOCUS:
-		//vulkanExample->animating = 0;
+		LOGD("APP_CMD_LOST_FOCUS");
+		vulkanExample->focused = false;
+		break;
+	case APP_CMD_GAINED_FOCUS:
+		LOGD("APP_CMD_GAINED_FOCUS");
+		vulkanExample->focused = true;
 		break;
 	}
 }

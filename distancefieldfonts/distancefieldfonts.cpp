@@ -877,11 +877,8 @@ int main(const int argc, const char *argv[])
 	vulkanExample->prepare();
 #endif
 	vulkanExample->renderLoop();
-//<<<<<<< HEAD
-	
-	//releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
+
 	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample));
-	
 	return 0;
 }
 

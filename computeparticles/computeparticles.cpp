@@ -823,10 +823,9 @@ int main(const int argc, const char *argv[])
 	vulkanExample->prepare();
 #endif
 	vulkanExample->renderLoop();
-#if !defined(__ANDROID__)
+
 	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
 	return 0;
-#endif
 }
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
