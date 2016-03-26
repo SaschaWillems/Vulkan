@@ -29,7 +29,7 @@ struct Vertex {
 	float uv[2];
 };
 
-class VulkanExample : public CVulkanFramework, public IVulkanGame
+class VulkanExample : public CBaseVulkanGame
 {
 private:
 	vkTools::VulkanTexture textureColorMap;

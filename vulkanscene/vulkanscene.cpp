@@ -28,7 +28,7 @@
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-class VulkanExample : public CVulkanFramework, public IVulkanGame
+class VulkanExample : public CBaseVulkanGame
 {
 public:
 

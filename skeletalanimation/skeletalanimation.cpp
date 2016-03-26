@@ -35,7 +35,7 @@ struct Vertex {
 	uint32_t boneIDs[4];
 };
 
-class VulkanExample : public CVulkanFramework, public IVulkanGame
+class VulkanExample : public CBaseVulkanGame
 {
 public:
 	struct {

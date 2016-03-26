@@ -32,7 +32,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_UV
 };
 
-class VulkanExample : public CVulkanFramework, public IVulkanGame
+class VulkanExample : public CBaseVulkanGame
 {
 private:
 	struct {

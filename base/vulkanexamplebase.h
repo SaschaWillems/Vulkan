@@ -154,7 +154,6 @@ protected:
 	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;				// Stores all available memory (type) properties for the physical device
 	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
 	VkFormat							depthFormat;						// Depth buffer format - Depth format is selected during Vulkan initialization
-	VkCommandBuffer						setupCmdBuffer				= VK_NULL_HANDLE;	// Command buffer used for setup
 	VkCommandBuffer						prePresentCmdBuffer			= VK_NULL_HANDLE;	// Command buffer for submitting a pre present image barrier
 	VkPipelineStageFlags				submitPipelineStages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;	// Pipeline stage flags for the submit info structure
 	std::vector<VkShaderModule>			shaderModules;									// List of shader modules created (stored for cleanup)
@@ -175,6 +174,7 @@ public:	// these were made public in order to enable decoupling of the CVulkanFr
 	VkCommandPool						cmdPool						= VK_NULL_HANDLE;	// Command buffer pool
 	uint32_t							currentBuffer				= 0;				// Active frame buffer index
 	VkSubmitInfo						submitInfo;										// Contains command buffers and semaphores to be presented to the queue
+	VkCommandBuffer						setupCmdBuffer				= VK_NULL_HANDLE;	// Command buffer used for setup
 	VkCommandBuffer						postPresentCmdBuffer		= VK_NULL_HANDLE;	// Command buffer for submitting a post present image barrier
 	std::vector<VkCommandBuffer>		drawCmdBuffers;									// Command buffers used for rendering
 	std::vector<VkFramebuffer>			frameBuffers;									// List of available frame buffers (same as number of swap chain images)

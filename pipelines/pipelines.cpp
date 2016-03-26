@@ -33,7 +33,7 @@ struct Vertex {
 	float normal[3];
 };
 
-class VulkanExample: public CVulkanFramework, public IVulkanGame
+class VulkanExample: public CBaseVulkanGame
 {
 private:
 	vkTools::VulkanTexture textureColorMap;

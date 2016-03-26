@@ -29,9 +29,18 @@ struct Vertex {
 	float uv[2];
 };
 
-class VulkanExample : public CVulkanFramework, public IVulkanGame
+class VulkanExample : public CBaseVulkanGame
 {
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		CBaseVulkanGame::init(pFramework);
+		m_pFramework->zoom = -2.5f;
+		m_pFramework->rotation = { 45.0f, 0.0f, 0.0f };
+		m_pFramework->title = "Vulkan Example - Texturing";
+		// Values not set here are initialized in the base class constructor
+		return 0;
+	};
 	// Contains all Vulkan objects that are required to store and use a texture
 	// Note that this repository contains a texture loader (vulkantextureloader.h)
 	// that encapsulates texture loading functionality in a class that is used
@@ -76,11 +85,8 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
+	VulkanExample()
 	{
-		zoom = -2.5f;
-		rotation = { 45.0f, 0.0f, 0.0f };
-		title = "Vulkan Example - Texturing";
 	}
 
 	~VulkanExample()
@@ -89,24 +95,24 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		// Clean up texture resources
-		vkDestroyImageView(device, texture.view, nullptr);
-		vkDestroyImage(device, texture.image, nullptr);
-		vkDestroySampler(device, texture.sampler, nullptr);
-		vkFreeMemory(device, texture.deviceMemory, nullptr);
+		vkDestroyImageView(m_pFramework->device, texture.view, nullptr);
+		vkDestroyImage(m_pFramework->device, texture.image, nullptr);
+		vkDestroySampler(m_pFramework->device, texture.sampler, nullptr);
+		vkFreeMemory(m_pFramework->device, texture.deviceMemory, nullptr);
 
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.solid, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
 
-		vkDestroyBuffer(device, vertices.buf, nullptr);
-		vkFreeMemory(device, vertices.mem, nullptr);
+		vkDestroyBuffer(m_pFramework->device, vertices.buf, nullptr);
+		vkFreeMemory(m_pFramework->device, vertices.mem, nullptr);
 
-		vkDestroyBuffer(device, indices.buf, nullptr);
-		vkFreeMemory(device, indices.mem, nullptr);
+		vkDestroyBuffer(m_pFramework->device, indices.buf, nullptr);
+		vkFreeMemory(m_pFramework->device, indices.mem, nullptr);
 
-		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
-		vkFreeMemory(device, uniformDataVS.memory, nullptr);
+		vkDestroyBuffer(m_pFramework->device, uniformDataVS.buffer, nullptr);
+		vkFreeMemory(m_pFramework->device, uniformDataVS.memory, nullptr);
 	}
 
 	// Create an image memory barrier for changing the layout of
@@ -164,7 +170,7 @@ public:
 
 		// Put barrier inside setup command buffer
 		vkCmdPipelineBarrier(
-			setupCmdBuffer, 
+			m_pFramework->setupCmdBuffer, 
 			srcStageFlags, 
 			destStageFlags, 
 			VK_FLAGS_NONE, 
@@ -202,7 +208,7 @@ public:
 		texture.mipLevels = (uint32_t)tex2D.levels();
 
 		// Get device properites for the requested texture format
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
+		vkGetPhysicalDeviceFormatProperties(m_pFramework->physicalDevice, format, &formatProperties);
 
 		// Only use linear tiling if requested (and supported by the device)
 		// Support for linear tiling is mostly limited, so prefer to use
@@ -252,15 +258,15 @@ public:
 				imageCreateInfo.extent.height = (uint32_t)tex2D[level].dimensions().y;
 				imageCreateInfo.extent.depth = 1;
 
-				err = vkCreateImage(device, &imageCreateInfo, nullptr, &mipLevels[level].image);
+				err = vkCreateImage(m_pFramework->device, &imageCreateInfo, nullptr, &mipLevels[level].image);
 				assert(!err);
 
-				vkGetImageMemoryRequirements(device, mipLevels[level].image, &memReqs);
+				vkGetImageMemoryRequirements(m_pFramework->device, mipLevels[level].image, &memReqs);
 				memAllocInfo.allocationSize = memReqs.size;
-				getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAllocInfo.memoryTypeIndex);
-				err = vkAllocateMemory(device, &memAllocInfo, nullptr, &mipLevels[level].memory);
+				m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAllocInfo.memoryTypeIndex);
+				err = vkAllocateMemory(m_pFramework->device, &memAllocInfo, nullptr, &mipLevels[level].memory);
 				assert(!err);
-				err = vkBindImageMemory(device, mipLevels[level].image, mipLevels[level].memory, 0);
+				err = vkBindImageMemory(m_pFramework->device, mipLevels[level].image, mipLevels[level].memory, 0);
 				assert(!err);
 
 				VkImageSubresource subRes = {};
@@ -269,12 +275,12 @@ public:
 				VkSubresourceLayout subResLayout;
 				void *data;
 
-				vkGetImageSubresourceLayout(device, mipLevels[level].image, &subRes, &subResLayout);
+				vkGetImageSubresourceLayout(m_pFramework->device, mipLevels[level].image, &subRes, &subResLayout);
 				assert(!err);
-				err = vkMapMemory(device, mipLevels[level].memory, 0, memReqs.size, 0, &data);
+				err = vkMapMemory(m_pFramework->device, mipLevels[level].memory, 0, memReqs.size, 0, &data);
 				assert(!err);
 				memcpy(data, tex2D[level].data(), tex2D[level].size());
-				vkUnmapMemory(device, mipLevels[level].memory);
+				vkUnmapMemory(m_pFramework->device, mipLevels[level].memory);
 
 				// Image barrier for linear image (base)
 				// Linear image will be used as a source for the copy
@@ -293,17 +299,17 @@ public:
 			imageCreateInfo.mipLevels = texture.mipLevels;
 			imageCreateInfo.extent = { texture.width, texture.height, 1 };
 
-			err = vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image);
+			err = vkCreateImage(m_pFramework->device, &imageCreateInfo, nullptr, &texture.image);
 			assert(!err);
 
-			vkGetImageMemoryRequirements(device, texture.image, &memReqs);
+			vkGetImageMemoryRequirements(m_pFramework->device, texture.image, &memReqs);
 
 			memAllocInfo.allocationSize = memReqs.size;
 
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex);
-			err = vkAllocateMemory(device, &memAllocInfo, nullptr, &texture.deviceMemory);
+			m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex);
+			err = vkAllocateMemory(m_pFramework->device, &memAllocInfo, nullptr, &texture.deviceMemory);
 			assert(!err);
-			err = vkBindImageMemory(device, texture.image, texture.deviceMemory, 0);
+			err = vkBindImageMemory(m_pFramework->device, texture.image, texture.deviceMemory, 0);
 			assert(!err);
 
 			// Image barrier for optimal image (target)
@@ -343,7 +349,7 @@ public:
 
 				// Put image copy into command buffer
 				vkCmdCopyImage(
-					setupCmdBuffer,
+					m_pFramework->setupCmdBuffer,
 					mipLevels[level].image, 
 					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 					texture.image, 
@@ -361,16 +367,16 @@ public:
 				0,
 				texture.mipLevels);
 
-			flushSetupCommandBuffer();
-			createSetupCommandBuffer();
+			m_pFramework->flushSetupCommandBuffer();
+			m_pFramework->createSetupCommandBuffer();
 
 			// Clean up linear images 
 			// No longer required after mip levels
 			// have been transformed over to optimal tiling
 			for (auto& level : mipLevels)
 			{
-				vkDestroyImage(device, level.image, nullptr);
-				vkFreeMemory(device, level.memory, nullptr);
+				vkDestroyImage(m_pFramework->device, level.image, nullptr);
+				vkFreeMemory(m_pFramework->device, level.memory, nullptr);
 			}
 		}
 		else
@@ -383,24 +389,24 @@ public:
 			VkDeviceMemory mappableMemory;
 
 			// Load mip map level 0 to linear tiling image
-			err = vkCreateImage(device, &imageCreateInfo, nullptr, &mappableImage);
+			err = vkCreateImage(m_pFramework->device, &imageCreateInfo, nullptr, &mappableImage);
 			assert(!err);
 
 			// Get memory requirements for this image 
 			// like size and alignment
-			vkGetImageMemoryRequirements(device, mappableImage, &memReqs);
+			vkGetImageMemoryRequirements(m_pFramework->device, mappableImage, &memReqs);
 			// Set memory allocation size to required memory size
 			memAllocInfo.allocationSize = memReqs.size;
 
 			// Get memory type that can be mapped to host memory
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAllocInfo.memoryTypeIndex);
+			m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAllocInfo.memoryTypeIndex);
 
 			// Allocate host memory
-			err = vkAllocateMemory(device, &memAllocInfo, nullptr, &mappableMemory);
+			err = vkAllocateMemory(m_pFramework->device, &memAllocInfo, nullptr, &mappableMemory);
 			assert(!err);
 
 			// Bind allocated image for use
-			err = vkBindImageMemory(device, mappableImage, mappableMemory, 0);
+			err = vkBindImageMemory(m_pFramework->device, mappableImage, mappableMemory, 0);
 			assert(!err);
 
 			// Get sub resource layout
@@ -413,17 +419,17 @@ public:
 
 			// Get sub resources layout 
 			// Includes row pitch, size offsets, etc.
-			vkGetImageSubresourceLayout(device, mappableImage, &subRes, &subResLayout);
+			vkGetImageSubresourceLayout(m_pFramework->device, mappableImage, &subRes, &subResLayout);
 			assert(!err);
 
 			// Map image memory
-			err = vkMapMemory(device, mappableMemory, 0, memReqs.size, 0, &data);
+			err = vkMapMemory(m_pFramework->device, mappableMemory, 0, memReqs.size, 0, &data);
 			assert(!err);
 
 			// Copy image data into memory
 			memcpy(data, tex2D[subRes.mipLevel].data(), tex2D[subRes.mipLevel].size());
 
-			vkUnmapMemory(device, mappableMemory);
+			vkUnmapMemory(m_pFramework->device, mappableMemory);
 
 			// Linear tiled images don't need to be staged
 			// and can be directly used as textures
@@ -464,7 +470,7 @@ public:
 		sampler.maxAnisotropy = 8;
 		sampler.anisotropyEnable = VK_TRUE;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		err = vkCreateSampler(device, &sampler, nullptr, &texture.sampler);
+		err = vkCreateSampler(m_pFramework->device, &sampler, nullptr, &texture.sampler);
 		assert(!err);
 
 		// Create image view
@@ -484,15 +490,15 @@ public:
 		// Only set mip map count if optimal tiling is used
 		view.subresourceRange.levelCount = (useStaging) ? texture.mipLevels : 1;
 		view.image = texture.image;
-		err = vkCreateImageView(device, &view, nullptr, &texture.view);
+		err = vkCreateImageView(m_pFramework->device, &view, nullptr, &texture.view);
 		assert(!err);
 	}
 
 	// Free staging resources used while creating a texture
 	void destroyTextureImage(Texture texture)
 	{
-		vkDestroyImage(device, texture.image, nullptr);
-		vkFreeMemory(device, texture.deviceMemory, nullptr);
+		vkDestroyImage(m_pFramework->device, texture.image, nullptr);
+		vkFreeMemory(m_pFramework->device, texture.deviceMemory, nullptr);
 	}
 
 	void buildCommandBuffers()
@@ -500,56 +506,56 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = m_pFramework->defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = ScreenRect.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
+		renderPassBeginInfo.renderArea.extent.width  = m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
+			err = vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo);
 			assert(!err);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)ScreenRect.Width,
-				(float)ScreenRect.Height,
+				(float)m_pFramework->ScreenRect.Width,
+				(float)m_pFramework->ScreenRect.Height,
 				0.0f,
 				1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenRect.Width,
-				ScreenRect.Height,
+				m_pFramework->ScreenRect.Width,
+				m_pFramework->ScreenRect.Height,
 				0,
 				0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+			vkCmdSetScissor(m_pFramework->drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(drawCmdBuffers[i], indices.count, 1, 0, 0, 0);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], indices.count, 1, 0, 0, 0);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
+			err = vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]);
 			assert(!err);
 		}
 	}
@@ -559,25 +565,25 @@ public:
 		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		err = m_pFramework->swapChain.acquireNextImage(m_pFramework->semaphores.presentComplete, &m_pFramework->currentBuffer);
 		assert(!err);
 
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPostPresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
 		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPrePresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		err = m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, m_pFramework->semaphores.renderComplete);
 		assert(!err);
 
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 	}
 
@@ -593,7 +599,7 @@ public:
 			{ { dim, -dim, 0.0f },{ 1.0f, 0.0f } }
 		};
 #undef dim
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			vertexBuffer.size() * sizeof(Vertex),
 			vertexBuffer.data(),
@@ -604,7 +610,7 @@ public:
 		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
 		indices.count = static_cast<int>(indexBuffer.size());
 
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			indexBuffer.size() * sizeof(uint32_t),
 			indexBuffer.data(),
@@ -662,7 +668,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
+		VkResult vkRes = vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool);
 		assert(!vkRes);
 	}
 
@@ -687,7 +693,7 @@ public:
 				setLayoutBindings.data(),
 				(uint32_t)setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
@@ -695,7 +701,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+		err = vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
 	}
 
@@ -703,11 +709,11 @@ public:
 	{
 		VkDescriptorSetAllocateInfo allocInfo = 
 			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
+				m_pFramework->descriptorPool,
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
+		VkResult vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSet);
 		assert(!vkRes);
 
 		// Image descriptor for the color map texture
@@ -733,7 +739,7 @@ public:
 				&texDescriptor)
 		};
 
-		vkUpdateDescriptorSets(device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -788,13 +794,13 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
-				renderPass,
+				m_pFramework->renderPass,
 				0);
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
@@ -808,7 +814,7 @@ public:
 		pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
+		VkResult err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
 		assert(!err);
 	}
 
@@ -816,7 +822,7 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboVS),
 			&uboVS,
@@ -832,30 +838,30 @@ public:
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
 
-		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.001f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)m_pFramework->ScreenRect.Width / (float)m_pFramework->ScreenRect.Height, 0.001f, 256.0f);
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, m_pFramework->zoom));
 
 		uboVS.model = glm::mat4();
 		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(0, 0, 0));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(m_pFramework->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(m_pFramework->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(m_pFramework->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData);
+		VkResult err = vkMapMemory(m_pFramework->device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformDataVS.memory);
+		vkUnmapMemory(m_pFramework->device, uniformDataVS.memory);
 	}
 
 	int32_t	prepare()
 	{
-		CVulkanFramework::prepare();
+		//CVulkanFramework::prepare();
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		loadTexture(
-			getAssetPath() + "textures/igor_and_pal_bc3.ktx", 
+			m_pFramework->getAssetPath() + "textures/igor_and_pal_bc3.ktx", 
 			VK_FORMAT_BC3_UNORM_BLOCK, 
 			false);
 		setupDescriptorSetLayout();
@@ -863,17 +869,17 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSet();
 		buildCommandBuffers();
-		prepared = true;
+		m_pFramework->prepared = true;
 		return 0;
 	}
 
 	virtual int32_t render()
 	{
-		if (!prepared)
+		if (!m_pFramework->prepared)
 			return 1;
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		return 0;
 	}
 
@@ -895,42 +901,20 @@ public:
 		}
 		updateUniformBuffers();
 	}
-
-
-
-};
-
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
+	
+	void keyPressed(uint32_t keyCode)
 	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
+		switch (keyCode)
 		{
-			switch (wParam)
-			{
-			case VK_ADD:
-				vulkanExample->changeLodBias(0.1f);
-				break;
-			case VK_SUBTRACT:
-				vulkanExample->changeLodBias(-0.1f);
-				break;
-			}
+		case VK_ADD:
+			changeLodBias(0.1f);
+			break;
+		case VK_SUBTRACT:
+			changeLodBias(-0.1f);
+			break;
 		}
 	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
+
+};
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()

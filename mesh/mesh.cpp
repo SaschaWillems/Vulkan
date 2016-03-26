@@ -31,7 +31,7 @@ struct Vertex {
 	glm::vec3 color;
 };
 
-class VulkanExample : public CVulkanFramework, public IVulkanGame
+class VulkanExample : public CBaseVulkanGame
 {
 public:
 	struct {

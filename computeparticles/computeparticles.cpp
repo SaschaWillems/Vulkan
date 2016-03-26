@@ -24,7 +24,7 @@
 #define ENABLE_VALIDATION false
 #define PARTICLE_COUNT 8 * 1024
 
-class VulkanExample : public CVulkanFramework, public IVulkanGame
+class VulkanExample : public CBaseVulkanGame
 {
 private:
 	vkTools::VulkanTexture textureColorMap;

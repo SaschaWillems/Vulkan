@@ -96,7 +96,7 @@ int32_t nextValuePair(std::stringstream *stream)
 //
 //}
 
-class VulkanExample : public CVulkanFramework, public IVulkanGame
+class VulkanExample : public CBaseVulkanGame
 //=======
 //class VulkanExample : public VulkanExampleBase
 //>>>>>>> 606c8c3c79dac94b17652fd33263146df5e652cb
