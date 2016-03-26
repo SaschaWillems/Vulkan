@@ -17,11 +17,11 @@ If you're using a different IDE or compiler you can use the provided CMakeLists.
 
 Use the provided the provided CMakeLists.txt for use with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler.
 
-Note that you need [assimp](https://github.com/assimp/assimp) in order to compile the examples for Linux. Either compile and install from the repository, or install libassimp-dev. The example require version 3.2 and up.
+Note that you need [assimp](https://github.com/assimp/assimp) in order to compile the examples for Linux. Either compile and install from the repository, or install libassimp-dev. The examples require at least version 3.2.
 
 ## <img src="./images/androidlogo.png" alt="" height="32px"> [Android](android/)
 
-Building on Android is done using the [Android NDK](http://developer.android.com/tools/sdk/ndk/index.html) and requires adevice that supports Vulkan. Please see the [Android readme](./android/README.md) on how to build these and a few notes on the platform.
+Building on Android is done using the [Android NDK](http://developer.android.com/tools/sdk/ndk/index.html) and requires a device that supports Vulkan. Please see the [Android readme](./android/README.md) on how to build and deploy the examples.
 
 ## Binaries
 
