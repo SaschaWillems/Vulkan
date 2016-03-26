@@ -56,6 +56,19 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 class VulkanExample : public CBaseVulkanGame
 {
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		CBaseVulkanGame::init(pFramework);
+		m_pFramework->zoom = -90.0f;
+		m_pFramework->rotation = { -15.0f, 45.0f, 0.0f };
+		m_pFramework->title = "Vulkan Example - Particle system";
+		m_pFramework->zoomSpeed *= 1.5f;
+		m_pFramework->timerSpeed *= 8.0f;
+		srand(time(NULL));
+		// Values not set here are initialized in the base class constructor
+		return 0;
+	};
+
 	struct {
 		struct {
 			vkTools::VulkanTexture smoke;
@@ -122,14 +135,8 @@ public:
 
 	std::vector<Particle> particleBuffer;
 
-	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
+	VulkanExample()
 	{
-		zoom = -90.0f;
-		rotation = { -15.0f, 45.0f, 0.0f };
-		title = "Vulkan Example - Particle system";
-		zoomSpeed *= 1.5f;
-		timerSpeed *= 8.0f;
-		srand(time(NULL));
 	}
 
 	~VulkanExample()
@@ -137,27 +144,27 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		textureLoader->destroyTexture(textures.particles.smoke);
-		textureLoader->destroyTexture(textures.particles.fire);
-		textureLoader->destroyTexture(textures.floor.colorMap);
-		textureLoader->destroyTexture(textures.floor.normalMap);
+		m_pFramework->textureLoader->destroyTexture(textures.particles.smoke);
+		m_pFramework->textureLoader->destroyTexture(textures.particles.fire);
+		m_pFramework->textureLoader->destroyTexture(textures.floor.colorMap);
+		m_pFramework->textureLoader->destroyTexture(textures.floor.normalMap);
 
-		vkDestroyPipeline(device, pipelines.particles, nullptr);
-		vkDestroyPipeline(device, pipelines.environment, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.particles, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.environment, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
 
-		vkUnmapMemory(device, particles.memory);
-		vkDestroyBuffer(device, particles.buffer, nullptr);
-		vkFreeMemory(device, particles.memory, nullptr);
+		vkUnmapMemory(m_pFramework->device, particles.memory);
+		vkDestroyBuffer(m_pFramework->device, particles.buffer, nullptr);
+		vkFreeMemory(m_pFramework->device, particles.memory, nullptr);
 
-		vkDestroyBuffer(device, uniformData.fire.buffer, nullptr);
-		vkFreeMemory(device, uniformData.fire.memory, nullptr);
+		vkDestroyBuffer(m_pFramework->device, uniformData.fire.buffer, nullptr);
+		vkFreeMemory(m_pFramework->device, uniformData.fire.memory, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.environment.buffers);
+		vkMeshLoader::freeMeshBufferResources(m_pFramework->device, &meshes.environment.buffers);
 
-		vkDestroySampler(device, textures.particles.sampler, nullptr);
+		vkDestroySampler(m_pFramework->device, textures.particles.sampler, nullptr);
 	}
 
 	void buildCommandBuffers()
@@ -165,58 +172,58 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = m_pFramework->defaultClearColor;
 		clearValues[0].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = (uint32_t)ScreenRect.Width;
-		renderPassBeginInfo.renderArea.extent.height = (uint32_t)ScreenRect.Height;
+		renderPassBeginInfo.renderArea.extent.width  = (uint32_t)m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = (uint32_t)m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
+			err = vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo);
 			assert(!err);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)ScreenRect.Width,
-				(float)ScreenRect.Height,
+				(float)m_pFramework->ScreenRect.Width,
+				(float)m_pFramework->ScreenRect.Height,
 				0.0f,
 				1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenRect.Width,
-				ScreenRect.Height,
+				m_pFramework->ScreenRect.Width,
+				m_pFramework->ScreenRect.Height,
 				0,
 				0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+			vkCmdSetScissor(m_pFramework->drawCmdBuffers[i], 0, 1, &scissor);
 
 			// Environment
-			meshes.environment.drawIndexed(drawCmdBuffers[i]);
+			meshes.environment.drawIndexed(m_pFramework->drawCmdBuffers[i]);
 
 			// Particle system
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.particles);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.particles);
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &particles.buffer, offsets);
-			vkCmdDraw(drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &particles.buffer, offsets);
+			vkCmdDraw(m_pFramework->drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
+			err = vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]);
 			assert(!err);
 		}
 	}
@@ -226,25 +233,25 @@ public:
 		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		err = m_pFramework->swapChain.acquireNextImage(m_pFramework->semaphores.presentComplete, &m_pFramework->currentBuffer);
 		assert(!err);
 
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPostPresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
 		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPrePresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		err = m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, m_pFramework->semaphores.renderComplete);
 		assert(!err);
 
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 	}
 
@@ -315,7 +322,7 @@ public:
 
 		particles.size = particleBuffer.size() * sizeof(Particle);
 
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			particles.size,
 			particleBuffer.data(),
@@ -323,13 +330,13 @@ public:
 			&particles.memory);
 
 		// Map the memory and store the pointer for reuse
-		VkResult err = vkMapMemory(device, particles.memory, 0, particles.size, 0, &particles.mappedMemory);
+		VkResult err = vkMapMemory(m_pFramework->device, particles.memory, 0, particles.size, 0, &particles.mappedMemory);
 		assert(!err);
 	}
 
 	void updateParticles()
 	{
-		float particleTimer = frameTimer * 0.45f;
+		float particleTimer = m_pFramework->frameTimer * 0.45f;
 		for (auto& particle : particleBuffer)
 		{
 			switch (particle.type)
@@ -340,7 +347,7 @@ public:
 				particle.size -= particleTimer * 0.5f;
 				break;
 			case PARTICLE_TYPE_SMOKE:
-				particle.pos -= particle.vel * frameTimer * 1.0f;
+				particle.pos -= particle.vel * m_pFramework->frameTimer * 1.0f;
 				particle.alpha += particleTimer * 1.25f;
 				particle.size += particleTimer * 0.125f;
 				particle.color -= particleTimer * 0.05f;
@@ -360,22 +367,22 @@ public:
 	void loadTextures()
 	{
 		// Particles
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/particle_smoke.ktx",
+		m_pFramework->textureLoader->loadTexture(
+			m_pFramework->getAssetPath() + "textures/particle_smoke.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.particles.smoke);
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/particle_fire.ktx",
+		m_pFramework->textureLoader->loadTexture(
+			m_pFramework->getAssetPath() + "textures/particle_fire.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.particles.fire);
 
 		// Floor
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/fireplace_colormap_bc3.ktx",
+		m_pFramework->textureLoader->loadTexture(
+			m_pFramework->getAssetPath() + "textures/fireplace_colormap_bc3.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.floor.colorMap);
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/fireplace_normalmap_bc3.ktx",
+		m_pFramework->textureLoader->loadTexture(
+			m_pFramework->getAssetPath() + "textures/fireplace_normalmap_bc3.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.floor.normalMap);
 
@@ -399,13 +406,13 @@ public:
 		samplerCreateInfo.anisotropyEnable = VK_TRUE;
 		// Use a different border color (than the normal texture loader) for additive blending
 		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-		VkResult err = vkCreateSampler(device, &samplerCreateInfo, nullptr, &textures.particles.sampler);
+		VkResult err = vkCreateSampler(m_pFramework->device, &samplerCreateInfo, nullptr, &textures.particles.sampler);
 		assert(!err);
 	}
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/fireplace.obj", &meshes.environment.buffers, vertexLayout, 10.0f);
+		m_pFramework->loadMesh(m_pFramework->getAssetPath() + "models/fireplace.obj", &meshes.environment.buffers, vertexLayout, 10.0f);
 		meshes.environment.setupVertexInputState(vertexLayout);
 	}
 
@@ -486,7 +493,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
+		VkResult vkRes = vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool);
 		assert(!vkRes);
 	}
 
@@ -516,7 +523,7 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
@@ -524,7 +531,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+		err = vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
 	}
 
@@ -532,11 +539,11 @@ public:
 	{
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
+				m_pFramework->descriptorPool,
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
+		VkResult vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSet);
 		assert(!vkRes);
 
 		// Image descriptor for the color map texture
@@ -573,10 +580,10 @@ public:
 				&texDescriptorFire)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Environment
-		vkRes = vkAllocateDescriptorSets(device, &allocInfo, &meshes.environment.descriptorSet);
+		vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &meshes.environment.descriptorSet);
 		assert(!vkRes);
 
 		VkDescriptorImageInfo texDescriptorColorMap =
@@ -614,7 +621,7 @@ public:
 				2,
 				&texDescriptorNormalMap));
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -669,13 +676,13 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/particlefire/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/particlefire/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/particlefire/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/particlefire/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
-				renderPass,
+				m_pFramework->renderPass,
 				0);
 
 		pipelineCreateInfo.pVertexInputState = &particles.inputState;
@@ -701,17 +708,17 @@ public:
 		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 		blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.particles);
+		VkResult err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.particles);
 		assert(!err);
 
 		// Environment rendering pipeline (normal mapped)
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/particlefire/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/particlefire/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		pipelineCreateInfo.pVertexInputState = &meshes.environment.vertexInputState;
 		blendAttachmentState.blendEnable = VK_FALSE;
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.environment);
+		err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.environment);
 		assert(!err);
 		meshes.environment.pipeline = pipelines.environment;
 		meshes.environment.pipelineLayout = pipelineLayout;
@@ -721,7 +728,7 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboVS),
 			&uboVS,
@@ -730,7 +737,7 @@ public:
 			&uniformData.fire.descriptor);
 
 		// Vertex shader uniform buffer block
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboEnv),
 			&uboEnv,
@@ -744,51 +751,51 @@ public:
 	void updateUniformBufferLight()
 	{
 		// Environment
-		uboEnv.lightPos.x = sin(timer * 2 * M_PI) * 1.5f;
+		uboEnv.lightPos.x = sin(m_pFramework->timer * 2 * M_PI) * 1.5f;
 		uboEnv.lightPos.y = 0.0f;
-		uboEnv.lightPos.z = cos(timer * 2 * M_PI) * 1.5f;
+		uboEnv.lightPos.z = cos(m_pFramework->timer * 2 * M_PI) * 1.5f;
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData);
+		VkResult err = vkMapMemory(m_pFramework->device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboEnv, sizeof(uboEnv));
-		vkUnmapMemory(device, uniformData.environment.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.environment.memory);
 	}
 
 	void updateUniformBuffers()
 	{
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.001f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)m_pFramework->ScreenRect.Width / (float)m_pFramework->ScreenRect.Height, 0.001f, 256.0f);
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, m_pFramework->zoom));
 
 		uboVS.model = glm::mat4();
 		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(0.0f, 15.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(m_pFramework->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(m_pFramework->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(m_pFramework->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uboVS.viewportDim = glm::vec2((float)ScreenRect.Width, (float)ScreenRect.Height);
+		uboVS.viewportDim = glm::vec2((float)m_pFramework->ScreenRect.Width, (float)m_pFramework->ScreenRect.Height);
 		
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.fire.memory, 0, sizeof(uboVS), 0, (void **)&pData);
+		VkResult err = vkMapMemory(m_pFramework->device, uniformData.fire.memory, 0, sizeof(uboVS), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.fire.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.fire.memory);
 
 		// Environment
 		uboEnv.projection = uboVS.projection;
 		uboEnv.model = uboVS.model;
 		uboEnv.normal = glm::inverseTranspose(uboEnv.model);
-		uboEnv.cameraPos = glm::vec4(0.0, 0.0, zoom, 0.0);
-		err = vkMapMemory(device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData);
+		uboEnv.cameraPos = glm::vec4(0.0, 0.0, m_pFramework->zoom, 0.0);
+		err = vkMapMemory(m_pFramework->device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboEnv, sizeof(uboEnv));
-		vkUnmapMemory(device, uniformData.environment.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.environment.memory);
 	}
 
 	int32_t	prepare()
 	{
-		CVulkanFramework::prepare();
+		//CVulkanFramework::prepare();
 		loadTextures();
 		prepareParticles();
 		setupVertexDescriptions();
@@ -799,18 +806,18 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSets();
 		buildCommandBuffers();
-		prepared = true;
+		m_pFramework->prepared = true;
 		return 0;
 	}
 
 	virtual int32_t render()
 	{
-		if (!prepared)
+		if (!m_pFramework->prepared)
 			return 1;
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
-		if (!paused)
+		vkDeviceWaitIdle(m_pFramework->device);
+		if (!m_pFramework->paused)
 		{
 			updateUniformBufferLight();
 			updateParticles();
@@ -823,30 +830,10 @@ public:
 		updateUniformBuffers();
 	}
 
-
+	virtual void	keyPressed(uint32_t keyCode)
+	{
+	}
 
 };
-
-
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
