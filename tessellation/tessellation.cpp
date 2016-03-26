@@ -216,13 +216,13 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/lowpoly/bearmug.x", &meshes.object, vertexLayout, 4.0f);
+		loadMesh(getAssetPath() + "models/lowpoly/bearmug.dae", &meshes.object, vertexLayout, 4.0f);
 	}
 
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			"./../data/textures/bearmug.ktx",
+			getAssetPath() + "textures/bearmug.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.colorMap);
 	}
@@ -430,10 +430,10 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/tessellation/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/tessellation/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		shaderStages[2] = loadShader("./../data/shaders/tessellation/pntriangles.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader("./../data/shaders/tessellation/pntriangles.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/tessellation/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/tessellation/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[2] = loadShader(getAssetPath() + "shaders/tessellation/pntriangles.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = loadShader(getAssetPath() + "shaders/tessellation/pntriangles.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -465,8 +465,8 @@ public:
 
 		// Pass through pipelines
 		// Load pass through tessellation shaders (Vert and frag are reused)
-		shaderStages[2] = loadShader("./../data/shaders/tessellation/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader("./../data/shaders/tessellation/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[2] = loadShader(getAssetPath() + "shaders/tessellation/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = loadShader(getAssetPath() + "shaders/tessellation/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
 		// Solid
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
@@ -594,8 +594,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL) {
@@ -619,26 +618,55 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL) {
 		vulkanExample->handleEvent(event);
-		// TODO : Keys for tessellation level changes
 	}
 }
 #endif
 
-int 
-#ifdef _WIN32
-APIENTRY WinMain(HINSTANCE aHInstance, HINSTANCE aHPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
-main(const int argc, const char *argv[])
+//<<<<<<< HEAD
+//int 
+//#ifdef _WIN32
+//APIENTRY WinMain(HINSTANCE aHInstance, HINSTANCE aHPrevInstance, LPSTR pCmdLine, int nCmdShow)
+//#else
+//main(const int argc, const char *argv[])
+//#endif
+//{
+//#if defined(_WIN32)
+//#if defined(DEBUG) || defined(_DEBUG)
+//	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
+//#endif
+//#endif
+//	vulkanExample = 0;
+//	//vulkanExample = new VulkanExample();
+//	IVulkanGame* newGame=0;
+//	createVulkanGame(&newGame);
+//
+//	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
+//#ifdef _WIN32
+//	vulkanExample->setupWindow(aHInstance, WndProc);
+//#else
+//=======
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
+int main(const int argc, const char *argv[])
 #endif
 {
-#if defined(_WIN32)
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#elif defined(_WIN32)
 #if defined(DEBUG) || defined(_DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
 #endif
@@ -647,18 +675,35 @@ main(const int argc, const char *argv[])
 	//vulkanExample = new VulkanExample();
 	IVulkanGame* newGame=0;
 	createVulkanGame(&newGame);
-
+	
 	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
 #ifdef _WIN32
-	vulkanExample->setupWindow(aHInstance, WndProc);
-#else
+	vulkanExample->setupWindow(hInstance, WndProc);
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
+//>>>>>>> 606c8c3c79dac94b17652fd33263146df5e652cb
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+//<<<<<<< HEAD
 	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
 	return 0;
 }
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
+//=======
+//#if !defined(__ANDROID__)
+//	delete(vulkanExample);
+//	return 0;
+//#endif
+//}
+//>>>>>>> 606c8c3c79dac94b17652fd33263146df5e652cb

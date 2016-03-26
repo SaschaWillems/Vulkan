@@ -634,7 +634,7 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			"./../data/models/armor/colormap.ktx",
+			getAssetPath() + "models/armor/colormap.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.colorMap);
 	}
@@ -754,7 +754,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/armor/armor.x", &meshes.example, vertexLayout, 1.0f);
+		loadMesh(getAssetPath() + "models/armor/armor.dae", &meshes.example, vertexLayout, 1.0f);
 	}
 
 	void generateQuads()
@@ -1080,8 +1080,8 @@ public:
 		// Final fullscreen pass pipeline
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/deferred/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/deferred/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/deferred/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/deferred/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -1104,14 +1104,14 @@ public:
 		assert(!err);
 
 		// Debug display pipeline
-		shaderStages[0] = loadShader("./../data/shaders/deferred/debug.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/deferred/debug.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/deferred/debug.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/deferred/debug.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.debug);
 		assert(!err);
 		
 		// Offscreen pipeline
-		shaderStages[0] = loadShader("./../data/shaders/deferred/mrt.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/deferred/mrt.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/deferred/mrt.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/deferred/mrt.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Separate render pass
 		pipelineCreateInfo.renderPass = offScreenFrameBuf.renderPass;
@@ -1302,8 +1302,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -1321,26 +1320,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleEvent(event);
-		// todo : keys
 	}
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
-#if defined(_WIN32)
+//<<<<<<< HEAD
+//#if defined(_WIN32)
+//#if defined(DEBUG) || defined(_DEBUG)
+//	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
+//#endif
+//#endif
+//	vulkanExample = 0;
+//	//vulkanExample = new VulkanExample();
+//	IVulkanGame* newGame=0;
+//	createVulkanGame(&newGame);
+//
+//	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
+//#ifdef _WIN32
+//=======
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#elif defined(_WIN32)
 #if defined(DEBUG) || defined(_DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
 #endif
@@ -1351,16 +1371,33 @@ int main(const int argc, const char *argv[])
 	createVulkanGame(&newGame);
 
 	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
-#ifdef _WIN32
+#if defined(_WIN32)
+//>>>>>>> 606c8c3c79dac94b17652fd33263146df5e652cb
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
+//<<<<<<< HEAD
 	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
 	return 0;
 }
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
+//=======
+//#if !defined(__ANDROID__)
+//	delete(vulkanExample);
+//	return 0;
+//#endif
+//}
+//>>>>>>> 606c8c3c79dac94b17652fd33263146df5e652cb

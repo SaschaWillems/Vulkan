@@ -367,7 +367,8 @@ public:
 		for (unsigned int i = 0; i < paiMesh->mNumFaces; i++) 
 		{
 			const aiFace& Face = paiMesh->mFaces[i];
-			assert(Face.mNumIndices == 3);
+			if (Face.mNumIndices != 3)
+				continue;
 			m_Entries[index].Indices.push_back(Face.mIndices[0]);
 			m_Entries[index].Indices.push_back(Face.mIndices[1]);
 			m_Entries[index].Indices.push_back(Face.mIndices[2]);

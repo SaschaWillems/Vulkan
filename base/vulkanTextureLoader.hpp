@@ -69,7 +69,7 @@ namespace vkTools
 		// Load a 2D texture
 		void loadTexture(std::string filename, VkFormat format, VulkanTexture *texture, bool forceLinear)
 		{
-			loadTexture(filename, format, texture, false, VK_IMAGE_USAGE_SAMPLED_BIT);
+			loadTexture(filename, format, texture, forceLinear, VK_IMAGE_USAGE_SAMPLED_BIT);
 		}
 
 		// Load a 2D texture
@@ -229,9 +229,15 @@ namespace vkTools
 					copyRegion.dstSubresource.layerCount = 1;
 					copyRegion.dstOffset = { 0, 0, 0 };
 
+//<<<<<<< HEAD
+//					copyRegion.extent.width  = (uint32_t)tex2D[level].dimensions().x;
+//					copyRegion.extent.height = (uint32_t)tex2D[level].dimensions().y;
+//					copyRegion.extent.depth  = 0; //1 this guy can't decide if this is a 0 or an 1, so I will leave this here in order to remember what happened
+//=======
 					copyRegion.extent.width  = (uint32_t)tex2D[level].dimensions().x;
 					copyRegion.extent.height = (uint32_t)tex2D[level].dimensions().y;
-					copyRegion.extent.depth  = 0; //1
+					copyRegion.extent.depth = 1;
+//>>>>>>> 606c8c3c79dac94b17652fd33263146df5e652cb
 
 					// Put image copy into command buffer
 					vkCmdCopyImage(

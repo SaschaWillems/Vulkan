@@ -1,0 +1,1 @@
+_build texturecubemap %1
