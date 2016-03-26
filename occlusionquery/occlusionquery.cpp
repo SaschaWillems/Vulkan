@@ -35,6 +35,23 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 class VulkanExample : public CBaseVulkanGame
 {
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		CBaseVulkanGame::init(pFramework);
+		m_pFramework->zoom = -35.0f;
+		m_pFramework->zoomSpeed = 2.5f;
+		m_pFramework->rotationSpeed = 0.5f;
+		m_pFramework->rotation = { 0.0, -123.75, 0.0 };
+		m_pFramework->title = "Vulkan Example - Occlusion queries";
+#ifdef _WIN32 
+		if (!ENABLE_VALIDATION) 
+		{
+			m_pFramework->setupConsole(m_pFramework->title);
+		}
+#endif
+		return 0;
+	}
+
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
@@ -88,44 +105,33 @@ public:
 	// Passed query samples
 	uint64_t passedSamples[2] = { 1,1 };
 
-	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
+	VulkanExample()
 	{
-		zoom = -35.0f;
-		zoomSpeed = 2.5f;
-		rotationSpeed = 0.5f;
-		rotation = { 0.0, -123.75, 0.0 };
-		title = "Vulkan Example - Occlusion queries";
-#ifdef _WIN32 
-		if (!ENABLE_VALIDATION) 
-		{
-			setupConsole(title);
-		}
-#endif
 	}
 
 	~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
-		vkDestroyPipeline(device, pipelines.occluder, nullptr);
-		vkDestroyPipeline(device, pipelines.simple, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.solid, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.occluder, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.simple, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
 
-		vkDestroyQueryPool(device, queryPool, nullptr);
+		vkDestroyQueryPool(m_pFramework->device, queryPool, nullptr);
 
-		vkDestroyBuffer(device, queryResult.buffer, nullptr);
-		vkFreeMemory(device, queryResult.memory, nullptr);
+		vkDestroyBuffer(m_pFramework->device, queryResult.buffer, nullptr);
+		vkFreeMemory(m_pFramework->device, queryResult.memory, nullptr);
 
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
-		vkTools::destroyUniformData(device, &uniformData.sphere);
-		vkTools::destroyUniformData(device, &uniformData.teapot);
+		vkTools::destroyUniformData(m_pFramework->device, &uniformData.vsScene);
+		vkTools::destroyUniformData(m_pFramework->device, &uniformData.sphere);
+		vkTools::destroyUniformData(m_pFramework->device, &uniformData.teapot);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.sphere);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.plane);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.teapot);
+		vkMeshLoader::freeMeshBufferResources(m_pFramework->device, &meshes.sphere);
+		vkMeshLoader::freeMeshBufferResources(m_pFramework->device, &meshes.plane);
+		vkMeshLoader::freeMeshBufferResources(m_pFramework->device, &meshes.teapot);
 	}
 
 	// Create a buffer for storing the query result
@@ -141,15 +147,15 @@ public:
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 
 				bufSize);
 
-		VkResult err = vkCreateBuffer(device, &bufferCreateInfo, nullptr, &queryResult.buffer);
+		VkResult err = vkCreateBuffer(m_pFramework->device, &bufferCreateInfo, nullptr, &queryResult.buffer);
 		assert(!err);
-		vkGetBufferMemoryRequirements(device, queryResult.buffer, &memReqs);
+		vkGetBufferMemoryRequirements(m_pFramework->device, queryResult.buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAlloc, nullptr, &queryResult.memory);
+		m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
+		err = vkAllocateMemory(m_pFramework->device, &memAlloc, nullptr, &queryResult.memory);
 		assert(!err);
 
-		err = vkBindBufferMemory(device, queryResult.buffer, queryResult.memory, 0);
+		err = vkBindBufferMemory(m_pFramework->device, queryResult.buffer, queryResult.memory, 0);
 		assert(!err);
 
 		// Create query pool
@@ -158,7 +164,7 @@ public:
 		queryPoolInfo.queryType = VK_QUERY_TYPE_OCCLUSION;
 		queryPoolInfo.queryCount = 2;
 
-		err = vkCreateQueryPool(device, &queryPoolInfo, NULL, &queryPool);
+		err = vkCreateQueryPool(m_pFramework->device, &queryPoolInfo, NULL, &queryPool);
 		assert(!err);
 	}
 
@@ -167,7 +173,7 @@ public:
 	{
 		VkResult err;
 		err = vkGetQueryPoolResults(
-			device, 
+			m_pFramework->device, 
 			queryPool,
 			0,
 			2,
@@ -184,84 +190,84 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = m_pFramework->defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = ScreenRect.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
+		renderPassBeginInfo.renderArea.extent.width  = m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
+			err = vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo);
 			assert(!err);
 
 			// Reset query pool
 			// Must be done outside of render pass
-			vkCmdResetQueryPool(drawCmdBuffers[i], queryPool, 0, 2);
+			vkCmdResetQueryPool(m_pFramework->drawCmdBuffers[i], queryPool, 0, 2);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)ScreenRect.Width,
-				(float)ScreenRect.Height,
+				(float)m_pFramework->ScreenRect.Width,
+				(float)m_pFramework->ScreenRect.Height,
 				0.0f,
 				1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenRect.Width,
-				ScreenRect.Height,
+				m_pFramework->ScreenRect.Width,
+				m_pFramework->ScreenRect.Height,
 				0,
 				0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+			vkCmdSetScissor(m_pFramework->drawCmdBuffers[i], 0, 1, &scissor);
 
 			VkDeviceSize offsets[1] = { 0 };
 
 			glm::mat4 modelMatrix = glm::mat4();
 
 			// Occlusion pass
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.simple);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.simple);
 
 			// Occluder first
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plane.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.plane.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.plane.indexCount, 1, 0, 0, 0);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plane.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.plane.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.plane.indexCount, 1, 0, 0, 0);
 
 			// Teapot
-			vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, VK_FLAGS_NONE);
+			vkCmdBeginQuery(m_pFramework->drawCmdBuffers[i], queryPool, 0, VK_FLAGS_NONE);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.teapot, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.teapot.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.teapot.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.teapot.indexCount, 1, 0, 0, 0);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.teapot, 0, NULL);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.teapot.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.teapot.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.teapot.indexCount, 1, 0, 0, 0);
 
-			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 0);
+			vkCmdEndQuery(m_pFramework->drawCmdBuffers[i], queryPool, 0);
 
 			// Sphere
-			vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 1, VK_FLAGS_NONE);
+			vkCmdBeginQuery(m_pFramework->drawCmdBuffers[i], queryPool, 1, VK_FLAGS_NONE);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.sphere, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.sphere.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.sphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.sphere.indexCount, 1, 0, 0, 0);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.sphere, 0, NULL);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.sphere.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.sphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.sphere.indexCount, 1, 0, 0, 0);
 
-			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 1);
+			vkCmdEndQuery(m_pFramework->drawCmdBuffers[i], queryPool, 1);
 
 			// Query results
 			vkCmdCopyQueryPoolResults(
-				drawCmdBuffers[i], 
+				m_pFramework->drawCmdBuffers[i], 
 				queryPool,
 				0,
 				2,
@@ -275,7 +281,7 @@ public:
 			VkClearAttachment clearAttachments[2] = {};
 
 			clearAttachments[0].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			clearAttachments[0].clearValue.color = defaultClearColor;
+			clearAttachments[0].clearValue.color = m_pFramework->defaultClearColor;
 			clearAttachments[0].colorAttachment = 0;
 
 			clearAttachments[1].aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -284,39 +290,39 @@ public:
 			VkClearRect clearRect = {};
 			clearRect.layerCount = 1;
 			clearRect.rect.offset = { 0, 0 };
-			clearRect.rect.extent = { ScreenRect.Width, ScreenRect.Height };
+			clearRect.rect.extent = { m_pFramework->ScreenRect.Width, m_pFramework->ScreenRect.Height };
 
 			vkCmdClearAttachments(
-				drawCmdBuffers[i],
+				m_pFramework->drawCmdBuffers[i],
 				2,
 				clearAttachments,
 				1,
 				&clearRect);
 
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			// Teapot
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.teapot, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.teapot.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.teapot.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.teapot.indexCount, 1, 0, 0, 0);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.teapot, 0, NULL);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.teapot.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.teapot.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.teapot.indexCount, 1, 0, 0, 0);
 
 			// Sphere
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.sphere, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.sphere.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.sphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.sphere.indexCount, 1, 0, 0, 0);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.sphere, 0, NULL);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.sphere.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.sphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.sphere.indexCount, 1, 0, 0, 0);
 
 			// Occluder
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.occluder);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plane.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.plane.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.plane.indexCount, 1, 0, 0, 0);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.occluder);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plane.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.plane.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.plane.indexCount, 1, 0, 0, 0);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
+			err = vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]);
 			assert(!err);
 		}
 	}
@@ -326,25 +332,25 @@ public:
 		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		err = m_pFramework->swapChain.acquireNextImage(m_pFramework->semaphores.presentComplete, &m_pFramework->currentBuffer);
 		assert(!err);
 
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPostPresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
 		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPrePresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		err = m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, m_pFramework->semaphores.renderComplete);
 		assert(!err);
 
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 
 		getQueryResults();
@@ -352,9 +358,9 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/plane_z.3ds", &meshes.plane, vertexLayout, 0.4f);
-		loadMesh(getAssetPath() + "models/teapot.3ds", &meshes.teapot, vertexLayout, 0.3f);
-		loadMesh(getAssetPath() + "models/sphere.3ds", &meshes.sphere, vertexLayout, 0.3f);
+		m_pFramework->loadMesh(m_pFramework->getAssetPath() + "models/plane_z.3ds", &meshes.plane, vertexLayout, 0.4f);
+		m_pFramework->loadMesh(m_pFramework->getAssetPath() + "models/teapot.3ds", &meshes.teapot, vertexLayout, 0.3f);
+		m_pFramework->loadMesh(m_pFramework->getAssetPath() + "models/sphere.3ds", &meshes.sphere, vertexLayout, 0.3f);
 	}
 
 	void setupVertexDescriptions()
@@ -412,7 +418,7 @@ public:
 				poolSizes.data(),
 				3);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
+		VkResult vkRes = vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool);
 		assert(!vkRes);
 	}
 
@@ -432,7 +438,7 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
@@ -440,7 +446,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+		err = vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
 	}
 
@@ -448,12 +454,12 @@ public:
 	{
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
+				m_pFramework->descriptorPool,
 				&descriptorSetLayout,
 				1);
 
 		// Occluder (plane)
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
+		VkResult vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSet);
 		assert(!vkRes);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -466,21 +472,21 @@ public:
 				&uniformData.vsScene.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// teapot
-		vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.teapot);
+		vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSets.teapot);
 		assert(!vkRes);
 		writeDescriptorSets[0].dstSet = descriptorSets.teapot;
 		writeDescriptorSets[0].pBufferInfo = &uniformData.teapot.descriptor;
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// sphere
-		vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.sphere);
+		vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSets.sphere);
 		assert(!vkRes);
 		writeDescriptorSets[0].dstSet = descriptorSets.sphere;
 		writeDescriptorSets[0].pBufferInfo = &uniformData.sphere.descriptor;
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -536,13 +542,13 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/occlusionquery/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/occlusionquery/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/occlusionquery/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/occlusionquery/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
-				renderPass,
+				m_pFramework->renderPass,
 				0);
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
@@ -556,20 +562,20 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
+		VkResult err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
 		assert(!err);
 
 		// Simple pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/occlusionquery/simple.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/occlusionquery/simple.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/occlusionquery/simple.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/occlusionquery/simple.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.simple);
+		err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.simple);
 		assert(!err);
 
 		// Visual pipeline for the occluder
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/occlusionquery/occluder.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/occlusionquery/occluder.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/occlusionquery/occluder.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/occlusionquery/occluder.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Enable blending
 		blendAttachmentState.blendEnable = VK_TRUE;
@@ -577,7 +583,7 @@ public:
 		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
 		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
 
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.occluder);
+		err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.occluder);
 		assert(!err);
 	}
 
@@ -585,7 +591,7 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboVS),
 			&uboVS,
@@ -594,7 +600,7 @@ public:
 			&uniformData.vsScene.descriptor);
 
 		// Teapot
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboVS),
 			&uboVS,
@@ -603,7 +609,7 @@ public:
 			&uniformData.teapot.descriptor);
 
 		// Sphere
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboVS),
 			&uboVS,
@@ -619,13 +625,13 @@ public:
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
 
-		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.1f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)m_pFramework->ScreenRect.Width / (float)m_pFramework->ScreenRect.Height, 0.1f, 256.0f);
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, m_pFramework->zoom));
 
 		glm::mat4 rotMatrix = glm::mat4();
-		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		rotMatrix = glm::rotate(rotMatrix, glm::radians(m_pFramework->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		rotMatrix = glm::rotate(rotMatrix, glm::radians(m_pFramework->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		rotMatrix = glm::rotate(rotMatrix, glm::radians(m_pFramework->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uboVS.model = glm::mat4();
 		uboVS.model = viewMatrix * rotMatrix;;
@@ -633,33 +639,33 @@ public:
 		uboVS.visible = 1.0f;
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData);
+		VkResult err = vkMapMemory(m_pFramework->device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.vsScene.memory);
 
 		// teapot
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[0] > 0) ? 1.0f : 0.0f;
 		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, -10.0f));
-		err = vkMapMemory(device, uniformData.teapot.memory, 0, sizeof(uboVS), 0, (void **)&pData);
+		err = vkMapMemory(m_pFramework->device, uniformData.teapot.memory, 0, sizeof(uboVS), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.teapot.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.teapot.memory);
 
 		// sphere
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[1] > 0) ? 1.0f : 0.0f;
 		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 10.0f));
-		err = vkMapMemory(device, uniformData.sphere.memory, 0, sizeof(uboVS), 0, (void **)&pData);
+		err = vkMapMemory(m_pFramework->device, uniformData.sphere.memory, 0, sizeof(uboVS), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.sphere.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.sphere.memory);
 	}
 
 	int32_t	prepare()
 	{
-		CVulkanFramework::prepare();
+		//CVulkanFramework::prepare();
 		loadMeshes();
 		setupQueryResultBuffer();
 		setupVertexDescriptions();
@@ -669,17 +675,17 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSets();
 		buildCommandBuffers();
-		prepared = true;
+		m_pFramework->prepared = true;
 		return 0;
 	}
 
 	virtual int32_t render()
 	{
-		if (!prepared)
+		if (!m_pFramework->prepared)
 			return 1;
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		return 0;
 	}
 
@@ -689,29 +695,10 @@ public:
 		std::cout << "Passed samples : Teapot = " << passedSamples[0] << " / Sphere = " << passedSamples[1] <<"\n";
 	}
 
-
+	virtual void	keyPressed(uint32_t keyCode)
+	{
+	}
 
 };
-
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()

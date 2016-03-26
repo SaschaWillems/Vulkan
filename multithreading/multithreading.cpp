@@ -36,6 +36,25 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 class VulkanExample : public CBaseVulkanGame
 {
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		CBaseVulkanGame::init(pFramework);
+		m_pFramework->zoom = -20.0f;
+		m_pFramework->zoomSpeed = 2.5f;
+		m_pFramework->rotationSpeed = 0.5f;
+		m_pFramework->rotation = { 0.0f, 0.0f, 0.0f };
+		m_pFramework->title = "Vulkan Example - Multi threaded rendering";
+		// Get number of max. concurrrent threads
+		// todo : May not work on all compilers (e.g. old GCC versions?)
+		numThreads = std::thread::hardware_concurrency();
+		assert(numThreads > 0);
+		// todo : test, remove
+		std::cout << "numThreads = " << numThreads << std::endl;
+		srand(time(NULL));
+		numThreads *= 4; // todo : test
+		return 0;
+	};
+
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
@@ -100,40 +119,27 @@ public:
 	};
 	std::vector<RenderThread> renderThreads;
 
-	VulkanExample() : CVulkanFramework(ENABLE_VALIDATION)
+	VulkanExample()
 	{
-		zoom = -20.0f;
-		zoomSpeed = 2.5f;
-		rotationSpeed = 0.5f;
-		rotation = { 0.0f, 0.0f, 0.0f };
-		title = "Vulkan Example - Multi threaded rendering";
-		// Get number of max. concurrrent threads
-		// todo : May not work on all compilers (e.g. old GCC versions?)
-		numThreads = std::thread::hardware_concurrency();
-		assert(numThreads > 0);
-		// todo : test, remove
-		std::cout << "numThreads = " << numThreads << std::endl;
-		srand(time(NULL));
-		numThreads *= 4; // todo : test
 	}
 
 	~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.phong, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.phong, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
 
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.ufo);
+		vkMeshLoader::freeMeshBufferResources(m_pFramework->device, &meshes.ufo);
 
 		for (auto& thread : renderThreads)
 		{
-			vkFreeCommandBuffers(device, thread.cmdPool, thread.cmdBuffers.size(), thread.cmdBuffers.data());
-			vkDestroyCommandPool(device, thread.cmdPool, nullptr);
-			vkTools::destroyUniformData(device, &thread.uniformData);
+			vkFreeCommandBuffers(m_pFramework->device, thread.cmdPool, thread.cmdBuffers.size(), thread.cmdBuffers.data());
+			vkDestroyCommandPool(m_pFramework->device, thread.cmdPool, nullptr);
+			vkTools::destroyUniformData(m_pFramework->device, &thread.uniformData);
 		}
 	}
 
@@ -223,46 +229,46 @@ public:
 
 			// Create command pool
 			VkCommandPoolCreateInfo cmdPoolInfo = vkTools::initializers::commandPoolCreateInfo();
-			cmdPoolInfo.queueFamilyIndex = swapChain.queueNodeIndex;
+			cmdPoolInfo.queueFamilyIndex = m_pFramework->swapChain.queueNodeIndex;
 			cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-			err = vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &thread.cmdPool);
+			err = vkCreateCommandPool(m_pFramework->device, &cmdPoolInfo, nullptr, &thread.cmdPool);
 			assert(!err);
 
 			// Create command buffers
 			// Use secondary level command buffers
-			thread.cmdBuffers.resize(swapChain.imageCount);
+			thread.cmdBuffers.resize(m_pFramework->swapChain.imageCount);
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 				vkTools::initializers::commandBufferAllocateInfo(
 					thread.cmdPool,
 					VK_COMMAND_BUFFER_LEVEL_SECONDARY,
 					(uint32_t)thread.cmdBuffers.size());
 
-			err = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, thread.cmdBuffers.data());
+			err = vkAllocateCommandBuffers(m_pFramework->device, &cmdBufAllocateInfo, thread.cmdBuffers.data());
 			assert(!err);
 
 			// Vulkan objects
-			thread.device = device;
+			thread.device = m_pFramework->device;
 
 			// todo...
-			thread.viewport = vkTools::initializers::viewport((float)ScreenRect.Width, (float)ScreenRect.Height, 0.0f, 1.0f);
-			thread.viewport.width = (float)ScreenRect.Width / (float)numThreads;
-			thread.viewport.height = (float)ScreenRect.Height;
+			thread.viewport = vkTools::initializers::viewport((float)m_pFramework->ScreenRect.Width, (float)m_pFramework->ScreenRect.Height, 0.0f, 1.0f);
+			thread.viewport.width = (float)m_pFramework->ScreenRect.Width / (float)numThreads;
+			thread.viewport.height = (float)m_pFramework->ScreenRect.Height;
 			thread.viewport.x = thread.viewport.width * thread.index;
 
-			thread.scissor = vkTools::initializers::rect2D(ScreenRect.Width, ScreenRect.Height, 0, 0);
+			thread.scissor = vkTools::initializers::rect2D(m_pFramework->ScreenRect.Width, m_pFramework->ScreenRect.Height, 0, 0);
 			thread.pipeline = pipelines.phong;
 			thread.pipelineLayout = pipelineLayout;
 			// Inheritance info for secondary command buffers
 			for (uint32_t i = 0; i < thread.cmdBuffers.size(); ++i)
 			{
 				VkCommandBufferInheritanceInfo inheritanceInfo = vkTools::initializers::commandBufferInheritanceInfo();
-				inheritanceInfo.renderPass = renderPass;
-				inheritanceInfo.framebuffer = frameBuffers[i];
+				inheritanceInfo.renderPass = m_pFramework->renderPass;
+				inheritanceInfo.framebuffer = m_pFramework->frameBuffers[i];
 				thread.inheritanceInfo.push_back(inheritanceInfo);
 			}
 
 			// Separate vertex shader uniform buffer block for each thread
-			createBuffer(
+			m_pFramework->createBuffer(
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				sizeof(UBO),
 				&thread.ubo,
@@ -273,11 +279,11 @@ public:
 			// Descriptor set
 			VkDescriptorSetAllocateInfo allocInfo =
 				vkTools::initializers::descriptorSetAllocateInfo(
-					descriptorPool,
+					m_pFramework->descriptorPool,
 					&descriptorSetLayout,
 					1);
 
-			VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &thread.descriptorSet);
+			VkResult vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &thread.descriptorSet);
 			assert(!vkRes);
 
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -290,7 +296,7 @@ public:
 					&thread.uniformData.descriptor)
 			};
 
-			vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+			vkUpdateDescriptorSets(m_pFramework->device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 			// Initialize mesh data
 			thread.meshData.pos = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -317,51 +323,51 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = m_pFramework->defaultClearColor;
 		clearValues[0].color = { {0.0f, 0.0f, 0.2f, 0.0f} };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = ScreenRect.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
+		renderPassBeginInfo.renderArea.extent.width = m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
+			err = vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo);
 			assert(!err);
 
 			// The primary command buffer does not contain any rendering commands
 			// These are stored (and retrieved) from the secondary command buffers
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 			// Execute secondary command buffers
 			for (auto& renderThread : renderThreads)
 			{
 				// todo : Make sure threads are finished before accessing their command buffers
-				vkCmdExecuteCommands(drawCmdBuffers[i], 1, &renderThread.cmdBuffers[i]);
+				vkCmdExecuteCommands(m_pFramework->drawCmdBuffers[i], 1, &renderThread.cmdBuffers[i]);
 			}
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
+			err = vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]);
 			assert(!err);
 		}
 	}
 
 	void draw()
 	{
-		if (!paused)
+		if (!m_pFramework->paused)
 		{
 			updateUniformBuffers();
 		}
@@ -369,45 +375,45 @@ public:
 		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		err = m_pFramework->swapChain.acquireNextImage(m_pFramework->semaphores.presentComplete, &m_pFramework->currentBuffer);
 		assert(!err);
 
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPostPresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 
 		// Put a fence in here
 		// todo : reuse
 		VkFence renderFence = {};
 		VkFenceCreateInfo fenceCreateInfo = vkTools::initializers::fenceCreateInfo(VK_FLAGS_NONE);
-		vkCreateFence(device, &fenceCreateInfo, NULL, &renderFence);
+		vkCreateFence(m_pFramework->device, &fenceCreateInfo, NULL, &renderFence);
 
 		// Submit draw command buffer
-		err = vkQueueSubmit(queue, 1, &submitInfo, renderFence);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, renderFence);
 		assert(!err);
 
 		// Wait for fence to signal that all command buffers are ready
 		do 
 		{
-			err = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
+			err = vkWaitForFences(m_pFramework->device, 1, &renderFence, VK_TRUE, 100000000);
 		} while (err == VK_TIMEOUT);
 		assert(!err);
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPrePresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		err = m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, m_pFramework->semaphores.renderComplete);
 		assert(!err);
 
-		vkDestroyFence(device, renderFence, nullptr);
+		vkDestroyFence(m_pFramework->device, renderFence, nullptr);
 
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 	}
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/retroufo_red.X", &meshes.ufo, vertexLayout, 0.25f);
+		m_pFramework->loadMesh("./../data/models/retroufo_red.X", &meshes.ufo, vertexLayout, 0.25f);
 	}
 
 	void setupVertexDescriptions()
@@ -465,7 +471,7 @@ public:
 				poolSizes.data(),
 				3 + numThreads);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
+		VkResult vkRes = vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool);
 		assert(!vkRes);
 	}
 
@@ -485,7 +491,7 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
@@ -504,7 +510,7 @@ public:
 		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pPipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+		err = vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
 	}
 
@@ -561,13 +567,13 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/multithreading/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/multithreading/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader("./../data/shaders/multithreading/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader("./../data/shaders/multithreading/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
-				renderPass,
+				m_pFramework->renderPass,
 				0);
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
@@ -581,18 +587,18 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong);
+		VkResult err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong);
 		assert(!err);
 	}
 
 	void updateUniformBuffers()
 	{
-		glm::mat4 projection = glm::perspective(deg_to_rad(60.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.1f, 256.0f);
+		glm::mat4 projection = glm::perspective(deg_to_rad(60.0f), (float)m_pFramework->ScreenRect.Width / (float)m_pFramework->ScreenRect.Height, 0.1f, 256.0f);
 
-		glm::mat4 view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, m_pFramework->zoom));
+		view = glm::rotate(view, glm::radians(m_pFramework->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(m_pFramework->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(m_pFramework->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		for (auto& thread : renderThreads)
 		{
@@ -610,7 +616,7 @@ public:
 
 	int32_t	prepare()
 	{
-		CVulkanFramework::prepare();
+		//CVulkanFramework::prepare();
 		loadMeshes();
 		setupVertexDescriptions();
 		setupDescriptorSetLayout();
@@ -619,84 +625,33 @@ public:
 		prepareMultiThreadedRenderer();
 		updateUniformBuffers();
 		buildCommandBuffers();
-		prepared = true;
+		m_pFramework->prepared = true;
 		return 0;
 	}
 
 	virtual int32_t render()
 	{
-		if (!prepared)
+		if (!m_pFramework->prepared)
 			return 1;
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		return 0;
 	}
 
 	virtual void viewChanged()
 	{
-		if (paused)
+		if (m_pFramework->paused)
 		{
 
 			updateUniformBuffers();
 		}
 	}
 
-
+	virtual void	keyPressed(uint32_t keyCode)
+	{
+	}
 
 };
-
-VulkanExample *vulkanExample;
-
-#ifdef _WIN32
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-
-#else 
-
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
-
-#ifdef _WIN32
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
-int main(const int argc, const char *argv[])
-#endif
-{
-#if defined(_WIN32)
-#if defined(DEBUG) || defined(_DEBUG)
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
-#endif
-#endif
-	vulkanExample = 0;
-	//vulkanExample = new VulkanExample();
-	IVulkanGame* newGame=0;
-	createVulkanGame(&newGame);
-
-	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
-#ifdef _WIN32
-	vulkanExample->setupWindow(hInstance, WndProc);
-#else
-	vulkanExample->setupWindow();
-#endif
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-	vulkanExample->renderLoop();
-	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
-	return 0;
-}
 
 DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
