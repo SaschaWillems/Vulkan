@@ -4,30 +4,30 @@
 
 Assorted C++ examples for [Vulkan(tm)](https://www.khronos.org/vulkan/), the new graphics and compute API from Khronos.
 
-## Building
+# Building
 
-The repository contains everything required to compile the examples out of the box on windows and Linux. All required dependencies and libraries are included.
+The repository contains everything required to compile and build the examples on Windows, Linux and Android. All required dependencies are included.
 
-### Visual Studio
-A Visual Studio (2015) solution file for compiling all examples is included with the repository.
+## <img src="./images/windowslogo.png" alt="" height="32px"> Windows
+A Visual Studio solution file for compiling all examples is included with the repository, examples will compile with VS2015 out of the box.
 
-### CMake
-For Linux (or if you want to use a different IDE) there is also a a CMakeLists.txt to be used with [CMake](https://cmake.org).
+If you're using a different IDE or compiler you can use the provided CMakeLists.txt for use with [CMake](https://cmake.org) to generate a build configuration for your toolchain.
 
-Use it to generate a platform-specific build configuration for building all examples. It should work with different compilers on Windows and Linux (C++11 required).
+## <img src="./images/linuxlogo.png" alt="" height="32px"> Linux
 
-### [Android](android/)
+Use the provided the provided CMakeLists.txt for use with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler.
 
-I'm currently adding Android support to the examples, replacing the initial separate examples. Please see the [Android readme](./android/README.md) on how to build these and a few notes on the platform.
+Note that you need [assimp](https://github.com/assimp/assimp) in order to compile the examples for Linux. Either compile and install from the repository, or install libassimp-dev. The example require version 3.2 and up.
+
+## <img src="./images/androidlogo.png" alt="" height="32px"> [Android](android/)
+
+Building on Android is done using the [Android NDK](http://developer.android.com/tools/sdk/ndk/index.html) and requires adevice that supports Vulkan. Please see the [Android readme](./android/README.md) on how to build these and a few notes on the platform.
 
 ## Binaries
 
 Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found here](http://vulkan.gpuinfo.org/examples.php). I'll try keep them up-to-date with the repositry.
 
-Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder.
-
-## Vendor support
-The examples have been tested to work on recent NVIDIA and AMD GPUs, but since **most drivers are beta** not all examples may work with all vendors.
+Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder. Except for Android, where this is stored inside of the apk.
 
 ## API-Version
 
@@ -37,7 +37,7 @@ The examples are build against **API Version 1.0.5** and support **implementatio
 
 Additional documentation for several base classes and functionality (e.g. the swap chain) can be found [in this directory](./documentation/additionaldocs.md).
 
-## Examples
+# Examples
 
 ## [Triangle](triangle/)
 <img src="./screenshots/basic_triangle.png" height="96px" align="right">
