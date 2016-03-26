@@ -7,12 +7,12 @@ Since Vulkan is not yet part of the Android OS (like OpenGL ES) the library and 
 ## Device support
 - **To run these examples you need a device with an Android image that suports Vulkan**
 - Builds currently only support arm-v7, x86 may follow at a later point
-- Android TV leanback launcher is supported, examples will show up on the launcher
+- Android TV leanback launcher is supported, so the examples will show up on the launcher
 - Basic gamepad support is available too (zoom and rotate)
 
 ## Imporant note
 
-I'm currently in the process of replacing the old (separate) Android examples, integrating Android support into the main line of examples. This is a work-in-progress, so the examples that are already converted may contain errors. Most notably they won't free the Vulkan resources for now.
+The Android part of the Vulkan example base is not yet finished, and while the examples run fine they might encounter some problems as most of the resources are not yet correctly released when closing the app.
 
 ## Building
 
@@ -22,22 +22,55 @@ I'm currently in the process of replacing the old (separate) Android examples, i
 
 ### Building the Examples
 
-Builds are started using the provided batch file for each example.
+### Complete set
+
+**Please note that building (and deploying) all examples may take a while**
 
 #### Build only
 
-Call the corresponding .bat, call e.g. :
-
 ```
-build-triangle.bat
+build-all
 ```
 
-This will build the apk and move it to the "bin" folder
+This will build all apks and puts them into the **bin** folder.
 
-#### Deploy
-
-If you want to deploy to an attached Android device right after the build is done :
+#### Build and deploy
 
 ```
-build-triangle.bat -deploy
+install-all
 ```
+
+This will build all apks and deploys them to the currently attached android device. 
+
+### Single examples
+
+These are for building and/or deploying a single example.
+
+#### Build only
+
+Call build(.bat) with the name of the example to build, e.g. :
+
+```
+build triangle
+```
+
+This will build the apk for the triangle example and puts it into the **bin** folder.
+
+#### Build and deploy
+
+```
+build triangle -deploy
+```
+
+This will build the apk for the triangle example and deploys it to the currently attached android device. 
+
+## Removing
+
+A batch file for removing all installed examples is provided in case you installed all of them and don't want to remove them by hand (which is especially tedious on Android TV).
+
+
+```
+uninstall-all
+```
+ 
+This will remove any installed Android example from this repository from the attached device.

@@ -155,7 +155,8 @@ public:
 	HINSTANCE windowInstance;
 #elif defined(__ANDROID__)
 	android_app* androidApp;
-	bool animating = true;
+	// true if application has focused, false if moved to background
+	bool focused = false;
 	// Gamepad state (only one)
 	struct
 	{

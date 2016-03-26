@@ -1,17 +1,27 @@
-call build-bloom.bat %1
-call build-computeparticles.bat %1
-call build-computeshader.bat %1
-call build-deferred.bat %1
-call build-displacement.bat %1
-rem call build-distancefieldfonts.bat
-call build-mesh.bat %1
-call build-offscreen.bat %1
-call build-particlefire.bat %1
-call build-shadowmapping.bat %1
-call build-shadowmappingomni.bat %1
-call build-sphericalenvmapping.bat %1
-call build-texture.bat %1
-call build-texturearray.bat %1
-call build-texturecubemap.bat %1
-call build-triangle.bat %1
-call build-vulkanscene.bat %1
+call _build geometryshader %1
+call _build computeparticles %1
+call _build computeshader %1
+call _build parallaxmapping %1
+call _build bloom %1
+call _build gears %1
+call _build texturecubemap %1
+call _build instancing %1
+call _build deferred %1
+call _build particlefire %1
+call _build occlusionquery %1
+call _build texture %1
+call _build tessellation %1
+call _build mesh %1
+call _build texturearray %1
+call _build pipelines %1
+call _build triangle %1
+call _build skeletalanimation %1
+call _build distancefieldfonts %1
+call _build vulkanscene %1
+call _build offscreen %1
+call _build shadowmapping %1
+call _build pushconstants %1
+call _build shadowmappingomni %1
+call _build sphericalenvmapping %1
+call _build radialblur %1
+call _build displacement %1
