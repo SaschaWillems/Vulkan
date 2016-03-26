@@ -150,6 +150,7 @@ private:
 	std::string							getWindowTitle();
 protected:
 	float								frameTimer					= 0;	// Last frame time, measured using a high performance timer (if available)
+	uint32_t							frameCounter				= 0;	// Frame counter to display fps
 	VkInstance							instance					= 0;	// Vulkan instance, stores all per-application states
 	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;				// Stores all available memory (type) properties for the physical device
 	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
@@ -158,8 +159,6 @@ protected:
 	VkPipelineStageFlags				submitPipelineStages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;	// Pipeline stage flags for the submit info structure
 	std::vector<VkShaderModule>			shaderModules;									// List of shader modules created (stored for cleanup)
 	VkPhysicalDeviceProperties			deviceProperties;								// Stores physical device properties (for e.g. checking device limits)
-	uint32_t							frameCounter				= 0;				// Frame counter to display fps
-	vkTools::VulkanTextureLoader		*textureLoader				= nullptr;			// Simple texture loader
 
 
 	//--------------------------------------------------------------
@@ -184,6 +183,7 @@ public:	// these were made public in order to enable decoupling of the CVulkanFr
 		VkSemaphore presentComplete;	// Swap chain image presentation
 		VkSemaphore renderComplete;		// Command buffer submission and execution
 	} semaphores;																// Synchronization semaphores
+	vkTools::VulkanTextureLoader		*textureLoader				= nullptr;			// Simple texture loader
 
 
 public: 
