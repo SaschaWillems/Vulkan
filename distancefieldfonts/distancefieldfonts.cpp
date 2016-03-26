@@ -95,7 +95,7 @@ void parsebmFont()
 
 }
 
-class VulkanExample : public CVulkanFramework
+class VulkanExample : public CVulkanFramework, public IVulkanGame
 {
 public:
 	bool splitScreen = true;
@@ -213,8 +213,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -231,15 +231,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)ScreenProperties.Width,
-				(splitScreen) ? (float)ScreenProperties.Height / 2.0f : (float)ScreenProperties.Height,
+				(float)ScreenRect.Width,
+				(splitScreen) ? (float)ScreenRect.Height / 2.0f : (float)ScreenRect.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenProperties.Width,
-				ScreenProperties.Height,
+				ScreenRect.Width,
+				ScreenRect.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -256,8 +256,8 @@ public:
 			// Linear filtered bitmap font
 			if (splitScreen)
 			{
-				viewport.y = (float)ScreenProperties.Height / 2.0f;
-//				viewport.x = (float)ScreenProperties.Width / 2.0f;
+				viewport.y = (float)(ScreenRect.Height / 2);
+//				viewport.x = (float)(ScreenRect.Width / 2);
 				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.bitmap, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.bitmap);
@@ -655,7 +655,7 @@ public:
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
 
-		uboVS.projection = glm::perspective(deg_to_rad(splitScreen ? 45.0f : 60.0f), (float)ScreenProperties.Width / (float)(ScreenProperties.Height * ((splitScreen) ? 0.5f : 1.0f)), 0.001f, 256.0f);
+		uboVS.projection = glm::perspective(deg_to_rad(splitScreen ? 45.0f : 60.0f), (float)ScreenRect.Width / (float)(ScreenRect.Height * ((splitScreen) ? 0.5f : 1.0f)), 0.001f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, splitScreen ? zoom : zoom - 2.0f));
 
 		uboVS.model = glm::mat4();
@@ -726,6 +726,8 @@ public:
 		updateFontSettings();
 	}
 
+	virtual void* getActualPointer() {return this;}
+
 };
 
 VulkanExample *vulkanExample;
@@ -770,7 +772,17 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 int main(const int argc, const char *argv[])
 #endif
 {
-	vulkanExample = new VulkanExample();
+#if defined(_WIN32)
+#if defined(DEBUG) || defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
+#endif
+#endif
+	vulkanExample = 0;
+	//vulkanExample = new VulkanExample();
+	IVulkanGame* newGame=0;
+	createVulkanGame(&newGame);
+
+	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
 #ifdef _WIN32
 	vulkanExample->setupWindow(hInstance, WndProc);
 #else
@@ -779,6 +791,28 @@ int main(const int argc, const char *argv[])
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
 	vulkanExample->renderLoop();
-	delete(vulkanExample);
+	
+	//releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
+	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample));
+	
 	return 0;
 }
+
+DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()
+//int32_t createVulkanGame(IVulkanGame** ppCreated)											
+//{																							
+//	VulkanExample* newVulkanExample = new VulkanExample(), *oldVulkanExample=*reinterpret_cast<VulkanExample**>(ppCreated);	
+//	*ppCreated = newVulkanExample;															
+//	if(oldVulkanExample)																	
+//		delete (oldVulkanExample);															
+//	return 0;																				
+//}																							
+//																							
+//int32_t releaseVulkanGame(IVulkanGame** ppInstance)											
+//{																							
+//	VulkanExample* oldVulkanExample=*reinterpret_cast<VulkanExample**>(ppInstance);			
+//	*ppInstance = 0;																		
+//	if(oldVulkanExample)																	
+//		delete (oldVulkanExample);															
+//	return 0;																				
+//}						

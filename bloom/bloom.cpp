@@ -41,7 +41,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_NORMAL
 };
 
-class VulkanExample : public CVulkanFramework
+class VulkanExample : public CVulkanFramework, public IVulkanGame
 {
 public:
 	bool bloom = true;
@@ -634,8 +634,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -652,15 +652,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)ScreenProperties.Width,
-				(float)ScreenProperties.Height,
+				(float)ScreenRect.Width,
+				(float)ScreenRect.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenProperties.Width,
-				ScreenProperties.Height,
+				ScreenRect.Width,
+				ScreenRect.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -1189,7 +1189,7 @@ public:
 	void updateUniformBuffersScene()
 	{
 		// UFO
-		ubos.fullscreen.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
+		ubos.fullscreen.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.1f, 256.0f);
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, -1.0f, zoom));
 
 		ubos.fullscreen.model = viewMatrix *
@@ -1208,7 +1208,7 @@ public:
 		vkUnmapMemory(device, uniformData.vsFullScreen.memory);
 
 		// Skybox
-		ubos.skyBox.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
+		ubos.skyBox.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.1f, 256.0f);
 
 		ubos.skyBox.model = glm::mat4();
 		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -1303,6 +1303,9 @@ public:
 		bloom = !bloom;
 		reBuildCommandBuffers();
 	}
+
+	virtual void* getActualPointer() {return this;}
+
 };
 
 VulkanExample *vulkanExample;
@@ -1357,8 +1360,17 @@ int main(const int argc, const char *argv[])
 	// Removing this may cause the compiler to omit the main entry point 
 	// which would make the application crash at start
 	app_dummy();
+#elif defined(_WIN32)
+#if defined(DEBUG) || defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
 #endif
-	vulkanExample = new VulkanExample();
+#endif
+	vulkanExample = 0;
+	//vulkanExample = new VulkanExample();
+	IVulkanGame* newGame=0;
+	createVulkanGame(&newGame);
+
+	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
 #if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
 #elif defined(__ANDROID__)
@@ -1376,7 +1388,9 @@ int main(const int argc, const char *argv[])
 #endif
 	vulkanExample->renderLoop();
 #if !defined(__ANDROID__)
-	delete(vulkanExample);
+	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
 	return 0;
 #endif
 }
+
+DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()

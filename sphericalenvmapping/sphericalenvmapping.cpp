@@ -37,7 +37,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_COLOR
 };
 
-class VulkanExample : public CVulkanFramework
+class VulkanExample : public CVulkanFramework, public IVulkanGame
 {
 public:
 	struct {
@@ -122,8 +122,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -140,15 +140,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)ScreenProperties.Width,
-				(float)ScreenProperties.Height,
+				(float)ScreenRect.Width,
+				(float)ScreenRect.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenProperties.Width,
-				ScreenProperties.Height,
+				ScreenRect.Width,
+				ScreenRect.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -198,7 +198,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/chinesedragon.X", &meshes.object, vertexLayout, 0.05f);
+		loadMesh("./../data/models/chinesedragon.dae", &meshes.object, vertexLayout, 0.05f);
 	}
 
 	void prepareVertices()
@@ -431,7 +431,7 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(deg_to_rad(45.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.1f, 256.0f);
 
 		uboVS.view = glm::lookAt(
 			glm::vec3(0, 0, -zoom),
@@ -512,6 +512,8 @@ public:
 		updateUniformBuffers();
 	}
 
+	virtual void* getActualPointer() {return this;}
+
 };
 
 VulkanExample *vulkanExample;
@@ -544,7 +546,17 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 int main(const int argc, const char *argv[])
 #endif
 {
-	vulkanExample = new VulkanExample();
+#if defined(_WIN32)
+#if defined(DEBUG) || defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
+#endif
+#endif
+	vulkanExample = 0;
+	//vulkanExample = new VulkanExample();
+	IVulkanGame* newGame=0;
+	createVulkanGame(&newGame);
+
+	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
 #ifdef _WIN32
 	vulkanExample->setupWindow(hInstance, WndProc);
 #else
@@ -553,6 +565,8 @@ int main(const int argc, const char *argv[])
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
 	vulkanExample->renderLoop();
-	delete(vulkanExample);
+	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
 	return 0;
 }
+
+DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()

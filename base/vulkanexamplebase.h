@@ -53,29 +53,58 @@ public:
 	virtual ~IVulkanFramework(){};
 
 	virtual std::string		getAssetPath	()=0;
-	virtual int32_t			prepare			()=0;	// Prepare commonly used Vulkan functions
-	//virtual int32_t			()=0;
+	//virtual int32_t		prepare			()=0;	// Prepare commonly used Vulkan functions
+	//virtual int32_t		()=0;
 };
 
-class IVulkanExample
+class IVulkanGame
 {
 public:
-	IVulkanExample(){};
-	virtual ~IVulkanExample(){};
+	IVulkanGame(){};
+	virtual ~IVulkanGame(){};
 
 //	virtual int32_t			init(IVulkanFramework* pFramework)=0;
-	virtual int32_t			prepare			()=0;	// Prepare commonly used Vulkan functions
-	virtual int32_t			render			()=0;
+	virtual int32_t			prepare				()=0;	// Prepare commonly used Vulkan functions
+	virtual int32_t			render				()=0;
+	virtual void*			getActualPointer	()=0;
+
 };
 
-struct VulkanExampleScreen
+#define DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()									\
+int32_t createVulkanGame(IVulkanGame** ppCreated)											\
+{																							\
+	VulkanExample* newVulkanExample = new VulkanExample(), *oldVulkanExample=reinterpret_cast<VulkanExample*>(*ppCreated);	\
+	*ppCreated = newVulkanExample;															\
+	if(oldVulkanExample)																	\
+		delete (oldVulkanExample);															\
+	return 0;																				\
+}																							\
+																							\
+int32_t releaseVulkanGame(IVulkanGame** ppInstance)											\
+{																							\
+	VulkanExample* oldVulkanExample=reinterpret_cast<VulkanExample*>(*ppInstance);			\
+	*ppInstance = 0;																		\
+	if(oldVulkanExample)																	\
+		delete (oldVulkanExample);															\
+	return 0;																				\
+}																							\
+
+struct SScreenRect
 {
-	VulkanExampleScreen( void ):
+	SScreenRect( void ):
 		Width	(1280),
 		Height	(720)
 	{}
 	uint32_t Width;
 	uint32_t Height;
+};
+
+extern "C"
+{
+	int32_t	createVulkanGame	(IVulkanGame** ppCreated );
+	int32_t	releaseVulkanGame	(IVulkanGame** ppInstance);
+	typedef int32_t (*CREATEVULKANGAME )(IVulkanGame** ppCreated );
+	typedef int32_t (*RELEASEVULKANGAME)(IVulkanGame** ppInstance);
 };
 
 struct VulkanDepthStencil
@@ -94,7 +123,7 @@ private:
 	VkResult							createDevice(
 		VkDeviceQueueCreateInfo requestedQueues, 
 		bool enableValidation
-		);	// Create logical Vulkan device based on physical device
+	);	// Create logical Vulkan device based on physical device
 	std::string							getWindowTitle();
 protected:
 	float								frameTimer					= 0;	// Last frame time, measured using a high performance timer (if available)
@@ -131,10 +160,10 @@ protected:
 
 	//--------------------------------------------------------------
 	std::string							getAssetPath();							// Returns the base asset path (for shaders, models, textures) depending on the os
-	IVulkanExample*						m_pVulkanExample			= nullptr;	
+	IVulkanGame*						m_pVulkanExample			= nullptr;	
 
 public: 
-	VulkanExampleScreen		ScreenProperties; 
+	SScreenRect				ScreenRect; 
 	bool					prepared			= false;
 	VkClearColorValue		defaultClearColor	= { { 0.025f, 0.025f, 0.025f, 1.0f } };
 	float					zoom				= 0;

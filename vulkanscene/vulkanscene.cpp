@@ -28,7 +28,7 @@
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-class VulkanExample : public CVulkanFramework
+class VulkanExample : public CVulkanFramework, public IVulkanGame
 {
 public:
 
@@ -128,8 +128,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width  = ScreenProperties.Width;
-		renderPassBeginInfo.renderArea.extent.height = ScreenProperties.Height;
+		renderPassBeginInfo.renderArea.extent.width  = ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -145,15 +145,15 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)ScreenProperties.Width,
-				(float)ScreenProperties.Height,
+				(float)ScreenRect.Width,
+				(float)ScreenRect.Height,
 				0.0f,
 				1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				ScreenProperties.Width,
-				ScreenProperties.Height,
+				ScreenRect.Width,
+				ScreenRect.Height,
 				0,
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -545,7 +545,7 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)ScreenProperties.Width / (float)ScreenProperties.Height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)ScreenRect.Width / (float)ScreenRect.Height, 0.1f, 256.0f);
 		uboVS.view = glm::lookAt(
 			glm::vec3(0, 0, -zoom),
 			glm::vec3(0, 0, 0),
@@ -598,6 +598,8 @@ public:
 		updateUniformBuffers();
 	}
 
+	virtual void* getActualPointer() {return this;}
+
 };
 
 VulkanExample *vulkanExample;
@@ -637,8 +639,17 @@ int main(const int argc, const char *argv[])
 	// Removing this may cause the compiler to omit the main entry point 
 	// which would make the application crash at start
 	app_dummy();
+#elif defined(_WIN32)
+#if defined(DEBUG) || defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
 #endif
-	vulkanExample = new VulkanExample();
+#endif
+	vulkanExample = 0;
+	//vulkanExample = new VulkanExample();
+	IVulkanGame* newGame=0;
+	createVulkanGame(&newGame);
+
+	vulkanExample = reinterpret_cast<VulkanExample*>(newGame->getActualPointer());
 #if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
 #elif defined(__ANDROID__)
@@ -656,7 +667,9 @@ int main(const int argc, const char *argv[])
 #endif
 	vulkanExample->renderLoop();
 #if !defined(__ANDROID__)
-	delete(vulkanExample);
+	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
 	return 0;
 #endif
 }
+
+DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()

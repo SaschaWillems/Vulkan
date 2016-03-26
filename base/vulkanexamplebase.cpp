@@ -374,7 +374,7 @@ void CVulkanFramework::renderLoop()
 			if (androidApp->destroyRequested != 0)
 			{
 				// todo : free resources
-				//delete(vulkanExample);
+				//releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
 				return;
 			}
 		}
@@ -815,7 +815,7 @@ HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		dmScreenSettings.dmBitsPerPel = 32;
 		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
-		if ((ScreenProperties.Width != screenWidth) && (ScreenProperties.Height != screenHeight))
+		if ((ScreenRect.Width != screenWidth) && (ScreenRect.Height != screenHeight))
 		{
 			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 			{
@@ -856,10 +856,10 @@ HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	}
 	else
 	{
-		windowRect.left = (long)screenWidth / 2 - ScreenProperties.Width / 2;
-		windowRect.right = (long)ScreenProperties.Width;
-		windowRect.top = (long)screenHeight / 2 - ScreenProperties.Height / 2;
-		windowRect.bottom = (long)ScreenProperties.Height;
+		windowRect.left = (long)screenWidth / 2 - ScreenRect.Width / 2;
+		windowRect.right = (long)ScreenRect.Width;
+		windowRect.top = (long)screenHeight / 2 - ScreenRect.Height / 2;
+		windowRect.bottom = (long)ScreenRect.Height;
 	}
 
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
@@ -1180,7 +1180,7 @@ void CVulkanFramework::setupDepthStencil()
 	image.pNext = NULL;
 	image.imageType = VK_IMAGE_TYPE_2D;
 	image.format = depthFormat;
-	image.extent = { ScreenProperties.Width, ScreenProperties.Height, 1 };
+	image.extent = { ScreenRect.Width, ScreenRect.Height, 1 };
 	image.mipLevels = 1;
 	image.arrayLayers = 1;
 	image.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1245,8 +1245,8 @@ void CVulkanFramework::setupFrameBuffer()
 	frameBufferCreateInfo.renderPass = renderPass;
 	frameBufferCreateInfo.attachmentCount = 2;
 	frameBufferCreateInfo.pAttachments = attachments;
-	frameBufferCreateInfo.width = ScreenProperties.Width;
-	frameBufferCreateInfo.height = ScreenProperties.Height;
+	frameBufferCreateInfo.width = ScreenRect.Width;
+	frameBufferCreateInfo.height = ScreenRect.Height;
 	frameBufferCreateInfo.layers = 1;
 
 	// Create frame buffers for every swap chain image
@@ -1329,7 +1329,7 @@ void CVulkanFramework::initSwapchain()
 
 void CVulkanFramework::setupSwapChain()
 {
-	swapChain.create(setupCmdBuffer, &ScreenProperties.Width, &ScreenProperties.Height);
+	swapChain.create(setupCmdBuffer, &ScreenRect.Width, &ScreenRect.Height);
 }
 //
 //VulkanExampleBase *vulkanExample;
@@ -1386,6 +1386,10 @@ void CVulkanFramework::setupSwapChain()
 //	// Removing this may cause the compiler to omit the main entry point 
 //	// which would make the application crash at start
 //	app_dummy();
+//#elif defined(_WIN32)
+//#if defined(DEBUG) || defined(_DEBUG)
+//	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
+//#endif
 //#endif
 //	vulkanExample = new VulkanExampleBase(ENABLE_VALIDATION);
 //#if defined(_WIN32)
@@ -1405,7 +1409,7 @@ void CVulkanFramework::setupSwapChain()
 //#endif
 //	vulkanExample->renderLoop();
 //#if !defined(__ANDROID__)
-//	delete(vulkanExample);
+//	releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
 //	return 0;
 //#endif
 //}
