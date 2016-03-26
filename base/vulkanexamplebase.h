@@ -151,7 +151,6 @@ private:
 protected:
 	float								frameTimer					= 0;	// Last frame time, measured using a high performance timer (if available)
 	VkInstance							instance					= 0;	// Vulkan instance, stores all per-application states
-	VkPhysicalDevice					physicalDevice				= 0;	// Physical device (GPU) that Vulkan will ise
 	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;				// Stores all available memory (type) properties for the physical device
 	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
 	VkFormat							depthFormat;						// Depth buffer format - Depth format is selected during Vulkan initialization
@@ -163,11 +162,6 @@ protected:
 	uint32_t							frameCounter				= 0;				// Frame counter to display fps
 	vkTools::VulkanTextureLoader		*textureLoader				= nullptr;			// Simple texture loader
 
-	struct SVulkanSwapChainSemaphores 
-	{
-		VkSemaphore presentComplete;	// Swap chain image presentation
-		VkSemaphore renderComplete;		// Command buffer submission and execution
-	} semaphores;																// Synchronization semaphores
 
 	//--------------------------------------------------------------
 	IVulkanGame*						m_pVulkanExample			= nullptr;	
@@ -184,6 +178,12 @@ public:	// these were made public in order to enable decoupling of the CVulkanFr
 	VkCommandBuffer						postPresentCmdBuffer		= VK_NULL_HANDLE;	// Command buffer for submitting a post present image barrier
 	std::vector<VkCommandBuffer>		drawCmdBuffers;									// Command buffers used for rendering
 	std::vector<VkFramebuffer>			frameBuffers;									// List of available frame buffers (same as number of swap chain images)
+	VkPhysicalDevice					physicalDevice				= 0;				// Physical device (GPU) that Vulkan will use
+	struct SVulkanSwapChainSemaphores 
+	{
+		VkSemaphore presentComplete;	// Swap chain image presentation
+		VkSemaphore renderComplete;		// Command buffer submission and execution
+	} semaphores;																// Synchronization semaphores
 
 
 public: 

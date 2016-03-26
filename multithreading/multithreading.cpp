@@ -642,7 +642,7 @@ public:
 		}
 	}
 
-	virtual void* getActualPointer() {return this;}
+
 
 };
 
