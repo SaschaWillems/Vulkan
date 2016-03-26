@@ -917,8 +917,8 @@ int main(const int argc, const char *argv[])
 	vulkanExample->prepare();
 #endif
 	vulkanExample->renderLoop();
-#if !defined(__ANDROID__)
 	delete(vulkanExample);
+#if !defined(__ANDROID__)
 	return 0;
 #endif
 }
