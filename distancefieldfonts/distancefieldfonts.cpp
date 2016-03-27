@@ -170,8 +170,8 @@ public:
 		std::stringbuf sbuf((const char*)fileData);
 		std::istream istream(&sbuf);
 #else 
-		std::filebuf fileBuffer;  
-		fileBuffer.open(fileName, std::ios::in);  
+		std::filebuf fileBuffer;
+		fileBuffer.open(fileName, std::ios::in);
 		std::istream istream(&fileBuffer);
 #endif
 
