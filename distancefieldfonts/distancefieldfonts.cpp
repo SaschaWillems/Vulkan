@@ -711,7 +711,7 @@ public:
 		vkUnmapMemory(m_pFramework->device, uniformData.fs.memory);
 	}
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		
 		parsebmFont();
