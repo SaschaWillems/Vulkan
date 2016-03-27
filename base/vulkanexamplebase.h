@@ -54,8 +54,6 @@ public:
 	virtual ~IVulkanFramework(){};
 
 	virtual std::string		getAssetPath	()=0;
-	//virtual int32_t		prepare			()=0;	// Prepare commonly used Vulkan functions
-	//virtual int32_t		()=0;
 };
 
 class CVulkanFramework;
@@ -75,24 +73,24 @@ public:
 
 };
 
-#define DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()									\
-int32_t createVulkanGame(IVulkanGame** ppCreated)											\
-{																							\
-	VulkanExample* newVulkanExample = new VulkanExample(), *oldVulkanExample=reinterpret_cast<VulkanExample*>(*ppCreated);	\
-	*ppCreated = newVulkanExample;															\
-	if(oldVulkanExample)																	\
-		delete (oldVulkanExample);															\
-	return 0;																				\
-}																							\
-																							\
-int32_t releaseVulkanGame(IVulkanGame** ppInstance)		\
-{														\
-	IVulkanGame* oldVulkanExample=*ppInstance;			\
-	*ppInstance = 0;									\
-	if(oldVulkanExample)								\
-		delete (oldVulkanExample);						\
-	return 0;											\
-}														\
+#define DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()								\
+int32_t createVulkanGame(IVulkanGame** ppCreated)										\
+{																						\
+	IVulkanGame* newVulkanExample = new VulkanExample(), *oldVulkanExample=*ppCreated;	\
+	*ppCreated = newVulkanExample;														\
+	if(oldVulkanExample)																\
+		delete (oldVulkanExample);														\
+	return 0;																			\
+}																						\
+																						\
+int32_t releaseVulkanGame(IVulkanGame** ppInstance)										\
+{																						\
+	IVulkanGame* oldVulkanExample=*ppInstance;											\
+	*ppInstance = 0;																	\
+	if(oldVulkanExample)																\
+		delete (oldVulkanExample);														\
+	return 0;																			\
+}
 
 class CBaseVulkanGame : public IVulkanGame
 {
@@ -100,6 +98,7 @@ public:
 	CBaseVulkanGame (){};
 	virtual ~CBaseVulkanGame (){};
 
+	// this one should take an IVulkanFramework interface as input but currently the interface is inexistent so we use the actual class instead
 	virtual int32_t			init(CVulkanFramework* pFramework)
 	{
 		m_pFramework = pFramework;
@@ -116,6 +115,7 @@ public:
 protected:
 	CVulkanFramework*		m_pFramework;	
 };
+
 struct SScreenRect
 {
 	SScreenRect( void ):
@@ -162,7 +162,6 @@ private:
 	VkPipelineStageFlags				submitPipelineStages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;	// Pipeline stage flags for the submit info structure
 	std::vector<VkShaderModule>			shaderModules;									// List of shader modules created (stored for cleanup)
 	VkPhysicalDeviceProperties			deviceProperties;								// Stores physical device properties (for e.g. checking device limits)
-
 
 	//--------------------------------------------------------------
 	IVulkanGame*						m_pVulkanExample			= nullptr;	
