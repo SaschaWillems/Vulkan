@@ -374,15 +374,9 @@ void CVulkanFramework::renderLoop()
 			}
 			if (androidApp->destroyRequested != 0)
 			{
-//<<<<<<< HEAD
-//				// todo : free resources
-//				//releaseVulkanGame(reinterpret_cast<IVulkanGame**>(&vulkanExample)); //delete(vulkanExample);
-//				return;
-//=======
 				LOGD("Android app destroy requested");
 				destroy = true;
 				break;
-//>>>>>>> fc71e4445d508e13e9796e94a59281de836a2224
 			}
 		}
 

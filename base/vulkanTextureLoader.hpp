@@ -229,15 +229,10 @@ namespace vkTools
 					copyRegion.dstSubresource.layerCount = 1;
 					copyRegion.dstOffset = { 0, 0, 0 };
 
-//<<<<<<< HEAD
-//					copyRegion.extent.width  = (uint32_t)tex2D[level].dimensions().x;
-//					copyRegion.extent.height = (uint32_t)tex2D[level].dimensions().y;
-//					copyRegion.extent.depth  = 0; //1 this guy can't decide if this is a 0 or an 1, so I will leave this here in order to remember what happened
-//=======
 					copyRegion.extent.width  = (uint32_t)tex2D[level].dimensions().x;
 					copyRegion.extent.height = (uint32_t)tex2D[level].dimensions().y;
 					copyRegion.extent.depth = 1;
-//>>>>>>> 606c8c3c79dac94b17652fd33263146df5e652cb
+					//copyRegion.extent.depth  = 0; //1 this guy can't decide if this is a 0 or an 1, so I will leave this here in order to remember what happened
 
 					// Put image copy into command buffer
 					vkCmdCopyImage(

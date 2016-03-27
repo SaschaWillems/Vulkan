@@ -58,44 +58,6 @@ int32_t nextValuePair(std::stringstream *stream)
 	return val;
 }
 
-//<<<<<<< HEAD
-//void parsebmFont()
-//{
-//	const char *filename = "../data/font.fnt";
-//
-//	std::ifstream fstream(filename);
-//	assert(fstream.good());
-//
-//	while (!fstream.eof())
-//	{
-//		std::string line;
-//		std::stringstream lineStream;
-//		std::getline(fstream, line);
-//		lineStream << line;
-//
-//		std::string info;
-//		lineStream >> info;
-//
-//		if (info == "char")
-//		{
-//			std::string pair;
-//
-//			// char id
-//			uint32_t charid = nextValuePair(&lineStream);
-//			// Char properties
-//			fontChars[charid].x = nextValuePair(&lineStream);
-//			fontChars[charid].y = nextValuePair(&lineStream);
-//			fontChars[charid].width = nextValuePair(&lineStream);
-//			fontChars[charid].height = nextValuePair(&lineStream);
-//			fontChars[charid].xoffset = nextValuePair(&lineStream);
-//			fontChars[charid].yoffset = nextValuePair(&lineStream);
-//			fontChars[charid].xadvance = nextValuePair(&lineStream);
-//			fontChars[charid].page = nextValuePair(&lineStream);
-//		}
-//	}
-//
-//}
-
 class VulkanExample : public CBaseVulkanGame
 {
 public:
@@ -207,7 +169,7 @@ public:
 
 		std::stringbuf sbuf((const char*)fileData);
 		std::istream istream(&sbuf);
-#elif defined(_WIN32)
+#elif defined(_WIN32) && !defined(__linux__)
 		FILE *file = 0;
 		fopen_s(&file, fileName.c_str(), "r");
 		assert(file);
