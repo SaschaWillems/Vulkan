@@ -25,9 +25,9 @@ Building on Android is done using the [Android NDK](http://developer.android.com
 
 ## Binaries
 
-Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found here](http://vulkan.gpuinfo.org/examples.php). I'll try keep them up-to-date with the repositry.
+Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found here](http://vulkan.gpuinfo.org/examples.php). I'll try keep them up-to-date with the repository.
 
-Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder. Except for Android, where this is stored inside of the apk.
+Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder. Except for Android, where all required assets are stored inside of the apk.
 
 ## API-Version
 
@@ -139,7 +139,7 @@ Demonstrates basic usage of fullscreen shader effects. The scene is rendered off
 ## [Bloom](bloom/)
 <img src="./screenshots/bloom.png" height="96px" align="right">
 
-Implements a bloom effect to simulate glowing parts of a 3D mesh. A two pass gaussian blur (horizontal and then vertical) is used to generate a blurred low res version of the scene only containing the glowing parts of th the 3D mesh. This then gets blended onto the scene to add the blur effect.
+Implements a bloom effect to simulate glowing parts of a 3D mesh. A two pass gaussian blur (horizontal and then vertical) is used to generate a blurred low res version of the scene only containing the glowing parts of the 3D mesh. This then gets blended onto the scene to add the blur effect.
 <br><br>
 
 ## [Deferred shading](deferred/)
@@ -228,7 +228,7 @@ Thanks to the authors of these libraries :
 - [Open Asset Import Library](https://github.com/assimp/assimp)
 - [Tiny obj loader](https://github.com/syoyo/tinyobjloader)
 
-And a huge thanks to the Vulkan Working Group, Vulkan Adivsory Panel, the fine people at LunarG and everyone from the different IHVs that helped me get the examples up and working on their hardware!
+And a huge thanks to the Vulkan Working Group, Vulkan Advisory Panel, the fine people at LunarG and everyone from the different IHVs that helped me get the examples up and working on their hardware!
 
 ## Attributions / Licenses
 Please note that (some) models and textures use separate licenses. Please comply to these when redistributing or using them in your own projects :
