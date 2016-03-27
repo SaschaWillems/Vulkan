@@ -87,7 +87,6 @@ int32_t createVulkanGame(IVulkanGame** ppCreated)											\
 																							\
 int32_t releaseVulkanGame(IVulkanGame** ppInstance)		\
 {														\
-	/*VulkanExample* oldVulkanExample=reinterpret_cast<VulkanExample*>(*ppInstance);*/			\
 	IVulkanGame* oldVulkanExample=*ppInstance;			\
 	*ppInstance = 0;									\
 	if(oldVulkanExample)								\
@@ -106,8 +105,13 @@ public:
 		m_pFramework = pFramework;
 		return 0;
 	};
-	virtual int32_t			prepare				()=0;	// Prepare commonly used Vulkan functions
-	virtual int32_t			render				()=0;
+
+	///---- Following methods can be overriden in deriveded classes
+	// called by the framework when a key is pressed
+	virtual void			keyPressed		(uint32_t keyCode){};
+
+	// called by the framework when the view properties have changed
+	virtual void			viewChanged						(){};
 
 protected:
 	CVulkanFramework*		m_pFramework;	
@@ -148,7 +152,7 @@ private:
 		bool enableValidation
 	);	// Create logical Vulkan device based on physical device
 	std::string							getWindowTitle();
-protected:
+//protected:
 	uint32_t							frameCounter				= 0;	// Frame counter to display fps
 	VkInstance							instance					= 0;	// Vulkan instance, stores all per-application states
 	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;				// Stores all available memory (type) properties for the physical device

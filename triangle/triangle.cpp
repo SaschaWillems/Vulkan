@@ -91,7 +91,7 @@ public:
 	{
 	}
 
-	~VulkanExample()
+	virtual ~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class

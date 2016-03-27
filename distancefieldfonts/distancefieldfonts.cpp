@@ -124,7 +124,7 @@ public:
 	{
 	}
 
-	~VulkanExample()
+	virtual ~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
@@ -169,15 +169,9 @@ public:
 
 		std::stringbuf sbuf((const char*)fileData);
 		std::istream istream(&sbuf);
-#elif defined(_WIN32) && !defined(__linux__)
-		FILE *file = 0;
-		fopen_s(&file, fileName.c_str(), "r");
-		assert(file);
-		std::filebuf fileBuffer(file);
-		std::istream istream(&fileBuffer);
 #else 
-		FILE *file = fopen(fileName.c_str(), "r");
-		std::filebuf fileBuffer(file);
+		std::filebuf fileBuffer;  
+		fileBuffer.open(fileName, std::ios::in);  
 		std::istream istream(&fileBuffer);
 #endif
 
