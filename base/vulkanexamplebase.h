@@ -53,7 +53,7 @@ public:
 	IVulkanFramework(){};
 	virtual ~IVulkanFramework(){};
 
-	virtual std::string		getAssetPath	()=0;
+	virtual std::string		getAssetPath	()=0;	// 
 };
 
 class CVulkanFramework;
@@ -65,11 +65,12 @@ public:
 	virtual ~IVulkanGame(){};
 
 	//virtual int32_t			init(IVulkanFramework* pFramework)=0; at the moment we don't support the IVulkanFramework interface so just work with the CVulkanFramework class instead.
-	virtual int32_t			init(CVulkanFramework* pFramework)=0;
+	virtual int32_t			init(CVulkanFramework* pFramework)=0;	// Initialize the vulkan custom app.
 	virtual int32_t			prepare							()=0;	// Prepare commonly used Vulkan functions
-	virtual int32_t			render							()=0;
-	virtual void			keyPressed		(uint32_t keyCode)=0;
-	virtual void			viewChanged						()=0;
+	virtual int32_t			render							()=0;	// Called by framework's renderLoop() until application exits
+	virtual void			keyPressed		(uint32_t keyCode)=0;	// Called by the framework when a key is pressed
+	virtual void			viewChanged						()=0;	// Called by the framework when the view properties have changed
+
 
 };
 
@@ -95,7 +96,8 @@ int32_t releaseVulkanGame(IVulkanGame** ppInstance)										\
 class CBaseVulkanGame : public IVulkanGame
 {
 public:
-	CBaseVulkanGame (){};
+	CBaseVulkanGame ()
+		:m_pFramework(0){};
 	virtual ~CBaseVulkanGame (){};
 
 	// this one should take an IVulkanFramework interface as input but currently the interface is inexistent so we use the actual class instead
@@ -118,12 +120,8 @@ protected:
 
 struct SScreenRect
 {
-	SScreenRect( void ):
-		Width	(1280),
-		Height	(720)
-	{}
-	uint32_t Width;
-	uint32_t Height;
+	uint32_t Width	= 1280;
+	uint32_t Height	= 720;
 };
 
 extern "C"
@@ -136,28 +134,27 @@ extern "C"
 
 struct VulkanDepthStencil
 {
-	VkImage image;
-	VkDeviceMemory mem;
-	VkImageView view;
+	VkImage image		= VK_NULL_HANDLE;
+	VkDeviceMemory mem	= VK_NULL_HANDLE;
+	VkImageView view	= VK_NULL_HANDLE;
 };
 
 class CVulkanFramework : public IVulkanFramework
 {
 private:	
-	float								fpsTimer			= 0;
-	bool								enableValidation	= false;			// Set to true when example is created with enabled validation layers
-	VkResult							createInstance(bool enableValidation);	// Create application wide Vulkan instance
+	float								fpsTimer					= 0;
+	bool								enableValidation			= false;			// Set to true when example is created with enabled validation layers
+	uint32_t							frameCounter				= 0;				// Frame counter to display fps
+	VkResult							createInstance(bool enableValidation);			// Create application wide Vulkan instance
 	VkResult							createDevice(
 		VkDeviceQueueCreateInfo requestedQueues, 
 		bool enableValidation
 	);	// Create logical Vulkan device based on physical device
 	std::string							getWindowTitle();
-//protected:
-	uint32_t							frameCounter				= 0;	// Frame counter to display fps
-	VkInstance							instance					= 0;	// Vulkan instance, stores all per-application states
-	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;				// Stores all available memory (type) properties for the physical device
+	VkInstance							instance					= 0;				// Vulkan instance, stores all per-application states
+	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;							// Stores all available memory (type) properties for the physical device
 	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
-	VkFormat							depthFormat;						// Depth buffer format - Depth format is selected during Vulkan initialization
+	VkFormat							depthFormat;									// Depth buffer format - Depth format is selected during Vulkan initialization
 	VkCommandBuffer						prePresentCmdBuffer			= VK_NULL_HANDLE;	// Command buffer for submitting a pre present image barrier
 	VkPipelineStageFlags				submitPipelineStages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;	// Pipeline stage flags for the submit info structure
 	std::vector<VkShaderModule>			shaderModules;									// List of shader modules created (stored for cleanup)
@@ -166,31 +163,31 @@ private:
 	//--------------------------------------------------------------
 	IVulkanGame*						m_pVulkanExample			= nullptr;	
 public:	// these were made public in order to enable decoupling of the CVulkanFramework class
-	float								frameTimer					= 0;	// Last frame time, measured using a high performance timer (if available)
-	VulkanSwapChain						swapChain;										// Wraps the swap chain to present images (framebuffers) to the windowing system
-	VkDevice							device						= 0;	// Logical device, application's view of the physical device (GPU)
+	float								frameTimer					= 0;				// Last frame time, measured using a high performance timer (if available)
+	VulkanSwapChain						swapChain					= {};				// Wraps the swap chain to present images (framebuffers) to the windowing system
+	VkDevice							device						= VK_NULL_HANDLE;	// Logical device, application's view of the physical device (GPU)
 	VkPipelineCache						pipelineCache				= VK_NULL_HANDLE;	// Pipeline cache object
 	VkRenderPass						renderPass					= VK_NULL_HANDLE;	// Global render pass for frame buffer writes
 	VkDescriptorPool					descriptorPool				= VK_NULL_HANDLE;	// Descriptor set pool
-	VkQueue								queue						= 0;	// Handle to the device graphics queue that command buffers are submitted to
+	VkQueue								queue						= VK_NULL_HANDLE;	// Handle to the device graphics queue that command buffers are submitted to
 	VkCommandPool						cmdPool						= VK_NULL_HANDLE;	// Command buffer pool
-	uint32_t							currentBuffer				= 0;				// Active frame buffer index
-	VkSubmitInfo						submitInfo;										// Contains command buffers and semaphores to be presented to the queue
 	VkCommandBuffer						setupCmdBuffer				= VK_NULL_HANDLE;	// Command buffer used for setup
 	VkCommandBuffer						postPresentCmdBuffer		= VK_NULL_HANDLE;	// Command buffer for submitting a post present image barrier
+	VkPhysicalDevice					physicalDevice				= VK_NULL_HANDLE;	// Physical device (GPU) that Vulkan will use
+	uint32_t							currentBuffer				= 0;				// Active frame buffer index
+	VkSubmitInfo						submitInfo					= {};				// Contains command buffers and semaphores to be presented to the queue
 	std::vector<VkCommandBuffer>		drawCmdBuffers;									// Command buffers used for rendering
 	std::vector<VkFramebuffer>			frameBuffers;									// List of available frame buffers (same as number of swap chain images)
-	VkPhysicalDevice					physicalDevice				= 0;				// Physical device (GPU) that Vulkan will use
 	struct SVulkanSwapChainSemaphores 
 	{
-		VkSemaphore presentComplete;	// Swap chain image presentation
-		VkSemaphore renderComplete;		// Command buffer submission and execution
-	} semaphores;																// Synchronization semaphores
+		VkSemaphore presentComplete;													// Swap chain image presentation
+		VkSemaphore renderComplete;														// Command buffer submission and execution
+	} semaphores;																		// Synchronization semaphores
 	vkTools::VulkanTextureLoader		*textureLoader				= nullptr;			// Simple texture loader
 
 
 public: 
-	std::string							getAssetPath();							// Returns the base asset path (for shaders, models, textures) depending on the os
+	std::string				getAssetPath();					// Returns the base asset path (for shaders, models, textures) depending on the os
 
 	SScreenRect				ScreenRect; 
 	bool					prepared			= false;
@@ -280,10 +277,7 @@ public:
 	void				createPipelineCache();		// Create a cache pool for rendering pipelines
 	void				renderLoop();				// Start the main render loop
 	int32_t				prepare();					// Prepare commonly used Vulkan functions
-	int32_t				render()
-	{
-		return m_pVulkanExample->render();
-	};
+	int32_t				render();					// Call render() on the IVulkanGame instance
 
 
 	// Submit a pre present image barrier to the queue

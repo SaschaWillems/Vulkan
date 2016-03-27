@@ -226,6 +226,11 @@ int32_t	CVulkanFramework::prepare()
 	return 0;
 }
 
+int32_t CVulkanFramework::render()
+{
+	return m_pVulkanExample->render();
+};
+
 VkPipelineShaderStageCreateInfo CVulkanFramework::loadShader(std::string fileName, VkShaderStageFlagBits stage)
 {
 	VkPipelineShaderStageCreateInfo shaderStage = {};
