@@ -164,8 +164,8 @@ public:
 		std::stringbuf sbuf((const char*)fileData);
 		std::istream istream(&sbuf);
 #else
-		FILE *file = fopen(fileName.c_str(), "r");
-		std::filebuf fileBuffer(file);
+		std::filebuf fileBuffer;
+		fileBuffer.open(fileName, std::ios::in);
 		std::istream istream(&fileBuffer);
 #endif
 
