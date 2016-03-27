@@ -180,8 +180,8 @@ public:	// these were made public in order to enable decoupling of the CVulkanFr
 	std::vector<VkFramebuffer>			frameBuffers;									// List of available frame buffers (same as number of swap chain images)
 	struct SVulkanSwapChainSemaphores 
 	{
-		VkSemaphore presentComplete;													// Swap chain image presentation
-		VkSemaphore renderComplete;														// Command buffer submission and execution
+		VkSemaphore presentComplete	= VK_NULL_HANDLE;									// Swap chain image presentation
+		VkSemaphore renderComplete	= VK_NULL_HANDLE;									// Command buffer submission and execution
 	} semaphores;																		// Synchronization semaphores
 	vkTools::VulkanTextureLoader		*textureLoader				= nullptr;			// Simple texture loader
 

@@ -48,22 +48,22 @@ public:
 	};
 
 	struct SVertexBuffer {
-		VkBuffer buf;
-		VkDeviceMemory mem;
+		VkBuffer buf		= VK_NULL_HANDLE;
+		VkDeviceMemory mem	= VK_NULL_HANDLE;
 		VkPipelineVertexInputStateCreateInfo vi;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
 	struct SIndexBuffer {
-		int count;
-		VkBuffer buf;
-		VkDeviceMemory mem;
+		int count = 0;
+		VkBuffer buf		= VK_NULL_HANDLE;
+		VkDeviceMemory mem	= VK_NULL_HANDLE;
 	} indices;
 
 	struct SUniformBuffer {
-		VkBuffer buffer;
-		VkDeviceMemory memory;
+		VkBuffer buffer			= VK_NULL_HANDLE;
+		VkDeviceMemory memory	= VK_NULL_HANDLE;
 		VkDescriptorBufferInfo descriptor;
 	}  uniformDataVS;
 
@@ -74,12 +74,12 @@ public:
 	} uboVS;
 
 	struct {
-		VkPipeline solid;
+		VkPipeline solid	= VK_NULL_HANDLE;
 	} pipelines;
 
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipelineLayout pipelineLayout				= VK_NULL_HANDLE;
+	VkDescriptorSet descriptorSet				= VK_NULL_HANDLE;
+	VkDescriptorSetLayout descriptorSetLayout	= VK_NULL_HANDLE;
 
 	// Synchronization semaphores
 	struct {
