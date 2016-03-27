@@ -739,7 +739,7 @@ public:
 		vkUnmapMemory(m_pFramework->device, uniformData.skyboxVS.memory);
 	}
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		loadMeshes();
 		setupVertexDescriptions();

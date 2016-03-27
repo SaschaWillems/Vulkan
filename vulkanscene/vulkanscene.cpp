@@ -574,7 +574,7 @@ public:
 		vkUnmapMemory(m_pFramework->device, uniformData.meshVS.memory);
 	}
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		
 		loadTextures();

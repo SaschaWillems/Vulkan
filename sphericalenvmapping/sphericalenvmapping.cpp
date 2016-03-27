@@ -460,7 +460,7 @@ public:
 		vkUnmapMemory(m_pFramework->device, uniformData.vertexShader.memory);
 	}
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		
 		loadTextures();

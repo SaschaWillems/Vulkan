@@ -796,7 +796,7 @@ public:
 		vkGetDeviceQueue(m_pFramework->device, queueIndex, 0, &computeQueue);
 	}
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		
 		loadTextures();

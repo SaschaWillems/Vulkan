@@ -1120,7 +1120,7 @@ public:
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		
 		generateQuad();

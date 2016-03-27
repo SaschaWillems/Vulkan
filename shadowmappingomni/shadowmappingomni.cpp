@@ -1052,7 +1052,7 @@ public:
 		vkUnmapMemory(m_pFramework->device, uniformData.offscreen.memory);
 	}
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		
 		loadMeshes();

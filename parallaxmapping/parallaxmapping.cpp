@@ -565,7 +565,7 @@ void reBuildCommandBuffers()
 		vkUnmapMemory(m_pFramework->device, uniformData.fragmentShader.memory);
 	}
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		
 		loadTextures();

@@ -1260,7 +1260,7 @@ public:
 	}
 
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		
 		loadTextures();

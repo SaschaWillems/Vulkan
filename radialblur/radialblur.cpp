@@ -1032,7 +1032,7 @@ public:
 		vkUnmapMemory(m_pFramework->device, uniformData.fsQuad.memory);
 	}
 
-	int32_t	prepare()
+	virtual int32_t	prepare()
 	{
 		
 		generateQuad();

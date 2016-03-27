@@ -258,10 +258,6 @@ public:
 	void handleEvent(const xcb_generic_event_t *event);
 #endif
 
-	int32_t				render()
-	{
-		return m_pVulkanExample->render();
-	};
 
 	// Called when view change occurs. Can be overriden in derived class to e.g. update uniform buffers containing view dependant matrices
 	virtual void		viewChanged();
@@ -284,7 +280,11 @@ public:
 	void				flushSetupCommandBuffer();	// Finalize setup command bufferm submit it to the queue and remove it
 	void				createPipelineCache();		// Create a cache pool for rendering pipelines
 	void				renderLoop();				// Start the main render loop
-	virtual int32_t		prepare();					// Prepare commonly used Vulkan functions
+	int32_t				prepare();					// Prepare commonly used Vulkan functions
+	int32_t				render()
+	{
+		return m_pVulkanExample->render();
+	};
 
 
 	// Submit a pre present image barrier to the queue
