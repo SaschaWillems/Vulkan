@@ -147,7 +147,7 @@ Implements a bloom effect to simulate glowing parts of a 3D mesh. A two pass gau
 
 Demonstrates the use of multiple render targets to fill a G-Buffer for deferred shading.
 
-Deferred shading collects all values (color, normal, position) into different render targets in one pass thanks to multiple render targets, and then does all shading and lighting calculations based on these in scree space, thus allowing for much more light sources than traditional forward renderers.
+Deferred shading collects all values (color, normal, position) into different render targets in one pass thanks to multiple render targets, and then does all shading and lighting calculations based on these in screen space, thus allowing for much more light sources than traditional forward renderers.
 <br><br>
 
 ## [Shadowmapping](shadowmapping/)
