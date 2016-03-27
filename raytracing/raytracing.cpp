@@ -54,7 +54,7 @@ public:
 		float aspectRatio;
 		glm::vec4 fogColor = glm::vec4(0.025f, 0.025f, 0.025f, 0.0f);
 		struct {
-			glm::vec3 pos = glm::vec3(0.0f, 1.0f, 4.0f);
+			glm::vec3 pos = glm::vec3(0.0f, 1.5f, 4.0f);
 			glm::vec3 lookat = glm::vec3(0.0f, 0.5f, 0.0f);
 			float fov = 10.0f;
 		} camera;
@@ -84,6 +84,7 @@ public:
 		title = "Vulkan Example - Compute shader ray tracing";
 		uboCompute.aspectRatio = (float)width / (float)height;
 		paused = true;
+		timerSpeed *= 0.5f;
 	}
 
 	~VulkanExample()
@@ -656,9 +657,10 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboCompute.lightPos.x = 0.0f;
-		uboCompute.lightPos.y = 1.0f;
-		uboCompute.lightPos.z = 1.5f;
+		uboCompute.lightPos.x = 0.0f + sin(glm::radians(timer * 360.0f)) * 2.0f;
+		uboCompute.lightPos.y = 5.0f;
+		uboCompute.lightPos.z = 1.0f;
+		uboCompute.lightPos.z = 0.0f + cos(glm::radians(timer * 360.0f)) * 2.0f;
 		uint8_t *pData;
 		vkTools::checkResult(vkMapMemory(device, uniformDataCompute.memory, 0, sizeof(uboCompute), 0, (void **)&pData));
 		memcpy(pData, &uboCompute, sizeof(uboCompute));

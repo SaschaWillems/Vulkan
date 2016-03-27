@@ -8,9 +8,11 @@
 layout (local_size_x =16, local_size_y = 16) in;
 layout (binding = 0, rgba8) uniform image2D resultImage;
 
+#define EPSILON 0.0001
 #define MAXLEN 1000.0
 #define PLANEID 1
 #define SPHERECOUNT 3
+#define SHADOW 0.5
 
 struct Camera {
     vec3 pos;   
@@ -97,13 +99,6 @@ int intersect(in vec3 rayO, in vec3 rayD, out float resT)
 	int id = -1;
 	resT = MAXLEN;
 
-	float tplane = planeIntersect(rayO, rayD);
-	if ((tplane > 0.0) && (tplane < resT))
-	{
-		id = PLANEID;
-		resT = tplane;
-	}
-	
 	for (int i = 0; i < SPHERECOUNT; i++)
 	{
 		float tSphere = sphereIntersect(rayO, rayD, spheres[i]);
@@ -115,17 +110,38 @@ int intersect(in vec3 rayO, in vec3 rayD, out float resT)
 		}
 	}	
 	
+	float tplane = planeIntersect(rayO, rayD);
+	if ((tplane > 0.0) && (tplane < resT))
+	{
+		id = PLANEID;
+		resT = tplane;
+	}	
+	
 	return id;
+}
+
+float calcShadow(in vec3 rayO, in vec3 rayD, in int id)
+{
+	for (int i = 0; i < SPHERECOUNT; i++)
+	{
+		float tSphere = sphereIntersect(rayO, rayD, spheres[i]);
+		if (tSphere > EPSILON)
+		{
+			return SHADOW;
+		}
+	}		
+	return 1.0;
 }
 
 vec3 fog(in float t, in vec3 color)
 {
-    return mix(color, ubo.fogColor.rgb, clamp(sqrt(t*t)/10.0, 0.0, 1.0));
+    return mix(color, ubo.fogColor.rgb, clamp(sqrt(t*t)/20.0, 0.0, 1.0));
 }
 
 void main()
 {
 	// Scene setup
+	// todo : from ubo
 	spheres[0].id = 2;
 	spheres[0].pos = vec3(-2.25, 1.0, 0.0);
 	spheres[0].r = 1.0;
@@ -133,17 +149,17 @@ void main()
 	spheres[0].material.specular = vec3(1.0, 1.0, 1.0);
 
 	spheres[1].id = 3;
-	spheres[1].pos = vec3(2.25, 1.0, 0.0);
+	spheres[1].pos = vec3(0.0, 2.5, 0.0);
 	spheres[1].r = 1.0;
-	spheres[1].material.diffuse = vec3(0.0, 1.0, 0.0);
-	spheres[1].material.specular = vec3(1.0, 1.0, 1.0);
+	spheres[1].material.diffuse = vec3(0.0, 0.0, 1.0);
+	spheres[1].material.specular = vec3(1.0, 1.0, 1.0);	
 	
 	spheres[2].id = 4;
-	spheres[2].pos = vec3(0.0, 1.0, 0.0);
+	spheres[2].pos = vec3(2.25, 1.0, 0.0);
 	spheres[2].r = 1.0;
-	spheres[2].material.diffuse = vec3(0.0, 0.0, 1.0);
-	spheres[2].material.specular = vec3(1.0, 1.0, 1.0);	
-
+	spheres[2].material.diffuse = vec3(0.0, 1.0, 0.0);
+	spheres[2].material.specular = vec3(1.0, 1.0, 1.0);
+	
 	ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
 	ivec2 dim = imageSize(resultImage);
 	vec2 uv = vec2(gl_GlobalInvocationID.xy)/dim;
@@ -156,12 +172,13 @@ void main()
 	int objectID = intersect(rayO, rayD, t);
 	
 	vec3 color = vec3(0.0);
+
+	vec3 pos = rayO + t * rayD;
+	vec3 lightVec = normalize(ubo.lightPos - pos);				
 	
 	if (objectID == PLANEID)
 	{
-		vec3 pos = rayO + t * rayD;
 		vec3 normal = planeNormal(pos);
-		vec3 lightVec = normalize(ubo.lightPos - pos);		
 		float diffuse = clamp(dot(normal, lightVec), 0.0, 1.0);		
 		color = vec3(1.0, 1.0, 1.0) * diffuse;
 	}		
@@ -171,8 +188,6 @@ void main()
 		{
 			if (objectID == spheres[i].id)
 			{
-				vec3 pos = rayO + t * rayD;
-				vec3 lightVec = normalize(ubo.lightPos - pos);				
 				vec3 normal = sphereNormal(pos, spheres[i]);	
 				float diffuse = lightDiffuse(normal, lightVec);
 				float specular = lightSpecular(normal, lightVec);
@@ -180,7 +195,11 @@ void main()
 			}
 		}
 	}
-			
+
+	// Shadows
+    color *= calcShadow(pos, lightVec, objectID);
+	
+	// Fog
 	color = fog(t, color);
 			
 	imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, 0.0));
