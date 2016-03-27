@@ -699,6 +699,8 @@ public:
 			&uniformData.skyboxVS.buffer,
 			&uniformData.skyboxVS.memory,
 			&uniformData.skyboxVS.descriptor);
+
+		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
