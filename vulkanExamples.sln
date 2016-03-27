@@ -59,6 +59,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shadowmapping", "shadowmapp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "particlefire", "particlefire\particlefire.vcxproj", "{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "raytracing", "raytracing\raytracing.vcxproj", "{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -177,6 +179,10 @@ Global
 		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Debug|x64.Build.0 = Debug|x64
 		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Release|x64.ActiveCfg = Release|x64
 		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Release|x64.Build.0 = Release|x64
+		{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}.Debug|x64.ActiveCfg = Debug|x64
+		{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}.Debug|x64.Build.0 = Debug|x64
+		{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}.Release|x64.ActiveCfg = Release|x64
+		{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
