@@ -165,7 +165,7 @@ public:
 		std::istream istream(&sbuf);
 #else
 		std::filebuf fileBuffer;
-		fileBuffer.open(fileName.c_str(), std::ios_base::in);
+		fileBuffer.open(fileName, std::ios::in);
 		std::istream istream(&fileBuffer);
 #endif
 
