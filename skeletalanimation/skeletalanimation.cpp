@@ -834,7 +834,7 @@ public:
 
 	int32_t	prepare()
 	{
-		//CVulkanFramework::prepare();
+		
 		loadTextures();
 		loadMesh();
 		setupVertexDescriptions();

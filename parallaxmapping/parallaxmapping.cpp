@@ -567,7 +567,7 @@ void reBuildCommandBuffers()
 
 	int32_t	prepare()
 	{
-		//CVulkanFramework::prepare();
+		
 		loadTextures();
 		loadMeshes();
 		setupVertexDescriptions();

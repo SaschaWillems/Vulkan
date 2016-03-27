@@ -798,7 +798,7 @@ public:
 
 	int32_t	prepare()
 	{
-		//CVulkanFramework::prepare();
+		
 		loadTextures();
 		generateQuad();
 		getComputeQueue();

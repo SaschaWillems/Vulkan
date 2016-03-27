@@ -375,7 +375,7 @@ public:
 
 	int32_t	prepare()
 	{
-		//CVulkanFramework::prepare();
+		
 		prepareVertices();
 		setupDescriptorSetLayout();
 		preparePipelines();

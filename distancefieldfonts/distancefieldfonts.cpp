@@ -719,7 +719,7 @@ public:
 
 	int32_t	prepare()
 	{
-		//CVulkanFramework::prepare();
+		
 		parsebmFont();
 		loadTextures();
 		generateText("Vulkan");

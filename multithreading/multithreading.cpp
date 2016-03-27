@@ -616,7 +616,7 @@ public:
 
 	int32_t	prepare()
 	{
-		//CVulkanFramework::prepare();
+		
 		loadMeshes();
 		setupVertexDescriptions();
 		setupDescriptorSetLayout();

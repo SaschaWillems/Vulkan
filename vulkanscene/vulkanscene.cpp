@@ -576,7 +576,7 @@ public:
 
 	int32_t	prepare()
 	{
-		//CVulkanFramework::prepare();
+		
 		loadTextures();
 		prepareVertices();
 		prepareUniformBuffers();

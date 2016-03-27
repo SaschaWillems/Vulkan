@@ -739,7 +739,7 @@ public:
 
 	int32_t	prepare()
 	{
-		//CVulkanFramework::prepare();
+		
 		setupVertexDescriptions();
 		loadTextures();
 		generateQuad();
