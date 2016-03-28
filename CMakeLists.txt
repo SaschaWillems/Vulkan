@@ -84,6 +84,7 @@ set(EXAMPLES
 	particlefire
 	pipelines
 	pushconstants
+	raytracing
 	radialblur
 	shadowmapping
 	shadowmappingomni
