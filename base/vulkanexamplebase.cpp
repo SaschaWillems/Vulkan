@@ -326,7 +326,7 @@ void CVulkanFramework::renderLoop()
 	while (TRUE)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE))
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			if (msg.message == WM_QUIT)
 			{
@@ -335,7 +335,7 @@ void CVulkanFramework::renderLoop()
 			else
 			{
 				TranslateMessage(&msg);
-				DispatchMessageA(&msg);
+				DispatchMessage(&msg);
 			}
 		}
 		render();
@@ -776,7 +776,7 @@ void CVulkanFramework::setupConsole(std::string title)
 #pragma warning(disable : 4996)
 	freopen("CON", "w", stdout);
 #pragma warning(default : 4996)
-	SetConsoleTitleA(title.c_str());
+	SetConsoleTitle(title.c_str());
 	if (enableValidation)
 	{
 		std::cout << "Validation enabled:\n";
@@ -825,7 +825,7 @@ HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 
 	if (fullscreen)
 	{
-		DEVMODEA dmScreenSettings;
+		DEVMODE dmScreenSettings;
 		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
 		dmScreenSettings.dmPelsWidth = screenWidth;
@@ -835,9 +835,9 @@ HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 
 		if ((ScreenRect.Width != screenWidth) && (ScreenRect.Height != screenHeight))
 		{
-			if (ChangeDisplaySettingsA(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 			{
-				if (MessageBoxA(NULL, "Fullscreen Mode not supported!\n Switch to window mode?", "Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
+				if (MessageBox(NULL, "Fullscreen Mode not supported!\n Switch to window mode?", "Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
 				{
 					fullscreen = FALSE;
 				}
@@ -883,7 +883,7 @@ HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
 	std::string windowTitle = getWindowTitle();
-	window = CreateWindowExA(0,
+	window = CreateWindowEx(0,
 		name.c_str(),
 		windowTitle.c_str(),
 		dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
@@ -1367,7 +1367,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		vulkanFramework->handleMessages(hWnd, uMsg, wParam, lParam);
 	}
-	return DefWindowProcA(hWnd, uMsg, wParam, lParam);
+	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 #elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)

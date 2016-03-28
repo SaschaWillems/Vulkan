@@ -142,15 +142,12 @@ struct VulkanDepthStencil
 class CVulkanFramework : public IVulkanFramework
 {
 private:	
-	float								fpsTimer					= 0;
 	bool								enableValidation			= false;			// Set to true when example is created with enabled validation layers
-	uint32_t							frameCounter				= 0;				// Frame counter to display fps
 	VkResult							createInstance(bool enableValidation);			// Create application wide Vulkan instance
 	VkResult							createDevice(
 		VkDeviceQueueCreateInfo requestedQueues, 
 		bool enableValidation
 	);	// Create logical Vulkan device based on physical device
-	std::string							getWindowTitle();
 	VkInstance							instance					= 0;				// Vulkan instance, stores all per-application states
 	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;							// Stores all available memory (type) properties for the physical device
 	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
@@ -163,7 +160,9 @@ private:
 	//--------------------------------------------------------------
 	IVulkanGame*						m_pVulkanExample			= nullptr;	
 public:	// these were made public in order to enable decoupling of the CVulkanFramework class
+	float								fpsTimer					= 0;
 	float								frameTimer					= 0;				// Last frame time, measured using a high performance timer (if available)
+	uint32_t							frameCounter				= 0;				// Frame counter to display fps
 	VulkanSwapChain						swapChain					= {};				// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VkDevice							device						= VK_NULL_HANDLE;	// Logical device, application's view of the physical device (GPU)
 	VkPipelineCache						pipelineCache				= VK_NULL_HANDLE;	// Pipeline cache object
@@ -187,6 +186,7 @@ public:	// these were made public in order to enable decoupling of the CVulkanFr
 
 
 public: 
+	std::string				getWindowTitle();
 	std::string				getAssetPath();					// Returns the base asset path (for shaders, models, textures) depending on the os
 
 	SScreenRect				ScreenRect; 
