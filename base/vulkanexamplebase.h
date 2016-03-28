@@ -140,7 +140,6 @@ struct VulkanDepthStencil
 class CVulkanFramework : public IVulkanFramework
 {
 private:	
-	bool								enableValidation			= false;			// Set to true when example is created with enabled validation layers
 	VkResult							createInstance(bool enableValidation);			// Create application wide Vulkan instance
 	VkResult							createDevice(
 		VkDeviceQueueCreateInfo requestedQueues, 
@@ -158,6 +157,7 @@ private:
 	//--------------------------------------------------------------
 	IVulkanGame*						m_pVulkanExample			= nullptr;	
 public:	// these were made public in order to enable decoupling of the CVulkanFramework class
+	bool								enableValidation			= false;			// Set to true when example is created with enabled validation layers
 	float								fpsTimer					= 0;
 	float								frameTimer					= 0;				// Last frame time, measured using a high performance timer (if available)
 	uint32_t							frameCounter				= 0;				// Frame counter to display fps

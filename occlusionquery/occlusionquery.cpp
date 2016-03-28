@@ -44,7 +44,7 @@ public:
 		m_pFramework->rotation = { 0.0, -123.75, 0.0 };
 		m_pFramework->title = "Vulkan Example - Occlusion queries";
 #ifdef _WIN32 
-		if (!ENABLE_VALIDATION) 
+		if (m_pFramework->enableValidation)//(!ENABLE_VALIDATION) 
 		{
 			m_pFramework->setupConsole(m_pFramework->title);
 		}
