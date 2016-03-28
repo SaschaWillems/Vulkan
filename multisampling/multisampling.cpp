@@ -123,32 +123,25 @@ public:
 		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		info.tiling = VK_IMAGE_TILING_OPTIMAL;
 		info.samples = SAMPLE_COUNT;
-
-		// This image will only be used as a transient render target.
-		// Its purpose is only to hold the multisampled data before resolving the render pass.
+		// Image will only be used as a transient target
 		info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-		// Create texture
 		vkTools::checkResult(vkCreateImage(device, &info, nullptr, &multisampleTarget.image));
 
-		// Allocate memory for the texture.
 		VkMemoryRequirements memReqs;
 		vkGetImageMemoryRequirements(device, multisampleTarget.image, &memReqs);
 
 		VkMemoryAllocateInfo alloc = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 		alloc.allocationSize = memReqs.size;
-		// For multisampled attachments, we will want to use LAZILY allocated if such a type is available.
-		// Lazily allocated memory is not actually allocated until the memory is actually used.
-		// This texture will only live on the tile buffer, so it never needs to be backed by actual memory.
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		// Try to get a lazily allocated memory type
+		// todo : Fallback to other memory formats?
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, &memAlloc.memoryTypeIndex);
 		vkTools::checkResult(vkAllocateMemory(device, &alloc, nullptr, &multisampleTarget.memory));
 		vkBindImageMemory(device, multisampleTarget.image, multisampleTarget.memory, 0);
 
-		// Create an image view for the new texture.
-		// Note that CreateImageView must happen after BindImageMemory.
+		// Create image view for the MSAA target
 		VkImageViewCreateInfo viewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 		viewInfo.image = multisampleTarget.image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
