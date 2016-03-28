@@ -773,9 +773,8 @@ void CVulkanFramework::setupConsole(std::string title)
 {
 	AllocConsole();
 	AttachConsole(GetCurrentProcessId());
-#pragma warning(disable : 4996)
-	freopen("CON", "w", stdout);
-#pragma warning(default : 4996)
+	FILE* fp = stdout;
+	freopen_s(&fp, "CON", "w", stdout);
 	SetConsoleTitle(title.c_str());
 	if (enableValidation)
 	{
@@ -1378,6 +1377,10 @@ static void handleEvent(const xcb_generic_event_t *event)
 	}
 }
 #endif
+
+// Set to "true" to enable Vulkan's validation layers
+// See vulkandebug.cpp for details
+#define ENABLE_VALIDATION false
 
 // Main entry point
 #if defined(_WIN32)

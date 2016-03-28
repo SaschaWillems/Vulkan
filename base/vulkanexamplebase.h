@@ -10,8 +10,6 @@
 #define __VULKANEXAMPLEBASE_H__
 
 
-#define ENABLE_VALIDATION false
-
 #ifdef _WIN32
 #pragma comment(linker, "/subsystem:windows")
 #include <windows.h>
@@ -236,7 +234,7 @@ public:
 #endif
 
 	CVulkanFramework(bool enableValidation);
-	CVulkanFramework() : CVulkanFramework(ENABLE_VALIDATION) {};
+	CVulkanFramework() : CVulkanFramework(false) {};
 	~CVulkanFramework();
 
 	void initVulkan(bool enableValidation);	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
