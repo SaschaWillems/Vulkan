@@ -116,11 +116,6 @@ protected:
 	CVulkanFramework*		m_pFramework;	
 };
 
-struct SScreenRect
-{
-	uint32_t Width	= 1280;
-	uint32_t Height	= 720;
-};
 
 extern "C"
 {
@@ -128,6 +123,12 @@ extern "C"
 	int32_t	releaseVulkanGame	(IVulkanGame** ppInstance);
 	typedef int32_t (*CREATEVULKANGAME )(IVulkanGame** ppCreated );
 	typedef int32_t (*RELEASEVULKANGAME)(IVulkanGame** ppInstance);
+};
+
+struct SScreenRect
+{
+	uint32_t Width	= 1280;
+	uint32_t Height	= 720;
 };
 
 struct VulkanDepthStencil
