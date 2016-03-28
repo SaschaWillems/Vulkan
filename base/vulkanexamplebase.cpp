@@ -798,9 +798,9 @@ HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		}
 	}
 
-	WNDCLASSEXA wndClass;
+	WNDCLASSEX wndClass;
 
-	wndClass.cbSize = sizeof(WNDCLASSEXA);
+	wndClass.cbSize = sizeof(WNDCLASSEX);
 	wndClass.style = CS_HREDRAW | CS_VREDRAW;
 	wndClass.lpfnWndProc = wndproc;
 	wndClass.cbClsExtra = 0;
@@ -813,7 +813,7 @@ HWND CVulkanFramework::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	wndClass.lpszClassName = name.c_str();
 	wndClass.hIconSm = LoadIcon(NULL, IDI_WINLOGO);
 
-	if (!RegisterClassExA(&wndClass))
+	if (!RegisterClassEx(&wndClass))
 	{
 		std::cout << "Could not register window class!\n";
 		fflush(stdout);
