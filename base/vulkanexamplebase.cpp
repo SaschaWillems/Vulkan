@@ -356,7 +356,7 @@ void CVulkanFramework::renderLoop()
 		if (fpsTimer > 1000.0f)
 		{
 			std::string windowTitle = getWindowTitle();
-			SetWindowTextA(window, windowTitle.c_str());
+			SetWindowText(window, windowTitle.c_str());
 			fpsTimer = 0.0f;
 			frameCounter = 0;
 		}
