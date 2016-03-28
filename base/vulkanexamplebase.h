@@ -207,7 +207,7 @@ public:
 	// Containing view dependant matrices
 	virtual void viewChanged();
 	// Called if a key is pressed
-	// Can be overriden derived class to do custom key handling
+	// Can be overriden in derived class to do custom key handling
 	virtual void keyPressed(uint32_t keyCode);
 
 	// Get memory type for a given memory allocation (flags and bits)
@@ -218,9 +218,11 @@ public:
 	// Setup default depth and stencil views
 	void setupDepthStencil();
 	// Create framebuffers for all requested swap chain images
-	void setupFrameBuffer();
+	// Can be overriden in derived class to setup a custom framebuffer (e.g. for MSAA)
+	virtual void setupFrameBuffer();
 	// Setup a default render pass
-	void setupRenderPass();
+	// Can be overriden in derived class to setup a custom render pass (e.g. for MSAA)
+	virtual void setupRenderPass();
 
 	// Connect and prepare the swap chain
 	void initSwapchain();
