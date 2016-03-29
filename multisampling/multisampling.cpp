@@ -24,7 +24,7 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-#define SAMPLE_COUNT VK_SAMPLE_COUNT_8_BIT
+#define SAMPLE_COUNT VK_SAMPLE_COUNT_4_BIT
 
 struct {
 	struct {
@@ -85,7 +85,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -12.0f;
+		zoom = -7.5f;
 		zoomSpeed = 2.5f;
 		rotation = { 0.0f, -90.0f, 0.0f };
 		title = "Vulkan Example - Multisampling";
@@ -326,6 +326,30 @@ public:
 
 	void buildCommandBuffers()
 	{
+
+		// Initial image layout transitions
+		// We need to transform the MSAA target layouts before using them
+
+		createSetupCommandBuffer();
+
+		// Tansform MSAA color target
+		vkTools::setImageLayout(
+			setupCmdBuffer,
+			multisampleTarget.color.image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+		// Tansform MSAA depth target
+		vkTools::setImageLayout(
+			setupCmdBuffer,
+			multisampleTarget.depth.image,
+			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+		flushSetupCommandBuffer();
+
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[3];
@@ -346,14 +370,6 @@ public:
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
 			vkTools::checkResult(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			// todo : don't transform on each command buffer
-			vkTools::setImageLayout(
-				drawCmdBuffers[i],
-				multisampleTarget.color.image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
