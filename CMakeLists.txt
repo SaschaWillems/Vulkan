@@ -78,6 +78,7 @@ set(EXAMPLES
 	geometryshader
 	instancing
 	mesh
+	multisampling
 	occlusionquery
 	offscreen
 	parallaxmapping

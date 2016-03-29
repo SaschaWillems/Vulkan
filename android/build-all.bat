@@ -26,3 +26,4 @@ call _build sphericalenvmapping %1
 call _build radialblur %1
 call _build displacement %1
 call _build raytracing %1
+call _build multisampling %1
