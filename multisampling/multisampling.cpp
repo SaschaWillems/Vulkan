@@ -27,9 +27,16 @@
 #define SAMPLE_COUNT VK_SAMPLE_COUNT_8_BIT
 
 struct {
-	VkImage image;
-	VkImageView view;
-	VkDeviceMemory memory;
+	struct {
+		VkImage image;
+		VkImageView view;
+		VkDeviceMemory memory;
+	} color;
+	struct {
+		VkImage image;
+		VkImageView view;
+		VkDeviceMemory memory;
+	} depth;
 } multisampleTarget;
 
 // Vertex layout for this example
@@ -96,9 +103,12 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
 
 		// Destroy MSAA target
-		vkDestroyImage(device, multisampleTarget.image, nullptr);
-		vkDestroyImageView(device, multisampleTarget.view, nullptr);
-		vkFreeMemory(device, multisampleTarget.memory, nullptr);
+		vkDestroyImage(device, multisampleTarget.color.image, nullptr);
+		vkDestroyImageView(device, multisampleTarget.color.view, nullptr);
+		vkFreeMemory(device, multisampleTarget.color.memory, nullptr);
+		vkDestroyImage(device, multisampleTarget.depth.image, nullptr);
+		vkDestroyImageView(device, multisampleTarget.depth.view, nullptr);
+		vkFreeMemory(device, multisampleTarget.depth.memory, nullptr);
 
 		textureLoader->destroyTexture(textures.colorMap);
 
@@ -112,6 +122,7 @@ public:
 		// Check if device supports requested sample count for color and depth frame buffer
 		assert((deviceProperties.limits.framebufferColorSampleCounts >= SAMPLE_COUNT) && (deviceProperties.limits.framebufferDepthSampleCounts >= SAMPLE_COUNT));
 
+		// Color target
 		VkImageCreateInfo info = vkTools::initializers::imageCreateInfo();
 		info.imageType = VK_IMAGE_TYPE_2D;
 		info.format = colorformat;
@@ -127,23 +138,21 @@ public:
 		info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-		vkTools::checkResult(vkCreateImage(device, &info, nullptr, &multisampleTarget.image));
+		vkTools::checkResult(vkCreateImage(device, &info, nullptr, &multisampleTarget.color.image));
 
 		VkMemoryRequirements memReqs;
-		vkGetImageMemoryRequirements(device, multisampleTarget.image, &memReqs);
-
-		VkMemoryAllocateInfo alloc = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-		alloc.allocationSize = memReqs.size;
+		vkGetImageMemoryRequirements(device, multisampleTarget.color.image, &memReqs);
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
+		memAlloc.allocationSize = memReqs.size;
 		// Try to get a lazily allocated memory type
 		// todo : Fallback to other memory formats?
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, &memAlloc.memoryTypeIndex);
-		vkTools::checkResult(vkAllocateMemory(device, &alloc, nullptr, &multisampleTarget.memory));
-		vkBindImageMemory(device, multisampleTarget.image, multisampleTarget.memory, 0);
+		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &multisampleTarget.color.memory));
+		vkBindImageMemory(device, multisampleTarget.color.image, multisampleTarget.color.memory, 0);
 
 		// Create image view for the MSAA target
-		VkImageViewCreateInfo viewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-		viewInfo.image = multisampleTarget.image;
+		VkImageViewCreateInfo viewInfo = vkTools::initializers::imageViewCreateInfo();
+		viewInfo.image = multisampleTarget.color.image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.format = colorformat;
 		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
@@ -154,7 +163,48 @@ public:
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		vkTools::checkResult(vkCreateImageView(device, &viewInfo, nullptr, &multisampleTarget.view));
+		vkTools::checkResult(vkCreateImageView(device, &viewInfo, nullptr, &multisampleTarget.color.view));
+
+		// Depth target
+		info.imageType = VK_IMAGE_TYPE_2D;
+		info.format = depthFormat;
+		info.extent.width = width;
+		info.extent.height = height;
+		info.extent.depth = 1;
+		info.mipLevels = 1;
+		info.arrayLayers = 1;
+		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		info.samples = SAMPLE_COUNT;
+		// Image will only be used as a transient target
+		info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+		vkTools::checkResult(vkCreateImage(device, &info, nullptr, &multisampleTarget.depth.image));
+
+		vkGetImageMemoryRequirements(device, multisampleTarget.depth.image, &memReqs);
+
+		memAlloc = vkTools::initializers::memoryAllocateInfo();
+		memAlloc.allocationSize = memReqs.size;
+		// Try to get a lazily allocated memory type
+		// todo : Fallback to other memory formats?
+		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, &memAlloc.memoryTypeIndex);
+		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &multisampleTarget.depth.memory));
+		vkBindImageMemory(device, multisampleTarget.depth.image, multisampleTarget.depth.memory, 0);
+
+		// Create image view for the MSAA target
+		viewInfo.image = multisampleTarget.depth.image;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = depthFormat;
+		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+		viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+		viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+		viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		vkTools::checkResult(vkCreateImageView(device, &viewInfo, nullptr, &multisampleTarget.depth.view));
 	}
 
 	// Setup a render pass for using a multi sampled attachment 
@@ -164,7 +214,7 @@ public:
 	{
 		// Overrides the virtual function of the base class
 
-		std::array<VkAttachmentDescription, 3> attachments = {};
+		std::array<VkAttachmentDescription, 4> attachments = {};
 
 		// Multisampled attachment that we render to
 		attachments[0].format = colorformat;
@@ -193,19 +243,31 @@ public:
 		attachments[2].format = depthFormat;
 		attachments[2].samples = SAMPLE_COUNT;
 		attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[2].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		attachments[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+		// Depth resolve
+		attachments[3].format = depthFormat;
+		attachments[3].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[3].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[3].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[3].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[3].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[3].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		attachments[3].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 		VkAttachmentReference colorReference = {};
 		colorReference.attachment = 0;
 		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		VkAttachmentReference resolveReference = {};
-		resolveReference.attachment = 1;
-		resolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		std::array<VkAttachmentReference,2> resolveReferences = {};
+		resolveReferences[0].attachment = 1;
+		resolveReferences[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		resolveReferences[1].attachment = 3;
+		resolveReferences[1].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		VkAttachmentReference depthReference = {};
 		depthReference.attachment = 2;
@@ -215,7 +277,7 @@ public:
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorReference;
-		subpass.pResolveAttachments = &resolveReference;
+		subpass.pResolveAttachments = resolveReferences.data();
 		subpass.pDepthStencilAttachment = &depthReference;
 
 		VkRenderPassCreateInfo renderPassInfo = vkTools::initializers::renderPassCreateInfo();
@@ -234,12 +296,14 @@ public:
 	{
 		// Overrides the virtual function of the base class
 
-		std::array<VkImageView, 3> attachments;
+		std::array<VkImageView, 4> attachments;
 
 		setupMultisampleTarget();
 
-		attachments[0] = multisampleTarget.view;
-		attachments[2] = depthStencil.view;
+		attachments[0] = multisampleTarget.color.view;
+		// attachment[1] = swapchain image
+		attachments[2] = multisampleTarget.depth.view;
+		attachments[3] = depthStencil.view;
 
 		VkFramebufferCreateInfo frameBufferCreateInfo = {};
 		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -286,7 +350,7 @@ public:
 			// todo : don't transform on each command buffer
 			vkTools::setImageLayout(
 				drawCmdBuffers[i],
-				multisampleTarget.image,
+				multisampleTarget.color.image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -507,7 +571,7 @@ public:
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
 			vkTools::initializers::pipelineDepthStencilStateCreateInfo(
 				VK_TRUE,
-				VK_FALSE,
+				VK_TRUE,
 				VK_COMPARE_OP_LESS_OR_EQUAL);
 
 		VkPipelineViewportStateCreateInfo viewportState =
