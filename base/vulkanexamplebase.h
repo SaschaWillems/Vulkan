@@ -185,6 +185,7 @@ public:	// these were made public in order to enable decoupling of the CVulkanFr
 
 
 public: 
+	int32_t					init(bool enableValidation);	// Create application wide Vulkan instance
 	std::string				getWindowTitle();
 	std::string				getAssetPath();					// Returns the base asset path (for shaders, models, textures) depending on the os
 
@@ -234,8 +235,7 @@ public:
 	xcb_intern_atom_reply_t *atom_wm_delete_window=0;
 #endif
 
-	CVulkanFramework(bool enableValidation);
-	CVulkanFramework() : CVulkanFramework(false) {};
+	CVulkanFramework(){};
 	~CVulkanFramework();
 
 	void initVulkan(bool enableValidation);	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)

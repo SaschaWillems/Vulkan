@@ -569,7 +569,7 @@ VkSubmitInfo CVulkanFramework::prepareSubmitInfo(
 	return submitInfo;
 }
 
-CVulkanFramework::CVulkanFramework(bool enableValidation)
+int32_t CVulkanFramework::init(bool enableValidation)
 {
 	// Check for validation command line flag
 #if defined(_WIN32)
@@ -604,6 +604,7 @@ CVulkanFramework::CVulkanFramework(bool enableValidation)
 
 	createVulkanGame(&m_pVulkanExample);
 	m_pVulkanExample->init(this);
+	return 0;
 }
 
 CVulkanFramework::~CVulkanFramework()
@@ -1403,7 +1404,11 @@ int main(const int argc, const char *argv[])
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_CRT_DF | _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //_CRTDBG_CHECK_ALWAYS_DF)
 #endif
 #endif
-	vulkanFramework = new CVulkanFramework(ENABLE_VALIDATION);
+	vulkanFramework = new CVulkanFramework();
+	if( vulkanFramework->init(ENABLE_VALIDATION) )
+	{
+		return -1;
+	}
 #if defined(_WIN32)
 	vulkanFramework->setupWindow(hInstance, WndProc);
 #elif defined(__ANDROID__)

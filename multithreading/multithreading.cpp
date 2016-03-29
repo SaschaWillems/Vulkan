@@ -644,7 +644,6 @@ public:
 	{
 		if (m_pFramework->paused)
 		{
-
 			updateUniformBuffers();
 		}
 	}
