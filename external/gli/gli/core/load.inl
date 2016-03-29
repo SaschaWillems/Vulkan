@@ -45,7 +45,14 @@ namespace gli
 
 	inline texture load(char const * Filename)
 	{
+#if defined(ANDROID) || defined(__linux__)
 		FILE* File = std::fopen(Filename, "rb");
+#elif defined(WIN32) || defined(_WIN32)
+		FILE* File = 0;
+		fopen_s(&File, Filename, "rb");
+#else
+		FILE* File = std::fopen(Filename, "rb");
+#endif
 		if(!File)
 			return texture();
 

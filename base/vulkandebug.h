@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __VULKANDEBUG_H__
+#define __VULKANDEBUG_H__
 
 #include "vulkan/vulkan.h"
 
@@ -45,3 +46,5 @@ namespace vkDebug
 	// Clear debug callback
 	void freeDebugCallback(VkInstance instance);
 }
+
+#endif __VULKANDEBUG_H__

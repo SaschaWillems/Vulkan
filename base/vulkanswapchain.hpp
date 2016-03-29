@@ -52,34 +52,34 @@
 }
 
 typedef struct _SwapChainBuffers {
-	VkImage image;
-	VkImageView view;
+	VkImage image		= VK_NULL_HANDLE;
+	VkImageView view	= VK_NULL_HANDLE;
 } SwapChainBuffer;
 
 class VulkanSwapChain
 {
 private: 
-	VkInstance instance;
-	VkDevice device;
-	VkPhysicalDevice physicalDevice;
-	VkSurfaceKHR surface;
+	VkInstance instance					= VK_NULL_HANDLE;
+	VkDevice device						= VK_NULL_HANDLE;
+	VkPhysicalDevice physicalDevice		= VK_NULL_HANDLE;
+	VkSurfaceKHR surface				= VK_NULL_HANDLE;
 	// Function pointers
-	PFN_vkGetPhysicalDeviceSurfaceSupportKHR fpGetPhysicalDeviceSurfaceSupportKHR;
-	PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fpGetPhysicalDeviceSurfaceCapabilitiesKHR; 
-	PFN_vkGetPhysicalDeviceSurfaceFormatsKHR fpGetPhysicalDeviceSurfaceFormatsKHR;
-	PFN_vkGetPhysicalDeviceSurfacePresentModesKHR fpGetPhysicalDeviceSurfacePresentModesKHR;
-	PFN_vkCreateSwapchainKHR fpCreateSwapchainKHR;
-	PFN_vkDestroySwapchainKHR fpDestroySwapchainKHR;
-	PFN_vkGetSwapchainImagesKHR fpGetSwapchainImagesKHR;
-	PFN_vkAcquireNextImageKHR fpAcquireNextImageKHR;
-	PFN_vkQueuePresentKHR fpQueuePresentKHR;
+	PFN_vkGetPhysicalDeviceSurfaceSupportKHR fpGetPhysicalDeviceSurfaceSupportKHR				= 0;
+	PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fpGetPhysicalDeviceSurfaceCapabilitiesKHR		= 0; 
+	PFN_vkGetPhysicalDeviceSurfaceFormatsKHR fpGetPhysicalDeviceSurfaceFormatsKHR				= 0;
+	PFN_vkGetPhysicalDeviceSurfacePresentModesKHR fpGetPhysicalDeviceSurfacePresentModesKHR		= 0;
+	PFN_vkCreateSwapchainKHR fpCreateSwapchainKHR												= 0;
+	PFN_vkDestroySwapchainKHR fpDestroySwapchainKHR												= 0;
+	PFN_vkGetSwapchainImagesKHR fpGetSwapchainImagesKHR											= 0;
+	PFN_vkAcquireNextImageKHR fpAcquireNextImageKHR												= 0;
+	PFN_vkQueuePresentKHR fpQueuePresentKHR														= 0;
 public:
 	VkFormat colorFormat;
 	VkColorSpaceKHR colorSpace;
 
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 
-	uint32_t imageCount;
+	uint32_t imageCount=0;
 	std::vector<VkImage> images;
 	std::vector<SwapChainBuffer> buffers;
 

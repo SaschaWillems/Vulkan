@@ -41,9 +41,21 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_COLOR,
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CBaseVulkanGame
 {
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		if( CBaseVulkanGame::init(pFramework) )
+			return -1;
+
+		m_pFramework->zoom = -12.0f;
+		m_pFramework->zoomSpeed = 2.5f;
+		m_pFramework->rotation = { 0.0f, -90.0f, 0.0f };
+		m_pFramework->title = "Vulkan Example - Multisampling";
+		return 0;
+	}
+	
 	struct {
 		vkTools::VulkanTexture colorMap;
 	} textures;
@@ -76,33 +88,29 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() 
 	{
-		zoom = -12.0f;
-		zoomSpeed = 2.5f;
-		rotation = { 0.0f, -90.0f, 0.0f };
-		title = "Vulkan Example - Multisampling";
 	}
 
 	~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.solid, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
+		vkMeshLoader::freeMeshBufferResources(m_pFramework->device, &meshes.example);
 
 		// Destroy MSAA target
-		vkDestroyImage(device, multisampleTarget.image, nullptr);
-		vkDestroyImageView(device, multisampleTarget.view, nullptr);
-		vkFreeMemory(device, multisampleTarget.memory, nullptr);
+		vkDestroyImage(m_pFramework->device, multisampleTarget.image, nullptr);
+		vkDestroyImageView(m_pFramework->device, multisampleTarget.view, nullptr);
+		vkFreeMemory(m_pFramework->device, multisampleTarget.memory, nullptr);
 
-		textureLoader->destroyTexture(textures.colorMap);
+		m_pFramework->textureLoader->destroyTexture(textures.colorMap);
 
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
+		vkTools::destroyUniformData(m_pFramework->device, &uniformData.vsScene);
 	}
 
 	// Creates a multi sample render target (image and view) that is used to resolve 
@@ -110,13 +118,14 @@ public:
 	void setupMultisampleTarget()
 	{
 		// Check if device supports requested sample count for color and depth frame buffer
-		assert((deviceProperties.limits.framebufferColorSampleCounts >= SAMPLE_COUNT) && (deviceProperties.limits.framebufferDepthSampleCounts >= SAMPLE_COUNT));
+		assert((m_pFramework->deviceProperties.limits.framebufferColorSampleCounts >= SAMPLE_COUNT) 
+			&& (m_pFramework->deviceProperties.limits.framebufferDepthSampleCounts >= SAMPLE_COUNT));
 
 		VkImageCreateInfo info = vkTools::initializers::imageCreateInfo();
 		info.imageType = VK_IMAGE_TYPE_2D;
-		info.format = colorformat;
-		info.extent.width = width;
-		info.extent.height = height;
+		info.format = m_pFramework->colorformat;
+		info.extent.width = m_pFramework->ScreenRect.Width;
+		info.extent.height = m_pFramework->ScreenRect.Height;
 		info.extent.depth = 1;
 		info.mipLevels = 1;
 		info.arrayLayers = 1;
@@ -127,25 +136,25 @@ public:
 		info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-		vkTools::checkResult(vkCreateImage(device, &info, nullptr, &multisampleTarget.image));
+		vkTools::checkResult(vkCreateImage(m_pFramework->device, &info, nullptr, &multisampleTarget.image));
 
 		VkMemoryRequirements memReqs;
-		vkGetImageMemoryRequirements(device, multisampleTarget.image, &memReqs);
+		vkGetImageMemoryRequirements(m_pFramework->device, multisampleTarget.image, &memReqs);
 
 		VkMemoryAllocateInfo alloc = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 		alloc.allocationSize = memReqs.size;
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		// Try to get a lazily allocated memory type
 		// todo : Fallback to other memory formats?
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, &memAlloc.memoryTypeIndex);
-		vkTools::checkResult(vkAllocateMemory(device, &alloc, nullptr, &multisampleTarget.memory));
-		vkBindImageMemory(device, multisampleTarget.image, multisampleTarget.memory, 0);
+		m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, &memAlloc.memoryTypeIndex);
+		vkTools::checkResult(vkAllocateMemory(m_pFramework->device, &alloc, nullptr, &multisampleTarget.memory));
+		vkBindImageMemory(m_pFramework->device, multisampleTarget.image, multisampleTarget.memory, 0);
 
 		// Create image view for the MSAA target
 		VkImageViewCreateInfo viewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 		viewInfo.image = multisampleTarget.image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = colorformat;
+		viewInfo.format = m_pFramework->colorformat;
 		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
 		viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
 		viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
@@ -154,7 +163,7 @@ public:
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		vkTools::checkResult(vkCreateImageView(device, &viewInfo, nullptr, &multisampleTarget.view));
+		vkTools::checkResult(vkCreateImageView(m_pFramework->device, &viewInfo, nullptr, &multisampleTarget.view));
 	}
 
 	// Setup a render pass for using a multi sampled attachment 
@@ -167,7 +176,7 @@ public:
 		std::array<VkAttachmentDescription, 3> attachments = {};
 
 		// Multisampled attachment that we render to
-		attachments[0].format = colorformat;
+		attachments[0].format = m_pFramework->colorformat;
 		attachments[0].samples = SAMPLE_COUNT;
 		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		// No longer required after resolve, this may save some bandwidth on certain GPUs
@@ -179,7 +188,7 @@ public:
 
 		// This is the frame buffer attachment to where the multisampled image
 		// will be resolved to and which will be presented to the swapchain
-		attachments[1].format = colorformat;
+		attachments[1].format = m_pFramework->colorformat;
 		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -190,7 +199,7 @@ public:
 
 		// Depth attachment
 		// This needs to use the same number of samples as the msaa attachment
-		attachments[2].format = depthFormat;
+		attachments[2].format = m_pFramework->depthFormat;
 		attachments[2].samples = SAMPLE_COUNT;
 		attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -224,7 +233,7 @@ public:
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
 
-		vkTools::checkResult(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+		vkTools::checkResult(vkCreateRenderPass(m_pFramework->device, &renderPassInfo, nullptr, &m_pFramework->renderPass));
 	}
 
 	// Frame buffer attachments must match with render pass setup, 
@@ -239,24 +248,24 @@ public:
 		setupMultisampleTarget();
 
 		attachments[0] = multisampleTarget.view;
-		attachments[2] = depthStencil.view;
+		attachments[2] = m_pFramework->depthStencil.view;
 
 		VkFramebufferCreateInfo frameBufferCreateInfo = {};
 		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		frameBufferCreateInfo.pNext = NULL;
-		frameBufferCreateInfo.renderPass = renderPass;
+		frameBufferCreateInfo.renderPass = m_pFramework->renderPass;
 		frameBufferCreateInfo.attachmentCount = attachments.size();
 		frameBufferCreateInfo.pAttachments = attachments.data();
-		frameBufferCreateInfo.width = width;
-		frameBufferCreateInfo.height = height;
+		frameBufferCreateInfo.width = m_pFramework->ScreenRect.Width;
+		frameBufferCreateInfo.height = m_pFramework->ScreenRect.Height;
 		frameBufferCreateInfo.layers = 1;
 
 		// Create frame buffers for every swap chain image
-		frameBuffers.resize(swapChain.imageCount);
-		for (uint32_t i = 0; i < frameBuffers.size(); i++)
+		m_pFramework->frameBuffers.resize(m_pFramework->swapChain.imageCount);
+		for (uint32_t i = 0; i < m_pFramework->frameBuffers.size(); i++)
 		{
-			attachments[1] = swapChain.buffers[i].view;
-			vkTools::checkResult(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
+			attachments[1] = m_pFramework->swapChain.buffers[i].view;
+			vkTools::checkResult(vkCreateFramebuffer(m_pFramework->device, &frameBufferCreateInfo, nullptr, &m_pFramework->frameBuffers[i]));
 		}
 	}
 
@@ -270,81 +279,81 @@ public:
 		clearValues[2].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
+		renderPassBeginInfo.renderArea.extent.width = m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 3;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			vkTools::checkResult(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+			vkTools::checkResult(vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo));
 
 			// todo : don't transform on each command buffer
 			vkTools::setImageLayout(
-				drawCmdBuffers[i],
+				m_pFramework->drawCmdBuffers[i],
 				multisampleTarget.image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+			VkViewport viewport = vkTools::initializers::viewport((float)m_pFramework->ScreenRect.Width, (float)m_pFramework->ScreenRect.Height, 0.0f, 1.0f);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+			VkRect2D scissor = vkTools::initializers::rect2D(m_pFramework->ScreenRect.Width, m_pFramework->ScreenRect.Height, 0, 0);
+			vkCmdSetScissor(m_pFramework->drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.example.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.example.indexCount, 1, 0, 0, 0);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
-			vkTools::checkResult(vkEndCommandBuffer(drawCmdBuffers[i]));
+			vkTools::checkResult(vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]));
 		}
 	}
 
 	void draw()
 	{
 		// Get next image in the swap chain (back/front buffer)
-		vkTools::checkResult(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
+		vkTools::checkResult(m_pFramework->swapChain.acquireNextImage(m_pFramework->semaphores.presentComplete, &m_pFramework->currentBuffer));
 
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPostPresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
 		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 
 		// Submit to queue
-		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		vkTools::checkResult(vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, VK_NULL_HANDLE));
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPrePresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		vkTools::checkResult(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
+		vkTools::checkResult(m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, m_pFramework->semaphores.renderComplete));
 
-		vkTools::checkResult(vkQueueWaitIdle(queue));
+		vkTools::checkResult(vkQueueWaitIdle(m_pFramework->queue));
 	}
 
 	void loadTextures()
 	{
-		textureLoader->loadTexture(
-			getAssetPath() + "models/voyager/voyager.ktx",
+		m_pFramework->textureLoader->loadTexture(
+			m_pFramework->getAssetPath() + "models/voyager/voyager.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.colorMap);
 	}
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/voyager/voyager.obj", &meshes.example, vertexLayout, 1.0f);
+		m_pFramework->loadMesh(m_pFramework->getAssetPath() + "models/voyager/voyager.obj", &meshes.example, vertexLayout, 1.0f);
 	}
 
 	void setupVertexDescriptions()
@@ -410,7 +419,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		vkTools::checkResult(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
+		vkTools::checkResult(vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -434,25 +443,25 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		vkTools::checkResult(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
+		vkTools::checkResult(vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		vkTools::checkResult(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+		vkTools::checkResult(vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
 	{
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
+				m_pFramework->descriptorPool,
 				&descriptorSetLayout,
 				1);
 
-		vkTools::checkResult(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+		vkTools::checkResult(vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSet));
 		
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
@@ -476,7 +485,7 @@ public:
 				&texDescriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -532,13 +541,13 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/mesh/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/mesh/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
-				renderPass,
+				m_pFramework->renderPass,
 				0);
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
@@ -552,14 +561,14 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		vkTools::checkResult(vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboVS),
 			&uboVS,
@@ -574,26 +583,26 @@ public:
 	{
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)m_pFramework->ScreenRect.Width / (float)m_pFramework->ScreenRect.Height, 0.1f, 256.0f);
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, m_pFramework->zoom));
 
 		float offset = 0.5f;
 		int uboIndex = 1;
 		uboVS.model = glm::mat4();
 		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(2.5f, 2.5f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(m_pFramework->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(m_pFramework->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(m_pFramework->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
-		vkTools::checkResult(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
+		vkTools::checkResult(vkMapMemory(m_pFramework->device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.vsScene.memory);
 	}
 
-	void prepare()
+	virtual int32_t prepare()
 	{
-		VulkanExampleBase::prepare();
+		//VulkanExampleBase::prepare();
 		loadTextures();
 		loadMeshes();
 		setupVertexDescriptions();
@@ -603,17 +612,19 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSet();
 		buildCommandBuffers();
-		prepared = true;
+		m_pFramework->prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
-		if (!prepared)
-			return;
-		vkDeviceWaitIdle(device);
+		if (!m_pFramework->prepared)
+			return 0;
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
 		updateUniformBuffers();
+		return 0;
 	}
 
 	virtual void viewChanged()
@@ -622,63 +633,4 @@ public:
 	}
 };
 
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-}
-		}
-#endif
-
-// Main entry point
-#if defined(_WIN32)
-// Windows entry point
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#elif defined(__ANDROID__)
-// Android entry point
-void android_main(android_app* state)
-#elif defined(__linux__)
-// Linux entry point
-int main(const int argc, const char *argv[])
-#endif
-{
-#if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
-	// which would make the application crash at start
-	app_dummy();
-#endif
-	vulkanExample = new VulkanExample();
-#if defined(_WIN32)
-	vulkanExample->setupWindow(hInstance, WndProc);
-#elif defined(__ANDROID__)
-	// Attach vulkan example to global android application state
-	state->userData = vulkanExample;
-	state->onAppCmd = VulkanExample::handleAppCommand;
-	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
-#elif defined(__linux__)
-	vulkanExample->setupWindow();
-#endif
-#if !defined(__ANDROID__)
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-#endif
-	vulkanExample->renderLoop();
-	delete(vulkanExample);
-#if !defined(__ANDROID__)
-	return 0;
-#endif
-}
+DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()

@@ -6,7 +6,8 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#pragma once
+#ifndef __VULKANTEXTURELOADER_HPP__
+#define __VULKANTEXTURELOADER_HPP__
 
 #include <vulkan/vulkan.h>
 #include <gli/gli.hpp>
@@ -96,9 +97,9 @@ namespace vkTools
 #endif		
 			assert(!tex2D.empty());
 
-			texture->width = (uint32_t)tex2D[0].dimensions().x;
-			texture->height = (uint32_t)tex2D[0].dimensions().y;
-			texture->mipLevels = tex2D.levels();
+			texture->width		= (uint32_t)tex2D[0].dimensions().x;
+			texture->height		= (uint32_t)tex2D[0].dimensions().y;
+			texture->mipLevels	= (uint32_t)tex2D.levels();
 
 			// Get device properites for the requested texture format
 			VkFormatProperties formatProperties;
@@ -144,9 +145,9 @@ namespace vkTools
 				// Copy mip levels
 				for (uint32_t level = 0; level < texture->mipLevels; ++level)
 				{
-					imageCreateInfo.extent.width = tex2D[level].dimensions().x;
-					imageCreateInfo.extent.height = tex2D[level].dimensions().y;
-					imageCreateInfo.extent.depth = 1;
+					imageCreateInfo.extent.width	= (uint32_t)tex2D[level].dimensions().x;
+					imageCreateInfo.extent.height	= (uint32_t)tex2D[level].dimensions().y;
+					imageCreateInfo.extent.depth	= 1;
 
 					vkTools::checkResult(vkCreateImage(device, &imageCreateInfo, nullptr, &mipLevels[level].image));
 
@@ -228,9 +229,10 @@ namespace vkTools
 					copyRegion.dstSubresource.layerCount = 1;
 					copyRegion.dstOffset = { 0, 0, 0 };
 
-					copyRegion.extent.width = tex2D[level].dimensions().x;
-					copyRegion.extent.height = tex2D[level].dimensions().y;
+					copyRegion.extent.width  = (uint32_t)tex2D[level].dimensions().x;
+					copyRegion.extent.height = (uint32_t)tex2D[level].dimensions().y;
 					copyRegion.extent.depth = 1;
+					//copyRegion.extent.depth  = 0; //1 this guy can't decide if this is a 0 or an 1, so I will leave this here in order to remember what happened
 
 					// Put image copy into command buffer
 					vkCmdCopyImage(
@@ -673,9 +675,9 @@ namespace vkTools
 
 			assert(!tex2DArray.empty());
 
-			texture->width = tex2DArray.dimensions().x;
-			texture->height = tex2DArray.dimensions().y;
-			texture->layerCount = tex2DArray.layers();
+			texture->width		= (uint32_t)tex2DArray.dimensions().x;
+			texture->height		= (uint32_t)tex2DArray.dimensions().y;
+			texture->layerCount	= (uint32_t)tex2DArray.layers();
 
 			// Get device properites for the requested texture format
 			VkFormatProperties formatProperties;
@@ -881,3 +883,5 @@ namespace vkTools
 	};
 
 };
+
+#endif // __VULKANTEXTURELOADER_HPP__

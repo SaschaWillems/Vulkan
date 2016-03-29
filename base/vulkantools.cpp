@@ -248,7 +248,7 @@ namespace vkTools
 	void exitFatal(std::string message, std::string caption)
 	{
 #ifdef _WIN32
-		MessageBox(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+		MessageBoxA(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
 #else
 		// TODO : Linux
 #endif
@@ -280,7 +280,14 @@ namespace vkTools
 		size_t retval;
 		void *shader_code;
 
-		FILE *fp = fopen(filename, "rb");
+#if defined(ANDROID) || defined(__linux__)
+		FILE* fp = std::fopen(filename, "rb");
+#elif defined(WIN32) || defined(_WIN32)
+		FILE* fp = 0;
+		fopen_s(&fp, filename, "rb");
+#else
+		FILE* fp = std::fopen(filename, "rb");
+#endif
 		if (!fp) return NULL;
 
 		fseek(fp, 0L, SEEK_END);

@@ -22,7 +22,7 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
+
 
 // Vertex layout for this example
 struct Vertex {
@@ -30,9 +30,20 @@ struct Vertex {
 	float uv[2];
 };
 
-class VulkanExample : public VulkanExampleBase
+class VulkanExample : public CBaseVulkanGame
 {
 public:
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		CBaseVulkanGame::init(pFramework);
+		m_pFramework->zoom = -15.0f;
+		m_pFramework->rotationSpeed = 0.25f;
+		m_pFramework->rotation = { -15.0f, 35.0f, 0.0f };
+		m_pFramework->title = "Vulkan Example - Texture arrays";
+		srand(time(NULL));
+		// Values not set here are initialized in the base class constructor
+		return 0;
+	};
 	// Number of array layers in texture array
 	// Also used as instance count
 	uint32_t layerCount;
@@ -78,34 +89,29 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample()
 	{
-		zoom = -15.0f;
-		rotationSpeed = 0.25f;
-		rotation = { -15.0f, 35.0f, 0.0f };
-		title = "Vulkan Example - Texture arrays";
-		srand(time(NULL));
 	}
 
-	~VulkanExample()
+	virtual ~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		// Clean up texture resources
-		vkDestroyImageView(device, textureArray.view, nullptr);
-		vkDestroyImage(device, textureArray.image, nullptr);
-		vkDestroySampler(device, textureArray.sampler, nullptr);
-		vkFreeMemory(device, textureArray.deviceMemory, nullptr);
+		vkDestroyImageView(m_pFramework->device, textureArray.view, nullptr);
+		vkDestroyImage(m_pFramework->device, textureArray.image, nullptr);
+		vkDestroySampler(m_pFramework->device, textureArray.sampler, nullptr);
+		vkFreeMemory(m_pFramework->device, textureArray.deviceMemory, nullptr);
 
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(m_pFramework->device, pipelines.solid, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_pFramework->device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_pFramework->device, descriptorSetLayout, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
+		vkMeshLoader::freeMeshBufferResources(m_pFramework->device, &meshes.quad);
 
-		vkTools::destroyUniformData(device, &uniformData.vertexShader);
+		vkTools::destroyUniformData(m_pFramework->device, &uniformData.vertexShader);
 
 		delete[] uboVS.instance;
 	}
@@ -137,7 +143,7 @@ public:
 
 		// Get device properites for the requested texture format
 		VkFormatProperties formatProperties;
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
+		vkGetPhysicalDeviceFormatProperties(m_pFramework->physicalDevice, format, &formatProperties);
 
 		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -166,10 +172,10 @@ public:
 		VkCommandBuffer cmdBuffer;
 		VkCommandBufferAllocateInfo cmdBufAlllocatInfo =
 			vkTools::initializers::commandBufferAllocateInfo(
-				cmdPool,
+				m_pFramework->cmdPool,
 				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				1);
-		VkResult err = vkAllocateCommandBuffers(device, &cmdBufAlllocatInfo, &cmdBuffer);
+		VkResult err = vkAllocateCommandBuffers(m_pFramework->device, &cmdBufAlllocatInfo, &cmdBuffer);
 		assert(!err);
 
 		VkCommandBufferBeginInfo cmdBufInfo =
@@ -181,15 +187,15 @@ public:
 		// Load separate cube map faces into linear tiled textures
 		for (uint32_t i = 0; i < layerCount; ++i)
 		{
-			err = vkCreateImage(device, &imageCreateInfo, nullptr, &arrayLayer[i].image);
+			err = vkCreateImage(m_pFramework->device, &imageCreateInfo, nullptr, &arrayLayer[i].image);
 			assert(!err);
 
-			vkGetImageMemoryRequirements(device, arrayLayer[i].image, &memReqs);
+			vkGetImageMemoryRequirements(m_pFramework->device, arrayLayer[i].image, &memReqs);
 			memAllocInfo.allocationSize = memReqs.size;
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAllocInfo.memoryTypeIndex);
-			err = vkAllocateMemory(device, &memAllocInfo, nullptr, &arrayLayer[i].memory);
+			m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAllocInfo.memoryTypeIndex);
+			err = vkAllocateMemory(m_pFramework->device, &memAllocInfo, nullptr, &arrayLayer[i].memory);
 			assert(!err);
-			err = vkBindImageMemory(device, arrayLayer[i].image, arrayLayer[i].memory, 0);
+			err = vkBindImageMemory(m_pFramework->device, arrayLayer[i].image, arrayLayer[i].memory, 0);
 			assert(!err);
 
 			VkImageSubresource subRes = {};
@@ -198,12 +204,12 @@ public:
 			VkSubresourceLayout subResLayout;
 			void *data;
 
-			vkGetImageSubresourceLayout(device, arrayLayer[i].image, &subRes, &subResLayout);
+			vkGetImageSubresourceLayout(m_pFramework->device, arrayLayer[i].image, &subRes, &subResLayout);
 			assert(!err);
-			err = vkMapMemory(device, arrayLayer[i].memory, 0, memReqs.size, 0, &data);
+			err = vkMapMemory(m_pFramework->device, arrayLayer[i].memory, 0, memReqs.size, 0, &data);
 			assert(!err);
 			memcpy(data, tex2DArray[i].data(), tex2DArray[i].size());
-			vkUnmapMemory(device, arrayLayer[i].memory);
+			vkUnmapMemory(m_pFramework->device, arrayLayer[i].memory);
 
 			// Image barrier for linear image (base)
 			// Linear image will be used as a source for the copy
@@ -222,17 +228,17 @@ public:
 		imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageCreateInfo.arrayLayers = layerCount;
 
-		err = vkCreateImage(device, &imageCreateInfo, nullptr, &textureArray.image);
+		err = vkCreateImage(m_pFramework->device, &imageCreateInfo, nullptr, &textureArray.image);
 		assert(!err);
 
-		vkGetImageMemoryRequirements(device, textureArray.image, &memReqs);
+		vkGetImageMemoryRequirements(m_pFramework->device, textureArray.image, &memReqs);
 
 		memAllocInfo.allocationSize = memReqs.size;
 
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAllocInfo, nullptr, &textureArray.deviceMemory);
+		m_pFramework->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex);
+		err = vkAllocateMemory(m_pFramework->device, &memAllocInfo, nullptr, &textureArray.deviceMemory);
 		assert(!err);
-		err = vkBindImageMemory(device, textureArray.image, textureArray.deviceMemory, 0);
+		err = vkBindImageMemory(m_pFramework->device, textureArray.image, textureArray.deviceMemory, 0);
 		assert(!err);
 
 		// Image barrier for optimal image (target)
@@ -301,10 +307,10 @@ public:
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmdBuffer;
 
-		err = vkQueueSubmit(queue, 1, &submitInfo, nullFence);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &submitInfo, nullFence);
 		assert(!err);
 
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 
 		// Create sampler
@@ -321,7 +327,7 @@ public:
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 0.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		err = vkCreateSampler(device, &sampler, nullptr, &textureArray.sampler);
+		err = vkCreateSampler(m_pFramework->device, &sampler, nullptr, &textureArray.sampler);
 		assert(!err);
 
 		// Create image view
@@ -333,21 +339,21 @@ public:
 		view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		view.subresourceRange.layerCount = layerCount;
 		view.image = textureArray.image;
-		err = vkCreateImageView(device, &view, nullptr, &textureArray.view);
+		err = vkCreateImageView(m_pFramework->device, &view, nullptr, &textureArray.view);
 		assert(!err);
 
 		// Cleanup
 		for (auto& layer : arrayLayer)
 		{
-			vkDestroyImage(device, layer.image, nullptr);
-			vkFreeMemory(device, layer.memory, nullptr);
+			vkDestroyImage(m_pFramework->device, layer.image, nullptr);
+			vkFreeMemory(m_pFramework->device, layer.memory, nullptr);
 		}
 	}
 
 	void loadTextures()
 	{
 		loadTextureArray(
-			getAssetPath() + "textures/texturearray_bc3.ktx", 
+			m_pFramework->getAssetPath() + "textures/texturearray_bc3.ktx", 
 			VK_FORMAT_BC3_UNORM_BLOCK);
 	}
 
@@ -356,56 +362,56 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = m_pFramework->defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = m_pFramework->renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width  = m_pFramework->ScreenRect.Width;
+		renderPassBeginInfo.renderArea.extent.height = m_pFramework->ScreenRect.Height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkResult err;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (int32_t i = 0; i < m_pFramework->drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = m_pFramework->frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
+			err = vkBeginCommandBuffer(m_pFramework->drawCmdBuffers[i], &cmdBufInfo);
 			assert(!err);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(m_pFramework->drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
+				(float)m_pFramework->ScreenRect.Width,
+				(float)m_pFramework->ScreenRect.Height,
 				0.0f,
 				1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+			vkCmdSetViewport(m_pFramework->drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
+				m_pFramework->ScreenRect.Width,
+				m_pFramework->ScreenRect.Height,
 				0,
 				0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+			vkCmdSetScissor(m_pFramework->drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindDescriptorSets(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindVertexBuffers(m_pFramework->drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(m_pFramework->drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindPipeline(m_pFramework->drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.quad.indexCount, layerCount, 0, 0, 0);
+			vkCmdDrawIndexed(m_pFramework->drawCmdBuffers[i], meshes.quad.indexCount, layerCount, 0, 0, 0);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			vkCmdEndRenderPass(m_pFramework->drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
+			err = vkEndCommandBuffer(m_pFramework->drawCmdBuffers[i]);
 			assert(!err);
 		}
 	}
@@ -415,25 +421,25 @@ public:
 		VkResult err;
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		err = m_pFramework->swapChain.acquireNextImage(m_pFramework->semaphores.presentComplete, &m_pFramework->currentBuffer);
 		assert(!err);
 
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPostPresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
 		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		m_pFramework->submitInfo.commandBufferCount = 1;
+		m_pFramework->submitInfo.pCommandBuffers = &m_pFramework->drawCmdBuffers[m_pFramework->currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		err = vkQueueSubmit(m_pFramework->queue, 1, &m_pFramework->submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+		m_pFramework->submitPrePresentBarrier(m_pFramework->swapChain.buffers[m_pFramework->currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		err = m_pFramework->swapChain.queuePresent(m_pFramework->queue, m_pFramework->currentBuffer, m_pFramework->semaphores.renderComplete);
 		assert(!err);
 
-		err = vkQueueWaitIdle(queue);
+		err = vkQueueWaitIdle(m_pFramework->queue);
 		assert(!err);
 	}
 
@@ -450,7 +456,7 @@ public:
 		};
 #undef dim
 
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			vertexBuffer.size() * sizeof(Vertex),
 			vertexBuffer.data(),
@@ -461,7 +467,7 @@ public:
 		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
 		meshes.quad.indexCount = indexBuffer.size();
 
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			indexBuffer.size() * sizeof(uint32_t),
 			indexBuffer.data(),
@@ -518,7 +524,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
+		VkResult vkRes = vkCreateDescriptorPool(m_pFramework->device, &descriptorPoolInfo, nullptr, &m_pFramework->descriptorPool);
 		assert(!vkRes);
 	}
 
@@ -543,7 +549,7 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(m_pFramework->device, &descriptorLayout, nullptr, &descriptorSetLayout);
 		assert(!err);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
@@ -551,7 +557,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+		err = vkCreatePipelineLayout(m_pFramework->device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
 	}
 
@@ -559,11 +565,11 @@ public:
 	{
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
+				m_pFramework->descriptorPool,
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
+		VkResult vkRes = vkAllocateDescriptorSets(m_pFramework->device, &allocInfo, &descriptorSet);
 		assert(!vkRes);
 
 		// Image descriptor for the texture array
@@ -589,7 +595,7 @@ public:
 				&texArrayDescriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(m_pFramework->device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -645,13 +651,13 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/texturearray/instancing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/texturearray/instancing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/texturearray/instancing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = m_pFramework->loadShader(m_pFramework->getAssetPath() + "shaders/texturearray/instancing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
-				renderPass,
+				m_pFramework->renderPass,
 				0);
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
@@ -665,7 +671,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
+		VkResult err = vkCreateGraphicsPipelines(m_pFramework->device, m_pFramework->pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
 		assert(!err);
 	}
 
@@ -677,7 +683,7 @@ public:
 		uint32_t uboSize = sizeof(uboVS.matrices) + (layerCount * sizeof(UboInstanceData));
 
 		// Vertex shader uniform buffer block
-		createBuffer(
+		m_pFramework->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			uboSize,
 			&uboVS,
@@ -702,10 +708,10 @@ public:
 		uint8_t *pData;
 		uint32_t dataOffset = sizeof(uboVS.matrices);
 		uint32_t dataSize = layerCount * sizeof(UboInstanceData);
-		err = vkMapMemory(device, uniformData.vertexShader.memory, dataOffset, dataSize, 0, (void **)&pData);
+		err = vkMapMemory(m_pFramework->device, uniformData.vertexShader.memory, dataOffset, dataSize, 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, uboVS.instance, dataSize);
-		vkUnmapMemory(device, uniformData.vertexShader.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.vertexShader.memory);
 
 		updateUniformBufferMatrices();
 	}
@@ -715,25 +721,25 @@ public:
 		// Only updates the uniform buffer block part containing the global matrices
 
 		// Projection
-		uboVS.matrices.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
+		uboVS.matrices.projection = glm::perspective(deg_to_rad(60.0f), (float)m_pFramework->ScreenRect.Width / (float)m_pFramework->ScreenRect.Height, 0.001f, 256.0f);
 
 		// View
-		uboVS.matrices.view = glm::translate(glm::mat4(), glm::vec3(0.0f, -1.0f, zoom));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.matrices.view = glm::translate(glm::mat4(), glm::vec3(0.0f, -1.0f, m_pFramework->zoom));
+		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(m_pFramework->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(m_pFramework->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(m_pFramework->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Only update the matrices part of the uniform buffer
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vertexShader.memory, 0, sizeof(uboVS.matrices), 0, (void **)&pData);
+		VkResult err = vkMapMemory(m_pFramework->device, uniformData.vertexShader.memory, 0, sizeof(uboVS.matrices), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboVS.matrices, sizeof(uboVS.matrices));
-		vkUnmapMemory(device, uniformData.vertexShader.memory);
+		vkUnmapMemory(m_pFramework->device, uniformData.vertexShader.memory);
 	}
 
-	void prepare()
+	virtual int32_t	prepare()
 	{
-		VulkanExampleBase::prepare();
+		
 		setupVertexDescriptions();
 		loadTextures();
 		generateQuad();
@@ -743,81 +749,28 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSet();
 		buildCommandBuffers();
-		prepared = true;
+		m_pFramework->prepared = true;
+		return 0;
 	}
 
-	virtual void render()
+	virtual int32_t render()
 	{
-		if (!prepared)
-			return;
-		vkDeviceWaitIdle(device);
+		if (!m_pFramework->prepared)
+			return 1;
+		vkDeviceWaitIdle(m_pFramework->device);
 		draw();
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(m_pFramework->device);
+		return 0;
 	}
 
 	virtual void viewChanged()
 	{
 		updateUniformBufferMatrices();
 	}
+
+	virtual void keyPressed(uint32_t keyCode)
+	{
+	}
 };
 
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
-
-// Main entry point
-#if defined(_WIN32)
-// Windows entry point
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#elif defined(__ANDROID__)
-// Android entry point
-void android_main(android_app* state)
-#elif defined(__linux__)
-// Linux entry point
-int main(const int argc, const char *argv[])
-#endif
-{
-#if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
-	// which would make the application crash at start
-	app_dummy();
-#endif
-	vulkanExample = new VulkanExample();
-#if defined(_WIN32)
-	vulkanExample->setupWindow(hInstance, WndProc);
-#elif defined(__ANDROID__)
-	// Attach vulkan example to global android application state
-	state->userData = vulkanExample;
-	state->onAppCmd = VulkanExample::handleAppCommand;
-	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
-#elif defined(__linux__)
-	vulkanExample->setupWindow();
-#endif
-#if !defined(__ANDROID__)
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-#endif
-	vulkanExample->renderLoop();
-	delete(vulkanExample);
-#if !defined(__ANDROID__)
-	return 0;
-#endif
-}
+DEFINE_VULKAN_GAME_CREATE_AND_RELEASE_FUNCTIONS()

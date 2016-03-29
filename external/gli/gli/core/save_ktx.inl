@@ -128,7 +128,14 @@ namespace detail
 		if(Texture.empty())
 			return false;
 
+#if defined(ANDROID) || defined(__linux__)
 		FILE* File = std::fopen(Filename, "wb");
+#elif defined(WIN32) || defined(_WIN32)
+		FILE* File = 0;
+		fopen_s(&File, Filename, "wb");
+#else
+		FILE* File = std::fopen(Filename, "Wb");
+#endif
 		if(!File)
 			return false;
 
