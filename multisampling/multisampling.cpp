@@ -1,8 +1,6 @@
 /*
 * Vulkan Example - Multisampling using resolve attachments
 *
-* todo : add second renderpass without msaa and allow toggle 
-*
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -238,8 +236,7 @@ public:
 		attachments[1].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		attachments[1].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		// Depth attachment
-		// This needs to use the same number of samples as the msaa attachment
+		// Multisampled depth attachment we render to
 		attachments[2].format = depthFormat;
 		attachments[2].samples = SAMPLE_COUNT;
 		attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -249,7 +246,7 @@ public:
 		attachments[2].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		attachments[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		// Depth resolve
+		// Depth resolve attachment
 		attachments[3].format = depthFormat;
 		attachments[3].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[3].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -263,20 +260,22 @@ public:
 		colorReference.attachment = 0;
 		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+		VkAttachmentReference depthReference = {};
+		depthReference.attachment = 2;
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		// Two resolve attachment references for color and depth
 		std::array<VkAttachmentReference,2> resolveReferences = {};
 		resolveReferences[0].attachment = 1;
 		resolveReferences[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		resolveReferences[1].attachment = 3;
 		resolveReferences[1].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 2;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorReference;
+		// Pass our resolve attachments to the sub pass
 		subpass.pResolveAttachments = resolveReferences.data();
 		subpass.pDepthStencilAttachment = &depthReference;
 
@@ -353,6 +352,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[3];
+		// Clear to a white background for higher contrast
 		clearValues[0].color = { { 1.0f, 1.0f, 1.0f, 1.0f } };
 		clearValues[1].color = { { 1.0f, 1.0f, 1.0f, 1.0f } };
 		clearValues[2].depthStencil = { 1.0f, 0 };

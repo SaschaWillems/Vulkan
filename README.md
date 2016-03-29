@@ -99,18 +99,16 @@ Uses [assimp](https://github.com/assimp/assimp) to load and a mesh from a common
 Shows the use of instancing for rendering the same mesh with differing uniforms with one single draw command. This saves performance if the same mesh has to be rendered multiple times.
 <br><br>
 
-## [Skeletal animation](skeletalanimation/)
-<img src="./screenshots/mesh_skeletalanimation.png" height="96px" align="right">
+## [Multi sampling](multisampling/)
+<img src="./screenshots/multisampling.png" height="96px" align="right">
 
-Based on the mesh loading example, this example loads and displays a rigged COLLADA model including animations. Bone weights are extracted for each vertex and are passed to the vertex shader together with the final bone transformation matrices for vertex position calculations.
+Demonstrates the use of resolve attachments for doing multisampling. Instead of doing an explicit resolve from a multisampled image this example creates multisampled attachments for the color and depth buffer and sets up the render pass to use these as resolve attachments that will get resolved to the visible frame buffer at the end of this render pass. To highlight MSAA the example renders a mesh with fine details against a bright background. Here is a [screenshot without MSAA](./screenshots/multisampling_nomsaa.png) to compare.
 <br><br>
 
 ## [Particle system](particlefire/)
 <img src="./screenshots/particlefire.png" height="96px" align="right">
 
 Point sprite based particle system simulating a fire. Particles and their attributes are stored in a host visible vertex buffer that's updated on the CPU on each frame. Also makes use of pre-multiplied alpha for rendering particles with different blending modes (smoke and fire) in one single pass.
-
-
 
 ## [Push constants](pushconstants/)
 <img src="./screenshots/push_constants.png" height="96px" align="right">
@@ -176,6 +174,12 @@ Uses a (spherical) material capture texture containing environment lighting and 
 <img src="./screenshots/parallax_mapping.jpg" height="96px" align="right">
 
 Like normal mapping, parallax mapping simulates geometry on a flat surface. In addition to normal mapping a heightmap is used to offset texture coordinates depending on the viewing angle giving the illusion of added depth.
+<br><br>
+
+## [Skeletal animation](skeletalanimation/)
+<img src="./screenshots/mesh_skeletalanimation.png" height="96px" align="right">
+
+Based on the mesh loading example, this example loads and displays a rigged COLLADA model including animations. Bone weights are extracted for each vertex and are passed to the vertex shader together with the final bone transformation matrices for vertex position calculations.
 <br><br>
 
 ## [(Tessellation shader) PN-Triangles](tessellation/)
