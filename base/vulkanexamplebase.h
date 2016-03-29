@@ -148,16 +148,16 @@ private:
 	);	// Create logical Vulkan device based on physical device
 	VkInstance							instance					= 0;				// Vulkan instance, stores all per-application states
 	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;							// Stores all available memory (type) properties for the physical device
-	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
-	VkFormat							depthFormat;									// Depth buffer format - Depth format is selected during Vulkan initialization
 	VkCommandBuffer						prePresentCmdBuffer			= VK_NULL_HANDLE;	// Command buffer for submitting a pre present image barrier
 	VkPipelineStageFlags				submitPipelineStages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;	// Pipeline stage flags for the submit info structure
 	std::vector<VkShaderModule>			shaderModules;									// List of shader modules created (stored for cleanup)
-	VkPhysicalDeviceProperties			deviceProperties;								// Stores physical device properties (for e.g. checking device limits)
 
 	//--------------------------------------------------------------
 	IVulkanGame*						m_pVulkanExample			= nullptr;	
 public:	// these were made public in order to enable decoupling of the CVulkanFramework class
+	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
+	VkFormat							depthFormat;									// Depth buffer format - Depth format is selected during Vulkan initialization
+	VkPhysicalDeviceProperties			deviceProperties;								// Stores physical device properties (for e.g. checking device limits)
 	bool								enableValidation			= false;			// Set to true when example is created with enabled validation layers
 	float								fpsTimer					= 0;
 	float								frameTimer					= 0;				// Last frame time, measured using a high performance timer (if available)
@@ -253,6 +253,7 @@ public:
 	void handleEvent(const xcb_generic_event_t *event);
 #endif
 
+//<<<<<<< HEAD
 
 	// Called when view change occurs. Can be overriden in derived class to e.g. update uniform buffers containing view dependant matrices
 	virtual void		viewChanged();
@@ -269,8 +270,8 @@ public:
 	bool				checkCommandBuffers();	// Check if command buffers are valid (!= VK_NULL_HANDLE)
 	void				createCommandBuffers();	// Create command buffers for drawing commands
 
-	// Destroy all command buffers and set their handles to VK_NULL_HANDLE. May be necessary during runtime if options are toggled 
-	void				destroyCommandBuffers();
+	
+	void				destroyCommandBuffers();	// Destroy all command buffers and set their handles to VK_NULL_HANDLE. May be necessary during runtime if options are toggled 
 	void				createSetupCommandBuffer();	// Create command buffer for setup commands
 	void				flushSetupCommandBuffer();	// Finalize setup command bufferm submit it to the queue and remove it
 	void				createPipelineCache();		// Create a cache pool for rendering pipelines
@@ -294,7 +295,59 @@ public:
 		VkPipelineStageFlags *pipelineStages);
 
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);	// Load a SPIR-V shader
-
+//
+//=======
+//	// Pure virtual render function (override in derived class)
+//	virtual void render() = 0;
+//	// Called when view change occurs
+//	// Can be overriden in derived class to e.g. update uniform buffers 
+//	// Containing view dependant matrices
+//	virtual void viewChanged();
+//	// Called if a key is pressed
+//	// Can be overriden in derived class to do custom key handling
+//	virtual void keyPressed(uint32_t keyCode);
+//
+//	// Get memory type for a given memory allocation (flags and bits)
+//	VkBool32 getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex);
+//
+//	// Creates a new (graphics) command pool object storing command buffers
+//	void createCommandPool();
+//	// Setup default depth and stencil views
+//	void setupDepthStencil();
+//	// Create framebuffers for all requested swap chain images
+//	// Can be overriden in derived class to setup a custom framebuffer (e.g. for MSAA)
+//	virtual void setupFrameBuffer();
+//	// Setup a default render pass
+//	// Can be overriden in derived class to setup a custom render pass (e.g. for MSAA)
+//	virtual void setupRenderPass();
+//
+//	// Connect and prepare the swap chain
+//	void initSwapchain();
+//	// Create swap chain images
+//	void setupSwapChain();
+//
+//	// Check if command buffers are valid (!= VK_NULL_HANDLE)
+//	bool checkCommandBuffers();
+//	// Create command buffers for drawing commands
+//	void createCommandBuffers();
+//	// Destroy all command buffers and set their handles to VK_NULL_HANDLE
+//	// May be necessary during runtime if options are toggled 
+//	void destroyCommandBuffers();
+//	// Create command buffer for setup commands
+//	void createSetupCommandBuffer();
+//	// Finalize setup command bufferm submit it to the queue and remove it
+//	void flushSetupCommandBuffer();
+//
+//	// Create a cache pool for rendering pipelines
+//	void createPipelineCache();
+//
+//	// Prepare commonly used Vulkan functions
+//	virtual void prepare();
+//
+//	// Load a SPIR-V shader
+//	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
+//	
+//>>>>>>> a4aa8c632ac09ec6f631fad8b4608dff5c5d6650
 	// Create a buffer, fill it with data and bind buffer memory
 	// Can be used for e.g. vertex or index buffer based on mesh data
 	VkBool32 createBuffer(

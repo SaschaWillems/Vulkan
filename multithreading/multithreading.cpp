@@ -38,7 +38,8 @@ class VulkanExample : public CBaseVulkanGame
 public:
 	virtual int32_t			init(CVulkanFramework* pFramework)
 	{
-		CBaseVulkanGame::init(pFramework);
+		if( CBaseVulkanGame::init(pFramework) )
+			return -1;
 		m_pFramework->zoom = -20.0f;
 		m_pFramework->zoomSpeed = 2.5f;
 		m_pFramework->rotationSpeed = 0.5f;
