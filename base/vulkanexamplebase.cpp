@@ -1135,7 +1135,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
 		if (press->detail == XCB_BUTTON_INDEX_1)
 			mouseButtons.left = true;
-		if (press->detail == XCB_BUTTON_INDEX_1)
+		if (press->detail == XCB_BUTTON_INDEX_2)
 			mouseButtons.middle = true;
 		if (press->detail == XCB_BUTTON_INDEX_3)
 			mouseButtons.right = true;
@@ -1146,7 +1146,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
 		if (press->detail == XCB_BUTTON_INDEX_1)
 			mouseButtons.left = false;
-		if (press->detail == XCB_BUTTON_INDEX_1)
+		if (press->detail == XCB_BUTTON_INDEX_2)
 			mouseButtons.middle = false;
 		if (press->detail == XCB_BUTTON_INDEX_3)
 			mouseButtons.right = false;
