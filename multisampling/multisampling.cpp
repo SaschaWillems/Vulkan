@@ -142,9 +142,14 @@ public:
 		vkGetImageMemoryRequirements(device, multisampleTarget.color.image, &memReqs);
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		memAlloc.allocationSize = memReqs.size;
-		// Try to get a lazily allocated memory type
-		// todo : Fallback to other memory formats?
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, &memAlloc.memoryTypeIndex);
+		// We prefer a lazily allocated memory type
+		// This means that the memory get allocated when the implementation sees fit, e.g. when first using the images
+		VkBool32 lazyMemType = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, &memAlloc.memoryTypeIndex);
+		if (!lazyMemType)
+		{
+			// If this is not available, fall back to device local memory
+			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
+		}
 		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &multisampleTarget.color.memory));
 		vkBindImageMemory(device, multisampleTarget.color.image, multisampleTarget.color.memory, 0);
 
@@ -181,12 +186,14 @@ public:
 		vkTools::checkResult(vkCreateImage(device, &info, nullptr, &multisampleTarget.depth.image));
 
 		vkGetImageMemoryRequirements(device, multisampleTarget.depth.image, &memReqs);
-
 		memAlloc = vkTools::initializers::memoryAllocateInfo();
 		memAlloc.allocationSize = memReqs.size;
-		// Try to get a lazily allocated memory type
-		// todo : Fallback to other memory formats?
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, &memAlloc.memoryTypeIndex);
+		lazyMemType = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, &memAlloc.memoryTypeIndex);
+		if (!lazyMemType)
+		{
+			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
+		}
+		
 		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &multisampleTarget.depth.memory));
 		vkBindImageMemory(device, multisampleTarget.depth.image, multisampleTarget.depth.memory, 0);
 
