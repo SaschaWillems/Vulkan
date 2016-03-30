@@ -923,6 +923,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
 		mousePos.x = (float)LOWORD(lParam);
 		mousePos.y = (float)HIWORD(lParam);
 		break;
@@ -950,6 +951,16 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			rotation.y -= (mousePos.x - (float)posx) * 1.25f * rotationSpeed;
 			mousePos = glm::vec2((float)posx, (float)posy);
 			viewChanged();
+		}
+		if (wParam & MK_MBUTTON)
+		{
+			int32_t posx = LOWORD(lParam);
+			int32_t posy = HIWORD(lParam);
+			cameraPos.x -= (mousePos.x - (float)posx) * 0.01f;
+			cameraPos.y -= (mousePos.y - (float)posy) * 0.01f;
+			viewChanged();
+			mousePos.x = (float)posx;
+			mousePos.y = (float)posy;
 		}
 		break;
 	}
@@ -1108,22 +1119,36 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 			zoom += (mousePos.y - (float)motion->event_y) * .005f;
 			viewChanged();
 		}
+		if (mouseButtons.middle)
+		{
+			cameraPos.x -= (mousePos.x - (float)motion->event_x) * 0.01f;
+			cameraPos.y -= (mousePos.y - (float)motion->event_y) * 0.01f;
+			viewChanged();
+			mousePos.x = (float)motion->event_x;
+			mousePos.y = (float)motion->event_y;
+		}
 		mousePos = glm::vec2((float)motion->event_x, (float)motion->event_y);
 	}
 	break;
 	case XCB_BUTTON_PRESS:
 	{
 		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
-		mouseButtons.left = (press->detail & XCB_BUTTON_INDEX_1);
-		mouseButtons.right = (press->detail & XCB_BUTTON_INDEX_3);
+		if (press->detail == XCB_BUTTON_INDEX_1)
+			mouseButtons.left = true;
+		if (press->detail == XCB_BUTTON_INDEX_1)
+			mouseButtons.middle = true;
+		if (press->detail == XCB_BUTTON_INDEX_3)
+			mouseButtons.right = true;
 	}
 	break;
 	case XCB_BUTTON_RELEASE:
 	{
 		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
-		if (press->detail & XCB_BUTTON_INDEX_1)
+		if (press->detail == XCB_BUTTON_INDEX_1)
 			mouseButtons.left = false;
-		if (press->detail & XCB_BUTTON_INDEX_3)
+		if (press->detail == XCB_BUTTON_INDEX_1)
+			mouseButtons.middle = false;
+		if (press->detail == XCB_BUTTON_INDEX_3)
 			mouseButtons.right = false;
 	}
 	break;

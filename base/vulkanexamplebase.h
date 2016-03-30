@@ -137,6 +137,7 @@ public:
 	float zoomSpeed = 1.0f;
 
 	glm::vec3 rotation = glm::vec3();
+	glm::vec3 cameraPos = glm::vec3();
 	glm::vec2 mousePos;
 
 	std::string title = "Vulkan Example";
@@ -172,6 +173,7 @@ public:
 	struct {
 		bool left = false;
 		bool right = false;
+		bool middle = false;
 	} mouseButtons;
 	bool quit;
 	xcb_connection_t *connection;

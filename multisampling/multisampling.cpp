@@ -86,6 +86,7 @@ public:
 		zoom = -7.5f;
 		zoomSpeed = 2.5f;
 		rotation = { 0.0f, -90.0f, 0.0f };
+		cameraPos = glm::vec3(2.5f, 2.5f, 0.0f);
 		title = "Vulkan Example - Multisampling";
 	}
 
@@ -667,7 +668,7 @@ public:
 		float offset = 0.5f;
 		int uboIndex = 1;
 		uboVS.model = glm::mat4();
-		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(2.5f, 2.5f, 0.0f));
+		uboVS.model = viewMatrix * glm::translate(uboVS.model, cameraPos);
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
