@@ -51,6 +51,7 @@ namespace vkMeshLoader
 	{
 		VkBuffer buf = VK_NULL_HANDLE;
 		VkDeviceMemory mem = VK_NULL_HANDLE;
+		size_t size = 0;
 	};
 
 	struct MeshBuffer 
@@ -446,7 +447,7 @@ public:
 				}
 			}
 		}
-		size_t vertexBufferSize = vertexBuffer.size() * sizeof(float);
+		meshBuffer->vertices.size = vertexBuffer.size() * sizeof(float);
 
 		std::vector<uint32_t> indexBuffer;
 		for (uint32_t m = 0; m < m_Entries.size(); m++)
@@ -457,7 +458,7 @@ public:
 				indexBuffer.push_back(m_Entries[m].Indices[i] + indexBase);
 			}
 		}
-		size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
+		meshBuffer->indices.size = indexBuffer.size() * sizeof(uint32_t);
 
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -466,7 +467,7 @@ public:
 		void *data;
 
 		// Generate vertex buffer
-		VkBufferCreateInfo vBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBufferSize);
+		VkBufferCreateInfo vBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, meshBuffer->vertices.size);
 		err = vkCreateBuffer(device, &vBufferInfo, nullptr, &meshBuffer->vertices.buf);
 		assert(!err);
 		vkGetBufferMemoryRequirements(device, meshBuffer->vertices.buf, &memReqs);
@@ -474,15 +475,15 @@ public:
 		getMemoryType(deviceMemoryProperties, memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
 		err = vkAllocateMemory(device, &memAlloc, nullptr, &meshBuffer->vertices.mem);
 		assert(!err);
-		err = vkMapMemory(device, meshBuffer->vertices.mem, 0, vertexBufferSize, 0, &data);
+		err = vkMapMemory(device, meshBuffer->vertices.mem, 0, meshBuffer->vertices.size, 0, &data);
 		assert(!err);
-		memcpy(data, vertexBuffer.data(), vertexBufferSize);
+		memcpy(data, vertexBuffer.data(), meshBuffer->vertices.size);
 		vkUnmapMemory(device, meshBuffer->vertices.mem);
 		err = vkBindBufferMemory(device, meshBuffer->vertices.buf, meshBuffer->vertices.mem, 0);
 		assert(!err);
 
 		// Generate index buffer
-		VkBufferCreateInfo iBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indexBufferSize);
+		VkBufferCreateInfo iBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, meshBuffer->indices.size);
 		err = vkCreateBuffer(device, &iBufferInfo, nullptr, &meshBuffer->indices.buf);
 		assert(!err);
 		vkGetBufferMemoryRequirements(device, meshBuffer->indices.buf, &memReqs);
@@ -490,9 +491,9 @@ public:
 		getMemoryType(deviceMemoryProperties, memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
 		err = vkAllocateMemory(device, &memAlloc, nullptr, &meshBuffer->indices.mem);
 		assert(!err);
-		err = vkMapMemory(device, meshBuffer->indices.mem, 0, indexBufferSize, 0, &data);
+		err = vkMapMemory(device, meshBuffer->indices.mem, 0, meshBuffer->indices.size, 0, &data);
 		assert(!err);
-		memcpy(data, indexBuffer.data(), indexBufferSize);
+		memcpy(data, indexBuffer.data(), meshBuffer->indices.size);
 		vkUnmapMemory(device, meshBuffer->indices.mem);
 		err = vkBindBufferMemory(device, meshBuffer->indices.buf, meshBuffer->indices.mem, 0);
 		assert(!err);
