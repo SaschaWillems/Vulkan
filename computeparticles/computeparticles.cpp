@@ -294,7 +294,6 @@ public:
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
 
-		VkResult err;
 		void *data;
 
 		struct StagingBuffer {
@@ -692,9 +691,6 @@ public:
 		}
 		assert(queueIndex < queueCount);
 
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.queueFamilyIndex = queueIndex;
-		queueCreateInfo.queueCount = 1;
 		vkGetDeviceQueue(device, queueIndex, 0, &computeQueue);
 	}
 

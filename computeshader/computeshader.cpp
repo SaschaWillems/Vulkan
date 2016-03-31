@@ -785,9 +785,6 @@ public:
 		}
 		assert(queueIndex < queueCount);
 
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.queueFamilyIndex = queueIndex;
-		queueCreateInfo.queueCount = 1;
 		vkGetDeviceQueue(device, queueIndex, 0, &computeQueue);
 	}
 

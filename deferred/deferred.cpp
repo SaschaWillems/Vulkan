@@ -197,7 +197,6 @@ public:
 	// the offscreen framebuffer
 	void prepareTextureTarget(vkTools::VulkanTexture *target, VkFormat format)
 	{
-		VkFormatProperties formatProperties;
 		VkResult err;
 
 		uint32_t width = TEX_DIM;

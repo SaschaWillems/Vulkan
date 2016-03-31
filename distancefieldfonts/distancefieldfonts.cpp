@@ -354,7 +354,6 @@ public:
 			float te = (charInfo->y + charInfo->height) / w;
 
 			float xo = charInfo->xoffset / 36.0f;
-			float yo = charInfo->yoffset / 36.0f;
 
 			vertexBuffer.push_back({ { posx + dimx + xo,  posy + dimy, 0.0f }, { ue, te } });
 			vertexBuffer.push_back({ { posx + xo,         posy + dimy, 0.0f }, { us, te } });

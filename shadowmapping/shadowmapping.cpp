@@ -1023,7 +1023,6 @@ public:
 	
 		uboVSscene.depthBiasMVP = uboOffscreenVS.depthMVP;
 
-		pData;
 		err = vkMapMemory(device, uniformData.scene.memory, 0, sizeof(uboVSscene), 0, (void **)&pData);
 		assert(!err);
 		memcpy(pData, &uboVSscene, sizeof(uboVSscene));

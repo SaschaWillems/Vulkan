@@ -238,9 +238,6 @@ public:
 		meshList.push_back(demoMeshes.background);
 		meshList.push_back(demoMeshes.models);
 
-		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
-
 		// todo : Use mesh function for loading
 		float scale = 1.0f;
 		for (auto& mesh : meshList)
@@ -277,8 +274,6 @@ public:
 				vertexBuffer.data(),
 				&mesh->vertexBuffer.buf,
 				&mesh->vertexBuffer.mem);
-
-			uint32_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 
 			std::vector<uint32_t> indexBuffer;
 			for (int m = 0; m < mesh->m_Entries.size(); m++)
