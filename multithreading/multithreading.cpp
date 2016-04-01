@@ -88,6 +88,8 @@ public:
 	struct ObjectData {
 		glm::vec3 pos;
 		glm::vec3 rotation;
+		float rotationDir;
+		float rotationSpeed;
 		float deltaT;
 	};
 
@@ -109,10 +111,10 @@ public:
 	{
 		width = 1280;
 		height = 720;
-		zoom = -35.0f;
+		zoom = -16.0f;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
-		rotation = { -16.0f, -32.0f, 0.0f };
+		rotation = { -30.0f, -35.0f, 0.0f };
 		title = "Vulkan Example - Multi threaded rendering";
 		// Get number of max. concurrrent threads
 		// todo : May not work on all compilers (e.g. old GCC versions?)
@@ -121,12 +123,10 @@ public:
 		// todo : test, remove
 		std::cout << "numThreads = " << numThreads << std::endl;
 		srand(time(NULL));
-		//numThreads *= 4; // todo : test
 
 		threadPool.setThreadCount(numThreads);
 
-		// Render 32 animated objects
-		numObjectsPerThread = 32 / numThreads;
+		numObjectsPerThread = 128 / numThreads;
 	}
 
 	~VulkanExample()
@@ -149,6 +149,11 @@ public:
 		}
 	}
 
+	float rnd(float range)
+	{
+		return range * (rand() / double(RAND_MAX));
+	}
+
 	// Create all threads and initialize shader push constants
 	void prepareMultiThreadedRenderer()
 	{
@@ -165,6 +170,10 @@ public:
 		threadData.resize(numThreads);
 
 		createSetupCommandBuffer();
+
+		float maxX = std::floor(std::sqrt(numThreads * numObjectsPerThread));
+		uint32_t posX = 0;
+		uint32_t posZ = 0;
 
 		for (uint32_t i = 0; i < numThreads; i++)
 		{
@@ -227,13 +236,27 @@ public:
 			thread->objectData.resize(numObjectsPerThread);
 
 			float step = 360.0f / (float)(numThreads * numObjectsPerThread);
-			float radius = 20.0f;
 			for (uint32_t j = 0; j < numObjectsPerThread; j++)
 			{
-				thread->objectData[j].pos.x = sin(glm::radians(step * (i * numObjectsPerThread + j))) * radius;
-				thread->objectData[j].pos.z = cos(glm::radians(step * (i * numObjectsPerThread + j))) * radius;
+				float radius = 8.0f + rnd(8.0f) - rnd(4.0f);
+
+				thread->objectData[j].pos.x = (posX - maxX / 2.0f) * 3.0f + rnd(1.5f) - rnd(1.5f);
+				thread->objectData[j].pos.z = (posZ - maxX / 2.0f) * 3.0f + rnd(1.5f) - rnd(1.5f);
+
+				posX += 1.0f;
+				if (posX >= maxX)
+				{
+					posX = 0.0f;
+					posZ += 1.0f;
+				}
+
 				thread->objectData[j].rotation = glm::vec3(0.0f, (float)(rand() % 360), 0.0f);
-				thread->objectData[j].deltaT = (float)i / (float)numThreads;
+				thread->objectData[j].deltaT = rnd(1.0f);
+				thread->objectData[j].rotationDir = (rnd(100.0f) < 50.0f) ? 1.0f : -1.0f;
+				thread->objectData[i].rotationSpeed = (2.0f + rnd(4.0f)) * thread->objectData[i].rotationDir;
+
+				// Random object color
+				thread->pushConstBlock[j].color = glm::vec3(rnd(1.0f), rnd(1.0f), rnd(1.0f));
 			}
 		}
 		
@@ -265,18 +288,20 @@ public:
 		// Update
 		// todo : timebased
 		ObjectData *objectData = &thread->objectData[cmdBufferIndex];
-		objectData->rotation.y += 0.15f;
+		objectData->rotation.y += 0.15f * objectData->rotationSpeed;
 		if (objectData->rotation.y > 360.0f)
+		{
 			objectData->rotation.y -= 360.0f;
+		}
 		objectData->deltaT += 0.0005f;
 		if (objectData->deltaT > 1.0f)
 			objectData->deltaT -= 1.0f;
 		objectData->pos.y = sin(glm::radians(objectData->deltaT * 360.0f)) * 1.5f;
 
 		glm::mat4 model = glm::translate(glm::mat4(), objectData->pos);
-		model = glm::rotate(model, -sinf(glm::radians(objectData->deltaT * 360.0f)) * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(objectData->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(objectData->deltaT * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, -sinf(glm::radians(objectData->deltaT * 360.0f)) * 0.25f, glm::vec3(objectData->rotationDir, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(objectData->rotation.y), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
+		model = glm::rotate(model, glm::radians(objectData->deltaT * 360.0f), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
 
 		thread->pushConstBlock[cmdBufferIndex].mvp = matrices.projection * matrices.view * model;
 
@@ -396,7 +421,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/retroufo_red.X", &meshes.ufo, vertexLayout, 0.25f);
+		loadMesh("./../data/models/retroufo_red.X", &meshes.ufo, vertexLayout, 0.12f);
 	}
 
 	void setupVertexDescriptions()
