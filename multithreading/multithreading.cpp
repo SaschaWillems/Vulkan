@@ -21,6 +21,8 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 
+#include "threadpool.hpp"
+
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
@@ -46,12 +48,11 @@ public:
 		vkMeshLoader::MeshBuffer ufo;
 	} meshes;
 
-	struct UBO {
+	// Shared matrices used for thread push constant blocks
+	struct {
 		glm::mat4 projection;
 		glm::mat4 view;
-		glm::mat4 model;
-		glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	};
+	} matrices;
 
 	struct {
 		VkPipeline phong;
@@ -61,6 +62,12 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
+	VkCommandBuffer primaryCommandBuffer;
+
+	// Number of animated objects to be renderer
+	// by using threads and secondary command buffers
+	uint32_t numObjectsPerThread;
+
 	// Multi threaded stuff
 	// Max. number of concurrent threads
 	uint32_t numThreads;
@@ -68,7 +75,7 @@ public:
 	// Use push constants to update shader
 	// parameters on a per-thread base
 	struct ThreadPushConstantBlock {
-		glm::mat4 model;
+		glm::mat4 mvp;
 		glm::vec3 color;
 	};
 
@@ -76,38 +83,29 @@ public:
 		glm::vec3 pos;
 		glm::vec3 rotation;
 		float deltaT;
-		vkMeshLoader::MeshBuffer *meshBuffer;
+		vkMeshLoader::MeshBufferInfo vertices;
+		vkMeshLoader::MeshBufferInfo indices;
+		uint32_t indexCount;
 	};
 
-	struct RenderThread {
-		uint32_t index;
-		std::thread thread;
-		ThreadPushConstantBlock pushConstantBlock;
+	struct ThreadData {
 		MeshData meshData;
-		// Vulkan objects
-		VkCommandPool cmdPool;
-		std::vector<VkCommandBuffer> cmdBuffers;
-		VkViewport viewport;
-		VkRect2D scissor;
-		VkDevice device;
-		std::vector<VkCommandBufferInheritanceInfo> inheritanceInfo;
-		// todo : maybe move to mesh data if using different meshes per thread
-		VkPipeline pipeline;
-		VkPipelineLayout pipelineLayout;
-		VkDescriptorSet descriptorSet;
-		UBO ubo;
-		vkTools::UniformData uniformData;
+		VkCommandPool commandPool;
+		std::vector<VkCommandBuffer> commandBuffer;
+		ThreadPushConstantBlock pushConstBlock;
 	};
-	std::vector<RenderThread> renderThreads;
+	std::vector<ThreadData> threadData;
+
+	vkTools::ThreadPool threadPool;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		width = 1280;
 		height = 720;
-		zoom = -20.0f;
+		zoom = -35.0f;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
-		rotation = { 0.0f, 0.0f, 0.0f };
+		rotation = { -16.0f, -32.0f, 0.0f };
 		title = "Vulkan Example - Multi threaded rendering";
 		// Get number of max. concurrrent threads
 		// todo : May not work on all compilers (e.g. old GCC versions?)
@@ -116,7 +114,12 @@ public:
 		// todo : test, remove
 		std::cout << "numThreads = " << numThreads << std::endl;
 		srand(time(NULL));
-		numThreads *= 4; // todo : test
+		//numThreads *= 4; // todo : test
+
+		threadPool.setThreadCount(numThreads);
+
+		// Render 32 animated objects
+		numObjectsPerThread = 32 / numThreads;
 	}
 
 	~VulkanExample()
@@ -128,21 +131,127 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
+		vkFreeCommandBuffers(device, cmdPool, 1, &primaryCommandBuffer);
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.ufo);
 
-		for (auto& thread : renderThreads)
+		for (auto& thread : threadData)
 		{
-			vkFreeCommandBuffers(device, thread.cmdPool, thread.cmdBuffers.size(), thread.cmdBuffers.data());
-			vkDestroyCommandPool(device, thread.cmdPool, nullptr);
-			vkTools::destroyUniformData(device, &thread.uniformData);
+			vkFreeCommandBuffers(device, thread.commandPool, thread.commandBuffer.size(), thread.commandBuffer.data());
+			vkDestroyCommandPool(device, thread.commandPool, nullptr);
 		}
 	}
 
-	// Update thread's uniform buffer
-	static void threadUpdate(RenderThread *thread)
+	// Create all threads and initialize shader push constants
+	void prepareMultiThreadedRenderer()
 	{
+		// Since this demo updates the command buffers on each frame
+		// we don't use the per-framebuffer command buffers from the
+		// base class, and create a single primary command buffer instead
+		VkCommandBufferAllocateInfo primaryAllocateInfo =
+			vkTools::initializers::commandBufferAllocateInfo(
+				cmdPool,
+				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				1);
+		vkTools::checkResult(vkAllocateCommandBuffers(device, &primaryAllocateInfo, &primaryCommandBuffer));
+
+		threadData.resize(numThreads);
+
+		createSetupCommandBuffer();
+
+		for (uint32_t i = 0; i < numThreads; i++)
+		{
+			ThreadData *thread = &threadData[i];
+			
+
+			// Create one command pool for each thread
+			VkCommandPoolCreateInfo cmdPoolInfo = vkTools::initializers::commandPoolCreateInfo();
+			cmdPoolInfo.queueFamilyIndex = swapChain.queueNodeIndex;
+			cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+			vkTools::checkResult(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &thread->commandPool));
+
+			// One secondary command buffer per object that is updated by this thread
+			thread->commandBuffer.resize(numObjectsPerThread);
+			// Generate secondary command buffers for each thread
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo =
+				vkTools::initializers::commandBufferAllocateInfo(
+					thread->commandPool,
+					VK_COMMAND_BUFFER_LEVEL_SECONDARY,
+					thread->commandBuffer.size());
+			vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, thread->commandBuffer.data()));
+
+			// Unique vertex and index buffers per thread
+
+			createBuffer(
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				meshes.ufo.vertices.size,
+				nullptr,
+				&thread->meshData.vertices.buf,
+				&thread->meshData.vertices.mem);
+			createBuffer(
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				meshes.ufo.indices.size,
+				nullptr,
+				&thread->meshData.indices.buf,
+				&thread->meshData.indices.mem);
+
+			// Copy from mesh buffer
+			VkBufferCopy copyRegion = {};
+
+			// Vertex buffer
+			copyRegion.size = meshes.ufo.vertices.size;
+			vkCmdCopyBuffer(
+				setupCmdBuffer,
+				meshes.ufo.vertices.buf,
+				thread->meshData.vertices.buf,
+				1,
+				&copyRegion);
+			// Index buffer
+			copyRegion.size = meshes.ufo.indices.size;
+			vkCmdCopyBuffer(
+				setupCmdBuffer,
+				meshes.ufo.indices.buf,
+				thread->meshData.indices.buf,
+				1,
+				&copyRegion);
+
+			thread->meshData.indexCount = meshes.ufo.indexCount;
+
+			float step = 360.0f / (float)numThreads;
+			float radius = 20.0f;
+			thread->meshData.pos.x = sin(glm::radians(step * i)) * radius;
+			thread->meshData.pos.z = cos(glm::radians(step * i)) * radius;
+			thread->meshData.rotation = glm::vec3(0.0f, (float)(rand() % 360), 0.0f);
+			thread->meshData.deltaT = (float)(rand() % 255) / 255.0f;
+		}
+		
+		// Submit buffer copies to the queue
+		flushSetupCommandBuffer();
+		// todo : fence?
+	}
+
+	// Builds the secondary command buffer for each thread
+	void threadRenderCode(uint32_t threadIndex, uint32_t cmdBufferIndex, VkCommandBufferInheritanceInfo inheritanceInfo)
+	{
+		VkCommandBufferBeginInfo commandBufferBeginInfo = vkTools::initializers::commandBufferBeginInfo();
+		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+
+		ThreadData *thread = &threadData[threadIndex];
+		VkCommandBuffer cmdBuffer = thread->commandBuffer[cmdBufferIndex];
+
+		vkTools::checkResult(vkBeginCommandBuffer(cmdBuffer, &commandBufferBeginInfo));
+
+		VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
+
 		// Update
+		// todo : timebased
 		thread->meshData.rotation.y += 0.15f;
 		if (thread->meshData.rotation.y > 360.0f)
 			thread->meshData.rotation.y -= 360.0f;
@@ -151,170 +260,32 @@ public:
 			thread->meshData.deltaT -= 1.0f;
 		thread->meshData.pos.y = sin(glm::radians(thread->meshData.deltaT * 360.0f)) * 1.5f;
 
-		thread->ubo.model = glm::translate(glm::mat4(), thread->meshData.pos);
-		thread->ubo.model = glm::rotate(thread->ubo.model, -sinf(glm::radians(thread->meshData.deltaT * 360.0f)) * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
-		thread->ubo.model = glm::rotate(thread->ubo.model, glm::radians(thread->meshData.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		thread->ubo.model = glm::rotate(thread->ubo.model, glm::radians(thread->meshData.deltaT * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 model = glm::translate(glm::mat4(), thread->meshData.pos);
+		model = glm::rotate(model, -sinf(glm::radians(thread->meshData.deltaT * 360.0f)) * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(thread->meshData.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(thread->meshData.deltaT * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-		uint8_t *pData;
-		VkResult err = vkMapMemory(thread->device, thread->uniformData.memory, 0, sizeof(UBO), 0, (void **)&pData);
-		assert(!err);
-		memcpy(pData, &thread->ubo, sizeof(UBO));
-		vkUnmapMemory(thread->device, thread->uniformData.memory);
+		thread->pushConstBlock.mvp = matrices.projection * matrices.view * model;
+
+		// Update shader push constant block
+		// Contains model view matrix
+		vkCmdPushConstants(
+			cmdBuffer,
+			pipelineLayout,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			0,
+			sizeof(ThreadPushConstantBlock),
+			&thread->pushConstBlock);
+
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &thread->meshData.vertices.buf, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, thread->meshData.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmdBuffer, thread->meshData.indexCount, 1, 0, 0, 0);
+
+		vkTools::checkResult(vkEndCommandBuffer(cmdBuffer));
 	}
 
-	// Update command buffer
-	static void threadSetup(RenderThread *thread)
-	{
-		// Push constant block
-		// Color
-		// todo : randomize
-		thread->pushConstantBlock.color = glm::vec3(1.0f, 1.0f, 1.0f);
-		// Model matrix
-		glm::mat4 modelMat = glm::translate(glm::mat4(), thread->meshData.pos);
-		modelMat = glm::rotate(modelMat, -sinf(glm::radians(thread->meshData.deltaT * 360.0f)) * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
-		modelMat = glm::rotate(modelMat, glm::radians(thread->meshData.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		modelMat = glm::rotate(modelMat, glm::radians(thread->meshData.deltaT * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		thread->pushConstantBlock.model = modelMat;
-
-		// Fill command buffers
-		for (uint32_t i = 0; i < thread->cmdBuffers.size(); ++i)
-		{
-			VkCommandBufferBeginInfo beginInfo = vkTools::initializers::commandBufferBeginInfo();
-			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-			beginInfo.pInheritanceInfo = &thread->inheritanceInfo[i];
-
-			vkBeginCommandBuffer(thread->cmdBuffers[i], &beginInfo);
-
-			vkCmdSetViewport(thread->cmdBuffers[i], 0, 1, &thread->viewport);
-			vkCmdSetScissor(thread->cmdBuffers[i], 0, 1, &thread->scissor);
-
-			// Update shader push constant block
-			// Contains model view matrix
-			vkCmdPushConstants(
-				thread->cmdBuffers[i],
-				thread->pipelineLayout,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0,
-				sizeof(ThreadPushConstantBlock),
-				&thread->pushConstantBlock);
-
-			vkCmdBindPipeline(thread->cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, thread->pipeline);
-			vkCmdBindDescriptorSets(thread->cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, thread->pipelineLayout, 0, 1, &thread->descriptorSet, 0, NULL);
-
-			// Render mesh
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(thread->cmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &thread->meshData.meshBuffer->vertices.buf, offsets);
-			vkCmdBindIndexBuffer(thread->cmdBuffers[i], thread->meshData.meshBuffer->indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(thread->cmdBuffers[i], thread->meshData.meshBuffer->indexCount, 1, 0, 0, 0);
-
-			vkEndCommandBuffer(thread->cmdBuffers[i]);
-		}
-	}
-
-	// Create all threads and initialize shader push constants
-	void prepareMultiThreadedRenderer()
-	{
-		VkResult err;
-
-		renderThreads.resize(numThreads);
-		uint32_t index = 0;
-		for (auto& thread : renderThreads)
-		{
-			thread.index = index;
-
-			// Create command pool
-			VkCommandPoolCreateInfo cmdPoolInfo = vkTools::initializers::commandPoolCreateInfo();
-			cmdPoolInfo.queueFamilyIndex = swapChain.queueNodeIndex;
-			cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-			err = vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &thread.cmdPool);
-			assert(!err);
-
-			// Create command buffers
-			// Use secondary level command buffers
-			thread.cmdBuffers.resize(swapChain.imageCount);
-			VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-				vkTools::initializers::commandBufferAllocateInfo(
-					thread.cmdPool,
-					VK_COMMAND_BUFFER_LEVEL_SECONDARY,
-					(uint32_t)thread.cmdBuffers.size());
-
-			err = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, thread.cmdBuffers.data());
-			assert(!err);
-
-			// Vulkan objects
-			thread.device = device;
-
-			// todo...
-			thread.viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			thread.viewport.width = (float)width / (float)numThreads;
-			thread.viewport.height = (float)height;
-			thread.viewport.x = thread.viewport.width * thread.index;
-
-			thread.scissor = vkTools::initializers::rect2D(width, height, 0, 0);
-			thread.pipeline = pipelines.phong;
-			thread.pipelineLayout = pipelineLayout;
-			// Inheritance info for secondary command buffers
-			for (uint32_t i = 0; i < thread.cmdBuffers.size(); ++i)
-			{
-				VkCommandBufferInheritanceInfo inheritanceInfo = vkTools::initializers::commandBufferInheritanceInfo();
-				inheritanceInfo.renderPass = renderPass;
-				inheritanceInfo.framebuffer = frameBuffers[i];
-				thread.inheritanceInfo.push_back(inheritanceInfo);
-			}
-
-			// Separate vertex shader uniform buffer block for each thread
-			createBuffer(
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				sizeof(UBO),
-				&thread.ubo,
-				&thread.uniformData.buffer,
-				&thread.uniformData.memory,
-				&thread.uniformData.descriptor);
-
-			// Descriptor set
-			VkDescriptorSetAllocateInfo allocInfo =
-				vkTools::initializers::descriptorSetAllocateInfo(
-					descriptorPool,
-					&descriptorSetLayout,
-					1);
-
-			VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &thread.descriptorSet);
-			assert(!vkRes);
-
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-			{
-				// Binding 0 : Vertex shader uniform buffer
-				vkTools::initializers::writeDescriptorSet(
-					thread.descriptorSet,
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-					0,
-					&thread.uniformData.descriptor)
-			};
-
-			vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
-
-			// Initialize mesh data
-			thread.meshData.pos = glm::vec3(0.0f, 0.0f, 0.0f);
-//			thread.meshData.pos = glm::vec3((float)index * 4.0f - (float)(numThreads - 1) * 2.0f, 0.0f, 0.0f);
-			thread.meshData.rotation = glm::vec3(0.0f, (float)(rand() % 360), 0.0f);
-			thread.meshData.deltaT = (float)(rand() % 255) / 255.0f;
-			// todo : different models (and multiple meshes) per thread
-			thread.meshData.meshBuffer = &meshes.ufo;
-
-			// Create thread
-			thread.thread = std::thread(VulkanExample::threadSetup, &thread);
-
-			index++;
-		}
-
-		for (auto& thread : renderThreads)
-		{
-			thread.thread.join();
-		}
-	}
-
-	void buildCommandBuffers()
+	void updateCommandBuffers(VkFramebuffer frameBuffer)
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
@@ -331,80 +302,76 @@ public:
 		renderPassBeginInfo.renderArea.extent.height = height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffer;
 
-		VkResult err;
+		// Set target frame buffer
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		vkTools::checkResult(vkBeginCommandBuffer(primaryCommandBuffer, &cmdBufInfo));
+
+		// The primary command buffer does not contain any rendering commands
+		// These are stored (and retrieved) from the secondary command buffers
+		vkCmdBeginRenderPass(primaryCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+
+		std::vector<VkCommandBuffer> commandBuffers;
+
+		// Inheritance info for the secondary command buffers
+		VkCommandBufferInheritanceInfo inheritanceInfo = vkTools::initializers::commandBufferInheritanceInfo();
+		inheritanceInfo.renderPass = renderPass;
+		// Secondary command buffer also use the currently active framebuffer
+		inheritanceInfo.framebuffer = frameBuffer;
+
+		for (uint32_t t = 0; t < numThreads; t++)
 		{
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
-
-			// The primary command buffer does not contain any rendering commands
-			// These are stored (and retrieved) from the secondary command buffers
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-
-			// Execute secondary command buffers
-			for (auto& renderThread : renderThreads)
-			{
-				// todo : Make sure threads are finished before accessing their command buffers
-				vkCmdExecuteCommands(drawCmdBuffers[i], 1, &renderThread.cmdBuffers[i]);
-			}
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			threadPool.threads[t]->addJob([=] { threadRenderCode(t, 0, inheritanceInfo); });
+			commandBuffers.push_back(threadData[t].commandBuffer[0]);
 		}
+			
+		threadPool.wait();
+
+		// Execute render commands from the secondary command buffer
+		vkCmdExecuteCommands(primaryCommandBuffer, commandBuffers.size(), commandBuffers.data());
+
+		vkCmdEndRenderPass(primaryCommandBuffer);
+
+		vkTools::checkResult(vkEndCommandBuffer(primaryCommandBuffer));
 	}
 
 	void draw()
 	{
-		if (!paused)
-		{
-			updateUniformBuffers();
-		}
-
-		VkResult err;
-
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
+		vkTools::checkResult(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		updateCommandBuffers(frameBuffers[currentBuffer]);
 
-		// Put a fence in here
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &primaryCommandBuffer;
+
+		// Setup a wait fence
 		// todo : reuse
 		VkFence renderFence = {};
 		VkFenceCreateInfo fenceCreateInfo = vkTools::initializers::fenceCreateInfo(VK_FLAGS_NONE);
 		vkCreateFence(device, &fenceCreateInfo, NULL, &renderFence);
 
-		// Submit draw command buffer
-		err = vkQueueSubmit(queue, 1, &submitInfo, renderFence);
-		assert(!err);
+		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, renderFence));
 
 		// Wait for fence to signal that all command buffers are ready
+		VkResult fenceRes;
 		do 
 		{
-			err = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
-		} while (err == VK_TIMEOUT);
-		assert(!err);
+			// todo : timeout as define
+			fenceRes = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
+		} while (fenceRes == VK_TIMEOUT);
+		vkTools::checkResult(fenceRes);
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
+		vkTools::checkResult(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 
 		vkDestroyFence(device, renderFence, nullptr);
 
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
+		vkTools::checkResult(vkQueueWaitIdle(queue));
 	}
 
 	void loadMeshes()
@@ -458,17 +425,31 @@ public:
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 + numThreads)
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3)
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
 				poolSizes.size(),
 				poolSizes.data(),
-				3 + numThreads);
+				3);
 
 		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
 		assert(!vkRes);
+	}
+
+	void setupDescriptorSet()
+	{
+		// todo :
+		VkDescriptorSetAllocateInfo allocInfo =
+			vkTools::initializers::descriptorSetAllocateInfo(
+				descriptorPool,
+				&descriptorSetLayout,
+				1);
+
+		vkTools::checkResult(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+
+		vkUpdateDescriptorSets(device, 0, nullptr, 0, nullptr);
 	}
 
 	void setupDescriptorSetLayout()
@@ -499,7 +480,7 @@ public:
 		VkPushConstantRange pushConstantRange =
 			vkTools::initializers::pushConstantRange(
 				VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
-				sizeof(glm::mat4),
+				sizeof(ThreadPushConstantBlock),
 				0);
 
 		// Push constant ranges are part of the pipeline layout
@@ -587,27 +568,13 @@ public:
 		assert(!err);
 	}
 
-	void updateUniformBuffers()
+	void updateMatrices()
 	{
-		glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-
-		glm::mat4 view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		for (auto& thread : renderThreads)
-		{
-			//thread.ubo.projection = projection;
-			thread.ubo.projection = glm::perspective(glm::radians(60.0f), (float)thread.viewport.width / (float)thread.viewport.height, 0.1f, 256.0f);
-			thread.ubo.view = view;
-			thread.thread = std::thread(VulkanExample::threadUpdate, &thread);
-		}
-
-		for (auto& thread : renderThreads)
-		{
-			thread.thread.join();
-		}
+		matrices.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		matrices.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 
 	void prepare()
@@ -618,9 +585,9 @@ public:
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
+		setupDescriptorSet();
 		prepareMultiThreadedRenderer();
-		updateUniformBuffers();
-		buildCommandBuffers();
+		updateMatrices();
 		prepared = true;
 	}
 
@@ -635,18 +602,13 @@ public:
 
 	virtual void viewChanged()
 	{
-		if (paused)
-		{
-
-			updateUniformBuffers();
-		}
+		updateMatrices();
 	}
 };
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -655,9 +617,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -667,21 +627,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
 	delete(vulkanExample);
+#if !defined(__ANDROID__)
 	return 0;
+#endif
 }
