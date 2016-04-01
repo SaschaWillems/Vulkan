@@ -79,20 +79,27 @@ public:
 		glm::vec3 color;
 	};
 
-	struct MeshData {
-		glm::vec3 pos;
-		glm::vec3 rotation;
-		float deltaT;
+	struct MeshBuffer {
 		vkMeshLoader::MeshBufferInfo vertices;
 		vkMeshLoader::MeshBufferInfo indices;
 		uint32_t indexCount;
 	};
 
+	struct ObjectData {
+		glm::vec3 pos;
+		glm::vec3 rotation;
+		float deltaT;
+	};
+
 	struct ThreadData {
-		MeshData meshData;
+		MeshBuffer mesh;
 		VkCommandPool commandPool;
+		// One command buffer per render object
 		std::vector<VkCommandBuffer> commandBuffer;
-		ThreadPushConstantBlock pushConstBlock;
+		// One push constant block per render object
+		std::vector<ThreadPushConstantBlock> pushConstBlock;
+		// Per object information (position, rotation, etc.)
+		std::vector<ObjectData> objectData;
 	};
 	std::vector<ThreadData> threadData;
 
@@ -163,7 +170,6 @@ public:
 		{
 			ThreadData *thread = &threadData[i];
 			
-
 			// Create one command pool for each thread
 			VkCommandPoolCreateInfo cmdPoolInfo = vkTools::initializers::commandPoolCreateInfo();
 			cmdPoolInfo.queueFamilyIndex = swapChain.queueNodeIndex;
@@ -186,14 +192,14 @@ public:
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				meshes.ufo.vertices.size,
 				nullptr,
-				&thread->meshData.vertices.buf,
-				&thread->meshData.vertices.mem);
+				&thread->mesh.vertices.buf,
+				&thread->mesh.vertices.mem);
 			createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				meshes.ufo.indices.size,
 				nullptr,
-				&thread->meshData.indices.buf,
-				&thread->meshData.indices.mem);
+				&thread->mesh.indices.buf,
+				&thread->mesh.indices.mem);
 
 			// Copy from mesh buffer
 			VkBufferCopy copyRegion = {};
@@ -203,7 +209,7 @@ public:
 			vkCmdCopyBuffer(
 				setupCmdBuffer,
 				meshes.ufo.vertices.buf,
-				thread->meshData.vertices.buf,
+				thread->mesh.vertices.buf,
 				1,
 				&copyRegion);
 			// Index buffer
@@ -211,18 +217,24 @@ public:
 			vkCmdCopyBuffer(
 				setupCmdBuffer,
 				meshes.ufo.indices.buf,
-				thread->meshData.indices.buf,
+				thread->mesh.indices.buf,
 				1,
 				&copyRegion);
 
-			thread->meshData.indexCount = meshes.ufo.indexCount;
+			thread->mesh.indexCount = meshes.ufo.indexCount;
 
-			float step = 360.0f / (float)numThreads;
+			thread->pushConstBlock.resize(numObjectsPerThread);
+			thread->objectData.resize(numObjectsPerThread);
+
+			float step = 360.0f / (float)(numThreads * numObjectsPerThread);
 			float radius = 20.0f;
-			thread->meshData.pos.x = sin(glm::radians(step * i)) * radius;
-			thread->meshData.pos.z = cos(glm::radians(step * i)) * radius;
-			thread->meshData.rotation = glm::vec3(0.0f, (float)(rand() % 360), 0.0f);
-			thread->meshData.deltaT = (float)(rand() % 255) / 255.0f;
+			for (uint32_t j = 0; j < numObjectsPerThread; j++)
+			{
+				thread->objectData[j].pos.x = sin(glm::radians(step * (i * numObjectsPerThread + j))) * radius;
+				thread->objectData[j].pos.z = cos(glm::radians(step * (i * numObjectsPerThread + j))) * radius;
+				thread->objectData[j].rotation = glm::vec3(0.0f, (float)(rand() % 360), 0.0f);
+				thread->objectData[j].deltaT = (float)i / (float)numThreads;
+			}
 		}
 		
 		// Submit buffer copies to the queue
@@ -252,20 +264,21 @@ public:
 
 		// Update
 		// todo : timebased
-		thread->meshData.rotation.y += 0.15f;
-		if (thread->meshData.rotation.y > 360.0f)
-			thread->meshData.rotation.y -= 360.0f;
-		thread->meshData.deltaT += 0.0005f;
-		if (thread->meshData.deltaT > 1.0f)
-			thread->meshData.deltaT -= 1.0f;
-		thread->meshData.pos.y = sin(glm::radians(thread->meshData.deltaT * 360.0f)) * 1.5f;
+		ObjectData *objectData = &thread->objectData[cmdBufferIndex];
+		objectData->rotation.y += 0.15f;
+		if (objectData->rotation.y > 360.0f)
+			objectData->rotation.y -= 360.0f;
+		objectData->deltaT += 0.0005f;
+		if (objectData->deltaT > 1.0f)
+			objectData->deltaT -= 1.0f;
+		objectData->pos.y = sin(glm::radians(objectData->deltaT * 360.0f)) * 1.5f;
 
-		glm::mat4 model = glm::translate(glm::mat4(), thread->meshData.pos);
-		model = glm::rotate(model, -sinf(glm::radians(thread->meshData.deltaT * 360.0f)) * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(thread->meshData.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(thread->meshData.deltaT * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 model = glm::translate(glm::mat4(), objectData->pos);
+		model = glm::rotate(model, -sinf(glm::radians(objectData->deltaT * 360.0f)) * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(objectData->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(objectData->deltaT * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-		thread->pushConstBlock.mvp = matrices.projection * matrices.view * model;
+		thread->pushConstBlock[cmdBufferIndex].mvp = matrices.projection * matrices.view * model;
 
 		// Update shader push constant block
 		// Contains model view matrix
@@ -275,16 +288,19 @@ public:
 			VK_SHADER_STAGE_VERTEX_BIT,
 			0,
 			sizeof(ThreadPushConstantBlock),
-			&thread->pushConstBlock);
+			&thread->pushConstBlock[cmdBufferIndex]);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &thread->meshData.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(cmdBuffer, thread->meshData.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmdBuffer, thread->meshData.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &thread->mesh.vertices.buf, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, thread->mesh.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmdBuffer, thread->mesh.indexCount, 1, 0, 0, 0);
 
 		vkTools::checkResult(vkEndCommandBuffer(cmdBuffer));
 	}
 
+	// Updates the secondary command buffers using a thread pool 
+	// and puts them into the primary command buffer that's 
+	// lat submitted to the queue for rendering
 	void updateCommandBuffers(VkFramebuffer frameBuffer)
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
@@ -322,8 +338,12 @@ public:
 
 		for (uint32_t t = 0; t < numThreads; t++)
 		{
-			threadPool.threads[t]->addJob([=] { threadRenderCode(t, 0, inheritanceInfo); });
-			commandBuffers.push_back(threadData[t].commandBuffer[0]);
+			// Add a job to the thread's queue for each object to be rendered
+			for (uint32_t i = 0; i < numObjectsPerThread; i++)
+			{
+				threadPool.threads[t]->addJob([=] { threadRenderCode(t, i, inheritanceInfo); });
+				commandBuffers.push_back(threadData[t].commandBuffer[i]);
+			}
 		}
 			
 		threadPool.wait();
