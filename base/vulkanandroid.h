@@ -23,6 +23,17 @@
 #if defined(__ANDROID__)
 
 #include <android/log.h>
+#include <memory>
+
+// Missing from the NDK
+namespace std
+{
+	template<typename T, typename... Args>
+	std::unique_ptr<T> make_unique(Args&&... args)
+	{
+		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+	}
+}
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vulkanExample", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vulkanExample", __VA_ARGS__))
@@ -67,6 +78,7 @@ extern PFN_vkFreeMemory vkFreeMemory;
 extern PFN_vkCreateRenderPass vkCreateRenderPass;
 extern PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass;
 extern PFN_vkCmdEndRenderPass vkCmdEndRenderPass;
+extern PFN_vkCmdExecuteCommands vkCmdExecuteCommands;
 extern PFN_vkCreateImage vkCreateImage;
 extern PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements;
 extern PFN_vkCreateImageView vkCreateImageView;
