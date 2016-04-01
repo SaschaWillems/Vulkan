@@ -21,7 +21,15 @@ layout (location = 4) out vec3 outLightVec;
 void main() 
 {
 	outNormal = inNormal;
-	outColor = inColor;// * pushConsts.color;
+
+	if ( (inColor.r == 1.0) && (inColor.g == 0.0) && (inColor.b == 0.0))
+	{	
+		outColor = pushConsts.color;
+	}
+	else
+	{
+		outColor = inColor;
+	}
 	
 	gl_Position = pushConsts.mvp * vec4(inPos.xyz, 1.0);
 	

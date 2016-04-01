@@ -46,6 +46,7 @@ public:
 
 	struct {
 		vkMeshLoader::MeshBuffer ufo;
+		vkMeshLoader::MeshBuffer skysphere;
 	} meshes;
 
 	// Shared matrices used for thread push constant blocks
@@ -56,6 +57,7 @@ public:
 
 	struct {
 		VkPipeline phong;
+		VkPipeline starsphere;
 	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
@@ -63,6 +65,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 
 	VkCommandBuffer primaryCommandBuffer;
+	VkCommandBuffer secondaryCommandBuffer;
 
 	// Number of animated objects to be renderer
 	// by using threads and secondary command buffers
@@ -86,10 +89,12 @@ public:
 	};
 
 	struct ObjectData {
+		glm::mat4 model;
 		glm::vec3 pos;
 		glm::vec3 rotation;
 		float rotationDir;
 		float rotationSpeed;
+		float scale;
 		float deltaT;
 	};
 
@@ -120,8 +125,11 @@ public:
 		// todo : May not work on all compilers (e.g. old GCC versions?)
 		numThreads = std::thread::hardware_concurrency();
 		assert(numThreads > 0);
-		// todo : test, remove
+#if defined(__ANDROID__)
+		LOGD("numThreads = %d", numThreads);
+#else
 		std::cout << "numThreads = " << numThreads << std::endl;
+#endif
 		srand(time(NULL));
 
 		threadPool.setThreadCount(numThreads);
@@ -134,13 +142,16 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.phong, nullptr);
+		vkDestroyPipeline(device, pipelines.starsphere, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &primaryCommandBuffer);
+		vkFreeCommandBuffers(device, cmdPool, 1, &secondaryCommandBuffer);
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.ufo);
+		vkMeshLoader::freeMeshBufferResources(device, &meshes.skysphere);
 
 		for (auto& thread : threadData)
 		{
@@ -157,16 +168,22 @@ public:
 	// Create all threads and initialize shader push constants
 	void prepareMultiThreadedRenderer()
 	{
+		// todo : separate func
+
 		// Since this demo updates the command buffers on each frame
 		// we don't use the per-framebuffer command buffers from the
 		// base class, and create a single primary command buffer instead
-		VkCommandBufferAllocateInfo primaryAllocateInfo =
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 			vkTools::initializers::commandBufferAllocateInfo(
 				cmdPool,
 				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				1);
-		vkTools::checkResult(vkAllocateCommandBuffers(device, &primaryAllocateInfo, &primaryCommandBuffer));
+		vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &primaryCommandBuffer));
 
+		// Create a secondary command buffer for rendering the star sphere
+		cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+		vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffer));
+		
 		threadData.resize(numThreads);
 
 		createSetupCommandBuffer();
@@ -188,12 +205,12 @@ public:
 			// One secondary command buffer per object that is updated by this thread
 			thread->commandBuffer.resize(numObjectsPerThread);
 			// Generate secondary command buffers for each thread
-			VkCommandBufferAllocateInfo cmdBufAllocateInfo =
+			VkCommandBufferAllocateInfo secondaryCmdBufAllocateInfo =
 				vkTools::initializers::commandBufferAllocateInfo(
 					thread->commandPool,
 					VK_COMMAND_BUFFER_LEVEL_SECONDARY,
 					thread->commandBuffer.size());
-			vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, thread->commandBuffer.data()));
+			vkTools::checkResult(vkAllocateCommandBuffers(device, &secondaryCmdBufAllocateInfo, thread->commandBuffer.data()));
 
 			// Unique vertex and index buffers per thread
 
@@ -250,12 +267,12 @@ public:
 					posZ += 1.0f;
 				}
 
-				thread->objectData[j].rotation = glm::vec3(0.0f, (float)(rand() % 360), 0.0f);
+				thread->objectData[j].rotation = glm::vec3(0.0f, rnd(360.0f), 0.0f);
 				thread->objectData[j].deltaT = rnd(1.0f);
 				thread->objectData[j].rotationDir = (rnd(100.0f) < 50.0f) ? 1.0f : -1.0f;
-				thread->objectData[i].rotationSpeed = (2.0f + rnd(4.0f)) * thread->objectData[i].rotationDir;
+				thread->objectData[j].rotationSpeed = (2.0f + rnd(4.0f)) * thread->objectData[i].rotationDir;
+				thread->objectData[j].scale = 0.75f + rnd(0.5f);
 
-				// Random object color
 				thread->pushConstBlock[j].color = glm::vec3(rnd(1.0f), rnd(1.0f), rnd(1.0f));
 			}
 		}
@@ -293,17 +310,18 @@ public:
 		{
 			objectData->rotation.y -= 360.0f;
 		}
-		objectData->deltaT += 0.0005f;
+		objectData->deltaT += 0.0015f;
 		if (objectData->deltaT > 1.0f)
 			objectData->deltaT -= 1.0f;
 		objectData->pos.y = sin(glm::radians(objectData->deltaT * 360.0f)) * 1.5f;
 
-		glm::mat4 model = glm::translate(glm::mat4(), objectData->pos);
-		model = glm::rotate(model, -sinf(glm::radians(objectData->deltaT * 360.0f)) * 0.25f, glm::vec3(objectData->rotationDir, 0.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(objectData->rotation.y), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
-		model = glm::rotate(model, glm::radians(objectData->deltaT * 360.0f), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
+		objectData->model = glm::translate(glm::mat4(), objectData->pos);
+		objectData->model = glm::rotate(objectData->model, -sinf(glm::radians(objectData->deltaT * 360.0f)) * 0.25f, glm::vec3(objectData->rotationDir, 0.0f, 0.0f));
+		objectData->model = glm::rotate(objectData->model, glm::radians(objectData->rotation.y), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
+		objectData->model = glm::rotate(objectData->model, glm::radians(objectData->deltaT * 360.0f), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
+		objectData->model = glm::scale(objectData->model, glm::vec3(objectData->scale));
 
-		thread->pushConstBlock[cmdBufferIndex].mvp = matrices.projection * matrices.view * model;
+		thread->pushConstBlock[cmdBufferIndex].mvp = matrices.projection * matrices.view * objectData->model;
 
 		// Update shader push constant block
 		// Contains model view matrix
@@ -321,6 +339,47 @@ public:
 		vkCmdDrawIndexed(cmdBuffer, thread->mesh.indexCount, 1, 0, 0, 0);
 
 		vkTools::checkResult(vkEndCommandBuffer(cmdBuffer));
+	}
+
+	void updateSecondaryCommandBuffer(VkCommandBufferInheritanceInfo inheritanceInfo)
+	{
+		// Secondary command buffer for the sky sphere
+		VkCommandBufferBeginInfo commandBufferBeginInfo = vkTools::initializers::commandBufferBeginInfo();
+		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+
+		vkTools::checkResult(vkBeginCommandBuffer(secondaryCommandBuffer, &commandBufferBeginInfo));
+
+		VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(secondaryCommandBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(secondaryCommandBuffer, 0, 1, &scissor);
+
+		vkCmdBindPipeline(secondaryCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
+
+
+		glm::mat4 view = glm::mat4();
+		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+		glm::mat4 mvp = matrices.projection * view;
+
+		vkCmdPushConstants(
+			secondaryCommandBuffer,
+			pipelineLayout,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			0,
+			sizeof(mvp),
+			&mvp);
+
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(secondaryCommandBuffer, 0, 1, &meshes.skysphere.vertices.buf, offsets);
+		vkCmdBindIndexBuffer(secondaryCommandBuffer, meshes.skysphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(secondaryCommandBuffer, meshes.skysphere.indexCount, 1, 0, 0, 0);
+
+		vkTools::checkResult(vkEndCommandBuffer(secondaryCommandBuffer));
 	}
 
 	// Updates the secondary command buffers using a thread pool 
@@ -353,13 +412,18 @@ public:
 		// These are stored (and retrieved) from the secondary command buffers
 		vkCmdBeginRenderPass(primaryCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-		std::vector<VkCommandBuffer> commandBuffers;
-
 		// Inheritance info for the secondary command buffers
 		VkCommandBufferInheritanceInfo inheritanceInfo = vkTools::initializers::commandBufferInheritanceInfo();
 		inheritanceInfo.renderPass = renderPass;
 		// Secondary command buffer also use the currently active framebuffer
 		inheritanceInfo.framebuffer = frameBuffer;
+
+		// Contains the list of secondary command buffers to be executed
+		std::vector<VkCommandBuffer> commandBuffers;
+
+		// Secondary command buffer with star background sphere
+		updateSecondaryCommandBuffer(inheritanceInfo);
+		commandBuffers.push_back(secondaryCommandBuffer);
 
 		for (uint32_t t = 0; t < numThreads; t++)
 		{
@@ -422,6 +486,7 @@ public:
 	void loadMeshes()
 	{
 		loadMesh("./../data/models/retroufo_red.X", &meshes.ufo, vertexLayout, 0.12f);
+		loadMesh("./../data/models/sphere.obj", &meshes.skysphere, vertexLayout, 1.0f);
 	}
 
 	void setupVertexDescriptions()
@@ -589,8 +654,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader("./../data/shaders/multithreading/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/multithreading/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/multithreading/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/multithreading/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -609,8 +674,14 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong);
-		assert(!err);
+		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong));
+
+		// Star sphere rendering pipeline
+		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
+		depthStencilState.depthWriteEnable = VK_FALSE;
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/multithreading/starsphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/multithreading/starsphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.starsphere));
 	}
 
 	void updateMatrices()
