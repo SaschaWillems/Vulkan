@@ -485,8 +485,8 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/retroufo_red.X", &meshes.ufo, vertexLayout, 0.12f);
-		loadMesh("./../data/models/sphere.obj", &meshes.skysphere, vertexLayout, 1.0f);
+		loadMesh(getAssetPath() + "models/retroufo_red.dae", &meshes.ufo, vertexLayout, 0.12f);
+		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.skysphere, vertexLayout, 1.0f);
 	}
 
 	void setupVertexDescriptions()
