@@ -713,7 +713,7 @@ public:
 
 	virtual int32_t	prepare()
 	{
-		
+		CBaseVulkanGame::prepare();
 		parsebmFont();
 		loadTextures();
 		generateText("Vulkan");

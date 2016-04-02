@@ -706,7 +706,7 @@ public:
 
 	virtual int32_t	prepare()
 	{
-		
+		CBaseVulkanGame::prepare();
 		loadTextures();
 		getComputeQueue();
 		createComputeCommandBuffer();

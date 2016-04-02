@@ -462,7 +462,7 @@ public:
 
 	virtual int32_t	prepare()
 	{
-		
+		CBaseVulkanGame::prepare();
 		loadTextures();
 		loadMeshes();
 		prepareVertices();

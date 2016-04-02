@@ -741,6 +741,7 @@ public:
 
 	virtual int32_t	prepare()
 	{
+		CBaseVulkanGame::prepare();
 		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();

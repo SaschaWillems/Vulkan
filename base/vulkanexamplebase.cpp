@@ -202,26 +202,6 @@ void CVulkanFramework::createPipelineCache()
 
 int32_t	CVulkanFramework::prepare()
 {
-	if (enableValidation)
-	{
-		vkDebug::setupDebugging(instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, NULL);
-	}
-	createCommandPool();
-	createSetupCommandBuffer();
-	setupSwapChain();
-	createCommandBuffers();
-	setupDepthStencil();
-	setupRenderPass();
-	createPipelineCache();
-	setupFrameBuffer();
-	flushSetupCommandBuffer();
-	// Recreate setup command buffer for derived class
-	createSetupCommandBuffer();
-	// Create a simple texture loader class
-	textureLoader = new vkTools::VulkanTextureLoader(physicalDevice, device, queue, cmdPool);
-#if defined(__ANDROID__)
-	textureLoader->assetManager = androidApp->activity->assetManager;
-#endif
 	m_pVulkanExample->prepare();
 	return 0;
 }
@@ -322,7 +302,7 @@ void CVulkanFramework::loadMesh(
 void CVulkanFramework::renderLoop()
 {
 #if defined(_WIN32)
-	MSG msg;
+	MSG msg = {};
 	while (TRUE)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
@@ -655,7 +635,7 @@ CVulkanFramework::~CVulkanFramework()
 
 	vkDestroyInstance(instance, nullptr);
 
-#if defined(__linux)
+#if defined(__linux__)
 #if defined(__ANDROID__)
 	// todo : android cleanup (if required)
 #else

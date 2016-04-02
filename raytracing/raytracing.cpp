@@ -701,7 +701,7 @@ public:
 
 	virtual int32_t prepare()
 	{
-		//VulkanExampleBase::prepare();
+		CBaseVulkanGame::prepare();
 		generateQuad();
 		getComputeQueue();
 		createComputeCommandBuffer();

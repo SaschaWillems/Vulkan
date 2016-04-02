@@ -837,8 +837,9 @@ public:
 		assert(!err);
 	}
 
-	int32_t prepare()
+	virtual int32_t prepare()
 	{
+		CBaseVulkanGame::prepare();
 		prepareSemaphore();
 		prepareVertices(USE_STAGING);
 		prepareUniformBuffers();

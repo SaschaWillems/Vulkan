@@ -123,7 +123,6 @@ private:
 		VkDeviceQueueCreateInfo requestedQueues, 
 		bool enableValidation
 	);	// Create logical Vulkan device based on physical device
-	VkInstance							instance					= 0;				// Vulkan instance, stores all per-application states
 	VkPhysicalDeviceMemoryProperties	deviceMemoryProperties;							// Stores all available memory (type) properties for the physical device
 	VkCommandBuffer						prePresentCmdBuffer			= VK_NULL_HANDLE;	// Command buffer for submitting a pre present image barrier
 	VkPipelineStageFlags				submitPipelineStages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;	// Pipeline stage flags for the submit info structure
@@ -132,6 +131,7 @@ private:
 	//--------------------------------------------------------------
 	IVulkanGame*						m_pVulkanExample			= nullptr;	
 public:	// these were made public in order to enable decoupling of the CVulkanFramework class
+	VkInstance							instance					= 0;				// Vulkan instance, stores all per-application states
 	VkFormat							colorformat					= VK_FORMAT_B8G8R8A8_UNORM;	// Color buffer format
 	VkFormat							depthFormat;									// Depth buffer format - Depth format is selected during Vulkan initialization
 	VkPhysicalDeviceProperties			deviceProperties;								// Stores physical device properties (for e.g. checking device limits)
@@ -373,6 +373,30 @@ public:
 	// called by the framework when the view properties have changed
 	virtual void			viewChanged						(){};
 
+	virtual int32_t			prepare							()
+	{
+		if (m_pFramework->enableValidation)
+		{
+			vkDebug::setupDebugging(m_pFramework->instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, NULL);
+		}
+		m_pFramework->createCommandPool();
+		m_pFramework->createSetupCommandBuffer();
+		m_pFramework->setupSwapChain();
+		m_pFramework->createCommandBuffers();
+		m_pFramework->setupDepthStencil();
+		setupRenderPass();
+		m_pFramework->createPipelineCache();
+		setupFrameBuffer();
+		m_pFramework->flushSetupCommandBuffer();
+		// Recreate setup command buffer for derived class
+		m_pFramework->createSetupCommandBuffer();
+		// Create a simple texture loader class
+		m_pFramework->textureLoader = new vkTools::VulkanTextureLoader(m_pFramework->physicalDevice, m_pFramework->device, m_pFramework->queue, m_pFramework->cmdPool);
+#if defined(__ANDROID__)
+		textureLoader->assetManager = androidApp->activity->assetManager;
+#endif
+		return 0;
+	};
 	virtual int32_t			setupFrameBuffer				()
 	{
 		VkImageView attachments[2];

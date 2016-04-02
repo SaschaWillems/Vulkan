@@ -567,7 +567,7 @@ void reBuildCommandBuffers()
 
 	virtual int32_t	prepare()
 	{
-		
+		CBaseVulkanGame::prepare();
 		loadTextures();
 		loadMeshes();
 		setupVertexDescriptions();

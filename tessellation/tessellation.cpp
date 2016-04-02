@@ -538,9 +538,9 @@ public:
 		vkUnmapMemory(m_pFramework->device, uniformDataTC.memory);
 	}
 
-	int32_t prepare()
+	virtual int32_t prepare()
 	{
-		
+		CBaseVulkanGame::prepare();		
 		loadTextures();
 		loadMeshes();
 		setupVertexDescriptions();
