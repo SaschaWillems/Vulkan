@@ -1,4 +1,4 @@
-rem @echo off
+@echo off
 if NOT EXIST %1 (
 	echo Please specify a valid project folder for running the build
 ) else (

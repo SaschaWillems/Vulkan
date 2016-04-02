@@ -34,6 +34,7 @@ adb uninstall de.saschawillems.vulkanRadialblur
 adb uninstall de.saschawillems.vulkanDisplacement
 adb uninstall de.saschawillems.vulkanRaytracing
 adb uninstall de.saschawillems.vulkanMultisampling
+adb uninstall de.saschawillems.vulkanMultithreading
 goto finish
 
 :exit
