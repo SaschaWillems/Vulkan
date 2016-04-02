@@ -68,6 +68,8 @@ public:
 	virtual int32_t			render							()=0;	// Called by framework's renderLoop() until application exits
 	virtual void			keyPressed		(uint32_t keyCode)=0;	// Called by the framework when a key is pressed
 	virtual void			viewChanged						()=0;	// Called by the framework when the view properties have changed
+	virtual int32_t			setupFrameBuffer				()=0;
+	virtual int32_t			setupRenderPass					()=0;
 
 
 };
@@ -90,31 +92,6 @@ int32_t releaseVulkanGame(IVulkanGame** ppInstance)										\
 		delete (oldVulkanExample);														\
 	return 0;																			\
 }
-
-class CBaseVulkanGame : public IVulkanGame
-{
-public:
-	CBaseVulkanGame ()
-		:m_pFramework(0){};
-	virtual ~CBaseVulkanGame (){};
-
-	// this one should take an IVulkanFramework interface as input but currently the interface is inexistent so we use the actual class instead
-	virtual int32_t			init(CVulkanFramework* pFramework)
-	{
-		m_pFramework = pFramework;
-		return 0;
-	};
-
-	///---- Following methods can be overriden in deriveded classes
-	// called by the framework when a key is pressed
-	virtual void			keyPressed		(uint32_t keyCode){};
-
-	// called by the framework when the view properties have changed
-	virtual void			viewChanged						(){};
-
-protected:
-	CVulkanFramework*		m_pFramework;	
-};
 
 
 extern "C"
@@ -373,5 +350,118 @@ public:
 		std::vector<vkMeshLoader::VertexLayout> vertexLayout,
 		float scale);
 };
+
+
+class CBaseVulkanGame : public IVulkanGame
+{
+public:
+	CBaseVulkanGame ()
+		:m_pFramework(0){};
+	virtual ~CBaseVulkanGame (){};
+
+	// this one should take an IVulkanFramework interface as input but currently the interface is inexistent so we use the actual class instead
+	virtual int32_t			init(CVulkanFramework* pFramework)
+	{
+		m_pFramework = pFramework;
+		return 0;
+	};
+
+	///---- Following methods can be overriden in deriveded classes
+	// called by the framework when a key is pressed
+	virtual void			keyPressed		(uint32_t keyCode){};
+
+	// called by the framework when the view properties have changed
+	virtual void			viewChanged						(){};
+
+	virtual int32_t			setupFrameBuffer				()
+	{
+		VkImageView attachments[2];
+		// Depth/Stencil attachment is the same for all frame buffers
+		attachments[1] = m_pFramework->depthStencil.view;
+
+		VkFramebufferCreateInfo frameBufferCreateInfo = {};
+		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		frameBufferCreateInfo.pNext = NULL;
+		frameBufferCreateInfo.renderPass = m_pFramework->renderPass;
+		frameBufferCreateInfo.attachmentCount = 2;
+		frameBufferCreateInfo.pAttachments = attachments;
+		frameBufferCreateInfo.width = m_pFramework->ScreenRect.Width;
+		frameBufferCreateInfo.height = m_pFramework->ScreenRect.Height;
+		frameBufferCreateInfo.layers = 1;
+
+		// Create frame buffers for every swap chain image
+		m_pFramework->frameBuffers.resize(m_pFramework->swapChain.imageCount);
+		for (uint32_t i = 0; i < m_pFramework->frameBuffers.size(); i++)
+		{
+			attachments[0] = m_pFramework->swapChain.buffers[i].view;
+			VkResult err = vkCreateFramebuffer(m_pFramework->device, &frameBufferCreateInfo, nullptr, &m_pFramework->frameBuffers[i]);
+			assert(!err);
+		}
+
+		return 0;
+	};
+	virtual int32_t			setupRenderPass					()
+	{
+		VkAttachmentDescription attachments[2];
+		attachments[0].format = m_pFramework->colorformat;
+		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		attachments[1].format = m_pFramework->depthFormat;
+		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference colorReference = {};
+		colorReference.attachment = 0;
+		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depthReference = {};
+		depthReference.attachment = 1;
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpass = {};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.flags = 0;
+		subpass.inputAttachmentCount = 0;
+		subpass.pInputAttachments = NULL;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &colorReference;
+		subpass.pResolveAttachments = NULL;
+		subpass.pDepthStencilAttachment = &depthReference;
+		subpass.preserveAttachmentCount = 0;
+		subpass.pPreserveAttachments = NULL;
+
+		VkRenderPassCreateInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.pNext = NULL;
+		renderPassInfo.attachmentCount = 2;
+		renderPassInfo.pAttachments = attachments;
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = 0;
+		renderPassInfo.pDependencies = NULL;
+
+		VkResult err;
+
+		err = vkCreateRenderPass(m_pFramework->device, &renderPassInfo, nullptr, &m_pFramework->renderPass);
+		assert(!err);
+
+		return 0;
+	};
+
+protected:
+	CVulkanFramework*		m_pFramework;	
+};
+
 
 #endif	// __VULKANEXAMPLEBASE_H__
