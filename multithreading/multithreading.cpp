@@ -61,8 +61,6 @@ public:
 	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
 
 	VkCommandBuffer primaryCommandBuffer;
 	VkCommandBuffer secondaryCommandBuffer;
@@ -145,7 +143,6 @@ public:
 		vkDestroyPipeline(device, pipelines.starsphere, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &primaryCommandBuffer);
 		vkFreeCommandBuffers(device, cmdPool, 1, &secondaryCommandBuffer);
@@ -531,65 +528,15 @@ public:
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
-	void setupDescriptorPool()
+	void setupPipelineLayout()
 	{
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3)
-		};
-
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
-				poolSizes.data(),
-				3);
-
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
-	}
-
-	void setupDescriptorSet()
-	{
-		// todo :
-		VkDescriptorSetAllocateInfo allocInfo =
-			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
-
-		vkTools::checkResult(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-
-		vkUpdateDescriptorSets(device, 0, nullptr, 0, nullptr);
-	}
-
-	void setupDescriptorSetLayout()
-	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-		{
-			// Binding 0 : Vertex shader uniform buffer
-			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0)
-		};
-
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vkTools::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				setLayoutBindings.size());
-
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
-
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vkTools::initializers::pipelineLayoutCreateInfo(
-				&descriptorSetLayout,
-				1);
+			vkTools::initializers::pipelineLayoutCreateInfo(nullptr, 0);
 
 		// Push constants for model matrices
 		VkPushConstantRange pushConstantRange =
 			vkTools::initializers::pushConstantRange(
-				VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+				VK_SHADER_STAGE_VERTEX_BIT,
 				sizeof(ThreadPushConstantBlock),
 				0);
 
@@ -597,8 +544,7 @@ public:
 		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pPipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		vkTools::checkResult(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void preparePipelines()
@@ -698,10 +644,8 @@ public:
 		VulkanExampleBase::prepare();
 		loadMeshes();
 		setupVertexDescriptions();
-		setupDescriptorSetLayout();
+		setupPipelineLayout();
 		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSet();
 		prepareMultiThreadedRenderer();
 		updateMatrices();
 		prepared = true;
