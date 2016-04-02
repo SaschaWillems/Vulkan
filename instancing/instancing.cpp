@@ -65,7 +65,7 @@ public:
 			glm::mat4 projection;
 			glm::mat4 view;
 		} matrices;
-		// Seperate data for each instance
+		// Separate data for each instance
 		UboInstanceData *instance;		
 	} uboVS;
 
@@ -178,7 +178,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -251,7 +251,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses one ubo 
+		// Example uses one UBO 
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
@@ -366,7 +366,7 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Instacing pipeline
+		// Instancing pipeline
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 

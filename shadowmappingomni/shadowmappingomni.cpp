@@ -153,7 +153,7 @@ public:
 
 		vkDestroyFramebuffer(device, offScreenFrameBuf.frameBuffer, nullptr);
 
-		// Pipelibes
+		// Pipelines
 		vkDestroyPipeline(device, pipelines.scene, nullptr);
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
 		vkDestroyPipeline(device, pipelines.cubeMap, nullptr);
@@ -250,7 +250,7 @@ public:
 
 		VkFence nullFence = { VK_NULL_HANDLE };
 
-		// Submit command buffer to graphis queue
+		// Submit command buffer to graphics queue
 		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmdBuffer;
@@ -691,7 +691,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Gather command buffers to be sumitted to the queue
+		// Gather command buffers to be submitted to the queue
 		std::vector<VkCommandBuffer> submitCmdBuffers = {
 			offScreenCmdBuffer,
 			drawCmdBuffers[currentBuffer],
@@ -768,7 +768,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses three ubos and two image samplers
+		// Example uses three UBOs and two image samplers
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),

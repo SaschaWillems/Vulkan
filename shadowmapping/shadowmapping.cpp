@@ -188,7 +188,7 @@ public:
 		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
 	}
 
-	// Preapre an empty texture as the blit target from 
+	// Prepare an empty texture as the blit target from 
 	// the offscreen framebuffer
 	void prepareTextureTarget(uint32_t width, uint32_t height, VkFormat format)
 	{
@@ -196,7 +196,7 @@ public:
 
 		VkResult err;
 
-		// Get device properites for the requested texture format
+		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 		// Check if format is supported for optimal tiling
@@ -590,7 +590,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Gather command buffers to be sumitted to the queue
+		// Gather command buffers to be submitted to the queue
 		std::vector<VkCommandBuffer> submitCmdBuffers = {
 			offScreenCmdBuffer,
 			drawCmdBuffers[currentBuffer],
@@ -618,7 +618,7 @@ public:
 
 	void generateQuad()
 	{
-		// Setup vertices for a single uv-mapped quad
+		// Setup vertices for a single UV-mapped quad
 		struct Vertex {
 			float pos[3];
 			float uv[2];
@@ -705,7 +705,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses three ubos and two image samplers
+		// Example uses three UBOs and two image samplers
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6),
@@ -956,7 +956,7 @@ public:
 			&uniformDataVS.memory,
 			&uniformDataVS.descriptor);
 
-		// Offsvreen vertex shader uniform buffer block
+		// Offscreen vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboOffscreenVS),
@@ -1103,7 +1103,7 @@ public:
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 		// Transform texture target back to shader read
-		// Makes sure that writes to the textuer are finished before
+		// Makes sure that writes to the texture are finished before
 		// it's accessed in the shader
 		vkTools::setImageLayout(
 			offScreenCmdBuffer,

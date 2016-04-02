@@ -5,7 +5,7 @@
 Since Vulkan is not yet part of the Android OS (like OpenGL ES) the library and function pointers need to be dynamically loaded before using any of the Vulkan functions. See the **vulkanandroid.h** and **vulkanandroid.cpp** files in the base folder of the repositoy root for how this is done.
 
 ## Device support
-- **To run these examples you need a device with an Android image that suports Vulkan**
+- **To run these examples you need a device with an Android image that supports Vulkan**
 - Builds currently only support arm-v7, x86 may follow at a later point
 - Android TV leanback launcher is supported, so the examples will show up on the launcher
 - Basic gamepad support is available too (zoom and rotate)

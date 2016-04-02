@@ -177,7 +177,7 @@ namespace vkTools
 		// Target layouts (new)
 
 		// New layout is transfer destination (copy, blit)
-		// Make sure any copyies to the image have been finished
+		// Make sure any copies to the image have been finished
 		if (newImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
 		{
 			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -192,7 +192,7 @@ namespace vkTools
 		}
 
 		// New layout is color attachment
-		// Make sure any writes to the color buffer hav been finished
+		// Make sure any writes to the color buffer have been finished
 		if (newImageLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
 		{
 			imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;

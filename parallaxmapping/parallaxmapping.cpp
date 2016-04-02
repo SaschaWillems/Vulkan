@@ -221,7 +221,7 @@ void reBuildCommandBuffers()
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -301,7 +301,7 @@ void reBuildCommandBuffers()
 
 	void setupDescriptorPool()
 	{
-		// Example uses two ubos and two image sampler
+		// Example uses two UBOs and two image sampler
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
@@ -500,7 +500,7 @@ void reBuildCommandBuffers()
 
 	void prepareUniformBuffers()
 	{
-		// Vertex shader ubo
+		// Vertex shader UBO
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(ubos.vertexShader),
@@ -509,7 +509,7 @@ void reBuildCommandBuffers()
 			&uniformData.vertexShader.memory,
 			&uniformData.vertexShader.descriptor);
 
-		// Fragment shader ubo
+		// Fragment shader UBO
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(ubos.fragmentShader),

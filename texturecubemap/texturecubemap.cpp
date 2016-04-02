@@ -127,7 +127,7 @@ public:
 		cubeMap.width = texCube[0].dimensions().x;
 		cubeMap.height = texCube[0].dimensions().y;
 
-		// Get device properites for the requested texture format
+		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 
@@ -291,7 +291,7 @@ public:
 
 		VkFence nullFence = { VK_NULL_HANDLE };
 
-		// Submit command buffer to graphis queue
+		// Submit command buffer to graphics queue
 		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmdBuffer;
@@ -415,7 +415,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -675,7 +675,7 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// 3D objact 
+		// 3D object 
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboVS),

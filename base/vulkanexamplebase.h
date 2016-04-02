@@ -60,7 +60,7 @@ protected:
 	uint32_t frameCounter = 0;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
-	// Physical device (GPU) that Vulkan will ise
+	// Physical device (GPU) that Vulkan will use
 	VkPhysicalDevice physicalDevice;
 	// Stores physical device properties (for e.g. checking device limits)
 	VkPhysicalDeviceProperties deviceProperties;
@@ -112,7 +112,7 @@ protected:
 	} semaphores;
 	// Simple texture loader
 	vkTools::VulkanTextureLoader *textureLoader = nullptr;
-	// Returns the base asset path (for shaders, models, textures) depending on the os
+	// Returns the base asset path (for shaders, models, textures) depending on the OS
 	const std::string getAssetPath();
 public: 
 	bool prepared = false;
@@ -205,11 +205,11 @@ public:
 	// Pure virtual render function (override in derived class)
 	virtual void render() = 0;
 	// Called when view change occurs
-	// Can be overriden in derived class to e.g. update uniform buffers 
-	// Containing view dependant matrices
+	// Can be overridden in derived class to e.g. update uniform buffers 
+	// Containing view dependent matrices
 	virtual void viewChanged();
 	// Called if a key is pressed
-	// Can be overriden in derived class to do custom key handling
+	// Can be overridden in derived class to do custom key handling
 	virtual void keyPressed(uint32_t keyCode);
 
 	// Get memory type for a given memory allocation (flags and bits)
@@ -220,10 +220,10 @@ public:
 	// Setup default depth and stencil views
 	void setupDepthStencil();
 	// Create framebuffers for all requested swap chain images
-	// Can be overriden in derived class to setup a custom framebuffer (e.g. for MSAA)
+	// Can be overridden in derived class to setup a custom framebuffer (e.g. for MSAA)
 	virtual void setupFrameBuffer();
 	// Setup a default render pass
-	// Can be overriden in derived class to setup a custom render pass (e.g. for MSAA)
+	// Can be overridden in derived class to setup a custom render pass (e.g. for MSAA)
 	virtual void setupRenderPass();
 
 	// Connect and prepare the swap chain
@@ -240,7 +240,7 @@ public:
 	void destroyCommandBuffers();
 	// Create command buffer for setup commands
 	void createSetupCommandBuffer();
-	// Finalize setup command bufferm submit it to the queue and remove it
+	// Finalize setup command buffer, submit it to the queue and remove it
 	void flushSetupCommandBuffer();
 
 	// Create a cache pool for rendering pipelines

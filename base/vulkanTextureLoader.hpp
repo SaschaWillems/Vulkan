@@ -100,7 +100,7 @@ namespace vkTools
 			texture->height = (uint32_t)tex2D[0].dimensions().y;
 			texture->mipLevels = tex2D.levels();
 
-			// Get device properites for the requested texture format
+			// Get device properties for the requested texture format
 			VkFormatProperties formatProperties;
 			vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 
@@ -458,7 +458,7 @@ namespace vkTools
 			texture->width = (uint32_t)texCube[0].dimensions().x;
 			texture->height = (uint32_t)texCube[0].dimensions().y;
 
-			// Get device properites for the requested texture format
+			// Get device properties for the requested texture format
 			VkFormatProperties formatProperties;
 			vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 
@@ -677,7 +677,7 @@ namespace vkTools
 			texture->height = tex2DArray.dimensions().y;
 			texture->layerCount = tex2DArray.layers();
 
-			// Get device properites for the requested texture format
+			// Get device properties for the requested texture format
 			VkFormatProperties formatProperties;
 			vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 

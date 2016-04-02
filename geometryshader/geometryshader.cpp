@@ -169,7 +169,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -239,7 +239,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses two ubos
+		// Example uses two UBOs
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
@@ -259,12 +259,12 @@ public:
 	{
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
 		{
-			// Binding 0 : Vertex shader ubo
+			// Binding 0 : Vertex shader UBO
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_VERTEX_BIT,
 				0),
-			// Binding 1 : Geometry shader ubo
+			// Binding 1 : Geometry shader UBO
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_GEOMETRY_BIT,
@@ -301,13 +301,13 @@ public:
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
-			// Binding 0 : Vertex shader shader ubo
+			// Binding 0 : Vertex shader UBO
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformData.VS.descriptor),
-			// Binding 1 : Geometry shader ubo
+			// Binding 1 : Geometry shader UBO
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,

@@ -214,7 +214,7 @@ public:
 	}
 
 	// Setup a render pass for using a multi sampled attachment 
-	// and a resolve attachment that the msaa image is resolved 
+	// and a resolve attachment that the MSAA image is resolved 
 	// to at the end of the render pass
 	void setupRenderPass()
 	{
@@ -339,7 +339,7 @@ public:
 
 		createSetupCommandBuffer();
 
-		// Tansform MSAA color target
+		// Transform MSAA color target
 		vkTools::setImageLayout(
 			setupCmdBuffer,
 			multisampleTarget.color.image,
@@ -347,7 +347,7 @@ public:
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-		// Tansform MSAA depth target
+		// Transform MSAA depth target
 		vkTools::setImageLayout(
 			setupCmdBuffer,
 			multisampleTarget.depth.image,
@@ -408,7 +408,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -485,7 +485,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses one ubo and one combined image sampler
+		// Example uses one UBO and one combined image sampler
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),

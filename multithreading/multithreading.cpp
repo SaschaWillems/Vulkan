@@ -107,7 +107,7 @@ public:
 
 	vkTools::ThreadPool threadPool;
 
-	// Max. dimension of the ufo mesh for use as the sphere
+	// Max. dimension of the UFO mesh for use as the sphere
 	// radius for frustum culling
 	float objectSphereDim;
 
@@ -121,7 +121,7 @@ public:
 		rotationSpeed = 0.5f;
 		rotation = { 0.0f, 37.5f, 0.0f };
 		title = "Vulkan Example - Multi threaded rendering";
-		// Get number of max. concurrrent threads
+		// Get number of max. concurrent threads
 		numThreads = std::thread::hardware_concurrency();
 		assert(numThreads > 0);
 #if defined(__ANDROID__)

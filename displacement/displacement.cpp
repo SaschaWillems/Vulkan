@@ -214,7 +214,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -283,7 +283,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses two ubos and two image samplers
+		// Example uses two UBOs and two image samplers
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
@@ -304,12 +304,12 @@ public:
 	{
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
 		{
-			// Binding 0 : Tessellation control shader ubo
+			// Binding 0 : Tessellation control shader UBO
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
 				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, 
 				0),
-			// Binding 1 : Tessellation evaluation shader ubo
+			// Binding 1 : Tessellation evaluation shader UBO
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, 
@@ -370,13 +370,13 @@ public:
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
-			// Binding 0 : Tessellation control shader ubo
+			// Binding 0 : Tessellation control shader UBO
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet, 
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
 				0, 
 				&uniformDataTC.descriptor),
-			// Binding 1 : Tessellation evaluation shader ubo
+			// Binding 1 : Tessellation evaluation shader UBO
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet, 
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
