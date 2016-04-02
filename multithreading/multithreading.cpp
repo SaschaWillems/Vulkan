@@ -80,12 +80,6 @@ public:
 		glm::vec3 color;
 	};
 
-	struct MeshBuffer {
-		vkMeshLoader::MeshBufferInfo vertices;
-		vkMeshLoader::MeshBufferInfo indices;
-		uint32_t indexCount;
-	};
-
 	struct ObjectData {
 		glm::mat4 model;
 		glm::vec3 pos;
@@ -97,7 +91,7 @@ public:
 	};
 
 	struct ThreadData {
-		MeshBuffer mesh;
+		vkMeshLoader::MeshBuffer mesh;
 		VkCommandPool commandPool;
 		// One command buffer per render object
 		std::vector<VkCommandBuffer> commandBuffer;
@@ -154,6 +148,7 @@ public:
 		{
 			vkFreeCommandBuffers(device, thread.commandPool, thread.commandBuffer.size(), thread.commandBuffer.data());
 			vkDestroyCommandPool(device, thread.commandPool, nullptr);
+			vkMeshLoader::freeMeshBufferResources(device, &thread.mesh);
 		}
 	}
 
