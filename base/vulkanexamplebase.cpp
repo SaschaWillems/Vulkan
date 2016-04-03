@@ -309,6 +309,8 @@ void VulkanExampleBase::loadMesh(
 		vertexLayout,
 		scale);
 
+	meshBuffer->dim = mesh->dim.size;
+
 	delete(mesh);
 }
 

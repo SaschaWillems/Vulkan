@@ -41,5 +41,8 @@
     <ClInclude Include="..\base\threadpool.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\base\frustum.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

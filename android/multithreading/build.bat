@@ -8,7 +8,7 @@ if %ERRORLEVEL% EQU 0 (
 	xcopy "..\..\data\shaders\multithreading\*.spv" "assets\shaders\multithreading" /Y
 
     mkdir "assets\models"
-	xcopy "..\..\data\models\retroufo_red.dae" "assets\models" /Y 
+	xcopy "..\..\data\models\retroufo_red_lowpoly.dae" "assets\models" /Y 
 	xcopy "..\..\data\models\sphere.obj" "assets\models" /Y 
 	
 	mkdir "res\drawable"

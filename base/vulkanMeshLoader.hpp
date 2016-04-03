@@ -59,6 +59,7 @@ namespace vkMeshLoader
 		MeshBufferInfo vertices;
 		MeshBufferInfo indices;
 		uint32_t indexCount;
+		glm::vec3 dim;
 	};
 
 	// Get vertex size from vertex layout
@@ -448,6 +449,10 @@ public:
 			}
 		}
 		meshBuffer->vertices.size = vertexBuffer.size() * sizeof(float);
+
+		dim.min *= scale;
+		dim.max *= scale;
+		dim.size *= scale;
 
 		std::vector<uint32_t> indexBuffer;
 		for (uint32_t m = 0; m < m_Entries.size(); m++)

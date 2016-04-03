@@ -22,6 +22,7 @@
 #include "vulkanexamplebase.h"
 
 #include "threadpool.hpp"
+#include "frustum.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -79,7 +80,7 @@ public:
 		glm::mat4 mvp;
 		glm::vec3 color;
 	};
-
+	
 	struct ObjectData {
 		glm::mat4 model;
 		glm::vec3 pos;
@@ -88,6 +89,8 @@ public:
 		float rotationSpeed;
 		float scale;
 		float deltaT;
+		float stateT = 0;
+		bool visible = true;
 	};
 
 	struct ThreadData {
@@ -104,17 +107,21 @@ public:
 
 	vkTools::ThreadPool threadPool;
 
+	// Max. dimension of the ufo mesh for use as the sphere
+	// radius for frustum culling
+	float objectSphereDim;
+
+	// View frustum for culling invisible objects
+	vkTools::Frustum frustum;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		width = 1280;
-		height = 720;
-		zoom = -16.0f;
+		zoom = -32.5f;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
-		rotation = { -30.0f, -35.0f, 0.0f };
+		rotation = { 0.0f, 37.5f, 0.0f };
 		title = "Vulkan Example - Multi threaded rendering";
 		// Get number of max. concurrrent threads
-		// todo : May not work on all compilers (e.g. old GCC versions?)
 		numThreads = std::thread::hardware_concurrency();
 		assert(numThreads > 0);
 #if defined(__ANDROID__)
@@ -126,7 +133,7 @@ public:
 
 		threadPool.setThreadCount(numThreads);
 
-		numObjectsPerThread = 128 / numThreads;
+		numObjectsPerThread = 256 / numThreads;
 	}
 
 	~VulkanExample()
@@ -262,7 +269,7 @@ public:
 				thread->objectData[j].rotation = glm::vec3(0.0f, rnd(360.0f), 0.0f);
 				thread->objectData[j].deltaT = rnd(1.0f);
 				thread->objectData[j].rotationDir = (rnd(100.0f) < 50.0f) ? 1.0f : -1.0f;
-				thread->objectData[j].rotationSpeed = (2.0f + rnd(4.0f)) * thread->objectData[i].rotationDir;
+				thread->objectData[j].rotationSpeed = (2.0f + rnd(4.0f)) * thread->objectData[j].rotationDir;
 				thread->objectData[j].scale = 0.75f + rnd(0.5f);
 
 				thread->pushConstBlock[j].color = glm::vec3(rnd(1.0f), rnd(1.0f), rnd(1.0f));
@@ -277,11 +284,21 @@ public:
 	// Builds the secondary command buffer for each thread
 	void threadRenderCode(uint32_t threadIndex, uint32_t cmdBufferIndex, VkCommandBufferInheritanceInfo inheritanceInfo)
 	{
+		ThreadData *thread = &threadData[threadIndex];
+		ObjectData *objectData = &thread->objectData[cmdBufferIndex];
+
+		// Check visibility against view frustum
+		objectData->visible = frustum.checkSphere(objectData->pos, objectSphereDim * 0.5f); 
+
+		if (!objectData->visible)
+		{
+			return;
+		}
+
 		VkCommandBufferBeginInfo commandBufferBeginInfo = vkTools::initializers::commandBufferBeginInfo();
 		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 
-		ThreadData *thread = &threadData[threadIndex];
 		VkCommandBuffer cmdBuffer = thread->commandBuffer[cmdBufferIndex];
 
 		vkTools::checkResult(vkBeginCommandBuffer(cmdBuffer, &commandBufferBeginInfo));
@@ -295,17 +312,15 @@ public:
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
 
 		// Update
-		// todo : timebased
-		ObjectData *objectData = &thread->objectData[cmdBufferIndex];
-		objectData->rotation.y += 0.15f * objectData->rotationSpeed;
+		objectData->rotation.y += 2.5f * objectData->rotationSpeed * frameTimer;
 		if (objectData->rotation.y > 360.0f)
 		{
 			objectData->rotation.y -= 360.0f;
 		}
-		objectData->deltaT += 0.0015f;
+		objectData->deltaT += 0.15f * frameTimer;
 		if (objectData->deltaT > 1.0f)
 			objectData->deltaT -= 1.0f;
-		objectData->pos.y = sin(glm::radians(objectData->deltaT * 360.0f)) * 1.5f;
+		objectData->pos.y = sin(glm::radians(objectData->deltaT * 360.0f)) * 2.5f;
 
 		objectData->model = glm::translate(glm::mat4(), objectData->pos);
 		objectData->model = glm::rotate(objectData->model, -sinf(glm::radians(objectData->deltaT * 360.0f)) * 0.25f, glm::vec3(objectData->rotationDir, 0.0f, 0.0f));
@@ -423,7 +438,11 @@ public:
 			for (uint32_t i = 0; i < numObjectsPerThread; i++)
 			{
 				threadPool.threads[t]->addJob([=] { threadRenderCode(t, i, inheritanceInfo); });
-				commandBuffers.push_back(threadData[t].commandBuffer[i]);
+				// Only submit if object is within the current view frustum
+				if (threadData[t].objectData[i].visible)
+				{
+					commandBuffers.push_back(threadData[t].commandBuffer[i]);
+				}
 			}
 		}
 			
@@ -461,7 +480,6 @@ public:
 		VkResult fenceRes;
 		do 
 		{
-			// todo : timeout as define
 			fenceRes = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
 		} while (fenceRes == VK_TIMEOUT);
 		vkTools::checkResult(fenceRes);
@@ -477,8 +495,9 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/retroufo_red.dae", &meshes.ufo, vertexLayout, 0.12f);
+		loadMesh(getAssetPath() + "models/retroufo_red_lowpoly.dae", &meshes.ufo, vertexLayout, 0.12f);
 		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.skysphere, vertexLayout, 1.0f);
+		objectSphereDim = std::max(std::max(meshes.ufo.dim.x, meshes.ufo.dim.y), meshes.ufo.dim.z);
 	}
 
 	void setupVertexDescriptions()
@@ -632,6 +651,8 @@ public:
 		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+		frustum.update(matrices.projection * matrices.view);
 	}
 
 	void prepare()
