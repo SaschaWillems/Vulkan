@@ -7,7 +7,8 @@
 */
 
 #include <array>
-#include "glm\glm.hpp"
+#include <math.h>
+#include <glm/glm.hpp>
 
 namespace vkTools
 {
@@ -51,7 +52,7 @@ namespace vkTools
 
 			for (auto i = 0; i < planes.size(); i++)
 			{
-				float length = std::sqrtf(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
+				float length = sqrtf(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
 				planes[i] /= length;
 			}
 		}
