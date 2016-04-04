@@ -105,6 +105,13 @@ Shows the use of instancing for rendering the same mesh with differing uniforms 
 Demonstrates the use of resolve attachments for doing multisampling. Instead of doing an explicit resolve from a multisampled image this example creates multisampled attachments for the color and depth buffer and sets up the render pass to use these as resolve attachments that will get resolved to the visible frame buffer at the end of this render pass. To highlight MSAA the example renders a mesh with fine details against a bright background. Here is a [screenshot without MSAA](./screenshots/multisampling_nomsaa.png) to compare.
 <br><br>
 
+## [Multi threaded command buffer generation](multithreading/)
+<img src="./screenshots/multithreading.png" height="96px" align="right">
+This example demonstrates multi threaded command buffer generation. All available hardware threads are used to generated n secondary command buffers concurrent, with each thread also checking object visibility against the current viewing frustum. Command buffers are rebuilt on each frame.
+
+Once all threads have finished (and all secondary command buffers have been constructed), the secondary command buffers are executed inside the primary command buffer and submitted to the queue.
+<br><br>
+
 ## [Particle system](particlefire/)
 <img src="./screenshots/particlefire.png" height="96px" align="right">
 
