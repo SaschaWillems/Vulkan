@@ -17,6 +17,7 @@
 #include <vector>
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -25,7 +26,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 
 class VulkanExample : public VulkanExampleBase
@@ -113,7 +113,7 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadCubemap(
-			"./../data/textures/cubemap_vulkan.ktx", 
+			getAssetPath() + "textures/cubemap_vulkan.ktx", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textures.skybox);
 	}
@@ -173,16 +173,6 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_FLAGS_NONE,
-				0, nullptr,
-				0, nullptr,
-				1, &prePresentBarrier);
-
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
 		}
@@ -191,33 +181,25 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo =
-			vkTools::initializers::semaphoreCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
-		// Submit draw command buffer
+		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
 		assert(!err);
@@ -234,13 +216,21 @@ public:
 
 		// Load meshes for demos scene
 		demoMeshes.logos = new VulkanMeshLoader();
-		demoMeshes.logos->LoadMesh("../data/models/vulkanscenelogos.dae");
 		demoMeshes.background = new VulkanMeshLoader();
-		demoMeshes.background->LoadMesh("../data/models/vulkanscenebackground.dae");
 		demoMeshes.models = new VulkanMeshLoader();
-		demoMeshes.models->LoadMesh("../data/models/vulkanscenemodels.dae");
 		demoMeshes.skybox = new VulkanMeshLoader();
-		demoMeshes.skybox->LoadMesh("../data/models/cube.obj");
+
+#if defined(__ANDROID__)
+		demoMeshes.logos->assetManager = androidApp->activity->assetManager;
+		demoMeshes.background->assetManager = androidApp->activity->assetManager;
+		demoMeshes.models->assetManager = androidApp->activity->assetManager;
+		demoMeshes.skybox->assetManager = androidApp->activity->assetManager;
+#endif
+
+		demoMeshes.logos->LoadMesh(getAssetPath() + "models/vulkanscenelogos.dae");
+		demoMeshes.background->LoadMesh(getAssetPath() + "models/vulkanscenebackground.dae");
+		demoMeshes.models->LoadMesh(getAssetPath() + "models/vulkanscenemodels.dae");
+		demoMeshes.skybox->LoadMesh(getAssetPath() + "models/cube.obj");
 
 		std::vector<VulkanMeshLoader*> meshList;
 		meshList.push_back(demoMeshes.skybox); // skybox first because of depth writes
@@ -496,13 +486,8 @@ public:
 		// Pipeline for the meshes (armadillo, bunny, etc.)
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/vulkanscene/mesh.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/vulkanscene/mesh.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
-		shaderStages[0] = loadShader("./../data/shaders/vulkanscene/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/vulkanscene/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -525,26 +510,16 @@ public:
 		assert(!err);
 
 		// Pipeline for the logos
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/vulkanscene/logo.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/vulkanscene/logo.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
-		shaderStages[0] = loadShader("./../data/shaders/vulkanscene/logo.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/vulkanscene/logo.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/logo.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/logo.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.logos);
 		assert(!err);
 
 		// Pipeline for the sky sphere (todo)
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT; // Inverted culling
 		depthStencilState.depthWriteEnable = VK_FALSE; // No depth writes
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/vulkanscene/skybox.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/vulkanscene/skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
-		shaderStages[0] = loadShader("./../data/shaders/vulkanscene/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/vulkanscene/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skybox);
 		assert(!err);
 
@@ -572,7 +547,7 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(deg_to_rad(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
 
 		uboVS.view = glm::lookAt(
 			glm::vec3(0, 0, -zoom),
@@ -581,9 +556,9 @@ public:
 			);
 
 		uboVS.model = glm::mat4();
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uboVS.normal = glm::inverseTranspose(uboVS.view * uboVS.model);
 
@@ -628,8 +603,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -638,33 +612,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleEvent(event);
-	}
 }
+		}
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
 	delete(vulkanExample);
+#if !defined(__ANDROID__)
 	return 0;
+#endif
 }

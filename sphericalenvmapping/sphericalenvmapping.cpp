@@ -1,5 +1,7 @@
 /*
-* Vulkan Example - Spherical Environment Mapping
+* Vulkan Example - Spherical Environment Mapping, using different mat caps
+*
+* Use +/-/space toggle through different material captures
 *
 * Based on https://www.clicktorelease.com/blog/creating-spherical-environment-mapping-shader
 *
@@ -15,6 +17,7 @@
 #include <vector>
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -23,7 +26,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 
 // Vertex layout for this example
@@ -49,7 +51,7 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture matCap;
+		vkTools::VulkanTexture matCapArray;
 	} textures;
 
 	struct {
@@ -61,6 +63,7 @@ public:
 		glm::mat4 model;
 		glm::mat4 normal;
 		glm::mat4 view;
+		int32_t texIndex = 0;
 	} uboVS;
 
 	struct {
@@ -93,15 +96,18 @@ public:
 
 		vkTools::destroyUniformData(device, &uniformData.vertexShader);
 
-		textureLoader->destroyTexture(textures.matCap);
+		textureLoader->destroyTexture(textures.matCapArray);
 	}
 
 	void loadTextures()
 	{
-		textureLoader->loadTexture(
-			"./../data/textures/matcaps/jade.dds", 
-			VK_FORMAT_R8G8B8A8_UNORM, 
-			&textures.matCap);
+		// Several mat caps are stored in a single texture array
+		// so they can easily be switched inside the shader 
+		// just by updating the index in a uniform buffer
+		textureLoader->loadTextureArray(
+			getAssetPath() + "textures/matcap_array_rgba.ktx",
+			VK_FORMAT_R8G8B8A8_UNORM,
+			&textures.matCapArray);
 	}
 
 	void buildCommandBuffers()
@@ -158,16 +164,6 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_FLAGS_NONE, 
-				0, nullptr,
-				0, nullptr,
-				1, &prePresentBarrier);
-
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
 		}
@@ -176,33 +172,25 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo =
-			vkTools::initializers::semaphoreCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
-		// Submit draw command buffer
+		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
 		assert(!err);
@@ -210,7 +198,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh("./../data/models/chinesedragon.X", &meshes.object, vertexLayout, 0.05f);
+		loadMesh(getAssetPath() + "models/chinesedragon.dae", &meshes.object, vertexLayout, 0.05f);
 	}
 
 	void prepareVertices()
@@ -328,8 +316,8 @@ public:
 		// Color map image descriptor
 		VkDescriptorImageInfo texDescriptorColorMap =
 			vkTools::initializers::descriptorImageInfo(
-				textures.matCap.sampler,
-				textures.matCap.view,
+				textures.matCapArray.sampler,
+				textures.matCapArray.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -403,13 +391,8 @@ public:
 		// Spherical environment rendering pipeline
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/sem.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/sem.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
-		shaderStages[0] = loadShader("./../data/shaders/sem.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/sem.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/sphericalenvmapping/sem.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/sphericalenvmapping/sem.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -434,8 +417,6 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		VkResult err;
-
 		// Vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -450,7 +431,7 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(deg_to_rad(45.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
 
 		uboVS.view = glm::lookAt(
 			glm::vec3(0, 0, -zoom),
@@ -459,9 +440,9 @@ public:
 			);
 
 		uboVS.model = glm::mat4();
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uboVS.normal = glm::inverseTranspose(uboVS.view * uboVS.model);
 
@@ -501,12 +482,39 @@ public:
 		updateUniformBuffers();
 	}
 
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x6B:
+		case 0x20:
+			changeMatCapIndex(1);
+			break;
+		case 0x6D:
+			changeMatCapIndex(-1);
+			break;
+		}
+	}
+
+	void changeMatCapIndex(uint32_t delta)
+	{
+		uboVS.texIndex += delta;
+		if (uboVS.texIndex < 0)
+		{
+			uboVS.texIndex = textures.matCapArray.layerCount-1;
+		}
+		if (uboVS.texIndex >= textures.matCapArray.layerCount)
+		{
+			uboVS.texIndex = 0;
+		}
+		updateUniformBuffers();
+	}
+
 };
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -515,9 +523,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -527,21 +533,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
 	delete(vulkanExample);
+#if !defined(__ANDROID__)
 	return 0;
+#endif
 }

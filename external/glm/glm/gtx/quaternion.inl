@@ -121,33 +121,28 @@ namespace glm
 	}
 
 	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER tquat<T, P> pow
-	(
-		tquat<T, P> const & x,
-		T const & y
-	)
+	GLM_FUNC_QUALIFIER tquat<T, P> pow(tquat<T, P> const & x, T const & y)
 	{
-		if(abs(x.w) > (static_cast<T>(1) - epsilon<T>()))
-			return x;
-		T Angle = acos(y);
+		//Raising to the power of 0 should yield 1
+		//Needed to prevent a division by 0 error later on
+		if(y > -epsilon<T>() && y < epsilon<T>())
+			return tquat<T, P>(1,0,0,0);
+
+		//To deal with non-unit quaternions
+		T magnitude = sqrt(x.x * x.x + x.y * x.y + x.z * x.z + x.w *x.w);
+
+		//Equivalent to raising a real number to a power
+		//Needed to prevent a division by 0 error later on
+		if(abs(x.w / magnitude) > static_cast<T>(1) - epsilon<T>() && abs(x.w / magnitude) < static_cast<T>(1) + epsilon<T>())
+			return tquat<T, P>(pow(x.w, y),0,0,0);
+
+		T Angle = acos(x.w / magnitude);
 		T NewAngle = Angle * y;
 		T Div = sin(NewAngle) / sin(Angle);
-		return tquat<T, P>(
-			cos(NewAngle),
-			x.x * Div,
-			x.y * Div,
-			x.z * Div);
-	}
+		T Mag = pow(magnitude, y-1);
 
-	//template <typename T, precision P>
-	//GLM_FUNC_QUALIFIER tquat<T, P> sqrt
-	//(
-	//	tquat<T, P> const & q
-	//)
-	//{
-	//	T q0 = static_cast<T>(1) - dot(q, q);
-	//	return T(2) * (T(1) + q0) * q;
-	//}
+		return tquat<T, P>(cos(NewAngle) * magnitude * Mag, x.x * Div * Mag, x.y * Div * Mag, x.z * Div * Mag);
+	}
 
 	template <typename T, precision P>
 	GLM_FUNC_QUALIFIER tvec3<T, P> rotate
@@ -253,6 +248,9 @@ namespace glm
 	{
 		T cosTheta = dot(orig, dest);
 		tvec3<T, P> rotationAxis;
+
+		if(cosTheta >= static_cast<T>(1) - epsilon<T>())
+			return quat();
 
 		if(cosTheta < static_cast<T>(-1) + epsilon<T>())
 		{

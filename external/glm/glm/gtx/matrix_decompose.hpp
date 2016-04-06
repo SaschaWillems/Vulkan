@@ -36,7 +36,7 @@
 /// 
 /// @brief Decomposes a model matrix to translations, rotation and scale components
 /// 
-/// <glm/gtx/decomposition.hpp> need to be included to use these functionalities.
+/// <glm/gtx/matrix_decompose.hpp> need to be included to use these functionalities.
 ///////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
@@ -45,6 +45,7 @@
 #include "../mat4x4.hpp"
 #include "../vec3.hpp"
 #include "../vec4.hpp"
+#include "../geometric.hpp"
 #include "../gtc/quaternion.hpp"
 #include "../gtc/matrix_transform.hpp"
 

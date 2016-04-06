@@ -1,35 +1,76 @@
-# Vulkan examples and demos - Android
-
-## Building
-
-The examples have been built using Visual Studio 2015 and require the Android NDK for building.
+# Vulkan examples on Android
 
 ## Vulkan on Android
 
 Since Vulkan is not yet part of the Android OS (like OpenGL ES) the library and function pointers need to be dynamically loaded before using any of the Vulkan functions. See the **vulkanandroid.h** and **vulkanandroid.cpp** files in the base folder of the repositoy root for how this is done.
 
-**To run these examples you need a device with an Android image that suports Vulkan and has the libvulkan.so preinstalled!**
+## Device support
+- **To run these examples you need a device with an Android image that suports Vulkan**
+- Builds currently only support arm-v7, x86 may follow at a later point
+- Android TV leanback launcher is supported, so the examples will show up on the launcher
+- Basic gamepad support is available too (zoom and rotate)
 
-## Examples
+## Imporant note
 
-## Triangle
-<img src="./screenshots/triangle.png" height="96px" align="right">
-Demonstrates a basic Vulkan setup for Android for rendering a triangle. A real life application would encapulate most of the Vulkan object creation stuff (which is done in subsequent examples), so this is more of an example to study how Vulkan works. Also sets up a swap chain for presenting the rendered images to the windowing system.
+The Android part of the Vulkan example base is not yet finished, and while the examples run fine they might encounter some problems as most of the resources are not yet correctly released when closing the app.
 
-<br><br>
+## Building
 
-## Texture mapping
-<img src="./screenshots/texture_mapping.png" height="96px" align="right">
-Loads a mipmapped texture from the asset manager and it on a simple quad. Shows how to upload a texture including mip maps to the gpu in an optimal (tiling) format. Also demonstrates how to display the texture using a combined image sampler with anisotropic filtering enabled.
-<br><br>
+### Requirements
+- [Android NDK r11b](http://developer.android.com/ndk/downloads/index.html) - Somewhere in your sarch path
+- Batch files for building are provided for windows only, with linux to be added at some point
 
-## Mesh loading and rendering
-<img src="./screenshots/mesh_rendering.png" height="96px" align="right">
+### Building the Examples
 
-Uses [syoyos' tinyobj loader](https://github.com/syoyo/tinyobjloader) to load and render a mesh from the asset manager. The mesh data is then converted to a fixed vertex layout matching the pipeline (and shader) layout descriptions.
-<br><br>
+### Complete set
 
-## Compute shader Particle system
-<img src="./screenshots/compute_particles.png" height="96px" align="right">
+**Please note that building (and deploying) all examples may take a while**
 
-Attraction based particle system. A shader storage buffer is used to store particle data and updated by a compute shader. The buffer is then used by the graphics pipeline for rendering.
+#### Build only
+
+```
+build-all
+```
+
+This will build all apks and puts them into the **bin** folder.
+
+#### Build and deploy
+
+```
+install-all
+```
+
+This will build all apks and deploys them to the currently attached android device. 
+
+### Single examples
+
+These are for building and/or deploying a single example.
+
+#### Build only
+
+Call build(.bat) with the name of the example to build, e.g. :
+
+```
+build triangle
+```
+
+This will build the apk for the triangle example and puts it into the **bin** folder.
+
+#### Build and deploy
+
+```
+build triangle -deploy
+```
+
+This will build the apk for the triangle example and deploys it to the currently attached android device. 
+
+## Removing
+
+A batch file for removing all installed examples is provided in case you installed all of them and don't want to remove them by hand (which is especially tedious on Android TV).
+
+
+```
+uninstall-all
+```
+ 
+This will remove any installed Android example from this repository from the attached device.

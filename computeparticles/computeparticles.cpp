@@ -13,6 +13,7 @@
 #include <vector>
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -20,7 +21,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 #define PARTICLE_COUNT 8 * 1024
 
@@ -45,8 +45,6 @@ public:
 		// graphics pipelines in Vulkan
 		VkPipeline compute;
 	} pipelines;
-
-	int vertexBufferSize;
 
 	VkQueue computeQueue;
 	VkCommandBuffer computeCmdBuffer;
@@ -112,7 +110,7 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			"./../data/textures/particle01_rgba.ktx", 
+			getAssetPath() + "textures/particle01_rgba.ktx", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textureColorMap, 
 			false);
@@ -202,16 +200,6 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_FLAGS_NONE,
-				0, nullptr,
-				0, nullptr,
-				1, &prePresentBarrier);
-
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
 		}
@@ -235,33 +223,25 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo =
-			vkTools::initializers::semaphoreCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
-		// Submit draw command buffer
+		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
 		assert(!err);
@@ -317,24 +297,54 @@ public:
 		VkResult err;
 		void *data;
 
+		struct StagingBuffer {
+			VkDeviceMemory memory;
+			VkBuffer buffer;
+		} stagingBuffer;
+
+		// Allocate and fill host-visible staging storage buffer object
+
 		// Allocate and fill storage buffer object
 		VkBufferCreateInfo vBufferInfo = 
 			vkTools::initializers::bufferCreateInfo(
-				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
 				storageBufferSize);
-		err = vkCreateBuffer(device, &vBufferInfo, nullptr, &computeStorageBuffer.buffer);
-		assert(!err);
-		vkGetBufferMemoryRequirements(device, computeStorageBuffer.buffer, &memReqs);
+		vkTools::checkResult(vkCreateBuffer(device, &vBufferInfo, nullptr, &stagingBuffer.buffer));
+		vkGetBufferMemoryRequirements(device, stagingBuffer.buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAlloc, nullptr, &computeStorageBuffer.memory);
-		assert(!err);
-		err = vkMapMemory(device, computeStorageBuffer.memory, 0, storageBufferSize, 0, &data);
-		assert(!err);
+		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffer.memory));
+		vkTools::checkResult(vkMapMemory(device, stagingBuffer.memory, 0, storageBufferSize, 0, &data));
 		memcpy(data, particleBuffer.data(), storageBufferSize);
-		vkUnmapMemory(device, computeStorageBuffer.memory);
-		err = vkBindBufferMemory(device, computeStorageBuffer.buffer, computeStorageBuffer.memory, 0);
-		assert(!err);
+		vkUnmapMemory(device, stagingBuffer.memory);
+		vkTools::checkResult(vkBindBufferMemory(device, stagingBuffer.buffer, stagingBuffer.memory, 0));
+
+		// Allocate device local storage buffer ojbect
+		vBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		vkTools::checkResult(vkCreateBuffer(device, &vBufferInfo, nullptr, &computeStorageBuffer.buffer));
+		vkGetBufferMemoryRequirements(device, computeStorageBuffer.buffer, &memReqs);
+		memAlloc.allocationSize = memReqs.size;
+		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
+		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &computeStorageBuffer.memory));
+		vkTools::checkResult(vkBindBufferMemory(device, computeStorageBuffer.buffer, computeStorageBuffer.memory, 0));
+
+		// Copy from host to device
+		createSetupCommandBuffer();
+
+		VkBufferCopy copyRegion = {};
+		copyRegion.size = storageBufferSize;
+		vkCmdCopyBuffer(
+			setupCmdBuffer,
+			stagingBuffer.buffer,
+			computeStorageBuffer.buffer,
+			1,
+			&copyRegion);
+
+		flushSetupCommandBuffer();
+
+		// Destroy staging buffer
+		vkDestroyBuffer(device, stagingBuffer.buffer, nullptr);
+		vkFreeMemory(device, stagingBuffer.memory, nullptr);
 
 		computeStorageBuffer.descriptor.buffer = computeStorageBuffer.buffer;
 		computeStorageBuffer.descriptor.offset = 0;
@@ -520,13 +530,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/computeparticles/particle.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/computeparticles/particle.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
-		shaderStages[0] = loadShader("./../data/shaders/computeparticles/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/computeparticles/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/computeparticles/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/computeparticles/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -636,11 +641,7 @@ public:
 			vkTools::initializers::computePipelineCreateInfo(
 				computePipelineLayout,
 				0);
-#ifdef USE_GLSL
-		computePipelineCreateInfo.stage = loadShaderGLSL("./../data/shaders/computeparticles/particle.comp", VK_SHADER_STAGE_COMPUTE_BIT);
-#else
-		computePipelineCreateInfo.stage = loadShader("./../data/shaders/computeparticles/particle.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
-#endif
+		computePipelineCreateInfo.stage = loadShader(getAssetPath() + "shaders/computeparticles/particle.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
 		err = vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &pipelines.compute);
 		assert(!err);
 	}
@@ -663,7 +664,7 @@ public:
 	void updateUniformBuffers()
 	{
 		computeUbo.deltaT = frameTimer * 5.0f;
-		computeUbo.destX = sin(deg_to_rad(timer*360.0)) * 0.75f;
+		computeUbo.destX = sin(glm::radians(timer*360.0)) * 0.75f;
 		computeUbo.destY = 0;
 		uint8_t *pData;
 		VkResult err = vkMapMemory(device, uniformData.computeShader.ubo.memory, 0, sizeof(computeUbo), 0, (void **)&pData);
@@ -745,8 +746,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -764,9 +764,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -776,21 +774,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
 	delete(vulkanExample);
+#if !defined(__ANDROID__)
 	return 0;
+#endif
 }

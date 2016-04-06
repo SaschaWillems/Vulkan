@@ -17,6 +17,7 @@
 #include <array>
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -24,7 +25,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-//#define USE_GLSL
 #define ENABLE_VALIDATION false
 
 // Vertex layout for this example
@@ -56,46 +56,6 @@ int32_t nextValuePair(std::stringstream *stream)
 	std::string value = pair.substr(spos + 1);
 	int32_t val = std::stoi(value);
 	return val;
-}
-
-void parsebmFont()
-{
-	const char *filename = "../data/font.fnt";
-
-	std::ifstream fstream(filename);
-	assert(fstream.good());
-
-	// todo : from texture
-	const uint32_t texdim = 512;
-
-	while (!fstream.eof())
-	{
-		std::string line;
-		std::stringstream lineStream;
-		std::getline(fstream, line);
-		lineStream << line;
-
-		std::string info;
-		lineStream >> info;
-
-		if (info == "char")
-		{
-			std::string pair;
-
-			// char id
-			uint32_t charid = nextValuePair(&lineStream);
-			// Char properties
-			fontChars[charid].x = nextValuePair(&lineStream);
-			fontChars[charid].y = nextValuePair(&lineStream);
-			fontChars[charid].width = nextValuePair(&lineStream);
-			fontChars[charid].height = nextValuePair(&lineStream);
-			fontChars[charid].xoffset = nextValuePair(&lineStream);
-			fontChars[charid].yoffset = nextValuePair(&lineStream);
-			fontChars[charid].xadvance = nextValuePair(&lineStream);
-			fontChars[charid].page = nextValuePair(&lineStream);
-		}
-	}
-
 }
 
 class VulkanExample : public VulkanExampleBase
@@ -153,7 +113,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -1.0f;
+		zoom = -1.5f;
 		rotation = { 0.0f, 0.0f, 0.0f };
 		title = "Vulkan Example - Distance field fonts";
 	}
@@ -182,14 +142,73 @@ public:
 		vkFreeMemory(device, uniformData.vs.memory, nullptr);
 	}
 
+	// Basic parser fpr AngelCode bitmap font format files
+	// See http://www.angelcode.com/products/bmfont/doc/file_format.html for details
+	void parsebmFont()
+	{
+		std::string fileName = getAssetPath() + "font.fnt";
+
+#if defined(__ANDROID__)
+		// Font description file is stored inside the apk
+		// So we need to load it using the asset manager
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, fileName.c_str(), AASSET_MODE_STREAMING);
+		assert(asset);
+		size_t size = AAsset_getLength(asset);
+
+		assert(size > 0);
+
+		void *fileData = malloc(size);
+		AAsset_read(asset, fileData, size);
+		AAsset_close(asset);
+
+		std::stringbuf sbuf((const char*)fileData);
+		std::istream istream(&sbuf);
+#else
+		std::filebuf fileBuffer;
+		fileBuffer.open(fileName, std::ios::in);
+		std::istream istream(&fileBuffer);
+#endif
+
+		assert(istream.good());
+
+		while (!istream.eof())
+		{
+			std::string line;
+			std::stringstream lineStream;
+			std::getline(istream, line);
+			lineStream << line;
+
+			std::string info;
+			lineStream >> info;
+
+			if (info == "char")
+			{
+				std::string pair;
+
+				// char id
+				uint32_t charid = nextValuePair(&lineStream);
+				// Char properties
+				fontChars[charid].x = nextValuePair(&lineStream);
+				fontChars[charid].y = nextValuePair(&lineStream);
+				fontChars[charid].width = nextValuePair(&lineStream);
+				fontChars[charid].height = nextValuePair(&lineStream);
+				fontChars[charid].xoffset = nextValuePair(&lineStream);
+				fontChars[charid].yoffset = nextValuePair(&lineStream);
+				fontChars[charid].xadvance = nextValuePair(&lineStream);
+				fontChars[charid].page = nextValuePair(&lineStream);
+			}
+		}
+
+	}
+
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			"./../data/textures/font_sdf_rgba.ktx",
+			getAssetPath() + "textures/font_sdf_rgba.ktx",
 			VK_FORMAT_R8G8B8A8_UNORM,
 			&textures.fontSDF);
 		textureLoader->loadTexture(
-			"./../data/textures/font_bitmap_rgba.ktx",
+			getAssetPath() + "textures/font_bitmap_rgba.ktx",
 			VK_FORMAT_R8G8B8A8_UNORM,
 			&textures.fontBitmap);
 	}
@@ -260,7 +279,6 @@ public:
 			if (splitScreen)
 			{
 				viewport.y = (float)height / 2.0f;
-//				viewport.x = (float)width / 2.0f;
 				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.bitmap, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.bitmap);
@@ -269,18 +287,7 @@ public:
 				vkCmdDrawIndexed(drawCmdBuffers[i], indices.count, 1, 0, 0, 0);
 			}
 
-
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			VkImageMemoryBarrier prePresentBarrier = vkTools::prePresentBarrier(swapChain.buffers[i].image);
-			vkCmdPipelineBarrier(
-				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_FLAGS_NONE, 
-				0, nullptr,
-				0, nullptr,
-				1, &prePresentBarrier);
 
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
@@ -290,33 +297,25 @@ public:
 	void draw()
 	{
 		VkResult err;
-		VkSemaphore presentCompleteSemaphore;
-		VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = 
-			vkTools::initializers::semaphoreCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-
-		err = vkCreateSemaphore(device, &presentCompleteSemaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
-		assert(!err);
 
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		assert(!err);
 
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
-		// Submit draw command buffer
+		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 		assert(!err);
 
-		err = swapChain.queuePresent(queue, currentBuffer);
+		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
+		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
-
-		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = vkQueueWaitIdle(queue);
 		assert(!err);
@@ -324,25 +323,12 @@ public:
 
 	// todo : function fill buffer with quads from font
 
-	void generateQuad()
+	// Creates a vertex buffer containing quads for the passed text
+	void generateText(std:: string text)
 	{
-		// Setup vertices for a single uv-mapped quad
-		/*
-#define dim 1.0f
-		std::vector<Vertex> vertexBuffer =
-		{
-			{ { dim,  dim, 0.0f },{ 1.0f, 1.0f } },
-			{ { -dim,  dim, 0.0f },{ 0.0f, 1.0f } },
-			{ { -dim, -dim, 0.0f },{ 0.0f, 0.0f } },
-			{ { dim, -dim, 0.0f },{ 1.0f, 0.0f } }
-		};
-#undef dim
-*/
 		std::vector<Vertex> vertexBuffer;
 		std::vector<uint32_t> indexBuffer;
 		uint32_t indexOffset = 0;
-
-		std::string text = "Vulkan";
 
 		float w = textures.fontSDF.width;
 
@@ -385,6 +371,7 @@ public:
 			float advance = ((float)(charInfo->xadvance) / 36.0f);
 			posx += advance;
 		}
+		indices.count = indexBuffer.size();
 
 		// Center
 		for (auto& v : vertexBuffer)
@@ -393,33 +380,12 @@ public:
 			v.pos[1] -= 0.5f;
 		}
 
-		/*
-#define dim 1.0f
-		int charId = 'V';
-		float w = textures.fontSDF.width;
-		float sstart = fontChars[charId].x / w;
-		float send = (fontChars[charId].x + fontChars[charId].width) / w;
-		float tstart = fontChars[charId].y / w;
-		float tend = (fontChars[charId].y + fontChars[charId].height) / w;
-		std::vector<Vertex> vertexBuffer =
-		{
-			{ {  dim,  dim, 0.0f },{ send, tend } },
-			{ { -dim,  dim, 0.0f },{ sstart, tend } },
-			{ { -dim, -dim, 0.0f },{ sstart, tstart } },
-			{ {  dim, -dim, 0.0f },{ send, tstart } }
-		};
-#undef dim
-*/
 		createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			vertexBuffer.size() * sizeof(Vertex),
 			vertexBuffer.data(),
 			&vertices.buf,
 			&vertices.mem);
-
-		// Setup indices
-	//	std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-		indices.count = indexBuffer.size();
 
 		createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -610,12 +576,14 @@ public:
 				0xf,
 				VK_TRUE);
 
+		blendAttachmentState.blendEnable = VK_TRUE;
+		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
-		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 		VkPipelineColorBlendStateCreateInfo colorBlendState =
 			vkTools::initializers::pipelineColorBlendStateCreateInfo(
@@ -649,13 +617,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/distancefieldfonts/sdf.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/distancefieldfonts/sdf.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
-		shaderStages[0] = loadShader("./../data/shaders/distancefieldfonts/sdf.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/distancefieldfonts/sdf.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/distancefieldfonts/sdf.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/distancefieldfonts/sdf.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -678,16 +641,10 @@ public:
 		assert(!err);
 
 		// Default bitmap font rendering pipeline
-#ifdef USE_GLSL
-		shaderStages[0] = loadShaderGLSL("./../data/shaders/distancefieldfonts/bitmap.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShaderGLSL("./../data/shaders/distancefieldfonts/bitmap.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-#else
-		shaderStages[0] = loadShader("./../data/shaders/distancefieldfonts/bitmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("./../data/shaders/distancefieldfonts/bitmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/distancefieldfonts/bitmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/distancefieldfonts/bitmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.bitmap);
 		assert(!err);
-
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -720,14 +677,14 @@ public:
 	{
 		// Vertex shader
 		glm::mat4 viewMatrix = glm::mat4();
-		uboVS.projection = glm::perspective(deg_to_rad(splitScreen ? 45.0f : 60.0f), (float)width / (float)(height * ((splitScreen) ? 0.5f : 1.0f)), 0.001f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		uboVS.projection = glm::perspective(glm::radians(splitScreen ? 45.0f : 45.0f), (float)width / (float)(height * ((splitScreen) ? 0.5f : 1.0f)), 0.001f, 256.0f);
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, splitScreen ? zoom : zoom - 2.0f));
 
 		uboVS.model = glm::mat4();
 		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(0, 0, 0));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
 		VkResult err = vkMapMemory(device, uniformData.vs.memory, 0, sizeof(uboVS), 0, (void **)&pData);
@@ -751,7 +708,7 @@ public:
 		VulkanExampleBase::prepare();
 		parsebmFont();
 		loadTextures();
-		generateQuad();
+		generateText("Vulkan");
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
@@ -793,8 +750,7 @@ public:
 
 VulkanExample *vulkanExample;
 
-#ifdef _WIN32
-
+#if defined(_WIN32)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (vulkanExample != NULL)
@@ -815,9 +771,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-
-#else 
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -827,21 +781,42 @@ static void handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-#ifdef _WIN32
+// Main entry point
+#if defined(_WIN32)
+// Windows entry point
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
+#elif defined(__ANDROID__)
+// Android entry point
+void android_main(android_app* state)
+#elif defined(__linux__)
+// Linux entry point
 int main(const int argc, const char *argv[])
 #endif
 {
+#if defined(__ANDROID__)
+	// Removing this may cause the compiler to omit the main entry point 
+	// which would make the application crash at start
+	app_dummy();
+#endif
 	vulkanExample = new VulkanExample();
-#ifdef _WIN32
+#if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
-#else
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	vulkanExample->androidApp = state;
+#elif defined(__linux__)
 	vulkanExample->setupWindow();
 #endif
+#if !defined(__ANDROID__)
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
+#endif
 	vulkanExample->renderLoop();
 	delete(vulkanExample);
+#if !defined(__ANDROID__)
 	return 0;
+#endif
 }

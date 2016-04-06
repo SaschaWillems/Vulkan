@@ -20,7 +20,25 @@
 
 #include "vulkan/vulkan.h"
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
+
+#include <android/log.h>
+#include <memory>
+
+// Missing from the NDK
+namespace std
+{
+	template<typename T, typename... Args>
+	std::unique_ptr<T> make_unique(Args&&... args)
+	{
+		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+	}
+}
+
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vulkanExample", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vulkanExample", __VA_ARGS__))
+#define LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG, "vulkanExample", __VA_ARGS__))
+#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "vulkanExample", __VA_ARGS__))
 
 // Function pointer prototypes
 // Not complete, just the functions used in the caps viewer!
@@ -49,26 +67,36 @@ extern PFN_vkDestroyBuffer vkDestroyBuffer;
 extern PFN_vkAllocateMemory vkAllocateMemory;
 extern PFN_vkBindImageMemory vkBindImageMemory;
 extern PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
+extern PFN_vkCmdCopyBuffer vkCmdCopyBuffer;
 extern PFN_vkCmdCopyImage vkCmdCopyImage;
+extern PFN_vkCmdBlitImage vkCmdBlitImage;
+extern PFN_vkCmdClearAttachments vkCmdClearAttachments;
 extern PFN_vkCreateSampler vkCreateSampler;
+extern PFN_vkDestroySampler vkDestroySampler;
 extern PFN_vkDestroyImage vkDestroyImage;
 extern PFN_vkFreeMemory vkFreeMemory;
 extern PFN_vkCreateRenderPass vkCreateRenderPass;
 extern PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass;
 extern PFN_vkCmdEndRenderPass vkCmdEndRenderPass;
+extern PFN_vkCmdExecuteCommands vkCmdExecuteCommands;
 extern PFN_vkCreateImage vkCreateImage;
 extern PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements;
 extern PFN_vkCreateImageView vkCreateImageView;
 extern PFN_vkDestroyImageView vkDestroyImageView;
 extern PFN_vkCreateSemaphore vkCreateSemaphore;
 extern PFN_vkDestroySemaphore vkDestroySemaphore;
+extern PFN_vkCreateFence vkCreateFence;
+extern PFN_vkDestroyFence vkDestroyFence;
+extern PFN_vkWaitForFences vkWaitForFences;
 extern PFN_vkCreateCommandPool vkCreateCommandPool;
+extern PFN_vkDestroyCommandPool vkDestroyCommandPool;
 extern PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
 extern PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
 extern PFN_vkEndCommandBuffer vkEndCommandBuffer;
 extern PFN_vkGetDeviceQueue vkGetDeviceQueue;
 extern PFN_vkQueueSubmit vkQueueSubmit;
 extern PFN_vkQueueWaitIdle vkQueueWaitIdle;
+extern PFN_vkDeviceWaitIdle vkDeviceWaitIdle;
 extern PFN_vkCreateFramebuffer vkCreateFramebuffer;
 extern PFN_vkCreatePipelineCache vkCreatePipelineCache;
 extern PFN_vkCreatePipelineLayout vkCreatePipelineLayout;
@@ -84,6 +112,9 @@ extern PFN_vkCmdBindVertexBuffers vkCmdBindVertexBuffers;
 extern PFN_vkCmdBindIndexBuffer vkCmdBindIndexBuffer;
 extern PFN_vkCmdSetViewport vkCmdSetViewport;
 extern PFN_vkCmdSetScissor vkCmdSetScissor;
+extern PFN_vkCmdSetLineWidth vkCmdSetLineWidth;
+extern PFN_vkCmdSetDepthBias vkCmdSetDepthBias;
+extern PFN_vkCmdPushConstants vkCmdPushConstants;
 extern PFN_vkCmdDrawIndexed vkCmdDrawIndexed;
 extern PFN_vkCmdDraw vkCmdDraw;
 extern PFN_vkCmdDispatch vkCmdDispatch;
@@ -98,6 +129,13 @@ extern PFN_vkDestroyRenderPass vkDestroyRenderPass;
 extern PFN_vkDestroyFramebuffer vkDestroyFramebuffer;
 extern PFN_vkDestroyShaderModule vkDestroyShaderModule;
 extern PFN_vkDestroyPipelineCache vkDestroyPipelineCache;
+extern PFN_vkCreateQueryPool vkCreateQueryPool;
+extern PFN_vkDestroyQueryPool vkDestroyQueryPool;
+extern PFN_vkGetQueryPoolResults vkGetQueryPoolResults;
+extern PFN_vkCmdBeginQuery vkCmdBeginQuery;
+extern PFN_vkCmdEndQuery vkCmdEndQuery;
+extern PFN_vkCmdResetQueryPool vkCmdResetQueryPool;
+extern PFN_vkCmdCopyQueryPoolResults vkCmdCopyQueryPoolResults;
 
 extern PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 extern PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;

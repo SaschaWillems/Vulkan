@@ -1,3 +1,11 @@
+/*
+* Vulkan examples debug wrapper
+*
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+*
+* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+*/
+
 #include "vulkandebug.h"
 #include <iostream>
 
@@ -6,7 +14,7 @@ namespace vkDebug
 	int validationLayerCount = 9;
 	const char *validationLayerNames[] = 
 	{
-		"VK_LAYER_LUNARG_threading",
+		"VK_LAYER_GOOGLE_threading",
 		"VK_LAYER_LUNARG_mem_tracker",
 		"VK_LAYER_LUNARG_object_tracker",
 		"VK_LAYER_LUNARG_draw_state",
@@ -69,7 +77,7 @@ namespace vkDebug
 		dbgCreateInfo.pNext = NULL;
 		dbgCreateInfo.pfnCallback = (PFN_vkDebugReportCallbackEXT)messageCallback;
 		dbgCreateInfo.pUserData = NULL;
-		dbgCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+		dbgCreateInfo.flags = flags;
 		VkDebugReportCallbackEXT debugReportCallback;
 		VkResult err = CreateDebugReportCallback(
 			instance,
@@ -83,7 +91,7 @@ namespace vkDebug
 	
 	void freeDebugCallback(VkInstance instance)
 	{
-		if (msgCallback != nullptr)
+		if (msgCallback != NULL)
 		{
 			DestroyDebugReportCallback(instance, msgCallback, nullptr);
 		}

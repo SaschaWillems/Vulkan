@@ -90,7 +90,7 @@
 #include "./gtx/dual_quaternion.hpp"
 #include "./gtx/euler_angles.hpp"
 #include "./gtx/extend.hpp"
-#include "./gtx/extented_min_max.hpp"
+#include "./gtx/extended_min_max.hpp"
 #include "./gtx/fast_exponential.hpp"
 #include "./gtx/fast_square_root.hpp"
 #include "./gtx/fast_trigonometry.hpp"

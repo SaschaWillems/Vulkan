@@ -1,7 +1,10 @@
 /*
 * Class wrapping access to the swap chain
+* 
+* A swap chain is a collection of framebuffers used for rendering
+* The swap chain images can then presented to the windowing system
 *
-* Copyright (C) 2015 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -13,6 +16,7 @@
 #include <fstream>
 #include <assert.h>
 #include <stdio.h>
+#include <vector>
 #ifdef _WIN32
 #include <windows.h>
 #include <fcntl.h>
@@ -72,18 +76,19 @@ private:
 public:
 	VkFormat colorFormat;
 	VkColorSpaceKHR colorSpace;
-	VkImage* swapchainImages;
 
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 
 	uint32_t imageCount;
-	SwapChainBuffer* buffers;
+	std::vector<VkImage> images;
+	std::vector<SwapChainBuffer> buffers;
 
 	// Index of the deteced graphics and presenting device queue
 	uint32_t queueNodeIndex = UINT32_MAX;
 
-	// wip naming
-	void initSwapChain(
+	// Creates an os specific surface
+	// Tries to find a graphics and a present queue
+	void initSurface(
 #ifdef _WIN32
 		void* platformHandle, void* platformWindow
 #else
@@ -95,9 +100,6 @@ public:
 #endif
 	)
 	{
-		uint32_t queueCount;
-		VkQueueFamilyProperties *queueProps;
-
 		VkResult err;
 
 		// Create surface depending on OS
@@ -122,29 +124,28 @@ public:
 #endif
 #endif
 
-		uint32_t i;
-
-		// Get queue properties
+		// Get available queue family properties
+		uint32_t queueCount;
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, NULL);
-
-		queueProps = (VkQueueFamilyProperties *)malloc(queueCount * sizeof(VkQueueFamilyProperties));
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queueProps);
 		assert(queueCount >= 1);
 
+		std::vector<VkQueueFamilyProperties> queueProps(queueCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queueProps.data());
+
 		// Iterate over each queue to learn whether it supports presenting:
-		VkBool32* supportsPresent = (VkBool32 *)malloc(queueCount * sizeof(VkBool32));
-		for (i = 0; i < queueCount; i++) 
+		// Find a queue with present support
+		// Will be used to present the swap chain images to the windowing system
+		std::vector<VkBool32> supportsPresent(queueCount);
+		for (uint32_t i = 0; i < queueCount; i++) 
 		{
-			fpGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i,
-				surface,
-				&supportsPresent[i]);
+			fpGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &supportsPresent[i]);
 		}
 
 		// Search for a graphics and a present queue in the array of queue
 		// families, try to find one that supports both
 		uint32_t graphicsQueueNodeIndex = UINT32_MAX;
 		uint32_t presentQueueNodeIndex = UINT32_MAX;
-		for (i = 0; i < queueCount; i++) 
+		for (uint32_t i = 0; i < queueCount; i++) 
 		{
 			if ((queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0) 
 			{
@@ -174,46 +175,50 @@ public:
 				}
 			}
 		}
-		free(supportsPresent);
 
-		// Generate error if could not find both a graphics and a present queue
+		// Exit if either a graphics or a presenting queue hasn't been found
 		if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX) 
 		{
-			// todo : error message
+			vkTools::exitFatal("Could not find a graphics and/or presenting queue!", "Fatal error");
 		}
 
+		// todo : Add support for separate graphics and presenting queue
 		if (graphicsQueueNodeIndex != presentQueueNodeIndex) 
 		{
-			// todo : error message
+			vkTools::exitFatal("Separate graphics and presenting queues are not supported yet!", "Fatal error");
 		}
 
 		queueNodeIndex = graphicsQueueNodeIndex;
 
-		// Get list of supported formats
+		// Get list of supported surface formats
 		uint32_t formatCount;
 		err = fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, NULL);
 		assert(!err);
+		assert(formatCount > 0);
 
-		VkSurfaceFormatKHR *surfFormats = (VkSurfaceFormatKHR *)malloc(formatCount * sizeof(VkSurfaceFormatKHR));
-		err = fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfFormats);
+		std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
+		err = fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data());
 		assert(!err);
 
-		// If the format list includes just one entry of VK_FORMAT_UNDEFINED,
-		// the surface has no preferred format.  Otherwise, at least one
-		// supported format will be returned.
-		if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED)
+		// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
+		// there is no preferered format, so we assume VK_FORMAT_B8G8R8A8_UNORM
+		if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED))
 		{
 			colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
 		}
 		else
 		{
-			assert(formatCount >= 1);
-			colorFormat = surfFormats[0].format;
+			// Always select the first available color format
+			// If you need a specific format (e.g. SRGB) you'd need to
+			// iterate over the list of available surface format and
+			// check for it's presence
+			colorFormat = surfaceFormats[0].format;
 		}
-		colorSpace = surfFormats[0].colorSpace;
+		colorSpace = surfaceFormats[0].colorSpace;
 	}
 
-	void init(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device)
+	// Connect to the instance und device and get all required function pointers
+	void connect(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device)
 	{
 		this->instance = instance;
 		this->physicalDevice = physicalDevice;
@@ -229,7 +234,8 @@ public:
 		GET_DEVICE_PROC_ADDR(device, QueuePresentKHR);
 	}
 
-	void setup(VkCommandBuffer cmdBuffer, uint32_t *width, uint32_t *height)
+	// Create the swap chain and get images with given width and height
+	void create(VkCommandBuffer cmdBuffer, uint32_t *width, uint32_t *height)
 	{
 		VkResult err;
 		VkSwapchainKHR oldSwapchain = swapChain;
@@ -239,14 +245,15 @@ public:
 		err = fpGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps);
 		assert(!err);
 
+		// Get available present modes
 		uint32_t presentModeCount;
 		err = fpGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL);
 		assert(!err);
+		assert(presentModeCount > 0);
 
-		// todo : replace with vector?
-		VkPresentModeKHR *presentModes = (VkPresentModeKHR *)malloc(presentModeCount * sizeof(VkPresentModeKHR));
+		std::vector<VkPresentModeKHR> presentModes(presentModeCount);
 
-		err = fpGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes);
+		err = fpGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data());
 		assert(!err);
 
 		VkExtent2D swapchainExtent = {};
@@ -266,8 +273,7 @@ public:
 			*height = surfCaps.currentExtent.height;
 		}
 
-		// Try to use mailbox mode
-		// Low latency and non-tearing
+		// Prefer mailbox mode if present, it's the lowest latency non-tearing present  mode
 		VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 		for (size_t i = 0; i < presentModeCount; i++) 
 		{
@@ -294,7 +300,8 @@ public:
 		{
 			preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 		}
-		else {
+		else 
+		{
 			preTransform = surfCaps.currentTransform;
 		}
 
@@ -309,7 +316,7 @@ public:
 		swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
 		swapchainCI.imageArrayLayers = 1;
-		swapchainCI.queueFamilyIndexCount = VK_SHARING_MODE_EXCLUSIVE;
+		swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		swapchainCI.queueFamilyIndexCount = 0;
 		swapchainCI.pQueueFamilyIndices = NULL;
 		swapchainCI.presentMode = swapchainPresentMode;
@@ -320,10 +327,8 @@ public:
 		err = fpCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain);
 		assert(!err);
 
-		// If we just re-created an existing swapchain, we should destroy the old
-		// swapchain at this point.
-		// Note: destroying the swapchain also cleans up all its associated
-		// presentable images once the platform is done with them.
+		// If an existing sawp chain is re-created, destroy the old swap chain
+		// This also cleans up all the presentable images
 		if (oldSwapchain != VK_NULL_HANDLE) 
 		{ 
 			fpDestroySwapchainKHR(device, oldSwapchain, nullptr);
@@ -332,14 +337,13 @@ public:
 		err = fpGetSwapchainImagesKHR(device, swapChain, &imageCount, NULL);
 		assert(!err);
 
-		swapchainImages = (VkImage*)malloc(imageCount * sizeof(VkImage));
-		assert(swapchainImages);
-		err = fpGetSwapchainImagesKHR(device, swapChain, &imageCount, swapchainImages);
+		// Get the swap chain images
+		images.resize(imageCount);
+		err = fpGetSwapchainImagesKHR(device, swapChain, &imageCount, images.data());
 		assert(!err);
 
-		buffers = (SwapChainBuffer*)malloc(sizeof(SwapChainBuffer)*imageCount);
-		assert(buffers);
-		//buffers.resize(imageCount);
+		// Get the swap chain buffers containing the image and imageview
+		buffers.resize(imageCount);
 		for (uint32_t i = 0; i < imageCount; i++)
 		{
 			VkImageViewCreateInfo colorAttachmentView = {};
@@ -360,12 +364,14 @@ public:
 			colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			colorAttachmentView.flags = 0;
 
-			buffers[i].image = swapchainImages[i];
+			buffers[i].image = images[i];
 
+			// Transform images from initial (undefined) to present layout
 			vkTools::setImageLayout(
 				cmdBuffer, 
 				buffers[i].image, 
-				VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, 
+				VK_IMAGE_ASPECT_COLOR_BIT, 
+				VK_IMAGE_LAYOUT_UNDEFINED, 
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 			colorAttachmentView.image = buffers[i].image;
@@ -393,6 +399,25 @@ public:
 		return fpQueuePresentKHR(queue, &presentInfo);
 	}
 
+	// Present the current image to the queue
+	VkResult queuePresent(VkQueue queue, uint32_t currentBuffer, VkSemaphore waitSemaphore)
+	{
+		VkPresentInfoKHR presentInfo = {};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.pNext = NULL;
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = &swapChain;
+		presentInfo.pImageIndices = &currentBuffer;
+		if (waitSemaphore != VK_NULL_HANDLE)
+		{
+			presentInfo.pWaitSemaphores = &waitSemaphore;
+			presentInfo.waitSemaphoreCount = 1;
+		}
+		return fpQueuePresentKHR(queue, &presentInfo);
+	}
+
+
+	// Free all Vulkan resources used by the swap chain
 	void cleanup()
 	{
 		for (uint32_t i = 0; i < imageCount; i++)

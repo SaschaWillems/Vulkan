@@ -43,7 +43,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "texturecubemap", "texturecu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "texturearray", "texturearray\texturearray.vcxproj", "{5E512F97-14DB-4CEE-A495-BD8AED789521}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shadowmap", "shadowmap\shadowmap.vcxproj", "{7B36E42B-5A35-429D-BCD6-C762BD43B2F5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shadowmappingomni", "shadowmappingomni\shadowmappingomni.vcxproj", "{7B36E42B-5A35-429D-BCD6-C762BD43B2F5}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "deferred", "deferred\deferred.vcxproj", "{AF2911F4-33BF-465E-9298-E46D58B929EF}"
 EndProject
@@ -52,6 +52,16 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "skeletalanimation", "skeletalanimation\skeletalanimation.vcxproj", "{469A1996-9BC5-4003-9564-C3816E3822E0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "distancefieldfonts", "distancefieldfonts\distancefieldfonts.vcxproj", "{ABBB2F3B-C176-4006-853F-FC695AEF5DA0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multithreading", "multithreading\multithreading.vcxproj", "{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shadowmapping", "shadowmapping\shadowmapping.vcxproj", "{BF22CE41-AA83-45FE-813A-451E2EDF58D9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "particlefire", "particlefire\particlefire.vcxproj", "{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "raytracing", "raytracing\raytracing.vcxproj", "{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multisampling", "multisampling\multisampling.vcxproj", "{34265930-5C09-447C-9C21-45FD933902FC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -159,6 +169,26 @@ Global
 		{ABBB2F3B-C176-4006-853F-FC695AEF5DA0}.Debug|x64.Build.0 = Debug|x64
 		{ABBB2F3B-C176-4006-853F-FC695AEF5DA0}.Release|x64.ActiveCfg = Release|x64
 		{ABBB2F3B-C176-4006-853F-FC695AEF5DA0}.Release|x64.Build.0 = Release|x64
+		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Debug|x64.ActiveCfg = Debug|x64
+		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Debug|x64.Build.0 = Debug|x64
+		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Release|x64.ActiveCfg = Release|x64
+		{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}.Release|x64.Build.0 = Release|x64
+		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Debug|x64.ActiveCfg = Debug|x64
+		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Debug|x64.Build.0 = Debug|x64
+		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Release|x64.ActiveCfg = Release|x64
+		{BF22CE41-AA83-45FE-813A-451E2EDF58D9}.Release|x64.Build.0 = Release|x64
+		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Debug|x64.ActiveCfg = Debug|x64
+		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Debug|x64.Build.0 = Debug|x64
+		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Release|x64.ActiveCfg = Release|x64
+		{A8DDE46D-0C36-49E5-83CB-19FF69493FA0}.Release|x64.Build.0 = Release|x64
+		{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}.Debug|x64.ActiveCfg = Debug|x64
+		{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}.Debug|x64.Build.0 = Debug|x64
+		{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}.Release|x64.ActiveCfg = Release|x64
+		{8B1C24E5-CC00-484C-9F6F-8FFCBDA3AA30}.Release|x64.Build.0 = Release|x64
+		{34265930-5C09-447C-9C21-45FD933902FC}.Debug|x64.ActiveCfg = Debug|x64
+		{34265930-5C09-447C-9C21-45FD933902FC}.Debug|x64.Build.0 = Debug|x64
+		{34265930-5C09-447C-9C21-45FD933902FC}.Release|x64.ActiveCfg = Release|x64
+		{34265930-5C09-447C-9C21-45FD933902FC}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

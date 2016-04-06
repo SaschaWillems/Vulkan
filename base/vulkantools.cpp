@@ -1,16 +1,12 @@
 /*
 * Assorted commonly used Vulkan helper functions
 *
-* Copyright (C) 2015 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 #include "vulkantools.h"
-
-#ifdef __ANDROID__
-#include "vulkanandroid.h"
-#endif
 
 namespace vkTools
 {
@@ -53,7 +49,6 @@ namespace vkTools
 	{
 		switch (errorCode)
 		{
-			// todo : update to SDK 0.10.1
 #define STR(r) case VK_ ##r: return #r
 			STR(NOT_READY);
 			STR(TIMEOUT);
@@ -67,11 +62,32 @@ namespace vkTools
 			STR(ERROR_MEMORY_MAP_FAILED);
 			STR(ERROR_LAYER_NOT_PRESENT);
 			STR(ERROR_EXTENSION_NOT_PRESENT);
+			STR(ERROR_FEATURE_NOT_PRESENT);
 			STR(ERROR_INCOMPATIBLE_DRIVER);
+			STR(ERROR_TOO_MANY_OBJECTS);
+			STR(ERROR_FORMAT_NOT_SUPPORTED);
+			STR(ERROR_SURFACE_LOST_KHR);
+			STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
+			STR(SUBOPTIMAL_KHR);
+			STR(ERROR_OUT_OF_DATE_KHR);
+			STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
+			STR(ERROR_VALIDATION_FAILED_EXT);
+			STR(ERROR_INVALID_SHADER_NV);
 #undef STR
 		default:
 			return "UNKNOWN_ERROR";
 		}
+	}
+
+	VkResult checkResult(VkResult result)
+	{
+		if (result != VK_SUCCESS)
+		{
+			std::string errorMsg = "Fatal : VkResult returned " + errorString(result) + "!";
+			std::cout << errorMsg << std::endl;
+			assert(result == VK_SUCCESS);
+		}
+		return result;
 	}
 
 	VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *depthFormat)
@@ -104,25 +120,28 @@ namespace vkTools
 	// Create an image memory barrier for changing the layout of
 	// an image and put it into an active command buffer
 	// See chapter 11.4 "Image Layout" for details
-	//todo : rename
-	void setImageLayout(VkCommandBuffer cmdbuffer, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout)
+
+	void setImageLayout(
+		VkCommandBuffer cmdbuffer, 
+		VkImage image, 
+		VkImageAspectFlags aspectMask, 
+		VkImageLayout oldImageLayout, 
+		VkImageLayout newImageLayout,
+		VkImageSubresourceRange subresourceRange)
 	{
 		// Create an image barrier object
 		VkImageMemoryBarrier imageMemoryBarrier = vkTools::initializers::imageMemoryBarrier();
 		imageMemoryBarrier.oldLayout = oldImageLayout;
 		imageMemoryBarrier.newLayout = newImageLayout;
 		imageMemoryBarrier.image = image;
-		imageMemoryBarrier.subresourceRange.aspectMask = aspectMask;
-		imageMemoryBarrier.subresourceRange.baseMipLevel = 0;
-		imageMemoryBarrier.subresourceRange.levelCount = 1;
-		imageMemoryBarrier.subresourceRange.layerCount = 1;
+		imageMemoryBarrier.subresourceRange = subresourceRange;
 
 		// Source layouts (old)
 
 		// Undefined layout
 		// Only allowed as initial layout!
 		// Make sure any writes to the image have been finished
-		if (oldImageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+		if (oldImageLayout == VK_IMAGE_LAYOUT_PREINITIALIZED)
 		{
 			imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
 		}
@@ -132,6 +151,13 @@ namespace vkTools
 		if (oldImageLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) 
 		{
 			imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		}
+
+		// Old layout is depth/stencil attachment
+		// Make sure any writes to the depth/stencil buffer have been finished
+		if (oldImageLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+		{
+			imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		}
 
 		// Old layout is transfer source
@@ -188,7 +214,6 @@ namespace vkTools
 			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		}
 
-
 		// Put barrier on top
 		VkPipelineStageFlags srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		VkPipelineStageFlags destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -202,6 +227,22 @@ namespace vkTools
 			0, nullptr,
 			0, nullptr,
 			1, &imageMemoryBarrier);
+	}
+
+	// Fixed sub resource on first mip level and layer
+	void setImageLayout(
+		VkCommandBuffer cmdbuffer,
+		VkImage image,
+		VkImageAspectFlags aspectMask,
+		VkImageLayout oldImageLayout,
+		VkImageLayout newImageLayout)
+	{
+		VkImageSubresourceRange subresourceRange = {};
+		subresourceRange.aspectMask = aspectMask;
+		subresourceRange.baseMipLevel = 0;
+		subresourceRange.levelCount = 1;
+		subresourceRange.layerCount = 1;
+		setImageLayout(cmdbuffer, image, aspectMask, oldImageLayout, newImageLayout, subresourceRange);
 	}
 
 	void exitFatal(std::string message, std::string caption)
@@ -256,6 +297,37 @@ namespace vkTools
 		return (char*)shader_code;
 	}
 
+#if defined(__ANDROID__)
+	// Android shaders are stored as assets in the apk
+	// So they need to be loaded via the asset manager
+	VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device, VkShaderStageFlagBits stage)
+	{
+		// Load shader from compressed asset
+		AAsset* asset = AAssetManager_open(assetManager, fileName, AASSET_MODE_STREAMING);
+		assert(asset);
+		size_t size = AAsset_getLength(asset);
+		assert(size > 0);
+
+		char *shaderCode = new char[size];
+		AAsset_read(asset, shaderCode, size);
+		AAsset_close(asset);
+
+		VkShaderModule shaderModule;
+		VkShaderModuleCreateInfo moduleCreateInfo;
+		VkResult err;
+
+		moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		moduleCreateInfo.pNext = NULL;
+
+		moduleCreateInfo.codeSize = size;
+		moduleCreateInfo.pCode = (uint32_t*)shaderCode;
+		moduleCreateInfo.flags = 0;
+		err = vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule);
+		assert(!err);
+
+		return shaderModule;
+	}
+#else
 	VkShaderModule loadShader(const char *fileName, VkDevice device, VkShaderStageFlagBits stage) 
 	{
 		size_t size = 0;
@@ -277,7 +349,7 @@ namespace vkTools
 
 		return shaderModule;
 	}
-
+#endif
 
 	VkShaderModule loadShaderGLSL(const char *fileName, VkDevice device, VkShaderStageFlagBits stage)
 	{
@@ -364,6 +436,13 @@ VkCommandBufferAllocateInfo vkTools::initializers::commandBufferAllocateInfo(VkC
 	return commandBufferAllocateInfo;
 }
 
+VkCommandPoolCreateInfo vkTools::initializers::commandPoolCreateInfo()
+{
+	VkCommandPoolCreateInfo cmdPoolCreateInfo = {};
+	cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	return cmdPoolCreateInfo;
+}
+
 VkCommandBufferBeginInfo vkTools::initializers::commandBufferBeginInfo()
 {
 	VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
@@ -372,12 +451,27 @@ VkCommandBufferBeginInfo vkTools::initializers::commandBufferBeginInfo()
 	return cmdBufferBeginInfo;
 }
 
+VkCommandBufferInheritanceInfo vkTools::initializers::commandBufferInheritanceInfo()
+{
+	VkCommandBufferInheritanceInfo cmdBufferInheritanceInfo = {};
+	cmdBufferInheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+	return cmdBufferInheritanceInfo;
+}
+
 VkRenderPassBeginInfo vkTools::initializers::renderPassBeginInfo()
 {
 	VkRenderPassBeginInfo renderPassBeginInfo = {};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassBeginInfo.pNext = NULL;
 	return renderPassBeginInfo;
+}
+
+VkRenderPassCreateInfo vkTools::initializers::renderPassCreateInfo()
+{
+	VkRenderPassCreateInfo renderPassCreateInfo = {};
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.pNext = NULL;
+	return renderPassCreateInfo;
 }
 
 VkImageMemoryBarrier vkTools::initializers::imageMemoryBarrier()
@@ -439,14 +533,21 @@ VkFramebufferCreateInfo vkTools::initializers::framebufferCreateInfo()
 	return framebufferCreateInfo;
 }
 
-VkSemaphoreCreateInfo vkTools::initializers::semaphoreCreateInfo(
-	VkSemaphoreCreateFlags flags)
+VkSemaphoreCreateInfo vkTools::initializers::semaphoreCreateInfo()
 {
 	VkSemaphoreCreateInfo semaphoreCreateInfo = {};
 	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	semaphoreCreateInfo.pNext = NULL;
-	semaphoreCreateInfo.flags = flags;
+	semaphoreCreateInfo.flags = 0;
 	return semaphoreCreateInfo;
+}
+
+VkFenceCreateInfo vkTools::initializers::fenceCreateInfo(VkFenceCreateFlags flags)
+{
+	VkFenceCreateInfo fenceCreateInfo = {};
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceCreateInfo.flags = flags;
+	return fenceCreateInfo;
 }
 
 VkSubmitInfo vkTools::initializers::submitInfo()

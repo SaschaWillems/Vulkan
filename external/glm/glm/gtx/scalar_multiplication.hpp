@@ -44,7 +44,7 @@
 #include "../detail/setup.hpp"
 
 #if !GLM_HAS_TEMPLATE_ALIASES && !(GLM_COMPILER & GLM_COMPILER_GCC)
-#	error "GLM_GTX_scalar_multiplication requires C++11 suppport or alias templates and if not support for GCC"
+#	error "GLM_GTX_scalar_multiplication requires C++11 support or alias templates and if not support for GCC"
 #endif
 
 #include "../vec2.hpp"

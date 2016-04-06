@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 cmake_policy(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-set(NAME bloom)
+set(NAME vulkanExamples)
 
 project(${NAME})
 
@@ -14,12 +14,13 @@ include_directories(base)
 
 IF(WIN32)
 	find_library(VULKAN_LIB NAMES vulkan-1 vulkan PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)
-	find_library(ASSIMP_LIB NAMES assimp PATHS ${CMAKE_SOURCE_DIR}/libs/assimp)
+	find_library(ASSIMP_LIBRARIES NAMES assimp libassimp.dll.a PATHS ${CMAKE_SOURCE_DIR}/libs/assimp)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_WIN32_KHR")
 ELSE(WIN32)
 	find_library(VULKAN_LIB NAMES libvulkan.so PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)
-	find_library(ASSIMP_LIB NAMES assimp libassimp.dll.a PATHS ${CMAKE_SOURCE_DIR}/libs/assimp)
+	find_package(ASSIMP REQUIRED)
 	find_package(XCB REQUIRED)
+	find_package(Threads REQUIRED)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_XCB_KHR")
 	# Todo : android?
 ENDIF(WIN32)
@@ -27,11 +28,12 @@ ENDIF(WIN32)
 message(STATUS ${VULKAN_LIB})
 
 # Set preprocessor defines
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX -DVK_PROTOTYPES -D_USE_MATH_DEFINES")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX -D_USE_MATH_DEFINES")
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-add_definitions(-std=c++11)
+add_definitions(-std=c++14)
 add_definitions(-std=c++0x)
+add_definitions(-std=gnu++14)
 
 file(GLOB SOURCE *.cpp base/*.cpp)
 
@@ -40,10 +42,10 @@ function(buildExample EXAMPLE_NAME)
 	file(GLOB SOURCE *.cpp base/*.cpp ${EXAMPLE_NAME}/*.cpp)
 	if(WIN32)
 		add_executable(${EXAMPLE_NAME} WIN32 ${EXAMPLE_NAME}/${EXAMPLE_NAME}.cpp ${SOURCE})
-		target_link_libraries(${EXAMPLE_NAME} ${VULKAN_LIB} ${ASSIMP_LIB} ${WINLIBS})
+		target_link_libraries(${EXAMPLE_NAME} ${VULKAN_LIB} ${ASSIMP_LIBRARIES} ${WINLIBS})
 	else(WIN32)
 		add_executable(${EXAMPLE_NAME} ${EXAMPLE_NAME}/${EXAMPLE_NAME}.cpp ${SOURCE})
-		target_link_libraries(${EXAMPLE_NAME} ${VULKAN_LIB} ${ASSIMP_LIB} ${PTHREAD})
+		target_link_libraries(${EXAMPLE_NAME} ${VULKAN_LIB} ${ASSIMP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 	endif(WIN32)
 endfunction(buildExample)
 
@@ -78,13 +80,18 @@ set(EXAMPLES
 	geometryshader
 	instancing
 	mesh
+    multithreading
+	multisampling
 	occlusionquery
 	offscreen
 	parallaxmapping
+	particlefire
 	pipelines
 	pushconstants
+	raytracing
 	radialblur
-	shadowmap
+	shadowmapping
+	shadowmappingomni
 	skeletalanimation
 	sphericalenvmapping
 	tessellation

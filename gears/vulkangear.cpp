@@ -244,28 +244,26 @@ void VulkanGear::updateUniformBuffer(glm::mat4 perspective, glm::vec3 rotation, 
 		glm::vec3(-1.0, -1.5, 0),
 		glm::vec3(0, 1, 0)
 		);
-	ubo.view = glm::rotate(ubo.view, deg_to_rad(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-	ubo.view = glm::rotate(ubo.view, deg_to_rad(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+	ubo.view = glm::rotate(ubo.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+	ubo.view = glm::rotate(ubo.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	ubo.model = glm::mat4();
 	ubo.model = glm::translate(ubo.model, pos);
 	rotation.z = (rotSpeed * timer) + rotOffset;
-	ubo.model = glm::rotate(ubo.model, deg_to_rad(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.model = glm::rotate(ubo.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
 
 	//ubo.lightPos = lightPos;
 	ubo.lightPos = glm::vec3(0.0f, 0.0f, 2.5f);
-	ubo.lightPos.x = sin(deg_to_rad(timer)) * 8.0f;
-	ubo.lightPos.z = cos(deg_to_rad(timer)) * 8.0f;
+	ubo.lightPos.x = sin(glm::radians(timer)) * 8.0f;
+	ubo.lightPos.z = cos(glm::radians(timer)) * 8.0f;
 
 	uint8_t *pData;
 	VkResult err = vkMapMemory(device, uniformData.memory, 0, sizeof(ubo), 0, (void **)&pData);
 	assert(!err);
 	memcpy(pData, &ubo, sizeof(ubo));
 	vkUnmapMemory(device, uniformData.memory);
-
-	#undef deg_to_rad
 }
 
 void VulkanGear::setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout descriptorSetLayout)

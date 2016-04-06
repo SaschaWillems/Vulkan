@@ -1,0 +1,5 @@
+Vulkan scene models (and derived work) © 2016 by Dominic Agoro-Ombaka and Sascha Willems
+
+Please ask before distributing or using these models in your own projects.
+
+Models contain the Vulkan(tm) Logo, Vulkan and the Vulkan logo are trademarks of the Khronos Group Inc.
