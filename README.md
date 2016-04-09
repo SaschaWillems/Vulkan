@@ -35,7 +35,10 @@ The examples are build against **API Version 1.0.5** and support **implementatio
 
 ## Additional documentation
 
-Additional documentation for several base classes and functionality (e.g. the swap chain) can be found [in this directory](./documentation/additionaldocs.md).
+Additional documentation for several base classes and some Presentations can be found [in this directory](./documentation/additionaldocs.md).
+
+### Presentations
+- [From OpenGL to Vulkan (Khronos Meetup Munich, 2016-04-08)](./documentation/Khronos_meetup_munich_fromGLtoVulkan.pdf)
 
 # Examples
 
@@ -226,11 +229,6 @@ More of a playground than an actual example. Renders multiple meshes with differ
 <br><br>
 
 <br>
-## [Android](android/)
-
-This repository also contains a few Android examples that are (for now) separated from the rest of the examples. See the [Android readme](./android/README.md) for details on what is included and how to build the examples.
-
-The examples already share a few source files with existing examples and might be integrated into them at some point.
 
 ## Credits
 Thanks to the authors of these libraries :
