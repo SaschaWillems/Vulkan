@@ -11,18 +11,13 @@
 
 namespace vkDebug
 {
-	int validationLayerCount = 9;
+	int validationLayerCount = 1;
 	const char *validationLayerNames[] = 
 	{
-		"VK_LAYER_GOOGLE_threading",
-		"VK_LAYER_LUNARG_mem_tracker",
-		"VK_LAYER_LUNARG_object_tracker",
-		"VK_LAYER_LUNARG_draw_state",
-		"VK_LAYER_LUNARG_param_checker",
-		"VK_LAYER_LUNARG_swapchain",
-		"VK_LAYER_LUNARG_device_limits",
-		"VK_LAYER_LUNARG_image",
-		"VK_LAYER_GOOGLE_unique_objects",
+		// This is a meta layer that enables all of the standard
+		// validation layers in the correct order :
+		// threading, parameter_validation, device_limits, object_tracker, image, core_validation, swapchain, and unique_objects
+		"VK_LAYER_LUNARG_standard_validation"
 	};
 
 	PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallback;
@@ -72,28 +67,25 @@ namespace vkDebug
 		DestroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
 		dbgBreakCallback = (PFN_vkDebugReportMessageEXT)vkGetInstanceProcAddr(instance, "vkDebugReportMessageEXT");
 
-		VkDebugReportCallbackCreateInfoEXT dbgCreateInfo;
+		VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = {};
 		dbgCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-		dbgCreateInfo.pNext = NULL;
 		dbgCreateInfo.pfnCallback = (PFN_vkDebugReportCallbackEXT)messageCallback;
-		dbgCreateInfo.pUserData = NULL;
 		dbgCreateInfo.flags = flags;
-		VkDebugReportCallbackEXT debugReportCallback;
+
 		VkResult err = CreateDebugReportCallback(
 			instance,
 			&dbgCreateInfo,
-			NULL,
-			&debugReportCallback);
+			nullptr,
+			&msgCallback);
 		assert(!err);
-
-
 	}
 	
 	void freeDebugCallback(VkInstance instance)
 	{
-		if (msgCallback != NULL)
+		if (msgCallback != nullptr)
 		{
-			DestroyDebugReportCallback(instance, msgCallback, nullptr);
+			// Commented out as this crashes on some implementations for some reason (at least in VS2015)
+			// DestroyDebugReportCallback(instance, msgCallback, nullptr);
 		}
 	}
 }
