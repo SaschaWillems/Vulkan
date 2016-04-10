@@ -562,7 +562,7 @@ VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
 	return submitInfo;
 }
 
-VulkanExampleBase::VulkanExampleBase(bool enableValidation)
+VulkanExampleBase::VulkanExampleBase(bool enableValidation, size_t deviceSelected)
 {
 	// Check for validation command line flag
 #if defined(_WIN32)
@@ -583,7 +583,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 
 #if !defined(__ANDROID__)
 	// Android Vulkan initialization is handled in APP_CMD_INIT_WINDOW event
-	initVulkan(enableValidation);
+	initVulkan(enableValidation, deviceSelected);
 #endif
 
 #if defined(_WIN32)
@@ -655,7 +655,7 @@ VulkanExampleBase::~VulkanExampleBase()
 #endif
 }
 
-void VulkanExampleBase::initVulkan(bool enableValidation)
+void VulkanExampleBase::initVulkan(bool enableValidation, size_t deviceSelected)
 {
 	VkResult err;
 
@@ -684,11 +684,52 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 		vkTools::exitFatal("Could not enumerate phyiscal devices : \n" + vkTools::errorString(err), "Fatal error");
 	}
 
-	// Note :
-	// This example will always use the first physical device reported,
-	// change the vector index if you have multiple Vulkan devices installed
-	// and want to use another one
-	physicalDevice = physicalDevices[0];
+	if (gpuCount == 1)
+	{
+		deviceSelected = 0;
+	}
+	else if (deviceSelected < 0 || deviceSelected >= gpuCount)
+	{
+		std::cout << "Available devices:";
+		for (size_t i = 0; i < gpuCount; i++)
+		{
+			vkGetPhysicalDeviceProperties(physicalDevices[i], &deviceProperties);
+			std::cout << i << "\t(";
+			switch (deviceProperties.deviceType)
+			{
+				case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+					std::cout << "Integrated GPU";
+					break;
+				case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+					std::cout << "Discrete GPU";
+					break;
+				case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+					std::cout << "Virtual GPU";
+					break;
+				case VK_PHYSICAL_DEVICE_TYPE_CPU:
+					std::cout << "CPU";
+					break;
+				case VK_PHYSICAL_DEVICE_TYPE_OTHER:
+					std::cout << "Unknown type";
+					break;
+			}
+			std::cout << ") " << deviceProperties.deviceName;
+			std::cout << std::endl;
+		}
+
+#if 1
+		// Use the first physical device reported if no valid value is provided
+		deviceSelected = 0;
+		std::cout << "Using #" << deviceSelected << std::endl;
+		std::cout << "Choose an other device from the list with `--gpu`" << std::endl;
+#else
+		// Require user to choose a device
+		vkTools::exitFatal("Please choose a device from the list with `--gpu`");
+#endif
+	}
+
+	// Select device
+	physicalDevice = physicalDevices[deviceSelected];
 
 	// Find a queue that supports graphics operations
 	uint32_t graphicsQueueIndex = 0;

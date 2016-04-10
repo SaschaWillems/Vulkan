@@ -182,12 +182,11 @@ public:
 	xcb_intern_atom_reply_t *atom_wm_delete_window;
 #endif
 
-	VulkanExampleBase(bool enableValidation);
-	VulkanExampleBase() : VulkanExampleBase(false) {};
+	VulkanExampleBase(bool enableValidation = false, size_t deviceSelected = 0);
 	~VulkanExampleBase();
 
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
-	void initVulkan(bool enableValidation);
+	void initVulkan(bool enableValidation, size_t deviceSelected);
 
 #if defined(_WIN32)
 	void setupConsole(std::string title);
