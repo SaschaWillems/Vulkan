@@ -966,6 +966,23 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			mousePos.y = (float)posy;
 		}
 		break;
+	case WM_SIZE:
+		if ((prepared) && (wParam != SIZE_MINIMIZED))
+		{
+			destWidth = LOWORD(lParam);
+			destHeight = HIWORD(lParam);
+			if ((wParam == SIZE_MAXIMIZED) || (wParam == SIZE_RESTORED))
+			{
+				windowResize();
+			}
+		}
+		break;
+	case WM_EXITSIZEMOVE:
+		if ((prepared) && ((destWidth != width) || (destHeight != height)))
+		{
+			windowResize();
+		}
+		break;
 	}
 }
 #elif defined(__ANDROID__)
@@ -1182,6 +1199,11 @@ void VulkanExampleBase::keyPressed(uint32_t keyCode)
 	// Can be overriden in derived class
 }
 
+void VulkanExampleBase::buildCommandBuffers()
+{
+	// Can be overriden in derived class
+}
+
 VkBool32 VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t * typeIndex)
 {
 	for (uint32_t i = 0; i < 32; i++)
@@ -1350,6 +1372,56 @@ void VulkanExampleBase::setupRenderPass()
 
 	err = vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass);
 	assert(!err);
+}
+
+void VulkanExampleBase::windowResize()
+{
+	if (!prepared)
+	{
+		return;
+	}
+	prepared = false;
+
+	// Recreate swap chain
+	width = destWidth;
+	height = destHeight;
+	createSetupCommandBuffer();
+	setupSwapChain();
+
+	// Recreate the frame buffers
+
+	vkDestroyImageView(device, depthStencil.view, nullptr);
+	vkDestroyImage(device, depthStencil.image, nullptr);
+	vkFreeMemory(device, depthStencil.mem, nullptr);
+	setupDepthStencil();
+	
+	for (uint32_t i = 0; i < frameBuffers.size(); i++)
+	{
+		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
+	}
+	setupFrameBuffer();
+
+	flushSetupCommandBuffer();
+
+	// Command buffers need to be recreated as they may store
+	// references to the recreated frame buffer
+	destroyCommandBuffers();
+	createCommandBuffers();
+	buildCommandBuffers();
+
+	vkQueueWaitIdle(queue);
+	vkDeviceWaitIdle(device);
+
+	// Notify derived class
+	windowResized();
+	viewChanged();
+
+	prepared = true;
+}
+
+void VulkanExampleBase::windowResized()
+{
+	// Can be overrdiden in derived class
 }
 
 void VulkanExampleBase::initSwapchain()

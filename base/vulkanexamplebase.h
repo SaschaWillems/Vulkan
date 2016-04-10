@@ -53,6 +53,11 @@ private:
 	VkResult createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation);
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
+	// Destination dimensions for resizing the window
+	uint32_t destWidth;
+	uint32_t destHeight;
+	// Called if the window is resized and some resources have to be recreatesd
+	void windowResize();
 protected:
 	// Last frame time, measured using a high performance timer (if available)
 	float frameTimer = 1.0f;
@@ -211,6 +216,13 @@ public:
 	// Called if a key is pressed
 	// Can be overriden in derived class to do custom key handling
 	virtual void keyPressed(uint32_t keyCode);
+	// Called when the window has been resized
+	// Can be overriden in derived class to recreate or rebuild resources attached to the frame buffer / swapchain
+	virtual void windowResized();
+	// Pure virtual function to be overriden by the dervice class
+	// Called in case of an event where e.g. the framebuffer has to be rebuild and thus
+	// all command buffers that may reference this
+	virtual void buildCommandBuffers();
 
 	// Get memory type for a given memory allocation (flags and bits)
 	VkBool32 getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex);
