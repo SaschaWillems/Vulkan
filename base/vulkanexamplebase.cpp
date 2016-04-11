@@ -1183,6 +1183,20 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	case XCB_DESTROY_NOTIFY:
 		quit = true;
 		break;
+	case XCB_CONFIGURE_NOTIFY:
+	{
+		const xcb_configure_notify_event_t *cfgEvent = (const xcb_configure_notify_event_t *)event;
+		if ((prepared) && ((cfgEvent->width != width) || (cfgEvent->height != height)))
+		{
+				destWidth = cfgEvent->width;
+				destHeight = cfgEvent->height;
+				if ((destWidth > 0) && (destHeight > 0))
+				{
+					windowResize();
+				}
+		}
+	}
+	break;
 	default:
 		break;
 	}
