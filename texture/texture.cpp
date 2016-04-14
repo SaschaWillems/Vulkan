@@ -201,7 +201,7 @@ public:
 		texture.height = tex2D[0].dimensions().y;
 		texture.mipLevels = tex2D.levels();
 
-		// Get device properites for the requested texture format
+		// Get device properties for the requested texture format
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 
 		// Only use linear tiling if requested (and supported by the device)
@@ -564,7 +564,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -583,7 +583,7 @@ public:
 
 	void generateQuad()
 	{
-		// Setup vertices for a single uv-mapped quad
+		// Setup vertices for a single UV-mapped quad
 #define dim 1.0f
 		std::vector<Vertex> vertexBuffer =
 		{
@@ -649,7 +649,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses one ubo and one image sampler
+		// Example uses one UBO and one image sampler
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),

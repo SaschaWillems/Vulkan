@@ -81,7 +81,7 @@ namespace vkMeshLoader
 		return vSize;
 	}
 
-	// Stores some additonal info and functions for 
+	// Stores some additional info and functions for 
 	// specifying pipelines, vertex bindings, etc.
 	class Mesh
 	{

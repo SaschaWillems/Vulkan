@@ -89,7 +89,7 @@ namespace vkTools
 	public:
 		std::vector<std::unique_ptr<Thread>> threads;
 
-		// Sets the number of threads to be allocted in this pool
+		// Sets the number of threads to be allocated in this pool
 		void setThreadCount(uint32_t count)
 		{
 			threads.clear();

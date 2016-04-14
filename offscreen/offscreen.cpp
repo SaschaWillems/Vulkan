@@ -109,7 +109,7 @@ public:
 		int32_t width, height;
 		VkFramebuffer frameBuffer;		
 		FrameBufferAttachment color, depth;
-		// Texture target for framebugger blut
+		// Texture target for framebuffer blit
 		vkTools::VulkanTexture textureTarget;
 	} offScreenFrameBuf;
 
@@ -171,7 +171,7 @@ public:
 		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
 	}
 
-	// Preapre an empty texture as the blit target from 
+	// Prepare an empty texture as the blit target from 
 	// the offscreen framebuffer
 	void prepareTextureTarget(uint32_t width, uint32_t height, VkFormat format)
 	{
@@ -180,7 +180,7 @@ public:
 		VkFormatProperties formatProperties;
 		VkResult err;
 
-		// Get device properites for the requested texture format
+		// Get device properties for the requested texture format
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 		// Check if blit destination is supported for the requested format
 		// Only try for optimal tiling, linear tiling usually won't support blit as destination anyway
@@ -507,7 +507,7 @@ public:
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		// Transform texture target back to shader read
-		// Makes sure that writes to the textuer are finished before
+		// Makes sure that writes to the texture are finished before
 		// it's accessed in the shader
 		vkTools::setImageLayout(
 			offScreenCmdBuffer,
@@ -610,7 +610,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Gather command buffers to be sumitted to the queue
+		// Gather command buffers to be submitted to the queue
 		std::vector<VkCommandBuffer> submitCmdBuffers = {
 			offScreenCmdBuffer,
 			drawCmdBuffers[currentBuffer],
@@ -647,7 +647,7 @@ public:
 
 	void generateQuad()
 	{
-		// Setup vertices for a single uv-mapped quad
+		// Setup vertices for a single UV-mapped quad
 		struct Vertex {
 			float pos[3];
 			float uv[2];

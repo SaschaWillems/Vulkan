@@ -286,7 +286,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -314,7 +314,7 @@ public:
 		assert(!err);
 	}
 
-	// Setup vertices for a single uv-mapped quad
+	// Setup vertices for a single UV-mapped quad
 	void generateQuad()
 	{
 #define dim 1.0f

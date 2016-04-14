@@ -304,7 +304,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -659,7 +659,7 @@ public:
 			&uniformData.vs.memory,
 			&uniformData.vs.descriptor);
 
-		// Fragment sahder uniform buffer block
+		// Fragment shader uniform buffer block
 		// Contains font rendering parameters
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,

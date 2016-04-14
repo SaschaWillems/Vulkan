@@ -263,7 +263,7 @@ public:
 		err = vkQueueWaitIdle(queue);
 		assert(!err);
 
-		// The submit infor strcuture contains a list of
+		// The submit info structure contains a list of
 		// command buffers and semaphores to be submitted to a queue
 		// If you want to submit multiple command buffers, pass an array
 		VkPipelineStageFlags pipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -271,7 +271,7 @@ public:
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.pWaitDstStageMask = &pipelineStages;
 		// The wait semaphore ensures that the image is presented 
-		// before we start submitting command buffers agein
+		// before we start submitting command buffers again
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 		// Submit the currently active command buffer
@@ -295,7 +295,7 @@ public:
 		assert(!err);
 	}
 
-	// Create synchronzation semaphores
+	// Create synchronization semaphores
 	void prepareSemaphore()
 	{
 		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
@@ -671,7 +671,7 @@ public:
 		pipelineCreateInfo.renderPass = renderPass;
 
 		// Vertex input state
-		// Describes the topoloy used with this pipeline
+		// Describes the topology used with this pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
 		inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		// This pipeline renders vertex data as triangle lists
@@ -724,7 +724,7 @@ public:
 		dynamicState.dynamicStateCount = dynamicStateEnables.size();
 
 		// Depth and stencil state
-		// Describes depth and stenctil test and compare ops
+		// Describes depth and stencil test and compare ops
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
 		// Basic depth compare setup with depth writes and depth test enabled
 		// No stencil used 
@@ -747,7 +747,7 @@ public:
 		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 		// Load shaders
-		// Shaders are loaded from the SPIR-V format, which can be generated from glsl
+		// Shaders are loaded from the SPIR-V format, which can be generated from GLSL
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);

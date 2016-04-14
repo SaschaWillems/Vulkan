@@ -66,7 +66,7 @@ public:
 			glm::mat4 projection;
 			glm::mat4 view;
 		} matrices;
-		// Seperate data for each instance
+		// Separate data for each instance
 		UboInstanceData *instance;		
 	} uboVS;
 
@@ -135,7 +135,7 @@ public:
 		textureArray.height = tex2DArray.dimensions().y;
 		layerCount = tex2DArray.layers();
 
-		// Get device properites for the requested texture format
+		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 
@@ -296,7 +296,7 @@ public:
 
 		VkFence nullFence = { VK_NULL_HANDLE };
 
-		// Submit command buffer to graphis queue
+		// Submit command buffer to graphics queue
 		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmdBuffer;
@@ -420,7 +420,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -437,7 +437,7 @@ public:
 		assert(!err);
 	}
 
-	// Setup vertices for a single uv-mapped quad
+	// Setup vertices for a single UV-mapped quad
 	void generateQuad()
 	{
 #define dim 2.5f
@@ -641,7 +641,7 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Instacing pipeline
+		// Instancing pipeline
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 

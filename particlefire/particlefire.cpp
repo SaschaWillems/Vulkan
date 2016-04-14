@@ -61,7 +61,7 @@ public:
 			vkTools::VulkanTexture smoke;
 			vkTools::VulkanTexture fire;
 			// We use a custom sampler to change some sampler
-			// attributes required for rotation the uv coordinates
+			// attributes required for rotation the UV coordinates
 			// inside the shader for alpha blended textures
 			VkSampler sampler;
 		} particles;
@@ -231,7 +231,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -473,7 +473,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses one ubo and one image sampler
+		// Example uses one UBO and one image sampler
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
@@ -691,7 +691,7 @@ public:
 
 		depthStencilState.depthWriteEnable = VK_FALSE;
 
-		// Premulitplied alpha
+		// Premultiplied alpha
 		blendAttachmentState.blendEnable = VK_TRUE;
 		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
 		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

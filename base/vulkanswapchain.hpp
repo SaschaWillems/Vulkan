@@ -83,10 +83,10 @@ public:
 	std::vector<VkImage> images;
 	std::vector<SwapChainBuffer> buffers;
 
-	// Index of the deteced graphics and presenting device queue
+	// Index of the detected graphics and presenting device queue
 	uint32_t queueNodeIndex = UINT32_MAX;
 
-	// Creates an os specific surface
+	// Creates an OS specific surface
 	// Tries to find a graphics and a present queue
 	void initSurface(
 #ifdef _WIN32
@@ -201,7 +201,7 @@ public:
 		assert(!err);
 
 		// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
-		// there is no preferered format, so we assume VK_FORMAT_B8G8R8A8_UNORM
+		// there is no preferred format, so we assume VK_FORMAT_B8G8R8A8_UNORM
 		if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED))
 		{
 			colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
@@ -217,7 +217,7 @@ public:
 		colorSpace = surfaceFormats[0].colorSpace;
 	}
 
-	// Connect to the instance und device and get all required function pointers
+	// Connect to the instance and device and get all required function pointers
 	void connect(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device)
 	{
 		this->instance = instance;
@@ -327,7 +327,7 @@ public:
 		err = fpCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain);
 		assert(!err);
 
-		// If an existing sawp chain is re-created, destroy the old swap chain
+		// If an existing swap chain is re-created, destroy the old swap chain
 		// This also cleans up all the presentable images
 		if (oldSwapchain != VK_NULL_HANDLE) 
 		{ 

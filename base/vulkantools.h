@@ -67,7 +67,7 @@ namespace vkTools
 
 	// Display error message and exit on fatal error
 	void exitFatal(std::string message, std::string caption);
-	// Load a text file (e.g. GLGL shader) into a std::string
+	// Load a text file (e.g. GLSL shader) into a std::string
 	std::string readTextFile(const char *fileName);
 	// Load a binary file into a buffer (e.g. SPIR-V)
 	char *readBinaryFile(const char *filename, size_t *psize);

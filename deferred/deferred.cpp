@@ -193,7 +193,7 @@ public:
 		textureLoader->destroyTexture(textures.colorMap);
 	}
 
-	// Preapre an empty texture as the blit target from 
+	// Prepare an empty texture as the blit target from 
 	// the offscreen framebuffer
 	void prepareTextureTarget(vkTools::VulkanTexture *target, VkFormat format)
 	{
@@ -581,7 +581,7 @@ public:
 
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
-		// Clear values for all attachments written in the fragment sahder
+		// Clear values for all attachments written in the fragment shader
 		std::array<VkClearValue,4> clearValues;
 		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 		clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -732,7 +732,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Gather command buffers to be sumitted to the queue
+		// Gather command buffers to be submitted to the queue
 		std::vector<VkCommandBuffer> submitCmdBuffers = {
 			offScreenCmdBuffer,
 			drawCmdBuffers[currentBuffer],

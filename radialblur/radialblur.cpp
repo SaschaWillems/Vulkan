@@ -171,7 +171,7 @@ public:
 		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
 	}
 
-	// Preapre an empty texture as the blit target from 
+	// Prepare an empty texture as the blit target from 
 	// the offscreen framebuffer
 	void prepareTextureTarget(vkTools::VulkanTexture *tex, uint32_t width, uint32_t height, VkFormat format)
 	{
@@ -180,7 +180,7 @@ public:
 		VkFormatProperties formatProperties;
 		VkResult err;
 
-		// Get device properites for the requested texture format
+		// Get device properties for the requested texture format
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 		// Check if blit destination is supported for the requested format
 		// Only try for optimal tiling, linear tiling usually won't support blit as destination anyway
@@ -604,7 +604,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Gather command buffers to be sumitted to the queue
+		// Gather command buffers to be submitted to the queue
 		std::vector<VkCommandBuffer> submitCmdBuffers = {
 			offScreenCmdBuffer,
 			drawCmdBuffers[currentBuffer],
@@ -630,7 +630,7 @@ public:
 		loadMesh(getAssetPath() + "models/glowsphere.dae", &meshes.example, vertexLayout, 0.05f);
 	}
 
-	// Setup vertices for a single uv-mapped quad
+	// Setup vertices for a single UV-mapped quad
 	void generateQuad()
 	{
 		struct Vertex {
@@ -719,7 +719,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses three ubos and one image sampler
+		// Example uses three UBOs and one image sampler
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4),

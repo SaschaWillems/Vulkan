@@ -20,7 +20,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 
 	std::vector<const char*> enabledExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
-	// Enable surface extensions depending on os
+	// Enable surface extensions depending on OS
 #if defined(_WIN32)
 	enabledExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #elif defined(__ANDROID__)
@@ -110,7 +110,7 @@ void VulkanExampleBase::createCommandBuffers()
 	// in the swap chain
 	// Command buffers store a reference to the
 	// frame buffer inside their render pass info
-	// so for static usage withouth having to rebuild
+	// so for static usage without having to rebuild
 	// them each frame, we use one per frame buffer
 
 	drawCmdBuffers.resize(swapChain.imageCount);
@@ -681,7 +681,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
 	if (err)
 	{
-		vkTools::exitFatal("Could not enumerate phyiscal devices : \n" + vkTools::errorString(err), "Fatal error");
+		vkTools::exitFatal("Could not enumerate physical devices : \n" + vkTools::errorString(err), "Fatal error");
 	}
 
 	// Note :
@@ -739,11 +739,11 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	// Create synchronization objects
 	VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
 	// Create a semaphore used to synchronize image presentation
-	// Ensures that the image is displayed before we start submitting new commands to the queu
+	// Ensures that the image is displayed before we start submitting new commands to the queue
 	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
 	assert(!err);
 	// Create a semaphore used to synchronize command submission
-	// Ensures that the image is not presented until all commands have been sumbitted and executed
+	// Ensures that the image is not presented until all commands have been submitted and executed
 	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
 	assert(!err);
 
@@ -1205,12 +1205,12 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 
 void VulkanExampleBase::viewChanged()
 {
-	// Can be overrdiden in derived class
+	// Can be overridden in derived class
 }
 
 void VulkanExampleBase::keyPressed(uint32_t keyCode)
 {
-	// Can be overriden in derived class
+	// Can be overridden in derived class
 }
 
 void VulkanExampleBase::buildCommandBuffers()

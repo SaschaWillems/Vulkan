@@ -20,7 +20,7 @@ class MyVulkanExample : public VulkanExampleBase
 }
 ```
 ##### Validation layers
-The example base class offers a constructor overload for enabling a default set of Vulkan validation layers (for debugging purposes). If you want to use this functionality, simply use the construtor override :
+The example base class offers a constructor overload for enabling a default set of Vulkan validation layers (for debugging purposes). If you want to use this functionality, simply use the constructor override :
 ```cpp
 VulkanExample() : VulkanExampleBase(true)
 {

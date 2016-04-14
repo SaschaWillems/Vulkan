@@ -195,7 +195,7 @@ public:
 		textureLoader->destroyTexture(textures.cubemap);
 	}
 
-	// Preapre an empty texture as the blit target from 
+	// Prepare an empty texture as the blit target from 
 	// the offscreen framebuffer
 	void prepareTextureTarget(vkTools::VulkanTexture *tex, uint32_t width, uint32_t height, VkFormat format)
 	{
@@ -204,7 +204,7 @@ public:
 		VkFormatProperties formatProperties;
 		VkResult err;
 
-		// Get device properites for the requested texture format
+		// Get device properties for the requested texture format
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 		// Check if blit destination is supported for the requested format
 		// Only try for optimal tiling, linear tiling usually won't support blit as destination anyway
@@ -715,7 +715,7 @@ public:
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Gather command buffers to be sumitted to the queue
+		// Gather command buffers to be submitted to the queue
 		std::vector<VkCommandBuffer> submitCmdBuffers;
 		// Submit offscreen rendering command buffer 
 		if (bloom)
@@ -746,7 +746,7 @@ public:
 		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skyBox, vertexLayout, 1.0f);
 	}
 
-	// Setup vertices for a single uv-mapped quad
+	// Setup vertices for a single UV-mapped quad
 	void generateQuad()
 	{
 		struct Vertex {
@@ -868,7 +868,7 @@ public:
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
 				1),
-			// Binding 2 : Framgnet shader image sampler
+			// Binding 2 : Fragment shader image sampler
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -1180,7 +1180,7 @@ public:
 			&uniformData.vsSkyBox.memory,
 			&uniformData.vsSkyBox.descriptor);
 
-		// Intialize uniform buffers
+		// Initialize uniform buffers
 		updateUniformBuffersScene();
 		updateUniformBuffersScreen();
 	}

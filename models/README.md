@@ -36,7 +36,7 @@ A test scene with a high triangle count made up by all the single models listed 
 
 **As with the Vulkan Logo:** Please regard Khronos' [API logo usage and word mark guidelines](https://www.khronos.org/legal/trademarks/) when using this!
 
-If you plan on using this for anything public I'd love know, sp please let me know!
+If you plan on using this for anything public I'd love know, so please let me know!
 
 
 ## Vulkan Logo
@@ -76,7 +76,7 @@ Based on the Stanford Dragon : http://graphics.stanford.edu/data/3Dscanrep/
 
 (Please read their note on [inappropriate uses for this model](http://graphics.stanford.edu/data/3Dscanrep/#uses))
 
-I did some optimizations on the model to lower the triangle count without loosing too mich detail and put some spheres in for the eyes and under the claw to make them pop out a bit more.
+I did some optimizations on the model to lower the triangle count without losing too much detail and put some spheres in for the eyes and under the claw to make them pop out a bit more.
 
 Triangle count : 102,880
 

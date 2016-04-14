@@ -45,7 +45,7 @@ Additional documentation for several base classes and some Presentations can be 
 ## [Triangle](triangle/)
 <img src="./screenshots/basic_triangle.png" height="96px" align="right">
 
-Most basic example. Renders a colored triangle using an indexed vertex buffer. Vertex and index data are uploaded to device local memory using so-called "staging buffers". Uses a single pipeline with basic shaders loaded from SPIR-V and and single uniform block for passing matrices that is updated on changing the view.
+Most basic example. Renders a colored triangle using an indexed vertex buffer. Vertex and index data are uploaded to device local memory using so-called "staging buffers". Uses a single pipeline with basic shaders loaded from SPIR-V and single uniform block for passing matrices that is updated on changing the view.
 
 This example is far more explicit than the other examples and is meant to be a starting point for learning Vulkan from the ground up. Much of the code is boilerplate that you'd usually encapsulate in helper functions and classes (which is what the other examples do).
 <br><br>
@@ -219,7 +219,7 @@ Demonstrates the use of a separate compute queue (and command buffer) to apply d
 ## [(Geometry shader) Normal debugging](geometryshader/)
 <img src="./screenshots/geom_normals.png" height="96px" align="right">
 
-Renders the vertex normals of a complex mesh with the use of a geometry shader. The mesh is rendered solid first and the a geometry shader that generates lines from the face normals is used in the second pass.
+Renders the vertex normals of a complex mesh with the use of a geometry shader. The mesh is rendered solid first and then a geometry shader that generates lines from the face normals is used in the second pass.
 <br><br>
 
 ## [Vulkan demo scene](vulkanscene/)
