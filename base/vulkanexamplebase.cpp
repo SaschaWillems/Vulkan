@@ -403,6 +403,13 @@ void VulkanExampleBase::renderLoop()
 					timer -= 1.0f;
 				}
 			}
+			fpsTimer += (float)tDiff;
+			if (fpsTimer > 1000.0f)
+			{
+				LOGD("%d fps", frameCounter);
+				fpsTimer = 0.0f;
+				frameCounter = 0.0f;
+			}
 			// Check gamepad state
 			const float deadZone = 0.0015f;
 			// todo : check if gamepad is present
