@@ -48,7 +48,7 @@ namespace vkDebug
 			if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
 			{
 				// Uncomment to see warnings
-				//std::cout << "WARNING: " << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg << "\n";
+				std::cout << "WARNING: " << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg << "\n";
 			}
 			else
 			{
@@ -82,7 +82,7 @@ namespace vkDebug
 	
 	void freeDebugCallback(VkInstance instance)
 	{
-		if (msgCallback != nullptr)
+		if (msgCallback != VK_NULL_HANDLE)
 		{
 			// Commented out as this crashes on some implementations for some reason (at least in VS2015)
 			// DestroyDebugReportCallback(instance, msgCallback, nullptr);
