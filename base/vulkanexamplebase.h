@@ -255,6 +255,13 @@ public:
 	// Finalize setup command bufferm submit it to the queue and remove it
 	void flushSetupCommandBuffer();
 
+	// Command buffer creation
+	// Creates and returns a new command buffer
+	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin);
+	// End the command buffer, submit it to the queue and free (if requested)
+	// Note : Waits for the queue to become idle
+	void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free);
+
 	// Create a cache pool for rendering pipelines
 	void createPipelineCache();
 
@@ -264,8 +271,15 @@ public:
 	// Load a SPIR-V shader
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 	
-	// Create a buffer, fill it with data and bind buffer memory
-	// Can be used for e.g. vertex or index buffer based on mesh data
+	// Create a buffer, fill it with data (if != NULL) and bind buffer memory
+	VkBool32 createBuffer(
+		VkBufferUsageFlags usageFlags,
+		VkMemoryPropertyFlags memoryPropertyFlags,
+		VkDeviceSize size,
+		void *data,
+		VkBuffer *buffer,
+		VkDeviceMemory *memory);
+	// This version always uses HOST_VISIBLE memory
 	VkBool32 createBuffer(
 		VkBufferUsageFlags usage,
 		VkDeviceSize size,
