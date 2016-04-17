@@ -500,7 +500,7 @@ public:
 			&stagingBuffer.memory);
 
 		VulkanExampleBase::createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
 			instanceBuffer.size,
 			nullptr,
@@ -553,7 +553,10 @@ public:
 			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 		}
 
-		uboVS.time += frameTimer * 0.05f;
+		if (!paused)
+		{
+			uboVS.time += frameTimer * 0.05f;
+		}
 
 		memcpy(uniformData.vsScene.mapped, &uboVS, sizeof(uboVS));
 	}
