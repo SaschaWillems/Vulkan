@@ -1,5 +1,5 @@
 /*
-* Vulkan Example - Instanced mesh rendering
+* Vulkan Example - Instanced mesh rendering, uses a separate vertex buffer for instanced data
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <time.h> 
 #include <vector>
+#include <random>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -22,8 +23,9 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
+#define INSTANCE_BUFFER_BIND_ID 1
 #define ENABLE_VALIDATION false
-#define INSTANCING_RANGE 3
+#define INSTANCE_COUNT 2048
 
 // Vertex layout for this example
 std::vector<vkMeshLoader::VertexLayout> vertexLayout =
@@ -47,26 +49,30 @@ public:
 		vkMeshLoader::MeshBuffer example;
 	} meshes;
 
-	// Number of mesh instances to be rendered
-	uint32_t instanceCount;
+	struct {
+		vkTools::VulkanTexture colorMap;
+	} textures;
 
-	struct UboInstanceData{
-		// Model matrix for each instance
-		glm::mat4 model;
-		// Color for each instance
-		// vec4 is used due to memory alignment 
-		// GPU aligns at 16 bytes
-		glm::vec4 color;
+	// Per-instance data block
+	struct InstanceData {
+		glm::vec3 pos;
+		glm::vec3 rot;
+		float scale;
+		uint32_t texIndex;
 	};
 
+	// Contains the instanced data
 	struct {
-		// Global matrices
-		struct {
-			glm::mat4 projection;
-			glm::mat4 view;
-		} matrices;
-		// Seperate data for each instance
-		UboInstanceData *instance;		
+		VkBuffer buffer = VK_NULL_HANDLE;
+		VkDeviceMemory memory = VK_NULL_HANDLE;
+		size_t size = 0;
+		VkDescriptorBufferInfo descriptor;
+	} instanceBuffer;
+
+	struct {
+		glm::mat4 projection;
+		glm::mat4 view;
+		float time = 0.0f;
 	} uboVS;
 
 	struct {
@@ -83,29 +89,20 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -36.0f;
-		rotationSpeed = 0.15f;
-		rotation = glm::vec3(-20.0f, 45.0f, 0.0f);
+		zoom = -12.0f;
+		rotationSpeed = 0.25f;
 		title = "Vulkan Example - Instanced mesh rendering";
 		srand(time(NULL));
 	}
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
-		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
-
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-		// Meshes
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
-
-		// Uniform buffers
 		vkTools::destroyUniformData(device, &uniformData.vsScene);
-
-		delete[] uboVS.instance;
+		textureLoader->destroyTexture(textures.colorMap);
 	}
 
 	void buildCommandBuffers()
@@ -118,63 +115,50 @@ public:
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
 		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
 		renderPassBeginInfo.renderArea.extent.width = width;
 		renderPassBeginInfo.renderArea.extent.height = height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
-
-		VkResult err;
 
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			vkTools::checkResult(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
+			// Binding point 0 : Mesh vertex buffer
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
+			// Binding point 1 : Instance data buffer
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], INSTANCE_BUFFER_BIND_ID, 1, &instanceBuffer.buffer, offsets);
+
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
 			// Render instances
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.example.indexCount, instanceCount, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.example.indexCount, INSTANCE_COUNT, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			vkTools::checkResult(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
 	void draw()
 	{
-		VkResult err;
-
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
+		vkTools::checkResult(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
@@ -183,64 +167,122 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
+		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
+		vkTools::checkResult(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
+		vkTools::checkResult(vkQueueWaitIdle(queue));
 	}
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/angryteapot.3ds", &meshes.example, vertexLayout, 0.05f);
+		loadMesh(getAssetPath() + "models/rock01.dae", &meshes.example, vertexLayout, 0.1f);
+	}
+
+	void loadTextures()
+	{
+		textureLoader->loadTextureArray(
+			getAssetPath() + "textures/texturearray_rocks_bc3.ktx",
+			VK_FORMAT_BC3_UNORM_BLOCK,
+			&textures.colorMap);
 	}
 
 	void setupVertexDescriptions()
 	{
 		// Binding description
-		vertices.bindingDescriptions.resize(1);
+		vertices.bindingDescriptions.resize(2);
+
+		// Mesh vertex buffer (description) at binding point 0
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
 				vkMeshLoader::vertexSize(vertexLayout),
+				// Input rate for the data passed to shader
+				// Step for each vertex rendered
 				VK_VERTEX_INPUT_RATE_VERTEX);
+
+		vertices.bindingDescriptions[1] =
+			vkTools::initializers::vertexInputBindingDescription(
+				INSTANCE_BUFFER_BIND_ID,
+				sizeof(InstanceData), 
+				// Input rate for the data passed to shader
+				// Step for each instance rendered
+				VK_VERTEX_INPUT_RATE_INSTANCE);
 
 		// Attribute descriptions
 		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.resize(4);
+		vertices.attributeDescriptions.clear();
+
+		// Per-Vertex attributes
 		// Location 0 : Position
-		vertices.attributeDescriptions[0] =
+		vertices.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				0);
+				0)
+			);
 		// Location 1 : Normal
-		vertices.attributeDescriptions[1] =
+		vertices.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				1,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3);
+				sizeof(float) * 3)
+			);
 		// Location 2 : Texture coordinates
-		vertices.attributeDescriptions[2] =
+		vertices.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
 				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6);
+				sizeof(float) * 6)
+			);
 		// Location 3 : Color
-		vertices.attributeDescriptions[3] =
+		vertices.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				3,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8);
+				sizeof(float) * 8)
+			);
+
+		// Instanced attributes
+		// Location 4 : Position
+		vertices.attributeDescriptions.push_back(
+			vkTools::initializers::vertexInputAttributeDescription(
+				INSTANCE_BUFFER_BIND_ID,
+				5,
+				VK_FORMAT_R32G32B32_SFLOAT,
+				sizeof(float) * 3)
+			);
+		// Location 5 : Rotation
+		vertices.attributeDescriptions.push_back(
+			vkTools::initializers::vertexInputAttributeDescription(
+				INSTANCE_BUFFER_BIND_ID,
+				4,
+				VK_FORMAT_R32G32B32_SFLOAT,
+				0)
+			);
+		// Location 6 : Scale
+		vertices.attributeDescriptions.push_back(
+			vkTools::initializers::vertexInputAttributeDescription(
+				INSTANCE_BUFFER_BIND_ID,
+				6,
+				VK_FORMAT_R32_SFLOAT,
+				sizeof(float) * 6)
+			);
+		// Location 7 : Texture array layer index
+		vertices.attributeDescriptions.push_back(
+			vkTools::initializers::vertexInputAttributeDescription(
+				INSTANCE_BUFFER_BIND_ID,
+				7,
+				VK_FORMAT_R32_SINT,
+				sizeof(float) * 7)
+			);
+
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
 		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
@@ -255,6 +297,7 @@ public:
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -276,6 +319,11 @@ public:
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_VERTEX_BIT,
 				0),
+			// Binding 1 : Fragment shader combined sampler
+			vkTools::initializers::descriptorSetLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				1),
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
@@ -306,15 +354,29 @@ public:
 		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
 		assert(!vkRes);
 
-		// Binding 0 : Vertex shader uniform buffer
-		VkWriteDescriptorSet writeDescriptorSet =
+		VkDescriptorImageInfo texDescriptor =
+			vkTools::initializers::descriptorImageInfo(
+				textures.colorMap.sampler,
+				textures.colorMap.view,
+				VK_IMAGE_LAYOUT_GENERAL);
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+		{
+			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
-				descriptorSet,
+			descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsScene.descriptor);
+				&uniformData.vsScene.descriptor),
+			// Binding 1 : Color map 
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSet,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				1,
+				&texDescriptor)
+		};
 
-		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, NULL);
+		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -328,8 +390,8 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
-				VK_FRONT_FACE_COUNTER_CLOCKWISE,
+				VK_CULL_MODE_BACK_BIT,
+				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
 		VkPipelineColorBlendAttachmentState blendAttachmentState =
@@ -394,84 +456,114 @@ public:
 		assert(!err);
 	}
 
+	float rnd(float range)
+	{
+		return range * (rand() / double(RAND_MAX));
+	}
+
+	void prepareInstanceData()
+	{
+		std::vector<InstanceData> instanceData;
+		instanceData.resize(INSTANCE_COUNT);
+
+		std::mt19937 rndGenerator(time(NULL));
+		std::uniform_real_distribution<double> uniformDist(0.0, 1.0);
+
+		for (auto i = 0; i < INSTANCE_COUNT; i++)
+		{
+			instanceData[i].rot = glm::vec3(M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator));
+			float theta = 2 * M_PI * uniformDist(rndGenerator);
+			float phi = acos(1 - 2 * uniformDist(rndGenerator));
+			glm::vec3 pos;
+			instanceData[i].pos = glm::vec3(sin(phi) * cos(theta), sin(theta) * uniformDist(rndGenerator) / 1500.0f, cos(phi)) * 7.5f;
+			instanceData[i].scale = 1.0f + uniformDist(rndGenerator) * 2.0f;
+			instanceData[i].texIndex = rnd(textures.colorMap.layerCount);
+		}
+
+		instanceBuffer.size = instanceData.size() * sizeof(InstanceData);
+
+		// Staging
+		// Instanced data is static, copy to device local memory 
+		// This results in better performance
+
+		struct {
+			VkDeviceMemory memory;
+			VkBuffer buffer;
+		} stagingBuffer;
+
+		VulkanExampleBase::createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			instanceBuffer.size,
+			instanceData.data(),
+			&stagingBuffer.buffer,
+			&stagingBuffer.memory);
+
+		VulkanExampleBase::createBuffer(
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
+			instanceBuffer.size,
+			nullptr,
+			&instanceBuffer.buffer,
+			&instanceBuffer.memory);
+
+		// Copy to staging buffer
+		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+		VkBufferCopy copyRegion = { };
+		copyRegion.size = instanceBuffer.size;
+		vkCmdCopyBuffer(
+			copyCmd,
+			stagingBuffer.buffer,
+			instanceBuffer.buffer,
+			1,
+			&copyRegion);
+
+		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+		instanceBuffer.descriptor.range = instanceBuffer.size;
+		instanceBuffer.descriptor.buffer = instanceBuffer.buffer;
+		instanceBuffer.descriptor.offset = 0;
+	}
+
 	void prepareUniformBuffers()
 	{
-		instanceCount = pow((INSTANCING_RANGE * 2) + 1, 3);
-		uboVS.instance = new UboInstanceData[instanceCount];
-
-		VkResult err;
-
-		// Vertex shader uniform buffer block
-		uint32_t uboSize = sizeof(uboVS.matrices) + (instanceCount * sizeof(UboInstanceData));
-
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			uboSize,
+			sizeof(uboVS),
 			nullptr,
 			&uniformData.vsScene.buffer,
 			&uniformData.vsScene.memory,
 			&uniformData.vsScene.descriptor);
 
-		VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			uboSize);
+		// Map for host access
+		vkTools::checkResult(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&uniformData.vsScene.mapped));
 
-		// Colors and model matrices are fixed
-		float offset = 5.0f;
-		uint32_t index = 0;
-		for (int32_t x = -INSTANCING_RANGE; x <= INSTANCING_RANGE; x++)
-		{
-			for (int32_t y = -INSTANCING_RANGE; y <= INSTANCING_RANGE; y++)
-			{
-				for (int32_t z = -INSTANCING_RANGE; z <= INSTANCING_RANGE; z++)
-				{
-					// Instance model matrix
-					uboVS.instance[index].model = glm::translate(glm::mat4(), glm::vec3(x * offset, y * offset, z * offset));
-					uboVS.instance[index].model = glm::rotate(uboVS.instance[index].model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-					// Instance color (randomized)
-					uboVS.instance[index].color = glm::vec4((float)(rand() % 255) / 255.0f, (float)(rand() % 255) / 255.0f, (float)(rand() % 255) / 255.0f, 1.0);
-					index++;
-				}
-			}
-		}
-		
-		// Update instanced part of the uniform buffer
-		uint8_t *pData;
-		uint32_t dataOffset = sizeof(uboVS.matrices);
-		uint32_t dataSize = instanceCount * sizeof(UboInstanceData);
-		err = vkMapMemory(device, uniformData.vsScene.memory, dataOffset, dataSize, 0, (void **)&pData);
-		assert(!err);
-		memcpy(pData, uboVS.instance, dataSize);
-		vkUnmapMemory(device, uniformData.vsScene.memory);
-
-		updateUniformBufferMatrices();
+		updateUniformBuffer(true);
 	}
 
-	void updateUniformBufferMatrices()
+	void updateUniformBuffer(bool viewChanged)
 	{
-		// Only updates the uniform buffer block part containing the global matrices
+		if (viewChanged)
+		{
+			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
+			uboVS.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		}
 
-		// Projection
-		uboVS.matrices.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
+		uboVS.time += frameTimer * 0.05f;
 
-		// View
-		uboVS.matrices.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		// Only update the matrices part of the uniform buffer
-		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS.matrices), 0, (void **)&pData);
-		assert(!err);
-		memcpy(pData, &uboVS.matrices, sizeof(uboVS.matrices));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		memcpy(uniformData.vsScene.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		loadTextures();
 		loadMeshes();
+		prepareInstanceData();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
@@ -485,15 +577,20 @@ public:
 	virtual void render()
 	{
 		if (!prepared)
+		{
 			return;
-		vkDeviceWaitIdle(device);
+		}
 		draw();
-		vkDeviceWaitIdle(device);
+		if (!paused)
+		{
+			vkDeviceWaitIdle(device);
+			updateUniformBuffer(false);
+		}
 	}
 
 	virtual void viewChanged()
 	{
-		updateUniformBufferMatrices();
+		updateUniformBuffer(true);
 	}
 };
 
