@@ -467,7 +467,7 @@ public:
 			vkTools::checkResult(vkQueueSubmit(queue, 1, &copySubmitInfo, VK_NULL_HANDLE));
 			vkTools::checkResult(vkQueueWaitIdle(queue));
 
-			// todo : sync necessary (fence, semaphore?)
+			vkFreeCommandBuffers(device, cmdPool, 1, &copyCommandBuffer);
 
 			// Destroy staging buffers
 			vkDestroyBuffer(device, stagingBuffers.vertices.buffer, nullptr);
