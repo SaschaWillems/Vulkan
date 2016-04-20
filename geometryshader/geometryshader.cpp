@@ -62,8 +62,6 @@ public:
 	struct {
 		VkPipeline solid;
 		VkPipeline normals;
-		VkPipeline wireFrame;
-		VkPipeline* activePipeline;
 	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
@@ -146,8 +144,8 @@ public:
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.object.vertices.buf, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.object.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
-			// shading
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelines.activePipeline);
+			// Solid shading
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
 
 			// Normal debugging
@@ -263,7 +261,7 @@ public:
 		{
 			// Binding 0 : Vertex shader ubo
 			vkTools::initializers::descriptorSetLayoutBinding(
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_VERTEX_BIT,
 				0),
 			// Binding 1 : Geometry shader ubo
@@ -305,7 +303,7 @@ public:
 		{
 			// Binding 0 : Vertex shader shader ubo
 			vkTools::initializers::writeDescriptorSet(
-			descriptorSet,
+				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformData.VS.descriptor),
@@ -411,31 +409,7 @@ public:
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
 		assert(!err);
 
-		// Wireframe rendering pipeline
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/geometryshader/wireframe.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		rasterizationState.lineWidth = 2.f;
-		pipelineCreateInfo.pRasterizationState = &rasterizationState;
-
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireFrame);
-		assert(!err);
-
-		pipelines.activePipeline = &pipelines.solid;
-
-	}
-
-	void togglePipeline()
-	{
-		if (pipelines.activePipeline == &pipelines.solid)
-			pipelines.activePipeline = &pipelines.wireFrame;
-		else
-			pipelines.activePipeline = &pipelines.solid;
-
-		// rebuild cmd buffers
-		destroyCommandBuffers();
-		createCommandBuffers();
-		buildCommandBuffers();
-	}
+ 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
@@ -528,11 +502,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			if (wParam == 0x57)
-				vulkanExample->togglePipeline();
-		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
