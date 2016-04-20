@@ -8,6 +8,9 @@
 
 #include "vulkanexamplebase.h"
 
+#include <thread>
+#include <chrono>
+
 VkResult VulkanExampleBase::createInstance(bool enableValidation)
 {
 	this->enableValidation = enableValidation;
@@ -18,7 +21,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	appInfo.pEngineName = name.c_str();
 	// Temporary workaround for drivers not supporting SDK 1.0.3 upon launch
 	// todo : Use VK_API_VERSION
-	appInfo.apiVersion = VK_MAKE_VERSION(1, 0, 2);
+	appInfo.apiVersion = VK_MAKE_VERSION(1, 0, 5);
 
 	std::vector<const char*> enabledExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
@@ -40,6 +43,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		if (enableValidation)
 		{
 			enabledExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+			
 		}
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
@@ -82,7 +86,7 @@ std::string VulkanExampleBase::getWindowTitle()
 	std::string device(deviceProperties.deviceName);
 	std::string windowTitle;
 	windowTitle = title + " - " + device + " - " + std::to_string(frameCounter) + " fps";
-	return windowTitle;
+	return std::move(windowTitle);
 }
 
 const std::string VulkanExampleBase::getAssetPath()
@@ -175,7 +179,7 @@ void VulkanExampleBase::flushSetupCommandBuffer()
 		return;
 
 	err = vkEndCommandBuffer(setupCmdBuffer);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -183,10 +187,10 @@ void VulkanExampleBase::flushSetupCommandBuffer()
 	submitInfo.pCommandBuffers = &setupCmdBuffer;
 
 	err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 
-	err = vkQueueWaitIdle(queue);
-	assert(!err);
+	err = vkQueueWaitIdle(queue); // hmpf, bd
+	assert(err == VK_SUCCESS);
 
 	vkFreeCommandBuffers(device, cmdPool, 1, &setupCmdBuffer);
 	setupCmdBuffer = VK_NULL_HANDLE; 
@@ -197,7 +201,7 @@ void VulkanExampleBase::createPipelineCache()
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 	pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 	VkResult err = vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 }
 
 void VulkanExampleBase::prepare()
@@ -240,6 +244,97 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	return shaderStage;
 }
 
+VkBool32 VulkanExampleBase::createDeviceBuffer(
+	const VkBufferUsageFlags usage,
+	const VkDeviceSize size,
+	VkBuffer& buffer,
+	VkDeviceMemory& memory,
+	VkDescriptorBufferInfo& descriptor)
+{
+	VkMemoryRequirements memReqs;
+	VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
+	VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, size);
+
+	VkResult err = vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+	assert(err == VK_SUCCESS);
+
+	vkGetBufferMemoryRequirements(device, buffer, &memReqs);
+	memAlloc.allocationSize = memReqs.size;
+
+	getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
+
+	err = vkAllocateMemory(device, &memAlloc, nullptr, &memory);
+	assert(err == VK_SUCCESS);
+
+	err = vkBindBufferMemory(device, buffer, memory, 0);
+	assert(err == VK_SUCCESS);
+
+	descriptor.offset = 0;
+	descriptor.buffer = buffer;
+	descriptor.range = size;
+
+	return VK_TRUE;
+}
+
+VkBool32 VulkanExampleBase::updateDeviceBuffer(
+	const VkDeviceSize size,
+	VkBuffer& deviceBuffer,
+	void* data)
+{
+	//todo check that size is not larger than memory size
+
+	// create staging buffer and copy data to it
+	VkMemoryRequirements memReqs;
+	VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
+	VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size);
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingMemory;
+
+	VkResult err = vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer);
+	assert(err == VK_SUCCESS);
+
+	vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
+	memAlloc.allocationSize = memReqs.size;
+
+	getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
+
+	err = vkAllocateMemory(device, &memAlloc, nullptr, &stagingMemory);
+	assert(err == VK_SUCCESS);
+
+	if (data != nullptr)
+	{
+		void* mapped;
+		err = vkMapMemory(device, stagingMemory, 0, size, 0, &mapped);
+		assert(err == VK_SUCCESS);
+		memcpy(mapped, data, size);
+		vkUnmapMemory(device, stagingMemory);
+	}
+
+	err = vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0);
+	assert(err == VK_SUCCESS);
+
+	// create cmdbuffer to copy staging buffer to device local buffer
+	createSetupCommandBuffer();
+
+	VkBufferCopy copyRegion = {};
+	copyRegion.size = size;
+
+	vkCmdCopyBuffer(
+		setupCmdBuffer,
+		stagingBuffer,
+		deviceBuffer,
+		1,
+		&copyRegion);
+
+	flushSetupCommandBuffer();
+
+	// free staging memory
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingMemory, nullptr);
+
+	return VK_TRUE;
+}
+
 VkBool32 VulkanExampleBase::createBuffer(
 	VkBufferUsageFlags usage,
 	VkDeviceSize size,
@@ -252,23 +347,23 @@ VkBool32 VulkanExampleBase::createBuffer(
 	VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usage, size);
 
 	VkResult err = vkCreateBuffer(device, &bufferCreateInfo, nullptr, buffer);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 	vkGetBufferMemoryRequirements(device, *buffer, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
 	getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
 	err = vkAllocateMemory(device, &memAlloc, nullptr, memory);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 	if (data != nullptr)
 	{
 		void *mapped;
 		err = vkMapMemory(device, *memory, 0, size, 0, &mapped);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 		memcpy(mapped, data, size);
 		vkUnmapMemory(device, *memory);
 	}
 	err = vkBindBufferMemory(device, *buffer, *memory, 0);
-	assert(!err);
-	return true;
+	assert(err == VK_SUCCESS);
+	return VK_TRUE;
 }
 
 VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
@@ -331,7 +426,10 @@ void VulkanExampleBase::renderLoop()
 				DispatchMessage(&msg);
 			}
 		}
+
+		// render
 		render();
+		
 		frameCounter++;
 		auto tEnd = std::chrono::high_resolution_clock::now();
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
@@ -671,7 +769,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	uint32_t gpuCount = 0;
 	// Get number of available physical devices
 	err = vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 	assert(gpuCount > 0);
 	// Enumerate devices
 	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
@@ -713,7 +811,7 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	queueCreateInfo.pQueuePriorities = queuePriorities.data();
 
 	err = createDevice(queueCreateInfo, enableValidation);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 
@@ -738,11 +836,11 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	// Create a semaphore used to synchronize image presentation
 	// Ensures that the image is displayed before we start submitting new commands to the queu
 	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 	// Create a semaphore used to synchronize command submission
 	// Ensures that the image is not presented until all commands have been sumbitted and executed
 	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 
 	// Set up submit info structure
 	// Semaphores will stay the same during application lifetime
@@ -774,6 +872,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	this->windowInstance = hinstance;
 
 	bool fullscreen = false;
+	//bool fullscreen = true; // tmp
 
 	// Check command line arguments
 	for (int32_t i = 0; i < __argc; i++)
@@ -1219,15 +1318,15 @@ void VulkanExampleBase::setupDepthStencil()
 	VkResult err;
 
 	err = vkCreateImage(device, &image, nullptr, &depthStencil.image);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 	vkGetImageMemoryRequirements(device, depthStencil.image, &memReqs);
 	mem_alloc.allocationSize = memReqs.size;
 	getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex);
 	err = vkAllocateMemory(device, &mem_alloc, nullptr, &depthStencil.mem);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 
 	err = vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 	vkTools::setImageLayout(
 		setupCmdBuffer,
 		depthStencil.image,
@@ -1237,7 +1336,7 @@ void VulkanExampleBase::setupDepthStencil()
 
 	depthStencilView.image = depthStencil.image;
 	err = vkCreateImageView(device, &depthStencilView, nullptr, &depthStencil.view);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 }
 
 void VulkanExampleBase::setupFrameBuffer()
@@ -1263,7 +1362,7 @@ void VulkanExampleBase::setupFrameBuffer()
 	{
 		attachments[0] = swapChain.buffers[i].view;
 		VkResult err = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 	}
 }
 
@@ -1321,7 +1420,7 @@ void VulkanExampleBase::setupRenderPass()
 	VkResult err;
 
 	err = vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass);
-	assert(!err);
+	assert(err == VK_SUCCESS);
 }
 
 void VulkanExampleBase::initSwapchain()

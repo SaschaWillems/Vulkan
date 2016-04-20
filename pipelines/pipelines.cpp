@@ -127,7 +127,7 @@ public:
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
 			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			assert(err == VK_SUCCESS);
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -175,7 +175,7 @@ public:
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			assert(err == VK_SUCCESS);
 		}
 	}
 
@@ -185,7 +185,7 @@ public:
 
 		// Get next image in the swap chain (back/front buffer)
 		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
@@ -195,15 +195,15 @@ public:
 
 		// Submit to queue
 		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
+		err = vkQueueWaitIdle(queue); // wait for queue completion
+		assert(err == VK_SUCCESS);
 	}
 
 	// Create vertices and buffers for uv mapped cube
@@ -364,7 +364,7 @@ public:
 				setLayoutBindings.size());
 
 		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
@@ -372,7 +372,7 @@ public:
 				1);
 
 		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 	}
 
 	void setupDescriptorSet()
@@ -488,7 +488,7 @@ public:
 
 		// Textured pipeline
 		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solidColor);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 
 		// Reuse most of the initial pipeline for the next pipelines and only change affected parameters
 		// Cull back faces
@@ -498,7 +498,7 @@ public:
 		// Use different fragment shader
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 
 		// Pipeline for wire frame rendering
 		// Solid polygon fill
@@ -506,7 +506,7 @@ public:
 		// Use different fragment shader
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/wireframe.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireFrame);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -523,14 +523,14 @@ public:
 			sizeof(uboVS));
 
 		err = vkCreateBuffer(device, &bufferInfo, nullptr, &uniformDataVS.buffer);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 		vkGetBufferMemoryRequirements(device, uniformDataVS.buffer, &memReqs);
 		allocInfo.allocationSize = memReqs.size;
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
 		err = vkAllocateMemory(device, &allocInfo, nullptr, &uniformDataVS.memory);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 		err = vkBindBufferMemory(device, uniformDataVS.buffer, uniformDataVS.memory, 0);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 
 		uniformDataVS.descriptor.buffer = uniformDataVS.buffer;
 		uniformDataVS.descriptor.offset = 0;
@@ -552,10 +552,10 @@ public:
 
 		uint8_t *pData;
 		VkResult err = vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformDataVS.memory);
-		assert(!err);
+		assert(err == VK_SUCCESS);
 	}
 
 	void prepare()
