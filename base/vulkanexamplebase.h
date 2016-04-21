@@ -271,20 +271,6 @@ public:
 	// Load a SPIR-V shader
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 	
-	// create device local buffer and use staging to access
-	VkBool32 createDeviceBuffer(
-		const VkBufferUsageFlags usage,
-		const VkDeviceSize size,
-		VkBuffer& buffer,
-		VkDeviceMemory& memory,
-		VkDescriptorBufferInfo& descriptor);
-
-	// update loacal buffer memory by creating a host visible staging buffer
-	VkBool32 updateDeviceBuffer(
-		const VkDeviceSize size,
-		VkBuffer& deviceBuffer,
-		void* data);
-	
 	// Create a buffer, fill it with data (if != NULL) and bind buffer memory
 	VkBool32 createBuffer(
 		VkBufferUsageFlags usageFlags,
