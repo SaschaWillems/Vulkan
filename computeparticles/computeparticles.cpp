@@ -23,7 +23,7 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-#define PARTICLE_COUNT 3000 * 1024
+#define PARTICLE_COUNT 2048 * 1024
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -249,17 +249,16 @@ public:
 	{
 
 		std::mt19937 rGenerator;
-		std::uniform_real_distribution<float> rDistribution(-1.f, 1.f);
+		std::uniform_real_distribution<float> rDistribution(-1.0f, 1.0f);
 
 		// Initial particle positions
 		std::vector<Particle> particleBuffer(PARTICLE_COUNT);
 		for (auto& element : particleBuffer)
 		{
 			element.pos = glm::vec2(rDistribution(rGenerator), rDistribution(rGenerator));
-			element.vel = glm::vec2(0.f);
+			element.vel = glm::vec2(0.0f);
 		}
 
-		// Buffer size is the same for all storage buffers
 		uint32_t storageBufferSize = particleBuffer.size() * sizeof(Particle);
 
 		// Staging
@@ -423,7 +422,7 @@ public:
 
 		VkPipelineMultisampleStateCreateInfo multisampleState =
 			vkTools::initializers::pipelineMultisampleStateCreateInfo(
-				VK_SAMPLE_COUNT_4_BIT,
+				VK_SAMPLE_COUNT_1_BIT,
 				0);
 
 		std::vector<VkDynamicState> dynamicStateEnables = {
@@ -577,7 +576,7 @@ public:
 	void updateUniformBuffers()
 	{
 		computeUbo.deltaT = frameTimer * 4.0f;
-		if (animate) // tmp
+		if (animate) 
 		{
 			computeUbo.destX = sin(glm::radians(timer*360.0)) * 0.75f;
 			computeUbo.destY = 0.f;
@@ -640,9 +639,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 
 		if (animate)
 		{
@@ -657,6 +654,8 @@ public:
 					timer = 0.f;
 			}
 		}
+		
+		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
 	}
 
