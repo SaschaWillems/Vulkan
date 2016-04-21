@@ -78,8 +78,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		width = 1280;
-		height = 720;
 		zoom = -2.0f;
 		title = "Vulkan Example - Compute shader particle system";
 	}
@@ -257,17 +255,55 @@ public:
 		std::vector<Particle> particleBuffer(PARTICLE_COUNT);
 		for (auto& element : particleBuffer)
 		{
-				element.pos = glm::vec2(rDistribution(rGenerator), rDistribution(rGenerator));
-				element.vel = glm::vec2(0.f);
+			element.pos = glm::vec2(rDistribution(rGenerator), rDistribution(rGenerator));
+			element.vel = glm::vec2(0.f);
 		}
 
 		// Buffer size is the same for all storage buffers
 		uint32_t storageBufferSize = particleBuffer.size() * sizeof(Particle);
 
-		createDeviceBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, storageBufferSize, computeStorageBuffer.buffer,
-			computeStorageBuffer.memory, computeStorageBuffer.descriptor);
+		// Staging
+		// SSBO is static, copy to device local memory 
+		// This results in better performance
 
-		updateDeviceBuffer(storageBufferSize, computeStorageBuffer.buffer, particleBuffer.data());
+		struct {
+			VkDeviceMemory memory;
+			VkBuffer buffer;
+		} stagingBuffer;
+
+		VulkanExampleBase::createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			storageBufferSize,
+			particleBuffer.data(),
+			&stagingBuffer.buffer,
+			&stagingBuffer.memory);
+
+		VulkanExampleBase::createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			storageBufferSize,
+			nullptr,
+			&computeStorageBuffer.buffer,
+			&computeStorageBuffer.memory);
+
+		// Copy to staging buffer
+		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+		VkBufferCopy copyRegion = {};
+		copyRegion.size = storageBufferSize;
+		vkCmdCopyBuffer(
+			copyCmd,
+			stagingBuffer.buffer,
+			computeStorageBuffer.buffer,
+			1,
+			&copyRegion);
+
+		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+		computeStorageBuffer.descriptor.range = storageBufferSize;
+		computeStorageBuffer.descriptor.buffer = computeStorageBuffer.buffer;
+		computeStorageBuffer.descriptor.offset = 0;
 
 		// Binding description
 		vertices.bindingDescriptions.resize(1);
@@ -524,13 +560,16 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Compute shader uniform buffer block
-		createDeviceBuffer(
+		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(computeUbo),
-			uniformData.computeShader.ubo.buffer,
-			uniformData.computeShader.ubo.memory,
-			uniformData.computeShader.ubo.descriptor);
-		updateDeviceBuffer(sizeof(computeUbo), uniformData.computeShader.ubo.buffer, &computeUbo);
+			nullptr,
+			&uniformData.computeShader.ubo.buffer,
+			&uniformData.computeShader.ubo.memory,
+			&uniformData.computeShader.ubo.descriptor);
+
+		// Map for host access
+		vkTools::checkResult(vkMapMemory(device, uniformData.computeShader.ubo.memory, 0, sizeof(computeUbo), 0, (void **)&uniformData.computeShader.ubo.mapped));
 
 		updateUniformBuffers();
 	}
@@ -551,7 +590,7 @@ public:
 			computeUbo.destY = normalizedMy;
 		}
 
-		updateDeviceBuffer(sizeof(computeUbo), uniformData.computeShader.ubo.buffer, &computeUbo);
+		memcpy(uniformData.computeShader.ubo.mapped, &computeUbo, sizeof(computeUbo));
 	}
 
 	// Find and create a compute capable device queue
