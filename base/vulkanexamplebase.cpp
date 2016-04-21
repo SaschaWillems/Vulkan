@@ -283,6 +283,97 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	return shaderStage;
 }
 
+VkBool32 VulkanExampleBase::createDeviceBuffer(
+	const VkBufferUsageFlags usage,
+	const VkDeviceSize size,
+	VkBuffer& buffer,
+	VkDeviceMemory& memory,
+	VkDescriptorBufferInfo& descriptor)
+{
+	VkMemoryRequirements memReqs;
+	VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
+	VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, size);
+
+	VkResult err = vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+	assert(!err);
+
+	vkGetBufferMemoryRequirements(device, buffer, &memReqs);
+	memAlloc.allocationSize = memReqs.size;
+
+	getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
+
+	err = vkAllocateMemory(device, &memAlloc, nullptr, &memory);
+	assert(!err);
+
+	err = vkBindBufferMemory(device, buffer, memory, 0);
+	assert(!err);
+
+	descriptor.offset = 0;
+	descriptor.buffer = buffer;
+	descriptor.range = size;
+
+	return VK_TRUE;
+}
+
+VkBool32 VulkanExampleBase::updateDeviceBuffer(
+	const VkDeviceSize size,
+	VkBuffer& deviceBuffer,
+	void* data)
+{
+	//todo check that size is not larger than memory size
+
+	// create staging buffer and copy data to it
+	VkMemoryRequirements memReqs;
+	VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
+	VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size);
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingMemory;
+
+	VkResult err = vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer);
+	assert(!err);
+
+	vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
+	memAlloc.allocationSize = memReqs.size;
+
+	getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
+
+	err = vkAllocateMemory(device, &memAlloc, nullptr, &stagingMemory);
+	assert(!err);
+
+	if (data != nullptr)
+	{
+		void* mapped;
+		err = vkMapMemory(device, stagingMemory, 0, size, 0, &mapped);
+		assert(!err);
+		memcpy(mapped, data, size);
+		vkUnmapMemory(device, stagingMemory);
+	}
+
+	err = vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0);
+	assert(!err);
+
+	// create cmdbuffer to copy staging buffer to device local buffer
+	createSetupCommandBuffer();
+
+	VkBufferCopy copyRegion = {};
+	copyRegion.size = size;
+
+	vkCmdCopyBuffer(
+		setupCmdBuffer,
+		stagingBuffer,
+		deviceBuffer,
+		1,
+		&copyRegion);
+
+	flushSetupCommandBuffer();
+
+	// free staging memory
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingMemory, nullptr);
+
+	return VK_TRUE;
+}
+
 VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory)
 {
 	VkMemoryRequirements memReqs;
