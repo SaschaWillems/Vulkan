@@ -23,7 +23,12 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
+#if defined(__ANDROID__)
+// Lower particle count on Android for performance reasons
+#define PARTICLE_COUNT 512 * 1024
+#else
 #define PARTICLE_COUNT 2048 * 1024
+#endif
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -253,10 +258,10 @@ public:
 
 		// Initial particle positions
 		std::vector<Particle> particleBuffer(PARTICLE_COUNT);
-		for (auto& element : particleBuffer)
+		for (auto& particle : particleBuffer)
 		{
-			element.pos = glm::vec2(rDistribution(rGenerator), rDistribution(rGenerator));
-			element.vel = glm::vec2(0.0f);
+			particle.pos = glm::vec2(rDistribution(rGenerator), rDistribution(rGenerator));
+			particle.vel = glm::vec2(0.0f);
 		}
 
 		uint32_t storageBufferSize = particleBuffer.size() * sizeof(Particle);
@@ -320,7 +325,7 @@ public:
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				0,
-				VK_FORMAT_R32G32B32A32_SFLOAT,
+				VK_FORMAT_R32G32_SFLOAT,
 				0);
 
 		// Assign to vertex buffer
