@@ -5,9 +5,8 @@
 
 struct Particle
 {
-	vec4 pos;
-	vec4 col;
-	vec4 vel;
+	vec2 pos;
+	vec2 vel;
 };
 
 // Binding 0 : Position storage buffer
@@ -26,14 +25,21 @@ layout (binding = 1) uniform UBO
 	int particleCount;
 } ubo;
 
-vec3 attraction(vec3 pos, vec3 attractPos) 
+vec2 attraction(vec2 pos, vec2 attractPos) 
 {
-    vec3 delta = attractPos - pos;
+    vec2 delta = attractPos - pos;
 	const float damp = 0.5;
     float dDampedDot = dot(delta, delta) + damp;
     float invDist = 1.0f / sqrt(dDampedDot);
     float invDistCubed = invDist*invDist*invDist;
-    return delta * invDistCubed * 0.00035;
+    return delta * invDistCubed * 0.0035;
+}
+
+vec2 repulsion(vec2 pos, vec2 attractPos)
+{
+	vec2 delta = attractPos - pos;
+	float targetDistance = sqrt(dot(delta, delta));
+	return delta * (1.0 / (targetDistance * targetDistance * targetDistance)) * -0.000035;
 }
 
 void main() 
@@ -45,22 +51,25 @@ void main()
 		return;	
 
     // Read position and velocity
-    vec3 vPos = particles[index].pos.xyz;
-    vec3 vVel = particles[index].vel.xyz;
-	
-	vec3 destPos = vec3(ubo.destX, ubo.destY, 0.0);
+    vec2 vVel = particles[index].vel.xy;
+    vec2 vPos = particles[index].pos.xy;
 
-    // Calculate new velocity depending on attraction point
-	vVel += attraction(vPos, destPos.xyz);
-		
+    vec2 destPos = vec2(ubo.destX, ubo.destY);
+
+    vec2 delta = destPos - vPos;
+    float targetDistance = sqrt(dot(delta, delta));
+    vVel += repulsion(vPos, destPos.xy) * 0.05;
+
     // Move by velocity
     vPos += vVel * ubo.deltaT;
-	
-	if ((vPos.x < -1.0) || (vPos.x > 1.0))
-		vVel.x -= vVel.x;
+
+    // collide with boundary
+    if ((vPos.x < -1.0) || (vPos.x > 1.0) || (vPos.y < -1.0) || (vPos.y > 1.0))
+    	vVel = (-vVel * 0.1) + attraction(vPos, destPos) * 12;
+    else
+    	particles[index].pos.xy = vPos;
 
     // Write back
-    particles[index].pos.xyz = vPos;
-    particles[index].vel.xyz = vVel;
+    particles[index].vel.xy = vVel;
 }
 

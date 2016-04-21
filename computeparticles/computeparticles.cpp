@@ -11,6 +11,7 @@
 #include <string.h>
 #include <assert.h>
 #include <vector>
+#include <random>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -22,15 +23,15 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-#define PARTICLE_COUNT 8 * 1024
+#define PARTICLE_COUNT 3000 * 1024
 
 class VulkanExample : public VulkanExampleBase
 {
 private:
 	vkTools::VulkanTexture textureColorMap;
 public:
-	float timer = 0.0f;
-	float animStart = 50.0f;
+	float timer = 0.f;
+	float animStart = 20.0f;
 	bool animate = true;
 
 	struct {
@@ -68,13 +69,11 @@ public:
 	} uniformData;
 
 	struct Particle {
-		glm::vec4 pos;
-		glm::vec4 col;
-		glm::vec4 vel;
+		glm::vec2 pos;
+		glm::vec2 vel;
 	};
 
 	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSetPostCompute;
 	VkDescriptorSetLayout descriptorSetLayout;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
@@ -103,17 +102,6 @@ public:
 		vkDestroyPipelineLayout(device, computePipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, computeDescriptorSetLayout, nullptr);
 		vkDestroyPipeline(device, pipelines.compute, nullptr);
-
-		textureLoader->destroyTexture(textureColorMap);
-	}
-
-	void loadTextures()
-	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/particle01_rgba.ktx", 
-			VK_FORMAT_R8G8B8A8_UNORM, 
-			&textureColorMap, 
-			false);
 	}
 
 	void buildCommandBuffers()
@@ -151,7 +139,7 @@ public:
 			assert(!err);
 
 			// Buffer memory barrier to make sure that compute shader
-			// writes are finished before using the storage buffer 
+			// writes are finished before using the storage buffer
 			// in the vertex shader
 			VkBufferMemoryBarrier bufferBarrier = vkTools::initializers::bufferMemoryBarrier();
 			// Source access : Compute shader buffer write
@@ -191,7 +179,6 @@ public:
 				);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetPostCompute, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.postCompute);
 
 			VkDeviceSize offsets[1] = { 0 };
@@ -243,15 +230,15 @@ public:
 		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 		assert(!err);
 
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
-
 		// Compute
 		VkSubmitInfo computeSubmitInfo = vkTools::initializers::submitInfo();
 		computeSubmitInfo.commandBufferCount = 1;
 		computeSubmitInfo.pCommandBuffers = &computeCmdBuffer;
 
 		err = vkQueueSubmit(computeQueue, 1, &computeSubmitInfo, VK_NULL_HANDLE);
+		assert(!err);
+
+		err = vkQueueWaitIdle(queue);
 		assert(!err);
 
 		err = vkQueueWaitIdle(computeQueue);
@@ -262,93 +249,25 @@ public:
 	// vertex positions and velocities
 	void prepareStorageBuffers()
 	{
-		float destPosX = 0.0f;
-		float destPosY = 0.0f;
+
+		std::mt19937 rGenerator;
+		std::uniform_real_distribution<float> rDistribution(-1.f, 1.f);
 
 		// Initial particle positions
-		std::vector<Particle> particleBuffer;
-		for (int i = 0; i < PARTICLE_COUNT; ++i)
+		std::vector<Particle> particleBuffer(PARTICLE_COUNT);
+		for (auto& element : particleBuffer)
 		{
-			// Position
-			float aspectRatio = (float)height / (float)width;
-			float rndVal = (float)rand() / (float)(RAND_MAX / (360.0f * 3.14f * 2.0f));
-			float rndRad = (float)rand() / (float)(RAND_MAX) * 0.5f;
-			Particle p;
-			p.pos = glm::vec4(
-				destPosX + cos(rndVal) * rndRad * aspectRatio,
-				destPosY + sin(rndVal) * rndRad,
-				0.0f,
-				1.0f);
-			p.col = glm::vec4(
-				(float)(rand() % 255) / 255.0f,
-				(float)(rand() % 255) / 255.0f,
-				(float)(rand() % 255) / 255.0f,
-				1.0f);
-			p.vel = glm::vec4(0.0f);
-			particleBuffer.push_back(p);
+				element.pos = glm::vec2(rDistribution(rGenerator), rDistribution(rGenerator));
+				element.vel = glm::vec2(0.f);
 		}
 
 		// Buffer size is the same for all storage buffers
 		uint32_t storageBufferSize = particleBuffer.size() * sizeof(Particle);
 
-		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
+		createDeviceBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, storageBufferSize, computeStorageBuffer.buffer,
+			computeStorageBuffer.memory, computeStorageBuffer.descriptor);
 
-		VkResult err;
-		void *data;
-
-		struct StagingBuffer {
-			VkDeviceMemory memory;
-			VkBuffer buffer;
-		} stagingBuffer;
-
-		// Allocate and fill host-visible staging storage buffer object
-
-		// Allocate and fill storage buffer object
-		VkBufferCreateInfo vBufferInfo = 
-			vkTools::initializers::bufferCreateInfo(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-				storageBufferSize);
-		vkTools::checkResult(vkCreateBuffer(device, &vBufferInfo, nullptr, &stagingBuffer.buffer));
-		vkGetBufferMemoryRequirements(device, stagingBuffer.buffer, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffer.memory));
-		vkTools::checkResult(vkMapMemory(device, stagingBuffer.memory, 0, storageBufferSize, 0, &data));
-		memcpy(data, particleBuffer.data(), storageBufferSize);
-		vkUnmapMemory(device, stagingBuffer.memory);
-		vkTools::checkResult(vkBindBufferMemory(device, stagingBuffer.buffer, stagingBuffer.memory, 0));
-
-		// Allocate device local storage buffer ojbect
-		vBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		vkTools::checkResult(vkCreateBuffer(device, &vBufferInfo, nullptr, &computeStorageBuffer.buffer));
-		vkGetBufferMemoryRequirements(device, computeStorageBuffer.buffer, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
-		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &computeStorageBuffer.memory));
-		vkTools::checkResult(vkBindBufferMemory(device, computeStorageBuffer.buffer, computeStorageBuffer.memory, 0));
-
-		// Copy from host to device
-		createSetupCommandBuffer();
-
-		VkBufferCopy copyRegion = {};
-		copyRegion.size = storageBufferSize;
-		vkCmdCopyBuffer(
-			setupCmdBuffer,
-			stagingBuffer.buffer,
-			computeStorageBuffer.buffer,
-			1,
-			&copyRegion);
-
-		flushSetupCommandBuffer();
-
-		// Destroy staging buffer
-		vkDestroyBuffer(device, stagingBuffer.buffer, nullptr);
-		vkFreeMemory(device, stagingBuffer.memory, nullptr);
-
-		computeStorageBuffer.descriptor.buffer = computeStorageBuffer.buffer;
-		computeStorageBuffer.descriptor.offset = 0;
-		computeStorageBuffer.descriptor.range = storageBufferSize;
+		updateDeviceBuffer(storageBufferSize, computeStorageBuffer.buffer, particleBuffer.data());
 
 		// Binding description
 		vertices.bindingDescriptions.resize(1);
@@ -360,7 +279,7 @@ public:
 
 		// Attribute descriptions
 		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.resize(2);
+		vertices.attributeDescriptions.resize(1);
 		// Location 0 : Position
 		vertices.attributeDescriptions[0] =
 			vkTools::initializers::vertexInputAttributeDescription(
@@ -368,13 +287,6 @@ public:
 				0,
 				VK_FORMAT_R32G32B32A32_SFLOAT,
 				0);
-		// Location 1 : Color
-		vertices.attributeDescriptions[1] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32A32_SFLOAT,
-				sizeof(float) * 4);
 
 		// Assign to vertex buffer
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
@@ -389,15 +301,14 @@ public:
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1)
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
 				poolSizes.size(),
 				poolSizes.data(),
-				3);
+				2);
 
 		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
 		assert(!vkRes);
@@ -405,61 +316,24 @@ public:
 
 	void setupDescriptorSetLayout()
 	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-		{
-			// Binding 0 : Fragment shader image sampler
-			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				0)
-		};
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vkTools::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				setLayoutBindings.size());
+		VkDescriptorSetLayoutCreateInfo  descriptorLayoutInfo;
+		descriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		descriptorLayoutInfo.pNext = NULL;
+		descriptorLayoutInfo.flags = 0;
+		descriptorLayoutInfo.bindingCount = 0;
+		descriptorLayoutInfo.pBindings = nullptr;
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
+		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayoutInfo, nullptr, &descriptorSetLayout);
 		assert(!err);
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
-				1);
+				0);
 
 		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 		assert(!err);
-	}
-
-	void setupDescriptorSet()
-	{
-		VkDescriptorSetAllocateInfo allocInfo =
-			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
-
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSetPostCompute);
-		assert(!vkRes);
-
-		// Image descriptor for the color map texture
-		VkDescriptorImageInfo texDescriptor =
-			vkTools::initializers::descriptorImageInfo(
-				textureColorMap.sampler,
-				textureColorMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
-			// Binding 1 : Fragment shader image sampler
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSetPostCompute,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				0,
-				&texDescriptor)
-		};
-
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	// Create a separate command buffer for compute commands
@@ -504,16 +378,16 @@ public:
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
 			vkTools::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE,
-				VK_TRUE,
-				VK_COMPARE_OP_LESS_OR_EQUAL);
+				VK_FALSE,
+				VK_FALSE,
+				VK_COMPARE_OP_ALWAYS);
 
 		VkPipelineViewportStateCreateInfo viewportState =
 			vkTools::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 
 		VkPipelineMultisampleStateCreateInfo multisampleState =
 			vkTools::initializers::pipelineMultisampleStateCreateInfo(
-				VK_SAMPLE_COUNT_1_BIT,
+				VK_SAMPLE_COUNT_4_BIT,
 				0);
 
 		std::vector<VkDynamicState> dynamicStateEnables = {
@@ -650,27 +524,34 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Compute shader uniform buffer block
-		createBuffer(
+		createDeviceBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(computeUbo),
-			&computeUbo,
-			&uniformData.computeShader.ubo.buffer,
-			&uniformData.computeShader.ubo.memory,
-			&uniformData.computeShader.ubo.descriptor);
+			uniformData.computeShader.ubo.buffer,
+			uniformData.computeShader.ubo.memory,
+			uniformData.computeShader.ubo.descriptor);
+		updateDeviceBuffer(sizeof(computeUbo), uniformData.computeShader.ubo.buffer, &computeUbo);
 
 		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
 	{
-		computeUbo.deltaT = frameTimer * 5.0f;
-		computeUbo.destX = sin(glm::radians(timer*360.0)) * 0.75f;
-		computeUbo.destY = 0;
-		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.computeShader.ubo.memory, 0, sizeof(computeUbo), 0, (void **)&pData);
-		assert(!err);
-		memcpy(pData, &computeUbo, sizeof(computeUbo));
-		vkUnmapMemory(device, uniformData.computeShader.ubo.memory);
+		computeUbo.deltaT = frameTimer * 4.0f;
+		if (animate) // tmp
+		{
+			computeUbo.destX = sin(glm::radians(timer*360.0)) * 0.75f;
+			computeUbo.destY = 0.f;
+		}
+		else
+		{
+			float normalizedMx = (mousePos.x - static_cast<float>(width / 2)) / static_cast<float>(width / 2);
+			float normalizedMy = (mousePos.y - static_cast<float>(height / 2)) / static_cast<float>(height / 2);
+			computeUbo.destX = normalizedMx;
+			computeUbo.destY = normalizedMy;
+		}
+
+		updateDeviceBuffer(sizeof(computeUbo), uniformData.computeShader.ubo.buffer, &computeUbo);
 	}
 
 	// Find and create a compute capable device queue
@@ -693,6 +574,8 @@ public:
 		assert(queueIndex < queueCount);
 
 		VkDeviceQueueCreateInfo queueCreateInfo = {};
+		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo.pNext = NULL;
 		queueCreateInfo.queueFamilyIndex = queueIndex;
 		queueCreateInfo.queueCount = 1;
 		vkGetDeviceQueue(device, queueIndex, 0, &computeQueue);
@@ -701,7 +584,6 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
 		getComputeQueue();
 		createComputeCommandBuffer();
 		prepareStorageBuffers();
@@ -709,7 +591,6 @@ public:
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
-		setupDescriptorSet();
 		prepareCompute();
 		buildCommandBuffers(); 
 		buildComputeCommandBuffer();
@@ -723,16 +604,18 @@ public:
 		vkDeviceWaitIdle(device);
 		draw();
 		vkDeviceWaitIdle(device);
-		if (animStart > 0.0f)
+
+		if (animate)
 		{
-			animStart -= frameTimer * 5.0f;
-		}
-		if ((animate) & (animStart <= 0.0f))
-		{
-			timer += frameTimer * 0.1f;
-			if (timer > 1.0)
+			if (animStart > 0.0f)
 			{
-				timer -= 1.0f;
+				animStart -= frameTimer * 5.0f;
+			}
+			else if (animStart <= 0.0f)
+			{
+				timer += frameTimer * 0.04f;
+				if (timer > 1.f)
+					timer = 0.f;
 			}
 		}
 		updateUniformBuffers();
