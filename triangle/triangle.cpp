@@ -688,6 +688,7 @@ public:
 		rasterizationState.depthClampEnable = VK_FALSE;
 		rasterizationState.rasterizerDiscardEnable = VK_FALSE;
 		rasterizationState.depthBiasEnable = VK_FALSE;
+		rasterizationState.lineWidth = 1.0f;
 
 		// Color blend state
 		// Describes blend modes and color masks

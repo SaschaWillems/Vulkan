@@ -784,6 +784,7 @@ VkPipelineRasterizationStateCreateInfo vkTools::initializers::pipelineRasterizat
 	pipelineRasterizationStateCreateInfo.frontFace = frontFace;
 	pipelineRasterizationStateCreateInfo.flags = flags;
 	pipelineRasterizationStateCreateInfo.depthClampEnable = VK_TRUE;
+	pipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 	return pipelineRasterizationStateCreateInfo;
 }
 
