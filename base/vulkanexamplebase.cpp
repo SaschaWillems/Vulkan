@@ -768,7 +768,10 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	err = createDevice(queueCreateInfo, enableValidation);
 	assert(!err);
 
+	// Store properties (including limits) and features of the phyiscal device
+	// So examples can check against them and see if a feature is actually supported
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
 
 #if defined(__ANDROID__)
 	LOGD(deviceProperties.deviceName);
