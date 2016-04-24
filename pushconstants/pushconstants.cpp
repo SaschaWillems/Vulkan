@@ -227,7 +227,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/samplescene.obj", &meshes.scene, vertexLayout, 0.35f);
+		loadMesh(getAssetPath() + "models/samplescene.dae", &meshes.scene, vertexLayout, 0.35f);
 	}
 
 	void setupVertexDescriptions()
@@ -494,17 +494,17 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 		if (!paused)
 		{
+			vkDeviceWaitIdle(device);
 			reBuildCommandBuffers();
 		}
 	}
 
 	virtual void viewChanged()
 	{
+		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
 	}
 };
