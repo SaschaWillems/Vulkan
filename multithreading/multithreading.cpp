@@ -432,21 +432,28 @@ public:
 		updateSecondaryCommandBuffer(inheritanceInfo);
 		commandBuffers.push_back(secondaryCommandBuffer);
 
+		// Add a job to the thread's queue for each object to be rendered
 		for (uint32_t t = 0; t < numThreads; t++)
 		{
-			// Add a job to the thread's queue for each object to be rendered
 			for (uint32_t i = 0; i < numObjectsPerThread; i++)
 			{
 				threadPool.threads[t]->addJob([=] { threadRenderCode(t, i, inheritanceInfo); });
-				// Only submit if object is within the current view frustum
+			}
+		}
+			
+		threadPool.wait();
+
+		// Only submit if object is within the current view frustum
+		for (uint32_t t = 0; t < numThreads; t++)
+		{
+			for (uint32_t i = 0; i < numObjectsPerThread; i++)
+			{
 				if (threadData[t].objectData[i].visible)
 				{
 					commandBuffers.push_back(threadData[t].commandBuffer[i]);
 				}
 			}
 		}
-			
-		threadPool.wait();
 
 		// Execute render commands from the secondary command buffer
 		vkCmdExecuteCommands(primaryCommandBuffer, commandBuffers.size(), commandBuffers.data());
