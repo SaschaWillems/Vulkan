@@ -152,6 +152,8 @@ namespace vkTools
 			int32_t offsetX,
 			int32_t offsetY);
 
+		VkBufferCreateInfo bufferCreateInfo();
+
 		VkBufferCreateInfo bufferCreateInfo(
 			VkBufferUsageFlags usage, 
 			VkDeviceSize size);

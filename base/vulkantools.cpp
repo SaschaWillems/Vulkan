@@ -590,6 +590,13 @@ VkRect2D vkTools::initializers::rect2D(
 	return rect2D;
 }
 
+VkBufferCreateInfo vkTools::initializers::bufferCreateInfo()
+{
+	VkBufferCreateInfo bufCreateInfo = {};
+	bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	return bufCreateInfo;
+}
+
 VkBufferCreateInfo vkTools::initializers::bufferCreateInfo(
 	VkBufferUsageFlags usage, 
 	VkDeviceSize size)
