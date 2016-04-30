@@ -41,7 +41,7 @@ public:
 	struct {
 		VkBuffer buf;
 		VkDeviceMemory mem;
-		VkPipelineVertexInputStateCreateInfo vi;
+		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
@@ -542,12 +542,13 @@ public:
 		vertices.attributeDescriptions[1].binding = 0;
 
 		// Assign to vertex buffer
-		vertices.vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertices.vi.pNext = NULL;
-		vertices.vi.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
-		vertices.vi.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.vi.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
-		vertices.vi.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
+		vertices.inputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertices.inputState.pNext = NULL;
+		vertices.inputState.flags = VK_FLAGS_NONE;
+		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
+		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
 	void setupDescriptorPool()
@@ -757,7 +758,7 @@ public:
 		// Assign pipeline state create information
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
-		pipelineCreateInfo.pVertexInputState = &vertices.vi;
+		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
