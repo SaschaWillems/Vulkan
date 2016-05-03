@@ -357,6 +357,8 @@ void VulkanExampleBase::loadMesh(
 
 void VulkanExampleBase::renderLoop()
 {
+	destWidth = width;
+	destHeight = height;
 #if defined(_WIN32)
 	MSG msg;
 	while (TRUE)
@@ -393,6 +395,7 @@ void VulkanExampleBase::renderLoop()
 		{
 			std::string windowTitle = getWindowTitle();
 			SetWindowText(window, windowTitle.c_str());
+			lastFPS = frameCounter;
 			fpsTimer = 0.0f;
 			frameCounter = 0.0f;
 		}
@@ -450,6 +453,7 @@ void VulkanExampleBase::renderLoop()
 			if (fpsTimer > 1000.0f)
 			{
 				LOGD("%d fps", frameCounter);
+				lastFPS = frameCounter;
 				fpsTimer = 0.0f;
 				frameCounter = 0.0f;
 			}
@@ -516,6 +520,7 @@ void VulkanExampleBase::renderLoop()
 			xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
 				window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
 				windowTitle.size(), windowTitle.c_str());
+			lastFPS = frameCounter;
 			fpsTimer = 0.0f;
 			frameCounter = 0.0f;
 		}
@@ -1491,7 +1496,7 @@ void VulkanExampleBase::windowResize()
 
 void VulkanExampleBase::windowResized()
 {
-	// Can be overrdiden in derived class
+	// Can be overriden in derived class
 }
 
 void VulkanExampleBase::initSwapchain()
