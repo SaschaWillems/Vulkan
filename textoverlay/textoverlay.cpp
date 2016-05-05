@@ -56,6 +56,7 @@ private:
 	VkPhysicalDevice physicalDevice;
 	VkDevice device;
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
+	VkQueue queue;
 	VkFormat colorFormat;
 	VkFormat depthFormat;
 
@@ -123,6 +124,7 @@ public:
 	VulkanTextOverlay::VulkanTextOverlay(
 		VkPhysicalDevice physicalDevice,
 		VkDevice device,
+		VkQueue queue,
 		std::vector<VkFramebuffer> &framebuffers,
 		VkFormat colorformat,
 		VkFormat depthformat,
@@ -131,6 +133,7 @@ public:
 	{
 		this->physicalDevice = physicalDevice;
 		this->device = device;
+		this->queue = queue;
 		this->colorFormat = colorformat;
 		this->depthFormat = depthformat;
 
@@ -157,8 +160,24 @@ public:
 		static unsigned char font24pixels[STB_FONT_HEIGHT][STB_FONT_WIDTH];
 		STB_FONT_NAME(stbFontData, font24pixels, STB_FONT_HEIGHT);
 
-		// Vertex buffer
+		// Command buffer
 
+		// Pool
+		VkCommandPoolCreateInfo cmdPoolInfo = {};
+		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		cmdPoolInfo.queueFamilyIndex = 0; // todo : pass from example base / swap chain
+		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		vkTools::checkResult(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &commandPool));
+
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
+			vkTools::initializers::commandBufferAllocateInfo(
+				commandPool,
+				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				(uint32_t)cmdBuffers.size());
+
+		vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, cmdBuffers.data()));
+
+		// Vertex buffer
 		VkDeviceSize bufferSize = MAX_CHAR_COUNT * sizeof(glm::vec4);
 
 		VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, bufferSize);
@@ -174,6 +193,7 @@ public:
 		vkTools::checkResult(vkAllocateMemory(device, &allocInfo, nullptr, &memory));
 		vkTools::checkResult(vkBindBufferMemory(device, buffer, memory, 0));
 
+		// Font texture
 		VkImageCreateInfo imageInfo = vkTools::initializers::imageCreateInfo();
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageInfo.format = VK_FORMAT_R8_UNORM;
@@ -183,19 +203,103 @@ public:
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
-		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 
 		vkTools::checkResult(vkCreateImage(device, &imageInfo, nullptr, &image));
 
 		allocInfo.allocationSize = STB_FONT_WIDTH * STB_NUM_CHARS;
+		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &allocInfo.memoryTypeIndex);
 
 		vkTools::checkResult(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
 		vkTools::checkResult(vkBindImageMemory(device, image, imageMemory, 0));
 
-		// todo : staging
+		// Staging
+
+		struct {
+			VkDeviceMemory memory;
+			VkBuffer buffer;
+		} stagingBuffer;
+
+		VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo();
+		bufferCreateInfo.size = allocInfo.allocationSize;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		vkTools::checkResult(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer.buffer));
+
+		// Get memory requirements for the staging buffer (alignment, memory type bits)
+		vkGetBufferMemoryRequirements(device, stagingBuffer.buffer, &memReqs);
+
+		allocInfo.allocationSize = memReqs.size;
+		// Get memory type index for a host visible buffer
+		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
+
+		vkTools::checkResult(vkAllocateMemory(device, &allocInfo, nullptr, &stagingBuffer.memory));
+		vkTools::checkResult(vkBindBufferMemory(device, stagingBuffer.buffer, stagingBuffer.memory, 0));
+
+		uint8_t *data;
+		vkTools::checkResult(vkMapMemory(device, stagingBuffer.memory, 0, allocInfo.allocationSize, 0, (void **)&data));
+		memcpy(data, &font24pixels[0][0], STB_FONT_WIDTH * STB_FONT_HEIGHT);
+		vkUnmapMemory(device, stagingBuffer.memory);
+
+		// Copy to image
+
+		VkCommandBuffer copyCmd;
+		cmdBufAllocateInfo.commandBufferCount = 1;
+		vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &copyCmd));
+	
+		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+		vkTools::checkResult(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
+
+		// Prepare for transfer
+		vkTools::setImageLayout(
+			copyCmd,
+			image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_PREINITIALIZED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		VkBufferImageCopy bufferCopyRegion = {};
+		bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		bufferCopyRegion.imageSubresource.mipLevel = 0;
+		bufferCopyRegion.imageSubresource.layerCount = 1;
+		bufferCopyRegion.imageExtent.width = STB_FONT_WIDTH;
+		bufferCopyRegion.imageExtent.height = STB_FONT_HEIGHT;
+		bufferCopyRegion.imageExtent.depth = 1;
+
+		vkCmdCopyBufferToImage(
+			copyCmd,
+			stagingBuffer.buffer,
+			image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&bufferCopyRegion
+			);
+
+		// Prepare for shader read
+		vkTools::setImageLayout(
+			copyCmd,
+			image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		vkTools::checkResult(vkEndCommandBuffer(copyCmd));
+
+		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &copyCmd;
+
+		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		vkTools::checkResult(vkQueueWaitIdle(queue));
+
+		vkFreeCommandBuffers(device, commandPool, 1, &copyCmd);
+		vkFreeMemory(device, stagingBuffer.memory, nullptr);
+		vkDestroyBuffer(device, stagingBuffer.buffer, nullptr);
+
 
 		VkImageViewCreateInfo imageViewInfo = vkTools::initializers::imageViewCreateInfo();
 		imageViewInfo.image = image;
@@ -205,11 +309,6 @@ public:
 		imageViewInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 		vkTools::checkResult(vkCreateImageView(device, &imageViewInfo, nullptr, &view));
-
-		uint8_t *data;
-		vkTools::checkResult(vkMapMemory(device, imageMemory, 0, allocInfo.allocationSize, 0, (void **)&data));
-		memcpy(data, &font24pixels[0][0], STB_FONT_WIDTH * STB_FONT_HEIGHT);
-		vkUnmapMemory(device, imageMemory);
 
 		// Sampler
 		VkSamplerCreateInfo samplerInfo = vkTools::initializers::samplerCreateInfo();
@@ -276,23 +375,6 @@ public:
 		std::array<VkWriteDescriptorSet, 1> writeDescriptorSets;
 		writeDescriptorSets[0] = vkTools::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &texDescriptor);
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
-
-		// Command buffer
-
-		// Pool
-		VkCommandPoolCreateInfo cmdPoolInfo = {};
-		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		cmdPoolInfo.queueFamilyIndex = 0; // todo : pass from example base / swap chain
-		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		vkTools::checkResult(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &commandPool));
-
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-			vkTools::initializers::commandBufferAllocateInfo(
-				commandPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				(uint32_t)cmdBuffers.size());
-
-		vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, cmdBuffers.data()));
 
 		// Pipeline cache
 		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -707,7 +789,11 @@ public:
 
 		// Put some text on top of object
 		// Project object position into screen space
-		glm::vec3 projected = glm::project(cameraPos, uboVS.model, uboVS.projection, glm::vec4(0, 0, (float)width, (float)height));
+
+		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		glm::mat4 model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
+
+		glm::vec3 projected = glm::project(glm::vec3(0.0f), model, uboVS.projection, glm::vec4(0, (float)height, (float)width, 0));
 		textOverlay->addText("Look ma I'm a teapot!", projected.x, projected.y);
 
 		textOverlay->endTextUpdate();
@@ -747,7 +833,7 @@ public:
 
 	void loadMeshes()
 	{
-//		loadMesh(getAssetPath() + "models/lunarlander/lunarlander.dae", &meshes.example, vertexLayout, 5.0f);
+		//loadMesh(getAssetPath() + "models/lunarlander/lunarlander.dae", &meshes.example, vertexLayout, 5.0f);
 		loadMesh(getAssetPath() + "models/teapot.3ds", &meshes.example, vertexLayout, 0.15f);
 	}
 
@@ -977,14 +1063,11 @@ public:
 	void updateUniformBuffers()
 	{
 		// Vertex shader
-		glm::mat4 viewMatrix = glm::mat4();
 		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
-		float offset = 0.5f;
-		int uboIndex = 1;
-		uboVS.model = glm::mat4();
-		uboVS.model = viewMatrix * glm::translate(uboVS.model, cameraPos);
+		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+
+		uboVS.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -1001,6 +1084,7 @@ public:
 		textOverlay = new VulkanTextOverlay(
 			physicalDevice,
 			device,
+			queue,
 			frameBuffers,
 			colorformat,
 			depthFormat,
