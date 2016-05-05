@@ -58,13 +58,15 @@ private:
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
 	VkFormat colorFormat;
 	VkFormat depthFormat;
-	VkExtent2D windowSize;
+
+	uint32_t *frameBufferWidth;
+	uint32_t *frameBufferHeight;
 
 	VkSampler sampler;
 	VkImage image;
 	VkImageView view;
 	VkBuffer buffer;
-	//		VkDeviceMemory memory;
+	VkDeviceMemory memory;
 	VkDeviceMemory imageMemory;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -74,9 +76,15 @@ private:
 	VkPipeline pipeline;
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> cmdBuffers;
-	std::vector<VkFramebuffer> frameBuffers;
+	std::vector<VkFramebuffer*> frameBuffers;
 
 	VkRenderPass renderPass;
+
+	// Pointer to mapped vertex buffer
+	glm::vec4 *mapped = nullptr;
+
+	stb_fontchar stbFontData[STB_NUM_CHARS];
+	uint32_t numLetters;
 
 	// Try to find appropriate memory type for a memory allocation
 	VkBool32 getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex)
@@ -112,29 +120,28 @@ private:
 	}
 
 public:
-
-	// todo : move to private!
-	stb_fontchar stbFontData[STB_NUM_CHARS];
-	uint32_t numLetters;
-	VkDeviceMemory memory;
-
-	// Pointer to mapped vertex buffer
-	glm::vec4 *mapped = nullptr;
-
 	VulkanTextOverlay::VulkanTextOverlay(
 		VkPhysicalDevice physicalDevice,
 		VkDevice device,
-		std::vector<VkFramebuffer> framebuffers,
+		std::vector<VkFramebuffer> &framebuffers,
 		VkFormat colorformat,
 		VkFormat depthformat,
-		VkExtent2D windowsize)
+		uint32_t *framebufferwidth,
+		uint32_t *framebufferheight)
 	{
 		this->physicalDevice = physicalDevice;
 		this->device = device;
 		this->colorFormat = colorformat;
 		this->depthFormat = depthformat;
-		this->windowSize = windowsize;
-		this->frameBuffers = framebuffers;
+
+		this->frameBuffers.resize(framebuffers.size());
+		for (uint32_t i = 0; i < framebuffers.size(); i++)
+		{
+			this->frameBuffers[i] = &framebuffers[i];
+		}
+
+		this->frameBufferWidth = framebufferwidth;
+		this->frameBufferHeight = framebufferheight;
 
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 		cmdBuffers.resize(framebuffers.size());
@@ -371,8 +378,8 @@ public:
 		//shaderStages[1] = loadShader(getAssetPath() + "shaders/base/font.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// todo : pass asset path
-		shaderStages[0] = loadShader("../data/shaders/base/font.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("../data/shaders/base/font.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader("../data/shaders/textoverlay/text.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader("../data/shaders/textoverlay/text.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -452,7 +459,7 @@ public:
 
 		vkTools::checkResult(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 	}
-	
+
 	// Map buffer 
 	void beginTextUpdate()
 	{
@@ -466,8 +473,8 @@ public:
 	{
 		assert(mapped != nullptr);
 
-#define CHAR_WIDTH 2.0f * 0.75f / (float)windowSize.width - 1.0f  
-#define CHAR_HEIGHT 2.0f * 0.75f / (float)windowSize.height - 1.0f
+#define CHAR_WIDTH 2.0f * 0.75f / *frameBufferWidth - 1.0f  
+#define CHAR_HEIGHT 2.0f * 0.75f / *frameBufferHeight - 1.0f
 
 		// Generate a uv mapped quad per char in the new text
 		for (auto letter : text)
@@ -522,22 +529,23 @@ public:
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
 		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.extent = windowSize;
+		renderPassBeginInfo.renderArea.extent.width = *frameBufferWidth;
+		renderPassBeginInfo.renderArea.extent.height = *frameBufferHeight;
 		renderPassBeginInfo.clearValueCount = 1;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		for (int32_t i = 0; i < cmdBuffers.size(); ++i)
 		{
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+			renderPassBeginInfo.framebuffer = *frameBuffers[i];
 
 			vkTools::checkResult(vkBeginCommandBuffer(cmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(cmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport((float)windowSize.width, (float)windowSize.height, 0.0f, 1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)*frameBufferWidth, (float)*frameBufferHeight, 0.0f, 1.0f);
 			vkCmdSetViewport(cmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(windowSize.width, windowSize.height, 0, 0);
+			VkRect2D scissor = vkTools::initializers::rect2D(*frameBufferWidth, *frameBufferHeight, 0, 0);
 			vkCmdSetScissor(cmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindPipeline(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -562,8 +570,7 @@ public:
 	void submit(VkQueue queue, uint32_t bufferindex)
 	{
 		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmdBuffers[bufferindex];
 
 		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
@@ -680,6 +687,8 @@ public:
 
 			vkTools::checkResult(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
+
+		vkQueueWaitIdle(queue);
 	}
 
 	// Update the text buffer displayed by the text overlay
@@ -995,7 +1004,8 @@ public:
 			frameBuffers,
 			colorformat,
 			depthFormat,
-			windowSize
+			&width,
+			&height
 			);
 		updateTextOverlay();
 	}
@@ -1032,6 +1042,11 @@ public:
 	{
 		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
+		updateTextOverlay();
+	}
+
+	virtual void windowResized()
+	{
 		updateTextOverlay();
 	}
 };
