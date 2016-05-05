@@ -75,11 +75,11 @@ private:
 	VkPipelineLayout pipelineLayout;
 	VkPipelineCache pipelineCache;
 	VkPipeline pipeline;
+	VkRenderPass renderPass;
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> cmdBuffers;
 	std::vector<VkFramebuffer*> frameBuffers;
-
-	VkRenderPass renderPass;
+	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
 	// Pointer to mapped vertex buffer
 	glm::vec4 *mapped = nullptr;
@@ -102,26 +102,8 @@ private:
 		}
 		return false;
 	}
-
-	// todo : duplicate code, android
-	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage)
-	{
-		VkPipelineShaderStageCreateInfo shaderStage = {};
-		shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStage.stage = stage;
-#if defined(__ANDROID__)
-		shaderStage.module = vkTools::loadShader(androidApp->activity->assetManager, fileName.c_str(), device, stage);
-#else
-		shaderStage.module = vkTools::loadShader(fileName.c_str(), device, stage);
-#endif
-		shaderStage.pName = "main";
-		assert(shaderStage.module != NULL);
-		//shaderModules.push_back(shaderStage.module);
-		return shaderStage;
-	}
-
 public:
-	VulkanTextOverlay::VulkanTextOverlay(
+	VulkanTextOverlay(
 		VkPhysicalDevice physicalDevice,
 		VkDevice device,
 		VkQueue queue,
@@ -129,7 +111,8 @@ public:
 		VkFormat colorformat,
 		VkFormat depthformat,
 		uint32_t *framebufferwidth,
-		uint32_t *framebufferheight)
+		uint32_t *framebufferheight,
+		std::vector<VkPipelineShaderStageCreateInfo> shaderstages)
 	{
 		this->physicalDevice = physicalDevice;
 		this->device = device;
@@ -143,6 +126,8 @@ public:
 			this->frameBuffers[i] = &framebuffers[i];
 		}
 
+		this->shaderStages = shaderstages;
+
 		this->frameBufferWidth = framebufferwidth;
 		this->frameBufferHeight = framebufferheight;
 
@@ -151,6 +136,25 @@ public:
 		prepareResources();
 		prepareRenderPass();
 		preparePipeline();
+	}
+
+	~VulkanTextOverlay()
+	{
+		// Free up all Vulkan resources requested by the text overlay
+		vkDestroySampler(device, sampler, nullptr);
+		vkDestroyImage(device, image, nullptr);
+		vkDestroyImageView(device, view, nullptr);
+		vkDestroyBuffer(device, buffer, nullptr);
+		vkFreeMemory(device, memory, nullptr);
+		vkFreeMemory(device, imageMemory, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+		vkDestroyPipelineCache(device, pipelineCache, nullptr);
+		vkDestroyPipeline(device, pipeline, nullptr);
+		vkDestroyRenderPass(device, renderPass, nullptr);
+		vkFreeCommandBuffers(device, commandPool, cmdBuffers.size(), cmdBuffers.data());
+		vkDestroyCommandPool(device, commandPool, nullptr);
 	}
 
 	// Prepare all vulkan resources required to render the font
@@ -394,7 +398,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
+				VK_CULL_MODE_BACK_BIT,
 				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
@@ -445,7 +449,9 @@ public:
 		vertexBindings[1] = vkTools::initializers::vertexInputBindingDescription(1, sizeof(glm::vec4), VK_VERTEX_INPUT_RATE_VERTEX);
 
 		std::array<VkVertexInputAttributeDescription, 2> vertexAttribs = {};
+		// Position
 		vertexAttribs[0] = vkTools::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, 0);
+		// UV
 		vertexAttribs[1] = vkTools::initializers::vertexInputAttributeDescription(1, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(glm::vec2));
 
 		VkPipelineVertexInputStateCreateInfo inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
@@ -453,15 +459,6 @@ public:
 		inputState.pVertexBindingDescriptions = vertexBindings.data();
 		inputState.vertexAttributeDescriptionCount = vertexAttribs.size();
 		inputState.pVertexAttributeDescriptions = vertexAttribs.data();
-
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-		//shaderStages[0] = loadShader(getAssetPath() + "shaders/base/font.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		//shaderStages[1] = loadShader(getAssetPath() + "shaders/base/font.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-		// todo : pass asset path
-		shaderStages[0] = loadShader("../data/shaders/textoverlay/text.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader("../data/shaders/textoverlay/text.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -641,6 +638,7 @@ public:
 				vkCmdDraw(cmdBuffers[i], 4, 1, j * 4, 0);
 			}
 
+
 			vkCmdEndRenderPass(cmdBuffers[i]);
 
 			vkTools::checkResult(vkEndCommandBuffer(cmdBuffers[i]));
@@ -703,25 +701,17 @@ public:
 		zoom = -7.5f;
 		zoomSpeed = 2.5f;
 		rotation = { -5.0f, -35.0f, 0.0f };
-		//cameraPos = glm::vec3(4.5f, 0.33f, 0.0f);
 		title = "Vulkan Example - Text overlay";
 	}
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
-		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
-
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
-
 		textureLoader->destroyTexture(textures.colorMap);
-
 		vkTools::destroyUniformData(device, &uniformData.vsScene);
-
 		delete(textOverlay);
 	}
 
@@ -731,8 +721,7 @@ public:
 
 		VkClearValue clearValues[3];
 
-		// Clear to a white background for higher contrast
-		clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
+		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
@@ -826,15 +815,14 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			getAssetPath() + "models/voyager/voyager.ktx",
+			getAssetPath() + "textures/crate_bc3.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.colorMap);
 	}
 
 	void loadMeshes()
 	{
-		//loadMesh(getAssetPath() + "models/lunarlander/lunarlander.dae", &meshes.example, vertexLayout, 5.0f);
-		loadMesh(getAssetPath() + "models/teapot.3ds", &meshes.example, vertexLayout, 0.15f);
+		loadMesh(getAssetPath() + "models/sphere.3ds", &meshes.example, vertexLayout, 0.15f);
 	}
 
 	void setupVertexDescriptions()
@@ -1080,7 +1068,11 @@ public:
 
 	void prepareTextOverlay()
 	{
-		VkExtent2D windowSize = { width, height };
+		// Load the text rendering shaders
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+		shaderStages.push_back(loadShader(getAssetPath() + "shaders/textoverlay/text.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
+		shaderStages.push_back(loadShader(getAssetPath() + "shaders/textoverlay/text.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
+
 		textOverlay = new VulkanTextOverlay(
 			physicalDevice,
 			device,
@@ -1089,7 +1081,8 @@ public:
 			colorformat,
 			depthFormat,
 			&width,
-			&height
+			&height,
+			shaderStages
 			);
 		updateTextOverlay();
 	}
