@@ -103,6 +103,9 @@ private:
 		return false;
 	}
 public:
+
+	enum TextAlign { alignLeft, alignCenter, alignRight };
+
 	VulkanTextOverlay(
 		VkPhysicalDevice physicalDevice,
 		VkDevice device,
@@ -548,43 +551,66 @@ public:
 
 	// Add text to the current buffer
 	// todo : drop shadow? color attribute?
-	void addText(std::string text, float x, float y)
+	void addText(std::string text, float x, float y, TextAlign align)
 	{
 		assert(mapped != nullptr);
 
-#define CHAR_WIDTH 2.0f * 0.75f / *frameBufferWidth - 1.0f  
-#define CHAR_HEIGHT 2.0f * 0.75f / *frameBufferHeight - 1.0f
+		const float charW = 1.5f / *frameBufferWidth;
+		const float charH = 1.5f / *frameBufferHeight;
+
+		float fbW = (float)*frameBufferWidth;
+		float fbH = (float)*frameBufferHeight;
+		x = (x / fbW * 2.0f) - 1.0f;
+		y = (y / fbH * 2.0f) - 1.0f;
+
+		// Calculate text width
+		float textWidth = 0;
+		for (auto letter : text)
+		{
+			stb_fontchar *charData = &stbFontData[(uint32_t)letter - STB_FIRST_CHAR];
+			textWidth += charData->advance * charW;
+		}
+
+		switch (align)
+		{
+			case alignRight:
+				x -= textWidth;
+				break;
+			case alignCenter:
+				x -= textWidth / 2.0f;
+				break;
+		}
 
 		// Generate a uv mapped quad per char in the new text
 		for (auto letter : text)
 		{
 			stb_fontchar *charData = &stbFontData[(uint32_t)letter - STB_FIRST_CHAR];
 
-			mapped->x = (x + charData->x0) * CHAR_WIDTH;
-			mapped->y = (y + charData->y0) * CHAR_HEIGHT;
+			mapped->x = (x + (float)charData->x0 * charW);
+			mapped->y = (y + (float)charData->y0 * charH);
 			mapped->z = charData->s0;
 			mapped->w = charData->t0;
 			mapped++;
 
-			mapped->x = (x + charData->x1) * CHAR_WIDTH;
-			mapped->y = (y + charData->y0) * CHAR_HEIGHT;
+			mapped->x = (x + (float)charData->x1 * charW);
+			mapped->y = (y + (float)charData->y0 * charH);
 			mapped->z = charData->s1;
 			mapped->w = charData->t0;
 			mapped++;
 
-			mapped->x = (x + charData->x0) * CHAR_WIDTH;
-			mapped->y = (y + charData->y1) * CHAR_HEIGHT;
+			mapped->x = (x + (float)charData->x0 * charW);
+			mapped->y = (y + (float)charData->y1 * charH);
 			mapped->z = charData->s0;
 			mapped->w = charData->t1;
 			mapped++;
 
-			mapped->x = (x + charData->x1) * CHAR_WIDTH;
-			mapped->y = (y + charData->y1) * CHAR_HEIGHT;
+			mapped->x = (x + (float)charData->x1 * charW);
+			mapped->y = (y + (float)charData->y1 * charH);
 			mapped->z = charData->s1;
 			mapped->w = charData->t1;
 			mapped++;
 
-			x += charData->advance_int;
+			x += charData->advance * charW;
 
 			numLetters++;
 		}
@@ -685,7 +711,7 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
-		glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
+		glm::vec4 lightPos = glm::vec4(5.0f, -50.0f, 5.0f, 1.0f);
 	} uboVS;
 
 	struct {
@@ -767,23 +793,18 @@ public:
 	{
 		textOverlay->beginTextUpdate();
 
-		textOverlay->addText(title, 5.0f, 5.0f);
+		textOverlay->addText(title, 5.0f, 5.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText(deviceProperties.deviceName, 5.0f, 30.0f, VulkanTextOverlay::alignLeft);
 
 		std::stringstream ss;
 		ss << std::fixed << std::setprecision(2) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
-
-		textOverlay->addText(ss.str(), 5.0f, 30.0f);
-
-		textOverlay->addText(deviceProperties.deviceName, 5.0f, 55.0f);
+		textOverlay->addText(ss.str(), width, 5.0f, VulkanTextOverlay::alignRight);
 
 		// Put some text on top of object
 		// Project object position into screen space
+		glm::vec3 projected = glm::project(glm::vec3(0.0f), uboVS.model, uboVS.projection, glm::vec4(0, 0, (float)width, (float)height));
 
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-		glm::mat4 model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
-
-		glm::vec3 projected = glm::project(glm::vec3(0.0f), model, uboVS.projection, glm::vec4(0, (float)height, (float)width, 0));
-		textOverlay->addText("Look ma I'm a teapot!", projected.x, projected.y);
+		textOverlay->addText("Look ma I'm a teapot!", projected.x, projected.y, VulkanTextOverlay::alignCenter);
 
 		textOverlay->endTextUpdate();
 	}
@@ -822,7 +843,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/sphere.3ds", &meshes.example, vertexLayout, 0.15f);
+		loadMesh(getAssetPath() + "models/box.obj", &meshes.example, vertexLayout, 0.15f);
 	}
 
 	void setupVertexDescriptions()
