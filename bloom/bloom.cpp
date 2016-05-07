@@ -432,173 +432,184 @@ public:
 		VkResult err = vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo);
 		assert(!err);
 
-		VkViewport viewport = vkTools::initializers::viewport(
-			(float)offScreenFrameBuf.width,
-			(float)offScreenFrameBuf.height,
-			0.0f,
-			1.0f);
-		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
+		{
+			vkDebug::DebugMarkerRegion offscreenBloom(offScreenCmdBuffer, "Off-screen bloom generation");
 
-		VkRect2D scissor = vkTools::initializers::rect2D(
-			offScreenFrameBuf.width,
-			offScreenFrameBuf.height,
-			0,
-			0);
-		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
+			VkViewport viewport = vkTools::initializers::viewport(
+				(float)offScreenFrameBuf.width,
+				(float)offScreenFrameBuf.height,
+				0.0f,
+				1.0f);
+			vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
 
-		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			VkRect2D scissor = vkTools::initializers::rect2D(
+				offScreenFrameBuf.width,
+				offScreenFrameBuf.height,
+				0,
+				0);
+			vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
 
-		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.scene, 0, NULL);
-		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phongPass);
+			vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.ufoGlow.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(offScreenCmdBuffer, meshes.ufoGlow.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offScreenCmdBuffer, meshes.ufoGlow.indexCount, 1, 0, 0, 0);
+			vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.scene, 0, NULL);
+			vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phongPass);
 
-		vkCmdEndRenderPass(offScreenCmdBuffer);
+			vkDebug::insertDebugMarker(offScreenCmdBuffer, "UFO Glow");
 
-		// Make sure color writes to the framebuffer are finished before using it as transfer source
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.ufoGlow.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(offScreenCmdBuffer, meshes.ufoGlow.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(offScreenCmdBuffer, meshes.ufoGlow.indexCount, 1, 0, 0, 0);
 
-		// Transform texture target to transfer destination
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			vkCmdEndRenderPass(offScreenCmdBuffer);
 
-		// Blit offscreen color buffer to our texture target
-		VkImageBlit imgBlit;
+			// Make sure color writes to the framebuffer are finished before using it as transfer source
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				offScreenFrameBuf.color.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-		imgBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgBlit.srcSubresource.mipLevel = 0;
-		imgBlit.srcSubresource.baseArrayLayer = 0;
-		imgBlit.srcSubresource.layerCount = 1;
+			// Transform texture target to transfer destination
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				offScreenFrameBuf.textureTarget.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-		imgBlit.srcOffsets[0] = { 0, 0, 0 };
-		imgBlit.srcOffsets[1].x = offScreenFrameBuf.width;
-		imgBlit.srcOffsets[1].y = offScreenFrameBuf.height;
-		imgBlit.srcOffsets[1].z = 1;
+			// Blit offscreen color buffer to our texture target
+			VkImageBlit imgBlit;
 
-		imgBlit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgBlit.dstSubresource.mipLevel = 0;
-		imgBlit.dstSubresource.baseArrayLayer = 0;
-		imgBlit.dstSubresource.layerCount = 1;
+			imgBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imgBlit.srcSubresource.mipLevel = 0;
+			imgBlit.srcSubresource.baseArrayLayer = 0;
+			imgBlit.srcSubresource.layerCount = 1;
 
-		imgBlit.dstOffsets[0] = { 0, 0, 0 };
-		imgBlit.dstOffsets[1].x = offScreenFrameBuf.textureTarget.width;
-		imgBlit.dstOffsets[1].y = offScreenFrameBuf.textureTarget.height;
-		imgBlit.dstOffsets[1].z = 1;
+			imgBlit.srcOffsets[0] = { 0, 0, 0 };
+			imgBlit.srcOffsets[1].x = offScreenFrameBuf.width;
+			imgBlit.srcOffsets[1].y = offScreenFrameBuf.height;
+			imgBlit.srcOffsets[1].z = 1;
 
-		// Blit from framebuffer image to texture image
-		// vkCmdBlitImage does scaling and (if necessary and possible) also does format conversions
-		vkCmdBlitImage(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&imgBlit,
-			VK_FILTER_LINEAR
-			);
+			imgBlit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imgBlit.dstSubresource.mipLevel = 0;
+			imgBlit.dstSubresource.baseArrayLayer = 0;
+			imgBlit.dstSubresource.layerCount = 1;
 
-		// Transform framebuffer color attachment back 
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			imgBlit.dstOffsets[0] = { 0, 0, 0 };
+			imgBlit.dstOffsets[1].x = offScreenFrameBuf.textureTarget.width;
+			imgBlit.dstOffsets[1].y = offScreenFrameBuf.textureTarget.height;
+			imgBlit.dstOffsets[1].z = 1;
 
-		// Transform texture target back to shader read
-		// Makes sure that writes to the texture are finished before
-		// it's accessed in the shader
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			vkDebug::insertDebugMarker(offScreenCmdBuffer, "Blit Framebuffer A -> textureTarget");
 
-		// Vertical blur
-		// Render the textured quad containing the scene into
-		// another offscreen buffer applying a vertical blur
-		renderPassBeginInfo.framebuffer = offScreenFrameBufB.frameBuffer;
-		renderPassBeginInfo.renderArea.extent.width = offScreenFrameBufB.width;
-		renderPassBeginInfo.renderArea.extent.height = offScreenFrameBufB.height;
+			// Blit from framebuffer image to texture image
+			// vkCmdBlitImage does scaling and (if necessary and possible) also does format conversions
+			vkCmdBlitImage(
+				offScreenCmdBuffer,
+				offScreenFrameBuf.color.image,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				offScreenFrameBuf.textureTarget.image,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1,
+				&imgBlit,
+				VK_FILTER_LINEAR
+				);
 
-		viewport.width = offScreenFrameBuf.width;
-		viewport.height = offScreenFrameBuf.height;
-		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
+			// Transform framebuffer color attachment back 
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				offScreenFrameBuf.color.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
+			// Transform texture target back to shader read
+			// Makes sure that writes to the texture are finished before
+			// it's accessed in the shader
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				offScreenFrameBuf.textureTarget.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			// Vertical blur
+			// Render the textured quad containing the scene into
+			// another offscreen buffer applying a vertical blur
+			renderPassBeginInfo.framebuffer = offScreenFrameBufB.frameBuffer;
+			renderPassBeginInfo.renderArea.extent.width = offScreenFrameBufB.width;
+			renderPassBeginInfo.renderArea.extent.height = offScreenFrameBufB.height;
 
-		// Draw horizontally blurred texture 
-		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.radialBlur, 0, 1, &descriptorSets.verticalBlur, 0, NULL);
-		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.blurVert);
-		vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(offScreenCmdBuffer, meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offScreenCmdBuffer, meshes.quad.indexCount, 1, 0, 0, 0);
+			viewport.width = offScreenFrameBuf.width;
+			viewport.height = offScreenFrameBuf.height;
+			vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
 
-		vkCmdEndRenderPass(offScreenCmdBuffer);
+			vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
 
-		// Make sure color writes to the framebuffer are finished before using it as transfer source
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBufB.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+			vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		// Transform texture target to transfer destination
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBufB.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			vkDebug::insertDebugMarker(offScreenCmdBuffer, "Vertical Blur");
 
+			vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.radialBlur, 0, 1, &descriptorSets.verticalBlur, 0, NULL);
+			vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.blurVert);
+			vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(offScreenCmdBuffer, meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(offScreenCmdBuffer, meshes.quad.indexCount, 1, 0, 0, 0);
 
-		// Blit from framebuffer image to texture image
-		// vkCmdBlitImage does scaling and (if necessary and possible) also does format conversions
-		vkCmdBlitImage(
-			offScreenCmdBuffer,
-			offScreenFrameBufB.color.image,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			offScreenFrameBufB.textureTarget.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&imgBlit,
-			VK_FILTER_LINEAR
-			);
+			vkCmdEndRenderPass(offScreenCmdBuffer);
 
-		// Transform framebuffer color attachment back 
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBufB.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			// Make sure color writes to the framebuffer are finished before using it as transfer source
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				offScreenFrameBufB.color.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-		// Transform texture target back to shader read
-		// Makes sure that writes to the texture are finished before
-		// it's accessed in the shader
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBufB.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			// Transform texture target to transfer destination
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				offScreenFrameBufB.textureTarget.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+			vkDebug::insertDebugMarker(offScreenCmdBuffer, "Blit Framebuffer B -> textureTarget");
+
+			// Blit from framebuffer image to texture image
+			// vkCmdBlitImage does scaling and (if necessary and possible) also does format conversions
+			vkCmdBlitImage(
+				offScreenCmdBuffer,
+				offScreenFrameBufB.color.image,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				offScreenFrameBufB.textureTarget.image,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1,
+				&imgBlit,
+				VK_FILTER_LINEAR
+				);
+
+			// Transform framebuffer color attachment back 
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				offScreenFrameBufB.color.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+			// Transform texture target back to shader read
+			// Makes sure that writes to the texture are finished before
+			// it's accessed in the shader
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				offScreenFrameBufB.textureTarget.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		} // end of "offscreen bloom generation" region
 
 		err = vkEndCommandBuffer(offScreenCmdBuffer);
 		assert(!err);
@@ -610,6 +621,8 @@ public:
 			getAssetPath() + "textures/cubemap_space.ktx",
 			VK_FORMAT_R8G8B8A8_UNORM,
 			&textures.cubemap);
+
+		vkDebug::SetObjectName(device, textures.cubemap.image, "textures/cubemap_space.ktx");
 	}
 
 	void reBuildCommandBuffers()
@@ -667,25 +680,30 @@ public:
 
 			VkDeviceSize offsets[1] = { 0 };
 
-			// Skybox 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.skyBox, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skyBox);
+			{
+				vkDebug::DebugMarkerRegion scene(drawCmdBuffers[i], "3D Scene");
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skyBox.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skyBox.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skyBox.indexCount, 1, 0, 0, 0);
-		
-			// 3D scene
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.scene, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phongPass);
+				vkDebug::insertDebugMarker(drawCmdBuffers[i], "Skybox");
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.skyBox, 0, NULL);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skyBox);
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.ufo.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.ufo.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.ufo.indexCount, 1, 0, 0, 0);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skyBox.vertices.buf, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skyBox.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skyBox.indexCount, 1, 0, 0, 0);
+			
+				vkDebug::insertDebugMarker(drawCmdBuffers[i], "UFO");
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.scene, 0, NULL);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phongPass);
+
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.ufo.vertices.buf, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.ufo.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.ufo.indexCount, 1, 0, 0, 0);
+			}
 
 			// Render vertical blurred scene applying a horizontal blur
 			if (bloom)
 			{
+				vkDebug::insertDebugMarker(drawCmdBuffers[i], "Bloom Apply");
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.radialBlur, 0, 1, &descriptorSets.horizontalBlur, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.blurVert);
 				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
@@ -744,6 +762,13 @@ public:
 		loadMesh(getAssetPath() + "models/retroufo.dae", &meshes.ufo, vertexLayout, 0.05f);
 		loadMesh(getAssetPath() + "models/retroufo_glow.dae", &meshes.ufoGlow, vertexLayout, 0.05f);
 		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skyBox, vertexLayout, 1.0f);
+
+		vkDebug::SetObjectName(device, meshes.ufo.vertices.buf, "UFO Vertices");
+		vkDebug::SetObjectName(device, meshes.ufo.indices.buf, "UFO Indices");
+		vkDebug::SetObjectName(device, meshes.ufoGlow.vertices.buf, "UFO Glow Vertices");
+		vkDebug::SetObjectName(device, meshes.ufoGlow.indices.buf, "UFO Glow Indices");
+		vkDebug::SetObjectName(device, meshes.skyBox.vertices.buf, "Skybox Vertices");
+		vkDebug::SetObjectName(device, meshes.skyBox.indices.buf, "Skybox Indices");
 	}
 
 	// Setup vertices for a single uv-mapped quad
@@ -777,12 +802,16 @@ public:
 		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
 		meshes.quad.indexCount = indexBuffer.size();
 
+		vkDebug::SetObjectName(device, meshes.quad.vertices.buf, "Quad Vertices");
+
 		createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			indexBuffer.size() * sizeof(uint32_t),
 			indexBuffer.data(),
 			&meshes.quad.indices.buf,
 			&meshes.quad.indices.mem);
+
+		vkDebug::SetObjectName(device, meshes.quad.indices.buf, "Quad Indices");
 	}
 
 	void setupVertexDescriptions()
@@ -1075,6 +1104,9 @@ public:
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/gaussblur.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/gaussblur.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
+		vkDebug::SetObjectName(device, shaderStages[0].module, "shaders/bloom/gaussblur.vert.spv");
+		vkDebug::SetObjectName(device, shaderStages[1].module, "shaders/bloom/gaussblur.frag.spv");
+
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayouts.radialBlur,
@@ -1109,6 +1141,9 @@ public:
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/phongpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/phongpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
+		vkDebug::SetObjectName(device, shaderStages[0].module, "shaders/bloom/phongpass.vert.spv");
+		vkDebug::SetObjectName(device, shaderStages[1].module, "shaders/bloom/phongpass.frag.spv");
+
 		pipelineCreateInfo.layout = pipelineLayouts.scene;
 		blendAttachmentState.blendEnable = VK_FALSE;
 		depthStencilState.depthWriteEnable = VK_TRUE;
@@ -1120,6 +1155,9 @@ public:
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
+		vkDebug::SetObjectName(device, shaderStages[0].module, "shaders/bloom/colorpass.vert.spv");
+		vkDebug::SetObjectName(device, shaderStages[1].module, "shaders/bloom/colorpass.frag.spv");
+
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.colorPass);
 		assert(!err);
 
@@ -1129,6 +1167,9 @@ public:
 		depthStencilState.depthWriteEnable = VK_FALSE;
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skyBox);
 		assert(!err);
+
+		vkDebug::SetObjectName(device, shaderStages[0].module, "shaders/bloom/skybox.vert.spv");
+		vkDebug::SetObjectName(device, shaderStages[1].module, "shaders/bloom/skybox.frag.spv");
 
 	}
 
@@ -1259,6 +1300,8 @@ public:
 		prepareUniformBuffers();
 		prepareTextureTarget(&offScreenFrameBuf.textureTarget, TEX_DIM, TEX_DIM, TEX_FORMAT);
 		prepareTextureTarget(&offScreenFrameBufB.textureTarget, TEX_DIM, TEX_DIM, TEX_FORMAT);
+		vkDebug::SetObjectName(device, offScreenFrameBuf.textureTarget.image, "Off-screen A textureTarget");
+		vkDebug::SetObjectName(device, offScreenFrameBufB.textureTarget.image, "Off-screen B textureTarget");
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
@@ -1266,6 +1309,10 @@ public:
 		createOffscreenCommandBuffer(); 
 		prepareOffscreenFramebuffer(&offScreenFrameBuf);
 		prepareOffscreenFramebuffer(&offScreenFrameBufB);
+		vkDebug::SetObjectName(device, offScreenFrameBuf.color.image, "Off-screen A color framebuffer");
+		vkDebug::SetObjectName(device, offScreenFrameBuf.depth.image, "Off-screen A depth framebuffer");
+		vkDebug::SetObjectName(device, offScreenFrameBufB.color.image, "Off-screen B color framebuffer");
+		vkDebug::SetObjectName(device, offScreenFrameBufB.depth.image, "Off-screen B depth framebuffer");
 		buildCommandBuffers();
 		prepared = true;
 	}

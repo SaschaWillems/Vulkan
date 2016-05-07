@@ -1358,6 +1358,8 @@ void VulkanExampleBase::setupDepthStencil()
 	getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex);
 	err = vkAllocateMemory(device, &mem_alloc, nullptr, &depthStencil.mem);
 	assert(!err);
+	
+	vkDebug::SetObjectName(device, depthStencil.image, "Backbuffer depth-stencil");
 
 	err = vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0);
 	assert(!err);
