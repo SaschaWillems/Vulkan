@@ -95,6 +95,7 @@ set(EXAMPLES
 	skeletalanimation
 	sphericalenvmapping
 	tessellation
+	textoverlay
 	texture
 	texturearray
 	texturecubemap
