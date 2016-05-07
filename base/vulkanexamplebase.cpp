@@ -61,6 +61,13 @@ VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues
 	deviceCreateInfo.pQueueCreateInfos = &requestedQueues;
 	deviceCreateInfo.pEnabledFeatures = NULL;
 
+	// enable the debug marker extension if it is present (likely meaning a debugging tool is present)
+	if (vkTools::checkDeviceExtensionPresent(physicalDevice, VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
+	{
+		enabledExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+		enableDebugMarkers = true;
+	}
+
 	if (enabledExtensions.size() > 0)
 	{
 		deviceCreateInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
@@ -248,6 +255,10 @@ void VulkanExampleBase::prepare()
 	if (enableValidation)
 	{
 		vkDebug::setupDebugging(instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, NULL);
+	}
+	if (enableDebugMarkers)
+	{
+		vkDebug::setupDebugMarkers(device);
 	}
 	createCommandPool();
 	createSetupCommandBuffer();
