@@ -834,8 +834,10 @@ public:
 			{
 				for (int32_t z = -1; z <= 1; z += 2)
 				{
-					glm::vec3 projected = glm::project(glm::vec3((float)x, (float)z, (float)y), uboVS.model, uboVS.projection, glm::vec4(0, 0, (float)width, (float)height));
-					textOverlay->addText(std::to_string(x) + "/" + std::to_string(y), projected.x, projected.y, VulkanTextOverlay::alignCenter);
+					std::stringstream vpos;
+					vpos << std::showpos << x << "/" << y << "/" << z;
+					glm::vec3 projected = glm::project(glm::vec3((float)x, (float)y, (float)z), uboVS.model, uboVS.projection, glm::vec4(0, 0, (float)width, (float)height));
+					textOverlay->addText(vpos.str(), projected.x, projected.y + (y > -1 ? 5.0f : -20.0f), VulkanTextOverlay::alignCenter);
 				}
 			}
 		}
