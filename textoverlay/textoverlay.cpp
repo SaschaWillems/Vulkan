@@ -176,7 +176,7 @@ public:
 		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		cmdPoolInfo.queueFamilyIndex = 0; // todo : pass from example base / swap chain
 		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		vkTools::checkResult(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &commandPool));
+		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &commandPool));
 
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 			vkTools::initializers::commandBufferAllocateInfo(
@@ -184,13 +184,13 @@ public:
 				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				(uint32_t)cmdBuffers.size());
 
-		vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, cmdBuffers.data()));
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, cmdBuffers.data()));
 
 		// Vertex buffer
 		VkDeviceSize bufferSize = MAX_CHAR_COUNT * sizeof(glm::vec4);
 
 		VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, bufferSize);
-		vkTools::checkResult(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
+		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
 
 		VkMemoryRequirements memReqs;
 		VkMemoryAllocateInfo allocInfo = vkTools::initializers::memoryAllocateInfo();
@@ -199,8 +199,8 @@ public:
 		allocInfo.allocationSize = memReqs.size;
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
 
-		vkTools::checkResult(vkAllocateMemory(device, &allocInfo, nullptr, &memory));
-		vkTools::checkResult(vkBindBufferMemory(device, buffer, memory, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, buffer, memory, 0));
 
 		// Font texture
 		VkImageCreateInfo imageInfo = vkTools::initializers::imageCreateInfo();
@@ -217,13 +217,13 @@ public:
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 
-		vkTools::checkResult(vkCreateImage(device, &imageInfo, nullptr, &image));
+		VK_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
 
 		allocInfo.allocationSize = STB_FONT_WIDTH * STB_NUM_CHARS;
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &allocInfo.memoryTypeIndex);
 
-		vkTools::checkResult(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
-		vkTools::checkResult(vkBindImageMemory(device, image, imageMemory, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
+		VK_CHECK_RESULT(vkBindImageMemory(device, image, imageMemory, 0));
 
 		// Staging
 
@@ -237,7 +237,7 @@ public:
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		vkTools::checkResult(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer.buffer));
+		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer.buffer));
 
 		// Get memory requirements for the staging buffer (alignment, memory type bits)
 		vkGetBufferMemoryRequirements(device, stagingBuffer.buffer, &memReqs);
@@ -246,11 +246,11 @@ public:
 		// Get memory type index for a host visible buffer
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
 
-		vkTools::checkResult(vkAllocateMemory(device, &allocInfo, nullptr, &stagingBuffer.memory));
-		vkTools::checkResult(vkBindBufferMemory(device, stagingBuffer.buffer, stagingBuffer.memory, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &stagingBuffer.memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer.buffer, stagingBuffer.memory, 0));
 
 		uint8_t *data;
-		vkTools::checkResult(vkMapMemory(device, stagingBuffer.memory, 0, allocInfo.allocationSize, 0, (void **)&data));
+		VK_CHECK_RESULT(vkMapMemory(device, stagingBuffer.memory, 0, allocInfo.allocationSize, 0, (void **)&data));
 		memcpy(data, &font24pixels[0][0], STB_FONT_WIDTH * STB_FONT_HEIGHT);
 		vkUnmapMemory(device, stagingBuffer.memory);
 
@@ -258,10 +258,10 @@ public:
 
 		VkCommandBuffer copyCmd;
 		cmdBufAllocateInfo.commandBufferCount = 1;
-		vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &copyCmd));
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &copyCmd));
 	
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
-		vkTools::checkResult(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
 
 		// Prepare for transfer
 		vkTools::setImageLayout(
@@ -296,14 +296,14 @@ public:
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		vkTools::checkResult(vkEndCommandBuffer(copyCmd));
+		VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
 
 		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &copyCmd;
 
-		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		vkTools::checkResult(vkQueueWaitIdle(queue));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 
 		vkFreeCommandBuffers(device, commandPool, 1, &copyCmd);
 		vkFreeMemory(device, stagingBuffer.memory, nullptr);
@@ -317,7 +317,7 @@ public:
 		imageViewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,	VK_COMPONENT_SWIZZLE_A };
 		imageViewInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
-		vkTools::checkResult(vkCreateImageView(device, &imageViewInfo, nullptr, &view));
+		VK_CHECK_RESULT(vkCreateImageView(device, &imageViewInfo, nullptr, &view));
 
 		// Sampler
 		VkSamplerCreateInfo samplerInfo = vkTools::initializers::samplerCreateInfo();
@@ -332,7 +332,7 @@ public:
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 1.0f;
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		vkTools::checkResult(vkCreateSampler(device, &samplerInfo, nullptr, &sampler));
+		VK_CHECK_RESULT(vkCreateSampler(device, &samplerInfo, nullptr, &sampler));
 
 		// Descriptor
 		// Font uses a separate descriptor pool
@@ -345,7 +345,7 @@ public:
 				poolSizes.data(),
 				1);
 
-		vkTools::checkResult(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Descriptor set layout
 		std::array<VkDescriptorSetLayoutBinding, 1> setLayoutBindings;
@@ -356,7 +356,7 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		vkTools::checkResult(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout));
 
 		// Pipeline layout
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo =
@@ -364,7 +364,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		vkTools::checkResult(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout));
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout));
 
 		// Descriptor set
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo =
@@ -373,7 +373,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		vkTools::checkResult(vkAllocateDescriptorSets(device, &descriptorSetAllocInfo, &descriptorSet));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocInfo, &descriptorSet));
 
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
@@ -388,7 +388,7 @@ public:
 		// Pipeline cache
 		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		vkTools::checkResult(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
+		VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
 	}
 
 	// Prepare a separate pipeline for the font rendering decoupled from the main application
@@ -482,7 +482,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
 	// Prepare a separate render pass for rendering the text as an overlay
@@ -541,13 +541,13 @@ public:
 		renderPassInfo.dependencyCount = 0;
 		renderPassInfo.pDependencies = NULL;
 
-		vkTools::checkResult(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 	}
 
 	// Map buffer 
 	void beginTextUpdate()
 	{
-		vkTools::checkResult(vkMapMemory(device, memory, 0, VK_WHOLE_SIZE, 0, (void **)&mapped));
+		VK_CHECK_RESULT(vkMapMemory(device, memory, 0, VK_WHOLE_SIZE, 0, (void **)&mapped));
 		numLetters = 0;
 	}
 
@@ -645,7 +645,7 @@ public:
 		{
 			renderPassBeginInfo.framebuffer = *frameBuffers[i];
 
-			vkTools::checkResult(vkBeginCommandBuffer(cmdBuffers[i], &cmdBufInfo));
+			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(cmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -669,7 +669,7 @@ public:
 
 			vkCmdEndRenderPass(cmdBuffers[i]);
 
-			vkTools::checkResult(vkEndCommandBuffer(cmdBuffers[i]));
+			VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffers[i]));
 		}
 	}
 
@@ -686,8 +686,8 @@ public:
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmdBuffers[bufferindex];
 
-		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		vkTools::checkResult(vkQueueWaitIdle(queue));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 };
@@ -778,7 +778,7 @@ public:
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			vkTools::checkResult(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -806,7 +806,7 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			vkTools::checkResult(vkEndCommandBuffer(drawCmdBuffers[i]));
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 
 		vkQueueWaitIdle(queue);
@@ -867,7 +867,7 @@ public:
 	void draw()
 	{
 		// Get next image in the swap chain (back/front buffer)
-		vkTools::checkResult(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
+		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
@@ -876,16 +876,16 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
 		// Submit to queue
-		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		// Submit text overlay to queue
 		textOverlay->submit(queue, currentBuffer);
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		vkTools::checkResult(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
+		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 
-		vkTools::checkResult(vkQueueWaitIdle(queue));
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	void loadTextures()
@@ -961,7 +961,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		vkTools::checkResult(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -985,14 +985,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		vkTools::checkResult(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		vkTools::checkResult(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
@@ -1004,7 +1004,7 @@ public:
 				1);
 
 		// Background
-		vkTools::checkResult(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.background));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.background));
 
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
@@ -1033,7 +1033,7 @@ public:
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Cube
-		vkTools::checkResult(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.cube));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.cube));
 		texDescriptor.sampler = textures.cube.sampler;
 		texDescriptor.imageView = textures.cube.view;
 		writeDescriptorSets[0].dstSet = descriptorSets.cube;
@@ -1113,7 +1113,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
 
 		// Background rendering pipeline
 		depthStencilState.depthTestEnable = VK_FALSE;
@@ -1124,7 +1124,7 @@ public:
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/textoverlay/background.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/textoverlay/background.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.background));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.background));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -1155,7 +1155,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
-		vkTools::checkResult(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.vsScene.memory);
 	}
@@ -1202,9 +1202,9 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		// todo 
 		if (frameCounter == 0)
 		{
+			vkDeviceWaitIdle(device);
 			updateTextOverlay();
 		}
 	}
