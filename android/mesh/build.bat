@@ -10,7 +10,7 @@ if %ERRORLEVEL% EQU 0 (
 
 	mkdir "assets\models\voyager"
 	xcopy "..\..\data\models\voyager\voyager.ktx" "assets\models\voyager" /Y
-	xcopy "..\..\data\models\voyager\voyager.obj" "assets\models\voyager" /Y
+	xcopy "..\..\data\models\voyager\voyager.dae" "assets\models\voyager" /Y
 	
 	mkdir "res\drawable"
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y
