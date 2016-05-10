@@ -432,7 +432,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/voyager/voyager.obj", &meshes.example, vertexLayout, 1.0f);
+		loadMesh(getAssetPath() + "models/voyager/voyager.dae", &meshes.example, vertexLayout, 1.0f);
 	}
 
 	void setupVertexDescriptions()
