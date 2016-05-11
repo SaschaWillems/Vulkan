@@ -29,10 +29,6 @@ Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found he
 
 Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder. Except for Android, where all required assets are stored inside of the apk.
 
-## API-Version
-
-The examples are build against **API Version 1.0.5** and support **implementations starting with 1.0.2**. This ensures that beta drivers not updated to the most recent API-Version can run the examples.
-
 ## Additional documentation
 
 Additional documentation for several base classes and some Presentations can be found [in this directory](./documentation/additionaldocs.md).
