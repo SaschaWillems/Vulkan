@@ -1293,6 +1293,24 @@ VkBool32 VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties,
 	return false;
 }
 
+uint32_t VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties)
+{
+	for (uint32_t i = 0; i < 32; i++)
+	{
+		if ((typeBits & 1) == 1)
+		{
+			if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			{
+				return i;
+			}
+		}
+		typeBits >>= 1;
+	}
+
+	// todo : throw error
+	return 0;
+}
+
 void VulkanExampleBase::createCommandPool()
 {
 	VkCommandPoolCreateInfo cmdPoolInfo = {};
