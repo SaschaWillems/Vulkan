@@ -402,7 +402,7 @@ public:
 		// Set up separate renderpass with references
 		// to the color and depth attachments
 
-		std::array<VkAttachmentDescription, 4> attachmentDescs;
+		std::array<VkAttachmentDescription, 4> attachmentDescs = {};
 
 		// Init attachment properties
 		for (uint32_t i = 0; i < 4; ++i)

@@ -5,8 +5,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout (local_size_x =16, local_size_y = 16) in;
-layout (binding = 0, rgba8) uniform image2D resultImage;
+layout (local_size_x = 16, local_size_y = 16) in;
+layout (binding = 0, rgba8) uniform writeonly image2D resultImage;
 
 #define EPSILON 0.0001
 #define MAXLEN 1000.0
@@ -113,6 +113,7 @@ int intersect(in vec3 rayO, in vec3 rayD, out float resT)
 		{
 			id = spheres[i].id;
 			resT = tSphere;
+			return id;
 			break;
 		}
 	}	
@@ -153,6 +154,11 @@ vec3 renderScene(inout vec3 rayO, inout vec3 rayD, inout int id)
 	// Get intersected object ID
 	int objectID = intersect(rayO, rayD, t);
 	
+	if (objectID == -1)
+	{
+		return color;
+	}
+	
 	vec3 pos = rayO + t * rayD;
 	vec3 lightVec = normalize(ubo.lightPos - pos);				
 	vec3 normal;
@@ -172,7 +178,7 @@ vec3 renderScene(inout vec3 rayO, inout vec3 rayD, inout int id)
 				normal = sphereNormal(pos, spheres[i]);	
 				float diffuse = lightDiffuse(normal, lightVec);
 				float specular = lightSpecular(normal, lightVec);
-				color = diffuse * spheres[i].material.diffuse + specular * spheres[i].material.specular;				
+				color = diffuse * spheres[i].material.diffuse + specular * spheres[i].material.specular;	
 			}
 		}
 	}

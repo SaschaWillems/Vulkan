@@ -53,17 +53,25 @@ private:
 	VkResult createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation);
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
+	// Destination dimensions for resizing the window
+	uint32_t destWidth;
+	uint32_t destHeight;
+	// Called if the window is resized and some resources have to be recreatesd
+	void windowResize();
 protected:
 	// Last frame time, measured using a high performance timer (if available)
 	float frameTimer = 1.0f;
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
+	uint32_t lastFPS = 0.0f;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
 	// Physical device (GPU) that Vulkan will ise
 	VkPhysicalDevice physicalDevice;
 	// Stores physical device properties (for e.g. checking device limits)
 	VkPhysicalDeviceProperties deviceProperties;
+	// Stores phyiscal device features (for e.g. checking if a feature is available)
+	VkPhysicalDeviceFeatures deviceFeatures;
 	// Stores all available memory (type) properties for the physical device
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
 	// Logical device, application's view of the physical device (GPU)
@@ -211,9 +219,17 @@ public:
 	// Called if a key is pressed
 	// Can be overriden in derived class to do custom key handling
 	virtual void keyPressed(uint32_t keyCode);
+	// Called when the window has been resized
+	// Can be overriden in derived class to recreate or rebuild resources attached to the frame buffer / swapchain
+	virtual void windowResized();
+	// Pure virtual function to be overriden by the dervice class
+	// Called in case of an event where e.g. the framebuffer has to be rebuild and thus
+	// all command buffers that may reference this
+	virtual void buildCommandBuffers();
 
 	// Get memory type for a given memory allocation (flags and bits)
 	VkBool32 getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex);
+	uint32_t getMemoryType(uint32_t typeBits, VkFlags properties);
 
 	// Creates a new (graphics) command pool object storing command buffers
 	void createCommandPool();
@@ -243,6 +259,13 @@ public:
 	// Finalize setup command bufferm submit it to the queue and remove it
 	void flushSetupCommandBuffer();
 
+	// Command buffer creation
+	// Creates and returns a new command buffer
+	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin);
+	// End the command buffer, submit it to the queue and free (if requested)
+	// Note : Waits for the queue to become idle
+	void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free);
+
 	// Create a cache pool for rendering pipelines
 	void createPipelineCache();
 
@@ -252,8 +275,15 @@ public:
 	// Load a SPIR-V shader
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 	
-	// Create a buffer, fill it with data and bind buffer memory
-	// Can be used for e.g. vertex or index buffer based on mesh data
+	// Create a buffer, fill it with data (if != NULL) and bind buffer memory
+	VkBool32 createBuffer(
+		VkBufferUsageFlags usageFlags,
+		VkMemoryPropertyFlags memoryPropertyFlags,
+		VkDeviceSize size,
+		void *data,
+		VkBuffer *buffer,
+		VkDeviceMemory *memory);
+	// This version always uses HOST_VISIBLE memory
 	VkBool32 createBuffer(
 		VkBufferUsageFlags usage,
 		VkDeviceSize size,

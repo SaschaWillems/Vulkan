@@ -52,7 +52,7 @@ public:
 		glm::vec3 lightPos;
 		// Aspect ratio of the viewport
 		float aspectRatio;
-		glm::vec4 fogColor = glm::vec4(0.025f, 0.025f, 0.025f, 0.0f);
+		glm::vec4 fogColor = glm::vec4(0.0f);
 		struct {
 			glm::vec3 pos = glm::vec3(0.0f, 1.5f, 4.0f);
 			glm::vec3 lookat = glm::vec3(0.0f, 0.5f, 0.0f);

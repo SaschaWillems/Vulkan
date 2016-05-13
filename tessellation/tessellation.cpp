@@ -83,6 +83,11 @@ public:
 		zoom = -1.5f;
 		rotation = glm::vec3(-380.0f, 18.5f, 0.0f);
 		title = "Vulkan Example - Tessellation shader (PN Triangles)";
+		// Support for tessellation shaders is optional, so check first
+		if (!deviceFeatures.tessellationShader)
+		{
+			vkTools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
+		}
 	}
 
 	~VulkanExample()

@@ -331,6 +331,10 @@ public:
 		// This also cleans up all the presentable images
 		if (oldSwapchain != VK_NULL_HANDLE) 
 		{ 
+			for (uint32_t i = 0; i < imageCount; i++)
+			{
+				vkDestroyImageView(device, buffers[i].view, nullptr);
+			}
 			fpDestroySwapchainKHR(device, oldSwapchain, nullptr);
 		}
 

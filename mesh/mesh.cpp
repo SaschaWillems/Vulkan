@@ -126,30 +126,19 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -165,18 +154,14 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
 	void draw()
 	{
-		VkResult err;
-
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
+		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
@@ -185,16 +170,13 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
+		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	// Load a mesh based on data read via assimp 
@@ -205,7 +187,7 @@ public:
 #if defined(__ANDROID__)
 		meshLoader->assetManager = androidApp->activity->assetManager;
 #endif
-		meshLoader->LoadMesh(getAssetPath() + "models/voyager/voyager.obj");
+		meshLoader->LoadMesh(getAssetPath() + "models/voyager/voyager.dae");
 
 		// Generate vertex buffer
 		float scale = 1.0f;
@@ -241,21 +223,100 @@ public:
 		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 		mesh.indices.count = indexBuffer.size();
 
-		// Generate vertex buffer
-		createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			vertexBufferSize,
-			vertexBuffer.data(),
-			&mesh.vertices.buf,
-			&mesh.vertices.mem);
+		// Static mesh should always be device local
 
-		// Generate index buffer
-		createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			indexBufferSize,
-			indexBuffer.data(),
-			&mesh.indices.buf,
-			&mesh.indices.mem);
+		bool useStaging = true;
+
+		if (useStaging)
+		{
+			struct {
+				VkBuffer buffer;
+				VkDeviceMemory memory;
+			} vertexStaging, indexStaging;
+
+			// Create staging buffers
+			// Vertex data
+			createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				vertexBufferSize,
+				vertexBuffer.data(),
+				&vertexStaging.buffer,
+				&vertexStaging.memory);
+			// Index data
+			createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				indexBufferSize,
+				indexBuffer.data(),
+				&indexStaging.buffer,
+				&indexStaging.memory);
+
+			// Create device local buffers
+			// Vertex buffer
+			createBuffer(
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				vertexBufferSize,
+				nullptr,
+				&mesh.vertices.buf,
+				&mesh.vertices.mem);
+			// Index buffer
+			createBuffer(
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				indexBufferSize,
+				nullptr,
+				&mesh.indices.buf,
+				&mesh.indices.mem);
+
+			// Copy from staging buffers
+			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+			VkBufferCopy copyRegion = {};
+
+			copyRegion.size = vertexBufferSize;
+			vkCmdCopyBuffer(
+				copyCmd,
+				vertexStaging.buffer,
+				mesh.vertices.buf,
+				1,
+				&copyRegion);
+
+			copyRegion.size = indexBufferSize;
+			vkCmdCopyBuffer(
+				copyCmd,
+				indexStaging.buffer,
+				mesh.indices.buf,
+				1,
+				&copyRegion);
+
+			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+			vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
+			vkFreeMemory(device, vertexStaging.memory, nullptr);
+			vkDestroyBuffer(device, indexStaging.buffer, nullptr);
+			vkFreeMemory(device, indexStaging.memory, nullptr);
+		}
+		else
+		{
+			// Vertex buffer
+			createBuffer(
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				vertexBufferSize,
+				vertexBuffer.data(),
+				&mesh.vertices.buf,
+				&mesh.vertices.mem);
+			// Index buffer
+			createBuffer(
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				indexBufferSize,
+				indexBuffer.data(),
+				&mesh.indices.buf,
+				&mesh.indices.mem);
+		}
 
 		delete(meshLoader);
 	}
@@ -330,10 +391,9 @@ public:
 			vkTools::initializers::descriptorPoolCreateInfo(
 				poolSizes.size(),
 				poolSizes.data(),
-				2);
+				1);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -357,16 +417,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
@@ -377,8 +435,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
@@ -478,8 +535,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -499,22 +555,16 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Vertex shader
-		glm::mat4 viewMatrix = glm::mat4();
 		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 
-		float offset = 0.5f;
-		int uboIndex = 1;
-		uboVS.model = glm::mat4();
-		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(0, 0, 0));
+		uboVS.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.vsScene.memory);
 	}
@@ -538,14 +588,12 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
-		updateUniformBuffers();
 	}
 
 	virtual void viewChanged()
 	{
+		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
 	}
 };

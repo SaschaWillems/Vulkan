@@ -7,8 +7,11 @@ if %ERRORLEVEL% EQU 0 (
 	mkdir "assets\shaders\instancing"
 	xcopy "..\..\data\shaders\instancing\*.spv" "assets\shaders\instancing" /Y
 
+	mkdir "assets\textures"
+	xcopy "..\..\data\textures\texturearray_rocks_bc3.ktx" "assets\textures" /Y 
+	
 	mkdir "assets\models"
-	xcopy "..\..\data\models\angryteapot.3ds" "assets\models" /Y 
+	xcopy "..\..\data\models\rock01.dae" "assets\models" /Y 
 	
 	mkdir "res\drawable"
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y

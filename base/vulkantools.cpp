@@ -411,6 +411,10 @@ namespace vkTools
 
 	void destroyUniformData(VkDevice device, vkTools::UniformData *uniformData)
 	{
+		if (uniformData->mapped != nullptr)
+		{
+			vkUnmapMemory(device, uniformData->memory);
+		}
 		vkDestroyBuffer(device, uniformData->buffer, nullptr);
 		vkFreeMemory(device, uniformData->memory, nullptr);
 	}
@@ -584,6 +588,13 @@ VkRect2D vkTools::initializers::rect2D(
 	rect2D.offset.x = offsetX;
 	rect2D.offset.y = offsetY;
 	return rect2D;
+}
+
+VkBufferCreateInfo vkTools::initializers::bufferCreateInfo()
+{
+	VkBufferCreateInfo bufCreateInfo = {};
+	bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	return bufCreateInfo;
 }
 
 VkBufferCreateInfo vkTools::initializers::bufferCreateInfo(
@@ -780,6 +791,7 @@ VkPipelineRasterizationStateCreateInfo vkTools::initializers::pipelineRasterizat
 	pipelineRasterizationStateCreateInfo.frontFace = frontFace;
 	pipelineRasterizationStateCreateInfo.flags = flags;
 	pipelineRasterizationStateCreateInfo.depthClampEnable = VK_TRUE;
+	pipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 	return pipelineRasterizationStateCreateInfo;
 }
 

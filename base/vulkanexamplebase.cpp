@@ -16,9 +16,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = name.c_str();
 	appInfo.pEngineName = name.c_str();
-	// Temporary workaround for drivers not supporting SDK 1.0.3 upon launch
-	// todo : Use VK_API_VERSION
-	appInfo.apiVersion = VK_MAKE_VERSION(1, 0, 2);
+	appInfo.apiVersion = VK_API_VERSION_1_0;
 
 	std::vector<const char*> enabledExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
@@ -192,6 +190,51 @@ void VulkanExampleBase::flushSetupCommandBuffer()
 	setupCmdBuffer = VK_NULL_HANDLE; 
 }
 
+VkCommandBuffer VulkanExampleBase::createCommandBuffer(VkCommandBufferLevel level, bool begin)
+{
+	VkCommandBuffer cmdBuffer;
+
+	VkCommandBufferAllocateInfo cmdBufAllocateInfo =
+		vkTools::initializers::commandBufferAllocateInfo(
+			cmdPool,
+			level,
+			1);
+
+	vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &cmdBuffer));
+
+	// If requested, also start the new command buffer
+	if (begin)
+	{
+		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+		vkTools::checkResult(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+	}
+
+	return cmdBuffer;
+}
+
+void VulkanExampleBase::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
+{
+	if (commandBuffer == VK_NULL_HANDLE)
+	{
+		return;
+	}
+	
+	vkTools::checkResult(vkEndCommandBuffer(commandBuffer));
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+	vkTools::checkResult(vkQueueWaitIdle(queue));
+
+	if (free)
+	{
+		vkFreeCommandBuffers(device, cmdPool, 1, &commandBuffer);
+	}
+}
+
 void VulkanExampleBase::createPipelineCache()
 {
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -240,35 +283,33 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	return shaderStage;
 }
 
-VkBool32 VulkanExampleBase::createBuffer(
-	VkBufferUsageFlags usage,
-	VkDeviceSize size,
-	void * data,
-	VkBuffer *buffer,
-	VkDeviceMemory *memory)
+VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory)
 {
 	VkMemoryRequirements memReqs;
 	VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-	VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usage, size);
+	VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usageFlags, size);
 
-	VkResult err = vkCreateBuffer(device, &bufferCreateInfo, nullptr, buffer);
-	assert(!err);
+	vkTools::checkResult(vkCreateBuffer(device, &bufferCreateInfo, nullptr, buffer));
+
 	vkGetBufferMemoryRequirements(device, *buffer, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
-	getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-	err = vkAllocateMemory(device, &memAlloc, nullptr, memory);
-	assert(!err);
+	getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags, &memAlloc.memoryTypeIndex);
+	vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, memory));
 	if (data != nullptr)
 	{
 		void *mapped;
-		err = vkMapMemory(device, *memory, 0, size, 0, &mapped);
-		assert(!err);
+		vkTools::checkResult(vkMapMemory(device, *memory, 0, size, 0, &mapped));
 		memcpy(mapped, data, size);
 		vkUnmapMemory(device, *memory);
 	}
-	err = vkBindBufferMemory(device, *buffer, *memory, 0);
-	assert(!err);
+	vkTools::checkResult(vkBindBufferMemory(device, *buffer, *memory, 0));
+
 	return true;
+}
+
+VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer *buffer, VkDeviceMemory *memory)
+{
+	return createBuffer(usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, data, buffer, memory);
 }
 
 VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
@@ -316,6 +357,8 @@ void VulkanExampleBase::loadMesh(
 
 void VulkanExampleBase::renderLoop()
 {
+	destWidth = width;
+	destHeight = height;
 #if defined(_WIN32)
 	MSG msg;
 	while (TRUE)
@@ -352,6 +395,7 @@ void VulkanExampleBase::renderLoop()
 		{
 			std::string windowTitle = getWindowTitle();
 			SetWindowText(window, windowTitle.c_str());
+			lastFPS = frameCounter;
 			fpsTimer = 0.0f;
 			frameCounter = 0.0f;
 		}
@@ -404,6 +448,14 @@ void VulkanExampleBase::renderLoop()
 				{
 					timer -= 1.0f;
 				}
+			}
+			fpsTimer += (float)tDiff;
+			if (fpsTimer > 1000.0f)
+			{
+				LOGD("%d fps", frameCounter);
+				lastFPS = frameCounter;
+				fpsTimer = 0.0f;
+				frameCounter = 0.0f;
 			}
 			// Check gamepad state
 			const float deadZone = 0.0015f;
@@ -468,6 +520,7 @@ void VulkanExampleBase::renderLoop()
 			xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
 				window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
 				windowTitle.size(), windowTitle.c_str());
+			lastFPS = frameCounter;
 			fpsTimer = 0.0f;
 			frameCounter = 0.0f;
 		}
@@ -720,7 +773,10 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	err = createDevice(queueCreateInfo, enableValidation);
 	assert(!err);
 
+	// Store properties (including limits) and features of the phyiscal device
+	// So examples can check against them and see if a feature is actually supported
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
 
 #if defined(__ANDROID__)
 	LOGD(deviceProperties.deviceName);
@@ -968,6 +1024,23 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			mousePos.y = (float)posy;
 		}
 		break;
+	case WM_SIZE:
+		if ((prepared) && (wParam != SIZE_MINIMIZED))
+		{
+			destWidth = LOWORD(lParam);
+			destHeight = HIWORD(lParam);
+			if ((wParam == SIZE_MAXIMIZED) || (wParam == SIZE_RESTORED))
+			{
+				windowResize();
+			}
+		}
+		break;
+	case WM_EXITSIZEMOVE:
+		if ((prepared) && ((destWidth != width) || (destHeight != height)))
+		{
+			windowResize();
+		}
+		break;
 	}
 }
 #elif defined(__ANDROID__)
@@ -1168,6 +1241,20 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	case XCB_DESTROY_NOTIFY:
 		quit = true;
 		break;
+	case XCB_CONFIGURE_NOTIFY:
+	{
+		const xcb_configure_notify_event_t *cfgEvent = (const xcb_configure_notify_event_t *)event;
+		if ((prepared) && ((cfgEvent->width != width) || (cfgEvent->height != height)))
+		{
+				destWidth = cfgEvent->width;
+				destHeight = cfgEvent->height;
+				if ((destWidth > 0) && (destHeight > 0))
+				{
+					windowResize();
+				}
+		}
+	}
+	break;
 	default:
 		break;
 	}
@@ -1180,6 +1267,11 @@ void VulkanExampleBase::viewChanged()
 }
 
 void VulkanExampleBase::keyPressed(uint32_t keyCode)
+{
+	// Can be overriden in derived class
+}
+
+void VulkanExampleBase::buildCommandBuffers()
 {
 	// Can be overriden in derived class
 }
@@ -1199,6 +1291,24 @@ VkBool32 VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties,
 		typeBits >>= 1;
 	}
 	return false;
+}
+
+uint32_t VulkanExampleBase::getMemoryType(uint32_t typeBits, VkFlags properties)
+{
+	for (uint32_t i = 0; i < 32; i++)
+	{
+		if ((typeBits & 1) == 1)
+		{
+			if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			{
+				return i;
+			}
+		}
+		typeBits >>= 1;
+	}
+
+	// todo : throw error
+	return 0;
 }
 
 void VulkanExampleBase::createCommandPool()
@@ -1299,7 +1409,9 @@ void VulkanExampleBase::setupFrameBuffer()
 
 void VulkanExampleBase::setupRenderPass()
 {
-	VkAttachmentDescription attachments[2];
+	VkAttachmentDescription attachments[2] = {};
+
+	// Color attachment
 	attachments[0].format = colorformat;
 	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
 	attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -1309,6 +1421,7 @@ void VulkanExampleBase::setupRenderPass()
 	attachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	// Depth attachment
 	attachments[1].format = depthFormat;
 	attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
 	attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -1352,6 +1465,56 @@ void VulkanExampleBase::setupRenderPass()
 
 	err = vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass);
 	assert(!err);
+}
+
+void VulkanExampleBase::windowResize()
+{
+	if (!prepared)
+	{
+		return;
+	}
+	prepared = false;
+
+	// Recreate swap chain
+	width = destWidth;
+	height = destHeight;
+	createSetupCommandBuffer();
+	setupSwapChain();
+
+	// Recreate the frame buffers
+
+	vkDestroyImageView(device, depthStencil.view, nullptr);
+	vkDestroyImage(device, depthStencil.image, nullptr);
+	vkFreeMemory(device, depthStencil.mem, nullptr);
+	setupDepthStencil();
+	
+	for (uint32_t i = 0; i < frameBuffers.size(); i++)
+	{
+		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
+	}
+	setupFrameBuffer();
+
+	flushSetupCommandBuffer();
+
+	// Command buffers need to be recreated as they may store
+	// references to the recreated frame buffer
+	destroyCommandBuffers();
+	createCommandBuffers();
+	buildCommandBuffers();
+
+	vkQueueWaitIdle(queue);
+	vkDeviceWaitIdle(device);
+
+	// Notify derived class
+	windowResized();
+	viewChanged();
+
+	prepared = true;
+}
+
+void VulkanExampleBase::windowResized()
+{
+	// Can be overriden in derived class
 }
 
 void VulkanExampleBase::initSwapchain()

@@ -34,6 +34,17 @@
 // Default fence timeout in nanoseconds
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 
+// Macro to check and display Vulkan return results
+#define VK_CHECK_RESULT(f)																				\
+{																										\
+	VkResult res = (f);																					\
+	if (res != VK_SUCCESS)																				\
+	{																									\
+		std::cout << "Fatal : VkResult is \"" << vkTools::errorString(res) << "\" in " << __FILE__ << " at line " << __LINE__ << std::endl; \
+		assert(res == VK_SUCCESS);																		\
+	}																									\
+}																										\
+
 namespace vkTools
 {
 	// Check if extension is globally available
@@ -100,6 +111,7 @@ namespace vkTools
 		VkDeviceMemory memory;
 		VkDescriptorBufferInfo descriptor;
 		uint32_t allocSize;
+		void* mapped = nullptr;
 	};
 
 	// Destroy (and free) Vulkan resources used by a uniform data structure
@@ -150,6 +162,8 @@ namespace vkTools
 			int32_t height,
 			int32_t offsetX,
 			int32_t offsetY);
+
+		VkBufferCreateInfo bufferCreateInfo();
 
 		VkBufferCreateInfo bufferCreateInfo(
 			VkBufferUsageFlags usage, 
