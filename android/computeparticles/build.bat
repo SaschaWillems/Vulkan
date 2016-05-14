@@ -9,6 +9,7 @@ if %ERRORLEVEL% EQU 0 (
 
 	mkdir "assets\textures"
 	xcopy "..\..\data\textures\particle01_rgba.ktx" "assets\textures" /Y
+	xcopy "..\..\data\textures\particle_gradient_rgba.ktx" "assets\textures" /Y
 	
 	mkdir "res\drawable"
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y

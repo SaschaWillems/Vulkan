@@ -7,6 +7,7 @@ struct Particle
 {
 	vec2 pos;
 	vec2 vel;
+	vec4 gradientPos;
 };
 
 // Binding 0 : Position storage buffer
@@ -71,5 +72,8 @@ void main()
 
     // Write back
     particles[index].vel.xy = vVel;
+	particles[index].gradientPos.x += 0.02 * ubo.deltaT;
+	if (particles[index].gradientPos.x > 1.0)
+		particles[index].gradientPos.x -= 1.0;
 }
 
