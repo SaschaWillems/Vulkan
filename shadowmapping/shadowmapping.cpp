@@ -135,6 +135,9 @@ public:
 	} offScreenFrameBuf;
 
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
+	
+	// Semaphore used to synchronize offscreen rendering before using it's texture target for sampling
+	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -186,6 +189,7 @@ public:
 		vkTools::destroyUniformData(device, &uniformDataOffscreenVS);
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
+		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 	}
 
 	// Preapre an empty texture as the blit target from 
@@ -286,6 +290,7 @@ public:
 		attDesc[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attDesc[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		attDesc[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		attDesc[0].flags = VK_FLAGS_NONE;
 
 		attDesc[1].format = DEPTH_FORMAT;
 		attDesc[1].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -299,6 +304,7 @@ public:
 		attDesc[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attDesc[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		attDesc[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		attDesc[1].flags = VK_FLAGS_NONE;
 
 		VkAttachmentReference colorReference = {};
 		colorReference.attachment = 0;
@@ -459,6 +465,10 @@ public:
 			assert(!vkRes);
 		}
 
+		// Create a semaphore used to synchronize offscreen rendering and usage
+		VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenSemaphore));
+
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
@@ -582,33 +592,43 @@ public:
 
 	void draw()
 	{
-		VkResult err;
-
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
+		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		// Gather command buffers to be sumitted to the queue
-		std::vector<VkCommandBuffer> submitCmdBuffers = {
-			offScreenCmdBuffer,
-			drawCmdBuffers[currentBuffer],
-		};
-		submitInfo.commandBufferCount = submitCmdBuffers.size();
-		submitInfo.pCommandBuffers = submitCmdBuffers.data();
+		// Submit offscreen command buffer for rendering depth buffer from light's pov
+
+		// Wait for swap chain presentation to finish
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		// Signal ready with offscreen semaphore
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &offscreenSemaphore;
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &offScreenCmdBuffer;
+
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		// Submit current render command buffer
+		
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+
+		// Wait for offscreen semaphore
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &offscreenSemaphore;
+		// Signal ready with render complete semaphpre
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
+		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 	}
 
 	void loadMeshes()
@@ -1135,11 +1155,10 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 		if (!paused)
 		{
+			vkDeviceWaitIdle(device);
 			updateLight();
 			updateUniformBufferOffscreen();
 			updateUniformBuffers();
@@ -1148,6 +1167,7 @@ public:
 
 	virtual void viewChanged()
 	{
+		vkDeviceWaitIdle(device);
 		updateUniformBufferOffscreen();
 		updateUniformBuffers();
 	}
