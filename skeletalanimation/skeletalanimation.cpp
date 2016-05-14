@@ -104,13 +104,23 @@ public:
 	// Bone transformations
 	std::vector<aiMatrix4x4> boneTransforms;
 
+	// Modifier for the animation 
 	float animationSpeed = 0.75f;
+	// Currently active animation
+	aiAnimation* pAnimation;
 
 	// Vulkan buffers
 	vkMeshLoader::MeshBuffer meshBuffer;
 	// Reference to assimp mesh
 	// Required for animation
 	VulkanMeshLoader *meshLoader;
+
+	// Set active animation by index
+	void setAnimation(uint32_t animationIndex)
+	{
+		assert(animationIndex < meshLoader->pScene->mNumAnimations);
+		pAnimation = meshLoader->pScene->mAnimations[animationIndex];
+	}
 
 	// Load bone information from ASSIMP mesh
 	void loadBones(uint32_t meshIndex, const aiMesh* pMesh, std::vector<VertexBoneData>& Bones)
@@ -295,8 +305,6 @@ private:
 	{
 		std::string NodeName(pNode->mName.data);
 
-		const aiAnimation* pAnimation = meshLoader->pScene->mAnimations[0];
-
 		aiMatrix4x4 NodeTransformation(pNode->mTransformation);
 
 		const aiNodeAnim* pNodeAnim = findNodeAnim(pAnimation, NodeName);
@@ -313,7 +321,6 @@ private:
 
 		aiMatrix4x4 GlobalTransformation = ParentTransform * NodeTransformation;
 
-		// todo : replace name lookup with hash or index
 		if (boneMapping.find(NodeName) != boneMapping.end())
 		{
 			uint32_t BoneIndex = boneMapping[NodeName];
@@ -471,11 +478,8 @@ public:
 
 	void draw()
 	{
-		VkResult err;
-
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
+		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
@@ -484,16 +488,13 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
+		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	// Load a mesh based on data read via assimp 
@@ -506,6 +507,7 @@ public:
 		skinnedMesh->meshLoader->assetManager = androidApp->activity->assetManager;
 #endif
 		skinnedMesh->meshLoader->LoadMesh(getAssetPath() + "models/goblin.dae", 0);
+		skinnedMesh->setAnimation(0);
 
 		// Setup bones
 		// One vertex bone info structure per vertex
@@ -754,8 +756,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -779,16 +780,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
@@ -799,9 +798,8 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
-
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+		
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
 				textures.colorMap.sampler,
@@ -924,13 +922,11 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skinning);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skinning));
 
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture));
-
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
