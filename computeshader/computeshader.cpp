@@ -57,7 +57,7 @@ public:
 		// Compute pipelines are separated from 
 		// graphics pipelines in Vulkan
 		std::vector<VkPipeline> compute;
-		uint32_t computeIndex = 0;
+		uint32_t computeIndex = 1;
 	} pipelines;
 
 	int vertexBufferSize;
@@ -182,7 +182,7 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			getAssetPath() + "textures/igor_and_pal_rgba.ktx", 
+			getAssetPath() + "textures/vulkan_space_rgba8.ktx", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textureColorMap,
 			false,
