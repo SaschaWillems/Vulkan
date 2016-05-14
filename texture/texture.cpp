@@ -27,6 +27,7 @@
 struct Vertex {
 	float pos[3];
 	float uv[2];
+	float normal[3];
 };
 
 class VulkanExample : public VulkanExampleBase
@@ -65,6 +66,7 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
+		glm::vec4 viewPos;
 		float lodBias = 0.0f;
 	} uboVS;
 
@@ -79,7 +81,7 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -2.5f;
-		rotation = { 45.0f, 0.0f, 0.0f };
+		rotation = { 0.0f, 15.0f, 0.0f };
 		title = "Vulkan Example - Texturing";
 	}
 
@@ -537,15 +539,17 @@ public:
 	void generateQuad()
 	{
 		// Setup vertices for a single uv-mapped quad
-#define dim 1.0f
+#define DIM 1.0f
+#define NORMAL { 0.0f, 0.0f, 1.0f }
 		std::vector<Vertex> vertexBuffer =
 		{
-			{ { dim,  dim, 0.0f },{ 1.0f, 1.0f } },
-			{ { -dim,  dim, 0.0f },{ 0.0f, 1.0f } },
-			{ { -dim, -dim, 0.0f },{ 0.0f, 0.0f } },
-			{ { dim, -dim, 0.0f },{ 1.0f, 0.0f } }
+			{ {  DIM,  DIM, 0.0f }, { 1.0f, 1.0f }, NORMAL },
+			{ { -DIM,  DIM, 0.0f }, { 0.0f, 1.0f }, NORMAL },
+			{ { -DIM, -DIM, 0.0f }, { 0.0f, 0.0f }, NORMAL },
+			{ {  DIM, -DIM, 0.0f }, { 1.0f, 0.0f }, NORMAL }
 		};
 #undef dim
+#undef normal
 		createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			vertexBuffer.size() * sizeof(Vertex),
@@ -577,7 +581,7 @@ public:
 
 		// Attribute descriptions
 		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.resize(2);
+		vertices.attributeDescriptions.resize(3);
 		// Location 0 : Position
 		vertices.attributeDescriptions[0] =
 			vkTools::initializers::vertexInputAttributeDescription(
@@ -592,6 +596,13 @@ public:
 				1,
 				VK_FORMAT_R32G32_SFLOAT,
 				sizeof(float) * 3);
+		// Location 1 : Vertex normal
+		vertices.attributeDescriptions[2] =
+			vkTools::initializers::vertexInputAttributeDescription(
+				VERTEX_BUFFER_BIND_ID,
+				2,
+				VK_FORMAT_R32G32B32_SFLOAT,
+				sizeof(float) * 5);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
 		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
@@ -737,8 +748,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/texture/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/texture/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -778,15 +789,15 @@ public:
 	void updateUniformBuffers()
 	{
 		// Vertex shader
-		glm::mat4 viewMatrix = glm::mat4();
 		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 
-		uboVS.model = glm::mat4();
-		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(0, 0, 0));
+		uboVS.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+		uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
 
 		uint8_t *pData;
 		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
@@ -801,8 +812,8 @@ public:
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		loadTexture(
-			getAssetPath() + "textures/igor_and_pal_bc3.ktx", 
-			VK_FORMAT_BC3_UNORM_BLOCK, 
+			getAssetPath() + "textures/pattern_02_bc2.ktx", 
+			VK_FORMAT_BC2_UNORM_BLOCK, 
 			false);
 		setupDescriptorSetLayout();
 		preparePipelines();
