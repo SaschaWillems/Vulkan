@@ -196,8 +196,6 @@ public:
 	// the offscreen framebuffer
 	void prepareTextureTarget(uint32_t width, uint32_t height, VkFormat format)
 	{
-		createSetupCommandBuffer();
-
 		VkResult err;
 
 		// Get device properites for the requested texture format
@@ -236,13 +234,17 @@ public:
 		err = vkBindImageMemory(device, offScreenFrameBuf.textureTarget.image, offScreenFrameBuf.textureTarget.deviceMemory, 0);
 		assert(!err);
 
+		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
 		offScreenFrameBuf.textureTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		vkTools::setImageLayout(
-			setupCmdBuffer,
+			layoutCmd,
 			offScreenFrameBuf.textureTarget.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT,
 			VK_IMAGE_LAYOUT_PREINITIALIZED,
 			offScreenFrameBuf.textureTarget.imageLayout);
+
+		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
 		// Create sampler
 		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
@@ -271,8 +273,6 @@ public:
 		view.image = offScreenFrameBuf.textureTarget.image;
 		err = vkCreateImageView(device, &view, nullptr, &offScreenFrameBuf.textureTarget.view);
 		assert(!err);
-
-		flushSetupCommandBuffer();
 	}
 
 	// Set up a separate render pass for the offscreen frame buffer
@@ -332,8 +332,6 @@ public:
 
 	void prepareOffscreenFramebuffer()
 	{
-		createSetupCommandBuffer();
-
 		offScreenFrameBuf.width = FB_DIM;
 		offScreenFrameBuf.height = FB_DIM;
 
@@ -377,11 +375,13 @@ public:
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
 		err = vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.color.mem);
 		assert(!err);
-
 		err = vkBindImageMemory(device, offScreenFrameBuf.color.image, offScreenFrameBuf.color.mem, 0);
 		assert(!err);
+
+		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
 		vkTools::setImageLayout(
-			setupCmdBuffer,
+			layoutCmd,
 			offScreenFrameBuf.color.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
@@ -418,11 +418,13 @@ public:
 		assert(!err);
 
 		vkTools::setImageLayout(
-			setupCmdBuffer,
+			layoutCmd,
 			offScreenFrameBuf.depth.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
 		depthStencilView.image = offScreenFrameBuf.depth.image;
 		err = vkCreateImageView(device, &depthStencilView, nullptr, &offScreenFrameBuf.depth.view);
@@ -445,8 +447,6 @@ public:
 
 		err = vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer);
 		assert(!err);
-
-		flushSetupCommandBuffer();
 	}
 
 	void buildOffscreenCommandBuffer()
