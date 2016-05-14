@@ -35,11 +35,22 @@ struct Vertex {
 	uint32_t boneIDs[4];
 };
 
+std::vector<vkMeshLoader::VertexLayout> vertexLayout =
+{
+	vkMeshLoader::VERTEX_LAYOUT_POSITION,
+	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
+	vkMeshLoader::VERTEX_LAYOUT_UV,
+	vkMeshLoader::VERTEX_LAYOUT_COLOR,
+	vkMeshLoader::VERTEX_LAYOUT_DUMMY_VEC4,
+	vkMeshLoader::VERTEX_LAYOUT_DUMMY_VEC4
+};
+
 class VulkanExample : public VulkanExampleBase
 {
 public:
 	struct {
 		vkTools::VulkanTexture colorMap;
+		vkTools::VulkanTexture floor;
 	} textures;
 
 	struct {
@@ -109,44 +120,64 @@ public:
 
 	struct {
 		vkTools::UniformData vsScene;
+		vkTools::UniformData floor;
 	} uniformData;
 
 	// Must not be higher than same const in skinning shader
-	#define MAX_BONES 128
+	#define MAX_BONES 64
 
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::mat4 bones[MAX_BONES];
-		glm::vec4 lightPos = glm::vec4(0.0, -5.0, 25.0, 1.0);
+		glm::vec4 lightPos = glm::vec4(0.0f, -250.0f, 250.0f, 1.0);
+		glm::vec4 viewPos;
 	} uboVS;
 
 	struct {
-		VkPipeline solid;
+		glm::mat4 projection;
+		glm::mat4 model;
+		glm::vec4 lightPos = glm::vec4(0.0, 0.0f, -25.0f, 1.0);
+		glm::vec4 viewPos;
+		glm::vec2 uvOffset;
+	} uboFloor;
+
+	struct {
+		VkPipeline skinning;
+		VkPipeline texture;
 	} pipelines;
+
+	struct {
+		vkMeshLoader::MeshBuffer floor;
+	} meshes;
 
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
+	struct {
+		VkDescriptorSet skinning;
+		VkDescriptorSet floor;
+	} descriptorSets;
+
 	float runningTime = 0.0f;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		width = 1280;
-		height = 720;
-		zoom = -8.0f;
+		zoom = -166.0f;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
-		rotation = { -180.0f, -50.0f, 180.0f };
+		rotation = { -187.0f, 60.0f, 180.0f };
 		title = "Vulkan Example - Skeletal animation";
+		paused = true;
+		cameraPos = { 0.0f, 0.0f, 12.0f };
 	}
 
 	~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(device, pipelines.skinning, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -166,7 +197,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
@@ -178,47 +209,41 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
-			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			vkTools::checkResult(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
-
 			VkDeviceSize offsets[1] = { 0 };
-			// Bind mesh vertex buffer
+
+			// Skinned mesh
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skinning);
+
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &mesh.meshBuffer.vertices.buf, offsets);
-			// Bind mesh index buffer
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], mesh.meshBuffer.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			// Render mesh vertex buffer using it's indices
 			vkCmdDrawIndexed(drawCmdBuffers[i], mesh.meshBuffer.indexCount, 1, 0, 0, 0);
+
+			// Floor
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.floor, 0, NULL);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.texture);
+
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.floor.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.floor.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.floor.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			vkTools::checkResult(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
@@ -255,6 +280,9 @@ public:
 		for (uint32_t i = 0; i < pMesh->mNumBones; i++)
 		{
 			uint32_t index = 0;
+					
+			assert(pMesh->mNumBones <= MAX_BONES);
+
 			std::string name(pMesh->mBones[i]->mName.data);
 
 			if (mesh.boneMapping.find(name) == mesh.boneMapping.end())
@@ -424,11 +452,12 @@ public:
 			aiMatrix4x4 matRotation = interpolateRotation(AnimationTime, pNodeAnim);
 			aiMatrix4x4 matTranslation = interpolateTranslation(AnimationTime, pNodeAnim);
 
-			NodeTransformation = matTranslation * matRotation;// *matScale;
+			NodeTransformation = matTranslation * matRotation * matScale;
 		}
 
 		aiMatrix4x4 GlobalTransformation = ParentTransform * NodeTransformation;
 
+		// todo : replace name lookup with hash or index
 		if (mesh.boneMapping.find(NodeName) != mesh.boneMapping.end())
 		{
 			uint32_t BoneIndex = mesh.boneMapping[NodeName];
@@ -452,7 +481,7 @@ public:
 		aiMatrix4x4 identity = aiMatrix4x4();
 		readNodeHierarchy(AnimationTime, mesh.meshLoader->pScene->mRootNode, identity);
 
-		boneTransforms.resize(mesh.numBones);
+		boneTransforms.resize(mesh.numBones); // todo : resize only once
 
 		for (uint32_t i = 0; i < boneTransforms.size(); i++)
 		{
@@ -469,7 +498,7 @@ public:
 #if defined(__ANDROID__)
 		mesh.meshLoader->assetManager = androidApp->activity->assetManager;
 #endif
-		mesh.meshLoader->LoadMesh(getAssetPath() + "models/astroboy/astroBoy_walk.dae", 0);
+		mesh.meshLoader->LoadMesh(getAssetPath() + "models/goblin_3ds.DAE", 0);
 
 		// Setup bones
 		// One vertex bone info structure per vertex
@@ -488,7 +517,6 @@ public:
 		}
 
 		// Generate vertex buffer
-		float scale = 1.0f;
 		std::vector<Vertex> vertexBuffer;
 		// Iterate through all meshes in the file
 		// and extract the vertex information used in this demo
@@ -498,14 +526,14 @@ public:
 			{
 				Vertex vertex;
 
-				vertex.pos = mesh.meshLoader->m_Entries[m].Vertices[i].m_pos * scale;
+				vertex.pos = mesh.meshLoader->m_Entries[m].Vertices[i].m_pos;
 				vertex.pos.y = -vertex.pos.y;
 				vertex.normal = mesh.meshLoader->m_Entries[m].Vertices[i].m_normal;
 				vertex.uv = mesh.meshLoader->m_Entries[m].Vertices[i].m_tex;
 				vertex.color = mesh.meshLoader->m_Entries[m].Vertices[i].m_color;
 
 				// Fetch bone weights and IDs
-				for (uint32_t j = 0; j < 4; j++)
+				for (uint32_t j = 0; j < MAX_BONES_PER_VERTEX; j++)
 				{
 					vertex.boneWeights[j] = mesh.bones[mesh.meshLoader->m_Entries[m].vertexBase + i].weights[j];
 					vertex.boneIDs[j] = mesh.bones[mesh.meshLoader->m_Entries[m].vertexBase + i].IDs[j];
@@ -529,29 +557,116 @@ public:
 		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 		mesh.meshBuffer.indexCount = indexBuffer.size();
 
-		// Generate vertex buffer
-		createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			vertexBufferSize,
-			vertexBuffer.data(),
-			&mesh.meshBuffer.vertices.buf,
-			&mesh.meshBuffer.vertices.mem);
+		bool useStaging = true;
 
-		// Generate index buffer
-		createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			indexBufferSize,
-			indexBuffer.data(),
-			&mesh.meshBuffer.indices.buf,
-			&mesh.meshBuffer.indices.mem);
+		if (useStaging)
+		{
+			struct {
+				VkBuffer buffer;
+				VkDeviceMemory memory;
+			} vertexStaging, indexStaging;
+
+			// Create staging buffers
+			// Vertex data
+			createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				vertexBufferSize,
+				vertexBuffer.data(),
+				&vertexStaging.buffer,
+				&vertexStaging.memory);
+			// Index data
+			createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				indexBufferSize,
+				indexBuffer.data(),
+				&indexStaging.buffer,
+				&indexStaging.memory);
+
+			// Create device local buffers
+			// Vertex buffer
+			createBuffer(
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				vertexBufferSize,
+				nullptr,
+				&mesh.meshBuffer.vertices.buf,
+				&mesh.meshBuffer.vertices.mem);
+			// Index buffer
+			createBuffer(
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				indexBufferSize,
+				nullptr,
+				&mesh.meshBuffer.indices.buf,
+				&mesh.meshBuffer.indices.mem);
+
+			// Copy from staging buffers
+			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+			VkBufferCopy copyRegion = {};
+
+			copyRegion.size = vertexBufferSize;
+			vkCmdCopyBuffer(
+				copyCmd,
+				vertexStaging.buffer,
+				mesh.meshBuffer.vertices.buf,
+				1,
+				&copyRegion);
+
+			copyRegion.size = indexBufferSize;
+			vkCmdCopyBuffer(
+				copyCmd,
+				indexStaging.buffer,
+				mesh.meshBuffer.indices.buf,
+				1,
+				&copyRegion);
+
+			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+			vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
+			vkFreeMemory(device, vertexStaging.memory, nullptr);
+			vkDestroyBuffer(device, indexStaging.buffer, nullptr);
+			vkFreeMemory(device, indexStaging.memory, nullptr);
+		} 
+		else
+		{
+			// Vertex buffer
+			createBuffer(
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				vertexBufferSize,
+				vertexBuffer.data(),
+				&mesh.meshBuffer.vertices.buf,
+				&mesh.meshBuffer.vertices.mem);
+			// Index buffer
+			createBuffer(
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				indexBufferSize,
+				indexBuffer.data(),
+				&mesh.meshBuffer.indices.buf,
+				&mesh.meshBuffer.indices.mem);
+		}
 	}
 
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			getAssetPath() + "models/astroboy/astroboy.ktx",
+			getAssetPath() + "textures/goblin.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.colorMap);
+
+		textureLoader->loadTexture(
+			getAssetPath() + "textures/stonefloor_color_specular_bc3.ktx",
+			VK_FORMAT_BC3_UNORM_BLOCK,
+			&textures.floor);
+	}
+
+	void loadMeshes()
+	{
+		VulkanExampleBase::loadMesh(getAssetPath() + "models/plane_z.obj", &meshes.floor, vertexLayout, 512.0f);
 	}
 
 	void setupVertexDescriptions()
@@ -622,8 +737,8 @@ public:
 		// Example uses one ubo and one combined image sampler
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2),
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -690,7 +805,7 @@ public:
 		{
 			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
-			descriptorSet,
+				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformData.vsScene.descriptor),
@@ -701,6 +816,31 @@ public:
 				1,
 				&texDescriptor)
 		};
+
+		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+
+		// Floor
+		vkTools::checkResult(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.floor));
+
+		texDescriptor.imageView = textures.floor.view;
+		texDescriptor.sampler = textures.floor.sampler;
+
+		writeDescriptorSets.clear();
+
+		// Binding 0 : Vertex shader uniform buffer
+		writeDescriptorSets.push_back(
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSets.floor,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				0,
+				&uniformData.floor.descriptor));
+		// Binding 1 : Color map 
+		writeDescriptorSets.push_back(
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSets.floor,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				1,
+				&texDescriptor));
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
@@ -754,8 +894,7 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Solid rendering pipeline
-		// Load shaders
+		// Skinned rendering pipeline
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/skeletalanimation/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -778,8 +917,13 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
+		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skinning);
 		assert(!err);
+
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture));
+
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -789,27 +933,54 @@ public:
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			sizeof(uboVS),
-			&uboVS,
+			nullptr,
 			&uniformData.vsScene.buffer,
 			&uniformData.vsScene.memory,
 			&uniformData.vsScene.descriptor);
 
-		updateUniformBuffers();
+		// Map for host access
+		vkTools::checkResult(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&uniformData.vsScene.mapped));
+
+		// Floor
+		createBuffer(
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			sizeof(uboFloor),
+			nullptr,
+			&uniformData.floor.buffer,
+			&uniformData.floor.memory,
+			&uniformData.floor.descriptor);
+
+		// Map for host access
+		vkTools::checkResult(vkMapMemory(device, uniformData.floor.memory, 0, sizeof(uboFloor), 0, (void **)&uniformData.floor.mapped));
+
+		updateUniformBuffers(true);
 	}
 
-	void updateUniformBuffers()
+	void updateUniformBuffers(bool viewChanged)
 	{
-		// Vertex shader
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		if (viewChanged)
+		{
+			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 512.0f);
 
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-		viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			viewMatrix = glm::scale(viewMatrix, glm::vec3(0.025f));
 
-		uboVS.model = glm::mat4();
-		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(0.0f, 0.0f, -3.5f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(-rotation.y), glm::vec3(0.0f, 0.0f, 1.0f));
+			uboVS.model = viewMatrix * glm::translate(glm::mat4(), glm::vec3(cameraPos.x, -cameraPos.z, cameraPos.y) * 100.0f);
+			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 1.0f, 0.0f));
+			uboVS.model = glm::rotate(uboVS.model, glm::radians(-rotation.y), glm::vec3(0.0f, 0.0f, 1.0f));
+
+			uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
+
+			uboFloor.projection = uboVS.projection;
+			uboFloor.model = viewMatrix * glm::translate(glm::mat4(), glm::vec3(cameraPos.x, -cameraPos.z, cameraPos.y) * 100.0f);
+			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(rotation.z), glm::vec3(0.0f, 1.0f, 0.0f));
+			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(-rotation.y), glm::vec3(0.0f, 0.0f, 1.0f));
+			uboFloor.model = glm::translate(uboFloor.model, glm::vec3(0.0f, 0.0f, -1800.0f));
+			uboFloor.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
+		}
 
 		// Update bones
 		std::vector<aiMatrix4x4> boneTransforms;
@@ -820,11 +991,11 @@ public:
 			uboVS.bones[i] = glm::transpose(glm::make_mat4(&boneTransforms[i].a1));
 		}
 
-		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		memcpy(uniformData.vsScene.mapped, &uboVS, sizeof(uboVS));
+
+		// Update floor animation
+		uboFloor.uvOffset.t -= 0.35f * frameTimer;
+		memcpy(uniformData.floor.mapped, &uboFloor, sizeof(uboFloor));
 	}
 
 	void prepare()
@@ -832,6 +1003,7 @@ public:
 		VulkanExampleBase::prepare();
 		loadTextures();
 		loadMesh();
+		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
@@ -846,19 +1018,19 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 		if (!paused)
 		{
 			runningTime += frameTimer * 0.75f;
-			updateUniformBuffers();
+			vkDeviceWaitIdle(device);
+			updateUniformBuffers(false);
 		}
 	}
 
 	virtual void viewChanged()
 	{
-		updateUniformBuffers();
+		vkDeviceWaitIdle(device);
+		updateUniformBuffers(true);
 	}
 };
 
