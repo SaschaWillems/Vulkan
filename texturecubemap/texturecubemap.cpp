@@ -158,27 +158,17 @@ public:
 		memcpy(data, texCube.data(), texCube.size());
 		vkUnmapMemory(device, stagingMemory);
 
-		// Setup buffer copy regions for all cube faces
-		std::vector<VkBufferImageCopy> bufferCopyRegions;
-		uint32_t offset = 0;
+		// Setup buffer copy regions for the cube faces
+		// As all faces of a cube map must have the same dimensions, we can do a single copy
+		VkBufferImageCopy bufferCopyRegion = {};
+		bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		bufferCopyRegion.imageSubresource.mipLevel = 0;
+		bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+		bufferCopyRegion.imageSubresource.layerCount = 6;
+		bufferCopyRegion.imageExtent.width = cubeMap.width;
+		bufferCopyRegion.imageExtent.height = cubeMap.height;
+		bufferCopyRegion.imageExtent.depth = 1;
 
-		for (uint32_t face = 0; face < 6; face++)
-		{
-			VkBufferImageCopy bufferCopyRegion = {};
-			bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			bufferCopyRegion.imageSubresource.mipLevel = 0;
-			bufferCopyRegion.imageSubresource.baseArrayLayer = face;
-			bufferCopyRegion.imageSubresource.layerCount = 1;
-			bufferCopyRegion.imageExtent.width = texCube[face].dimensions().x;
-			bufferCopyRegion.imageExtent.height = texCube[face].dimensions().y;
-			bufferCopyRegion.imageExtent.depth = 1;
-			bufferCopyRegion.bufferOffset = offset;
-
-			bufferCopyRegions.push_back(bufferCopyRegion);
-
-			offset += texCube[face].size();
-		}
-	
 		// Create optimal tiled target image
 		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -230,8 +220,8 @@ public:
 			stagingBuffer,
 			cubeMap.image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			bufferCopyRegions.size(),
-			bufferCopyRegions.data()
+			1,
+			&bufferCopyRegion
 			);
 
 		// Change texture image layout to shader read after all faces have been copied
