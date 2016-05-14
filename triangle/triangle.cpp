@@ -78,7 +78,7 @@ public:
 		VkSemaphore renderComplete;
 	} semaphores;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample(size_t deviceSelected) : VulkanExampleBase(ENABLE_VALIDATION, deviceSelected)
 	{
 		width = 1280;
 		height = 720;
@@ -895,7 +895,20 @@ int main(const int argc, const char *argv[])
 	// which would make the application crash at start
 	app_dummy();
 #endif
-	vulkanExample = new VulkanExample();
+
+	// Select user-chosen device
+	size_t deviceSelected = -1;
+	for (size_t i = 0; i < argc; i++)
+	{
+		if (argv[i] == std::string("--gpu"))
+		{
+			deviceSelected = std::stoi(argv[i+1]);
+			break;
+		}
+	}
+
+	vulkanExample = new VulkanExample(deviceSelected);
+
 #if defined(_WIN32)
 	vulkanExample->setupWindow(hInstance, WndProc);
 #elif defined(__ANDROID__)
