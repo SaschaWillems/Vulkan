@@ -23,6 +23,10 @@ layout (location = 2) out vec3 outViewVec;
 layout (location = 3) out vec3 outLightVec;
 layout (location = 4) out vec4 outShadowCoord;
 
+out gl_PerVertex 
+{
+    vec4 gl_Position;   
+};
 
 const mat4 biasMat = mat4( 
 	0.5, 0.0, 0.0, 0.0,
