@@ -195,7 +195,6 @@ public:
 		assert(!tex2D.empty());
 
 		VkFormatProperties formatProperties;
-		VkResult err;
 
 		texture.width = tex2D[0].dimensions().x;
 		texture.height = tex2D[0].dimensions().y;
@@ -233,7 +232,7 @@ public:
 			bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			
-			vkTools::checkResult(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
+			VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
 
 			// Get memory requirements for the staging buffer (alignment, memory type bits)
 			vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
@@ -242,12 +241,12 @@ public:
 			// Get memory type index for a host visible buffer
 			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAllocInfo.memoryTypeIndex);
 
-			vkTools::checkResult(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
-			vkTools::checkResult(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
+			VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
 
 			// Copy texture data into staging buffer
 			uint8_t *data;
-			vkTools::checkResult(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
+			VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
 			memcpy(data, tex2D.data(), tex2D.size());
 			vkUnmapMemory(device, stagingMemory);
 
@@ -286,18 +285,15 @@ public:
 			imageCreateInfo.extent = { texture.width, texture.height, 1 };
 			imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-			err = vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image);
-			assert(!err);
+			VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image));
 
 			vkGetImageMemoryRequirements(device, texture.image, &memReqs);
 
 			memAllocInfo.allocationSize = memReqs.size;
+			memAllocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex);
-			err = vkAllocateMemory(device, &memAllocInfo, nullptr, &texture.deviceMemory);
-			assert(!err);
-			err = vkBindImageMemory(device, texture.image, texture.deviceMemory, 0);
-			assert(!err);
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &texture.deviceMemory));
+			VK_CHECK_RESULT(vkBindImageMemory(device, texture.image, texture.deviceMemory, 0));
 
 			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
@@ -360,8 +356,7 @@ public:
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 			imageCreateInfo.extent = { texture.width, texture.height, 1 };
-			err = vkCreateImage(device, &imageCreateInfo, nullptr, &mappableImage);
-			assert(!err);
+			VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &mappableImage));
 
 			// Get memory requirements for this image 
 			// like size and alignment
@@ -373,12 +368,10 @@ public:
 			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAllocInfo.memoryTypeIndex);
 
 			// Allocate host memory
-			err = vkAllocateMemory(device, &memAllocInfo, nullptr, &mappableMemory);
-			assert(!err);
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &mappableMemory));
 
 			// Bind allocated image for use
-			err = vkBindImageMemory(device, mappableImage, mappableMemory, 0);
-			assert(!err);
+			VK_CHECK_RESULT(vkBindImageMemory(device, mappableImage, mappableMemory, 0));
 
 			// Get sub resource layout
 			// Mip map count, array layer, etc.
@@ -391,11 +384,9 @@ public:
 			// Get sub resources layout 
 			// Includes row pitch, size offsets, etc.
 			vkGetImageSubresourceLayout(device, mappableImage, &subRes, &subResLayout);
-			assert(!err);
 
 			// Map image memory
-			err = vkMapMemory(device, mappableMemory, 0, memReqs.size, 0, &data);
-			assert(!err);
+			VK_CHECK_RESULT(vkMapMemory(device, mappableMemory, 0, memReqs.size, 0, &data));
 
 			// Copy image data into memory
 			memcpy(data, tex2D[subRes.mipLevel].data(), tex2D[subRes.mipLevel].size());
@@ -446,8 +437,7 @@ public:
 		sampler.maxAnisotropy = 8;
 		sampler.anisotropyEnable = VK_TRUE;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		err = vkCreateSampler(device, &sampler, nullptr, &texture.sampler);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
 
 		// Create image view
 		// Textures are not directly accessed by the shaders and
@@ -466,8 +456,7 @@ public:
 		// Only set mip map count if optimal tiling is used
 		view.subresourceRange.levelCount = (useStaging) ? texture.mipLevels : 1;
 		view.image = texture.image;
-		err = vkCreateImageView(device, &view, nullptr, &texture.view);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
 	}
 
 	// Free staging resources used while creating a texture
@@ -494,30 +483,19 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -531,18 +509,14 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
 	void draw()
 	{
-		VkResult err;
-
 		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
+		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
@@ -551,16 +525,13 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
 		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
+		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	void generateQuad()
@@ -644,8 +615,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -669,16 +639,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
@@ -689,8 +657,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		// Image descriptor for the color map texture
 		VkDescriptorImageInfo texDescriptor =
@@ -790,8 +757,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -823,8 +789,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformDataVS.memory);
 	}
