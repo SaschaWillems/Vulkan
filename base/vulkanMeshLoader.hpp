@@ -44,7 +44,9 @@ namespace vkMeshLoader
 		VERTEX_LAYOUT_COLOR = 0x2,
 		VERTEX_LAYOUT_UV = 0x3,
 		VERTEX_LAYOUT_TANGENT = 0x4,
-		VERTEX_LAYOUT_BITANGENT = 0x5
+		VERTEX_LAYOUT_BITANGENT = 0x5,
+		VERTEX_LAYOUT_DUMMY_FLOAT = 0x6,
+		VERTEX_LAYOUT_DUMMY_VEC4 = 0x7
 	} VertexLayout;
 
 	struct MeshBufferInfo 
@@ -444,7 +446,18 @@ public:
 						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_binormal.y);
 						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_binormal.z);
 					}
-					// todo : add checks if vertex component exists
+					// Dummy layout components for padding
+					if (layoutDetail == vkMeshLoader::VERTEX_LAYOUT_DUMMY_FLOAT)
+					{
+						vertexBuffer.push_back(0.0f);
+					}
+					if (layoutDetail == vkMeshLoader::VERTEX_LAYOUT_DUMMY_VEC4)
+					{
+						vertexBuffer.push_back(0.0f);
+						vertexBuffer.push_back(0.0f);
+						vertexBuffer.push_back(0.0f);
+						vertexBuffer.push_back(0.0f);
+					}
 				}
 			}
 		}

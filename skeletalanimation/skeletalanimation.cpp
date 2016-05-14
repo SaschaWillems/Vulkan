@@ -45,6 +45,288 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 	vkMeshLoader::VERTEX_LAYOUT_DUMMY_VEC4
 };
 
+// Maximum number of bones per mesh
+// Must not be higher than same const in skinning shader
+#define MAX_BONES 64
+// Maximum number of bones per vertex
+#define MAX_BONES_PER_VERTEX 4
+
+// Skinned mesh class
+
+// Per-vertex bone IDs and weights
+struct VertexBoneData
+{
+	std::array<uint32_t, MAX_BONES_PER_VERTEX> IDs;
+	std::array<float, MAX_BONES_PER_VERTEX> weights;
+
+	// Ad bone weighting to vertex info
+	void add(uint32_t boneID, float weight)
+	{
+		for (uint32_t i = 0; i < MAX_BONES_PER_VERTEX; i++)
+		{
+			if (weights[i] == 0.0f)
+			{
+				IDs[i] = boneID;
+				weights[i] = weight;
+				return;
+			}
+		}
+	}
+};
+
+// Stores information on a single bone
+struct BoneInfo
+{
+	aiMatrix4x4 offset;
+	aiMatrix4x4 finalTransformation;
+
+	BoneInfo()
+	{
+		offset = aiMatrix4x4();
+		finalTransformation = aiMatrix4x4();
+	};
+};
+
+class SkinnedMesh 
+{
+public:
+	// Bone related stuff
+	// Maps bone name with index
+	std::map<std::string, uint32_t> boneMapping;
+	// Bone details
+	std::vector<BoneInfo> boneInfo;
+	// Number of bones present
+	uint32_t numBones = 0;
+	// Root inverese transform matrix
+	aiMatrix4x4 globalInverseTransform;
+	// Per-vertex bone info
+	std::vector<VertexBoneData> bones;
+	// Bone transformations
+	std::vector<aiMatrix4x4> boneTransforms;
+
+	float animationSpeed = 0.75f;
+
+	// Vulkan buffers
+	vkMeshLoader::MeshBuffer meshBuffer;
+	// Reference to assimp mesh
+	// Required for animation
+	VulkanMeshLoader *meshLoader;
+
+	// Load bone information from ASSIMP mesh
+	void loadBones(uint32_t meshIndex, const aiMesh* pMesh, std::vector<VertexBoneData>& Bones)
+	{
+		for (uint32_t i = 0; i < pMesh->mNumBones; i++)
+		{
+			uint32_t index = 0;
+
+			assert(pMesh->mNumBones <= MAX_BONES);
+
+			std::string name(pMesh->mBones[i]->mName.data);
+
+			if (boneMapping.find(name) == boneMapping.end())
+			{
+				// Bone not present, add new one
+				index = numBones;
+				numBones++;
+				BoneInfo bone;
+				boneInfo.push_back(bone);
+				boneInfo[index].offset = pMesh->mBones[i]->mOffsetMatrix;
+				boneMapping[name] = index;
+			}
+			else
+			{
+				index = boneMapping[name];
+			}
+
+			for (uint32_t j = 0; j < pMesh->mBones[i]->mNumWeights; j++)
+			{
+				uint32_t vertexID = meshLoader->m_Entries[meshIndex].vertexBase + pMesh->mBones[i]->mWeights[j].mVertexId;
+				Bones[vertexID].add(index, pMesh->mBones[i]->mWeights[j].mWeight);
+			}
+		}
+		boneTransforms.resize(numBones);
+	}
+
+	// Recursive bone transformation for given animation time
+	void update(float time)
+	{
+		float TicksPerSecond = (float)(meshLoader->pScene->mAnimations[0]->mTicksPerSecond != 0 ? meshLoader->pScene->mAnimations[0]->mTicksPerSecond : 25.0f);
+		float TimeInTicks = time * TicksPerSecond;
+		float AnimationTime = fmod(TimeInTicks, (float)meshLoader->pScene->mAnimations[0]->mDuration);
+
+		aiMatrix4x4 identity = aiMatrix4x4();
+		readNodeHierarchy(AnimationTime, meshLoader->pScene->mRootNode, identity);
+
+		for (uint32_t i = 0; i < boneTransforms.size(); i++)
+		{
+			boneTransforms[i] = boneInfo[i].finalTransformation;
+		}
+	}
+
+private:
+	// Find animation for a given node
+	const aiNodeAnim* findNodeAnim(const aiAnimation* animation, const std::string nodeName)
+	{
+		for (uint32_t i = 0; i < animation->mNumChannels; i++)
+		{
+			const aiNodeAnim* nodeAnim = animation->mChannels[i];
+			if (std::string(nodeAnim->mNodeName.data) == nodeName)
+			{
+				return nodeAnim;
+			}
+		}
+		return nullptr;
+	}
+
+	// Returns a 4x4 matrix with interpolated translation between current and next frame
+	aiMatrix4x4 interpolateTranslation(float time, const aiNodeAnim* pNodeAnim)
+	{
+		aiVector3D translation;
+
+		if (pNodeAnim->mNumPositionKeys == 1)
+		{
+			translation = pNodeAnim->mPositionKeys[0].mValue;
+		}
+		else
+		{
+			uint32_t frameIndex = 0;
+			for (uint32_t i = 0; i < pNodeAnim->mNumPositionKeys - 1; i++)
+			{
+				if (time < (float)pNodeAnim->mPositionKeys[i + 1].mTime)
+				{
+					frameIndex = i;
+					break;
+				}
+			}
+
+			aiVectorKey currentFrame = pNodeAnim->mPositionKeys[frameIndex];
+			aiVectorKey nextFrame = pNodeAnim->mPositionKeys[(frameIndex + 1) % pNodeAnim->mNumPositionKeys];
+
+			float delta = (time - (float)currentFrame.mTime) / (float)(nextFrame.mTime - currentFrame.mTime);
+
+			const aiVector3D& start = currentFrame.mValue;
+			const aiVector3D& end = nextFrame.mValue;
+
+			translation = (start + delta * (end - start));
+		}
+
+		aiMatrix4x4 mat;
+		aiMatrix4x4::Translation(translation, mat);
+		return mat;
+	}
+
+	// Returns a 4x4 matrix with interpolated rotation between current and next frame
+	aiMatrix4x4 interpolateRotation(float time, const aiNodeAnim* pNodeAnim)
+	{
+		aiQuaternion rotation;
+
+		if (pNodeAnim->mNumRotationKeys == 1)
+		{
+			rotation = pNodeAnim->mRotationKeys[0].mValue;
+		}
+		else
+		{
+			uint32_t frameIndex = 0;
+			for (uint32_t i = 0; i < pNodeAnim->mNumRotationKeys - 1; i++)
+			{
+				if (time < (float)pNodeAnim->mRotationKeys[i + 1].mTime)
+				{
+					frameIndex = i;
+					break;
+				}
+			}
+
+			aiQuatKey currentFrame = pNodeAnim->mRotationKeys[frameIndex];
+			aiQuatKey nextFrame = pNodeAnim->mRotationKeys[(frameIndex + 1) % pNodeAnim->mNumRotationKeys];
+
+			float delta = (time - (float)currentFrame.mTime) / (float)(nextFrame.mTime - currentFrame.mTime);
+
+			const aiQuaternion& start = currentFrame.mValue;
+			const aiQuaternion& end = nextFrame.mValue;
+
+			aiQuaternion::Interpolate(rotation, start, end, delta);
+			rotation.Normalize();
+		}
+
+		aiMatrix4x4 mat(rotation.GetMatrix());
+		return mat;
+	}
+
+
+	// Returns a 4x4 matrix with interpolated scaling between current and next frame
+	aiMatrix4x4 interpolateScale(float time, const aiNodeAnim* pNodeAnim)
+	{
+		aiVector3D scale;
+
+		if (pNodeAnim->mNumScalingKeys == 1)
+		{
+			scale = pNodeAnim->mScalingKeys[0].mValue;
+		}
+		else
+		{
+			uint32_t frameIndex = 0;
+			for (uint32_t i = 0; i < pNodeAnim->mNumScalingKeys - 1; i++)
+			{
+				if (time < (float)pNodeAnim->mScalingKeys[i + 1].mTime)
+				{
+					frameIndex = i;
+					break;
+				}
+			}
+
+			aiVectorKey currentFrame = pNodeAnim->mScalingKeys[frameIndex];
+			aiVectorKey nextFrame = pNodeAnim->mScalingKeys[(frameIndex + 1) % pNodeAnim->mNumScalingKeys];
+
+			float delta = (time - (float)currentFrame.mTime) / (float)(nextFrame.mTime - currentFrame.mTime);
+
+			const aiVector3D& start = currentFrame.mValue;
+			const aiVector3D& end = nextFrame.mValue;
+
+			scale = (start + delta * (end - start));
+		}
+
+		aiMatrix4x4 mat;
+		aiMatrix4x4::Scaling(scale, mat);
+		return mat;
+	}
+
+	// Get node hierarchy for current animation time
+	void readNodeHierarchy(float AnimationTime, const aiNode* pNode, const aiMatrix4x4& ParentTransform)
+	{
+		std::string NodeName(pNode->mName.data);
+
+		const aiAnimation* pAnimation = meshLoader->pScene->mAnimations[0];
+
+		aiMatrix4x4 NodeTransformation(pNode->mTransformation);
+
+		const aiNodeAnim* pNodeAnim = findNodeAnim(pAnimation, NodeName);
+
+		if (pNodeAnim)
+		{
+			// Get interpolated matrices between current and next frame
+			aiMatrix4x4 matScale = interpolateScale(AnimationTime, pNodeAnim);
+			aiMatrix4x4 matRotation = interpolateRotation(AnimationTime, pNodeAnim);
+			aiMatrix4x4 matTranslation = interpolateTranslation(AnimationTime, pNodeAnim);
+
+			NodeTransformation = matTranslation * matRotation * matScale;
+		}
+
+		aiMatrix4x4 GlobalTransformation = ParentTransform * NodeTransformation;
+
+		// todo : replace name lookup with hash or index
+		if (boneMapping.find(NodeName) != boneMapping.end())
+		{
+			uint32_t BoneIndex = boneMapping[NodeName];
+			boneInfo[BoneIndex].finalTransformation = globalInverseTransform * GlobalTransformation * boneInfo[BoneIndex].offset;
+		}
+
+		for (uint32_t i = 0; i < pNode->mNumChildren; i++)
+		{
+			readNodeHierarchy(AnimationTime, pNode->mChildren[i], GlobalTransformation);
+		}
+	}
+};
+
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -59,72 +341,12 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	// Mesh related stuff
-
-	// Maximum number of bones per vertex
-	#define MAX_BONES_PER_VERTEX 4
-
-	// Per-vertex bone IDs and weights
-	struct VertexBoneData
-	{
-		std::array<uint32_t, MAX_BONES_PER_VERTEX> IDs;
-		std::array<float, MAX_BONES_PER_VERTEX> weights;
-
-		// Ad bone weighting to vertex info
-		void add(uint32_t boneID, float weight)
-		{
-			for (uint32_t i = 0; i < MAX_BONES_PER_VERTEX; i++)
-			{
-				if (weights[i] == 0.0f)
-				{
-					IDs[i] = boneID;
-					weights[i] = weight;
-					return;
-				}
-			}
-		}
-	};
-
-	// Stores information on a single bone
-	struct BoneInfo
-	{
-		aiMatrix4x4 offset;
-		aiMatrix4x4 finalTransformation;
-
-		BoneInfo()
-		{
-			offset = aiMatrix4x4();
-			finalTransformation = aiMatrix4x4();
-		};
-	};
-
-	struct Mesh {
-		// Bone related stuff
-		// Maps bone name with index
-		std::map<std::string, uint32_t> boneMapping;
-		// Bone details
-		std::vector<BoneInfo> boneInfo;
-		// Number of bones present
-		uint32_t numBones = 0;
-		// Root inverese transform matrix
-		aiMatrix4x4 globalInverseTransform;
-		// Per-vertex bone info
-		std::vector<VertexBoneData> bones;
-
-		// Vulkan buffers
-		vkMeshLoader::MeshBuffer meshBuffer;
-		// Reference to assimp mesh
-		// Required for animation
-		VulkanMeshLoader *meshLoader;
-	} mesh;
+	SkinnedMesh *skinnedMesh;
 
 	struct {
 		vkTools::UniformData vsScene;
 		vkTools::UniformData floor;
 	} uniformData;
-
-	// Must not be higher than same const in skinning shader
-	#define MAX_BONES 64
 
 	struct {
 		glm::mat4 projection;
@@ -164,12 +386,11 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -166.0f;
+		zoom = -150.0f;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
-		rotation = { -187.0f, 60.0f, 180.0f };
+		rotation = { -182.5f, -38.5f, 180.0f };
 		title = "Vulkan Example - Skeletal animation";
-		paused = true;
 		cameraPos = { 0.0f, 0.0f, 12.0f };
 	}
 
@@ -182,14 +403,15 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		// Destroy and free mesh resources 
-		vkMeshLoader::freeMeshBufferResources(device, &mesh.meshBuffer);
 
 		textureLoader->destroyTexture(textures.colorMap);
 
 		vkTools::destroyUniformData(device, &uniformData.vsScene);
 
-		delete(mesh.meshLoader);
+		// Destroy and free mesh resources 
+		vkMeshLoader::freeMeshBufferResources(device, &skinnedMesh->meshBuffer);
+		delete(skinnedMesh->meshLoader);
+		delete(skinnedMesh);
 	}
 
 	void buildCommandBuffers()
@@ -229,9 +451,9 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skinning);
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &mesh.meshBuffer.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], mesh.meshBuffer.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], mesh.meshBuffer.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &skinnedMesh->meshBuffer.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], skinnedMesh->meshBuffer.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], skinnedMesh->meshBuffer.indexCount, 1, 0, 0, 0);
 
 			// Floor
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.floor, 0, NULL);
@@ -274,245 +496,30 @@ public:
 		assert(!err);
 	}
 
-	// Load bone information from ASSIMP mesh
-	void loadBones(uint32_t meshIndex, const aiMesh* pMesh, std::vector<VertexBoneData>& Bones)
-	{
-		for (uint32_t i = 0; i < pMesh->mNumBones; i++)
-		{
-			uint32_t index = 0;
-					
-			assert(pMesh->mNumBones <= MAX_BONES);
-
-			std::string name(pMesh->mBones[i]->mName.data);
-
-			if (mesh.boneMapping.find(name) == mesh.boneMapping.end())
-			{
-				// Bone not present, add new one
-				index = mesh.numBones;
-				mesh.numBones++;
-				BoneInfo bone;
-				mesh.boneInfo.push_back(bone);
-				mesh.boneInfo[index].offset = pMesh->mBones[i]->mOffsetMatrix;
-				mesh.boneMapping[name] = index;
-			}
-			else
-			{
-				index = mesh.boneMapping[name];
-			}
-
-			for (uint32_t j = 0; j < pMesh->mBones[i]->mNumWeights; j++)
-			{
-				uint32_t vertexID = mesh.meshLoader->m_Entries[meshIndex].vertexBase + pMesh->mBones[i]->mWeights[j].mVertexId;
-				Bones[vertexID].add(index, pMesh->mBones[i]->mWeights[j].mWeight);
-			}
-		}
-	}
-
-	// Find animation for a given node
-	const aiNodeAnim* findNodeAnim(const aiAnimation* animation, const std::string nodeName)
-	{
-		for (uint32_t i = 0; i < animation->mNumChannels; i++)
-		{
-			const aiNodeAnim* nodeAnim = animation->mChannels[i];
-			if (std::string(nodeAnim->mNodeName.data) == nodeName)
-			{
-				return nodeAnim;
-			}
-		}
-		return nullptr;
-	}
-
-	// Returns a 4x4 matrix with interpolated translation between current and next frame
-	aiMatrix4x4 interpolateTranslation(float time, const aiNodeAnim* pNodeAnim)
-	{
-		aiVector3D translation;
-
-		if (pNodeAnim->mNumPositionKeys == 1)
-		{
-			translation = pNodeAnim->mPositionKeys[0].mValue;
-		}
-		else
-		{
-			uint32_t frameIndex = 0;
-			for (uint32_t i = 0; i < pNodeAnim->mNumPositionKeys - 1; i++)
-			{
-				if (time < (float)pNodeAnim->mPositionKeys[i + 1].mTime)
-				{
-					frameIndex = i;
-					break;
-				}
-			}
-
-			aiVectorKey currentFrame = pNodeAnim->mPositionKeys[frameIndex];
-			aiVectorKey nextFrame = pNodeAnim->mPositionKeys[(frameIndex + 1) % pNodeAnim->mNumPositionKeys];
-				
-			float delta = (time - (float)currentFrame.mTime) / (float)(nextFrame.mTime - currentFrame.mTime);
-
-			const aiVector3D& start = currentFrame.mValue;
-			const aiVector3D& end = nextFrame.mValue;
-
-			translation = (start + delta * (end - start));
-		}
-
-		aiMatrix4x4 mat;
-		aiMatrix4x4::Translation(translation, mat);
-		return mat;
-	}
-
-	// Returns a 4x4 matrix with interpolated rotation between current and next frame
-	aiMatrix4x4 interpolateRotation(float time, const aiNodeAnim* pNodeAnim)
-	{
-		aiQuaternion rotation;
-
-		if (pNodeAnim->mNumRotationKeys == 1) 
-		{
-			rotation = pNodeAnim->mRotationKeys[0].mValue;
-		}
-		else
-		{
-			uint32_t frameIndex = 0;
-			for (uint32_t i = 0; i < pNodeAnim->mNumRotationKeys - 1; i++)
-			{
-				if (time < (float)pNodeAnim->mRotationKeys[i + 1].mTime)
-				{
-					frameIndex = i;
-					break;
-				}
-			}
-
-			aiQuatKey currentFrame = pNodeAnim->mRotationKeys[frameIndex];
-			aiQuatKey nextFrame = pNodeAnim->mRotationKeys[(frameIndex + 1) % pNodeAnim->mNumRotationKeys];
-
-			float delta = (time - (float)currentFrame.mTime) / (float)(nextFrame.mTime - currentFrame.mTime);
-
-			const aiQuaternion& start = currentFrame.mValue;
-			const aiQuaternion& end = nextFrame.mValue;
-
-			aiQuaternion::Interpolate(rotation, start, end, delta);
-			rotation.Normalize();
-		}
-
-		aiMatrix4x4 mat(rotation.GetMatrix());
-		return mat;
-	}
-
-
-	// Returns a 4x4 matrix with interpolated scaling between current and next frame
-	aiMatrix4x4 interpolateScale(float time, const aiNodeAnim* pNodeAnim)
-	{
-		aiVector3D scale;
-
-		if (pNodeAnim->mNumScalingKeys == 1) 
-		{
-			scale = pNodeAnim->mScalingKeys[0].mValue;
-		}
-		else
-		{
-			uint32_t frameIndex = 0;
-			for (uint32_t i = 0; i < pNodeAnim->mNumScalingKeys - 1; i++)
-			{
-				if (time < (float)pNodeAnim->mScalingKeys[i + 1].mTime)
-				{
-					frameIndex = i;
-					break;
-				}
-			}
-
-			aiVectorKey currentFrame = pNodeAnim->mScalingKeys[frameIndex];
-			aiVectorKey nextFrame = pNodeAnim->mScalingKeys[(frameIndex + 1) % pNodeAnim->mNumScalingKeys];
-
-			float delta = (time - (float)currentFrame.mTime) / (float)(nextFrame.mTime - currentFrame.mTime);
-
-			const aiVector3D& start = currentFrame.mValue;
-			const aiVector3D& end = nextFrame.mValue;
-
-			scale = (start + delta * (end - start));
-		}
-
-		aiMatrix4x4 mat;
-		aiMatrix4x4::Scaling(scale, mat);
-		return mat;
-	}
-
-	// Get node hierarchy for current animation time
-	void readNodeHierarchy(float AnimationTime, const aiNode* pNode, const aiMatrix4x4& ParentTransform)
-	{
-		std::string NodeName(pNode->mName.data);
-
-		const aiAnimation* pAnimation = mesh.meshLoader->pScene->mAnimations[0];
-
-		aiMatrix4x4 NodeTransformation(pNode->mTransformation);
-
-		const aiNodeAnim* pNodeAnim = findNodeAnim(pAnimation, NodeName);
-
-		if (pNodeAnim)
-		{
-			// Get interpolated matrices between current and next frame
-			aiMatrix4x4 matScale = interpolateScale(AnimationTime, pNodeAnim);
-			aiMatrix4x4 matRotation = interpolateRotation(AnimationTime, pNodeAnim);
-			aiMatrix4x4 matTranslation = interpolateTranslation(AnimationTime, pNodeAnim);
-
-			NodeTransformation = matTranslation * matRotation * matScale;
-		}
-
-		aiMatrix4x4 GlobalTransformation = ParentTransform * NodeTransformation;
-
-		// todo : replace name lookup with hash or index
-		if (mesh.boneMapping.find(NodeName) != mesh.boneMapping.end())
-		{
-			uint32_t BoneIndex = mesh.boneMapping[NodeName];
-			mesh.boneInfo[BoneIndex].finalTransformation = mesh.globalInverseTransform * GlobalTransformation * mesh.boneInfo[BoneIndex].offset;
-		}
-
-		for (uint32_t i = 0; i < pNode->mNumChildren; i++)
-		{
-			readNodeHierarchy(AnimationTime, pNode->mChildren[i], GlobalTransformation);
-		}
-	}
-
-	// Recursive bone transformation
-	// Results are stored in the Transforms vector
-	void boneTransform(float time, std::vector<aiMatrix4x4>& boneTransforms)
-	{
-		float TicksPerSecond = (float)(mesh.meshLoader->pScene->mAnimations[0]->mTicksPerSecond != 0 ? mesh.meshLoader->pScene->mAnimations[0]->mTicksPerSecond : 25.0f);
-		float TimeInTicks = time * TicksPerSecond;
-		float AnimationTime = fmod(TimeInTicks, (float)mesh.meshLoader->pScene->mAnimations[0]->mDuration);
-
-		aiMatrix4x4 identity = aiMatrix4x4();
-		readNodeHierarchy(AnimationTime, mesh.meshLoader->pScene->mRootNode, identity);
-
-		boneTransforms.resize(mesh.numBones); // todo : resize only once
-
-		for (uint32_t i = 0; i < boneTransforms.size(); i++)
-		{
-			boneTransforms[i] = mesh.boneInfo[i].finalTransformation;
-		}
-	}
-
-
 	// Load a mesh based on data read via assimp 
 	// The other example will use the VulkanMesh loader which has some additional functionality for loading meshes
 	void loadMesh()
 	{
-		mesh.meshLoader = new VulkanMeshLoader();
+		skinnedMesh = new SkinnedMesh();
+		skinnedMesh->meshLoader = new VulkanMeshLoader();
 #if defined(__ANDROID__)
-		mesh.meshLoader->assetManager = androidApp->activity->assetManager;
+		skinnedMesh->meshLoader->assetManager = androidApp->activity->assetManager;
 #endif
-		mesh.meshLoader->LoadMesh(getAssetPath() + "models/goblin_3ds.DAE", 0);
+		skinnedMesh->meshLoader->LoadMesh(getAssetPath() + "models/goblin.dae", 0);
 
 		// Setup bones
 		// One vertex bone info structure per vertex
-		mesh.bones.resize(mesh.meshLoader->numVertices);
+		skinnedMesh->bones.resize(skinnedMesh->meshLoader->numVertices);
 		// Store global inverse transform matrix of root node 
-		mesh.globalInverseTransform = mesh.meshLoader->pScene->mRootNode->mTransformation;
-		mesh.globalInverseTransform.Inverse();
+		skinnedMesh->globalInverseTransform = skinnedMesh->meshLoader->pScene->mRootNode->mTransformation;
+		skinnedMesh->globalInverseTransform.Inverse();
 		// Load bones (weights and IDs)
-		for (uint32_t m = 0; m < mesh.meshLoader->m_Entries.size(); m++)
+		for (uint32_t m = 0; m < skinnedMesh->meshLoader->m_Entries.size(); m++)
 		{
-			aiMesh *paiMesh = mesh.meshLoader->pScene->mMeshes[m];
+			aiMesh *paiMesh = skinnedMesh->meshLoader->pScene->mMeshes[m];
 			if (paiMesh->mNumBones > 0)
 			{
-				loadBones(m, paiMesh, mesh.bones);
+				skinnedMesh->loadBones(m, paiMesh, skinnedMesh->bones);
 			}
 		}
 
@@ -520,23 +527,23 @@ public:
 		std::vector<Vertex> vertexBuffer;
 		// Iterate through all meshes in the file
 		// and extract the vertex information used in this demo
-		for (uint32_t m = 0; m < mesh.meshLoader->m_Entries.size(); m++)
+		for (uint32_t m = 0; m < skinnedMesh->meshLoader->m_Entries.size(); m++)
 		{
-			for (uint32_t i = 0; i < mesh.meshLoader->m_Entries[m].Vertices.size(); i++)
+			for (uint32_t i = 0; i < skinnedMesh->meshLoader->m_Entries[m].Vertices.size(); i++)
 			{
 				Vertex vertex;
 
-				vertex.pos = mesh.meshLoader->m_Entries[m].Vertices[i].m_pos;
+				vertex.pos = skinnedMesh->meshLoader->m_Entries[m].Vertices[i].m_pos;
 				vertex.pos.y = -vertex.pos.y;
-				vertex.normal = mesh.meshLoader->m_Entries[m].Vertices[i].m_normal;
-				vertex.uv = mesh.meshLoader->m_Entries[m].Vertices[i].m_tex;
-				vertex.color = mesh.meshLoader->m_Entries[m].Vertices[i].m_color;
+				vertex.normal = skinnedMesh->meshLoader->m_Entries[m].Vertices[i].m_normal;
+				vertex.uv = skinnedMesh->meshLoader->m_Entries[m].Vertices[i].m_tex;
+				vertex.color = skinnedMesh->meshLoader->m_Entries[m].Vertices[i].m_color;
 
 				// Fetch bone weights and IDs
 				for (uint32_t j = 0; j < MAX_BONES_PER_VERTEX; j++)
 				{
-					vertex.boneWeights[j] = mesh.bones[mesh.meshLoader->m_Entries[m].vertexBase + i].weights[j];
-					vertex.boneIDs[j] = mesh.bones[mesh.meshLoader->m_Entries[m].vertexBase + i].IDs[j];
+					vertex.boneWeights[j] = skinnedMesh->bones[skinnedMesh->meshLoader->m_Entries[m].vertexBase + i].weights[j];
+					vertex.boneIDs[j] = skinnedMesh->bones[skinnedMesh->meshLoader->m_Entries[m].vertexBase + i].IDs[j];
 				}
 
 				vertexBuffer.push_back(vertex);
@@ -546,16 +553,16 @@ public:
 
 		// Generate index buffer from loaded mesh file
 		std::vector<uint32_t> indexBuffer;
-		for (uint32_t m = 0; m < mesh.meshLoader->m_Entries.size(); m++)
+		for (uint32_t m = 0; m < skinnedMesh->meshLoader->m_Entries.size(); m++)
 		{
 			uint32_t indexBase = indexBuffer.size();
-			for (uint32_t i = 0; i < mesh.meshLoader->m_Entries[m].Indices.size(); i++)
+			for (uint32_t i = 0; i < skinnedMesh->meshLoader->m_Entries[m].Indices.size(); i++)
 			{
-				indexBuffer.push_back(mesh.meshLoader->m_Entries[m].Indices[i] + indexBase);
+				indexBuffer.push_back(skinnedMesh->meshLoader->m_Entries[m].Indices[i] + indexBase);
 			}
 		}
 		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
-		mesh.meshBuffer.indexCount = indexBuffer.size();
+		skinnedMesh->meshBuffer.indexCount = indexBuffer.size();
 
 		bool useStaging = true;
 
@@ -591,16 +598,16 @@ public:
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				vertexBufferSize,
 				nullptr,
-				&mesh.meshBuffer.vertices.buf,
-				&mesh.meshBuffer.vertices.mem);
+				&skinnedMesh->meshBuffer.vertices.buf,
+				&skinnedMesh->meshBuffer.vertices.mem);
 			// Index buffer
 			createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				indexBufferSize,
 				nullptr,
-				&mesh.meshBuffer.indices.buf,
-				&mesh.meshBuffer.indices.mem);
+				&skinnedMesh->meshBuffer.indices.buf,
+				&skinnedMesh->meshBuffer.indices.mem);
 
 			// Copy from staging buffers
 			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -611,7 +618,7 @@ public:
 			vkCmdCopyBuffer(
 				copyCmd,
 				vertexStaging.buffer,
-				mesh.meshBuffer.vertices.buf,
+				skinnedMesh->meshBuffer.vertices.buf,
 				1,
 				&copyRegion);
 
@@ -619,7 +626,7 @@ public:
 			vkCmdCopyBuffer(
 				copyCmd,
 				indexStaging.buffer,
-				mesh.meshBuffer.indices.buf,
+				skinnedMesh->meshBuffer.indices.buf,
 				1,
 				&copyRegion);
 
@@ -638,28 +645,28 @@ public:
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				vertexBufferSize,
 				vertexBuffer.data(),
-				&mesh.meshBuffer.vertices.buf,
-				&mesh.meshBuffer.vertices.mem);
+				&skinnedMesh->meshBuffer.vertices.buf,
+				&skinnedMesh->meshBuffer.vertices.mem);
 			// Index buffer
 			createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				indexBufferSize,
 				indexBuffer.data(),
-				&mesh.meshBuffer.indices.buf,
-				&mesh.meshBuffer.indices.mem);
+				&skinnedMesh->meshBuffer.indices.buf,
+				&skinnedMesh->meshBuffer.indices.mem);
 		}
 	}
 
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			getAssetPath() + "textures/goblin.ktx",
+			getAssetPath() + "textures/goblin_bc3.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.colorMap);
 
 		textureLoader->loadTexture(
-			getAssetPath() + "textures/stonefloor_color_specular_bc3.ktx",
+			getAssetPath() + "textures/pattern_35_bc3.ktx",
 			VK_FORMAT_BC3_UNORM_BLOCK,
 			&textures.floor);
 	}
@@ -983,18 +990,16 @@ public:
 		}
 
 		// Update bones
-		std::vector<aiMatrix4x4> boneTransforms;
-		boneTransform(runningTime, boneTransforms);
-
-		for (uint32_t i = 0; i < boneTransforms.size(); i++)
+		skinnedMesh->update(runningTime);
+		for (uint32_t i = 0; i < skinnedMesh->boneTransforms.size(); i++)
   		{
-			uboVS.bones[i] = glm::transpose(glm::make_mat4(&boneTransforms[i].a1));
+			uboVS.bones[i] = glm::transpose(glm::make_mat4(&skinnedMesh->boneTransforms[i].a1));
 		}
 
 		memcpy(uniformData.vsScene.mapped, &uboVS, sizeof(uboVS));
 
 		// Update floor animation
-		uboFloor.uvOffset.t -= 0.35f * frameTimer;
+		uboFloor.uvOffset.t -= 0.5f * skinnedMesh->animationSpeed * frameTimer;
 		memcpy(uniformData.floor.mapped, &uboFloor, sizeof(uboFloor));
 	}
 
@@ -1021,7 +1026,7 @@ public:
 		draw();
 		if (!paused)
 		{
-			runningTime += frameTimer * 0.75f;
+			runningTime += frameTimer * skinnedMesh->animationSpeed;
 			vkDeviceWaitIdle(device);
 			updateUniformBuffers(false);
 		}
@@ -1031,6 +1036,12 @@ public:
 	{
 		vkDeviceWaitIdle(device);
 		updateUniformBuffers(true);
+	}
+
+	void changeAnimationSpeed(float delta)
+	{
+		skinnedMesh->animationSpeed += delta;
+		std::cout << "Animation speed = " << skinnedMesh->animationSpeed << std::endl;
 	}
 };
 
@@ -1042,6 +1053,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
+		if (uMsg == WM_KEYDOWN)
+		{
+			switch (wParam)
+			{
+			case VK_ADD:
+			case VK_SUBTRACT:
+				vulkanExample->changeAnimationSpeed((wParam == VK_ADD) ? 0.1f : -0.1f);
+				break;
+			}
+		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
