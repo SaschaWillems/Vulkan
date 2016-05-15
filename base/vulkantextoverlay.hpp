@@ -30,7 +30,7 @@
 #define STB_NUM_CHARS STB_FONT_consolas_24_latin1_NUM_CHARS
 
 // Max. number of chars the text overlay buffer can hold
-#define MAX_CHAR_COUNT 2048
+#define MAX_CHAR_COUNT 512
 
 // Mostly self-contained text overlay class
 // todo : comment
@@ -61,7 +61,6 @@ private:
 	VkPipeline pipeline;
 	VkRenderPass renderPass;
 	VkCommandPool commandPool;
-	std::vector<VkCommandBuffer> cmdBuffers;
 	std::vector<VkFramebuffer*> frameBuffers;
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
@@ -72,25 +71,31 @@ private:
 	uint32_t numLetters;
 
 	// Try to find appropriate memory type for a memory allocation
-	VkBool32 getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex)
+	uint32_t getMemoryType(uint32_t typeBits, VkFlags properties)
 	{
-		for (int i = 0; i < 32; i++) {
-			if ((typeBits & 1) == 1) {
+		for (uint32_t i = 0; i < 32; i++)
+		{
+			if ((typeBits & 1) == 1)
+			{
 				if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
 				{
-					*typeIndex = i;
-					return true;
+					return i;
 				}
 			}
 			typeBits >>= 1;
 		}
-		return false;
+
+		// todo : throw error
+		return 0;
 	}
 public:
 
 	enum TextAlign { alignLeft, alignCenter, alignRight };
 
 	bool visible = true;
+	bool invalidated = false;
+
+	std::vector<VkCommandBuffer> cmdBuffers;
 
 	VulkanTextOverlay(
 		VkPhysicalDevice physicalDevice,
@@ -181,7 +186,7 @@ public:
 
 		vkGetBufferMemoryRequirements(device, buffer, &memReqs);
 		allocInfo.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
+		allocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
 		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &memory));
 		VK_CHECK_RESULT(vkBindBufferMemory(device, buffer, memory, 0));
@@ -204,7 +209,7 @@ public:
 		VK_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
 
 		allocInfo.allocationSize = STB_FONT_WIDTH * STB_NUM_CHARS;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &allocInfo.memoryTypeIndex);
+		allocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
 		VK_CHECK_RESULT(vkBindImageMemory(device, image, imageMemory, 0));
@@ -228,7 +233,7 @@ public:
 
 		allocInfo.allocationSize = memReqs.size;
 		// Get memory type index for a host visible buffer
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
+		allocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
 		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &stagingBuffer.memory));
 		VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer.buffer, stagingBuffer.memory, 0));
@@ -629,6 +634,8 @@ public:
 
 		for (int32_t i = 0; i < cmdBuffers.size(); ++i)
 		{
+			std::cout << "update text cmd buff " << i << " with fb " << *frameBuffers[i] << std::endl;
+
 			renderPassBeginInfo.framebuffer = *frameBuffers[i];
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffers[i], &cmdBufInfo));
@@ -640,7 +647,7 @@ public:
 
 			VkRect2D scissor = vkTools::initializers::rect2D(*frameBufferWidth, *frameBufferHeight, 0, 0);
 			vkCmdSetScissor(cmdBuffers[i], 0, 1, &scissor);
-
+			
 			vkCmdBindPipeline(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 			vkCmdBindDescriptorSets(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
@@ -652,7 +659,6 @@ public:
 				vkCmdDraw(cmdBuffers[i], 4, 1, j * 4, 0);
 			}
 
-
 			vkCmdEndRenderPass(cmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffers[i]));
@@ -661,19 +667,30 @@ public:
 
 	// Submit the text command buffers to a queue
 	// Does a queue wait idle
-	void submit(VkQueue queue, uint32_t bufferindex)
+	void submit(VkQueue queue, uint32_t bufferindex, VkSubmitInfo submitInfo)
 	{
 		if (!visible)
 		{
 			return;
 		}
 
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO; submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmdBuffers[bufferindex];
+		submitInfo.commandBufferCount = 1;
 
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+	}
+
+	void reallocateCommandBuffers()
+	{
+		vkFreeCommandBuffers(device, commandPool, cmdBuffers.size(), cmdBuffers.data());
+
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
+			vkTools::initializers::commandBufferAllocateInfo(
+				commandPool,
+				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				(uint32_t)cmdBuffers.size());
+
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, cmdBuffers.data()));
 	}
 
 };
