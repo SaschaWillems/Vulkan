@@ -340,5 +340,17 @@ public:
 		VkPipelineStageFlags *pipelineStages);
 
 	void updateTextOverlay();
+
+	// Prepare the frame for workload submission
+	// - Acquires the next image from the swap chain 
+	// - Submits a post present barrier
+	// - Sets the default wait and signal semaphores
+	void prepareFrame();
+
+	// Submit the frames' workload 
+	// - Submits the text overlay (if enabled)
+	// - 
+	void submitFrame();
+
 };
 

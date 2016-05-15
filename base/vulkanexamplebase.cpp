@@ -664,6 +664,55 @@ void VulkanExampleBase::updateTextOverlay()
 	textOverlay->endTextUpdate();
 }
 
+void VulkanExampleBase::prepareFrame()
+{
+	// Acquire the next image from the swap chaing
+	VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
+	// Submit barrier that transforms color attachment image layout back from khr
+	submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+
+}
+
+void VulkanExampleBase::submitFrame()
+{
+	bool submitTextOverlay = enableTextOverlay && textOverlay->visible;
+
+	if (submitTextOverlay)
+	{
+		// Wait for color attachment output to finish before rendering the text overlay
+		VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		submitInfo.pWaitDstStageMask = &stageFlags;
+
+		// Set semaphores
+		// Wait for render complete semaphore
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &semaphores.renderComplete;
+		// Signal ready with text overlay complete semaphpre
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.textOverlayComplete;
+
+		// Submit current text overlay command buffer
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &textOverlay->cmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		// Reset wait and signal semaphores for rendering next frame
+		// Wait for swap chain presentation to finish
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		// Signal ready with offscreen semaphore
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+	}
+
+	// Submit barrier that transforms color attachment to khr presen
+	submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
+
+	VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, submitTextOverlay ? semaphores.textOverlayComplete : semaphores.renderComplete));
+
+	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+}
+
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
 	// Check for validation command line flag
@@ -1030,6 +1079,12 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		{
 		case 0x50:
 			paused = !paused;
+			break;
+		case VK_F1:
+			if (enableTextOverlay)
+			{
+				textOverlay->visible = !textOverlay->visible;
+			}
 			break;
 		case VK_ESCAPE:
 			exit(0);

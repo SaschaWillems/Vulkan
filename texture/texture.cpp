@@ -83,6 +83,7 @@ public:
 		zoom = -2.5f;
 		rotation = { 0.0f, 15.0f, 0.0f };
 		title = "Vulkan Example - Texturing";
+		enableTextOverlay = true;
 	}
 
 	~VulkanExample()
@@ -517,10 +518,7 @@ public:
 
 	void draw()
 	{
-		// Get next image in the swap chain (back/front buffer)
-		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
+		VulkanExampleBase::prepareFrame();
 
 		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
@@ -529,11 +527,7 @@ public:
 		// Submit to queue
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
-
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+		VulkanExampleBase::submitFrame();
 	}
 
 	void generateQuad()
