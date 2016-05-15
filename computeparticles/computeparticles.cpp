@@ -35,7 +35,7 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	float timer = 0.f;
+	float timer = 0.0f;
 	float animStart = 20.0f;
 	bool animate = true;
 
@@ -58,7 +58,7 @@ public:
 	} pipelines;
 
 	VkQueue computeQueue;
-	VkCommandBuffer computeCmdBuffer;
+	//VkCommandBuffer computeCmdBuffer;
 	VkPipelineLayout computePipelineLayout;
 	VkDescriptorSet computeDescriptorSet;
 	VkDescriptorSetLayout computeDescriptorSetLayout;
@@ -90,7 +90,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -2.0f;
 		title = "Vulkan Example - Compute shader particle system";
 	}
 
@@ -108,7 +107,6 @@ public:
 
 		vkTools::destroyUniformData(device, &uniformData.computeShader.ubo);
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &computeCmdBuffer);
 		vkDestroyPipelineLayout(device, computePipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, computeDescriptorSetLayout, nullptr);
 		vkDestroyPipeline(device, pipelines.compute, nullptr);
@@ -154,33 +152,60 @@ public:
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
-			// Buffer memory barrier to make sure that compute shader
-			// writes are finished before using the storage buffer
-			// in the vertex shader
+			// Compute particle movement
+
+			// Add memory barrier to ensure that the (rendering) vertex shader operations have finished
+			// Required as the compute shader will overwrite the vertex buffer data
 			VkBufferMemoryBarrier bufferBarrier = vkTools::initializers::bufferMemoryBarrier();
-			// Source access : Compute shader buffer write
-			bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-			// Dest access : Vertex shader access (attribute binding)
-			bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+			// Vertex shader invocations have finished reading from the buffer
+			bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+			// Compute shader buffer read and write
+			bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
 			bufferBarrier.buffer = computeStorageBuffer.buffer;
-			bufferBarrier.offset = 0;
 			bufferBarrier.size = computeStorageBuffer.descriptor.range;
 			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 			vkCmdPipelineBarrier(
 				drawCmdBuffers[i],
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				1, &bufferBarrier,
+				0, nullptr);
+
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, pipelines.compute);
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, &computeDescriptorSet, 0, 0);
+
+			// Dispatch the compute job
+			vkCmdDispatch(drawCmdBuffers[i], PARTICLE_COUNT / 16, 1, 1);
+
+			// Add memory barrier to ensure that compute shader has finished writing to the buffer
+			// Without this the (rendering) vertex shader may display incomplete results (partial data from last frame)
+			// Compute shader has finished writes to the buffer
+			bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+			// Vertex shader access (attribute binding)
+			bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+			bufferBarrier.buffer = computeStorageBuffer.buffer;
+			bufferBarrier.size = computeStorageBuffer.descriptor.range;
+			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			vkCmdPipelineBarrier(
+				drawCmdBuffers[i],
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
 				VK_FLAGS_NONE, 
 				0, nullptr,
 				1, &bufferBarrier,
 				0, nullptr);
 
+			// Draw the particle system using the update vertex buffer
+
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f
-				);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
@@ -200,20 +225,6 @@ public:
 
 	}
 
-	void buildComputeCommandBuffer()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();;
-
-		vkBeginCommandBuffer(computeCmdBuffer, &cmdBufInfo);
-
-		vkCmdBindPipeline(computeCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines.compute);
-		vkCmdBindDescriptorSets(computeCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, &computeDescriptorSet, 0, 0);
-
-		vkCmdDispatch(computeCmdBuffer, PARTICLE_COUNT / 16, 1, 1);
-
-		vkEndCommandBuffer(computeCmdBuffer);
-	}
-
 	void draw()
 	{
 		// Get next image in the swap chain (back/front buffer)
@@ -231,17 +242,6 @@ public:
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
 		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
-
-		// Compute
-		VkSubmitInfo computeSubmitInfo = vkTools::initializers::submitInfo();
-		computeSubmitInfo.commandBufferCount = 1;
-		computeSubmitInfo.pCommandBuffers = &computeCmdBuffer;
-
-		VK_CHECK_RESULT(vkQueueSubmit(computeQueue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
-
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
-
-		VK_CHECK_RESULT(vkQueueWaitIdle(computeQueue));
 	}
 
 	// Setup and fill the compute shader storage buffers for
@@ -301,6 +301,9 @@ public:
 			&copyRegion);
 
 		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+		vkFreeMemory(device, stagingBuffer.memory, nullptr);
+		vkDestroyBuffer(device, stagingBuffer.buffer, nullptr);
 
 		computeStorageBuffer.descriptor.range = storageBufferSize;
 		computeStorageBuffer.descriptor.buffer = computeStorageBuffer.buffer;
@@ -423,18 +426,6 @@ public:
 			&texDescriptors[1]));
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
-	}
-
-	// Create a separate command buffer for compute commands
-	void createComputeCommandBuffer()
-	{
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-			vkTools::initializers::commandBufferAllocateInfo(
-				cmdPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1);
-
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &computeCmdBuffer));
 	}
 
 	void preparePipelines()
@@ -662,7 +653,6 @@ public:
 		VulkanExampleBase::prepare();
 		loadTextures();
 		getComputeQueue();
-		createComputeCommandBuffer();
 		prepareStorageBuffers();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
@@ -671,7 +661,6 @@ public:
 		setupDescriptorSet();
 		prepareCompute();
 		buildCommandBuffers();
-		buildComputeCommandBuffer();
 		prepared = true;
 	}
 
