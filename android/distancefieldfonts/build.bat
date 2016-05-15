@@ -4,6 +4,10 @@ if %ERRORLEVEL% EQU 0 (
 	echo ndk-build has failed, build cancelled
 	cd..
 
+	mkdir "assets\shaders\base"
+	xcopy "..\..\data\shaders\base\*.spv" "assets\shaders\base" /Y
+	
+
 	mkdir "assets\shaders\distancefieldfonts"
 	xcopy "..\..\data\shaders\distancefieldfonts\*.spv" "assets\shaders\distancefieldfonts" /Y
 
