@@ -207,10 +207,10 @@ Generating curved PN-Triangles on the GPU using tessellation shaders to add deta
 Uses tessellation shaders to generate additional details and displace geometry based on a displacement map (heightmap).
 <br><br>
 
-## [(Compute shader) Particle system](computeshader/)
-<img src="./screenshots/compute_particles.png" height="96px" align="right">
+## [(Compute shader) Particle system](computeparticles/)
+<img src="./screenshots/compute_particles.jpg" height="96px" align="right">
 
-Attraction based particle system. A shader storage buffer is used to store particle data and updated by a compute shader. The buffer is then used by the graphics pipeline for rendering.
+Attraction based particle system. A shader storage buffer is used to store particle data and updated by a compute shader. The buffer is then used by the graphics pipeline for rendering. Demonstrates the use of memory barriers for synchronizing vertex buffer access between a compute and graphics pipeline
 <br><br>
 
 ## [(Compute shader) Image processing](computeshader/)
