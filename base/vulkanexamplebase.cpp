@@ -1062,6 +1062,44 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 		}
 		return 1;
 	}
+
+	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_KEY)
+	{
+		int32_t keyCode = AKeyEvent_getKeyCode((const AInputEvent*)event);
+		int32_t action = AKeyEvent_getAction((const AInputEvent*)event);
+		int32_t button = 0;
+
+		if (action == AKEY_EVENT_ACTION_UP)
+			return 0;
+
+		switch (keyCode)
+		{
+		case AKEYCODE_BUTTON_A:
+			vulkanExample->keyPressed(GAMEPAD_BUTTON_A);
+			break;
+		case AKEYCODE_BUTTON_B:
+			vulkanExample->keyPressed(GAMEPAD_BUTTON_B);
+			break;
+		case AKEYCODE_BUTTON_X:
+			vulkanExample->keyPressed(GAMEPAD_BUTTON_X);
+			break;
+		case AKEYCODE_BUTTON_Y:
+			vulkanExample->keyPressed(GAMEPAD_BUTTON_Y);
+			break;
+		case AKEYCODE_BUTTON_L1:
+			vulkanExample->keyPressed(GAMEPAD_BUTTON_L1);
+			break;
+		case AKEYCODE_BUTTON_R1:
+			vulkanExample->keyPressed(GAMEPAD_BUTTON_R1);
+			break;
+		case AKEYCODE_BUTTON_START:
+			vulkanExample->keyPressed(GAMEPAD_BUTTON_START);
+			break;
+		};
+
+		LOGD("Button %d pressed", keyCode);
+	}
+
 	return 0;
 }
 
