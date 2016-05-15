@@ -21,6 +21,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include <vulkan/vulkan.h>
+
 #include "vulkanexamplebase.h"
 #include "../external/stb/stb_font_consolas_24_latin1.inl"
 
@@ -49,8 +50,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 #define MAX_CHAR_COUNT 2048
 
 // Mostly self-contained text overlay class
-// todo : comment
-class VulkanTextOverlay
+class TextOverlay
 {
 private:
 	VkPhysicalDevice physicalDevice;
@@ -108,7 +108,7 @@ public:
 
 	bool visible = true;
 
-	VulkanTextOverlay(
+	TextOverlay(
 		VkPhysicalDevice physicalDevice,
 		VkDevice device,
 		VkQueue queue,
@@ -143,7 +143,7 @@ public:
 		preparePipeline();
 	}
 
-	~VulkanTextOverlay()
+	~TextOverlay()
 	{
 		// Free up all Vulkan resources requested by the text overlay
 		vkDestroySampler(device, sampler, nullptr);
@@ -695,7 +695,7 @@ public:
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	VulkanTextOverlay *textOverlay = nullptr;
+	TextOverlay *textOverlay = nullptr;
 
 	struct {
 		vkTools::VulkanTexture background;
@@ -742,6 +742,8 @@ public:
 		zoomSpeed = 2.5f;
 		rotation = { -25.0f, 0.0f, 0.0f };
 		title = "Vulkan Example - Text overlay";
+		// Disable text overlay of the example base class
+		enableTextOverlay = false;
 	}
 
 	~VulkanExample()
@@ -817,15 +819,15 @@ public:
 	{
 		textOverlay->beginTextUpdate();
 
-		textOverlay->addText(title, 5.0f, 5.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText(title, 5.0f, 5.0f, TextOverlay::alignLeft);
 
 		std::stringstream ss;
 		ss << std::fixed << std::setprecision(2) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
-		textOverlay->addText(ss.str(), 5.0f, 25.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText(ss.str(), 5.0f, 25.0f, TextOverlay::alignLeft);
 
-		textOverlay->addText(deviceProperties.deviceName, 5.0f, 45.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText(deviceProperties.deviceName, 5.0f, 45.0f, TextOverlay::alignLeft);
 		
-		textOverlay->addText("Press \"space\" to toggle text overlay", 5.0f, height - 20.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"space\" to toggle text overlay", 5.0f, height - 20.0f, TextOverlay::alignLeft);
 
 		// Display projected cube vertices
 		for (int32_t x = -1; x <= 1; x += 2)
@@ -837,29 +839,29 @@ public:
 					std::stringstream vpos;
 					vpos << std::showpos << x << "/" << y << "/" << z;
 					glm::vec3 projected = glm::project(glm::vec3((float)x, (float)y, (float)z), uboVS.model, uboVS.projection, glm::vec4(0, 0, (float)width, (float)height));
-					textOverlay->addText(vpos.str(), projected.x, projected.y + (y > -1 ? 5.0f : -20.0f), VulkanTextOverlay::alignCenter);
+					textOverlay->addText(vpos.str(), projected.x, projected.y + (y > -1 ? 5.0f : -20.0f), TextOverlay::alignCenter);
 				}
 			}
 		}
 
 		// Display current model view matrix
-		textOverlay->addText("model view matrix", width, 5.0f, VulkanTextOverlay::alignRight);
+		textOverlay->addText("model view matrix", width, 5.0f, TextOverlay::alignRight);
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			ss.str("");
 			ss << std::fixed << std::setprecision(2) << std::showpos;
 			ss << uboVS.model[0][i] << " " << uboVS.model[1][i] << " " << uboVS.model[2][i] << " " << uboVS.model[3][i];
-			textOverlay->addText(ss.str(), width, 25.0f + (float)i * 20.0f, VulkanTextOverlay::alignRight);
+			textOverlay->addText(ss.str(), width, 25.0f + (float)i * 20.0f, TextOverlay::alignRight);
 		}
 
 		glm::vec3 projected = glm::project(glm::vec3(0.0f), uboVS.model, uboVS.projection, glm::vec4(0, 0, (float)width, (float)height));
-		textOverlay->addText("Uniform cube", projected.x, projected.y, VulkanTextOverlay::alignCenter);
+		textOverlay->addText("Uniform cube", projected.x, projected.y, TextOverlay::alignCenter);
 
 #if defined(__ANDROID__)
 		// toto
 #else
-		textOverlay->addText("Hold middle mouse button and drag to move", 5.0f, height - 40.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Hold middle mouse button and drag to move", 5.0f, height - 40.0f, TextOverlay::alignLeft);
 #endif
 		textOverlay->endTextUpdate();
 	}
@@ -1167,7 +1169,7 @@ public:
 		shaderStages.push_back(loadShader(getAssetPath() + "shaders/textoverlay/text.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
 		shaderStages.push_back(loadShader(getAssetPath() + "shaders/textoverlay/text.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
 
-		textOverlay = new VulkanTextOverlay(
+		textOverlay = new TextOverlay(
 			physicalDevice,
 			device,
 			queue,
