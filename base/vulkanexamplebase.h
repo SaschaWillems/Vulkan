@@ -39,6 +39,7 @@
 #include "vulkanswapchain.hpp"
 #include "vulkanTextureLoader.hpp"
 #include "vulkanMeshLoader.hpp"
+#include "vulkantextoverlay.hpp"
 
 #define GAMEPAD_BUTTON_A 0x1000
 #define GAMEPAD_BUTTON_B 0x1001
@@ -125,6 +126,8 @@ protected:
 		VkSemaphore presentComplete;
 		// Command buffer submission and execution
 		VkSemaphore renderComplete;
+		// Text overlay submission and execution
+		VkSemaphore textOverlayComplete;
 	} semaphores;
 	// Simple texture loader
 	vkTools::VulkanTextureLoader *textureLoader = nullptr;
@@ -146,6 +149,9 @@ public:
 	float timerSpeed = 0.25f;
 	
 	bool paused = false;
+
+	bool enableTextOverlay = false;
+	VulkanTextOverlay *textOverlay;
 
 	// Use to adjust mouse rotation speed
 	float rotationSpeed = 1.0f;
@@ -332,5 +338,7 @@ public:
 	VkSubmitInfo prepareSubmitInfo(
 		std::vector<VkCommandBuffer> commandBuffers,
 		VkPipelineStageFlags *pipelineStages);
+
+	void updateTextOverlay();
 };
 

@@ -265,6 +265,25 @@ void VulkanExampleBase::prepare()
 #if defined(__ANDROID__)
 	textureLoader->assetManager = androidApp->activity->assetManager;
 #endif
+	if (enableTextOverlay)
+	{
+		// Load the text rendering shaders
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+		shaderStages.push_back(loadShader(getAssetPath() + "shaders/base/textoverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
+		shaderStages.push_back(loadShader(getAssetPath() + "shaders/base/textoverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
+		textOverlay = new VulkanTextOverlay(
+			physicalDevice,
+			device,
+			queue,
+			frameBuffers,
+			colorformat,
+			depthFormat,
+			&width,
+			&height,
+			shaderStages
+			);
+		updateTextOverlay();
+	}
 }
 
 VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileName, VkShaderStageFlagBits stage)
@@ -394,8 +413,12 @@ void VulkanExampleBase::renderLoop()
 		if (fpsTimer > 1000.0f)
 		{
 			std::string windowTitle = getWindowTitle();
-			SetWindowText(window, windowTitle.c_str());
+			if (!enableTextOverlay)
+			{
+				SetWindowText(window, windowTitle.c_str());
+			}
 			lastFPS = frameCounter;
+			updateTextOverlay();
 			fpsTimer = 0.0f;
 			frameCounter = 0.0f;
 		}
@@ -452,8 +475,8 @@ void VulkanExampleBase::renderLoop()
 			fpsTimer += (float)tDiff;
 			if (fpsTimer > 1000.0f)
 			{
-				LOGD("%d fps", frameCounter);
 				lastFPS = frameCounter;
+				updateTextOverlay();
 				fpsTimer = 0.0f;
 				frameCounter = 0.0f;
 			}
@@ -516,11 +539,15 @@ void VulkanExampleBase::renderLoop()
 		fpsTimer += (float)tDiff;
 		if (fpsTimer > 1000.0f)
 		{
-			std::string windowTitle = getWindowTitle();
-			xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-				window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
-				windowTitle.size(), windowTitle.c_str());
+			if (!enableTextOverlay)
+			{
+				std::string windowTitle = getWindowTitle();
+				xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+					window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
+					windowTitle.size(), windowTitle.c_str());
+			}
 			lastFPS = frameCounter;
+			updateTextOverlay();
 			fpsTimer = 0.0f;
 			frameCounter = 0.0f;
 		}
@@ -617,6 +644,26 @@ VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
 	return submitInfo;
 }
 
+void VulkanExampleBase::updateTextOverlay()
+{
+	if (!enableTextOverlay)
+		return;
+
+	textOverlay->beginTextUpdate();
+
+	textOverlay->addText(title, 5.0f, 5.0f, VulkanTextOverlay::alignLeft);
+
+	std::stringstream ss;
+	ss << std::fixed << std::setprecision(2) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
+	textOverlay->addText(ss.str(), 5.0f, 25.0f, VulkanTextOverlay::alignLeft);
+
+	textOverlay->addText(deviceProperties.deviceName, 5.0f, 45.0f, VulkanTextOverlay::alignLeft);
+
+	// todo : callback for adding text from derived classes
+
+	textOverlay->endTextUpdate();
+}
+
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
 	// Check for validation command line flag
@@ -690,6 +737,12 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
 	vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
+	vkDestroySemaphore(device, semaphores.textOverlayComplete, nullptr);
+
+	if (enableTextOverlay)
+	{
+		delete textOverlay;
+	}
 
 	vkDestroyDevice(device, nullptr);
 
@@ -798,12 +851,14 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
 	// Create a semaphore used to synchronize image presentation
 	// Ensures that the image is displayed before we start submitting new commands to the queu
-	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
-	assert(!err);
+	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete));
 	// Create a semaphore used to synchronize command submission
 	// Ensures that the image is not presented until all commands have been sumbitted and executed
-	err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
-	assert(!err);
+	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete));
+	// Create a semaphore used to synchronize command submission
+	// Ensures that the image is not presented until all commands for the text overlay have been sumbitted and executed
+	// Will be inserted after the render complete semaphore if the text overlay is enabled
+	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.textOverlayComplete));
 
 	// Set up submit info structure
 	// Semaphores will stay the same during application lifetime
@@ -1029,7 +1084,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		{
 			destWidth = LOWORD(lParam);
 			destHeight = HIWORD(lParam);
-			if ((wParam == SIZE_MAXIMIZED) || (wParam == SIZE_RESTORED))
+			if ((wParam == SIZE_MAXIMIZED) || (wParam == SIZE_MINIMIZED))
 			{
 				windowResize();
 			}
@@ -1542,6 +1597,12 @@ void VulkanExampleBase::windowResize()
 
 	vkQueueWaitIdle(queue);
 	vkDeviceWaitIdle(device);
+
+	if (enableTextOverlay)
+	{
+		textOverlay->reallocateCommandBuffers();
+		updateTextOverlay();
+	}
 
 	// Notify derived class
 	windowResized();

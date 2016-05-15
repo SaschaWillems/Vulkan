@@ -634,8 +634,6 @@ public:
 
 		for (int32_t i = 0; i < cmdBuffers.size(); ++i)
 		{
-			std::cout << "update text cmd buff " << i << " with fb " << *frameBuffers[i] << std::endl;
-
 			renderPassBeginInfo.framebuffer = *frameBuffers[i];
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffers[i], &cmdBufInfo));
@@ -666,7 +664,6 @@ public:
 	}
 
 	// Submit the text command buffers to a queue
-	// Does a queue wait idle
 	void submit(VkQueue queue, uint32_t bufferindex, VkSubmitInfo submitInfo)
 	{
 		if (!visible)
