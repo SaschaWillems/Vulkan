@@ -34,6 +34,8 @@ struct Vertex {
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	bool wireframe = false;
+
 	struct {
 		vkTools::VulkanTexture colorMap;
 	} textures;
@@ -67,11 +69,12 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
-		glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
+		glm::vec4 lightPos = glm::vec4(25.0f, 5.0f, 5.0f, 1.0f);
 	} uboVS;
 
 	struct {
 		VkPipeline solid;
+		VkPipeline wireframe;
 	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
@@ -80,12 +83,11 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		width = 1280;
-		height = 720;
-		zoom = -5.5;
+		zoom = -5.5f;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
-		rotation = { -25.5, -123.75, 0.0 };
+		rotation = { -0.5f, -112.75f, 0.0f };
+		cameraPos = { 0.1f, 1.1f, 0.0f };
 		title = "Vulkan Example - Mesh rendering";
 	}
 
@@ -107,6 +109,16 @@ public:
 		textureLoader->destroyTexture(textures.colorMap);
 
 		vkTools::destroyUniformData(device, &uniformData.vsScene);
+	}
+
+	void reBuildCommandBuffers()
+	{
+		if (!checkCommandBuffers())
+		{
+			destroyCommandBuffers();
+			createCommandBuffers();
+		}
+		buildCommandBuffers();
 	}
 
 	void buildCommandBuffers()
@@ -142,7 +154,7 @@ public:
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
 			// Bind mesh vertex buffer
@@ -536,6 +548,12 @@ public:
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+
+		// Wire frame rendering pipeline
+		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+		rasterizationState.lineWidth = 1.0f;
+
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -595,6 +613,18 @@ public:
 	{
 		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
+	}
+
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x57:
+		case GAMEPAD_BUTTON_A:
+			wireframe = !wireframe;
+			reBuildCommandBuffers();
+			break;
+		}
 	}
 };
 
