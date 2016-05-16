@@ -538,6 +538,13 @@ VkFenceCreateInfo vkTools::initializers::fenceCreateInfo(VkFenceCreateFlags flag
 	return fenceCreateInfo;
 }
 
+VkEventCreateInfo vkTools::initializers::eventCreateInfo()
+{
+	VkEventCreateInfo eventCreateInfo = {};
+	eventCreateInfo.sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
+	return eventCreateInfo;
+}
+
 VkSubmitInfo vkTools::initializers::submitInfo()
 {
 	VkSubmitInfo submitInfo = {};

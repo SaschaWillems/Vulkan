@@ -148,6 +148,7 @@ namespace vkTools
 
 		VkSemaphoreCreateInfo semaphoreCreateInfo();
 		VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags);
+		VkEventCreateInfo eventCreateInfo();
 
 		VkSubmitInfo submitInfo();
 
