@@ -696,6 +696,8 @@ void VulkanExampleBase::submitFrame()
 		submitInfo.pCommandBuffers = &textOverlay->cmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
+		// Reset stage mask
+		submitInfo.pWaitDstStageMask = &submitPipelineStages;
 		// Reset wait and signal semaphores for rendering next frame
 		// Wait for swap chain presentation to finish
 		submitInfo.waitSemaphoreCount = 1;
