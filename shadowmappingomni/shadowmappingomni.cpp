@@ -118,6 +118,8 @@ public:
 	} offScreenFrameBuf;
 
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
+	VkRenderPass offscreenRenderpass = VK_NULL_HANDLE;
+	VkFormat fbDepthFormat;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -152,6 +154,8 @@ public:
 		vkFreeMemory(device, offScreenFrameBuf.depth.mem, nullptr);
 
 		vkDestroyFramebuffer(device, offScreenFrameBuf.frameBuffer, nullptr);
+
+		vkDestroyRenderPass(device, offscreenRenderpass, nullptr);
 
 		// Pipelibes
 		vkDestroyPipeline(device, pipelines.scene, nullptr);
@@ -301,11 +305,6 @@ public:
 
 		VkFormat fbColorFormat = FB_COLOR_FORMAT;
 
-		// Find a suitable depth format
-		VkFormat fbDepthFormat;
-		VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &fbDepthFormat);
-		assert(validDepthFormat);
-
 		VkResult err;
 
 		createSetupCommandBuffer();
@@ -408,7 +407,7 @@ public:
 		VkFramebufferCreateInfo fbufCreateInfo = {};
 		fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		fbufCreateInfo.pNext = NULL;
-		fbufCreateInfo.renderPass = renderPass;
+		fbufCreateInfo.renderPass = offscreenRenderpass;
 		fbufCreateInfo.attachmentCount = 2;
 		fbufCreateInfo.pAttachments = attachments;
 		fbufCreateInfo.width = offScreenFrameBuf.width;
@@ -889,6 +888,70 @@ public:
 		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
 	}
 
+	void prepareOffscreenRenderpass()
+	{
+		VkResult err;
+		// Create offscreen renderpass (illegal to use the same one)
+		VkAttachmentDescription osAttachments[2] = {};
+
+		// Find a suitable depth format
+		VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &fbDepthFormat);
+		assert(validDepthFormat);
+
+		osAttachments[0].format = FB_COLOR_FORMAT;
+		osAttachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+		osAttachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		osAttachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		osAttachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		osAttachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		osAttachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		osAttachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		// Depth attachment
+		osAttachments[1].format = fbDepthFormat;
+		osAttachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+		osAttachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		osAttachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		osAttachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		osAttachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		osAttachments[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		osAttachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference colorReference = {};
+		colorReference.attachment = 0;
+		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depthReference = {};
+		depthReference.attachment = 1;
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription osSubpass = {};
+		osSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		osSubpass.flags = 0;
+		osSubpass.inputAttachmentCount = 0;
+		osSubpass.pInputAttachments = nullptr;
+		osSubpass.colorAttachmentCount = 1;
+		osSubpass.pColorAttachments = &colorReference;
+		osSubpass.pResolveAttachments = nullptr;
+		osSubpass.pDepthStencilAttachment = &depthReference;
+		osSubpass.preserveAttachmentCount = 0;
+		osSubpass.pPreserveAttachments = nullptr;
+
+		VkRenderPassCreateInfo offscreenRenderpassCreateInfo;
+		offscreenRenderpassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		offscreenRenderpassCreateInfo.pNext = nullptr;
+		offscreenRenderpassCreateInfo.flags = 0;
+		offscreenRenderpassCreateInfo.attachmentCount = 2;
+		offscreenRenderpassCreateInfo.pAttachments = osAttachments;
+		offscreenRenderpassCreateInfo.subpassCount = 1;
+		offscreenRenderpassCreateInfo.pSubpasses = &osSubpass;
+		offscreenRenderpassCreateInfo.dependencyCount = 0;
+		offscreenRenderpassCreateInfo.pDependencies = nullptr;
+
+		err = vkCreateRenderPass(device, &offscreenRenderpassCreateInfo, nullptr, &offscreenRenderpass);
+		assert(!err);
+	}
+
 	void preparePipelines()
 	{
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
@@ -977,6 +1040,7 @@ public:
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapomni/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
+		pipelineCreateInfo.renderPass = offscreenRenderpass;
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreen);
 		assert(!err);
 	}
@@ -1053,6 +1117,7 @@ public:
 		prepareUniformBuffers();
 		prepareCubeMap();
 		setupDescriptorSetLayout();
+		prepareOffscreenRenderpass();
 		preparePipelines();
 		setupDescriptorPool();
 		setupDescriptorSets();
