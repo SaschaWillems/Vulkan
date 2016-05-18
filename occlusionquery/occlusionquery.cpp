@@ -143,32 +143,29 @@ public:
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 
 				bufSize);
 
-		VkResult err = vkCreateBuffer(device, &bufferCreateInfo, nullptr, &queryResult.buffer);
-		assert(!err);
+		// Results are saved in a host visible buffer for easy access by the application
+		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &queryResult.buffer));
 		vkGetBufferMemoryRequirements(device, queryResult.buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAlloc, nullptr, &queryResult.memory);
-		assert(!err);
-
-		err = vkBindBufferMemory(device, queryResult.buffer, queryResult.memory, 0);
-		assert(!err);
+		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &queryResult.memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, queryResult.buffer, queryResult.memory, 0));
 
 		// Create query pool
 		VkQueryPoolCreateInfo queryPoolInfo = {};
 		queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+		// Query pool will be created for occlusion queries
 		queryPoolInfo.queryType = VK_QUERY_TYPE_OCCLUSION;
 		queryPoolInfo.queryCount = 2;
 
-		err = vkCreateQueryPool(device, &queryPoolInfo, NULL, &queryPool);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateQueryPool(device, &queryPoolInfo, NULL, &queryPool));
 	}
 
 	// Retrieves the results of the occlusion queries submitted to the command buffer
 	void getQueryResults()
 	{
-		VkResult err;
-		err = vkGetQueryPoolResults(
+		// We use vkGetQueryResults to copy the results into a host visible buffer
+		vkGetQueryPoolResults(
 			device, 
 			queryPool,
 			0,
@@ -176,9 +173,10 @@ public:
 			sizeof(passedSamples),
 			passedSamples,
 			sizeof(uint64_t),
+			// Store results a 64 bit values and wait until the results have been finished
+			// If you don't want to wait, you can use VK_QUERY_RESULT_WITH_AVAILABILITY_BIT
+			// which also returns the state of the result (ready) in the result
 			VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-
-		assert(!err);
 	}
 
 	void buildCommandBuffers()
@@ -198,15 +196,12 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			// Reset query pool
 			// Must be done outside of render pass
@@ -307,48 +302,21 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			// Query results
-			vkCmdCopyQueryPoolResults(
-				drawCmdBuffers[i], 
-				queryPool,
-				0,
-				2,
-				queryResult.buffer,
-				0,
-				sizeof(uint64_t),
-				VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
 	void draw()
 	{
-		VkResult err;
+		VulkanExampleBase::prepareFrame();
 
-		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
-		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
+		VulkanExampleBase::submitFrame();
 
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
-
+		// Read query results for displaying in next frame
 		getQueryResults();
 	}
 
@@ -405,6 +373,7 @@ public:
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
+			// One uniform buffer block for each mesh
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3)
 		};
 
@@ -414,8 +383,7 @@ public:
 				poolSizes.data(),
 				3);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -434,16 +402,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSets()
@@ -455,8 +421,7 @@ public:
 				1);
 
 		// Occluder (plane)
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
@@ -470,16 +435,14 @@ public:
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
-		// teapot
-		vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.teapot);
-		assert(!vkRes);
+		// Teapot
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.teapot));
 		writeDescriptorSets[0].dstSet = descriptorSets.teapot;
 		writeDescriptorSets[0].pBufferInfo = &uniformData.teapot.descriptor;
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
-		// sphere
-		vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.sphere);
-		assert(!vkRes);
+		// Sphere
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.sphere));
 		writeDescriptorSets[0].dstSet = descriptorSets.sphere;
 		writeDescriptorSets[0].pBufferInfo = &uniformData.sphere.descriptor;
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -558,16 +521,14 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
 
-		// Simple pipeline
+		// Basic pipeline for coloring occluded objects
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/occlusionquery/simple.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/occlusionquery/simple.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.simple);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.simple));
 
 		// Visual pipeline for the occluder
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/occlusionquery/occluder.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -579,8 +540,7 @@ public:
 		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
 		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
 
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.occluder);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.occluder));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -634,26 +594,23 @@ public:
 		uboVS.visible = 1.0f;
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.vsScene.memory);
 
-		// teapot
+		// Teapot
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[0] > 0) ? 1.0f : 0.0f;
 		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, -10.0f));
-		err = vkMapMemory(device, uniformData.teapot.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.teapot.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.teapot.memory);
 
-		// sphere
+		// Sphere
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[1] > 0) ? 1.0f : 0.0f;
 		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 10.0f));
-		err = vkMapMemory(device, uniformData.sphere.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.sphere.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.sphere.memory);
 	}
@@ -677,13 +634,12 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 	}
 
 	virtual void viewChanged()
 	{
+		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
 		std::cout << "Passed samples : Teapot = " << passedSamples[0] << " / Sphere = " << passedSamples[1] <<"\n";
 	}
