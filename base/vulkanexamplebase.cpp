@@ -659,9 +659,14 @@ void VulkanExampleBase::updateTextOverlay()
 
 	textOverlay->addText(deviceProperties.deviceName, 5.0f, 45.0f, VulkanTextOverlay::alignLeft);
 
-	// todo : callback for adding text from derived classes
+	getOverlayText(textOverlay);
 
 	textOverlay->endTextUpdate();
+}
+
+void VulkanExampleBase::getOverlayText(VulkanTextOverlay *textOverlay)
+{
+	// Can be overriden in derived class
 }
 
 void VulkanExampleBase::prepareFrame()

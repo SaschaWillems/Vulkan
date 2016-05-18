@@ -341,6 +341,10 @@ public:
 
 	void updateTextOverlay();
 
+	// Called when the text overlay is updating
+	// Can be overriden in derived class to add custom text to the overlay
+	virtual void getOverlayText(VulkanTextOverlay * textOverlay);
+
 	// Prepare the frame for workload submission
 	// - Acquires the next image from the swap chain 
 	// - Submits a post present barrier
