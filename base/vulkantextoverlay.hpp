@@ -30,7 +30,7 @@
 #define STB_NUM_CHARS STB_FONT_consolas_24_latin1_NUM_CHARS
 
 // Max. number of chars the text overlay buffer can hold
-#define MAX_CHAR_COUNT 512
+#define MAX_CHAR_COUNT 1024
 
 // Mostly self-contained text overlay class
 // todo : comment

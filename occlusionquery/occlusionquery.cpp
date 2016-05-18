@@ -96,13 +96,8 @@ public:
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
 		rotation = { 0.0, -123.75, 0.0 };
+		enableTextOverlay = true;
 		title = "Vulkan Example - Occlusion queries";
-#ifdef _WIN32 
-		if (!ENABLE_VALIDATION) 
-		{
-			setupConsole(title);
-		}
-#endif
 	}
 
 	~VulkanExample()
@@ -314,10 +309,10 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
-		VulkanExampleBase::submitFrame();
-
 		// Read query results for displaying in next frame
 		getQueryResults();
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void loadMeshes()
@@ -579,21 +574,20 @@ public:
 	void updateUniformBuffers()
 	{
 		// Vertex shader
-		glm::mat4 viewMatrix = glm::mat4();
 		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
+		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 
 		glm::mat4 rotMatrix = glm::mat4();
 		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uboVS.model = glm::mat4();
-		uboVS.model = viewMatrix * rotMatrix;;
-
-		uboVS.visible = 1.0f;
+		uboVS.model = viewMatrix * rotMatrix;
 
 		uint8_t *pData;
+
+		// Occluder
+		uboVS.visible = 1.0f;
 		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.vsScene.memory);
@@ -641,7 +635,14 @@ public:
 	{
 		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
-		std::cout << "Passed samples : Teapot = " << passedSamples[0] << " / Sphere = " << passedSamples[1] <<"\n";
+		VulkanExampleBase::updateTextOverlay();
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+		textOverlay->addText("Occlusion queries:", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Teapot: " + std::to_string(passedSamples[0]) + " samples passed" , 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Sphere: " + std::to_string(passedSamples[1]) + " samples passed", 5.0f, 125.0f, VulkanTextOverlay::alignLeft);
 	}
 };
 
