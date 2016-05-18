@@ -261,17 +261,6 @@ public:
 
 			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 1);
 
-			// Query results
-			vkCmdCopyQueryPoolResults(
-				drawCmdBuffers[i], 
-				queryPool,
-				0,
-				2,
-				queryResult.buffer,
-				0,
-				sizeof(uint64_t),
-				VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-
 			// Visible pass
 			// Clear color and depth attachments
 			VkClearAttachment clearAttachments[2] = {};
@@ -317,6 +306,17 @@ public:
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.plane.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
+
+			// Query results
+			vkCmdCopyQueryPoolResults(
+				drawCmdBuffers[i], 
+				queryPool,
+				0,
+				2,
+				queryResult.buffer,
+				0,
+				sizeof(uint64_t),
+				VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
 
 			err = vkEndCommandBuffer(drawCmdBuffers[i]);
 			assert(!err);
