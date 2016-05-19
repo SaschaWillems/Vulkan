@@ -6,24 +6,17 @@
  * Copyright (c) 2015-2016 Valve Corporation
  * Copyright (c) 2015-2016 LunarG, Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and/or associated documentation files (the "Materials"), to
- * deal in the Materials without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Materials, and to permit persons to whom the Materials are
- * furnished to do so, subject to the following conditions:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * The above copyright notice(s) and this permission notice shall be included in
- * all copies or substantial portions of the Materials.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- *
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE MATERIALS OR THE
- * USE OR OTHER DEALINGS IN THE MATERIALS.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -262,8 +255,8 @@ typedef enum VkLayerDbgAction_ {
 // CreateInstance and CreateDevice support structures
 
 /* Sub type of structure for instance and device loader ext of CreateInfo.
- * When sType == VK_STRUCTURE_TYPE_LAYER_INSTANCE_CREATE_INFO
- * or sType == VK_STRUCTURE_TYPE_LAYER_DEVICE_CREATE_INFO
+ * When sType == VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO
+ * or sType == VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO
  * then VkLayerFunction indicates struct type pointed to by pNext
  */
 typedef enum VkLayerFunction_ {
@@ -294,7 +287,7 @@ typedef VkResult (VKAPI_PTR *PFN_vkSetDeviceLoaderData)(VkDevice device,
         void *object);
 
 typedef struct {
-    VkStructureType sType; // VK_STRUCTURE_TYPE_LAYER_INSTANCE_CREATE_INFO
+    VkStructureType sType; // VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO
     const void *pNext;
     VkLayerFunction function;
     union {
@@ -310,7 +303,7 @@ typedef struct VkLayerDeviceLink_ {
 } VkLayerDeviceLink;
 
 typedef struct {
-    VkStructureType sType; // VK_STRUCTURE_TYPE_LAYER_DEVICE_CREATE_INFO
+    VkStructureType sType; // VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO
     const void *pNext;
     VkLayerFunction function;
     union {
