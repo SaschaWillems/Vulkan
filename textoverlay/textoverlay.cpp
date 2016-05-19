@@ -219,7 +219,8 @@ public:
 
 		VK_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
 
-		allocInfo.allocationSize = STB_FONT_WIDTH * STB_NUM_CHARS;
+		vkGetImageMemoryRequirements(device, image, &memReqs);
+		allocInfo.allocationSize = memReqs.size;
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &allocInfo.memoryTypeIndex);
 
 		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
