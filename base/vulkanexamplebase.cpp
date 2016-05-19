@@ -1094,7 +1094,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			}
 			break;
 		case VK_ESCAPE:
-			exit(0);
+			PostQuitMessage(0);
 			break;
 		}
 		keyPressed((uint32_t)wParam);
