@@ -76,7 +76,7 @@ namespace vkDebug
 			instance,
 			&dbgCreateInfo,
 			nullptr,
-			&msgCallback);
+			(callBack != nullptr) ? &callBack : &msgCallback);
 		assert(!err);
 	}
 	
@@ -84,8 +84,7 @@ namespace vkDebug
 	{
 		if (msgCallback != VK_NULL_HANDLE)
 		{
-			// Commented out as this crashes on some implementations for some reason (at least in VS2015)
-			// DestroyDebugReportCallback(instance, msgCallback, nullptr);
+			DestroyDebugReportCallback(instance, msgCallback, nullptr);
 		}
 	}
 }
