@@ -247,7 +247,7 @@ void VulkanExampleBase::prepare()
 {
 	if (enableValidation)
 	{
-		vkDebug::setupDebugging(instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, NULL);
+		vkDebug::setupDebugging(instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, VK_NULL_HANDLE);
 	}
 	createCommandPool();
 	createSetupCommandBuffer();
@@ -886,10 +886,6 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	// So examples can check against them and see if a feature is actually supported
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
-
-#if defined(__ANDROID__)
-	LOGD(deviceProperties.deviceName);
-#endif
 
 	// Gather physical device memory properties
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);

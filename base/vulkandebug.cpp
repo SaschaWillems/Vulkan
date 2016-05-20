@@ -76,7 +76,7 @@ namespace vkDebug
 			instance,
 			&dbgCreateInfo,
 			nullptr,
-			(callBack != nullptr) ? &callBack : &msgCallback);
+			(callBack != VK_NULL_HANDLE) ? &callBack : &msgCallback);
 		assert(!err);
 	}
 	
