@@ -197,22 +197,22 @@ private:
 		std::vector<unsigned int> Indices;
 	};
 
-
-	VkBool32 getMemoryType(VkPhysicalDeviceMemoryProperties deviceMemoryProperties, uint32_t typeBits, VkFlags properties, uint32_t * typeIndex)
+	VkBool32 getMemoryType(VkPhysicalDeviceMemoryProperties deviceMemoryProperties, uint32_t typeBits, VkMemoryPropertyFlags properties)
 	{
-		for (int i = 0; i < 32; i++)
+		for (uint32_t i = 0; i < 32; i++)
 		{
 			if ((typeBits & 1) == 1)
 			{
 				if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
 				{
-					*typeIndex = i;
-					return true;
+					return i;
 				}
 			}
 			typeBits >>= 1;
 		}
-		return false;
+
+		// todo : throw error
+		return 0;
 	}
 
 public:
@@ -388,15 +388,41 @@ public:
 		vkFreeMemory(device, mesh->indexBuffer.mem, nullptr);
 	}
 
-	// Create vertex and index buffer with given layout
-	void createVulkanBuffers(
+	VkResult createBuffer(
 		VkDevice device, 
 		VkPhysicalDeviceMemoryProperties deviceMemoryProperties,
-		vkMeshLoader::MeshBuffer *meshBuffer, 
-		std::vector<vkMeshLoader::VertexLayout> layout, 
-		float scale)
+		VkBufferUsageFlags usageFlags, 
+		VkMemoryPropertyFlags memoryPropertyFlags, 
+		VkDeviceSize size, 
+		VkBuffer *buffer, 
+		VkDeviceMemory *memory)
 	{
+		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();	
+		VkMemoryRequirements memReqs;
 
+		VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(usageFlags, size);
+		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, buffer));
+		vkGetBufferMemoryRequirements(device, *buffer, &memReqs);
+		memAllocInfo.allocationSize = memReqs.size;
+		memAllocInfo.memoryTypeIndex = getMemoryType(deviceMemoryProperties, memReqs.memoryTypeBits, memoryPropertyFlags);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, *buffer, *memory, 0));
+
+		return VK_SUCCESS;
+	}
+
+	// Create vertex and index buffer with given layout
+	// Note : Only does staging if a valid command buffer and transfer queue are passed
+	void createBuffers(
+		VkDevice device,
+		VkPhysicalDeviceMemoryProperties deviceMemoryProperties,
+		vkMeshLoader::MeshBuffer *meshBuffer,
+		std::vector<vkMeshLoader::VertexLayout> layout,
+		float scale,
+		bool useStaging,
+		VkCommandBuffer copyCmd,
+		VkQueue copyQueue)
+	{
 		std::vector<float> vertexBuffer;
 		for (int m = 0; m < m_Entries.size(); m++)
 		{
@@ -416,7 +442,7 @@ public:
 					if (layoutDetail == vkMeshLoader::VERTEX_LAYOUT_NORMAL)
 					{
 						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_normal.x);
-						vertexBuffer.push_back(-m_Entries[m].Vertices[i].m_normal.y);  
+						vertexBuffer.push_back(-m_Entries[m].Vertices[i].m_normal.y);
 						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_normal.z);
 					}
 					// Texture coordinates
@@ -471,50 +497,160 @@ public:
 		for (uint32_t m = 0; m < m_Entries.size(); m++)
 		{
 			uint32_t indexBase = (uint32_t)indexBuffer.size();
-			for (uint32_t i = 0; i < m_Entries[m].Indices.size(); i++) 
+			for (uint32_t i = 0; i < m_Entries[m].Indices.size(); i++)
 			{
 				indexBuffer.push_back(m_Entries[m].Indices[i] + indexBase);
 			}
 		}
 		meshBuffer->indices.size = indexBuffer.size() * sizeof(uint32_t);
 
-		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
-
-		VkResult err;
-		void *data;
-
-		// Generate vertex buffer
-		VkBufferCreateInfo vBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, meshBuffer->vertices.size);
-		err = vkCreateBuffer(device, &vBufferInfo, nullptr, &meshBuffer->vertices.buf);
-		assert(!err);
-		vkGetBufferMemoryRequirements(device, meshBuffer->vertices.buf, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(deviceMemoryProperties, memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAlloc, nullptr, &meshBuffer->vertices.mem);
-		assert(!err);
-		err = vkMapMemory(device, meshBuffer->vertices.mem, 0, meshBuffer->vertices.size, 0, &data);
-		assert(!err);
-		memcpy(data, vertexBuffer.data(), meshBuffer->vertices.size);
-		vkUnmapMemory(device, meshBuffer->vertices.mem);
-		err = vkBindBufferMemory(device, meshBuffer->vertices.buf, meshBuffer->vertices.mem, 0);
-		assert(!err);
-
-		// Generate index buffer
-		VkBufferCreateInfo iBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, meshBuffer->indices.size);
-		err = vkCreateBuffer(device, &iBufferInfo, nullptr, &meshBuffer->indices.buf);
-		assert(!err);
-		vkGetBufferMemoryRequirements(device, meshBuffer->indices.buf, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(deviceMemoryProperties, memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAlloc, nullptr, &meshBuffer->indices.mem);
-		assert(!err);
-		err = vkMapMemory(device, meshBuffer->indices.mem, 0, meshBuffer->indices.size, 0, &data);
-		assert(!err);
-		memcpy(data, indexBuffer.data(), meshBuffer->indices.size);
-		vkUnmapMemory(device, meshBuffer->indices.mem);
-		err = vkBindBufferMemory(device, meshBuffer->indices.buf, meshBuffer->indices.mem, 0);
-		assert(!err);
 		meshBuffer->indexCount = (uint32_t)indexBuffer.size();
+
+		void* data;
+
+		// Use staging buffer to move vertex and index buffer to device local memory
+		if (useStaging && copyQueue != VK_NULL_HANDLE && copyCmd != VK_NULL_HANDLE)
+		{
+			// Create staging buffers
+			struct {
+				VkBuffer buffer;
+				VkDeviceMemory memory;
+			} vertexStaging, indexStaging;
+
+			// Vertex buffer
+			createBuffer(
+				device,
+				deviceMemoryProperties,
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				meshBuffer->vertices.size,
+				&vertexStaging.buffer,
+				&vertexStaging.memory);
+
+			VK_CHECK_RESULT(vkMapMemory(device, vertexStaging.memory, 0, VK_WHOLE_SIZE, 0, &data));
+			memcpy(data, vertexBuffer.data(), meshBuffer->vertices.size);
+			vkUnmapMemory(device, vertexStaging.memory);
+
+			// Index buffer
+			createBuffer(
+				device,
+				deviceMemoryProperties,
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				meshBuffer->indices.size,
+				&indexStaging.buffer,
+				&indexStaging.memory);
+
+			VK_CHECK_RESULT(vkMapMemory(device, indexStaging.memory, 0, VK_WHOLE_SIZE, 0, &data));
+			memcpy(data, indexBuffer.data(), meshBuffer->indices.size);
+			vkUnmapMemory(device, indexStaging.memory);
+
+			// Create device local target buffers
+			// Vertex buffer
+			createBuffer(
+				device,
+				deviceMemoryProperties,
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				meshBuffer->vertices.size,
+				&meshBuffer->vertices.buf,
+				&meshBuffer->vertices.mem);
+
+			// Index buffer
+			createBuffer(
+				device,
+				deviceMemoryProperties,
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				meshBuffer->indices.size,
+				&meshBuffer->indices.buf,
+				&meshBuffer->indices.mem);
+
+			// Copy from staging buffers
+			VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+			VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
+
+			VkBufferCopy copyRegion = {};
+
+			copyRegion.size = meshBuffer->vertices.size;
+			vkCmdCopyBuffer(
+				copyCmd,
+				vertexStaging.buffer,
+				meshBuffer->vertices.buf,
+				1,
+				&copyRegion);
+
+			copyRegion.size = meshBuffer->indices.size;
+			vkCmdCopyBuffer(
+				copyCmd,
+				indexStaging.buffer,
+				meshBuffer->indices.buf,
+				1,
+				&copyRegion);
+
+			VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
+
+			VkSubmitInfo submitInfo = {};
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &copyCmd;
+
+			VK_CHECK_RESULT(vkQueueSubmit(copyQueue, 1, &submitInfo, VK_NULL_HANDLE));
+			VK_CHECK_RESULT(vkQueueWaitIdle(copyQueue));
+
+			vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
+			vkFreeMemory(device, vertexStaging.memory, nullptr);
+			vkDestroyBuffer(device, indexStaging.buffer, nullptr);
+			vkFreeMemory(device, indexStaging.memory, nullptr);
+		}
+		else
+		{
+			// Generate vertex buffer
+			createBuffer(
+				device,
+				deviceMemoryProperties,
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				meshBuffer->vertices.size,
+				&meshBuffer->vertices.buf,
+				&meshBuffer->vertices.mem);
+
+			VK_CHECK_RESULT(vkMapMemory(device, meshBuffer->vertices.mem, 0, meshBuffer->vertices.size, 0, &data));
+			memcpy(data, vertexBuffer.data(), meshBuffer->vertices.size);
+			vkUnmapMemory(device, meshBuffer->vertices.mem);
+
+			// Generate index buffer
+			createBuffer(
+				device,
+				deviceMemoryProperties,
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				meshBuffer->indices.size,
+				&meshBuffer->indices.buf,
+				&meshBuffer->indices.mem);
+
+			VK_CHECK_RESULT(vkMapMemory(device, meshBuffer->indices.mem, 0, meshBuffer->indices.size, 0, &data));
+			memcpy(data, indexBuffer.data(), meshBuffer->indices.size);
+			vkUnmapMemory(device, meshBuffer->indices.mem);
+		}
+	}
+
+	// Create vertex and index buffer with given layout
+	void createVulkanBuffers(
+		VkDevice device, 
+		VkPhysicalDeviceMemoryProperties deviceMemoryProperties,
+		vkMeshLoader::MeshBuffer *meshBuffer, 
+		std::vector<vkMeshLoader::VertexLayout> layout, 
+		float scale)
+	{
+		createBuffers(
+			device,
+			deviceMemoryProperties,
+			meshBuffer,
+			layout,
+			scale,
+			false,
+			VK_NULL_HANDLE,
+			VK_NULL_HANDLE);
 	}
 };

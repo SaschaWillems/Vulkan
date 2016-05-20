@@ -378,12 +378,19 @@ void VulkanExampleBase::loadMesh(
 	mesh->LoadMesh(filename);
 	assert(mesh->m_Entries.size() > 0);
 
-	mesh->createVulkanBuffers(
+	VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
+
+	mesh->createBuffers(
 		device,
 		deviceMemoryProperties,
 		meshBuffer,
 		vertexLayout,
-		scale);
+		scale,
+		true,
+		copyCmd,
+		queue);
+
+	vkFreeCommandBuffers(device, cmdPool, 1, &copyCmd);
 
 	meshBuffer->dim = mesh->dim.size;
 
