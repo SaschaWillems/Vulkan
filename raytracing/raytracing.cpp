@@ -719,9 +719,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 		if (!paused)
 		{
 			updateUniformBuffers();
