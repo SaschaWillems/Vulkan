@@ -200,13 +200,13 @@ VkCommandBuffer VulkanExampleBase::createCommandBuffer(VkCommandBufferLevel leve
 			level,
 			1);
 
-	vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &cmdBuffer));
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &cmdBuffer));
 
 	// If requested, also start the new command buffer
 	if (begin)
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
-		vkTools::checkResult(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
 	}
 
 	return cmdBuffer;
@@ -219,15 +219,15 @@ void VulkanExampleBase::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueu
 		return;
 	}
 	
-	vkTools::checkResult(vkEndCommandBuffer(commandBuffer));
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-	vkTools::checkResult(vkQueueWaitIdle(queue));
+	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 
 	if (free)
 	{
@@ -308,20 +308,20 @@ VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usageFlags, VkMemory
 	VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 	VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usageFlags, size);
 
-	vkTools::checkResult(vkCreateBuffer(device, &bufferCreateInfo, nullptr, buffer));
+	VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, buffer));
 
 	vkGetBufferMemoryRequirements(device, *buffer, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
-	getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags, &memAlloc.memoryTypeIndex);
-	vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, memory));
+	memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+	VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, memory));
 	if (data != nullptr)
 	{
 		void *mapped;
-		vkTools::checkResult(vkMapMemory(device, *memory, 0, size, 0, &mapped));
+		VK_CHECK_RESULT(vkMapMemory(device, *memory, 0, size, 0, &mapped));
 		memcpy(mapped, data, size);
 		vkUnmapMemory(device, *memory);
 	}
-	vkTools::checkResult(vkBindBufferMemory(device, *buffer, *memory, 0));
+	VK_CHECK_RESULT(vkBindBufferMemory(device, *buffer, *memory, 0));
 
 	return true;
 }
@@ -334,6 +334,22 @@ VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize 
 VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
 {
 	VkBool32 res = createBuffer(usage, size, data, buffer, memory);
+	if (res)
+	{
+		descriptor->offset = 0;
+		descriptor->buffer = *buffer;
+		descriptor->range = size;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
+{
+	VkBool32 res = createBuffer(usage, memoryPropertyFlags, size, data, buffer, memory);
 	if (res)
 	{
 		descriptor->offset = 0;

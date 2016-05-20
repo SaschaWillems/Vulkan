@@ -314,6 +314,15 @@ public:
 		VkBuffer *buffer,
 		VkDeviceMemory *memory,
 		VkDescriptorBufferInfo *descriptor);
+	// Overload to pass memory property flags
+	VkBool32 createBuffer(
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags memoryPropertyFlags,
+		VkDeviceSize size,
+		void *data,
+		VkBuffer *buffer,
+		VkDeviceMemory *memory,
+		VkDescriptorBufferInfo *descriptor);
 
 	// Load a mesh (using ASSIMP) and create vulkan vertex and index buffers with given vertex layout
 	void loadMesh(
