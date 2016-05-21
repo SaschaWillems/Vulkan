@@ -509,18 +509,18 @@ void VulkanExampleBase::renderLoop()
 			// todo : time based and relative axis positions
 			bool updateView = false;
 			// Rotate
-			if (std::abs(gamePadState.axes.x - deadZone) > 0.0f)
+			if (std::abs(gamePadState.axes.x) > deadZone)
 			{
 				rotation.y += gamePadState.axes.x * 0.5f * rotationSpeed;
 				updateView = true;
 			}
-			if (std::abs(gamePadState.axes.y - deadZone) > 0.0f)
+			if (std::abs(gamePadState.axes.y) > deadZone)
 			{
 				rotation.x -= gamePadState.axes.y * 0.5f * rotationSpeed;
 				updateView = true;
 			}
 			// Zoom
-			if (std::abs(gamePadState.axes.rz - deadZone) > 0.0f)
+			if (std::abs(gamePadState.axes.rz) > deadZone)
 			{
 				zoom -= gamePadState.axes.rz * 0.01f * zoomSpeed;
 				updateView = true;
