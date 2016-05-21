@@ -14,7 +14,7 @@ layout (binding = 0, rgba8) uniform writeonly image2D resultImage;
 #define SPHERECOUNT 3
 #define SHADOW 0.5
 #define RAYBOUNCES 1
-#define REFLECTIONSTRENGTH 0.25
+#define REFLECTIONSTRENGTH 0.4
 
 struct Camera {
     vec3 pos;   
@@ -47,7 +47,7 @@ float lightSpecular(vec3 normal, vec3 lightDir)
 {
     vec3 viewVec = normalize(ubo.camera.pos);
     vec3 halfVec = normalize(lightDir + viewVec);
-    return pow(clamp(dot(normal, halfVec), 0.0, 1.0), 16.0);
+    return pow(clamp(dot(normal, halfVec), 0.0, 1.0), 32.0);
 }
 
 // Primitives
@@ -206,19 +206,19 @@ void main()
 	spheres[0].pos = vec3(-2.25, 1.0, 0.0);
 	spheres[0].r = 1.0;
 	spheres[0].material.diffuse = vec3(1.0, 0.0, 0.0);
-	spheres[0].material.specular = vec3(1.0, 1.0, 1.0);
+	spheres[0].material.specular = vec3(2.0);
 
 	spheres[1].id = 3;
 	spheres[1].pos = vec3(0.0, 2.5, 0.0);
 	spheres[1].r = 1.0;
 	spheres[1].material.diffuse = vec3(0.0, 0.0, 1.0);
-	spheres[1].material.specular = vec3(1.0, 1.0, 1.0);	
+	spheres[1].material.specular = vec3(2.0);	
 	
 	spheres[2].id = 4;
 	spheres[2].pos = vec3(2.25, 1.0, 0.0);
 	spheres[2].r = 1.0;
 	spheres[2].material.diffuse = vec3(0.0, 1.0, 0.0);
-	spheres[2].material.specular = vec3(1.0, 1.0, 1.0);
+	spheres[2].material.specular = vec3(2.0);
 	
 	ivec2 dim = imageSize(resultImage);
 	vec2 uv = vec2(gl_GlobalInvocationID.xy) / dim;

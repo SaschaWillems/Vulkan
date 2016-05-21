@@ -7,15 +7,14 @@ if %ERRORLEVEL% EQU 0 (
 	mkdir "assets\shaders\base"
 	xcopy "..\..\data\shaders\base\*.spv" "assets\shaders\base" /Y
 	
-
 	mkdir "assets\shaders\tessellation"
 	xcopy "..\..\data\shaders\tessellation\*.spv" "assets\shaders\tessellation" /Y
 
 	mkdir "assets\textures"
-	xcopy "..\..\data\textures\bearmug.ktx" "assets\textures" /Y
+	xcopy "..\..\data\textures\deer.ktx" "assets\textures" /Y
 
 	mkdir "assets\models\lowpoly"
-	xcopy "..\..\data\models\lowpoly\bearmug.dae" "assets\models\lowpoly" /Y 
+	xcopy "..\..\data\models\lowpoly\deer.dae" "assets\models\lowpoly" /Y 
 	
 	mkdir "res\drawable"
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y

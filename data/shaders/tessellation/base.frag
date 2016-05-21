@@ -13,8 +13,9 @@ layout (location = 0) out vec4 outFragColor;
 void main()
 {
 	vec3 N = normalize(inNormal);
-	vec3 L = normalize(vec3(0.0, 2.0, 2.0));
+	vec3 L = normalize(vec3(0.0, -4.0, 4.0));
+
+	vec4 color = texture(samplerColorMap, inUV);
 	
-	vec3 color = texture(samplerColorMap, inUV).rgb; 
-	outFragColor.rgb = vec3(clamp(max(dot(N,L), 0.0), 0.15, 1.0)) * color;
+	outFragColor.rgb = vec3(clamp(max(dot(N,L), 0.0), 0.2, 1.0)) * color.rgb * 1.5;
 }
