@@ -254,7 +254,7 @@ Please note that (some) models and textures use separate licenses. Please comply
 - Armored knight model used in deferred example by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
 - Voyager model by [NASA](http://nasa3d.arc.nasa.gov/models)
 - Astroboy COLLADA model copyright 2008 Sony Computer Entertainment Inc.
-- Bear mug model used in tessellation example by [Aare](http://opengameart.org/users/aare)
+- Old deer model used in tessellation example by [Čestmír Dammer](http://opengameart.org/users/cdmir)
 - Textures used in some examples by [Hugues Muller](http://www.yughues-folio.com)
 - Updated compute particle system shader by [Lukas Bergdoll](https://github.com/Voultapher)
 - Vulkan scene model (and derived models) by [Dominic Agoro-Ombaka](http://www.agorodesign.com/) and [Sascha Willems](http://www.saschawillems.de)
