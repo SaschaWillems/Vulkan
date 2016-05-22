@@ -20,9 +20,9 @@ namespace vkDebug
 		"VK_LAYER_LUNARG_standard_validation"
 	};
 
-	PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallback;
-	PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallback;
-	PFN_vkDebugReportMessageEXT dbgBreakCallback;
+	PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallback = VK_NULL_HANDLE;
+	PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallback = VK_NULL_HANDLE;
+	PFN_vkDebugReportMessageEXT dbgBreakCallback = VK_NULL_HANDLE;
 
 	VkDebugReportCallbackEXT msgCallback;
 
@@ -88,137 +88,184 @@ namespace vkDebug
 		}
 	}
 
-	PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectName = NULL;
-	PFN_vkCmdDebugMarkerBeginEXT CmdDebugMarkerBegin = NULL;
-	PFN_vkCmdDebugMarkerEndEXT CmdDebugMarkerEnd = NULL;
-	PFN_vkCmdDebugMarkerInsertEXT CmdDebugMarkerInsert = NULL;
-
-	// Set up the debug marker function pointers
-	void setupDebugMarkers(VkDevice device)
+	namespace debugReport
 	{
-		DebugMarkerSetObjectName = (PFN_vkDebugMarkerSetObjectNameEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectNameEXT");
-		CmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerBeginEXT");
-		CmdDebugMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerEndEXT");
-		CmdDebugMarkerInsert = (PFN_vkCmdDebugMarkerInsertEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerInsertEXT");
-	}
+		PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectName = VK_NULL_HANDLE;
+		PFN_vkCmdDebugMarkerBeginEXT CmdDebugMarkerBegin = VK_NULL_HANDLE;
+		PFN_vkCmdDebugMarkerEndEXT CmdDebugMarkerEnd = VK_NULL_HANDLE;
+		PFN_vkCmdDebugMarkerInsertEXT CmdDebugMarkerInsert = VK_NULL_HANDLE;
 
-	void insertDebugMarker(
-		VkCommandBuffer cmdbuffer,
-		const char* pMarkerName,
-		float color[4])
-	{
-		// need to check if the function pointer is valid - extension might not be present
-		if (CmdDebugMarkerInsert)
+		// Set up the debug marker function pointers
+		void setupDebugMarkers(VkDevice device)
 		{
-			VkDebugMarkerMarkerInfoEXT markerInfo = {};
-			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-			memcpy(markerInfo.color, color, sizeof(float)*4);
-			markerInfo.pMarkerName = pMarkerName;
-			CmdDebugMarkerInsert(cmdbuffer, &markerInfo);
+			DebugMarkerSetObjectName = (PFN_vkDebugMarkerSetObjectNameEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectNameEXT");
+			CmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerBeginEXT");
+			CmdDebugMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerEndEXT");
+			CmdDebugMarkerInsert = (PFN_vkCmdDebugMarkerInsertEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerInsertEXT");
 		}
-	}
 
-	void insertDebugMarker(
-		VkCommandBuffer cmdbuffer,
-		const char* pMarkerName)
-	{
-		// need to check if the function pointer is valid - extension might not be present
-		if (CmdDebugMarkerInsert)
+		void setObjectName(VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, const char *name)
 		{
-			VkDebugMarkerMarkerInfoEXT markerInfo = {};
-			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-			markerInfo.pMarkerName = pMarkerName;
-			CmdDebugMarkerInsert(cmdbuffer, &markerInfo);
+			// need to check if the function pointer is valid - extension might not be present
+			if (DebugMarkerSetObjectName)
+			{
+				VkDebugMarkerObjectNameInfoEXT nameInfo = {};
+				nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+				nameInfo.objectType = objectType;
+				nameInfo.object = object;
+				nameInfo.pObjectName = name;
+				DebugMarkerSetObjectName(device, &nameInfo);
+			}
 		}
-	}
 
-	DebugMarkerRegion::DebugMarkerRegion(VkCommandBuffer cmdbuffer,
-		const char* pMarkerName,
-		float color[4])
-	{
-		cmd = cmdbuffer;
-		// need to check if the function pointer is valid - extension might not be present
-		if (CmdDebugMarkerBegin)
+		void setCommandBufferName(VkDevice device, VkCommandBuffer cmdBuffer, const char * name)
 		{
-			VkDebugMarkerMarkerInfoEXT markerInfo = {};
-			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-			memcpy(markerInfo.color, color, sizeof(float)*4);
-			markerInfo.pMarkerName = pMarkerName;
-			CmdDebugMarkerBegin(cmd, &markerInfo);
+			setObjectName(device, (uint64_t)cmdBuffer, VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT, name);
 		}
-	}
 
-	DebugMarkerRegion::DebugMarkerRegion(VkCommandBuffer cmdbuffer,
-		const char* pMarkerName)
-	{
-		cmd = cmdbuffer;
-		// need to check if the function pointer is valid - extension might not be present
-		if (CmdDebugMarkerBegin)
+		void setQueueName(VkDevice device, VkQueue queue, const char * name)
 		{
-			VkDebugMarkerMarkerInfoEXT markerInfo = {};
-			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-			markerInfo.pMarkerName = pMarkerName;
-			CmdDebugMarkerBegin(cmd, &markerInfo);
+			setObjectName(device, (uint64_t)queue, VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT, name);
 		}
-	}
 
-	DebugMarkerRegion::~DebugMarkerRegion()
-	{
-		// need to check if the function pointer is valid - extension might not be present
-		if (CmdDebugMarkerEnd)
-			CmdDebugMarkerEnd(cmd);
-	}
-
-	// we specialise this template for each object type
-	template<typename VulkanType>
-	VkDebugReportObjectTypeEXT GetObjectTypeEnum(VulkanType object);
-
-#define OBJECT_TYPE(enumName, objectType) template<> VkDebugReportObjectTypeEXT GetObjectTypeEnum(objectType o) { (void)o; return VK_DEBUG_REPORT_OBJECT_TYPE_ ##enumName ##_EXT; }
-	OBJECT_TYPE(INSTANCE, VkInstance);
-	OBJECT_TYPE(PHYSICAL_DEVICE, VkPhysicalDevice);
-	OBJECT_TYPE(DEVICE, VkDevice);
-	OBJECT_TYPE(QUEUE, VkQueue);
-	OBJECT_TYPE(SEMAPHORE, VkSemaphore);
-	OBJECT_TYPE(COMMAND_BUFFER, VkCommandBuffer);
-	OBJECT_TYPE(FENCE, VkFence);
-	OBJECT_TYPE(DEVICE_MEMORY, VkDeviceMemory);
-	OBJECT_TYPE(BUFFER, VkBuffer);
-	OBJECT_TYPE(IMAGE, VkImage);
-	OBJECT_TYPE(EVENT, VkEvent);
-	OBJECT_TYPE(QUERY_POOL, VkQueryPool);
-	OBJECT_TYPE(BUFFER_VIEW, VkBufferView);
-	OBJECT_TYPE(IMAGE_VIEW, VkImageView);
-	OBJECT_TYPE(SHADER_MODULE, VkShaderModule);
-	OBJECT_TYPE(PIPELINE_CACHE, VkPipelineCache);
-	OBJECT_TYPE(PIPELINE_LAYOUT, VkPipelineLayout);
-	OBJECT_TYPE(RENDER_PASS, VkRenderPass);
-	OBJECT_TYPE(PIPELINE, VkPipeline);
-	OBJECT_TYPE(DESCRIPTOR_SET_LAYOUT, VkDescriptorSetLayout);
-	OBJECT_TYPE(SAMPLER, VkSampler);
-	OBJECT_TYPE(DESCRIPTOR_POOL, VkDescriptorPool);
-	OBJECT_TYPE(DESCRIPTOR_SET, VkDescriptorSet);
-	OBJECT_TYPE(FRAMEBUFFER, VkFramebuffer);
-	OBJECT_TYPE(COMMAND_POOL, VkCommandPool);
-	OBJECT_TYPE(SURFACE_KHR, VkSurfaceKHR);
-	OBJECT_TYPE(SWAPCHAIN_KHR, VkSwapchainKHR);
-	OBJECT_TYPE(DEBUG_REPORT, VkDebugReportCallbackEXT);                       
-#undef OBJECT_TYPE
-
-	void SetObjectName(
-		VkDevice device,
-		VkDebugReportObjectTypeEXT objectType,
-		uint64_t object,
-		const char* pObjectName)
-	{
-		// need to check if the function pointer is valid - extension might not be present
-		if (DebugMarkerSetObjectName)
+		void setImageName(VkDevice device, VkImage image, const char * name)
 		{
-			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
-			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
-			nameInfo.objectType = objectType;
-			nameInfo.object = object;
-			nameInfo.pObjectName = pObjectName;
-			DebugMarkerSetObjectName(device, &nameInfo);
+			setObjectName(device, (uint64_t)image, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, name);
+		}
+
+		void setSamplerName(VkDevice device, VkSampler sampler, const char * name)
+		{
+			setObjectName(device, (uint64_t)sampler, VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT, name);
+		}
+
+		void setBufferName(VkDevice device, VkBuffer buffer, const char * name)
+		{
+			setObjectName(device, (uint64_t)buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, name);
+		}
+
+		void setDeviceMemoryName(VkDevice device, VkDeviceMemory memory, const char * name)
+		{
+			setObjectName(device, (uint64_t)memory, VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT, name);
+		}
+
+		void setShaderModuleName(VkDevice device, VkShaderModule shaderModule, const char * name)
+		{
+			setObjectName(device, (uint64_t)shaderModule, VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, name);
+		}
+
+		void setPipelineName(VkDevice device, VkPipeline pipeline, const char * name)
+		{
+			setObjectName(device, (uint64_t)pipeline, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, name);
+		}
+
+		void setPipelineLayoutName(VkDevice device, VkPipelineLayout pipelineLayout, const char * name)
+		{
+			setObjectName(device, (uint64_t)pipelineLayout, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT, name);
+		}
+
+		void setRenderPassName(VkDevice device, VkRenderPass renderPass, const char * name)
+		{
+			setObjectName(device, (uint64_t)renderPass, VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT, name);
+		}
+
+		void setFramebufferName(VkDevice device, VkFramebuffer framebuffer, const char * name)
+		{
+			setObjectName(device, (uint64_t)framebuffer, VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT, name);
+		}
+
+		void setDescriptorSetLayoutName(VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const char * name)
+		{
+			setObjectName(device, (uint64_t)descriptorSetLayout, VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT, name);
+		}
+
+		void setDescriptorSetName(VkDevice device, VkDescriptorSet descriptorSet, const char * name)
+		{
+			setObjectName(device, (uint64_t)descriptorSet, VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT, name);
+		}
+
+		void setSemaphoreName(VkDevice device, VkSemaphore semaphore, const char * name)
+		{
+			setObjectName(device, (uint64_t)semaphore, VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT, name);
+		}
+
+		void setFenceName(VkDevice device, VkFence fence, const char * name)
+		{
+			setObjectName(device, (uint64_t)fence, VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT, name);
+		}
+
+		void setEventName(VkDevice device, VkEvent _event, const char * name)
+		{
+			setObjectName(device, (uint64_t)_event, VK_DEBUG_REPORT_OBJECT_TYPE_EVENT_EXT, name);
+		}
+
+		void insertDebugMarker(
+			VkCommandBuffer cmdbuffer,
+			const char* pMarkerName,
+			float color[4])
+		{
+			// need to check if the function pointer is valid - extension might not be present
+			if (CmdDebugMarkerInsert)
+			{
+				VkDebugMarkerMarkerInfoEXT markerInfo = {};
+				markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+				memcpy(markerInfo.color, color, sizeof(float) * 4);
+				markerInfo.pMarkerName = pMarkerName;
+				CmdDebugMarkerInsert(cmdbuffer, &markerInfo);
+			}
+		}
+
+		void insertDebugMarker(
+			VkCommandBuffer cmdbuffer,
+			const char* pMarkerName)
+		{
+			// need to check if the function pointer is valid - extension might not be present
+			if (CmdDebugMarkerInsert)
+			{
+				VkDebugMarkerMarkerInfoEXT markerInfo = {};
+				markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+				markerInfo.pMarkerName = pMarkerName;
+				CmdDebugMarkerInsert(cmdbuffer, &markerInfo);
+			}
+		}
+
+		DebugMarkerRegion::DebugMarkerRegion(VkCommandBuffer cmdbuffer,
+			const char* pMarkerName,
+			float color[4])
+		{
+			cmd = cmdbuffer;
+			// need to check if the function pointer is valid - extension might not be present
+			if (CmdDebugMarkerBegin)
+			{
+				VkDebugMarkerMarkerInfoEXT markerInfo = {};
+				markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+				memcpy(markerInfo.color, color, sizeof(float) * 4);
+				markerInfo.pMarkerName = pMarkerName;
+				CmdDebugMarkerBegin(cmd, &markerInfo);
+			}
+		}
+
+		DebugMarkerRegion::DebugMarkerRegion(VkCommandBuffer cmdbuffer,
+			const char* pMarkerName)
+		{
+			cmd = cmdbuffer;
+			// need to check if the function pointer is valid - extension might not be present
+			if (CmdDebugMarkerBegin)
+			{
+				VkDebugMarkerMarkerInfoEXT markerInfo = {};
+				markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+				markerInfo.pMarkerName = pMarkerName;
+				CmdDebugMarkerBegin(cmd, &markerInfo);
+			}
+		}
+
+		DebugMarkerRegion::~DebugMarkerRegion()
+		{
+			// need to check if the function pointer is valid - extension might not be present
+			if (CmdDebugMarkerEnd)
+			{
+				CmdDebugMarkerEnd(cmd);
+			}
 		}
 	}
 }
+
