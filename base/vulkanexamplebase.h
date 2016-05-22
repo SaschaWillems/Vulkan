@@ -54,6 +54,8 @@ class VulkanExampleBase
 private:	
 	// Set to true when example is created with enabled validation layers
 	bool enableValidation = false;
+	// Set to true when the debug marker extension is detected
+	bool enableDebugMarkers = false;
 	// fps timer (one second interval)
 	float fpsTimer = 0.0f;
 	// Create application wide Vulkan instance
