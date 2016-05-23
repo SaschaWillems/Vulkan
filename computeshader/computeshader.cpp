@@ -194,7 +194,7 @@ public:
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textureColorMap,
 			false,
-			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+			VK_IMAGE_USAGE_SAMPLED_BIT);
 	}
 
 	void buildCommandBuffers()
@@ -424,8 +424,10 @@ public:
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
 			// Graphics pipeline uses image samplers for display
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4),
-			// Compute pipeline uses storage images image loads and stores
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2),
+			// Compute pipeline uses a sampled image for reading
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1),
+			// Compute pipelines uses a storage image to write result
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1),
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -644,7 +646,7 @@ public:
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Sampled image (read)
 			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				VK_SHADER_STAGE_COMPUTE_BIT,
 				0),
 			// Binding 1 : Sampled image (write)
@@ -705,7 +707,7 @@ public:
 			// Binding 0 : Sampled image (read)
 			vkTools::initializers::writeDescriptorSet(
 				computeDescriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				0,
 				&computeTexDescriptors[0]),
 			// Binding 1 : Sampled image (write)
