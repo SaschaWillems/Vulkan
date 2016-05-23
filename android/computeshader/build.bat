@@ -12,7 +12,7 @@ if %ERRORLEVEL% EQU 0 (
 	xcopy "..\..\data\shaders\computeshader\*.spv" "assets\shaders\computeshader" /Y
 
 	mkdir "assets\textures"
-	xcopy "..\..\data\textures\vulkan_space_rgba8.ktx" "assets\textures" /Y
+	xcopy "..\..\data\textures\het_kanonschot_rgba8.ktx" "assets\textures" /Y
 
 	
 	mkdir "res\drawable"
