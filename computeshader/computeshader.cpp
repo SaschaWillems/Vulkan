@@ -190,7 +190,7 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			getAssetPath() + "textures/vulkan_space_rgba8.ktx", 
+			getAssetPath() + "textures/het_kanonschot_rgba8.ktx", 
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textureColorMap,
 			false,
