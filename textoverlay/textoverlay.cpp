@@ -632,14 +632,14 @@ public:
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[1];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+		VkClearValue clearValues[2];
+		clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.extent.width = *frameBufferWidth;
 		renderPassBeginInfo.renderArea.extent.height = *frameBufferHeight;
-		renderPassBeginInfo.clearValueCount = 1;
+		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		for (int32_t i = 0; i < cmdBuffers.size(); ++i)
