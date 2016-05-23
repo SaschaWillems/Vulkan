@@ -17,17 +17,14 @@ layout (binding = 0) uniform UBO
 layout (location = 0) out vec3 outColor;
 layout (location = 1) out vec2 outUV;
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+};
+
 void main() 
 {
 	outUV = inUV;
-/*
-	if (inColor.r >= 0.9) 
-	{
-		outColor = ubo.glowColor.rgb;
-	}
-	else*/
-	{
-		outColor = inColor;
-	}
+	outColor = inColor;
 	gl_Position = ubo.projection * ubo.model * inPos;
 }

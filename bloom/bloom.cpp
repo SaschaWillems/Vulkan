@@ -135,6 +135,7 @@ public:
 		zoom = -10.25f;
 		rotation = { 7.5f, -343.0f, 0.0f };
 		timerSpeed *= 0.5f;
+		enableTextOverlay = true;
 		title = "Vulkan Example - Bloom";
 	}
 
@@ -197,12 +198,9 @@ public:
 
 	// Preapre an empty texture as the blit target from 
 	// the offscreen framebuffer
-	void prepareTextureTarget(vkTools::VulkanTexture *tex, uint32_t width, uint32_t height, VkFormat format)
+	void prepareTextureTarget(vkTools::VulkanTexture *tex, uint32_t width, uint32_t height, VkFormat format, VkCommandBuffer cmdBuffer)
 	{
-		createSetupCommandBuffer();
-
 		VkFormatProperties formatProperties;
-		VkResult err;
 
 		// Get device properites for the requested texture format
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
@@ -228,19 +226,16 @@ public:
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
 
-		err = vkCreateImage(device, &imageCreateInfo, nullptr, &tex->image);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &tex->image));
 		vkGetImageMemoryRequirements(device, tex->image, &memReqs);
 		memAllocInfo.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAllocInfo, nullptr, &(tex->deviceMemory));
-		assert(!err);
-		err = vkBindImageMemory(device, tex->image, tex->deviceMemory, 0);
-		assert(!err);
+		memAllocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &(tex->deviceMemory)));
+		VK_CHECK_RESULT(vkBindImageMemory(device, tex->image, tex->deviceMemory, 0));
 
 		tex->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		vkTools::setImageLayout(
-			setupCmdBuffer, 
+			cmdBuffer,
 			tex->image,
 			VK_IMAGE_ASPECT_COLOR_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 
@@ -260,8 +255,7 @@ public:
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 0.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		err = vkCreateSampler(device, &sampler, nullptr, &tex->sampler);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &tex->sampler));
 
 		// Create image view
 		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
@@ -271,19 +265,14 @@ public:
 		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		view.image = tex->image;
-		err = vkCreateImageView(device, &view, nullptr, &tex->view);
-		assert(!err);
-
-		flushSetupCommandBuffer();
+		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &tex->view));
 	}
 
 	// Prepare a new framebuffer for offscreen rendering
 	// The contents of this framebuffer are then
 	// blitted to our render target
-	void prepareOffscreenFramebuffer(FrameBuffer *frameBuf)
+	void prepareOffscreenFramebuffer(FrameBuffer *frameBuf, VkCommandBuffer cmdBuffer)
 	{
-		createSetupCommandBuffer();
-
 		frameBuf->width = FB_DIM;
 		frameBuf->height = FB_DIM;
 
@@ -294,14 +283,13 @@ public:
 		VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &fbDepthFormat);
 		assert(validDepthFormat);
 
-		VkResult err;
-
 		// Color attachment
 		VkImageCreateInfo image = vkTools::initializers::imageCreateInfo();
 		image.imageType = VK_IMAGE_TYPE_2D;
 		image.format = fbColorFormat;
 		image.extent.width = frameBuf->width;
 		image.extent.height = frameBuf->height;
+		image.extent.depth = 1;
 		image.mipLevels = 1;
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -324,27 +312,22 @@ public:
 		colorImageView.subresourceRange.baseArrayLayer = 0;
 		colorImageView.subresourceRange.layerCount = 1;
 
-		err = vkCreateImage(device, &image, nullptr, &frameBuf->color.image);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &frameBuf->color.image));
 		vkGetImageMemoryRequirements(device, frameBuf->color.image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAlloc, nullptr, &frameBuf->color.mem);
-		assert(!err);
-
-		err = vkBindImageMemory(device, frameBuf->color.image, frameBuf->color.mem, 0);
-		assert(!err);
+		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &frameBuf->color.mem));
+		VK_CHECK_RESULT(vkBindImageMemory(device, frameBuf->color.image, frameBuf->color.mem, 0));
 
 		vkTools::setImageLayout(
-			setupCmdBuffer, 
+			cmdBuffer, 
 			frameBuf->color.image, 
 			VK_IMAGE_ASPECT_COLOR_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		colorImageView.image = frameBuf->color.image;
-		err = vkCreateImageView(device, &colorImageView, nullptr, &frameBuf->color.view);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImageView(device, &colorImageView, nullptr, &frameBuf->color.view));
 
 		// Depth stencil attachment
 		image.format = fbDepthFormat;
@@ -361,29 +344,22 @@ public:
 		depthStencilView.subresourceRange.baseArrayLayer = 0;
 		depthStencilView.subresourceRange.layerCount = 1;
 
-		err = vkCreateImage(device, &image, nullptr, &frameBuf->depth.image);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &frameBuf->depth.image));
 		vkGetImageMemoryRequirements(device, frameBuf->depth.image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAlloc, nullptr, &frameBuf->depth.mem);
-		assert(!err);
-
-		err = vkBindImageMemory(device, frameBuf->depth.image, frameBuf->depth.mem, 0);
-		assert(!err);
+		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &frameBuf->depth.mem));
+		VK_CHECK_RESULT(vkBindImageMemory(device, frameBuf->depth.image, frameBuf->depth.mem, 0));
 
 		vkTools::setImageLayout(
-			setupCmdBuffer,
+			cmdBuffer,
 			frameBuf->depth.image, 
 			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 		depthStencilView.image = frameBuf->depth.image;
-		err = vkCreateImageView(device, &depthStencilView, nullptr, &frameBuf->depth.view);
-		assert(!err);
-
-		flushSetupCommandBuffer();
+		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &frameBuf->depth.view));
 
 		VkImageView attachments[2];
 		attachments[0] = frameBuf->color.view;
@@ -397,8 +373,25 @@ public:
 		fbufCreateInfo.height = frameBuf->height;
 		fbufCreateInfo.layers = 1;
 
-		err = vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &frameBuf->frameBuffer);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &frameBuf->frameBuffer));
+	}
+
+	// Prepare the ping-pong texture targets for the vertical- and horizontal blur
+	void prepareTextureTargets()
+	{
+		VkCommandBuffer cmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		prepareTextureTarget(&offScreenFrameBuf.textureTarget, TEX_DIM, TEX_DIM, TEX_FORMAT, cmdBuffer);
+		prepareTextureTarget(&offScreenFrameBufB.textureTarget, TEX_DIM, TEX_DIM, TEX_FORMAT, cmdBuffer);
+		VulkanExampleBase::flushCommandBuffer(cmdBuffer, queue, true);
+	}
+
+	// Prepare the offscreen framebuffers used for the vertical- and horizontal blur 
+	void prepareOffscreenFramebuffers()
+	{
+		VkCommandBuffer cmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		prepareOffscreenFramebuffer(&offScreenFrameBuf, cmdBuffer);
+		prepareOffscreenFramebuffer(&offScreenFrameBufB, cmdBuffer);
+		VulkanExampleBase::flushCommandBuffer(cmdBuffer, queue, true);
 	}
 
 	void createOffscreenCommandBuffer()
@@ -407,8 +400,7 @@ public:
 			cmdPool,
 			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 			1);
-		VkResult vkRes = vkAllocateCommandBuffers(device, &cmd, &offScreenCmdBuffer);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmd, &offScreenCmdBuffer));
 	}
 
 	// Render the 3D scene into a texture target
@@ -429,21 +421,12 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err = vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo);
-		assert(!err);
+		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
 
-		VkViewport viewport = vkTools::initializers::viewport(
-			(float)offScreenFrameBuf.width,
-			(float)offScreenFrameBuf.height,
-			0.0f,
-			1.0f);
+		VkViewport viewport = vkTools::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
 		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
 
-		VkRect2D scissor = vkTools::initializers::rect2D(
-			offScreenFrameBuf.width,
-			offScreenFrameBuf.height,
-			0,
-			0);
+		VkRect2D scissor = vkTools::initializers::rect2D(offScreenFrameBuf.width, offScreenFrameBuf.height,	0, 0);
 		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
 
 		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -600,8 +583,7 @@ public:
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		err = vkEndCommandBuffer(offScreenCmdBuffer);
-		assert(!err);
+		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
 	}
 
 	void loadTextures()
@@ -639,30 +621,19 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height,	0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			VkDeviceSize offsets[1] = { 0 };
@@ -695,48 +666,13 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 
 		if (bloom) 
 		{
 			buildOffscreenCommandBuffer();
 		}
-	}
-
-	void draw()
-	{
-		VkResult err;
-
-		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Gather command buffers to be sumitted to the queue
-		std::vector<VkCommandBuffer> submitCmdBuffers;
-		// Submit offscreen rendering command buffer 
-		if (bloom)
-		{
-			submitCmdBuffers.push_back(offScreenCmdBuffer);
-		}
-		submitCmdBuffers.push_back(drawCmdBuffers[currentBuffer]);
-		submitInfo.commandBufferCount = submitCmdBuffers.size();
-		submitInfo.pCommandBuffers = submitCmdBuffers.data();
-
-		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
 	}
 
 	void loadMeshes()
@@ -848,8 +784,7 @@ public:
 				poolSizes.data(),
 				5);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -880,20 +815,17 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = 
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.radialBlur);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.radialBlur));
 
 		// Offscreen pipeline layout
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene));
 	}
 
 	void setupDescriptorSet()
@@ -906,8 +838,7 @@ public:
 
 		// Full screen blur descriptor sets
 		// Vertical blur
-		VkResult err = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.verticalBlur);
-		assert(!err);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.verticalBlur));
 
 		VkDescriptorImageInfo texDescriptorVert =
 			vkTools::initializers::descriptorImageInfo(
@@ -940,12 +871,11 @@ public:
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Horizontal blur
-		err = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.horizontalBlur);
-		assert(!err);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.horizontalBlur));
 
 		VkDescriptorImageInfo texDescriptorHorz =
 			vkTools::initializers::descriptorImageInfo(
-				offScreenFrameBufB.textureTarget.sampler, // todo : offScreenFrameBufB.textureTarget
+				offScreenFrameBufB.textureTarget.sampler,
 				offScreenFrameBufB.textureTarget.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
@@ -974,8 +904,7 @@ public:
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// 3D scene
-		err = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene);
-		assert(!err);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
 
 		writeDescriptorSets =
 		{
@@ -990,8 +919,7 @@ public:
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Skybox
-		err = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.skyBox);
-		assert(!err);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.skyBox));
 
 		// Image descriptor for the cube map texture
 		VkDescriptorImageInfo cubeMapDescriptor =
@@ -1102,8 +1030,7 @@ public:
 		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_DST_ALPHA;
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.blurVert);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.blurVert));
 
 		// Phong pass (3D model)
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/phongpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -1113,23 +1040,19 @@ public:
 		blendAttachmentState.blendEnable = VK_FALSE;
 		depthStencilState.depthWriteEnable = VK_TRUE;
 
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phongPass);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phongPass));
 
 		// Color only pass (offscreen blur base)
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.colorPass);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.colorPass));
 
 		// Skybox (cubemap
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		depthStencilState.depthWriteEnable = VK_FALSE;
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skyBox);
-		assert(!err);
-
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skyBox));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -1138,6 +1061,7 @@ public:
 		// Phong and color pass vertex shader uniform buffer
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(ubos.scene),
 			&ubos.scene,
 			&uniformData.vsScene.buffer,
@@ -1147,6 +1071,7 @@ public:
 		// Fullscreen quad display vertex shader uniform buffer
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(ubos.fullscreen),
 			&ubos.fullscreen,
 			&uniformData.vsFullScreen.buffer,
@@ -1157,6 +1082,7 @@ public:
 		// Vertical blur
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(ubos.vertBlur),
 			&ubos.vertBlur,
 			&uniformData.fsVertBlur.buffer,
@@ -1165,6 +1091,7 @@ public:
 		// Horizontal blur
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(ubos.horzBlur),
 			&ubos.horzBlur,
 			&uniformData.fsHorzBlur.buffer,
@@ -1174,6 +1101,7 @@ public:
 		// Skybox
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(ubos.skyBox),
 			&ubos.skyBox,
 			&uniformData.vsSkyBox.buffer,
@@ -1193,7 +1121,7 @@ public:
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, -1.0f, zoom));
 
 		ubos.fullscreen.model = viewMatrix *
-			glm::translate(glm::mat4(), glm::vec3(sin(glm::radians(timer * 360.0f)) * 0.25f, 0.0f, cos(glm::radians(timer * 360.0f)) * 0.25f));
+			glm::translate(glm::mat4(), glm::vec3(sin(glm::radians(timer * 360.0f)) * 0.25f, 0.0f, cos(glm::radians(timer * 360.0f)) * 0.25f) + cameraPos);
 
 		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, -sinf(glm::radians(timer * 360.0f)) * 0.15f, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -1202,8 +1130,7 @@ public:
 		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vsFullScreen.memory, 0, sizeof(ubos.fullscreen), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsFullScreen.memory, 0, sizeof(ubos.fullscreen), 0, (void **)&pData));
 		memcpy(pData, &ubos.fullscreen, sizeof(ubos.fullscreen));
 		vkUnmapMemory(device, uniformData.vsFullScreen.memory);
 
@@ -1215,8 +1142,7 @@ public:
 		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		err = vkMapMemory(device, uniformData.vsSkyBox.memory, 0, sizeof(ubos.skyBox), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsSkyBox.memory, 0, sizeof(ubos.skyBox), 0, (void **)&pData));
 		memcpy(pData, &ubos.skyBox, sizeof(ubos.skyBox));
 		vkUnmapMemory(device, uniformData.vsSkyBox.memory);
 	}
@@ -1229,24 +1155,42 @@ public:
 		ubos.scene.model = glm::mat4();
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(ubos.scene), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(ubos.scene), 0, (void **)&pData));
 		memcpy(pData, &ubos.scene, sizeof(ubos.scene));
 		vkUnmapMemory(device, uniformData.vsScene.memory);
 
 		// Fragment shader
 		// Vertical
 		ubos.vertBlur.horizontal = 0;
-		err = vkMapMemory(device, uniformData.fsVertBlur.memory, 0, sizeof(ubos.vertBlur), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fsVertBlur.memory, 0, sizeof(ubos.vertBlur), 0, (void **)&pData));
 		memcpy(pData, &ubos.vertBlur, sizeof(ubos.vertBlur));
 		vkUnmapMemory(device, uniformData.fsVertBlur.memory);
 		// Horizontal
 		ubos.horzBlur.horizontal = 1;
-		err = vkMapMemory(device, uniformData.fsHorzBlur.memory, 0, sizeof(ubos.horzBlur), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fsHorzBlur.memory, 0, sizeof(ubos.horzBlur), 0, (void **)&pData));
 		memcpy(pData, &ubos.horzBlur, sizeof(ubos.horzBlur));
 		vkUnmapMemory(device, uniformData.fsHorzBlur.memory);
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		// Gather command buffers to be sumitted to the queue
+		std::vector<VkCommandBuffer> submitCmdBuffers;
+		// Submit offscreen rendering command buffer 
+		// todo : use event to ensure that offscreen result is finished bfore render command buffer is started
+		if (bloom)
+		{
+			submitCmdBuffers.push_back(offScreenCmdBuffer);
+		}
+		submitCmdBuffers.push_back(drawCmdBuffers[currentBuffer]);
+		submitInfo.commandBufferCount = submitCmdBuffers.size();
+		submitInfo.pCommandBuffers = submitCmdBuffers.data();
+
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
@@ -1257,15 +1201,13 @@ public:
 		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		prepareTextureTarget(&offScreenFrameBuf.textureTarget, TEX_DIM, TEX_DIM, TEX_FORMAT);
-		prepareTextureTarget(&offScreenFrameBufB.textureTarget, TEX_DIM, TEX_DIM, TEX_FORMAT);
+		prepareTextureTargets();
+		prepareOffscreenFramebuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
 		setupDescriptorSet();
 		createOffscreenCommandBuffer(); 
-		prepareOffscreenFramebuffer(&offScreenFrameBuf);
-		prepareOffscreenFramebuffer(&offScreenFrameBufB);
 		buildCommandBuffers();
 		prepared = true;
 	}
@@ -1274,9 +1216,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 		if (!paused)
 		{
 			updateUniformBuffersScene();
@@ -1287,6 +1227,36 @@ public:
 	{
 		updateUniformBuffersScene();
 		updateUniformBuffersScreen();
+	}
+
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x6B:
+		case GAMEPAD_BUTTON_R1:
+			changeBlurScale(0.25f);
+			break;
+		case 0x6D:
+		case GAMEPAD_BUTTON_L1:
+			changeBlurScale(-0.25f);
+			break;
+		case 0x42:
+		case GAMEPAD_BUTTON_A:
+			toggleBloom();
+			break;
+		}
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+#if defined(__ANDROID__)
+		textOverlay->addText("Press \"L1/R1\" to change blur scale", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button A\" to toggle bloom", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
+#else
+		textOverlay->addText("Press \"NUMPAD +/-\" to change blur scale", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"B\" to toggle bloom", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
+#endif
 	}
 
 	void changeBlurScale(float delta)
@@ -1311,21 +1281,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case 0x42:
-				vulkanExample->toggleBloom();
-				break;
-			case VK_ADD:
-				vulkanExample->changeBlurScale(0.25f);
-				break;
-			case VK_SUBTRACT:
-				vulkanExample->changeBlurScale(-0.25f);
-				break;
-			}
-		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
