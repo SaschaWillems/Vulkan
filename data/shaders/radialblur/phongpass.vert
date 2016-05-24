@@ -18,6 +18,11 @@ layout (location = 1) out vec3 outColor;
 layout (location = 2) out vec3 outEyePos;
 layout (location = 3) out vec3 outLightVec;
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+};
+
 void main() 
 {
 	outNormal = inNormal;
