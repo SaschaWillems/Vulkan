@@ -84,7 +84,8 @@ Distance field font textures can be generated with tools like [Hiero](https://gi
 ## [Pipelines](pipelines/)
 <img src="./screenshots/basic_pipelines.png" height="96px" align="right">
 
-Pipelines replace the huge (and cumbersome) state machine of OpenGL. This example creates different pipelines with different states and shader setups.
+[Pipeline state objects](https://www.khronos.org/registry/vulkan/specs/1.0/xhtml/vkspec.html#pipelines) replace the biggest part of the dynamic state machine from OpenGL, baking state information for culling, blending, rasterization, etc. and shaders into a fixed stat that can be optimized much easier by the implementation.
+This example uses three different PSOs for rendering the same scene with different visuals and shaders and also demonstrates the use [pipeline derivatives](https://www.khronos.org/registry/vulkan/specs/1.0/xhtml/vkspec.html#pipelines-pipeline-derivatives).
 <br><br>
 
 ## [Gears](gears/)
@@ -220,7 +221,7 @@ Implements a simple ray tracer using a compute shader. No primitives are rendere
 <br><br>
 
 ## [(Compute shader) Image processing](computeshader/)
-<img src="./screenshots/compute_imageprocessing.png" height="96px" align="right">
+<img src="./screenshots/compute_imageprocessing.jpg" height="96px" align="right">
 
 Demonstrates the use of a separate compute queue (and command buffer) to apply different convolution kernels on an input image in realtime.
 <br><br>
@@ -255,6 +256,7 @@ Please note that (some) models and textures use separate licenses. Please comply
 - Voyager model by [NASA](http://nasa3d.arc.nasa.gov/models)
 - Astroboy COLLADA model copyright 2008 Sony Computer Entertainment Inc.
 - Old deer model used in tessellation example by [Čestmír Dammer](http://opengameart.org/users/cdmir)
+- Hidden treasure scene used in pipeline and debug marker examples by [Laurynas Jurgila](http://www.blendswap.com/user/PigArt)
 - Textures used in some examples by [Hugues Muller](http://www.yughues-folio.com)
 - Updated compute particle system shader by [Lukas Bergdoll](https://github.com/Voultapher)
 - Vulkan scene model (and derived models) by [Dominic Agoro-Ombaka](http://www.agorodesign.com/) and [Sascha Willems](http://www.saschawillems.de)

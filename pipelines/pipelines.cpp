@@ -16,21 +16,20 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <gli/gli.hpp>
 
 #include <vulkan/vulkan.h>
-
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
 // Vertex layout for this example
-struct Vertex {
-	float pos[3];
-	float col[3];
-	float uv[2];
-	float normal[3];
+std::vector<vkMeshLoader::VertexLayout> vertexLayout =
+{
+	vkMeshLoader::VERTEX_LAYOUT_POSITION,
+	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
+	vkMeshLoader::VERTEX_LAYOUT_UV,
+	vkMeshLoader::VERTEX_LAYOUT_COLOR
 };
 
 class VulkanExample: public VulkanExampleBase 
@@ -39,7 +38,6 @@ private:
 	vkTools::VulkanTexture textureColorMap;
 public:
 	struct {
-		int count;
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
@@ -53,9 +51,9 @@ public:
 
 	// Same uniform buffer layout as shader
 	struct {
-		glm::mat4 projectionMatrix;
-		glm::mat4 modelMatrix;
-		glm::mat4 viewMatrix;
+		glm::mat4 projection;
+		glm::mat4 modelView;
+		glm::vec4 lightPos = glm::vec4(0.0f, 2.0f, 1.0f, 0.0f);
 	} uboVS;
 
 	VkPipelineLayout pipelineLayout;
@@ -63,29 +61,29 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 
 	struct {
-		VkPipeline solidColor;
-		VkPipeline wireFrame;
-		VkPipeline texture;
+		VkPipeline phong;
+		VkPipeline wireframe;
+		VkPipeline toon;
 	} pipelines;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -5.0f;
-		rotation = glm::vec3(-32.5f, 45.0f, 0.0f);
+		zoom = -10.5f;
+		rotation = glm::vec3(-25.0f, 15.0f, 0.0f);
 		enableTextOverlay = true;
-		title = "Vulkan Example - Using pipelines";
+		title = "Vulkan Example - Pipeline state objects";
 	}
 
 	~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solidColor, nullptr);
+		vkDestroyPipeline(device, pipelines.phong, nullptr);
 		if (deviceFeatures.fillModeNonSolid)
 		{
-			vkDestroyPipeline(device, pipelines.wireFrame, nullptr);
+			vkDestroyPipeline(device, pipelines.wireframe, nullptr);
 		}
-		vkDestroyPipeline(device, pipelines.texture, nullptr);
+		vkDestroyPipeline(device, pipelines.toon, nullptr);
 		
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -142,30 +140,29 @@ public:
 
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.cube.vertices.buf, offsets);
-
-			vkCmdSetLineWidth(drawCmdBuffers[i], 2.0f);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.cube.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
 			// Left : Solid colored 
 			viewport.width = (float)width / 3.0;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solidColor);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
 			
-			vkCmdDraw(drawCmdBuffers[i], vertices.count, 1, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
 
-			// Center : Textured
+			// Center : Toon
 			viewport.x = (float)width / 3.0;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.texture);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toon);
 			vkCmdSetLineWidth(drawCmdBuffers[i], 2.0f);
-			vkCmdDraw(drawCmdBuffers[i], vertices.count, 1, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
 
 			if (deviceFeatures.fillModeNonSolid)
 			{
 				// Right : Wireframe 
 				viewport.x = (float)width / 3.0 + (float)width / 3.0;
 				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireFrame);
-				vkCmdDraw(drawCmdBuffers[i], vertices.count, 1, 0, 0);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireframe);
+				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
 			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -174,72 +171,9 @@ public:
 		}
 	}
 
-	// Create vertices and buffers for uv mapped cube
-	void generateCube()
+	void loadMeshes()
 	{
-
-		// Setup vertices
-#define colred { 1.0f, 0.0f, 0.0f }
-#define colgreen { 0.0f, 1.0f, 0.0f }
-#define colblue { 0.0f, 0.0f, 1.0f }
-#define d 1.0f
-
-		std::vector<Vertex> vertexBuffer = {
-
-			// -Y
-			{ { d,-d, d }, colred,{ 1.0, 1.0 }, { 0.0f, 1.0f, 0.0f } },
-			{ { -d,-d,-d }, colred,{ 0.0, 0.0 },{ 0.0f, 1.0f, 0.0f } },
-			{ { d,-d,-d }, colred,{ 1.0, 0.0 },{ 0.0f, 1.0f, 0.0f } },
-			{ { d,-d, d }, colred,{ 1.0, 1.0 },{ 0.0f, 1.0f, 0.0f } },
-			{ { -d,-d, d }, colred,{ 0.0, 1.0 },{ 0.0f, 1.0f, 0.0f } },
-			{ { -d,-d,-d }, colred,{ 0.0, 0.0 },{ 0.0f, 1.0f, 0.0f } },
-			// +Y
-			{ { d, d, d }, colred,{ 1.0, 1.0 },{ 0.0f, -1.0f, 0.0f } },
-			{ { d, d,-d }, colred,{ 1.0, 0.0 },{ 0.0f, -1.0f, 0.0f } },
-			{ { -d, d,-d }, colred,{ 0.0, 0.0 },{ 0.0f, -1.0f, 0.0f } },
-			{ { d, d, d }, colred,{ 1.0, 1.0 },{ 0.0f, -1.0f, 0.0f } },
-			{ { -d, d,-d }, colred,{ 0.0, 0.0 },{ 0.0f, -1.0f, 0.0f } },
-			{ { -d, d, d }, colred,{ 0.0, 1.0 },{ 0.0f, -1.0f, 0.0f } },
-			// -X
-			{ { -d,-d,-d }, colblue,{ 0.0, 0.0 },{ -1.0f, 0.0f, 0.0f } },
-			{ { -d,-d, d }, colblue,{ 0.0, 1.0 },{ -1.0f, 0.0f, 0.0f } },
-			{ { -d, d, d }, colblue,{ 1.0, 1.0 },{ -1.0f, 0.0f, 0.0f } },
-			{ { -d,-d,-d }, colblue,{ 0.0, 0.0 },{ -1.0f, 0.0f, 0.0f } },
-			{ { -d, d, d }, colblue,{ 1.0, 1.0 },{ -1.0f, 0.0f, 0.0f } },
-			{ { -d, d,-d }, colblue,{ 1.0, 0.0 },{ -1.0f, 0.0f, 0.0f } },
-			// +X
-			{ { d, d, d }, colblue,{ 1.0, 1.0 },{ 1.0f, 0.0f, 0.0f } },
-			{ { d,-d,-d }, colblue,{ 0.0, 0.0 },{ 1.0f, 0.0f, 0.0f } },
-			{ { d, d,-d }, colblue,{ 1.0, 0.0 },{ 1.0f, 0.0f, 0.0f } },
-			{ { d,-d,-d }, colblue,{ 0.0, 0.0 },{ 1.0f, 0.0f, 0.0f } },
-			{ { d, d, d }, colblue,{ 1.0, 1.0 },{ 1.0f, 0.0f, 0.0f } },
-			{ { d,-d, d }, colblue,{ 0.0, 1.0 },{ 1.0f, 0.0f, 0.0f } },
-			// -Z
-			{ { d, d,-d }, colgreen,{ 1.0, 1.0 },{ 0.0f, 0.0f, -1.0f } },
-			{ { -d,-d,-d }, colgreen,{ 0.0, 0.0 },{ 0.0f, 0.0f, -1.0f } },
-			{ { -d, d,-d }, colgreen,{ 0.0, 1.0 },{ 0.0f, 0.0f, -1.0f } },
-			{ { d, d,-d }, colgreen,{ 1.0, 1.0 },{ 0.0f, 0.0f, -1.0f } },
-			{ { d,-d,-d }, colgreen,{ 1.0, 0.0 },{ 0.0f, 0.0f, -1.0f } },
-			{ { -d,-d,-d }, colgreen,{ 0.0, 0.0 },{ 0.0f, 0.0f, -1.0f } },
-			// +Z
-			{ { -d, d, d }, colgreen,{ 0.0, 1.0 },{ 0.0f, 0.0f, 1.0f } },
-			{ { -d,-d, d }, colgreen,{ 0.0, 0.0 },{ 0.0f, 0.0f, 1.0f } },
-			{ { d,-d, d }, colgreen,{ 1.0, 0.0 },{ 0.0f, 0.0f, 1.0f } },
-			{ { d, d, d }, colgreen,{ 1.0, 1.0 },{ 0.0f, 0.0f, 1.0f } },
-			{ { -d, d, d }, colgreen,{ 0.0, 1.0 },{ 0.0f, 0.0f, 1.0f } },
-			{ { d,-d, d }, colgreen,{ 1.0, 0.0 },{ 0.0f, 0.0f, 1.0f } }
-
-		};
-#undef d
-
-		vertices.count = vertexBuffer.size();
-
-		createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			vertexBuffer.size() * sizeof(Vertex),
-			vertexBuffer.data(),
-			&meshes.cube.vertices.buf,
-			&meshes.cube.vertices.mem);		
+		loadMesh(getAssetPath() + "models/treasure_smooth.dae", &meshes.cube, vertexLayout, 1.0f);
 	}
 
 	void setupVertexDescriptions()
@@ -249,7 +183,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				sizeof(Vertex),
+				vkMeshLoader::vertexSize(vertexLayout),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions
@@ -387,7 +321,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_FRONT_BIT,
+				VK_CULL_MODE_BACK_BIT,
 				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
@@ -417,8 +351,7 @@ public:
 
 		std::vector<VkDynamicState> dynamicStateEnables = {
 			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR,
-			VK_DYNAMIC_STATE_LINE_WIDTH
+			VK_DYNAMIC_STATE_SCISSOR
 		};
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
@@ -426,12 +359,11 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Color pipeline
-		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pipelines/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/color.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// Phong shading pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/pipelines/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 	
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -450,27 +382,37 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
+		// We are using this pipeline as the base for the other pipelines (derivatives)
+		// Pipeline derivatives can be used for pipelines that share most of their state
+		// Depending on the implementation this may result in better performance for pipeline 
+		// switchting and faster creation time
+		pipelineCreateInfo.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+
 		// Textured pipeline
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solidColor));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong));
 
-		// Reuse most of the initial pipeline for the next pipelines and only change affected parameters
-		// Cull back faces
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+		// All pipelines created after the base pipeline will be derivatives
+		pipelineCreateInfo.flags = VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+		// Base pipeline will be our first created pipeline
+		pipelineCreateInfo.basePipelineHandle = pipelines.phong;
+		// It's only allowed to either use a handle or index for the base pipeline
+		// As we use the handle, we must set the index to -1 (see section 9.5 of the specification)
+		pipelineCreateInfo.basePipelineIndex = -1;
 
-		// Pipeline for textured rendering
-		// Use different fragment shader
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture));
+		// Toon shading pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/pipelines/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.toon));
 
 		// Non solid rendering is not a mandatory Vulkan feature
 		if (deviceFeatures.fillModeNonSolid)
 		{
 			// Pipeline for wire frame rendering
-			// Solid polygon fill
 			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-			// Use different fragment shader
+			shaderStages[0] = loadShader(getAssetPath() + "shaders/pipelines/wireframe.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 			shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/wireframe.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireFrame));
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
 		}
 	}
 
@@ -492,14 +434,14 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projectionMatrix = glm::perspective(glm::radians(60.0f), (float)(width / 3.0f) / (float)height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)(width / 3.0f) / (float)height, 0.1f, 256.0f);
 
-		uboVS.viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 
-		uboVS.modelMatrix = glm::mat4();
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.modelView = viewMatrix * glm::translate(glm::mat4(), cameraPos);
+		uboVS.modelView = glm::rotate(uboVS.modelView, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.modelView = glm::rotate(uboVS.modelView, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboVS.modelView = glm::rotate(uboVS.modelView, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
 		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
@@ -522,10 +464,10 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadTextures();
+		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
-		generateCube();
 		preparePipelines();
 		setupDescriptorPool();
 		setupDescriptorSet();
@@ -545,6 +487,12 @@ public:
 		updateUniformBuffers();
 	}
 
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+		textOverlay->addText("Phong shading pipeline",(float)width / 6.0f, height - 35.0f, VulkanTextOverlay::alignCenter);
+		textOverlay->addText("Toon shading pipeline", (float)width / 2.0f, height - 35.0f, VulkanTextOverlay::alignCenter);
+		textOverlay->addText("Wireframe pipeline", width - (float)width / 6.5f, height - 35.0f, VulkanTextOverlay::alignCenter);
+	}
 };
 
 VulkanExample *vulkanExample;
