@@ -80,7 +80,10 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solidColor, nullptr);
-		vkDestroyPipeline(device, pipelines.wireFrame, nullptr);
+		if (deviceFeatures.fillModeNonSolid)
+		{
+			vkDestroyPipeline(device, pipelines.wireFrame, nullptr);
+		}
 		vkDestroyPipeline(device, pipelines.texture, nullptr);
 		
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
@@ -166,11 +169,14 @@ public:
 			vkCmdSetLineWidth(drawCmdBuffers[i], 2.0f);
 			vkCmdDraw(drawCmdBuffers[i], vertices.count, 1, 0, 0);
 
-			// Right : Wireframe 
-			viewport.x = (float)width / 3.0 + (float)width / 3.0;
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireFrame);
-			vkCmdDraw(drawCmdBuffers[i], vertices.count, 1, 0, 0);
+			if (deviceFeatures.fillModeNonSolid)
+			{
+				// Right : Wireframe 
+				viewport.x = (float)width / 3.0 + (float)width / 3.0;
+				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireFrame);
+				vkCmdDraw(drawCmdBuffers[i], vertices.count, 1, 0, 0);
+			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -500,13 +506,16 @@ public:
 		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture);
 		assert(!err);
 
-		// Pipeline for wire frame rendering
-		// Solid polygon fill
-		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		// Use different fragment shader
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/wireframe.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireFrame);
-		assert(!err);
+		if (deviceFeatures.fillModeNonSolid)
+		{
+			// Pipeline for wire frame rendering
+			// Solid polygon fill
+			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+			// Use different fragment shader
+			shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/wireframe.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+			err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireFrame);
+			assert(!err);
+		}
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
