@@ -7,12 +7,11 @@ if %ERRORLEVEL% EQU 0 (
 	mkdir "assets\shaders\base"
 	xcopy "..\..\data\shaders\base\*.spv" "assets\shaders\base" /Y
 	
-
 	mkdir "assets\shaders\pipelines"
 	xcopy "..\..\data\shaders\pipelines\*.spv" "assets\shaders\pipelines" /Y
 
-	mkdir "assets\textures"
-	xcopy "..\..\data\textures\crate_bc3.ktx" "assets\textures" /Y
+	mkdir "assets\models"
+	xcopy "..\..\data\models\treasure_smooth.dae" "assets\models" /Y
 	
 	mkdir "res\drawable"
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y

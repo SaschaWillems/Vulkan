@@ -34,8 +34,6 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 
 class VulkanExample: public VulkanExampleBase 
 {
-private:
-	vkTools::VulkanTexture textureColorMap;
 public:
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -92,16 +90,6 @@ public:
 
 		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
 		vkFreeMemory(device, uniformDataVS.memory, nullptr);
-
-		textureLoader->destroyTexture(textureColorMap);
-	}
-
-	void loadTextures()
-	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/crate_bc3.ktx", 
-			VK_FORMAT_BC3_UNORM_BLOCK, 
-			&textureColorMap);
 	}
 
 	void buildCommandBuffers()
@@ -227,11 +215,9 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses one ubo and one combined image sampler 
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1)
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -251,12 +237,7 @@ public:
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_VERTEX_BIT,
-				0),
-			// Binding 1 : Fragment shader image sampler
-			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				1),
+				0)
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
@@ -284,13 +265,6 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		// Color map image descriptor
-		VkDescriptorImageInfo texDescriptorColorMap =
-			vkTools::initializers::descriptorImageInfo(
-				textureColorMap.sampler,
-				textureColorMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
 			// Binding 0 : Vertex shader uniform buffer
@@ -298,13 +272,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformDataVS.descriptor),
-			// Binding 1 : Fragment shader image sampler
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSet,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&texDescriptorColorMap)
+				&uniformDataVS.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -463,7 +431,6 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
 		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
