@@ -157,7 +157,7 @@ struct Scene {
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	bool wireframe = false;
+	bool wireframe = true;
 	bool glow = true;
 
 	struct {
@@ -179,7 +179,7 @@ public:
 	} uboVS;
 
 	struct {
-		VkPipeline phong;
+		VkPipeline toonshading;
 		VkPipeline color;
 		VkPipeline wireframe;
 		VkPipeline postprocess;
@@ -223,9 +223,10 @@ public:
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.phong, nullptr);
+		vkDestroyPipeline(device, pipelines.toonshading, nullptr);
 		vkDestroyPipeline(device, pipelines.color, nullptr);
 		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		vkDestroyPipeline(device, pipelines.postprocess, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -235,8 +236,26 @@ public:
 		vkFreeMemory(device, scene.vertices.mem, nullptr);
 		vkDestroyBuffer(device, scene.indices.buf, nullptr);
 		vkFreeMemory(device, scene.indices.mem, nullptr);
+		vkDestroyBuffer(device, sceneGlow.vertices.buf, nullptr);
+		vkFreeMemory(device, sceneGlow.vertices.mem, nullptr);
+		vkDestroyBuffer(device, sceneGlow.indices.buf, nullptr);
+		vkFreeMemory(device, sceneGlow.indices.mem, nullptr);
 
 		vkTools::destroyUniformData(device, &uniformData.vsScene);
+
+		// Offscreen
+		// Texture target
+		textureLoader->destroyTexture(offScreenFrameBuf.textureTarget);
+		// Frame buffer
+		// Color attachment
+		vkDestroyImageView(device, offScreenFrameBuf.color.view, nullptr);
+		vkDestroyImage(device, offScreenFrameBuf.color.image, nullptr);
+		vkFreeMemory(device, offScreenFrameBuf.color.mem, nullptr);
+		// Depth attachment
+		vkDestroyImageView(device, offScreenFrameBuf.depth.view, nullptr);
+		vkDestroyImage(device, offScreenFrameBuf.depth.image, nullptr);
+		vkFreeMemory(device, offScreenFrameBuf.depth.mem, nullptr);
+		vkDestroyFramebuffer(device, offScreenFrameBuf.frameBuffer, nullptr);
 	}
 
 	// Prepare a texture target and framebuffer for offscreen rendering
@@ -675,7 +694,7 @@ public:
 
 	void loadScene()
 	{
-		loadModel(getAssetPath() + "models/treasure.dae", &scene);
+		loadModel(getAssetPath() + "models/treasure_smooth.dae", &scene);
 		loadModel(getAssetPath() + "models/treasure_glow.dae", &sceneGlow);
 
 		// Name the meshes
@@ -749,9 +768,9 @@ public:
 			// Solid rendering
 
 			// Start a new debug marker region
-			DebugReportExt::beginDebugMarkerRegion(drawCmdBuffers[i], "Solid draw", glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+			DebugReportExt::beginDebugMarkerRegion(drawCmdBuffers[i], "Toon shading draw", glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
 
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toonshading);
 			scene.draw(drawCmdBuffers[i]);
 
 			DebugReportExt::endDebugMarkerRegion(drawCmdBuffers[i]);
@@ -769,6 +788,10 @@ public:
 				scene.draw(drawCmdBuffers[i]);
 
 				DebugReportExt::endDebugMarkerRegion(drawCmdBuffers[i]);
+
+				scissor.offset.x = 0;
+				scissor.extent.width = width;
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 			}
 
 			// Post processing
@@ -792,7 +815,7 @@ public:
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
-
+	
 	void setupVertexDescriptions()
 	{
 		// Binding description
@@ -979,8 +1002,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/phongpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/debugmarker/phongpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/debugmarker/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Name shader moduels for debugging
 		DebugReportExt::setObjectName(device, (uint64_t)shaderModules[0], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Mesh rendering vertex shader");
@@ -1003,7 +1026,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.toonshading));
 
 		// Color only pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -1039,7 +1062,7 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.postprocess));
 
 		// Name pipelines for debugging
-		DebugReportExt::setObjectName(device, (uint64_t)pipelines.phong, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Phong lighting pipeline");
+		DebugReportExt::setObjectName(device, (uint64_t)pipelines.toonshading, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Toon shading pipeline");
 		DebugReportExt::setObjectName(device, (uint64_t)pipelines.color, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Color only pipeline");
 		DebugReportExt::setObjectName(device, (uint64_t)pipelines.wireframe, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Wireframe rendering pipeline");
 		DebugReportExt::setObjectName(device, (uint64_t)pipelines.postprocess, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Post processing pipeline");

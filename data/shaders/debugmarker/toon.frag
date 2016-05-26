@@ -27,4 +27,13 @@ void main()
 	vec3 diffuse = max(dot(N, L), 0.0) * color;
 	vec3 specular = pow(max(dot(R, V), 0.0), 16.0) * vec3(0.75);
 	outFragColor = vec4(ambient + diffuse * 1.75 + specular, 1.0);		
+	
+	float intensity = dot(N,L);
+	float shade = 1.0;
+	shade = intensity < 0.5 ? 0.75 : shade;
+	shade = intensity < 0.35 ? 0.6 : shade;
+	shade = intensity < 0.25 ? 0.5 : shade;
+	shade = intensity < 0.1 ? 0.25 : shade;
+
+	outFragColor.rgb = inColor * 3.0 * shade;
 }
