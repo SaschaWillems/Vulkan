@@ -72,6 +72,7 @@ public:
 	{
 		zoom = -5.0f;
 		rotation = glm::vec3(-32.5f, 45.0f, 0.0f);
+		enableTextOverlay = true;
 		title = "Vulkan Example - Using pipelines";
 	}
 
@@ -122,30 +123,19 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height,	0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -180,36 +170,8 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void draw()
-	{
-		VkResult err;
-
-		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
 	}
 
 	// Create vertices and buffers for uv mapped cube
@@ -280,7 +242,7 @@ public:
 			&meshes.cube.vertices.mem);		
 	}
 
-	void prepareVertices()
+	void setupVertexDescriptions()
 	{
 		// Binding description
 		vertices.bindingDescriptions.resize(1);
@@ -344,8 +306,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -369,16 +330,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
@@ -389,8 +348,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		// Color map image descriptor
 		VkDescriptorImageInfo texDescriptorColorMap =
@@ -403,7 +361,7 @@ public:
 		{
 			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
-			descriptorSet,
+				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformDataVS.descriptor),
@@ -493,8 +451,7 @@ public:
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		// Textured pipeline
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solidColor);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solidColor));
 
 		// Reuse most of the initial pipeline for the next pipelines and only change affected parameters
 		// Cull back faces
@@ -503,9 +460,9 @@ public:
 		// Pipeline for textured rendering
 		// Use different fragment shader
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture));
 
+		// Non solid rendering is not a mandatory Vulkan feature
 		if (deviceFeatures.fillModeNonSolid)
 		{
 			// Pipeline for wire frame rendering
@@ -513,37 +470,22 @@ public:
 			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 			// Use different fragment shader
 			shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/wireframe.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-			err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireFrame);
-			assert(!err);
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireFrame));
 		}
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		VkResult err;
-
-		// Vertex shader uniform buffer block
-		VkMemoryAllocateInfo allocInfo = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
-
-		VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(
+		// Create the vertex shader uniform buffer block
+		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			sizeof(uboVS));
-
-		err = vkCreateBuffer(device, &bufferInfo, nullptr, &uniformDataVS.buffer);
-		assert(!err);
-		vkGetBufferMemoryRequirements(device, uniformDataVS.buffer, &memReqs);
-		allocInfo.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
-		err = vkAllocateMemory(device, &allocInfo, nullptr, &uniformDataVS.memory);
-		assert(!err);
-		err = vkBindBufferMemory(device, uniformDataVS.buffer, uniformDataVS.memory, 0);
-		assert(!err);
-
-		uniformDataVS.descriptor.buffer = uniformDataVS.buffer;
-		uniformDataVS.descriptor.offset = 0;
-		uniformDataVS.descriptor.range = sizeof(uboVS);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			sizeof(uboVS),
+			nullptr,
+			&uniformDataVS.buffer,
+			&uniformDataVS.memory,
+			&uniformDataVS.descriptor);
 
 		updateUniformBuffers();
 	}
@@ -560,18 +502,27 @@ public:
 		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformDataVS.memory);
-		assert(!err);
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
 		loadTextures();
-		prepareVertices();
+		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		generateCube();
@@ -586,9 +537,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 	}
 
 	virtual void viewChanged()
