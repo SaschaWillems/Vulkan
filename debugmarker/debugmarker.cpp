@@ -116,6 +116,39 @@ struct Vertex {
 	glm::vec3 color;
 };
 
+struct Scene {
+	struct {
+		VkBuffer buf;
+		VkDeviceMemory mem;
+	} vertices;
+	struct {
+		VkBuffer buf;
+		VkDeviceMemory mem;
+	} indices;
+
+	// Store mesh offsets for vertex and indexbuffers
+	struct Mesh
+	{
+		uint32_t indexStart;
+		uint32_t indexCount;
+		std::string name;
+	};
+	std::vector<Mesh> meshes;
+
+	void draw(VkCommandBuffer cmdBuffer)
+	{
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, indices.buf, 0, VK_INDEX_TYPE_UINT32);
+		for (auto mesh : meshes)
+		{
+			// Add debug marker for mesh name
+			DebugReportExt::insertDebugMarker(cmdBuffer, "Draw \"" + mesh.name + "\"", glm::vec4(0.0f));
+			vkCmdDrawIndexed(cmdBuffer, mesh.indexCount, 1, mesh.indexStart, 0, 0);
+		}
+	}
+};
+
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -131,29 +164,7 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	// Contains all buffers and information
-	// necessary to represent a mesh for rendering purposes
-	// This is for demonstration and learning purposes,
-	// the other examples use a mesh loader class for easy access
-	struct Scene {
-		struct {
-			VkBuffer buf;
-			VkDeviceMemory mem;
-		} vertices;
-		struct {
-			VkBuffer buf;
-			VkDeviceMemory mem;
-		} indices;
-
-		// Store mesh offsets for vertex and indexbuffers
-		struct Mesh
-		{
-			uint32_t indexStart;
-			uint32_t indexCount;
-			std::string name;
-		};
-		std::vector<Mesh> meshes;
-	} scene;
+	Scene scene, sceneGlow;
 
 	struct {
 		vkTools::UniformData vsScene;
@@ -205,8 +216,8 @@ public:
 		vkTools::destroyUniformData(device, &uniformData.vsScene);
 	}
 
-	// Load the scene from a model file
-	void loadScene(std::string filename)
+	// Load a model file as separate meshes into a scene
+	void loadModel(std::string filename, Scene *scene)
 	{
 		VulkanMeshLoader *meshLoader = new VulkanMeshLoader();
 #if defined(__ANDROID__)
@@ -214,7 +225,7 @@ public:
 #endif
 		meshLoader->LoadMesh(filename);
 
-		scene.meshes.resize(meshLoader->m_Entries.size());
+		scene->meshes.resize(meshLoader->m_Entries.size());
 
 		// Generate vertex buffer
 		float scale = 1.0f;
@@ -246,8 +257,8 @@ public:
 			{
 				indexBuffer.push_back(meshLoader->m_Entries[m].Indices[i] + indexBase);
 			}
-			scene.meshes[m].indexStart = indexBase;
-			scene.meshes[m].indexCount = meshLoader->m_Entries[m].Indices.size();
+			scene->meshes[m].indexStart = indexBase;
+			scene->meshes[m].indexCount = meshLoader->m_Entries[m].Indices.size();
 		}
 		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 
@@ -287,16 +298,16 @@ public:
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				vertexBufferSize,
 				nullptr,
-				&scene.vertices.buf,
-				&scene.vertices.mem);
+				&scene->vertices.buf,
+				&scene->vertices.mem);
 			// Index buffer
 			createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				indexBufferSize,
 				nullptr,
-				&scene.indices.buf,
-				&scene.indices.mem);
+				&scene->indices.buf,
+				&scene->indices.mem);
 
 			// Copy from staging buffers
 			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -307,7 +318,7 @@ public:
 			vkCmdCopyBuffer(
 				copyCmd,
 				vertexStaging.buffer,
-				scene.vertices.buf,
+				scene->vertices.buf,
 				1,
 				&copyRegion);
 
@@ -315,7 +326,7 @@ public:
 			vkCmdCopyBuffer(
 				copyCmd,
 				indexStaging.buffer,
-				scene.indices.buf,
+				scene->indices.buf,
 				1,
 				&copyRegion);
 
@@ -334,33 +345,50 @@ public:
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				vertexBufferSize,
 				vertexBuffer.data(),
-				&scene.vertices.buf,
-				&scene.vertices.mem);
+				&scene->vertices.buf,
+				&scene->vertices.mem);
 			// Index buffer
 			createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				indexBufferSize,
 				indexBuffer.data(),
-				&scene.indices.buf,
-				&scene.indices.mem);
+				&scene->indices.buf,
+				&scene->indices.mem);
 		}
 
 		delete(meshLoader);
+	}
+
+	void loadScene()
+	{
+		loadModel(getAssetPath() + "models/treasure.dae", &scene);
+		loadModel(getAssetPath() + "models/treasure_glow.dae", &sceneGlow);
 
 		// Name the meshes
 		// ASSIMP does not load mesh names from the COLLADA file used in this example
 		// so we need to set them manually
 		// These names are used in command buffer creation for setting debug markers
+		// Scene
 		std::vector<std::string> names = { "hill", "rocks", "cave", "tree", "mushroom stems", "blue mushroom caps", "red mushroom caps", "grass blades", "chest box", "chest fittings" };
 		for (size_t i = 0; i < names.size(); i++)
 		{
 			scene.meshes[i].name = names[i];
 		}
+		// Glow
+		std::vector<std::string> namesGlow = { "emeralds", "mushroom stems", "blue mushroom caps", "chest fittings" };
+		for (size_t i = 0; i < namesGlow.size(); i++)
+		{
+			sceneGlow.meshes[i].name = namesGlow[i];
+		}
 
 		// Name the buffers for debugging
+		// Scene
 		DebugReportExt::setObjectName(device, (uint64_t)scene.vertices.buf, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene vertex buffer");
 		DebugReportExt::setObjectName(device, (uint64_t)scene.indices.buf, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene index buffer");
+		// Glow
+		DebugReportExt::setObjectName(device, (uint64_t)sceneGlow.vertices.buf, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Glow vertex buffer");
+		DebugReportExt::setObjectName(device, (uint64_t)sceneGlow.indices.buf, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Glow index buffer");
 	}
 
 	void loadTextures()
@@ -418,22 +446,13 @@ public:
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
-			VkDeviceSize offsets[1] = { 0 };
-
 			// Solid rendering
 
 			// Start a new debug marker region
 			DebugReportExt::beginDebugMarkerRegion(drawCmdBuffers[i], "Solid draw", glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
 
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &scene.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			for (auto mesh : scene.meshes)
-			{
-				// Add debug marker for mesh name
-				DebugReportExt::insertDebugMarker(drawCmdBuffers[i], "Draw \"" + mesh.name + "\"", glm::vec4(0.0f));
-				vkCmdDrawIndexed(drawCmdBuffers[i], mesh.indexCount, 1, mesh.indexStart, 0, 0);
-			}
+			scene.draw(drawCmdBuffers[i]);
 
 			DebugReportExt::endDebugMarkerRegion(drawCmdBuffers[i]);
 
@@ -447,14 +466,7 @@ public:
 				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireframe);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &scene.vertices.buf, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-				for (auto mesh : scene.meshes)
-				{
-					// Add debug marker for mesh name
-					DebugReportExt::insertDebugMarker(drawCmdBuffers[i], "Draw \"" + mesh.name + "\"", glm::vec4(0.0f));
-					vkCmdDrawIndexed(drawCmdBuffers[i], mesh.indexCount, 1, mesh.indexStart, 0, 0);
-				}
+				scene.draw(drawCmdBuffers[i]);
 
 				DebugReportExt::endDebugMarkerRegion(drawCmdBuffers[i]);
 			}
@@ -742,7 +754,7 @@ public:
 		VulkanExampleBase::prepare();
 		DebugReportExt::setupDebugMarkers(device);
 		loadTextures();
-		loadScene(getAssetPath() + "models/treasure.dae");
+		loadScene();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
