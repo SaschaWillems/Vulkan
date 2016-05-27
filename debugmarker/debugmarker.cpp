@@ -31,6 +31,8 @@
 // Setup and functions for the VK_EXT_debug_marker_extension
 // Extension spec can be found at https://github.com/KhronosGroup/Vulkan-Docs/blob/1.0-VK_EXT_debug_marker/doc/specs/vulkan/appendices/VK_EXT_debug_marker.txt
 // Note that the extension will only be present if run from an offline debugging application
+// The actual check for extension presence and enabling it on the device is done in the example base class
+// See VulkanExampleBase::createInstance and VulkanExampleBase::createDevice (base/vulkanexamplebase.cpp)
 namespace DebugMarker
 {
 	bool active = false;
@@ -44,10 +46,6 @@ namespace DebugMarker
 	// Get function pointers for the debug report extensions from the device
 	void setup(VkDevice device)
 	{
-		// Debug marker extension will be enabled by the base class on the device if 
-		// VK_EXT_debug_marker is present (see vulkanexamplebae.cpp)
-		// If the extension is present, the "enableDebugMarkers" property will be set
-		// todo : assert(enableDebugMarkers)
 		pfnDebugMarkerSetObjectTag = (PFN_vkDebugMarkerSetObjectTagEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectTagEXT");
 		pfnDebugMarkerSetObjectName = (PFN_vkDebugMarkerSetObjectNameEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectNameEXT");
 		pfnCmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerBeginEXT");
@@ -63,7 +61,7 @@ namespace DebugMarker
 	// along with the object type
 	void setObjectName(VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, const char *name)
 	{
-		// Check for valid function (may not be present if not runnin in a debugging application)
+		// Check for valid function pointer (may not be present if not running in a debugging application)
 		if (pfnDebugMarkerSetObjectName)
 		{
 			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
@@ -75,10 +73,27 @@ namespace DebugMarker
 		}
 	}
 
+	// Set the tag for an object
+	void setObjectTag(VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, uint64_t name, size_t tagSize, const void* tag)
+	{
+		// Check for valid function pointer (may not be present if not running in a debugging application)
+		if (pfnDebugMarkerSetObjectTag)
+		{
+			VkDebugMarkerObjectTagInfoEXT tagInfo = {};
+			tagInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_TAG_INFO_EXT;
+			tagInfo.objectType = objectType;
+			tagInfo.object = object;
+			tagInfo.tagName = name;
+			tagInfo.tagSize = tagSize;
+			tagInfo.pTag = tag;
+			pfnDebugMarkerSetObjectTag(device, &tagInfo);
+		}
+	}
+
 	// Start a new debug marker region
 	void beginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, glm::vec4 color)
 	{
-		// Check for valid function (may not be present if not runnin in a debugging application)
+		// Check for valid function pointer (may not be present if not running in a debugging application)
 		if (pfnCmdDebugMarkerBegin)
 		{
 			VkDebugMarkerMarkerInfoEXT markerInfo = {};
@@ -92,7 +107,7 @@ namespace DebugMarker
 	// Insert a new debug marker into the command buffer
 	void insert(VkCommandBuffer cmdbuffer, std::string markerName, glm::vec4 color)
 	{
-		// Check for valid function (may not be present if not runnin in a debugging application)
+		// Check for valid function pointer (may not be present if not running in a debugging application)
 		if (pfnCmdDebugMarkerInsert)
 		{
 			VkDebugMarkerMarkerInfoEXT markerInfo = {};
@@ -208,6 +223,11 @@ public:
 	} offScreenFrameBuf;
 
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
+
+	// Random tag data
+	struct {
+		const char name[17] = "debug marker tag";
+	} demoTag;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -926,6 +946,10 @@ public:
 				1);
 
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+
+		// Name for debugging
+		DebugMarker::setObjectName(device, (uint64_t)pipelineLayout, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT, "Shared pipeline layout");
+		DebugMarker::setObjectName(device, (uint64_t)descriptorSetLayout, VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT, "Shared descriptor set layout");
 	}
 
 	void setupDescriptorSet()
@@ -1019,10 +1043,6 @@ public:
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/debugmarker/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		// Name shader moduels for debugging
-		DebugMarker::setObjectName(device, (uint64_t)shaderModules[0], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Mesh rendering vertex shader");
-		DebugMarker::setObjectName(device, (uint64_t)shaderModules[1], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Mesh rendering fragment shader");
-
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
@@ -1075,6 +1095,14 @@ public:
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.postprocess));
 
+		// Name shader moduels for debugging
+		DebugMarker::setObjectName(device, (uint64_t)shaderModules[0], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Toon shading vertex shader");
+		DebugMarker::setObjectName(device, (uint64_t)shaderModules[1], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Toon shading fragment shader");
+		DebugMarker::setObjectName(device, (uint64_t)shaderModules[2], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Color-only vertex shader");
+		DebugMarker::setObjectName(device, (uint64_t)shaderModules[3], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Color-only fragment shader");
+		DebugMarker::setObjectName(device, (uint64_t)shaderModules[4], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Postprocess vertex shader");
+		DebugMarker::setObjectName(device, (uint64_t)shaderModules[5], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Postprocess fragment shader");
+
 		// Name pipelines for debugging
 		DebugMarker::setObjectName(device, (uint64_t)pipelines.toonshading, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Toon shading pipeline");
 		DebugMarker::setObjectName(device, (uint64_t)pipelines.color, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Color only pipeline");
@@ -1097,6 +1125,8 @@ public:
 
 		// Name uniform buffer for debugging
 		DebugMarker::setObjectName(device, (uint64_t)uniformData.vsScene.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene uniform buffer block");
+		// Add some random tag
+		DebugMarker::setObjectTag(device, (uint64_t)uniformData.vsScene.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, 0, sizeof(demoTag), &demoTag);
 
 		updateUniformBuffers();
 	}
