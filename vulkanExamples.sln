@@ -65,6 +65,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multisampling", "multisampl
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "textoverlay", "textoverlay\textoverlay.vcxproj", "{9462DD15-5A1D-460A-B502-C9250D98D7A3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "debugmarker", "debugmarker\debugmarker.vcxproj", "{146FD6F8-5CB4-478E-A823-7350A0ACCF1D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -195,6 +197,10 @@ Global
 		{9462DD15-5A1D-460A-B502-C9250D98D7A3}.Debug|x64.Build.0 = Debug|x64
 		{9462DD15-5A1D-460A-B502-C9250D98D7A3}.Release|x64.ActiveCfg = Release|x64
 		{9462DD15-5A1D-460A-B502-C9250D98D7A3}.Release|x64.Build.0 = Release|x64
+		{146FD6F8-5CB4-478E-A823-7350A0ACCF1D}.Debug|x64.ActiveCfg = Debug|x64
+		{146FD6F8-5CB4-478E-A823-7350A0ACCF1D}.Debug|x64.Build.0 = Debug|x64
+		{146FD6F8-5CB4-478E-A823-7350A0ACCF1D}.Release|x64.ActiveCfg = Release|x64
+		{146FD6F8-5CB4-478E-A823-7350A0ACCF1D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
