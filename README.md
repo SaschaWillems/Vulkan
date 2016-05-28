@@ -85,6 +85,7 @@ Distance field font textures can be generated with tools like [Hiero](https://gi
 <img src="./screenshots/basic_pipelines.png" height="96px" align="right">
 
 [Pipeline state objects](https://www.khronos.org/registry/vulkan/specs/1.0/xhtml/vkspec.html#pipelines) replace the biggest part of the dynamic state machine from OpenGL, baking state information for culling, blending, rasterization, etc. and shaders into a fixed stat that can be optimized much easier by the implementation.
+
 This example uses three different PSOs for rendering the same scene with different visuals and shaders and also demonstrates the use [pipeline derivatives](https://www.khronos.org/registry/vulkan/specs/1.0/xhtml/vkspec.html#pipelines-pipeline-derivatives).
 <br><br>
 
@@ -231,6 +232,12 @@ Demonstrates the use of a separate compute queue (and command buffer) to apply d
 
 Renders the vertex normals of a complex mesh with the use of a geometry shader. The mesh is rendered solid first and the a geometry shader that generates lines from the face normals is used in the second pass.
 <br><br>
+
+## [(Extension) VK_EXT_debug_marker](debugmarker/)
+<img src="./screenshots/ext_debugmarker.jpg" width="170px" align="right">
+
+Example application to be used along with [this tutorial](http://www.saschawillems.de/?page_id=2017) for demonstrating the use of the new VK_EXT_debug_marker extension. Introduced with Vulkan 1.0.12, it adds functionality to set debug markers, regions and name objects for advanced debugging in an offline graphics debugger like [RenderDoc](http://www.renderdoc.org).
+
 
 ## [Vulkan demo scene](vulkanscene/)
 <img src="./screenshots/vulkan_scene.png" height="96px" align="right">
