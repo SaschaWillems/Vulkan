@@ -53,7 +53,7 @@ namespace DebugMarker
 		pfnCmdDebugMarkerInsert = (PFN_vkCmdDebugMarkerInsertEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerInsertEXT");
 
 		// Set flag if at least one function pointer is present
-		active = pfnDebugMarkerSetObjectName;
+		active = (pfnDebugMarkerSetObjectName != VK_NULL_HANDLE);
 	}
 
 	// Sets the debug name of an object

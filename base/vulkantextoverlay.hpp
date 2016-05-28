@@ -18,6 +18,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkantools.h"
+#include "vulkandebug.h"
 
 #include "../external/stb/stb_font_consolas_24_latin1.inl"
 
@@ -638,6 +639,11 @@ public:
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffers[i], &cmdBufInfo));
 
+			if (vkDebug::DebugMarker::active)
+			{
+				vkDebug::DebugMarker::beginRegion(cmdBuffers[i], "Text overlay", glm::vec4(1.0f, 0.94f, 0.3f, 1.0f));
+			}
+
 			vkCmdBeginRenderPass(cmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport((float)*frameBufferWidth, (float)*frameBufferHeight, 0.0f, 1.0f);
@@ -658,6 +664,11 @@ public:
 			}
 
 			vkCmdEndRenderPass(cmdBuffers[i]);
+
+			if (vkDebug::DebugMarker::active)
+			{
+				vkDebug::DebugMarker::endRegion(cmdBuffers[i]);
+			}
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffers[i]));
 		}
