@@ -107,6 +107,10 @@ public:
 
 	vkTools::ThreadPool threadPool;
 
+	// Fence to wait for all command buffers to finish before
+	// presenting to the swap chain
+	VkFence renderFence = {};
+
 	// Max. dimension of the ufo mesh for use as the sphere
 	// radius for frustum culling
 	float objectSphereDim;
@@ -120,6 +124,7 @@ public:
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
 		rotation = { 0.0f, 37.5f, 0.0f };
+		enableTextOverlay = true;
 		title = "Vulkan Example - Multi threaded rendering";
 		// Get number of max. concurrrent threads
 		numThreads = std::thread::hardware_concurrency();
@@ -157,6 +162,8 @@ public:
 			vkDestroyCommandPool(device, thread.commandPool, nullptr);
 			vkMeshLoader::freeMeshBufferResources(device, &thread.mesh);
 		}
+
+		vkDestroyFence(device, renderFence, nullptr);
 	}
 
 	float rnd(float range)
@@ -167,8 +174,6 @@ public:
 	// Create all threads and initialize shader push constants
 	void prepareMultiThreadedRenderer()
 	{
-		// todo : separate func
-
 		// Since this demo updates the command buffers on each frame
 		// we don't use the per-framebuffer command buffers from the
 		// base class, and create a single primary command buffer instead
@@ -177,11 +182,11 @@ public:
 				cmdPool,
 				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				1);
-		vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &primaryCommandBuffer));
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &primaryCommandBuffer));
 
 		// Create a secondary command buffer for rendering the star sphere
 		cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-		vkTools::checkResult(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffer));
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffer));
 		
 		threadData.resize(numThreads);
 
@@ -199,7 +204,7 @@ public:
 			VkCommandPoolCreateInfo cmdPoolInfo = vkTools::initializers::commandPoolCreateInfo();
 			cmdPoolInfo.queueFamilyIndex = swapChain.queueNodeIndex;
 			cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-			vkTools::checkResult(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &thread->commandPool));
+			VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &thread->commandPool));
 
 			// One secondary command buffer per object that is updated by this thread
 			thread->commandBuffer.resize(numObjectsPerThread);
@@ -209,10 +214,9 @@ public:
 					thread->commandPool,
 					VK_COMMAND_BUFFER_LEVEL_SECONDARY,
 					thread->commandBuffer.size());
-			vkTools::checkResult(vkAllocateCommandBuffers(device, &secondaryCmdBufAllocateInfo, thread->commandBuffer.data()));
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &secondaryCmdBufAllocateInfo, thread->commandBuffer.data()));
 
 			// Unique vertex and index buffers per thread
-
 			createBuffer(
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				meshes.ufo.vertices.size,
@@ -245,6 +249,8 @@ public:
 				thread->mesh.indices.buf,
 				1,
 				&copyRegion);
+
+			// todo : staging
 
 			thread->mesh.indexCount = meshes.ufo.indexCount;
 
@@ -301,7 +307,7 @@ public:
 
 		VkCommandBuffer cmdBuffer = thread->commandBuffer[cmdBufferIndex];
 
-		vkTools::checkResult(vkBeginCommandBuffer(cmdBuffer, &commandBufferBeginInfo));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &commandBufferBeginInfo));
 
 		VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
@@ -345,7 +351,7 @@ public:
 		vkCmdBindIndexBuffer(cmdBuffer, thread->mesh.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(cmdBuffer, thread->mesh.indexCount, 1, 0, 0, 0);
 
-		vkTools::checkResult(vkEndCommandBuffer(cmdBuffer));
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	void updateSecondaryCommandBuffer(VkCommandBufferInheritanceInfo inheritanceInfo)
@@ -355,7 +361,7 @@ public:
 		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 
-		vkTools::checkResult(vkBeginCommandBuffer(secondaryCommandBuffer, &commandBufferBeginInfo));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCommandBuffer, &commandBufferBeginInfo));
 
 		VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		vkCmdSetViewport(secondaryCommandBuffer, 0, 1, &viewport);
@@ -386,7 +392,7 @@ public:
 		vkCmdBindIndexBuffer(secondaryCommandBuffer, meshes.skysphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(secondaryCommandBuffer, meshes.skysphere.indexCount, 1, 0, 0, 0);
 
-		vkTools::checkResult(vkEndCommandBuffer(secondaryCommandBuffer));
+		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffer));
 	}
 
 	// Updates the secondary command buffers using a thread pool 
@@ -413,7 +419,7 @@ public:
 
 		// Set target frame buffer
 
-		vkTools::checkResult(vkBeginCommandBuffer(primaryCommandBuffer, &cmdBufInfo));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffer, &cmdBufInfo));
 
 		// The primary command buffer does not contain any rendering commands
 		// These are stored (and retrieved) from the secondary command buffers
@@ -460,44 +466,7 @@ public:
 
 		vkCmdEndRenderPass(primaryCommandBuffer);
 
-		vkTools::checkResult(vkEndCommandBuffer(primaryCommandBuffer));
-	}
-
-	void draw()
-	{
-		// Get next image in the swap chain (back/front buffer)
-		vkTools::checkResult(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		updateCommandBuffers(frameBuffers[currentBuffer]);
-
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &primaryCommandBuffer;
-
-		// Setup a wait fence
-		// todo : reuse
-		VkFence renderFence = {};
-		VkFenceCreateInfo fenceCreateInfo = vkTools::initializers::fenceCreateInfo(VK_FLAGS_NONE);
-		vkCreateFence(device, &fenceCreateInfo, NULL, &renderFence);
-
-		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, renderFence));
-
-		// Wait for fence to signal that all command buffers are ready
-		VkResult fenceRes;
-		do 
-		{
-			fenceRes = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
-		} while (fenceRes == VK_TIMEOUT);
-		vkTools::checkResult(fenceRes);
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		vkTools::checkResult(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
-
-		vkDestroyFence(device, renderFence, nullptr);
-
-		vkTools::checkResult(vkQueueWaitIdle(queue));
+		VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffer));
 	}
 
 	void loadMeshes()
@@ -565,7 +534,7 @@ public:
 		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pPipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
-		vkTools::checkResult(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void preparePipelines()
@@ -641,14 +610,14 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong));
 
 		// Star sphere rendering pipeline
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		depthStencilState.depthWriteEnable = VK_FALSE;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/multithreading/starsphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/multithreading/starsphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.starsphere));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.starsphere));
 	}
 
 	void updateMatrices()
@@ -662,9 +631,35 @@ public:
 		frustum.update(matrices.projection * matrices.view);
 	}
 
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		updateCommandBuffers(frameBuffers[currentBuffer]);
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &primaryCommandBuffer;
+
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, renderFence));
+
+		// Wait for fence to signal that all command buffers are ready
+		VkResult fenceRes;
+		do
+		{
+			fenceRes = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
+		} while (fenceRes == VK_TIMEOUT);
+		VK_CHECK_RESULT(fenceRes);
+		vkResetFences(device, 1, &renderFence);
+
+		VulkanExampleBase::submitFrame();
+	}
+
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		// Create a fence for synchronization
+		VkFenceCreateInfo fenceCreateInfo = vkTools::initializers::fenceCreateInfo(VK_FLAGS_NONE);
+		vkCreateFence(device, &fenceCreateInfo, NULL, &renderFence);
 		loadMeshes();
 		setupVertexDescriptions();
 		setupPipelineLayout();
@@ -678,14 +673,17 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 	}
 
 	virtual void viewChanged()
 	{
 		updateMatrices();
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+		textOverlay->addText("Using " + std::to_string(numThreads) + " threads", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 	}
 };
 
