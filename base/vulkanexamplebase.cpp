@@ -618,12 +618,8 @@ void VulkanExampleBase::submitPostPresentBarrier(VkImage image)
 	VK_CHECK_RESULT(vkBeginCommandBuffer(postPresentCmdBuffer, &cmdBufInfo));
 
 	VkImageMemoryBarrier postPresentBarrier = vkTools::initializers::imageMemoryBarrier();
-	postPresentBarrier.srcAccessMask = 0;
 	postPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	postPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	postPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	postPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	postPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	postPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	postPresentBarrier.image = image;
 
@@ -1692,6 +1688,6 @@ void VulkanExampleBase::initSwapchain()
 
 void VulkanExampleBase::setupSwapChain()
 {
-	swapChain.create(setupCmdBuffer, &width, &height);
+	swapChain.create(&width, &height);
 }
 
