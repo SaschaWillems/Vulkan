@@ -100,9 +100,9 @@ namespace vkTools
 #endif		
 			assert(!tex2D.empty());
 
-			texture->width = (uint32_t)tex2D[0].dimensions().x;
-			texture->height = (uint32_t)tex2D[0].dimensions().y;
-			texture->mipLevels = tex2D.levels();
+			texture->width = static_cast<uint32_t>(tex2D[0].dimensions().x);
+			texture->height = static_cast<uint32_t>(tex2D[0].dimensions().y);
+			texture->mipLevels = static_cast<uint32_t>(tex2D.levels());
 
 			// Get device properites for the requested texture format
 			VkFormatProperties formatProperties;
@@ -163,14 +163,14 @@ namespace vkTools
 					bufferCopyRegion.imageSubresource.mipLevel = i;
 					bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 					bufferCopyRegion.imageSubresource.layerCount = 1;
-					bufferCopyRegion.imageExtent.width = tex2D[i].dimensions().x;
-					bufferCopyRegion.imageExtent.height = tex2D[i].dimensions().y;
+					bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2D[i].dimensions().x);
+					bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2D[i].dimensions().y);
 					bufferCopyRegion.imageExtent.depth = 1;
 					bufferCopyRegion.bufferOffset = offset;
 
 					bufferCopyRegions.push_back(bufferCopyRegion);
 
-					offset += tex2D[i].size();
+					offset += static_cast<uint32_t>(tex2D[i].size());
 				}
 
 				// Create optimal tiled target image
@@ -219,7 +219,7 @@ namespace vkTools
 					stagingBuffer,
 					texture->image,
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					bufferCopyRegions.size(),
+					static_cast<uint32_t>(bufferCopyRegions.size()),
 					bufferCopyRegions.data()
 					);
 
@@ -459,7 +459,7 @@ namespace vkTools
 			bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-			vkTools::checkResult(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
+			VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
 
 			// Get memory requirements for the staging buffer (alignment, memory type bits)
 			vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
@@ -468,12 +468,12 @@ namespace vkTools
 			// Get memory type index for a host visible buffer
 			memAllocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
-			vkTools::checkResult(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
-			vkTools::checkResult(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
+			VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
 
 			// Copy texture data into staging buffer
 			uint8_t *data;
-			vkTools::checkResult(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
+			VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
 			memcpy(data, texCube.data(), texCube.size());
 			vkUnmapMemory(device, stagingMemory);
 
@@ -629,9 +629,9 @@ namespace vkTools
 
 			assert(!tex2DArray.empty());
 
-			texture->width = tex2DArray.dimensions().x;
-			texture->height = tex2DArray.dimensions().y;
-			texture->layerCount = tex2DArray.layers();
+			texture->width = static_cast<uint32_t>(tex2DArray.dimensions().x);
+			texture->height = static_cast<uint32_t>(tex2DArray.dimensions().y);
+			texture->layerCount = static_cast<uint32_t>(tex2DArray.layers());
 
 			VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 			VkMemoryRequirements memReqs;
@@ -646,7 +646,7 @@ namespace vkTools
 			bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-			vkTools::checkResult(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
+			VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
 
 			// Get memory requirements for the staging buffer (alignment, memory type bits)
 			vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
@@ -655,12 +655,12 @@ namespace vkTools
 			// Get memory type index for a host visible buffer
 			memAllocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
-			vkTools::checkResult(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
-			vkTools::checkResult(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
+			VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
 
 			// Copy texture data into staging buffer
 			uint8_t *data;
-			vkTools::checkResult(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
+			VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
 			memcpy(data, tex2DArray.data(), tex2DArray.size());
 			vkUnmapMemory(device, stagingMemory);
 
@@ -687,8 +687,8 @@ namespace vkTools
 				bufferCopyRegion.imageSubresource.mipLevel = 0;
 				bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 				bufferCopyRegion.imageSubresource.layerCount = texture->layerCount;
-				bufferCopyRegion.imageExtent.width = tex2DArray[0].dimensions().x;
-				bufferCopyRegion.imageExtent.height = tex2DArray[0].dimensions().y;
+				bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2DArray[0].dimensions().x);
+				bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2DArray[0].dimensions().y);
 				bufferCopyRegion.imageExtent.depth = 1;
 				bufferCopyRegion.bufferOffset = offset;
 
@@ -704,14 +704,14 @@ namespace vkTools
 					bufferCopyRegion.imageSubresource.mipLevel = 0;
 					bufferCopyRegion.imageSubresource.baseArrayLayer = layer;
 					bufferCopyRegion.imageSubresource.layerCount = 1;
-					bufferCopyRegion.imageExtent.width = tex2DArray[layer].dimensions().x;
-					bufferCopyRegion.imageExtent.height = tex2DArray[layer].dimensions().y;
+					bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2DArray[layer].dimensions().x);
+					bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2DArray[layer].dimensions().y);
 					bufferCopyRegion.imageExtent.depth = 1;
 					bufferCopyRegion.bufferOffset = offset;
 
 					bufferCopyRegions.push_back(bufferCopyRegion);
 
-					offset += tex2DArray[layer].size();
+					offset += static_cast<uint32_t>(tex2DArray[layer].size());
 				}
 			}
 
@@ -764,7 +764,7 @@ namespace vkTools
 				stagingBuffer,
 				texture->image,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				bufferCopyRegions.size(),
+				static_cast<uint32_t>(bufferCopyRegions.size()),
 				bufferCopyRegions.data()
 				);
 
