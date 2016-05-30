@@ -208,8 +208,10 @@ public:
 	xcb_intern_atom_reply_t *atom_wm_delete_window;
 #endif
 
+	// Default ctor
 	VulkanExampleBase(bool enableValidation);
-	VulkanExampleBase() : VulkanExampleBase(false) {};
+
+	// dtor
 	~VulkanExampleBase();
 
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)

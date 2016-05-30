@@ -137,7 +137,7 @@ public:
 		info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-		vkTools::checkResult(vkCreateImage(device, &info, nullptr, &multisampleTarget.color.image));
+		VK_CHECK_RESULT(vkCreateImage(device, &info, nullptr, &multisampleTarget.color.image));
 
 		VkMemoryRequirements memReqs;
 		vkGetImageMemoryRequirements(device, multisampleTarget.color.image, &memReqs);
@@ -151,7 +151,7 @@ public:
 			// If this is not available, fall back to device local memory
 			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
 		}
-		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &multisampleTarget.color.memory));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &multisampleTarget.color.memory));
 		vkBindImageMemory(device, multisampleTarget.color.image, multisampleTarget.color.memory, 0);
 
 		// Create image view for the MSAA target
@@ -167,7 +167,7 @@ public:
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		vkTools::checkResult(vkCreateImageView(device, &viewInfo, nullptr, &multisampleTarget.color.view));
+		VK_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &multisampleTarget.color.view));
 
 		// Depth target
 		info.imageType = VK_IMAGE_TYPE_2D;
@@ -184,7 +184,7 @@ public:
 		info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-		vkTools::checkResult(vkCreateImage(device, &info, nullptr, &multisampleTarget.depth.image));
+		VK_CHECK_RESULT(vkCreateImage(device, &info, nullptr, &multisampleTarget.depth.image));
 
 		vkGetImageMemoryRequirements(device, multisampleTarget.depth.image, &memReqs);
 		memAlloc = vkTools::initializers::memoryAllocateInfo();
@@ -195,7 +195,7 @@ public:
 			getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
 		}
 		
-		vkTools::checkResult(vkAllocateMemory(device, &memAlloc, nullptr, &multisampleTarget.depth.memory));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &multisampleTarget.depth.memory));
 		vkBindImageMemory(device, multisampleTarget.depth.image, multisampleTarget.depth.memory, 0);
 
 		// Create image view for the MSAA target
@@ -210,7 +210,7 @@ public:
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		vkTools::checkResult(vkCreateImageView(device, &viewInfo, nullptr, &multisampleTarget.depth.view));
+		VK_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &multisampleTarget.depth.view));
 	}
 
 	// Setup a render pass for using a multi sampled attachment 
@@ -293,7 +293,7 @@ public:
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
 
-		vkTools::checkResult(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 	}
 
 	// Frame buffer attachments must match with render pass setup, 
@@ -327,7 +327,7 @@ public:
 		for (uint32_t i = 0; i < frameBuffers.size(); i++)
 		{
 			attachments[1] = swapChain.buffers[i].view;
-			vkTools::checkResult(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
+			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
 		}
 	}
 
@@ -377,7 +377,7 @@ public:
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			vkTools::checkResult(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -397,14 +397,14 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			vkTools::checkResult(vkEndCommandBuffer(drawCmdBuffers[i]));
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
 	void draw()
 	{
 		// Get next image in the swap chain (back/front buffer)
-		vkTools::checkResult(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
+		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
@@ -413,13 +413,13 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
 		// Submit to queue
-		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		vkTools::checkResult(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
+		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 
-		vkTools::checkResult(vkQueueWaitIdle(queue));
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	void loadTextures()
@@ -498,7 +498,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		vkTools::checkResult(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -522,14 +522,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		vkTools::checkResult(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		vkTools::checkResult(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
@@ -540,7 +540,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		vkTools::checkResult(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 		
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
@@ -640,7 +640,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -674,7 +674,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
-		vkTools::checkResult(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.vsScene.memory);
 	}

@@ -580,7 +580,7 @@ public:
 			&uniformData.computeShader.ubo.descriptor);
 
 		// Map for host access
-		vkTools::checkResult(vkMapMemory(device, uniformData.computeShader.ubo.memory, 0, sizeof(computeUbo), 0, (void **)&uniformData.computeShader.ubo.mapped));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.computeShader.ubo.memory, 0, sizeof(computeUbo), 0, (void **)&uniformData.computeShader.ubo.mapped));
 
 		updateUniformBuffers();
 	}

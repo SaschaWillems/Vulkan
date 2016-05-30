@@ -442,7 +442,7 @@ public:
 		{
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			vkTools::checkResult(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -472,7 +472,7 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			vkTools::checkResult(vkEndCommandBuffer(drawCmdBuffers[i]));
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
@@ -825,7 +825,7 @@ public:
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Floor
-		vkTools::checkResult(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.floor));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.floor));
 
 		texDescriptor.imageView = textures.floor.view;
 		texDescriptor.sampler = textures.floor.sampler;
@@ -926,7 +926,7 @@ public:
 
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		vkTools::checkResult(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -942,7 +942,7 @@ public:
 			&uniformData.vsScene.descriptor);
 
 		// Map for host access
-		vkTools::checkResult(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&uniformData.vsScene.mapped));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&uniformData.vsScene.mapped));
 
 		// Floor
 		createBuffer(
@@ -954,7 +954,7 @@ public:
 			&uniformData.floor.descriptor);
 
 		// Map for host access
-		vkTools::checkResult(vkMapMemory(device, uniformData.floor.memory, 0, sizeof(uboFloor), 0, (void **)&uniformData.floor.mapped));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.floor.memory, 0, sizeof(uboFloor), 0, (void **)&uniformData.floor.mapped));
 
 		updateUniformBuffers(true);
 	}

@@ -138,12 +138,12 @@ public:
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
 
-		vkTools::checkResult(vkCreateImage(device, &imageCreateInfo, nullptr, &tex->image));
+		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &tex->image));
 		vkGetImageMemoryRequirements(device, tex->image, &memReqs);
 		memAllocInfo.allocationSize = memReqs.size;
 		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex);
-		vkTools::checkResult(vkAllocateMemory(device, &memAllocInfo, nullptr, &tex->deviceMemory));
-		vkTools::checkResult(vkBindImageMemory(device, tex->image, tex->deviceMemory, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &tex->deviceMemory));
+		VK_CHECK_RESULT(vkBindImageMemory(device, tex->image, tex->deviceMemory, 0));
 
 		tex->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		vkTools::setImageLayout(
@@ -166,7 +166,7 @@ public:
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 0.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		vkTools::checkResult(vkCreateSampler(device, &sampler, nullptr, &tex->sampler));
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &tex->sampler));
 
 		// Create image view
 		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
@@ -175,7 +175,7 @@ public:
 		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		view.image = tex->image;
-		vkTools::checkResult(vkCreateImageView(device, &view, nullptr, &tex->view));
+		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &tex->view));
 	}
 
 	void buildCommandBuffers()
@@ -637,7 +637,7 @@ public:
 				0);
 
 		computePipelineCreateInfo.stage = loadShader(getAssetPath() + "shaders/raytracing/raytracing.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
-		vkTools::checkResult(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &pipelines.compute));
+		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &pipelines.compute));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -662,7 +662,7 @@ public:
 		uboCompute.lightPos.z = 1.0f;
 		uboCompute.lightPos.z = 0.0f + cos(glm::radians(timer * 360.0f)) * 2.0f;
 		uint8_t *pData;
-		vkTools::checkResult(vkMapMemory(device, uniformDataCompute.memory, 0, sizeof(uboCompute), 0, (void **)&pData));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformDataCompute.memory, 0, sizeof(uboCompute), 0, (void **)&pData));
 		memcpy(pData, &uboCompute, sizeof(uboCompute));
 		vkUnmapMemory(device, uniformDataCompute.memory);
 	}

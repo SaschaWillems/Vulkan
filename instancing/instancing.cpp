@@ -125,7 +125,7 @@ public:
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			vkTools::checkResult(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -151,14 +151,14 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			vkTools::checkResult(vkEndCommandBuffer(drawCmdBuffers[i]));
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
 	void draw()
 	{
 		// Get next image in the swap chain (back/front buffer)
-		vkTools::checkResult(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
+		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
 		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
 
@@ -167,13 +167,13 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
 		// Submit to queue
-		vkTools::checkResult(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
 
-		vkTools::checkResult(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
+		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 
-		vkTools::checkResult(vkQueueWaitIdle(queue));
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	void loadMeshes()
@@ -537,7 +537,7 @@ public:
 			&uniformData.vsScene.descriptor);
 
 		// Map for host access
-		vkTools::checkResult(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&uniformData.vsScene.mapped));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&uniformData.vsScene.mapped));
 
 		updateUniformBuffer(true);
 	}

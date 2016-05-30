@@ -79,17 +79,6 @@ namespace vkTools
 		}
 	}
 
-	VkResult checkResult(VkResult result)
-	{
-		if (result != VK_SUCCESS)
-		{
-			std::string errorMsg = "Fatal : VkResult returned " + errorString(result) + "!";
-			std::cout << errorMsg << std::endl;
-			assert(result == VK_SUCCESS);
-		}
-		return result;
-	}
-
 	VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *depthFormat)
 	{
 		// Since all depth formats may be optional, we need to find a suitable depth format to use
