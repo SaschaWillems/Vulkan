@@ -8,6 +8,8 @@
 
 #include "vulkanexamplebase.h"
 
+VulkanExampleBase* VulkanExampleBase::EXAMPLE_INSTANCE = nullptr;
+
 VkResult VulkanExampleBase::createInstance(bool enableValidation)
 {
 	this->enableValidation = enableValidation;
@@ -738,6 +740,7 @@ void VulkanExampleBase::submitFrame()
 
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
+	EXAMPLE_INSTANCE = this;
 	// Check for validation command line flag
 #if defined(_WIN32)
 	for (int32_t i = 0; i < __argc; i++)
@@ -772,6 +775,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 
 VulkanExampleBase::~VulkanExampleBase()
 {
+	EXAMPLE_INSTANCE = nullptr;
 	// Clean up Vulkan resources
 	swapChain.cleanup();
 	if (descriptorPool != VK_NULL_HANDLE)
@@ -952,10 +956,8 @@ void VulkanExampleBase::setupConsole(std::string title)
 	}
 }
 
-HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
+HWND VulkanExampleBase::setupWindow()
 {
-	this->windowInstance = hinstance;
-
 	bool fullscreen = false;
 
 	// Check command line arguments
@@ -971,10 +973,10 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 
 	wndClass.cbSize = sizeof(WNDCLASSEX);
 	wndClass.style = CS_HREDRAW | CS_VREDRAW;
-	wndClass.lpfnWndProc = wndproc;
+	wndClass.lpfnWndProc = WndProc;
 	wndClass.cbClsExtra = 0;
 	wndClass.cbWndExtra = 0;
-	wndClass.hInstance = hinstance;
+	wndClass.hInstance = hInstance;
 	wndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wndClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
@@ -1062,7 +1064,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		windowRect.bottom,
 		NULL,
 		NULL,
-		hinstance,
+		hInstance,
 		NULL);
 
 	if (!window)
@@ -1682,7 +1684,7 @@ void VulkanExampleBase::windowResized()
 void VulkanExampleBase::initSwapchain()
 {
 #if defined(_WIN32)
-	swapChain.initSurface(windowInstance, window);
+	swapChain.initSurface(hInstance, window);
 #elif defined(__ANDROID__)	
 	swapChain.initSurface(androidApp->window);
 #elif defined(__linux__)
@@ -1694,4 +1696,48 @@ void VulkanExampleBase::setupSwapChain()
 {
 	swapChain.create(setupCmdBuffer, &width, &height);
 }
+
+void VulkanExampleBase::run() 
+{
+#if defined(_WIN32)
+	setupWindow();
+#elif defined(__ANDROID__)
+	// Attach vulkan example to global android application state
+	state->userData = vulkanExample;
+	state->onAppCmd = VulkanExample::handleAppCommand;
+	state->onInputEvent = VulkanExample::handleAppInput;
+	androidApp = state;
+#elif defined(__linux__)
+	setupWindow();
+#endif
+#if !defined(__ANDROID__)
+	initSwapchain();
+	prepare();
+#endif
+	renderLoop();
+}
+
+#if defined(_WIN32)
+
+HINSTANCE VulkanExampleBase::hInstance = NULL;
+
+LRESULT CALLBACK VulkanExampleBase::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (EXAMPLE_INSTANCE != NULL)
+	{
+		EXAMPLE_INSTANCE->handleMessages(hWnd, uMsg, wParam, lParam);
+	}
+	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+}
+
+#elif defined(__linux__) && !defined(__ANDROID__)
+
+void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event) 
+{
+	if (EXAMPLE_INSTANCE != NULL) {
+		EXAMPLE_INSTANCE->handleEvent(event);
+	}
+}
+
+#endif
 

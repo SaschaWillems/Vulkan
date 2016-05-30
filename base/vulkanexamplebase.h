@@ -70,6 +70,14 @@ private:
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 protected:
+	static VulkanExampleBase* EXAMPLE_INSTANCE;
+#if defined(_WIN32)
+	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+#endif
+#if defined(__linux__) && !defined(__ANDROID__)
+	static void handleEvent(const xcb_generic_event_t *event);
+#endif
+
 	// Last frame time, measured using a high performance timer (if available)
 	float frameTimer = 1.0f;
 	// Frame counter to display fps
@@ -190,7 +198,7 @@ public:
 	// OS specific 
 #if defined(_WIN32)
 	HWND window;
-	HINSTANCE windowInstance;
+	static HINSTANCE hInstance;
 #elif defined(__ANDROID__)
 	android_app* androidApp;
 	// true if application has focused, false if moved to background
@@ -219,7 +227,7 @@ public:
 
 #if defined(_WIN32)
 	void setupConsole(std::string title);
-	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
+	HWND setupWindow();
 	void handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #elif defined(__ANDROID__)
 	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
@@ -369,5 +377,35 @@ public:
 	// - 
 	void submitFrame();
 
+	void run();
 };
 
+// Boilerplate for running an example
+#if defined(_WIN32)
+#define ENTRY_POINT_START \
+		int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {  \
+			VulkanExampleBase::hInstance = hInstance;
+#elif defined(__ANDROID__)
+#define ENTRY_POINT_START \
+		void android_main(android_app* state) { \
+			app_dummy(); 
+#elif defined(__linux__) 
+#define ENTRY_POINT_START \
+		int main(const int argc, const char *argv[]) { 
+#endif
+
+#if !defined(__ANDROID__)
+#define ENTRY_POINT_END \
+			return 0; \
+		}
+#else
+#define ENTRY_POINT_END \
+		}
+#endif
+
+#define RUN_EXAMPLE(ExampleType) \
+	ENTRY_POINT_START \
+		ExampleType* vulkanExample = new ExampleType(); \
+		vulkanExample->run(); \
+		delete(vulkanExample); \
+	ENTRY_POINT_END
