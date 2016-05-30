@@ -1087,6 +1087,16 @@ public:
 		displayCubeMap = !displayCubeMap;
 		reBuildCommandBuffers();
 	}
+
+	void keyPressed(uint32_t keyCode) override
+	{
+		switch (keyCode)
+		{
+		case 0x44:
+			toggleCubeMapDisplay();
+			break;
+		}
+	}
 };
 
 
@@ -1098,15 +1108,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case 0x44:
-				vulkanExample->toggleCubeMapDisplay();
-				break;
-			}
-		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }

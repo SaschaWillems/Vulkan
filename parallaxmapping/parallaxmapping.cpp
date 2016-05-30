@@ -609,6 +609,19 @@ void reBuildCommandBuffers()
 		reBuildCommandBuffers();
 	}
 
+	void keyPressed(uint32_t key) override {
+		switch (key) {
+		case 0x4F:
+			toggleParallaxOffset();
+			break;
+		case 0x4E:
+			toggleNormalMapDisplay();
+			break;
+		case 0x53:
+			toggleSplitScreen();
+			break;
+		}
+	}
 };
 
 VulkanExample *vulkanExample;
@@ -623,15 +636,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			switch (wParam)
 			{
-			case 0x4F:
-				vulkanExample->toggleParallaxOffset();
-				break;
-			case 0x4E:
-				vulkanExample->toggleNormalMapDisplay();
-				break;
-			case 0x53:
-				vulkanExample->toggleSplitScreen();
-				break;
 		}
 	}
 	}

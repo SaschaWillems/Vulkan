@@ -1129,6 +1129,19 @@ public:
 		lightPOV = !lightPOV;
 		viewChanged();
 	}
+
+	void keyPressed(uint32_t keyCode) override
+	{
+		switch (keyCode)
+		{
+		case 0x53:
+			toggleShadowMapDisplay();
+			break;
+		case 0x4C:
+			toogleLightPOV();
+			break;
+		}
+	}
 };
 
 VulkanExample *vulkanExample;
@@ -1139,18 +1152,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case 0x53:
-				vulkanExample->toggleShadowMapDisplay();
-				break;
-			case 0x4C:
-				vulkanExample->toogleLightPOV();
-				break;
-			}
-		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }

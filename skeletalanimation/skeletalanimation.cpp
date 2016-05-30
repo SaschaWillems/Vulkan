@@ -1039,6 +1039,17 @@ public:
 		skinnedMesh->animationSpeed += delta;
 		std::cout << "Animation speed = " << skinnedMesh->animationSpeed << std::endl;
 	}
+
+	void keyPressed(uint32_t keyCode) override
+	{
+		switch (keyCode)
+		{
+		case VK_ADD:
+		case VK_SUBTRACT:
+			changeAnimationSpeed((keyCode == VK_ADD) ? 0.1f : -0.1f);
+			break;
+		}
+	}
 };
 
 VulkanExample *vulkanExample;
@@ -1049,16 +1060,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case VK_ADD:
-			case VK_SUBTRACT:
-				vulkanExample->changeAnimationSpeed((wParam == VK_ADD) ? 0.1f : -0.1f);
-				break;
-			}
-		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
