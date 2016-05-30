@@ -13,6 +13,8 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
+#pragma warning(disable: 4267 4244)
+
 #ifndef BUILD_EXAMPLE_LIBRARY
 #ifdef _DEBUG
 #pragma comment(lib, "based.lib")
@@ -20,6 +22,7 @@
 #pragma comment(lib, "base.lib")
 #endif
 #endif
+
 #elif defined(__ANDROID__)
 #include <android/native_activity.h>
 #include <android/asset_manager.h>
@@ -28,15 +31,26 @@
 #include <xcb/xcb.h>
 #endif
 
-#include <iostream>
-#include <chrono>
-#include <string>
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h> 
+
 #include <array>
+#include <chrono>
 #include <iostream>
+#include <random>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -56,23 +70,6 @@
 #define GAMEPAD_BUTTON_L1 0x1004
 #define GAMEPAD_BUTTON_R1 0x1005
 #define GAMEPAD_BUTTON_START 0x1006
-
-#include "vulkanexamplebase.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <vector>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <vulkan/vulkan.h>
-
-
 
 class VulkanExampleBase
 {
