@@ -100,6 +100,8 @@ public:
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyBuffer(device, instanceBuffer.buffer, nullptr);
+		vkFreeMemory(device, instanceBuffer.memory, nullptr);
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
 		vkTools::destroyUniformData(device, &uniformData.vsScene);
 		textureLoader->destroyTexture(textures.colorMap);
@@ -524,12 +526,17 @@ public:
 		instanceBuffer.descriptor.range = instanceBuffer.size;
 		instanceBuffer.descriptor.buffer = instanceBuffer.buffer;
 		instanceBuffer.descriptor.offset = 0;
+
+		// Destroy staging resources
+		vkDestroyBuffer(device, stagingBuffer.buffer, nullptr);
+		vkFreeMemory(device, stagingBuffer.memory, nullptr);
 	}
 
 	void prepareUniformBuffers()
 	{
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboVS),
 			nullptr,
 			&uniformData.vsScene.buffer,
@@ -586,7 +593,6 @@ public:
 		draw();
 		if (!paused)
 		{
-			vkDeviceWaitIdle(device);
 			updateUniformBuffer(false);
 		}
 	}
