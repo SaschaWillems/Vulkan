@@ -6,8 +6,8 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include "vulkandebug.h"
-#include <iostream>
+
+#include "vulkanexamplebase.h"
 
 namespace vkDebug
 {

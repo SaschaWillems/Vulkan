@@ -13,11 +13,6 @@
 
 // Vulkan needs to be loaded dynamically on android
 
-#pragma once
-
-#ifndef VULKANANDROID_HPP
-#define VULKANANDROID_HPP
-
 #include "vulkan/vulkan.h"
 
 #if defined(__ANDROID__)
@@ -146,9 +141,6 @@ void loadVulkanFunctions(VkInstance instance);
 void freeVulkanLibrary();
 
 #endif
-
-#endif // VULKANANDROID_HPP
-
 
 #endif // VULKANANDROID_H
  

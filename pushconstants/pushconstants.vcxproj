@@ -11,15 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\base\vulkandebug.cpp" />
-    <ClCompile Include="..\base\vulkanexamplebase.cpp" />
-    <ClCompile Include="..\base\vulkantools.cpp" />
     <ClCompile Include="pushconstants.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\base\vulkandebug.h" />
-    <ClInclude Include="..\base\vulkanexamplebase.h" />
-    <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6638BBE9-E47E-4A57-95A4-09474C37D023}</ProjectGuid>
@@ -56,9 +48,9 @@
       <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\libs\vulkan\vulkan-1.lib;..\libs\assimp\assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\libs\based.lib;..\libs\vulkan\vulkan-1.lib;..\libs\assimp\assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\libs;%(AdditionalIncludeDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
@@ -68,7 +60,8 @@
       <AdditionalIncludeDirectories>..\base;..\external\glm;..\external\gli;..\external\assimp;..\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\libs\vulkan\vulkan-1.lib;..\libs\assimp\assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\libs\base.lib;..\libs\vulkan\vulkan-1.lib;..\libs\assimp\assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\libs;%(AdditionalIncludeDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
