@@ -15,14 +15,6 @@
 #include <io.h>
 #pragma warning(disable: 4267 4244)
 
-#ifndef BUILD_EXAMPLE_LIBRARY
-#ifdef _DEBUG
-#pragma comment(lib, "based.lib")
-#else
-#pragma comment(lib, "base.lib")
-#endif
-#endif
-
 #elif defined(__ANDROID__)
 #include <android/native_activity.h>
 #include <android/asset_manager.h>
@@ -70,6 +62,12 @@
 #define GAMEPAD_BUTTON_L1 0x1004
 #define GAMEPAD_BUTTON_R1 0x1005
 #define GAMEPAD_BUTTON_START 0x1006
+
+#ifdef NDEBUG
+#define ENABLE_VALIDATION false
+#else
+#define ENABLE_VALIDATION true
+#endif
 
 class VulkanExampleBase
 {

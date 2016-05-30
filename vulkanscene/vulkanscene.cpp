@@ -13,7 +13,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -69,7 +68,7 @@ public:
 		zoom = -3.75f;
 		rotationSpeed = 0.5f;
 		rotation = glm::vec3(15.0f, 0.f, 0.0f);
-		title = "Vulkan Demo Scene - © 2016 by Sascha Willems";
+		title = "Vulkan Demo Scene - \xA9 2016 by Sascha Willems";
 	}
 
 	~VulkanExample()

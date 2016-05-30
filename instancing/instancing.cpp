@@ -10,7 +10,6 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define INSTANCE_BUFFER_BIND_ID 1
-#define ENABLE_VALIDATION false
 #define INSTANCE_COUNT 2048
 
 // Vertex layout for this example

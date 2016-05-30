@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
 
 // Vertex layout used in this example
 // Vertex layout for this example
