@@ -22,6 +22,11 @@ layout (location = 3) out vec3 outLightVec;
 layout (location = 4) out vec3 outWorldPos;
 layout (location = 5) out vec3 outLightPos;
 
+out gl_PerVertex 
+{
+	vec4 gl_Position;
+};
+
 void main() 
 {
 	outColor = inColor;

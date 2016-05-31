@@ -115,10 +115,10 @@ public:
 		int32_t width, height;
 		VkFramebuffer frameBuffer;
 		FrameBufferAttachment color, depth;
+		VkRenderPass renderPass;
 	} offScreenFrameBuf;
 
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
-	VkRenderPass offscreenRenderpass = VK_NULL_HANDLE;
 	VkFormat fbDepthFormat;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
@@ -127,6 +127,7 @@ public:
 		zoomSpeed = 10.0f;
 		timerSpeed *= 0.25f;
 		rotation = { -20.5f, -673.0f, 0.0f };
+		enableTextOverlay = true;
 		title = "Vulkan Example - Point light shadows";
 	}
 
@@ -155,7 +156,7 @@ public:
 
 		vkDestroyFramebuffer(device, offScreenFrameBuf.frameBuffer, nullptr);
 
-		vkDestroyRenderPass(device, offscreenRenderpass, nullptr);
+		vkDestroyRenderPass(device, offScreenFrameBuf.renderPass, nullptr);
 
 		// Pipelibes
 		vkDestroyPipeline(device, pipelines.scene, nullptr);
@@ -180,8 +181,6 @@ public:
 
 	void prepareCubeMap()
 	{
-		VkResult err;
-
 		shadowCubeMap.width = TEX_DIM;
 		shadowCubeMap.height = TEX_DIM;
 		
@@ -205,35 +204,17 @@ public:
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
 
-		// Allocate command buffer for image copies and layouts
-		VkCommandBuffer cmdBuffer;
-		VkCommandBufferAllocateInfo cmdBufAlllocatInfo =
-			vkTools::initializers::commandBufferAllocateInfo(
-				cmdPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1);
-		err = vkAllocateCommandBuffers(device, &cmdBufAlllocatInfo, &cmdBuffer);
-		assert(!err);
-
-		VkCommandBufferBeginInfo cmdBufInfo =
-			vkTools::initializers::commandBufferBeginInfo();
-
-		err = vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo);
-		assert(!err);
+		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 		// Create cube map image
-		err = vkCreateImage(device, &imageCreateInfo, nullptr, &shadowCubeMap.image);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &shadowCubeMap.image));
 
 		vkGetImageMemoryRequirements(device, shadowCubeMap.image, &memReqs);
 
 		memAllocInfo.allocationSize = memReqs.size;
-
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAllocInfo.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAllocInfo, nullptr, &shadowCubeMap.deviceMemory);
-		assert(!err);
-		err = vkBindImageMemory(device, shadowCubeMap.image, shadowCubeMap.deviceMemory, 0);
-		assert(!err);
+		memAllocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &shadowCubeMap.deviceMemory));
+		VK_CHECK_RESULT(vkBindImageMemory(device, shadowCubeMap.image, shadowCubeMap.deviceMemory, 0));
 
 		// Image barrier for optimal image (target)
 		VkImageSubresourceRange subresourceRange = {};
@@ -242,28 +223,14 @@ public:
 		subresourceRange.levelCount = 1;
 		subresourceRange.layerCount = 6;
 		vkTools::setImageLayout(
-			cmdBuffer,
+			layoutCmd,
 			shadowCubeMap.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_PREINITIALIZED,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			subresourceRange);
 
-		err = vkEndCommandBuffer(cmdBuffer);
-		assert(!err);
-
-		VkFence nullFence = { VK_NULL_HANDLE };
-
-		// Submit command buffer to graphis queue
-		VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &cmdBuffer;
-
-		err = vkQueueSubmit(queue, 1, &submitInfo, nullFence);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
+		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
 		// Create sampler
 		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
@@ -277,10 +244,9 @@ public:
 		sampler.maxAnisotropy = 0;
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
-		sampler.maxLod = 0.0f;
+		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		err = vkCreateSampler(device, &sampler, nullptr, &shadowCubeMap.sampler);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &shadowCubeMap.sampler));
 
 		// Create image view
 		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
@@ -291,8 +257,7 @@ public:
 		view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		view.subresourceRange.layerCount = 6;
 		view.image = shadowCubeMap.image;
-		err = vkCreateImageView(device, &view, nullptr, &shadowCubeMap.view);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &shadowCubeMap.view));
 	}
 
 	// Prepare a new framebuffer for offscreen rendering
@@ -304,10 +269,6 @@ public:
 		offScreenFrameBuf.height = FB_DIM;
 
 		VkFormat fbColorFormat = FB_COLOR_FORMAT;
-
-		VkResult err;
-
-		createSetupCommandBuffer();
 
 		// Color attachment
 		VkImageCreateInfo image = vkTools::initializers::imageCreateInfo();
@@ -339,26 +300,24 @@ public:
 
 		VkMemoryRequirements memReqs;
 
-		err = vkCreateImage(device, &image, nullptr, &offScreenFrameBuf.color.image);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &offScreenFrameBuf.color.image));
 		vkGetImageMemoryRequirements(device, offScreenFrameBuf.color.image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.color.mem);
-		assert(!err);
+		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.color.mem));
+		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.color.image, offScreenFrameBuf.color.mem, 0));
 
-		err = vkBindImageMemory(device, offScreenFrameBuf.color.image, offScreenFrameBuf.color.mem, 0);
-		assert(!err);
+		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
 		vkTools::setImageLayout(
-			setupCmdBuffer, 
+			layoutCmd,
 			offScreenFrameBuf.color.image, 
 			VK_IMAGE_ASPECT_COLOR_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		colorImageView.image = offScreenFrameBuf.color.image;
-		err = vkCreateImageView(device, &colorImageView, nullptr, &offScreenFrameBuf.color.view);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImageView(device, &colorImageView, nullptr, &offScreenFrameBuf.color.view));
 
 		// Depth stencil attachment
 		image.format = fbDepthFormat;
@@ -376,46 +335,38 @@ public:
 		depthStencilView.subresourceRange.baseArrayLayer = 0;
 		depthStencilView.subresourceRange.layerCount = 1;
 
-		err = vkCreateImage(device, &image, nullptr, &offScreenFrameBuf.depth.image);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &offScreenFrameBuf.depth.image));
 		vkGetImageMemoryRequirements(device, offScreenFrameBuf.depth.image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
-		err = vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.depth.mem);
-		assert(!err);
-
-		err = vkBindImageMemory(device, offScreenFrameBuf.depth.image, offScreenFrameBuf.depth.mem, 0);
-		assert(!err);
+		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.depth.mem));
+		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.depth.image, offScreenFrameBuf.depth.mem, 0));
 
 		vkTools::setImageLayout(
-			setupCmdBuffer, 
+			layoutCmd,
 			offScreenFrameBuf.depth.image, 
 			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
 			VK_IMAGE_LAYOUT_PREINITIALIZED,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
-		flushSetupCommandBuffer();
+		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
 		depthStencilView.image = offScreenFrameBuf.depth.image;
-		err = vkCreateImageView(device, &depthStencilView, nullptr, &offScreenFrameBuf.depth.view);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &offScreenFrameBuf.depth.view));
 
 		VkImageView attachments[2];
 		attachments[0] = offScreenFrameBuf.color.view;
 		attachments[1] = offScreenFrameBuf.depth.view;
 
-		VkFramebufferCreateInfo fbufCreateInfo = {};
-		fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		fbufCreateInfo.pNext = NULL;
-		fbufCreateInfo.renderPass = offscreenRenderpass;
+		VkFramebufferCreateInfo fbufCreateInfo = vkTools::initializers::framebufferCreateInfo();
+		fbufCreateInfo.renderPass = offScreenFrameBuf.renderPass;
 		fbufCreateInfo.attachmentCount = 2;
 		fbufCreateInfo.pAttachments = attachments;
 		fbufCreateInfo.width = offScreenFrameBuf.width;
 		fbufCreateInfo.height = offScreenFrameBuf.height;
 		fbufCreateInfo.layers = 1;
 
-		err = vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer));
 	}
 
 	// Updates a single cube map face
@@ -536,8 +487,6 @@ public:
 	// Command buffer for rendering and copying all cube map faces
 	void buildOffscreenCommandBuffer()
 	{
-		VkResult err;
-
 		// Create separate command buffer for offscreen 
 		// rendering
 		if (offScreenCmdBuffer == VK_NULL_HANDLE)
@@ -546,14 +495,12 @@ public:
 				cmdPool,
 				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				1);
-			VkResult vkRes = vkAllocateCommandBuffers(device, &cmd, &offScreenCmdBuffer);
-			assert(!vkRes);
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmd, &offScreenCmdBuffer));
 		}
 
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
-		err = vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo);
-		assert(!err);
+		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
 
 		VkViewport viewport = vkTools::initializers::viewport(
 			(float)offScreenFrameBuf.width,
@@ -598,8 +545,7 @@ public:
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			subresourceRange);
 
-		err = vkEndCommandBuffer(offScreenCmdBuffer);
-		assert(!err);
+		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
 	}
 
 	void reBuildCommandBuffers()
@@ -629,14 +575,11 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -675,41 +618,9 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void draw()
-	{
-		VkResult err;
-
-		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Gather command buffers to be sumitted to the queue
-		std::vector<VkCommandBuffer> submitCmdBuffers = {
-			offScreenCmdBuffer,
-			drawCmdBuffers[currentBuffer],
-		};
-		submitInfo.commandBufferCount = submitCmdBuffers.size();
-		submitInfo.pCommandBuffers = submitCmdBuffers.data();
-
-		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
-	}
+	}	
 
 	void loadMeshes()
 	{
@@ -780,8 +691,7 @@ public:
 				poolSizes.data(),
 				3);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -806,8 +716,7 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		// 3D scene pipeline layout
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
@@ -815,8 +724,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene));
 
 		// Offscreen pipeline layout
 		// Push constants for cube map face view matrices
@@ -830,8 +738,7 @@ public:
 		pPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pPipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.offscreen);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.offscreen));
 	}
 
 	void setupDescriptorSets()
@@ -842,11 +749,8 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes;
-
 		// 3D scene
-		vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
 
 		// Image descriptor for the cube map 
 		VkDescriptorImageInfo texDescriptor =
@@ -873,8 +777,7 @@ public:
 		vkUpdateDescriptorSets(device, sceneDescriptorSets.size(), sceneDescriptorSets.data(), 0, NULL);
 
 		// Offscreen
-		vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.offscreen);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.offscreen));
 
 		std::vector<VkWriteDescriptorSet> offScreenWriteDescriptorSets =
 		{
@@ -888,10 +791,12 @@ public:
 		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
 	}
 
+	// Set up a separate render pass for the offscreen frame buffer
+	// This is necessary as the offscreen frame buffer attachments
+	// use formats different to the ones from the visible frame buffer
+	// and at least the depth one may not be compatible
 	void prepareOffscreenRenderpass()
 	{
-		VkResult err;
-		// Create offscreen renderpass (illegal to use the same one)
 		VkAttachmentDescription osAttachments[2] = {};
 
 		// Find a suitable depth format
@@ -925,31 +830,19 @@ public:
 		depthReference.attachment = 1;
 		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		VkSubpassDescription osSubpass = {};
-		osSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		osSubpass.flags = 0;
-		osSubpass.inputAttachmentCount = 0;
-		osSubpass.pInputAttachments = nullptr;
-		osSubpass.colorAttachmentCount = 1;
-		osSubpass.pColorAttachments = &colorReference;
-		osSubpass.pResolveAttachments = nullptr;
-		osSubpass.pDepthStencilAttachment = &depthReference;
-		osSubpass.preserveAttachmentCount = 0;
-		osSubpass.pPreserveAttachments = nullptr;
+		VkSubpassDescription subpass = {};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &colorReference;
+		subpass.pDepthStencilAttachment = &depthReference;
 
-		VkRenderPassCreateInfo offscreenRenderpassCreateInfo;
-		offscreenRenderpassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		offscreenRenderpassCreateInfo.pNext = nullptr;
-		offscreenRenderpassCreateInfo.flags = 0;
-		offscreenRenderpassCreateInfo.attachmentCount = 2;
-		offscreenRenderpassCreateInfo.pAttachments = osAttachments;
-		offscreenRenderpassCreateInfo.subpassCount = 1;
-		offscreenRenderpassCreateInfo.pSubpasses = &osSubpass;
-		offscreenRenderpassCreateInfo.dependencyCount = 0;
-		offscreenRenderpassCreateInfo.pDependencies = nullptr;
+		VkRenderPassCreateInfo renderPassCreateInfo = vkTools::initializers::renderPassCreateInfo();
+		renderPassCreateInfo.attachmentCount = 2;
+		renderPassCreateInfo.pAttachments = osAttachments;
+		renderPassCreateInfo.subpassCount = 1;
+		renderPassCreateInfo.pSubpasses = &subpass;
 
-		err = vkCreateRenderPass(device, &offscreenRenderpassCreateInfo, nullptr, &offscreenRenderpass);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &offScreenFrameBuf.renderPass));
 	}
 
 	void preparePipelines()
@@ -1025,24 +918,21 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.scene);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.scene));
 
 		// Cube map display pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapomni/cubemapdisplay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapomni/cubemapdisplay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.cubeMap);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.cubeMap));
 
 		// Offscreen pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapomni/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapomni/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
-		pipelineCreateInfo.renderPass = offscreenRenderpass;
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreen);
-		assert(!err);
+		pipelineCreateInfo.renderPass = offScreenFrameBuf.renderPass;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreen));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -1051,6 +941,7 @@ public:
 		// Offscreen vertex shader uniform buffer block 
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboOffscreenVS),
 			&uboOffscreenVS,
 			&uniformData.offscreen.buffer,
@@ -1060,6 +951,7 @@ public:
 		// 3D scene
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboVSscene),
 			&uboVSscene,
 			&uniformData.scene.buffer,
@@ -1084,8 +976,7 @@ public:
 		uboVSscene.lightPos = lightPos;
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.scene.memory, 0, sizeof(uboVSscene), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.scene.memory, 0, sizeof(uboVSscene), 0, (void **)&pData));
 		memcpy(pData, &uboVSscene, sizeof(uboVSscene));
 		vkUnmapMemory(device, uniformData.scene.memory);
 	}
@@ -1103,10 +994,28 @@ public:
 		uboOffscreenVS.lightPos = lightPos;
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.offscreen.memory, 0, sizeof(uboOffscreenVS), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.offscreen.memory, 0, sizeof(uboOffscreenVS), 0, (void **)&pData));
 		memcpy(pData, &uboOffscreenVS, sizeof(uboOffscreenVS));
 		vkUnmapMemory(device, uniformData.offscreen.memory);
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		// Submit offscreen rendering command buffer 
+		// todo : use event to ensure that offscreen result is finished bfore render command buffer is started
+		std::vector<VkCommandBuffer> submitCmdBuffers = {
+			offScreenCmdBuffer,
+			drawCmdBuffers[currentBuffer],
+		};
+		submitCmdBuffers.push_back(drawCmdBuffers[currentBuffer]);
+		submitInfo.commandBufferCount = submitCmdBuffers.size();
+		submitInfo.pCommandBuffers = submitCmdBuffers.data();
+
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
@@ -1131,9 +1040,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 		if (!paused)
 		{
 			updateUniformBufferOffscreen();
@@ -1145,6 +1052,26 @@ public:
 	{
 		updateUniformBufferOffscreen();
 		updateUniformBuffers();
+	}
+
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x44:
+		case GAMEPAD_BUTTON_A:
+			toggleCubeMapDisplay();
+			break;
+		}
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+#if defined(__ANDROID__)
+		textOverlay->addText("Press \"Button A\" to display depth cubemap", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#else
+		textOverlay->addText("Press \"d\" to display depth cubemap", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#endif
 	}
 
 	void toggleCubeMapDisplay()
@@ -1163,15 +1090,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case 0x44:
-				vulkanExample->toggleCubeMapDisplay();
-				break;
-			}
-		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
