@@ -57,7 +57,7 @@ void VulkanGear::generate(float inner_radius, float outer_radius, float width, i
 	std::vector<Vertex> vBuffer;
 	std::vector<uint32_t> iBuffer;
 
-	int i, j;
+	int i;
 	float r0, r1, r2;
 	float ta, da;
 	float u1, v1, u2, v2, len;

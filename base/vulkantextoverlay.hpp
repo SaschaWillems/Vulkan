@@ -148,7 +148,7 @@ public:
 		vkDestroyPipelineCache(device, pipelineCache, nullptr);
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyRenderPass(device, renderPass, nullptr);
-		vkFreeCommandBuffers(device, commandPool, cmdBuffers.size(), cmdBuffers.data());
+		vkFreeCommandBuffers(device, commandPool, (uint32_t)cmdBuffers.size(), cmdBuffers.data());
 		vkDestroyCommandPool(device, commandPool, nullptr);
 	}
 
@@ -331,7 +331,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				(uint32_t)poolSizes.size(),
 				poolSizes.data(),
 				1);
 
@@ -344,7 +344,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo =
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				(uint32_t)setLayoutBindings.size());
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout));
 
@@ -373,7 +373,7 @@ public:
 
 		std::array<VkWriteDescriptorSet, 1> writeDescriptorSets;
 		writeDescriptorSets[0] = vkTools::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &texDescriptor);
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Pipeline cache
 		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -436,7 +436,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				(uint32_t)dynamicStateEnables.size(),
 				0);
 
 		std::array<VkVertexInputBindingDescription, 2> vertexBindings = {};
@@ -450,9 +450,9 @@ public:
 		vertexAttribs[1] = vkTools::initializers::vertexInputAttributeDescription(1, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(glm::vec2));
 
 		VkPipelineVertexInputStateCreateInfo inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		inputState.vertexBindingDescriptionCount = vertexBindings.size();
+		inputState.vertexBindingDescriptionCount = (uint32_t)vertexBindings.size();
 		inputState.pVertexBindingDescriptions = vertexBindings.data();
-		inputState.vertexAttributeDescriptionCount = vertexAttribs.size();
+		inputState.vertexAttributeDescriptionCount = (uint32_t)vertexAttribs.size();
 		inputState.pVertexAttributeDescriptions = vertexAttribs.data();
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
@@ -469,7 +469,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
@@ -690,7 +690,7 @@ public:
 
 	void reallocateCommandBuffers()
 	{
-		vkFreeCommandBuffers(device, commandPool, cmdBuffers.size(), cmdBuffers.data());
+		vkFreeCommandBuffers(device, commandPool, (uint32_t)cmdBuffers.size(), cmdBuffers.data());
 
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 			vkTools::initializers::commandBufferAllocateInfo(
