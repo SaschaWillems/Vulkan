@@ -82,12 +82,13 @@ public:
 	struct {
 		VkPipeline debug;
 		VkPipeline shaded;
+		VkPipeline shadedOffscreen;
 		VkPipeline mirror;
 	} pipelines;
 
 	struct {
-		VkPipelineLayout quad;
-		VkPipelineLayout offscreen;
+		VkPipelineLayout textured;
+		VkPipelineLayout shaded;
 	} pipelineLayouts;
 
 	struct {
@@ -97,7 +98,10 @@ public:
 		VkDescriptorSet debugQuad;
 	} descriptorSets;
 
-	VkDescriptorSetLayout descriptorSetLayout;
+	struct {
+		VkDescriptorSetLayout textured;
+		VkDescriptorSetLayout shaded;
+	} descriptorSetLayouts;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -151,12 +155,14 @@ public:
 
 		vkDestroyPipeline(device, pipelines.debug, nullptr);
 		vkDestroyPipeline(device, pipelines.shaded, nullptr);
+		vkDestroyPipeline(device, pipelines.shadedOffscreen, nullptr);
 		vkDestroyPipeline(device, pipelines.mirror, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayouts.quad, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayouts.offscreen, nullptr);
+		vkDestroyPipelineLayout(device, pipelineLayouts.textured, nullptr);
+		vkDestroyPipelineLayout(device, pipelineLayouts.shaded, nullptr);
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.shaded, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textured, nullptr);
 
 		// Meshes
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
@@ -275,6 +281,7 @@ public:
 		image.format = fbColorFormat;
 		image.extent.width = offScreenFrameBuf.width;
 		image.extent.height = offScreenFrameBuf.height;
+		image.extent.depth = 1;
 		image.mipLevels = 1;
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -408,9 +415,9 @@ public:
 
 		VkDeviceSize offsets[1] = { 0 };
 
-		// Model
-		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
-		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shaded);
+		// Mirrored scene
+		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.shaded, 0, 1, &descriptorSets.offscreen, 0, NULL);
+		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shadedOffscreen);
 		vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
 		vkCmdBindIndexBuffer(offScreenCmdBuffer, meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(offScreenCmdBuffer, meshes.example.indexCount, 1, 0, 0, 0);
@@ -536,7 +543,7 @@ public:
 
 			if (debugDisplay)
 			{
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.quad, 0, 1, &descriptorSets.debugQuad, 0, NULL);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.textured, 0, 1, &descriptorSets.debugQuad, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);
 				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
 				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
@@ -547,7 +554,7 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);
 
 			// Reflection plane
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.quad, 0, 1, &descriptorSets.mirror, 0, NULL);
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.textured, 0, 1, &descriptorSets.mirror, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.mirror);
 
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plane.vertices.buf, offsets);
@@ -555,7 +562,7 @@ public:
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.plane.indexCount, 1, 0, 0, 0);
 
 			// Model
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.quad, 0, 1, &descriptorSets.model, 0, NULL);
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.shaded, 0, 1, &descriptorSets.model, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shaded);
 
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
@@ -688,42 +695,39 @@ public:
 
 	void setupDescriptorSetLayout()
 	{
-		// Textured quad pipeline layout
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-		{
-			// Binding 0 : Vertex shader uniform buffer
-			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0),
-			// Binding 1 : Fragment shader image sampler
-			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				1),
-			// Binding 2 : Fragment shader image sampler
-			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				2)
-		};
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
+		VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo;
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo;
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vkTools::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				setLayoutBindings.size());
+		// Binding 0 : Vertex shader uniform buffer
+		setLayoutBindings.push_back(vkTools::initializers::descriptorSetLayoutBinding(
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			0));
+		// Binding 1 : Fragment shader image sampler
+		setLayoutBindings.push_back(vkTools::initializers::descriptorSetLayoutBinding(
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			1));
+		// Binding 2 : Fragment shader image sampler
+		setLayoutBindings.push_back(vkTools::initializers::descriptorSetLayoutBinding(
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			2));
 
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
+		// Shaded layouts (only use first layout binding)
+		descriptorLayoutInfo = vkTools::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), 1);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutInfo, nullptr, &descriptorSetLayouts.shaded));
 
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vkTools::initializers::pipelineLayoutCreateInfo(
-				&descriptorSetLayout,
-				1);
+		pipelineLayoutInfo = vkTools::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.shaded, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.shaded));
 
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.quad));
+		// Textured layouts (use all layout bindings)
+		descriptorLayoutInfo = vkTools::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutInfo, nullptr, &descriptorSetLayouts.textured));
 
-		// Offscreen pipeline layout
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.offscreen));
+		pipelineLayoutInfo = vkTools::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.textured, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.textured));
 	}
 
 	void setupDescriptorSet()
@@ -732,7 +736,7 @@ public:
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
 				descriptorPool,
-				&descriptorSetLayout,
+				&descriptorSetLayouts.textured,
 				1);
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.mirror));
@@ -775,6 +779,29 @@ public:
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
+		// Debug quad
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.debugQuad));
+
+		std::vector<VkWriteDescriptorSet> debugQuadWriteDescriptorSets =
+		{
+			// Binding 0 : Vertex shader uniform buffer
+			vkTools::initializers::writeDescriptorSet(
+			descriptorSets.debugQuad,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				0,
+				&uniformData.vsDebugQuad.descriptor),
+			// Binding 1 : Fragment shader texture sampler
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSets.debugQuad,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				1,
+				&texDescriptorMirror)
+		};
+		vkUpdateDescriptorSets(device, debugQuadWriteDescriptorSets.size(), debugQuadWriteDescriptorSets.data(), 0, NULL);
+
+		// Shaded descriptor sets
+		allocInfo.pSetLayouts = &descriptorSetLayouts.shaded;
+
 		// Model
 		// No texture
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.model));
@@ -803,26 +830,6 @@ public:
 				&uniformData.vsOffScreen.descriptor)
 		};
 		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
-
-		// Debug quad
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.debugQuad));
-
-		std::vector<VkWriteDescriptorSet> debugQuadWriteDescriptorSets =
-		{
-			// Binding 0 : Vertex shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSets.debugQuad,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&uniformData.vsDebugQuad.descriptor),
-			// Binding 1 : Fragment shader texture sampler
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSets.debugQuad,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&texDescriptorMirror)
-		};
-		vkUpdateDescriptorSets(device, debugQuadWriteDescriptorSets.size(), debugQuadWriteDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -836,7 +843,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
+				VK_CULL_MODE_FRONT_BIT,
 				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
@@ -883,7 +890,7 @@ public:
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
-				pipelineLayouts.quad,
+				pipelineLayouts.textured,
 				renderPass,
 				0);
 
@@ -900,19 +907,25 @@ public:
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.debug));
 
+		// Flip culling
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+
 		// Mirror
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/offscreen/mirror.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/offscreen/mirror.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.mirror));
 
-		// Solid shading pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/offscreen/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/offscreen/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
-
+		// Phong shading pipelines
+		pipelineCreateInfo.layout = pipelineLayouts.shaded;
+		// Scene
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/offscreen/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/offscreen/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.shaded));
+		// Offscreen
+		// Flip culling
+		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.shadedOffscreen));
+
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -1061,14 +1074,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
-		if (!paused)
-		{
-			updateUniformBuffers();
-			updateUniformBufferOffscreen();
-		}
 	}
 
 	virtual void viewChanged()
