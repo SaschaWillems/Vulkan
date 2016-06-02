@@ -82,7 +82,8 @@ public:
 		zoom = -3.75f;
 		rotationSpeed = 0.5f;
 		rotation = glm::vec3(15.0f, 0.f, 0.0f);
-		title = "Vulkan Demo Scene - © 2016 by Sascha Willems";
+		enableTextOverlay = true;
+		title = "Vulkan Demo Scene - (c) 2016 by Sascha Willems";
 	}
 
 	~VulkanExample()
@@ -140,29 +141,18 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -178,36 +168,8 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void draw()
-	{
-		VkResult err;
-
-		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
 	}
 
 	void prepareVertices()
@@ -252,9 +214,9 @@ public:
 		{
 			// Generate vertex buffer (pos, normal, uv, color)
 			std::vector<Vertex> vertexBuffer;
-			for (int m = 0; m < mesh->m_Entries.size(); m++)
+			for (size_t m = 0; m < mesh->m_Entries.size(); m++)
 			{
-				for (int i = 0; i < mesh->m_Entries[m].Vertices.size(); i++) {
+				for (size_t i = 0; i < mesh->m_Entries[m].Vertices.size(); i++) {
 					glm::vec3 pos = mesh->m_Entries[m].Vertices[i].m_pos * scale;
 					glm::vec3 normal = mesh->m_Entries[m].Vertices[i].m_normal;
 					glm::vec2 uv = mesh->m_Entries[m].Vertices[i].m_tex;
@@ -266,7 +228,7 @@ public:
 						{ col.r, col.g, col.b }
 					};
 
-					// Offset Vulkan meshes
+					// Offset skybox mesh
 					// todo : center before export
 					if (mesh != demoMeshes.skybox)
 					{
@@ -276,30 +238,90 @@ public:
 					vertexBuffer.push_back(vert);
 				}
 			}
-			createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				vertexBuffer.size() * sizeof(Vertex),
-				vertexBuffer.data(),
-				&mesh->vertexBuffer.buf,
-				&mesh->vertexBuffer.mem);
-
-			uint32_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 
 			std::vector<uint32_t> indexBuffer;
-			for (int m = 0; m < mesh->m_Entries.size(); m++)
+			for (size_t m = 0; m < mesh->m_Entries.size(); m++)
 			{
 				int indexBase = indexBuffer.size();
-				for (int i = 0; i < mesh->m_Entries[m].Indices.size(); i++) {
+				for (size_t i = 0; i < mesh->m_Entries[m].Indices.size(); i++) {
 					indexBuffer.push_back(mesh->m_Entries[m].Indices[i] + indexBase);
 				}
 			}
+			mesh->indexBuffer.count = static_cast<uint32_t>(indexBuffer.size());
+
+			uint32_t vertexBufferSize = static_cast<uint32_t>(vertexBuffer.size()) * sizeof(Vertex);
+			uint32_t indexBufferSize = static_cast<uint32_t>(indexBuffer.size()) * sizeof(uint32_t);
+
+			struct {
+				VkBuffer buffer;
+				VkDeviceMemory memory;
+			} vertexStaging, indexStaging;
+
+			// Create staging buffers
+			// Vertex data
 			createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				indexBuffer.size() * sizeof(uint32_t),
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				vertexBufferSize,
+				vertexBuffer.data(),
+				&vertexStaging.buffer,
+				&vertexStaging.memory);
+			// Index data
+			createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				indexBufferSize,
 				indexBuffer.data(),
+				&indexStaging.buffer,
+				&indexStaging.memory);
+
+			// Create device local buffers
+			// Vertex buffer
+			createBuffer(
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				vertexBufferSize,
+				nullptr,
+				&mesh->vertexBuffer.buf,
+				&mesh->vertexBuffer.mem);
+			// Index buffer
+			createBuffer(
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				indexBufferSize,
+				nullptr,
 				&mesh->indexBuffer.buf,
 				&mesh->indexBuffer.mem);
-			mesh->indexBuffer.count = indexBuffer.size();
+
+			// Copy from staging buffers
+			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+			VkBufferCopy copyRegion = {};
+
+			copyRegion.size = vertexBufferSize;
+			vkCmdCopyBuffer(
+				copyCmd,
+				vertexStaging.buffer,
+				mesh->vertexBuffer.buf,
+				1,
+				&copyRegion);
+
+			copyRegion.size = indexBufferSize;
+			vkCmdCopyBuffer(
+				copyCmd,
+				indexStaging.buffer,
+				mesh->indexBuffer.buf,
+				1,
+				&copyRegion);
+
+			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+			vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
+			vkFreeMemory(device, vertexStaging.memory, nullptr);
+			vkDestroyBuffer(device, indexStaging.buffer, nullptr);
+			vkFreeMemory(device, indexStaging.memory, nullptr);
+
+			// todo : staging
 
 			meshes.push_back(mesh);
 		}
@@ -365,8 +387,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -390,16 +411,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
@@ -410,8 +429,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		// Cube map image descriptor
 		VkDescriptorImageInfo texDescriptorCubeMap =
@@ -511,22 +529,19 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.models);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.models));
 
 		// Pipeline for the logos
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/logo.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/logo.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.logos);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.logos));
 
 		// Pipeline for the sky sphere (todo)
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT; // Inverted culling
 		depthStencilState.depthWriteEnable = VK_FALSE; // No depth writes
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skybox);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skybox));
 
 		// Assign pipelines
 		demoMeshes.logos->pipeline = pipelines.logos;
@@ -541,6 +556,7 @@ public:
 		// Vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboVS),
 			&uboVS,
 			&uniformData.meshVS.buffer,
@@ -556,7 +572,7 @@ public:
 
 		uboVS.view = glm::lookAt(
 			glm::vec3(0, 0, -zoom),
-			glm::vec3(0, 0, 0),
+			cameraPos,
 			glm::vec3(0, 1, 0)
 			);
 
@@ -570,10 +586,20 @@ public:
 		uboVS.lightPos = lightPos;
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.meshVS.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.meshVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.meshVS.memory);
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
@@ -594,9 +620,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 	}
 
 	virtual void viewChanged()
