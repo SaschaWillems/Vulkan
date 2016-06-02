@@ -118,6 +118,9 @@ public:
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBufInfo.pNext = NULL;
 
+		// Set clear values for all framebuffer attachments with loadOp set to clear
+		// We use two attachments (color and depth) that are cleared at the 
+		// start of the subpass and as such we need to set clear values for both
 		VkClearValue clearValues[2];
 		clearValues[0].color = defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
@@ -132,7 +135,6 @@ public:
 		renderPassBeginInfo.renderArea.extent.height = height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
-
 	
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
@@ -633,6 +635,136 @@ public:
 		writeDescriptorSet.dstBinding = 0;
 
 		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, NULL);
+	}
+
+	// Create a frame buffer for each swap chain image
+	// Note : Override of virtual function in the base class and called from within VulkanExampleBase::prepare
+	void setupFrameBuffer()
+	{
+		// Create a frame buffers for every image in our swapchain
+		frameBuffers.resize(swapChain.imageCount);
+		for (size_t i = 0; i < frameBuffers.size(); i++)
+		{
+			std::array<VkImageView, 2> attachments;
+			// Color attachment is the view of the swapchain image
+			attachments[0] = swapChain.buffers[i].view;
+			// Depth/Stencil attachment is the same for all frame buffers
+			attachments[1] = depthStencil.view;
+
+			VkFramebufferCreateInfo frameBufferCreateInfo = {};
+			frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			// All frame buffers use the same renderpass setuü 
+			frameBufferCreateInfo.renderPass = renderPass;
+			frameBufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+			frameBufferCreateInfo.pAttachments = attachments.data();
+			frameBufferCreateInfo.width = width;
+			frameBufferCreateInfo.height = height;
+			frameBufferCreateInfo.layers = 1;
+			// Create the framebuffer
+			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
+		}
+	}
+
+	// Render pass setup for this example
+	// Note : Override of virtual function in the base class and called from within VulkanExampleBase::prepare
+	void setupRenderPass()
+	{
+		// Render passes are a new concept in Vulkan
+		// They describe the attachments used during rendering
+		// and may contain multiple subpasses with attachment
+		// dependencies 
+		// This allows the driver to know up-front how the
+		// rendering will look like and is a good opportunity to
+		// optimize, especially on tile-based renderers (with multiple subpasses)
+
+		// This example will use a single render pass with
+		// one subpass, which is the minimum setup
+
+		// Two attachments
+		// Basic setup with a color and a depth attachments
+		std::array<VkAttachmentDescription,2> attachments;
+
+		// Color attachment
+		attachments[0].format = colorformat;
+		// We don't use multi sampling
+		// Multi sampling requires a setup with resolve attachments
+		// See the multisampling example for more details
+		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+		// loadOp describes what happens with the attachment content at the beginning of the subpass
+		// We want the color buffer to be cleared
+		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		// storeOp describes what happens with the attachment content after the subpass is finished
+		// As we want to display the color attachment after rendering is done we have to store it
+		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		// We don't use stencil and DONT_CARE allows the driver to discard the result 
+		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		// Set the initial image layout for the color atttachment
+		attachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		// Depth attachment
+		attachments[1].format = depthFormat;
+		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+		// Clear depth at the beginnging of the subpass
+		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		// We don't need the contents of the depth buffer after the sub pass
+		// anymore, so let the driver discard it
+		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		// Don't care for stencil 
+		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		// Set the initial image layout for the depth attachment
+		attachments[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		// Setup references to our attachments for the sub pass
+		VkAttachmentReference colorReference = {};
+		colorReference.attachment = 0;
+		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depthReference = {};
+		depthReference.attachment = 1;
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		// Setup a single subpass that references our color and depth attachments
+		VkSubpassDescription subpass = {};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		// Input attachments can be used to sample from contents of attachments 
+		// written to by previous sub passes in a setup with multiple sub passes
+		// This example doesn't make use of this
+		subpass.inputAttachmentCount = 0;
+		subpass.pInputAttachments = nullptr;
+		// Preserved attachments can be used to loop (and preserve) attachments
+		// through a sub pass that does not actually use them
+		// This example doesn't make use of this
+		subpass.preserveAttachmentCount = 0;
+		subpass.pPreserveAttachments = nullptr;
+		// Resoluve attachments are resolved at the end of a sub pass and can be
+		// used for e.g. multi sampling
+		// This example doesn't make use of this
+		subpass.pResolveAttachments = nullptr;
+		// Reference to the color attachment
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &colorReference;
+		// Reference to the depth attachment
+		subpass.pDepthStencilAttachment = &depthReference;
+
+		// Setup the render pass
+		VkRenderPassCreateInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		// Set attachments used in our renderpass
+		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		renderPassInfo.pAttachments = attachments.data();
+		// We only use one subpass
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
+		// As we only use one subpass we don't have any subpass dependencies
+		renderPassInfo.dependencyCount = 0;
+		renderPassInfo.pDependencies = nullptr;
+
+		// Create the renderpass
+		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 	}
 
 	void preparePipelines()
