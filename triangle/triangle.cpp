@@ -787,7 +787,11 @@ public:
 		// Get the memory type index that supports host visibile memory access
 		// Most implementations offer multiple memory tpyes and selecting the 
 		// correct one to allocate memory from is important
-		allocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+		// We also want the buffer to be host coherent so we don't have to flush 
+		// after every update. 
+		// Note that this may affect performance so you might not want to do this 
+		// in a real world application that updates buffers on a regular base
+		allocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		// Allocate memory for the uniform buffer
 		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &(uniformDataVS.memory)));
 		// Bind memory to buffer
@@ -814,8 +818,6 @@ public:
 		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Map uniform buffer and update it
-		// If you want to keep a handle to the memory and not unmap it afer updating, 
-		// create the memory with the VK_MEMORY_PROPERTY_HOST_COHERENT_BIT 
 		uint8_t *pData;
 		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
@@ -841,16 +843,10 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		vkDeviceWaitIdle(device);
 	}
 
 	virtual void viewChanged()
 	{
-		// Before updating the uniform buffer we want to make
-		// sure that the device has finished all operations
-		// In a real-world application you would use synchronization
-		// objects for this
-		vkDeviceWaitIdle(device);
 		// This function is called by the base example class 
 		// each time the view is changed by user input
 		updateUniformBuffers();
