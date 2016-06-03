@@ -206,12 +206,11 @@ public:
 		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
-
 		VK_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
 
+		vkGetImageMemoryRequirements(device, image, &memReqs);
 		allocInfo.allocationSize = STB_FONT_WIDTH * STB_NUM_CHARS;
 		allocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
 		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
 		VK_CHECK_RESULT(vkBindImageMemory(device, image, imageMemory, 0));
 
