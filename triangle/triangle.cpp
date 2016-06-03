@@ -142,6 +142,57 @@ public:
 		vkFreeMemory(device, uniformDataVS.memory, nullptr);
 	}
 
+	// We are going to use several temporary command buffers for setup stuff
+	// like submitting barriers for layout translations of buffer copies
+	// This function will allocate a single (primary) command buffer from the 
+	// examples' command buffer pool and if begin is set to true it will
+	// also start the buffer so we can directly put commands into it
+	VkCommandBuffer getCommandBuffer(bool begin)
+	{
+		VkCommandBuffer cmdBuffer;
+
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = {};
+		cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		cmdBufAllocateInfo.commandPool = cmdPool;
+		cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		cmdBufAllocateInfo.commandBufferCount = 1;
+	
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &cmdBuffer));
+
+		// If requested, also start the new command buffer
+		if (begin)
+		{
+			VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+		}
+
+		return cmdBuffer;
+	}
+
+	// This will end the command buffer and submit it to the examples' queue
+	// Then waits for the queue to become idle so our submission is finished
+	// and then deletes the command buffer
+	// For use with setup command buffers created by getCommandBuffer
+	void flushCommandBuffer(VkCommandBuffer commandBuffer)
+	{
+		assert(commandBuffer != VK_NULL_HANDLE);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+
+		if (free)
+		{
+			vkFreeCommandBuffers(device, cmdPool, 1, &commandBuffer);
+		}
+	}
+
 	// Build separate command buffers for every framebuffer image
 	// Unlike in OpenGL all rendering commands are recorded once
 	// into command buffers that are then resubmitted to the queue
@@ -395,16 +446,6 @@ public:
 				StagingBuffer indices;
 			} stagingBuffers;
 
-			// Buffer copies are done on the queue, so we need a command buffer for them
-			VkCommandBufferAllocateInfo cmdBufInfo = {};
-			cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			cmdBufInfo.commandPool = cmdPool;
-			cmdBufInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			cmdBufInfo.commandBufferCount = 1;
-
-			VkCommandBuffer copyCommandBuffer;
-			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufInfo, &copyCommandBuffer));
-
 			// Vertex buffer
 			VkBufferCreateInfo vertexBufferInfo = {};
 			vertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -462,17 +503,21 @@ public:
 			cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			cmdBufferBeginInfo.pNext = NULL;
 
-			VkBufferCopy copyRegion = {};
+			// Buffer copies have to be submitted to a queue, so we need a command buffer for them
+			// Note that some devices offer a dedicated transfer queue (with only the transfer bit set)
+			// If you do lots of copies (especially at runtime) it's advised to use such a queu instead
+			// of a generalized graphics queue (that also supports transfers)
+			VkCommandBuffer copyCmd = getCommandBuffer(true);
 
 			// Put buffer region copies into command buffer
-			// Note that the staging buffer must not be deleted before the copies 
-			// have been submitted and executed
-			VK_CHECK_RESULT(vkBeginCommandBuffer(copyCommandBuffer, &cmdBufferBeginInfo));
+			// Note that the staging buffer must not be deleted before the copies have been submitted and executed
+
+			VkBufferCopy copyRegion = {};
 
 			// Vertex buffer
 			copyRegion.size = vertexBufferSize;
 			vkCmdCopyBuffer(
-				copyCommandBuffer,
+				copyCmd,
 				stagingBuffers.vertices.buffer,
 				vertices.buf,
 				1,
@@ -480,24 +525,13 @@ public:
 			// Index buffer
 			copyRegion.size = indexBufferSize;
 			vkCmdCopyBuffer(
-				copyCommandBuffer,
+				copyCmd,
 				stagingBuffers.indices.buffer,
 				indices.buf,
 				1,
 				&copyRegion);
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(copyCommandBuffer));
-
-			// Submit copies to the queue
-			VkSubmitInfo copySubmitInfo = {};
-			copySubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			copySubmitInfo.commandBufferCount = 1;
-			copySubmitInfo.pCommandBuffers = &copyCommandBuffer;
-
-			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &copySubmitInfo, VK_NULL_HANDLE));
-			VK_CHECK_RESULT(vkQueueWaitIdle(queue));
-
-			vkFreeCommandBuffers(device, cmdPool, 1, &copyCommandBuffer);
+			flushCommandBuffer(copyCmd);
 
 			// Destroy staging buffers
 			vkDestroyBuffer(device, stagingBuffers.vertices.buffer, nullptr);
@@ -669,6 +703,93 @@ public:
 		writeDescriptorSet.dstBinding = 0;
 
 		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, NULL);
+	}
+
+	// Create the depth (and stencil) buffer attachments used by our framebuffers
+	// Note : Override of virtual function in the base class and called from within VulkanExampleBase::prepare
+	void setupDepthStencil()
+	{
+		// Create an optimal image used as the depth stencil attachment
+		VkImageCreateInfo image = {};
+		image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		image.imageType = VK_IMAGE_TYPE_2D;
+		image.format = depthFormat;
+		// Use example's height and width
+		image.extent = { width, height, 1 };
+		image.mipLevels = 1;
+		image.arrayLayers = 1;
+		image.samples = VK_SAMPLE_COUNT_1_BIT;
+		image.tiling = VK_IMAGE_TILING_OPTIMAL;
+		image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		image.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &depthStencil.image));
+
+		// Allocate memory for the image (device local) and bind it to our image
+		VkMemoryAllocateInfo memAlloc = {};
+		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		VkMemoryRequirements memReqs;
+		vkGetImageMemoryRequirements(device, depthStencil.image, &memReqs);
+		memAlloc.allocationSize = memReqs.size;
+		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &depthStencil.mem));
+		VK_CHECK_RESULT(vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0));
+
+		// We need to do an initial layout transition before we can use this image
+		// as the depth (and stencil) attachment
+		// Note that this may be ignored by implementations that don't care about image layout
+		// transitions, but it's crucial for those that do
+
+		VkCommandBuffer layoutCmd = getCommandBuffer(true);
+
+		vkTools::setImageLayout(
+			setupCmdBuffer,
+			depthStencil.image,
+			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+		// Add a present memory barrier to the end of the command buffer
+		// This will transform the frame buffer color attachment to a
+		// new layout for presenting it to the windowing system integration 
+		VkImageMemoryBarrier imageMemoryBarrier = {};
+		imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imageMemoryBarrier.srcAccessMask = VK_FLAGS_NONE;
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		// Transform layout from undefined (initial) to depth/stencil attachment (usage)
+		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 };
+		imageMemoryBarrier.image = depthStencil.image;
+
+		vkCmdPipelineBarrier(
+			layoutCmd,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			VK_FLAGS_NONE,
+			0, nullptr,
+			0, nullptr,
+			1, &imageMemoryBarrier);
+
+		flushCommandBuffer(layoutCmd);
+
+		// Create a view for ourt depth stencil image
+		// In Vulkan we can't access the images directly, but rather through views
+		// that describe a sub resource range
+		// So you can actually have multiple views for a single image if required
+		VkImageViewCreateInfo depthStencilView = {};
+		depthStencilView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		depthStencilView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		depthStencilView.format = depthFormat;
+		depthStencilView.subresourceRange = {};
+		depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		depthStencilView.subresourceRange.baseMipLevel = 0;
+		depthStencilView.subresourceRange.levelCount = 1;
+		depthStencilView.subresourceRange.baseArrayLayer = 0;
+		depthStencilView.subresourceRange.layerCount = 1;
+		depthStencilView.image = depthStencil.image;
+		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &depthStencil.view));
 	}
 
 	// Create a frame buffer for each swap chain image

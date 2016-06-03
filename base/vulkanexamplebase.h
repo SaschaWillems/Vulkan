@@ -254,7 +254,7 @@ public:
 	// Creates a new (graphics) command pool object storing command buffers
 	void createCommandPool();
 	// Setup default depth and stencil views
-	void setupDepthStencil();
+	virtual void setupDepthStencil();
 	// Create framebuffers for all requested swap chain images
 	// Can be overriden in derived class to setup a custom framebuffer (e.g. for MSAA)
 	virtual void setupFrameBuffer();
