@@ -58,21 +58,54 @@ public:
 		VkDescriptorBufferInfo descriptor;
 	}  uniformDataVS;
 
+	// For simplicity we use the same uniform block layout as in the shader:
+	//
+	//	layout(set = 0, binding = 0) uniform UBO
+	//	{
+	//		mat4 projectionMatrix;
+	//		mat4 modelMatrix;
+	//		mat4 viewMatrix;
+	//	} ubo;
+	//
+	// This way we can just memcopy the ubo data to the ubo
+	// Note that you should be using data types that align with the GPU
+	// in order to avoid manual padding
 	struct {
 		glm::mat4 projectionMatrix;
 		glm::mat4 modelMatrix;
 		glm::mat4 viewMatrix;
 	} uboVS;
 
-	struct {
-		VkPipeline solid;
-	} pipelines;
+	// The pipeline (state objects) is a static store for the 3D pipeline states (including shaders)
+	// Other than OpenGL this makes you setup the render states up-front
+	// If different render states are required you need to setup multiple pipelines
+	// and switch between them
+	// Note that there are a few dynamic states (scissor, viewport, line width) that
+	// can be set from a command buffer and does not have to be part of the pipeline
+	// This basic example only uses one pipeline
+	VkPipeline pipeline;
 
+	// The pipeline layout defines the resource binding slots to be used with a pipeline
+	// This includes bindings for buffes (ubos, ssbos), images and sampler
+	// A pipeline layout can be used for multiple pipeline (state objects) as long as 
+	// their shaders use the same binding layout
 	VkPipelineLayout pipelineLayout;
+	
+	// The descriptor set stores the resources bound to the binding points in a shader
+	// It connects the binding points of the different shaders with the buffers and images
+	// used for those bindings
 	VkDescriptorSet descriptorSet;
+
+	// The descriptor set layout describes the shader binding points without referencing
+	// the actual buffers. 
+	// Like the pipeline layout it's pretty much a blueprint and can be used with
+	// different descriptor sets as long as the binding points (and shaders) match
 	VkDescriptorSetLayout descriptorSetLayout;
 
 	// Synchronization semaphores
+	// Semaphores are used to synchronize dependencies between command buffers
+	// We use them to ensure that we e.g. don't present to the swap chain
+	// until all rendering has completed
 	struct {
 		VkSemaphore presentComplete;
 		VkSemaphore renderComplete;
@@ -91,7 +124,7 @@ public:
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(device, pipeline, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -166,14 +199,17 @@ public:
 			// Bind descriptor sets describing shader binding points
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
-			// Bind the rendering pipeline (including the shaders)
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			// Bind the rendering pipeline
+			// The pipeline (state object) contains all states of the rendering pipeline
+			// So once we bind a pipeline all states that were set upon creation of that
+			// pipeline will be set
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-			// Bind triangle vertices
+			// Bind triangle vertex buffer (contains position and colors)
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
 
-			// Bind triangle indices
+			// Bind triangle index buffer
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
 			// Draw indexed triangle
@@ -319,16 +355,16 @@ public:
 
 		// Setup vertices
 		std::vector<Vertex> vertexBuffer = {
-			{ { 1.0f,  1.0f, 0.0f },{ 1.0f, 0.0f, 0.0f } },
-			{ { -1.0f,  1.0f, 0.0f },{ 0.0f, 1.0f, 0.0f } },
-			{ { 0.0f, -1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
+			{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
+			{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+			{ {  0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } }
 		};
-		int vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+		uint32_t vertexBufferSize = static_cast<uint32_t>(vertexBuffer.size()) * sizeof(Vertex);
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer = { 0, 1, 2 };
-		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
-		indices.count = indexBuffer.size();
+		indices.count = static_cast<uint32_t>(indexBuffer.size());
+		uint32_t indexBufferSize = indices.count * sizeof(uint32_t);
 
 		VkMemoryAllocateInfo memAlloc = {};
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -421,7 +457,6 @@ public:
 			memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 			VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &indices.mem));
 			VK_CHECK_RESULT(vkBindBufferMemory(device, indices.buf, indices.mem, 0));
-			indices.count = indexBuffer.size();
 
 			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
 			cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -512,7 +547,6 @@ public:
 			memcpy(data, indexBuffer.data(), indexBufferSize);
 			vkUnmapMemory(device, indices.mem);
 			VK_CHECK_RESULT(vkBindBufferMemory(device, indices.buf, indices.mem, 0));
-			indices.count = indexBuffer.size();
 		}
 
 		// Binding description
@@ -539,9 +573,9 @@ public:
 		vertices.inputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertices.inputState.pNext = NULL;
 		vertices.inputState.flags = VK_FLAGS_NONE;
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -682,7 +716,7 @@ public:
 
 		// Two attachments
 		// Basic setup with a color and a depth attachments
-		std::array<VkAttachmentDescription,2> attachments;
+		std::array<VkAttachmentDescription, 2> attachments = {};
 
 		// Color attachment
 		attachments[0].format = colorformat;
@@ -843,7 +877,7 @@ public:
 		dynamicStateEnables.push_back(VK_DYNAMIC_STATE_SCISSOR);
 		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		dynamicState.pDynamicStates = dynamicStateEnables.data();
-		dynamicState.dynamicStateCount = dynamicStateEnables.size();
+		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
 
 		// Depth and stencil state
 		// Describes depth and stenctil test and compare ops
@@ -876,7 +910,7 @@ public:
 
 		// Assign states
 		// Assign pipeline state create information
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
@@ -889,7 +923,7 @@ public:
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 
 		// Create rendering pipeline
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
 	void prepareUniformBuffers()
