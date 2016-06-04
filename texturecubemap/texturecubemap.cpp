@@ -60,6 +60,7 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
+		float lodBias = 0.0f;
 	} uboVS;
 
 	struct {
@@ -79,7 +80,7 @@ public:
 	{
 		zoom = -4.0f;
 		rotationSpeed = 0.25f;
-		rotation = { -2.25f, -35.0f, 0.0f };
+		rotation = { -7.25f, 120.0f, 0.0f };
 		enableTextOverlay = true;
 		title = "Vulkan Example - Cube map";
 	}
@@ -717,6 +718,21 @@ public:
 		reBuildCommandBuffers();
 	}
 
+	void changeLodBias(float delta)
+	{
+		uboVS.lodBias += delta;
+		if (uboVS.lodBias < 0.0f)
+		{
+			uboVS.lodBias = 0.0f;
+		}
+		if (uboVS.lodBias > cubeMap.mipLevels)
+		{
+			uboVS.lodBias = cubeMap.mipLevels;
+		}
+		updateUniformBuffers();
+		updateTextOverlay();
+	}
+
 	virtual void keyPressed(uint32_t keyCode)
 	{
 		switch (keyCode)
@@ -729,17 +745,29 @@ public:
 		case GAMEPAD_BUTTON_X:
 			toggleObject();
 			break;
+		case 0x6B:
+		case GAMEPAD_BUTTON_R1:
+			changeLodBias(0.1f);
+			break;
+		case 0x6D:
+		case GAMEPAD_BUTTON_L1:
+			changeLodBias(-0.1f);
+			break;
 		}
 	}
 
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
+		std::stringstream ss;
+		ss << std::setprecision(2) << std::fixed << uboVS.lodBias;
 #if defined(__ANDROID__)
 		textOverlay->addText("Press \"Button A\" to toggle skybox", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("Press \"Button X\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #else
 		textOverlay->addText("Press \"s\" to toggle skybox", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("Press \"space\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 };
