@@ -1264,7 +1264,7 @@ public:
 #if defined(__ANDROID__)
 		textOverlay->addText("Press \"Button A\" to toggle render targets", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("Press \"d\" to  to toggle render targets", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"d\" to toggle render targets", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #endif
 		// Render targets
 		if (debugDisplay)
