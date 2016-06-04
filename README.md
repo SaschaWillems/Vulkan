@@ -117,7 +117,7 @@ Demonstrates the use of resolve attachments for doing multisampling. Instead of 
 <br><br>
 
 ## [Multi threaded command buffer generation](multithreading/)
-<img src="./screenshots/multithreading.png" height="96px" align="right">
+<img src="./screenshots/multithreading.jpg" height="96px" align="right">
 This example demonstrates multi threaded command buffer generation. All available hardware threads are used to generated n secondary command buffers concurrent, with each thread also checking object visibility against the current viewing frustum. Command buffers are rebuilt on each frame.
 
 Once all threads have finished (and all secondary command buffers have been constructed), the secondary command buffers are executed inside the primary command buffer and submitted to the queue.
