@@ -141,7 +141,7 @@ Shows how to use occlusion queries to determine object visibility depending on t
 <br><br>
 
 ## [Offscreen rendering](offscreen/)
-<img src="./screenshots/basic_offscreen.png" height="96px" align="right">
+<img src="./screenshots/basic_offscreen.jpg" height="96px" align="right">
 
 Uses a separate framebuffer (that is not part of the swap chain) and a texture target for offscreen rendering. The texture is then used as a mirror.
 <br><br>
@@ -153,7 +153,7 @@ Demonstrates basic usage of fullscreen shader effects. The scene is rendered off
 <br><br>
 
 ## [Bloom](bloom/)
-<img src="./screenshots/bloom.png" height="96px" align="right">
+<img src="./screenshots/bloom.jpg" height="96px" align="right">
 
 Implements a bloom effect to simulate glowing parts of a 3D mesh. A two pass gaussian blur (horizontal and then vertical) is used to generate a blurred low res version of the scene only containing the glowing parts of the 3D mesh. This then gets blended onto the scene to add the blur effect.
 <br><br>
