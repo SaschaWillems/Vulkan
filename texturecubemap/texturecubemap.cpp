@@ -36,6 +36,8 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	bool displaySkybox = true;
+
 	vkTools::VulkanTexture cubeMap;
 
 	struct {
@@ -45,7 +47,9 @@ public:
 	} vertices;
 
 	struct {
-		vkMeshLoader::MeshBuffer skybox, object;
+		vkMeshLoader::MeshBuffer skybox;
+		std::vector<vkMeshLoader::MeshBuffer> objects;
+		uint32_t objectIndex = 0;
 	} meshes;
 
 	struct {
@@ -76,6 +80,7 @@ public:
 		zoom = -4.0f;
 		rotationSpeed = 0.25f;
 		rotation = { -2.25f, -35.0f, 0.0f };
+		enableTextOverlay = true;
 		title = "Vulkan Example - Cube map";
 	}
 
@@ -96,7 +101,10 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
+		for (size_t i = 0; i < meshes.objects.size(); i++)
+		{
+			vkMeshLoader::freeMeshBufferResources(device, &meshes.objects[i]);
+		}
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.skybox);
 
 		vkTools::destroyUniformData(device, &uniformData.objectVS);
@@ -124,8 +132,9 @@ public:
 
 		assert(!texCube.empty());
 
-		cubeMap.width = texCube[0].dimensions().x;
-		cubeMap.height = texCube[0].dimensions().y;
+		cubeMap.width = texCube.dimensions().x;
+		cubeMap.height = texCube.dimensions().y;
+		cubeMap.mipLevels = texCube.levels();
 
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -144,11 +153,9 @@ public:
 
 		// Get memory requirements for the staging buffer (alignment, memory type bits)
 		vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
-
 		memAllocInfo.allocationSize = memReqs.size;
 		// Get memory type index for a host visible buffer
 		memAllocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
 		VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
 
@@ -269,6 +276,16 @@ public:
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 	}
 
+	void reBuildCommandBuffers()
+	{
+		if (!checkCommandBuffers())
+		{
+			destroyCommandBuffers();
+			createCommandBuffers();
+		}
+		buildCommandBuffers();
+	}
+
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
@@ -304,18 +321,21 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 
 			// Skybox
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.skybox, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skybox.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skybox.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skybox);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skybox.indexCount, 1, 0, 0, 0);
+			if (displaySkybox)
+			{
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.skybox, 0, NULL);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skybox.vertices.buf, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skybox.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skybox);
+				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skybox.indexCount, 1, 0, 0, 0);
+			}
 
 			// 3D object
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.object, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.object.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.object.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.objects[meshes.objectIndex].vertices.buf, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.objects[meshes.objectIndex].indices.buf, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.reflect);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.objects[meshes.objectIndex].indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -323,31 +343,15 @@ public:
 		}
 	}
 
-	void draw()
-	{
-		// Get next image in the swap chain (back/front buffer)
-		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
-
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
-	}
-
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.object, vertexLayout, 0.05f);
+		// Skybox
 		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skybox, vertexLayout, 0.05f);
+		// Objects
+		meshes.objects.resize(3);
+		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.objects[0], vertexLayout, 0.05f);
+		loadMesh(getAssetPath() + "models/teapot.dae", &meshes.objects[1], vertexLayout, 0.05f);
+		loadMesh(getAssetPath() + "models/torusknot.obj", &meshes.objects[2], vertexLayout, 0.05f);
 	}
 
 	void setupVertexDescriptions()
@@ -507,7 +511,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
+				VK_CULL_MODE_BACK_BIT,
 				VK_FRONT_FACE_COUNTER_CLOCKWISE,
 				0);
 
@@ -523,7 +527,7 @@ public:
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
 			vkTools::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE,
+				VK_FALSE,
 				VK_FALSE,
 				VK_COMPARE_OP_LESS_OR_EQUAL);
 
@@ -573,7 +577,11 @@ public:
 		// Cube map reflect pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/cubemap/reflect.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/cubemap/reflect.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// Enable depth test and write
 		depthStencilState.depthWriteEnable = VK_TRUE;
+		depthStencilState.depthTestEnable = VK_TRUE;
+		// Flip cull mode
+		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.reflect));
 	}
 
@@ -583,8 +591,9 @@ public:
 		// 3D objact 
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboVS),
-			&uboVS,
+			nullptr,
 			&uniformData.objectVS.buffer,
 			&uniformData.objectVS.memory,
 			&uniformData.objectVS.descriptor);
@@ -592,11 +601,14 @@ public:
 		// Skybox
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboVS),
-			&uboVS,
+			nullptr,
 			&uniformData.skyboxVS.buffer,
 			&uniformData.skyboxVS.memory,
 			&uniformData.skyboxVS.descriptor);
+
+		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
@@ -607,7 +619,7 @@ public:
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
 		uboVS.model = glm::mat4();
-		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(0, 0, 0));
+		uboVS.model = viewMatrix * glm::translate(uboVS.model, cameraPos);
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -617,7 +629,7 @@ public:
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.objectVS.memory);
 
-		// Skysphere
+		// Skybox
 		viewMatrix = glm::mat4();
 		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
 
@@ -630,6 +642,17 @@ public:
 		VK_CHECK_RESULT(vkMapMemory(device, uniformData.skyboxVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.skyboxVS.memory);
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
@@ -654,15 +677,54 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
-		updateUniformBuffers();
 	}
 
 	virtual void viewChanged()
 	{
 		updateUniformBuffers();
+	}
+
+	void toggleSkyBox()
+	{
+		displaySkybox = !displaySkybox;
+		reBuildCommandBuffers();
+	}
+
+	void toggleObject()
+	{
+		meshes.objectIndex++;
+		if (meshes.objectIndex >= static_cast<uint32_t>(meshes.objects.size()))
+		{
+			meshes.objectIndex = 0;
+		}
+		reBuildCommandBuffers();
+	}
+
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x53:
+		case GAMEPAD_BUTTON_A:
+			toggleSkyBox();
+			break;
+		case 0x20:
+		case GAMEPAD_BUTTON_X:
+			toggleObject();
+			break;
+		}
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+#if defined(__ANDROID__)
+		textOverlay->addText("Press \"Button A\" to toggle skybox", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button X\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+#else
+		textOverlay->addText("Press \"s\" to toggle skybox", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"space\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+#endif
 	}
 };
 

@@ -12,16 +12,27 @@ layout (binding = 0) uniform UBO
 	mat4 model;
 } ubo;
 
-layout (location = 0) out vec3 outEyePos;
-layout (location = 1) out vec3 outEyeNormal;
-layout (location = 2) out mat4 outView;
+layout (location = 0) out vec3 outPos;
+layout (location = 1) out vec3 outNormal;
+layout (location = 2) out vec3 outViewVec;
+layout (location = 3) out vec3 outLightVec;
+layout (location = 4) out mat4 outInvModelView;
+
+out gl_PerVertex 
+{
+	vec4 gl_Position;
+};
 
 void main() 
 {
 	gl_Position = ubo.projection * ubo.model * vec4(inPos.xyz, 1.0);
 	
-	outEyePos = vec3(ubo.model * vec4(inPos, 1.0));
-	outEyeNormal = vec3(ubo.model * vec4(inNormal, 0.0));	
+	outPos = vec3(ubo.model * vec4(inPos, 1.0));
+	outNormal = mat3(ubo.model) * inNormal;	
 	
-	outView = ubo.model;
+	outInvModelView = inverse(ubo.model);
+
+	vec3 lightPos = vec3(0.0f, -5.0f, 5.0f);
+	outLightVec = lightPos.xyz - outPos.xyz;
+	outViewVec = -outPos.xyz;		
 }

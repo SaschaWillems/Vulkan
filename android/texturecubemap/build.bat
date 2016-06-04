@@ -7,7 +7,6 @@ if %ERRORLEVEL% EQU 0 (
 	mkdir "assets\shaders\base"
 	xcopy "..\..\data\shaders\base\*.spv" "assets\shaders\base" /Y
 	
-
 	mkdir "assets\shaders\cubemap"
 	xcopy "..\..\data\shaders\cubemap\*.spv" "assets\shaders\cubemap" /Y
 
@@ -16,6 +15,8 @@ if %ERRORLEVEL% EQU 0 (
 
 	mkdir "assets\models"
 	xcopy "..\..\data\models\sphere.obj" "assets\models" /Y 
+	xcopy "..\..\data\models\teapot.dae" "assets\models" /Y 
+	xcopy "..\..\data\models\torusknot.obj" "assets\models" /Y 
 	xcopy "..\..\data\models\cube.obj" "assets\models" /Y 
 	
 	mkdir "res\drawable"
