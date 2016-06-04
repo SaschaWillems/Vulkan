@@ -165,22 +165,11 @@ public:
 		memcpy(data, texCube.data(), texCube.size());
 		vkUnmapMemory(device, stagingMemory);
 
-		// Setup buffer copy regions for the cube faces
-		// As all faces of a cube map must have the same dimensions, we can do a single copy
-		VkBufferImageCopy bufferCopyRegion = {};
-		bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		bufferCopyRegion.imageSubresource.mipLevel = 0;
-		bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
-		bufferCopyRegion.imageSubresource.layerCount = 6;
-		bufferCopyRegion.imageExtent.width = cubeMap.width;
-		bufferCopyRegion.imageExtent.height = cubeMap.height;
-		bufferCopyRegion.imageExtent.depth = 1;
-
 		// Create optimal tiled target image
 		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageCreateInfo.format = format;
-		imageCreateInfo.mipLevels = 1;
+		imageCreateInfo.mipLevels = cubeMap.mipLevels;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -205,12 +194,37 @@ public:
 
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
+		// Setup buffer copy regions for each face including all of it's miplevels
+		std::vector<VkBufferImageCopy> bufferCopyRegions;
+		uint32_t offset = 0;
+
+		for (uint32_t face = 0; face < 6; face++)
+		{
+			for (uint32_t level = 0; level < cubeMap.mipLevels; level++)
+			{
+				VkBufferImageCopy bufferCopyRegion = {};
+				bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				bufferCopyRegion.imageSubresource.mipLevel = level;
+				bufferCopyRegion.imageSubresource.baseArrayLayer = face;
+				bufferCopyRegion.imageSubresource.layerCount = 1;
+				bufferCopyRegion.imageExtent.width = texCube[face][level].dimensions().x;
+				bufferCopyRegion.imageExtent.height = texCube[face][level].dimensions().y;
+				bufferCopyRegion.imageExtent.depth = 1;
+				bufferCopyRegion.bufferOffset = offset;
+
+				bufferCopyRegions.push_back(bufferCopyRegion);
+
+				// Increase offset into staging buffer for next level / face
+				offset += texCube[face][level].size();
+			}
+		}
+
 		// Image barrier for optimal image (target)
 		// Set initial layout for all array layers (faces) of the optimal (target) tiled texture
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = 1;
+		subresourceRange.levelCount = cubeMap.mipLevels;
 		subresourceRange.layerCount = 6;
 
 		vkTools::setImageLayout(
@@ -227,8 +241,8 @@ public:
 			stagingBuffer,
 			cubeMap.image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&bufferCopyRegion
+			static_cast<uint32_t>(bufferCopyRegions.size()),
+			bufferCopyRegions.data()
 			);
 
 		// Change texture image layout to shader read after all faces have been copied
@@ -252,10 +266,10 @@ public:
 		sampler.addressModeV = sampler.addressModeU;
 		sampler.addressModeW = sampler.addressModeU;
 		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 8;
+		sampler.maxAnisotropy = 8.0f;
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
-		sampler.maxLod = 0.0f;
+		sampler.maxLod = cubeMap.mipLevels;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &cubeMap.sampler));
 
@@ -268,6 +282,8 @@ public:
 		view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		// 6 array layers (faces)
 		view.subresourceRange.layerCount = 6;
+		// Set number of mip levels
+		view.subresourceRange.levelCount = cubeMap.mipLevels;
 		view.image = cubeMap.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &cubeMap.view));
 
