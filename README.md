@@ -49,14 +49,17 @@ This example is far more explicit than the other examples and is meant to be a s
 ## [Texture mapping](texture/)
 <img src="./screenshots/basic_texture.png" height="96px" align="right">
 
-Loads a single texture and displays it on a simple quad. Shows how to upload a texture including mip maps to the gpu in an optimal (tiling) format. Also demonstrates how to display the texture using a combined image sampler with anisotropic filtering enabled.
+Shows how to upload a 2D texture to video memory for sampling in a shader. Loads a compressed texture into a host visible staging buffer and copies all mip levels to a device local optimal tiled image for best performance.
+
+Also demonstrates the use of (combined) image samplers. Samplers are detached from the actual texture image and only contain information on how a image is sampled in the shader.
 <br><br>
 
-## [Cubemap](texturecubemap/)
-<img src="./screenshots/texture_cubemap.png" height="96px" align="right">
+## [Cubemap texture](texturecubemap/)
+<img src="./screenshots/texture_cubemap.jpg" height="96px" align="right">
 
-Building on the basic texture loading example a cubemap is loaded into host visible memory and then transformed into an optimal format for the GPU.
-The demo uses two different pipelines (and shader sets) to display the cubemap as a skybox (background) and as a source for reflections.
+Building on the basic texture loading example, a cubemap texture is loaded into a staging buffer and is copied over to a device local optimal image using buffer to image copies for all of it's faces and mip maps.
+
+The demo then uses two different pipelines (and shader sets) to display the cubemap as a skybox (background) and as a source for reflections.
 <br><br>
 
 ## [Texture array](texturearray/)
