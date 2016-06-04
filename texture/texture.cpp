@@ -826,7 +826,6 @@ public:
 
 	virtual void viewChanged()
 	{
-		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
 	}
 
@@ -837,11 +836,38 @@ public:
 		{
 			uboVS.lodBias = 0.0f;
 		}
-		if (uboVS.lodBias > 8.0f)
+		if (uboVS.lodBias > texture.mipLevels)
 		{
-			uboVS.lodBias = 8.0f;
+			uboVS.lodBias = texture.mipLevels;
 		}
 		updateUniformBuffers();
+		updateTextOverlay();
+	}
+
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x6B:
+		case GAMEPAD_BUTTON_R1:
+			changeLodBias(0.1f);
+			break;
+		case 0x6D:
+		case GAMEPAD_BUTTON_L1:
+			changeLodBias(-0.1f);
+			break;
+		}
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+		std::stringstream ss;
+		ss << std::setprecision(2) << std::fixed << uboVS.lodBias;
+#if defined(__ANDROID__)
+		textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#else
+		textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#endif
 	}
 };
 
@@ -853,18 +879,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case VK_ADD:
-				vulkanExample->changeLodBias(0.1f);
-				break;
-			case VK_SUBTRACT:
-				vulkanExample->changeLodBias(-0.1f);
-				break;
-			}
-		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
