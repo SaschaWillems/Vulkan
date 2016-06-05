@@ -113,11 +113,13 @@ public:
 		int32_t width, height;
 		VkFramebuffer frameBuffer;		
 		FrameBufferAttachment color, depth;
-		// Texture target for framebuffer blit
-		vkTools::VulkanTexture textureTarget;
+		VkSampler colorSampler;
 	} offScreenFrameBuf;
 
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
+
+	// Semaphore used to synchronize between offscreen and final scene rendering
+	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -133,10 +135,8 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		// Texture target
-		textureLoader->destroyTexture(offScreenFrameBuf.textureTarget);
-
 		// Frame buffer
+		vkDestroySampler(device, offScreenFrameBuf.colorSampler, nullptr);
 
 		// Color attachment
 		vkDestroyImageView(device, offScreenFrameBuf.color.view, nullptr);
@@ -170,6 +170,7 @@ public:
 		vkTools::destroyUniformData(device, &uniformData.fsQuad);
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
+		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 	}
 
 	// Preapre an empty texture as the blit target from 
@@ -251,13 +252,11 @@ public:
 		VulkanExampleBase::flushCommandBuffer(cmdBuffer, queue, true);
 	}
 
-	// Prepare a new framebuffer for offscreen rendering
-	// The contents of this framebuffer are then
-	// blitted to our render target
+	// Setup the offscreen framebuffer for rendering the blurred scene
+	// The color attachment of this framebuffer will then be used
+	// to sample frame in the fragment shader of the final pass
 	void prepareOffscreenFramebuffer()
 	{
-		VkCommandBuffer cmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 		offScreenFrameBuf.width = FB_DIM;
 		offScreenFrameBuf.height = FB_DIM;
 
@@ -279,9 +278,8 @@ public:
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		// Image of the framebuffer is blit source
-		image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		image.flags = 0;
+		// We will sample directly from the color attachment
+		image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -289,7 +287,6 @@ public:
 		VkImageViewCreateInfo colorImageView = vkTools::initializers::imageViewCreateInfo();
 		colorImageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		colorImageView.format = fbColorFormat;
-		colorImageView.flags = 0;
 		colorImageView.subresourceRange = {};
 		colorImageView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		colorImageView.subresourceRange.baseMipLevel = 0;
@@ -304,15 +301,36 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.color.mem));
 		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.color.image, offScreenFrameBuf.color.mem, 0));
 
+		// Get a primary command buffer for submitting image layout transitions for the framebuffer attachments
+		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+		// Set the initial layout to shader read instead of attachment 
+		// This is done as the render loop does the actualy image layout transitions
 		vkTools::setImageLayout(
-			cmdBuffer,
-			offScreenFrameBuf.color.image, 
-			VK_IMAGE_ASPECT_COLOR_BIT, 
-			VK_IMAGE_LAYOUT_UNDEFINED, 
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			layoutCmd,
+			offScreenFrameBuf.color.image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		colorImageView.image = offScreenFrameBuf.color.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &colorImageView, nullptr, &offScreenFrameBuf.color.view));
+
+		// Create sampler to sample from to collor attachment 
+		// Used to sample in the fragment shader for final rendering
+		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
+		sampler.magFilter = VK_FILTER_LINEAR;
+		sampler.minFilter = VK_FILTER_LINEAR;
+		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeV = sampler.addressModeU;
+		sampler.addressModeW = sampler.addressModeU;
+		sampler.mipLodBias = 0.0f;
+		sampler.maxAnisotropy = 0;
+		sampler.minLod = 0.0f;
+		sampler.maxLod = 1.0f;
+		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &offScreenFrameBuf.colorSampler));
 
 		// Depth stencil attachment
 		image.format = fbDepthFormat;
@@ -337,11 +355,14 @@ public:
 		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.depth.image, offScreenFrameBuf.depth.mem, 0));
 
 		vkTools::setImageLayout(
-			cmdBuffer,
+			layoutCmd,
 			offScreenFrameBuf.depth.image, 
 			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+		// Submit the command buffer to apply the image memory barrier
+		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
 		depthStencilView.image = offScreenFrameBuf.depth.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &offScreenFrameBuf.depth.view));
@@ -358,25 +379,20 @@ public:
 		fbufCreateInfo.height = offScreenFrameBuf.height;
 		fbufCreateInfo.layers = 1;
 		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer));
-
-		VulkanExampleBase::flushCommandBuffer(cmdBuffer, queue, true);
 	}
 
-	void createOffscreenCommandBuffer()
-	{
-		VkCommandBufferAllocateInfo cmd = vkTools::initializers::commandBufferAllocateInfo(
-			cmdPool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			1);
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmd, &offScreenCmdBuffer));
-	}
-
-	// The command buffer to copy for rendering 
-	// the offscreen scene and blitting it into
-	// the texture target is only build once
-	// and gets resubmitted 
+	// Sets up the command buffer that renders the scene to the offscreen frame buffer
 	void buildOffscreenCommandBuffer()
 	{
+		if (offScreenCmdBuffer == VK_NULL_HANDLE)
+		{
+			offScreenCmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
+		}
+
+		// Create a semaphore used to synchronize offscreen rendering and usage
+		VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenSemaphore));
+
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
@@ -393,6 +409,14 @@ public:
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
 
+		// Change back layout of the color attachment after sampling in the fragment shader
+		vkTools::setImageLayout(
+			offScreenCmdBuffer,
+			offScreenFrameBuf.color.image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
 		VkViewport viewport = vkTools::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
 		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
 
@@ -408,76 +432,15 @@ public:
 		vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
 		vkCmdBindIndexBuffer(offScreenCmdBuffer, meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(offScreenCmdBuffer, meshes.example.indexCount, 1, 0, 0, 0);
+
 		vkCmdEndRenderPass(offScreenCmdBuffer);
 
-		// Make sure color writes to the framebuffer are finished before using it as transfer source
+		// Change layout of the color attachment for sampling in the fragment shader
 		vkTools::setImageLayout(
 			offScreenCmdBuffer,
 			offScreenFrameBuf.color.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-
-		// Transform texture target to transfer destination
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-		// Blit offscreen color buffer to our texture target
-		VkImageBlit imgBlit;
-
-		imgBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgBlit.srcSubresource.mipLevel = 0;
-		imgBlit.srcSubresource.baseArrayLayer = 0;
-		imgBlit.srcSubresource.layerCount = 1;
-
-		imgBlit.srcOffsets[0] = { 0, 0, 0 };
-		imgBlit.srcOffsets[1].x = offScreenFrameBuf.width;
-		imgBlit.srcOffsets[1].y = offScreenFrameBuf.height;
-		imgBlit.srcOffsets[1].z = 1;
-
-		imgBlit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgBlit.dstSubresource.mipLevel = 0;
-		imgBlit.dstSubresource.baseArrayLayer = 0;
-		imgBlit.dstSubresource.layerCount = 1;
-
-		imgBlit.dstOffsets[0] = { 0, 0, 0 };
-		imgBlit.dstOffsets[1].x = offScreenFrameBuf.textureTarget.width;
-		imgBlit.dstOffsets[1].y = offScreenFrameBuf.textureTarget.height;
-		imgBlit.dstOffsets[1].z = 1;
-
-		// Blit from framebuffer image to texture image
-		// vkCmdBlitImage does scaling and (if necessary and possible) also does format conversions
-		vkCmdBlitImage(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&imgBlit,
-			VK_FILTER_LINEAR
-			);
-
-		// Transform framebuffer color attachment back 
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-		// Transform texture target back to shader read
-		// Makes sure that writes to the texture are finished before
-		// it's accessed in the shader
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
@@ -712,11 +675,11 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.quad));
 
-		// Image descriptor for the color map texture
+		// Image descriptor for the offscreen color attachment image
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
-				offScreenFrameBuf.textureTarget.sampler,
-				offScreenFrameBuf.textureTarget.view,
+				offScreenFrameBuf.colorSampler,
+				offScreenFrameBuf.color.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -908,7 +871,7 @@ public:
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 
 		uboQuadVS.model = glm::mat4();
-		uboQuadVS.model = viewMatrix * glm::translate(uboQuadVS.model, glm::vec3(0, 0, 0));
+		uboQuadVS.model = viewMatrix * glm::translate(uboQuadVS.model, cameraPos);
 		uboQuadVS.model = glm::rotate(uboQuadVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboQuadVS.model = glm::rotate(uboQuadVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboQuadVS.model = glm::rotate(uboQuadVS.model, glm::radians(timer * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -942,18 +905,38 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		// Gather command buffers to be sumitted to the queue
-		std::vector<VkCommandBuffer> submitCmdBuffers;
-		// Submit offscreen rendering command buffer 
-		// todo : use event to ensure that offscreen result is finished bfore render command buffer is started
-		if (blur)
-		{
-			submitCmdBuffers.push_back(offScreenCmdBuffer);
-		}
-		submitCmdBuffers.push_back(drawCmdBuffers[currentBuffer]);
-		submitInfo.commandBufferCount = submitCmdBuffers.size();
-		submitInfo.pCommandBuffers = submitCmdBuffers.data();
+		// The scene render command buffer has to wait for the offscreen
+		// rendering to be finished before we can use the framebuffer 
+		// color image for sampling during final rendering
+		// To ensure this we use a dedicated offscreen synchronization
+		// semaphore that will be signaled when offscreen renderin
+		// has been finished
+		// This is necessary as an implementation may start both
+		// command buffers at the same time, there is no guarantee
+		// that command buffers will be executed in the order they
+		// have been submitted by the application
 
+		// Offscreen rendering
+
+		// Wait for swap chain presentation to finish
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		// Signal ready with offscreen semaphore
+		submitInfo.pSignalSemaphores = &offscreenSemaphore;
+
+		// Submit work
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &offScreenCmdBuffer;
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		// Scene rendering
+
+		// Wait for offscreen semaphore
+		submitInfo.pWaitSemaphores = &offscreenSemaphore;
+		// Signal ready with render complete semaphpre
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+
+		// Submit work
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		VulkanExampleBase::submitFrame();
@@ -964,15 +947,13 @@ public:
 		VulkanExampleBase::prepare();
 		generateQuad();
 		loadMeshes();
+		prepareOffscreenFramebuffer();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		prepareTextureTarget(&offScreenFrameBuf.textureTarget, TEX_DIM, TEX_DIM, TEX_FORMAT);
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
 		setupDescriptorSet();
-		createOffscreenCommandBuffer();
-		prepareOffscreenFramebuffer();
 		buildCommandBuffers();
 		buildOffscreenCommandBuffer();
 		prepared = true;
