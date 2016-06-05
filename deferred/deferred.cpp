@@ -127,6 +127,9 @@ public:
 
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
 
+	// Semaphore used to synchronize between offscreen and final scene rendering
+	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -8.0f;
@@ -192,6 +195,7 @@ public:
 		vkDestroyRenderPass(device, offScreenFrameBuf.renderPass, nullptr);
 
 		textureLoader->destroyTexture(textures.colorMap);
+		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 	}
 
 	// Preapre an empty texture as the blit target from 
@@ -546,20 +550,17 @@ public:
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	}
 
-	// Build command buffer for rendering the scene to the offscreen frame buffer 
-	// and blitting it to the different texture targets
+	// Build command buffer for rendering the scene to the offscreen frame buffer attachments
 	void buildDeferredCommandBuffer()
 	{
-		// Create separate command buffer for offscreen 
-		// rendering
 		if (offScreenCmdBuffer == VK_NULL_HANDLE)
 		{
-			VkCommandBufferAllocateInfo cmd = vkTools::initializers::commandBufferAllocateInfo(
-				cmdPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1);
-			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmd, &offScreenCmdBuffer));
+			offScreenCmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
 		}
+
+		// Create a semaphore used to synchronize offscreen rendering and usage
+		VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenSemaphore));
 
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
@@ -582,18 +583,10 @@ public:
 
 		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		VkViewport viewport = vkTools::initializers::viewport(
-			(float)offScreenFrameBuf.width,
-			(float)offScreenFrameBuf.height,
-			0.0f,
-			1.0f);
+		VkViewport viewport = vkTools::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
 		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
 
-		VkRect2D scissor = vkTools::initializers::rect2D(
-			offScreenFrameBuf.width,
-			offScreenFrameBuf.height,
-			0,
-			0);
+		VkRect2D scissor = vkTools::initializers::rect2D(offScreenFrameBuf.width, offScreenFrameBuf.height, 0, 0);
 		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
 
 		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
@@ -1193,16 +1186,38 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		// Submit offscreen rendering command buffer 
-		// todo : use event to ensure that offscreen result is finished bfore render command buffer is started
-		std::vector<VkCommandBuffer> submitCmdBuffers = {
-			offScreenCmdBuffer,
-			drawCmdBuffers[currentBuffer],
-		};
-		submitCmdBuffers.push_back(drawCmdBuffers[currentBuffer]);
-		submitInfo.commandBufferCount = submitCmdBuffers.size();
-		submitInfo.pCommandBuffers = submitCmdBuffers.data();
+		// The scene render command buffer has to wait for the offscreen
+		// rendering to be finished before we can use the framebuffer 
+		// color image for sampling during final rendering
+		// To ensure this we use a dedicated offscreen synchronization
+		// semaphore that will be signaled when offscreen renderin
+		// has been finished
+		// This is necessary as an implementation may start both
+		// command buffers at the same time, there is no guarantee
+		// that command buffers will be executed in the order they
+		// have been submitted by the application
 
+		// Offscreen rendering
+
+		// Wait for swap chain presentation to finish
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		// Signal ready with offscreen semaphore
+		submitInfo.pSignalSemaphores = &offscreenSemaphore;
+
+		// Submit work
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &offScreenCmdBuffer;
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		// Scene rendering
+
+		// Wait for offscreen semaphore
+		submitInfo.pWaitSemaphores = &offscreenSemaphore;
+		// Signal ready with render complete semaphpre
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+
+		// Submit work
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		VulkanExampleBase::submitFrame();
