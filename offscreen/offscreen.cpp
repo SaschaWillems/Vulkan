@@ -247,7 +247,7 @@ public:
 		colorImageView.image = offScreenFrameBuf.color.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &colorImageView, nullptr, &offScreenFrameBuf.color.view));
 
-		// Create sampler to sample from to collor attachment 
+		// Create sampler to sample from to color attachment 
 		// Used to sample in the fragment shader for final rendering
 		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
 		sampler.magFilter = VK_FILTER_LINEAR;

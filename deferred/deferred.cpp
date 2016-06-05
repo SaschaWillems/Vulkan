@@ -199,7 +199,6 @@ public:
 	void prepareTextureTarget(vkTools::VulkanTexture *target, VkFormat format)
 	{
 		VkFormatProperties formatProperties;
-		VkResult err;
 
 		uint32_t width = TEX_DIM;
 		uint32_t height = TEX_DIM;
@@ -323,7 +322,7 @@ public:
 		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &attachment->image));
 		vkGetImageMemoryRequirements(device, attachment->image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &memAlloc.memoryTypeIndex);
+		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &attachment->mem));
 		VK_CHECK_RESULT(vkBindImageMemory(device, attachment->image, attachment->mem, 0));
 		
