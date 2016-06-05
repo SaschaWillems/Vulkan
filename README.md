@@ -124,7 +124,7 @@ Once all threads have finished (and all secondary command buffers have been cons
 <br><br>
 
 ## [Particle system](particlefire/)
-<img src="./screenshots/particlefire.png" height="96px" align="right">
+<img src="./screenshots/particlefire.jpg" height="96px" align="right">
 
 Point sprite based particle system simulating a fire. Particles and their attributes are stored in a host visible vertex buffer that's updated on the CPU on each frame. Also makes use of pre-multiplied alpha for rendering particles with different blending modes (smoke and fire) in one single pass.
 
@@ -238,9 +238,9 @@ Demonstrates the use of a separate compute queue (and command buffer) to apply d
 <br><br>
 
 ## [(Geometry shader) Normal debugging](geometryshader/)
-<img src="./screenshots/geom_normals.png" height="96px" align="right">
+<img src="./screenshots/geom_normals.jpg" height="96px" align="right">
 
-Renders the vertex normals of a complex mesh with the use of a geometry shader. The mesh is rendered solid first and the a geometry shader that generates lines from the face normals is used in the second pass.
+Uses a geometry shader to generate per-vertex normals that could be used for debugging. The first pass displays the solid mesh using basic phong shading and then does a second pass with the geometry shader that generates normals for each vertex of the mesh.
 <br><br>
 
 ## [(Extension) VK_EXT_debug_marker](debugmarker/)
