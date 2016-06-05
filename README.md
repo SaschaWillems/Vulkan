@@ -166,11 +166,13 @@ Demonstrates the use of multiple render targets to fill a G-Buffer for deferred 
 Deferred shading collects all values (color, normal, position) into different render targets in one pass thanks to multiple render targets, and then does all shading and lighting calculations based on these in screen space, thus allowing for much more light sources than traditional forward renderers.
 <br><br>
 
-## [Shadowmapping](shadowmapping/)
+## [Shadow mapping](shadowmapping/)
 <img src="./screenshots/shadowmapping.png" height="96px" align="right">
 
-Shows how to implement directional dynamic shadows with a single shadow map in two passes. Pass one renders the scene from the light's point of view and copies the depth buffer to a depth texture.
-The second pass renders the scene from the camera's point of view using the depth texture to compare the depth value of the texels with the one stored in the depth texture to determine whether a texel is shadowed or not and also applies a PCF filter for smooth shadow borders.
+Shows how to implement dynamic shadows from a directional light source in two passes. The first pass renders the scene depth from the light's point-of-view into a separate framebuffer attachment with a different (higher) resolution.
+
+The second pass renders the scene from the camera's point-of-view and compares the depth value of the texels with the one stored in the offscreen depth attachment (which the shader directly samples from) to determine whether a texel is shadowed or not and then applies a PCF filter to smooth out shadow borders
+
 To avoid shadow artifacts the dynamic depth bias state ([vkCmdSetDepthBias](https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdSetDepthBias.html)) is used to apply a constant and slope dept bias factor.
 
 ## [Omnidirectional shadow mapping](shadowmappingomni/)
