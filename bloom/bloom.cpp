@@ -122,10 +122,10 @@ public:
 		int32_t width, height;
 		VkFramebuffer frameBuffer;
 		FrameBufferAttachment color, depth;
-		// Texture target for framebuffer blit
-		vkTools::VulkanTexture textureTarget;
-		VkSampler colorSampler;
 	} offScreenFrameBuf, offScreenFrameBufB;
+
+	// One sampler for the frame buffer color attachments
+	VkSampler colorSampler;
 
 	// Used to store commands for rendering and blitting
 	// the offscreen scene
@@ -148,9 +148,7 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		// Texture target
-		textureLoader->destroyTexture(offScreenFrameBuf.textureTarget);
-		textureLoader->destroyTexture(offScreenFrameBufB.textureTarget);
+		vkDestroySampler(device, colorSampler, nullptr);
 
 		// Frame buffer
 		vkDestroyImageView(device, offScreenFrameBuf.color.view, nullptr);
@@ -201,81 +199,8 @@ public:
 		textureLoader->destroyTexture(textures.cubemap);
 	}
 
-	// Preapre an empty texture as the blit target from 
-	// the offscreen framebuffer
-	void prepareTextureTarget(vkTools::VulkanTexture *tex, uint32_t width, uint32_t height, VkFormat format, VkCommandBuffer cmdBuffer)
-	{
-		VkFormatProperties formatProperties;
-
-		// Get device properites for the requested texture format
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
-		// Check if blit destination is supported for the requested format
-		// Only try for optimal tiling, linear tiling usually won't support blit as destination anyway
-		assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT);
-
-		// Prepare blit target texture
-		tex->width = width;
-		tex->height = height;
-
-		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.format = format;
-		imageCreateInfo.extent = { width, height, 1 };
-		imageCreateInfo.mipLevels = 1;
-		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		// Texture will be sampled in a shader and is also the blit destination
-		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
-
-		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &tex->image));
-		vkGetImageMemoryRequirements(device, tex->image, &memReqs);
-		memAllocInfo.allocationSize = memReqs.size;
-		memAllocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &(tex->deviceMemory)));
-		VK_CHECK_RESULT(vkBindImageMemory(device, tex->image, tex->deviceMemory, 0));
-
-		tex->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		vkTools::setImageLayout(
-			cmdBuffer,
-			tex->image,
-			VK_IMAGE_ASPECT_COLOR_BIT, 
-			VK_IMAGE_LAYOUT_UNDEFINED, 
-			tex->imageLayout);
-
-		// Create sampler
-		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
-		sampler.magFilter = TEX_FILTER;
-		sampler.minFilter = TEX_FILTER;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler.addressModeV = sampler.addressModeU;
-		sampler.addressModeW = sampler.addressModeU;
-		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 0;
-		sampler.compareOp = VK_COMPARE_OP_NEVER;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = 0.0f;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &tex->sampler));
-
-		// Create image view
-		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
-		view.image = VK_NULL_HANDLE;
-		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		view.format = format;
-		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		view.image = tex->image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &tex->view));
-	}
-
-	// Prepare a new framebuffer for offscreen rendering
-	// The contents of this framebuffer are then
-	// blitted to our render target
+	// Setup the offscreen framebuffer for rendering the mirrored scene
+	// The color attachment of this framebuffer will then be sampled from
 	void prepareOffscreenFramebuffer(FrameBuffer *frameBuf, VkCommandBuffer cmdBuffer)
 	{
 		frameBuf->width = FB_DIM;
@@ -299,9 +224,8 @@ public:
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		// Image of the framebuffer is blit source
-		image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		image.flags = 0;
+		// We will sample directly from the color attachment
+		image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -324,12 +248,14 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &frameBuf->color.mem));
 		VK_CHECK_RESULT(vkBindImageMemory(device, frameBuf->color.image, frameBuf->color.mem, 0));
 
+		// Set the initial layout to shader read instead of attachment 
+		// This is done as the render loop does the actualy image layout transitions
 		vkTools::setImageLayout(
 			cmdBuffer, 
 			frameBuf->color.image, 
 			VK_IMAGE_ASPECT_COLOR_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		colorImageView.image = frameBuf->color.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &colorImageView, nullptr, &frameBuf->color.view));
@@ -381,15 +307,6 @@ public:
 		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &frameBuf->frameBuffer));
 	}
 
-	// Prepare the ping-pong texture targets for the vertical- and horizontal blur
-	void prepareTextureTargets()
-	{
-		VkCommandBuffer cmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		prepareTextureTarget(&offScreenFrameBuf.textureTarget, TEX_DIM, TEX_DIM, TEX_FORMAT, cmdBuffer);
-		prepareTextureTarget(&offScreenFrameBufB.textureTarget, TEX_DIM, TEX_DIM, TEX_FORMAT, cmdBuffer);
-		VulkanExampleBase::flushCommandBuffer(cmdBuffer, queue, true);
-	}
-
 	// Prepare the offscreen framebuffers used for the vertical- and horizontal blur 
 	void prepareOffscreenFramebuffers()
 	{
@@ -397,6 +314,21 @@ public:
 		prepareOffscreenFramebuffer(&offScreenFrameBuf, cmdBuffer);
 		prepareOffscreenFramebuffer(&offScreenFrameBufB, cmdBuffer);
 		VulkanExampleBase::flushCommandBuffer(cmdBuffer, queue, true);
+
+		// Create sampler to sample from the color attachments
+		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
+		sampler.magFilter = VK_FILTER_LINEAR;
+		sampler.minFilter = VK_FILTER_LINEAR;
+		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeV = sampler.addressModeU;
+		sampler.addressModeW = sampler.addressModeU;
+		sampler.mipLodBias = 0.0f;
+		sampler.maxAnisotropy = 0;
+		sampler.minLod = 0.0f;
+		sampler.maxLod = 1.0f;
+		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &colorSampler));
 	}
 
 	// Sets up the command buffer that renders the scene to the offscreen frame buffer
@@ -417,7 +349,8 @@ public:
 
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
-		// Horizontal blur
+		// First pass: Horizontal blur
+
 		VkClearValue clearValues[2];
 		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
@@ -431,6 +364,14 @@ public:
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
+
+		// Change back layout of the color attachment after sampling in the fragment shader
+		vkTools::setImageLayout(
+			offScreenCmdBuffer,
+			offScreenFrameBuf.color.image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		VkViewport viewport = vkTools::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
 		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
@@ -450,79 +391,20 @@ public:
 
 		vkCmdEndRenderPass(offScreenCmdBuffer);
 
-		// Make sure color writes to the framebuffer are finished before using it as transfer source
+		// Change layout of the color attachment for sampling in the fragment shader 
+		// in the vertical blur pass
 		vkTools::setImageLayout(
 			offScreenCmdBuffer,
 			offScreenFrameBuf.color.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-
-		// Transform texture target to transfer destination
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-		// Blit offscreen color buffer to our texture target
-		VkImageBlit imgBlit;
-
-		imgBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgBlit.srcSubresource.mipLevel = 0;
-		imgBlit.srcSubresource.baseArrayLayer = 0;
-		imgBlit.srcSubresource.layerCount = 1;
-
-		imgBlit.srcOffsets[0] = { 0, 0, 0 };
-		imgBlit.srcOffsets[1].x = offScreenFrameBuf.width;
-		imgBlit.srcOffsets[1].y = offScreenFrameBuf.height;
-		imgBlit.srcOffsets[1].z = 1;
-
-		imgBlit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgBlit.dstSubresource.mipLevel = 0;
-		imgBlit.dstSubresource.baseArrayLayer = 0;
-		imgBlit.dstSubresource.layerCount = 1;
-
-		imgBlit.dstOffsets[0] = { 0, 0, 0 };
-		imgBlit.dstOffsets[1].x = offScreenFrameBuf.textureTarget.width;
-		imgBlit.dstOffsets[1].y = offScreenFrameBuf.textureTarget.height;
-		imgBlit.dstOffsets[1].z = 1;
-
-		// Blit from framebuffer image to texture image
-		// vkCmdBlitImage does scaling and (if necessary and possible) also does format conversions
-		vkCmdBlitImage(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&imgBlit,
-			VK_FILTER_LINEAR
-			);
-
-		// Transform framebuffer color attachment back 
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-		// Transform texture target back to shader read
-		// Makes sure that writes to the texture are finished before
-		// it's accessed in the shader
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		// Vertical blur
-		// Render the textured quad containing the scene into
-		// another offscreen buffer applying a vertical blur
+		// Second pass: Vertical blur
+
+		// Render the horizontally blurred texture into a second
+		// framebuffer and blur vertically
+
 		renderPassBeginInfo.framebuffer = offScreenFrameBufB.frameBuffer;
 		renderPassBeginInfo.renderArea.extent.width = offScreenFrameBufB.width;
 		renderPassBeginInfo.renderArea.extent.height = offScreenFrameBufB.height;
@@ -532,6 +414,14 @@ public:
 		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
 
 		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
+
+		// Change back layout of the color attachment after sampling in the fragment shader
+		vkTools::setImageLayout(
+			offScreenCmdBuffer,
+			offScreenFrameBufB.color.image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -544,52 +434,13 @@ public:
 
 		vkCmdEndRenderPass(offScreenCmdBuffer);
 
-		// Make sure color writes to the framebuffer are finished before using it as transfer source
+		// Change layout of the color attachment for sampling in the fragment shader 
+		// in the vertical blur pass
 		vkTools::setImageLayout(
 			offScreenCmdBuffer,
 			offScreenFrameBufB.color.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-
-		// Transform texture target to transfer destination
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBufB.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-
-		// Blit from framebuffer image to texture image
-		// vkCmdBlitImage does scaling and (if necessary and possible) also does format conversions
-		vkCmdBlitImage(
-			offScreenCmdBuffer,
-			offScreenFrameBufB.color.image,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			offScreenFrameBufB.textureTarget.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&imgBlit,
-			VK_FILTER_LINEAR
-			);
-
-		// Transform framebuffer color attachment back 
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBufB.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-		// Transform texture target back to shader read
-		// Makes sure that writes to the texture are finished before
-		// it's accessed in the shader
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBufB.textureTarget.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
@@ -654,7 +505,7 @@ public:
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skyBox.vertices.buf, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skyBox.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skyBox.indexCount, 1, 0, 0, 0);
-		
+
 			// 3D scene
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.scene, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phongPass);
@@ -846,13 +697,15 @@ public:
 				1);
 
 		// Full screen blur descriptor sets
+
 		// Vertical blur
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.verticalBlur));
 
+		// Texture descriptor for sampling from the unblurred offscreen color attachment
 		VkDescriptorImageInfo texDescriptorVert =
 			vkTools::initializers::descriptorImageInfo(
-				offScreenFrameBuf.textureTarget.sampler,
-				offScreenFrameBuf.textureTarget.view,
+				colorSampler,
+				offScreenFrameBuf.color.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -882,10 +735,11 @@ public:
 		// Horizontal blur
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.horizontalBlur));
 
+		// Texture descriptor for sampling from the vertically blurred offscreen color attachment
 		VkDescriptorImageInfo texDescriptorHorz =
 			vkTools::initializers::descriptorImageInfo(
-				offScreenFrameBufB.textureTarget.sampler,
-				offScreenFrameBufB.textureTarget.view,
+				colorSampler,
+				offScreenFrameBufB.color.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		writeDescriptorSets =
@@ -968,7 +822,7 @@ public:
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
 				VK_CULL_MODE_NONE,
-				VK_FRONT_FACE_COUNTER_CLOCKWISE,
+				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
 		VkPipelineColorBlendAttachmentState blendAttachmentState =
@@ -1044,23 +898,22 @@ public:
 		// Phong pass (3D model)
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/phongpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/phongpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 		pipelineCreateInfo.layout = pipelineLayouts.scene;
 		blendAttachmentState.blendEnable = VK_FALSE;
 		depthStencilState.depthWriteEnable = VK_TRUE;
-
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phongPass));
 
 		// Color only pass (offscreen blur base)
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.colorPass));
 
-		// Skybox (cubemap
+		// Skybox (cubemap)
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/bloom/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/bloom/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		depthStencilState.depthWriteEnable = VK_FALSE;
+		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skyBox));
 	}
 
@@ -1230,7 +1083,6 @@ public:
 		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		prepareTextureTargets();
 		prepareOffscreenFramebuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
