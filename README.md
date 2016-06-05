@@ -143,13 +143,17 @@ Shows how to use occlusion queries to determine object visibility depending on t
 ## [Offscreen rendering](offscreen/)
 <img src="./screenshots/basic_offscreen.jpg" height="96px" align="right">
 
-Uses a separate framebuffer (that is not part of the swap chain) and a texture target for offscreen rendering. The texture is then used as a mirror.
+Shows how to do basic offscreen rendering. Uses a separate framebuffer with color and depth attachments (that is not part of the swap chain) to render the mirrored scene off screen in the first pass.
+
+The second pass then samples from the color attachment of that framebuffer for rendering a mirror surface.
 <br><br>
 
 ## [Radial blur](radialblur/)
 <img src="./screenshots/radial_blur.png" height="96px" align="right">
 
-Demonstrates basic usage of fullscreen shader effects. The scene is rendered offscreen first, gets blitted to a texture target and for the final draw this texture is blended on top of the 3D scene with a radial blur shader applied.
+Demonstrates basic usage of fullscreen shader effects. The scene is rendered into a low resolution offscreen framebuffer first.
+
+After rendering the object the second pass then blends a full screen quad on top of the scene, sampling from the color attachment of the offscreen framebuffer ti implement a radial blur.
 <br><br>
 
 ## [Bloom](bloom/)
@@ -178,8 +182,9 @@ To avoid shadow artifacts the dynamic depth bias state ([vkCmdSetDepthBias](http
 ## [Omnidirectional shadow mapping](shadowmappingomni/)
 <img src="./screenshots/shadow_omnidirectional.png" height="96px" align="right">
 
-Uses a dynamic 32 bit floating point cube map for a point light source that casts shadows in all directions (unlike projective shadow mapping).
-The cube map faces contain the distances from the light sources, which are then used in the scene rendering pass to determine if the fragment is shadowed or not.
+Shows how to implement dynamic shadows from a point light source. Uses a dynamic 32 bit floating point cube map for a point light source that casts shadows in all directions (unlike projective shadow mapping).
+
+The cube map faces contain the distances from the light sources, which are then used in the final scene rendering pass to determine if the fragment is shadowed or not.
 <br><br>
 
 ## [Spherical environment mapping](sphericalenvmapping/)
