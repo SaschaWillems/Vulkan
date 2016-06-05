@@ -37,7 +37,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	bool splitScreen = true;
+	bool splitScreen = false;
 
 	struct {
 		vkTools::VulkanTexture colorMap;
@@ -66,7 +66,7 @@ public:
 			glm::mat4 projection;
 			glm::mat4 model;
 			glm::mat4 normal;
-			glm::vec4 lightPos = glm::vec4(0.0, 0.0, 0.0, 0.0);
+			glm::vec4 lightPos = glm::vec4(0.0f);
 			glm::vec4 cameraPos;
 		} vertexShader;
 
@@ -94,9 +94,11 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -1.25f;
-		rotation = glm::vec3(40.0, -33.0, 0.0);
+		zoom = -2.7f;
+		rotation = glm::vec3(56.0f, 0.0f, 0.0f);
 		rotationSpeed = 0.25f;
+		enableTextOverlay = true;
+		timerSpeed *= 0.25f;
 		paused = true;
 		title = "Vulkan Example - Parallax Mapping";
 	}
@@ -131,7 +133,8 @@ public:
 			VK_FORMAT_R8G8B8A8_UNORM, 
 			&textures.normalHeightMap);
 	}
-void reBuildCommandBuffers()
+
+	void reBuildCommandBuffers()
 	{
 		if (!checkCommandBuffers())
 		{
@@ -158,30 +161,19 @@ void reBuildCommandBuffers()
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(splitScreen) ? (float)width / 2.0f : (float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((splitScreen) ? (float)width / 2.0f : (float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height,	0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -206,36 +198,8 @@ void reBuildCommandBuffers()
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void draw()
-	{
-		VkResult err;
-
-		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
 	}
 
 	void loadMeshes()
@@ -314,8 +278,7 @@ void reBuildCommandBuffers()
 				poolSizes.data(),
 				4);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -349,16 +312,14 @@ void reBuildCommandBuffers()
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
@@ -369,8 +330,7 @@ void reBuildCommandBuffers()
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		// Color map image descriptor
 		VkDescriptorImageInfo texDescriptorColorMap =
@@ -488,14 +448,12 @@ void reBuildCommandBuffers()
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.parallaxMapping);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.parallaxMapping));
 
 		// Normal mapping (no parallax effect)
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/parallax/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/parallax/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.normalMapping);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.normalMapping));
 	}
 
 	void prepareUniformBuffers()
@@ -503,8 +461,9 @@ void reBuildCommandBuffers()
 		// Vertex shader ubo
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(ubos.vertexShader),
-			&ubos.vertexShader,
+			nullptr,
 			&uniformData.vertexShader.buffer,
 			&uniformData.vertexShader.memory,
 			&uniformData.vertexShader.descriptor);
@@ -512,8 +471,9 @@ void reBuildCommandBuffers()
 		// Fragment shader ubo
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(ubos.fragmentShader),
-			&ubos.fragmentShader,
+			nullptr,
 			&uniformData.fragmentShader.buffer,
 			&uniformData.fragmentShader.memory,
 			&uniformData.fragmentShader.descriptor);
@@ -529,7 +489,7 @@ void reBuildCommandBuffers()
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
 		ubos.vertexShader.model = glm::mat4();
-		ubos.vertexShader.model = viewMatrix * glm::translate(ubos.vertexShader.model, glm::vec3(0, 0, 0));
+		ubos.vertexShader.model = viewMatrix * glm::translate(ubos.vertexShader.model, cameraPos);
 		ubos.vertexShader.model = glm::rotate(ubos.vertexShader.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		ubos.vertexShader.model = glm::rotate(ubos.vertexShader.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubos.vertexShader.model = glm::rotate(ubos.vertexShader.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -538,23 +498,35 @@ void reBuildCommandBuffers()
 
 		if (!paused)
 		{
-			ubos.vertexShader.lightPos.x = sin(glm::radians(timer * 360.0f)) * 0.5;
-			ubos.vertexShader.lightPos.y = cos(glm::radians(timer * 360.0f)) * 0.5;
+			ubos.vertexShader.lightPos.x = sin(glm::radians(timer * 360.0f)) * 0.5f;
+			ubos.vertexShader.lightPos.y = cos(glm::radians(timer * 360.0f)) * 0.5f;
 		}
 
 		ubos.vertexShader.cameraPos = glm::vec4(0.0, 0.0, zoom, 0.0);
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.vertexShader.memory, 0, sizeof(ubos.vertexShader), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vertexShader.memory, 0, sizeof(ubos.vertexShader), 0, (void **)&pData));
 		memcpy(pData, &ubos.vertexShader, sizeof(ubos.vertexShader));
 		vkUnmapMemory(device, uniformData.vertexShader.memory);
 
 		// Fragment shader
-		err = vkMapMemory(device, uniformData.fragmentShader.memory, 0, sizeof(ubos.fragmentShader), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fragmentShader.memory, 0, sizeof(ubos.fragmentShader), 0, (void **)&pData));
 		memcpy(pData, &ubos.fragmentShader, sizeof(ubos.fragmentShader));
 		vkUnmapMemory(device, uniformData.fragmentShader.memory);
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		// Command buffer to be sumitted to the queue
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+
+		// Submit to queue
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
@@ -576,9 +548,7 @@ void reBuildCommandBuffers()
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 		if (!paused)
 		{
 			updateUniformBuffers();
@@ -609,6 +579,37 @@ void reBuildCommandBuffers()
 		reBuildCommandBuffers();
 	}
 
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x4F:
+		case GAMEPAD_BUTTON_A:
+			toggleParallaxOffset();
+			break;
+		case 0x4E:
+		case GAMEPAD_BUTTON_X:
+			toggleNormalMapDisplay();
+			break;
+		case 0x53:
+		case GAMEPAD_BUTTON_Y:
+			toggleSplitScreen();
+			break;
+		}
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+#if defined(__ANDROID__)
+		textOverlay->addText("Press \"Button A\" to toggle parallax", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button X\" to toggle normals", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button Y\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+#else
+		textOverlay->addText("Press \"o\" to toggle parallax", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"n\" to toggle normals", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"s\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+#endif
+	}
 };
 
 VulkanExample *vulkanExample;
@@ -619,21 +620,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case 0x4F:
-				vulkanExample->toggleParallaxOffset();
-				break;
-			case 0x4E:
-				vulkanExample->toggleNormalMapDisplay();
-				break;
-			case 0x53:
-				vulkanExample->toggleSplitScreen();
-				break;
-		}
-	}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
