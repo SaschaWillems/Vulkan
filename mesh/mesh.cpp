@@ -88,6 +88,7 @@ public:
 		rotationSpeed = 0.5f;
 		rotation = { -0.5f, -112.75f, 0.0f };
 		cameraPos = { 0.1f, 1.1f, 0.0f };
+		enableTextOverlay = true;
 		title = "Vulkan Example - Mesh rendering";
 	}
 
@@ -168,27 +169,6 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void draw()
-	{
-		// Get next image in the swap chain (back/front buffer)
-		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
-
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	// Load a mesh based on data read via assimp 
@@ -562,8 +542,9 @@ public:
 		// Vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboVS),
-			&uboVS,
+			nullptr,
 			&uniformData.vsScene.buffer,
 			&uniformData.vsScene.memory,
 			&uniformData.vsScene.descriptor);
@@ -585,6 +566,20 @@ public:
 		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.vsScene.memory);
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		// Command buffer to be sumitted to the queue
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+
+		// Submit to queue
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
@@ -611,7 +606,6 @@ public:
 
 	virtual void viewChanged()
 	{
-		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
 	}
 
@@ -625,6 +619,15 @@ public:
 			reBuildCommandBuffers();
 			break;
 		}
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+#if defined(__ANDROID__)
+		textOverlay->addText("Press \"Button A\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#else
+		textOverlay->addText("Press \"w\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#endif
 	}
 };
 
