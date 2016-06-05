@@ -124,11 +124,15 @@ public:
 		FrameBufferAttachment color, depth;
 		// Texture target for framebuffer blit
 		vkTools::VulkanTexture textureTarget;
+		VkSampler colorSampler;
 	} offScreenFrameBuf, offScreenFrameBufB;
 
 	// Used to store commands for rendering and blitting
 	// the offscreen scene
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
+
+	// Semaphore used to synchronize between offscreen and final scene rendering
+	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -192,6 +196,7 @@ public:
 		vkTools::destroyUniformData(device, &uniformData.fsHorzBlur);
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
+		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 
 		textureLoader->destroyTexture(textures.cubemap);
 	}
@@ -394,18 +399,22 @@ public:
 		VulkanExampleBase::flushCommandBuffer(cmdBuffer, queue, true);
 	}
 
-	void createOffscreenCommandBuffer()
-	{
-		VkCommandBufferAllocateInfo cmd = vkTools::initializers::commandBufferAllocateInfo(
-			cmdPool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			1);
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmd, &offScreenCmdBuffer));
-	}
-
-	// Render the 3D scene into a texture target
+	// Sets up the command buffer that renders the scene to the offscreen frame buffer
+	// The blur method used in this example is multi pass and renders the vertical
+	// blur first and then the horizontal one.
+	// While it's possible to blur in one pass, this method is widely used as it
+	// requires far less samples to generate the blur
 	void buildOffscreenCommandBuffer()
 	{
+		if (offScreenCmdBuffer == VK_NULL_HANDLE)
+		{
+			offScreenCmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
+		}
+
+		// Create a semaphore used to synchronize offscreen rendering and usage
+		VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenSemaphore));
+
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		// Horizontal blur
@@ -1207,7 +1216,6 @@ public:
 		preparePipelines();
 		setupDescriptorPool();
 		setupDescriptorSet();
-		createOffscreenCommandBuffer(); 
 		buildCommandBuffers();
 		prepared = true;
 	}
