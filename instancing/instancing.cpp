@@ -91,6 +91,7 @@ public:
 	{
 		zoom = -12.0f;
 		rotationSpeed = 0.25f;
+		enableTextOverlay = true;
 		title = "Vulkan Example - Instanced mesh rendering";
 		srand(time(NULL));
 	}
@@ -155,27 +156,6 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void draw()
-	{
-		// Get next image in the swap chain (back/front buffer)
-		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
-
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	void loadMeshes()
@@ -308,8 +288,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -333,16 +312,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
@@ -353,8 +330,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
@@ -454,8 +430,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
 	}
 
 	float rnd(float range)
@@ -554,7 +529,7 @@ public:
 		if (viewChanged)
 		{
 			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
-			uboVS.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+			uboVS.view = glm::translate(glm::mat4(), cameraPos + glm::vec3(0.0f, 0.0f, zoom));
 			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -566,6 +541,20 @@ public:
 		}
 
 		memcpy(uniformData.vsScene.mapped, &uboVS, sizeof(uboVS));
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		// Command buffer to be sumitted to the queue
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+
+		// Submit to queue
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
@@ -600,6 +589,11 @@ public:
 	virtual void viewChanged()
 	{
 		updateUniformBuffer(true);
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+		textOverlay->addText("Rendering " + std::to_string(INSTANCE_COUNT) + " instances", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 	}
 };
 
