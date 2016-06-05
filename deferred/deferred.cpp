@@ -118,12 +118,8 @@ public:
 		VkRenderPass renderPass;
 	} offScreenFrameBuf;
 	
-	// Texture targets
-	struct {
-		vkTools::VulkanTexture position;
-		vkTools::VulkanTexture normal;
-		vkTools::VulkanTexture albedo;
-	} textureTargets;
+	// One sampler for the frame buffer color attachments
+	VkSampler colorSampler;
 
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
 
@@ -145,10 +141,7 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		// Texture targets
-		textureLoader->destroyTexture(textureTargets.position);
-		textureLoader->destroyTexture(textureTargets.normal);
-		textureLoader->destroyTexture(textureTargets.albedo);
+		vkDestroySampler(device, colorSampler, nullptr);
 
 		// Frame buffer
 
@@ -198,97 +191,12 @@ public:
 		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 	}
 
-	// Preapre an empty texture as the blit target from 
-	// the offscreen framebuffer
-	void prepareTextureTarget(vkTools::VulkanTexture *target, VkFormat format)
-	{
-		VkFormatProperties formatProperties;
-
-		uint32_t width = TEX_DIM;
-		uint32_t height = TEX_DIM;
-
-		// Prepare blit target texture
-		target->width = width;
-		target->height = height;
-
-		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.format = format;
-		imageCreateInfo.extent = { width, height, 1 };
-		imageCreateInfo.mipLevels = 1;
-		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		// Texture will be sampled in a shader and is also the blit destination
-		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		imageCreateInfo.flags = 0;
-
-		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
-
-		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &target->image));
-		vkGetImageMemoryRequirements(device, target->image, &memReqs);
-		memAllocInfo.allocationSize = memReqs.size;
-		memAllocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &target->deviceMemory));
-		VK_CHECK_RESULT(vkBindImageMemory(device, target->image, target->deviceMemory, 0));
-
-		// Image memory barrier
-		// Set initial layout for the offscreen texture to shader read
-		// Will be transformed while updating the texture
-		textureTargets.position.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		vkTools::setImageLayout(
-			setupCmdBuffer, 
-			target->image,
-			VK_IMAGE_ASPECT_COLOR_BIT, 
-			VK_IMAGE_LAYOUT_UNDEFINED, 
-			textureTargets.position.imageLayout);
-
-		// Create sampler
-		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
-		sampler.magFilter = TEX_FILTER;
-		sampler.minFilter = TEX_FILTER;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-		sampler.addressModeV = sampler.addressModeV;
-		sampler.addressModeW = sampler.addressModeV;
-		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 0;
-		sampler.compareOp = VK_COMPARE_OP_NEVER;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = 1.0f;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &target->sampler));
-
-		// Create image view
-		VkImageViewCreateInfo view = {};
-		view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		view.pNext = NULL;
-		view.image = VK_NULL_HANDLE;
-		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		view.format = format;
-		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		view.image = target->image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &target->view));
-	}
-
-	void prepareTextureTargets()
-	{
-		createSetupCommandBuffer();
-
-		prepareTextureTarget(&textureTargets.position, VK_FORMAT_R16G16B16A16_SFLOAT);
-		prepareTextureTarget(&textureTargets.normal, VK_FORMAT_R16G16B16A16_SFLOAT);
-		prepareTextureTarget(&textureTargets.albedo, VK_FORMAT_R8G8B8A8_UNORM);
-
-		flushSetupCommandBuffer();
-	}
-
 	// Create a frame buffer attachment
 	void createAttachment(
 		VkFormat format,  
 		VkImageUsageFlagBits usage,
-		FrameBufferAttachment *attachment)
+		FrameBufferAttachment *attachment,
+		VkCommandBuffer layoutCmd)
 	{
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
@@ -318,7 +226,7 @@ public:
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image.usage = usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -330,12 +238,26 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &attachment->mem));
 		VK_CHECK_RESULT(vkBindImageMemory(device, attachment->image, attachment->mem, 0));
 		
-		vkTools::setImageLayout(
-			setupCmdBuffer,
-			attachment->image,
-			aspectMask,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			imageLayout);
+		if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+		{
+			// Set the initial layout to shader read instead of attachment 
+			// This is done as the render loop does the actualy image layout transitions
+			vkTools::setImageLayout(
+				layoutCmd,
+				attachment->image,
+				aspectMask,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		} 
+		else
+		{
+			vkTools::setImageLayout(
+				layoutCmd,
+				attachment->image,
+				aspectMask,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				imageLayout);
+		}
 
 		VkImageViewCreateInfo imageView = vkTools::initializers::imageViewCreateInfo();
 		imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -355,6 +277,8 @@ public:
 	// blitted to our render target
 	void prepareOffscreenFramebuffer()
 	{
+		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
 		offScreenFrameBuf.width = FB_DIM;
 		offScreenFrameBuf.height = FB_DIM;
 
@@ -364,19 +288,22 @@ public:
 		createAttachment(
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&offScreenFrameBuf.position);
+			&offScreenFrameBuf.position,
+			layoutCmd);
 
 		// (World space) Normals
 		createAttachment(
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&offScreenFrameBuf.normal);
+			&offScreenFrameBuf.normal,
+			layoutCmd);
 
 		// Albedo (color)
 		createAttachment(
 			VK_FORMAT_R8G8B8A8_UNORM,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&offScreenFrameBuf.albedo);
+			&offScreenFrameBuf.albedo,
+			layoutCmd);
 
 		// Depth attachment
 
@@ -388,7 +315,10 @@ public:
 		createAttachment(
 			attDepthFormat,
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-			&offScreenFrameBuf.depth);
+			&offScreenFrameBuf.depth,
+			layoutCmd);
+
+		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
 		// Set up separate renderpass with references
 		// to the color and depth attachments
@@ -463,91 +393,20 @@ public:
 		fbufCreateInfo.layers = 1;
 
 		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer));
-
-		flushSetupCommandBuffer();
-		createSetupCommandBuffer();
-	}
-
-	// Blit frame buffer attachment to texture target
-	void blit(VkImage source, VkImage dest)
-	{
-		// Image memory barrier
-		// Transform frame buffer color attachment to transfer source layout
-		// Makes sure that writes to the color attachment are finished before
-		// using it as source for the blit
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			source,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-
-		// Image memory barrier
-		// Transform texture from shader read (initial layout) to transfer destination layout
-		// Makes sure that reads from texture are finished before
-		// using it as a transfer destination for the blit
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			dest,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-		// Blit offscreen color buffer to our texture target
-		VkImageBlit imgBlit;
-
-		imgBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgBlit.srcSubresource.mipLevel = 0;
-		imgBlit.srcSubresource.baseArrayLayer = 0;
-		imgBlit.srcSubresource.layerCount = 1;
-		 
-		imgBlit.srcOffsets[0] = { 0, 0, 0 };
-		imgBlit.srcOffsets[1].x = offScreenFrameBuf.width;
-		imgBlit.srcOffsets[1].y = offScreenFrameBuf.height;
-		imgBlit.srcOffsets[1].z = 1;
-
-		imgBlit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgBlit.dstSubresource.mipLevel = 0;
-		imgBlit.dstSubresource.baseArrayLayer = 0;
-		imgBlit.dstSubresource.layerCount = 1;
-
-		imgBlit.dstOffsets[0] = { 0, 0, 0 };
-		imgBlit.dstOffsets[1].x = textureTargets.position.width;
-		imgBlit.dstOffsets[1].y = textureTargets.position.height;
-		imgBlit.dstOffsets[1].z = 1;
-
-		// Blit from framebuffer image to texture image
-		// vkCmdBlitImage does scaling and (if necessary and possible) also does format conversions
-		vkCmdBlitImage(
-			offScreenCmdBuffer,
-			source,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			dest,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&imgBlit,
-			VK_FILTER_LINEAR
-			);
-
-		// Image memory barrier
-		// Transform texture from transfer destination to shader read
-		// Makes sure that writes to the texture are finished before
-		// using it as the source for a sampler in the shader
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			dest,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-		// Image memory barrier
-		// Transform the framebuffer color attachment back
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			source,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		// Create sampler to sample from the color attachments
+		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
+		sampler.magFilter = VK_FILTER_LINEAR;
+		sampler.minFilter = VK_FILTER_LINEAR;
+		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeV = sampler.addressModeU;
+		sampler.addressModeW = sampler.addressModeU;
+		sampler.mipLodBias = 0.0f;
+		sampler.maxAnisotropy = 0;
+		sampler.minLod = 0.0f;
+		sampler.maxLod = 1.0f;
+		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &colorSampler));
 	}
 
 	// Build command buffer for rendering the scene to the offscreen frame buffer attachments
@@ -581,6 +440,19 @@ public:
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
 
+		std::vector<FrameBufferAttachment> attachments = { offScreenFrameBuf.position, offScreenFrameBuf.normal, offScreenFrameBuf.albedo };
+
+		// Change back layout of the color attachments after sampling in the fragment shader
+		for (auto attachment : attachments)
+		{
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				attachment.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		}
+
 		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		VkViewport viewport = vkTools::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
@@ -599,9 +471,16 @@ public:
 
 		vkCmdEndRenderPass(offScreenCmdBuffer);
 
-		blit(offScreenFrameBuf.position.image, textureTargets.position.image);
-		blit(offScreenFrameBuf.normal.image, textureTargets.normal.image);
-		blit(offScreenFrameBuf.albedo.image, textureTargets.albedo.image);
+		// Change back layout of the color attachments after sampling in the fragment shader
+		for (auto attachment : attachments)
+		{
+			vkTools::setImageLayout(
+				offScreenCmdBuffer,
+				attachment.image,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		}
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
 	}
@@ -650,18 +529,10 @@ public:
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			VkDeviceSize offsets[1] = { 0 };
@@ -879,23 +750,23 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		// Image descriptor for the offscreen texture targets
+		// Image descriptors for the offscreen color attachments
 		VkDescriptorImageInfo texDescriptorPosition =
 			vkTools::initializers::descriptorImageInfo(
-				textureTargets.position.sampler,
-				textureTargets.position.view,
+				colorSampler,
+				offScreenFrameBuf.position.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		VkDescriptorImageInfo texDescriptorNormal =
 			vkTools::initializers::descriptorImageInfo(
-				textureTargets.normal.sampler,
-				textureTargets.normal.view,
+				colorSampler,
+				offScreenFrameBuf.normal.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		VkDescriptorImageInfo texDescriptorAlbedo =
 			vkTools::initializers::descriptorImageInfo(
-				textureTargets.albedo.sampler,
-				textureTargets.albedo.view,
+				colorSampler,
+				offScreenFrameBuf.albedo.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -1232,7 +1103,6 @@ public:
 		setupVertexDescriptions();
 		prepareOffscreenFramebuffer();
 		prepareUniformBuffers();
-		prepareTextureTargets();
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
