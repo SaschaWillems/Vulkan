@@ -155,6 +155,7 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		// Frame buffer
+		vkDestroySampler(device, offScreenFrameBuf.depthSampler, nullptr);
 
 		// Color attachment
 		vkDestroyImageView(device, offScreenFrameBuf.color.view, nullptr);
@@ -329,7 +330,7 @@ public:
 		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.depth.image, offScreenFrameBuf.depth.mem, 0));
 
 		// Set the initial layout to shader read instead of attachment 
-		// This is done as teh render loop does the actualy image layout transitions
+		// This is done as the render loop does the actualy image layout transitions
 		vkTools::setImageLayout(
 			layoutCmd,
 			offScreenFrameBuf.depth.image,
@@ -439,7 +440,7 @@ public:
 
 		vkCmdEndRenderPass(offScreenCmdBuffer);
 
-		// Change back layout of the depth attachment after sampling in the fragment shader
+		// Change layout of the depth attachment for sampling in the fragment shader
 		vkTools::setImageLayout(
 			offScreenCmdBuffer,
 			offScreenFrameBuf.depth.image,
