@@ -330,7 +330,7 @@ public:
 			offScreenFrameBuf.depth.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
