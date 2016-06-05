@@ -5,28 +5,34 @@
 
 layout (location = 0) in vec4 inPos;
 layout (location = 1) in vec3 inNormal;
-layout (location = 2) in vec2 inTexCoord;
-layout (location = 3) in vec3 inColor;
+layout (location = 2) in vec3 inColor;
 
-layout (binding = 0) uniform UBO 
+layout (set = 0, binding = 0) uniform UBO 
 {
 	mat4 projection;
 	mat4 model;
 } ubo;
 
-layout (location = 0) out vec2 vTexcoord;
-layout (location = 1) out vec3 vNormal;
-layout (location = 2) out vec3 vColor;
-layout (location = 3) out vec3 vEyePos;
-layout (location = 4) out vec3 vLightVec;
+layout (location = 0) out vec3 outNormal;
+layout (location = 1) out vec3 outColor;
+layout (location = 2) out vec3 outViewVec;
+layout (location = 3) out vec3 outLightVec;
+
+out gl_PerVertex
+{
+	vec4 gl_Position;
+};
 
 void main() 
 {
-	vTexcoord = inTexCoord.st;
-	vNormal = inNormal;
-	vColor = inColor;
+	outNormal = inNormal;
+	outColor = inColor;
 	gl_Position = ubo.projection * ubo.model * inPos;
-	vEyePos = vec3(ubo.model * inPos);
-	vec4 lightPos = vec4(0.0, 0.0, 0.0, 1.0) * ubo.model;
-	vLightVec = normalize(lightPos.xyz - vEyePos);
+
+	vec4 pos = ubo.model * vec4(inPos.xyz, 1.0);
+	outNormal = mat3(ubo.model) * inNormal;
+
+	vec3 lightPos = vec3(1.0f, -1.0f, 1.0f);
+	outLightVec = lightPos.xyz - pos.xyz;
+	outViewVec = -pos.xyz;		
 }
