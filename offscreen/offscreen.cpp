@@ -345,7 +345,7 @@ public:
 		vkTools::setImageLayout(
 			offScreenCmdBuffer,
 			offScreenFrameBuf.color.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
+			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
@@ -372,7 +372,7 @@ public:
 		vkTools::setImageLayout(
 			offScreenCmdBuffer,
 			offScreenFrameBuf.color.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
+			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -925,7 +925,7 @@ public:
 		// has been finished
 		// This is necessary as an implementation may start both
 		// command buffers at the same time, there is no guarantee
-		// that commnad buffers will be executed in the order they
+		// that command buffers will be executed in the order they
 		// have been submitted by the application
 
 		// Offscreen rendering
