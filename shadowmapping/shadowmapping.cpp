@@ -36,7 +36,6 @@
 #define SHADOWMAP_FILTER VK_FILTER_LINEAR
 
 // Offscreen frame buffer properties
-#define FB_DIM SHADOWMAP_DIM
 #define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
 
 // Vertex layout for this example
@@ -203,7 +202,10 @@ public:
 		attDesc[0].format = FB_COLOR_FORMAT;
 		attDesc[0].samples = VK_SAMPLE_COUNT_1_BIT;
 		attDesc[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attDesc[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		// We only need depth information for shadow mapping
+		// So we don't need to store the color information
+		// after the render pass has finished
+		attDesc[0].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attDesc[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attDesc[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attDesc[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -247,10 +249,14 @@ public:
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &offScreenFrameBuf.renderPass));
 	}
 
+	// Setup the offscreen framebuffer for rendering the scene from
+	// light's point-of-view to
+	// The depth attachment of this framebuffer will then be used
+	// to sample frame in the fragment shader of the shadowing pass
 	void prepareOffscreenFramebuffer()
 	{
-		offScreenFrameBuf.width = FB_DIM;
-		offScreenFrameBuf.height = FB_DIM;
+		offScreenFrameBuf.width = SHADOWMAP_DIM;
+		offScreenFrameBuf.height = SHADOWMAP_DIM;
 
 		VkFormat fbColorFormat = FB_COLOR_FORMAT;
 
@@ -274,7 +280,6 @@ public:
 		VkImageViewCreateInfo colorImageView = vkTools::initializers::imageViewCreateInfo();
 		colorImageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		colorImageView.format = fbColorFormat;
-		colorImageView.flags = 0;
 		colorImageView.subresourceRange = {};
 		colorImageView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		colorImageView.subresourceRange.baseMipLevel = 0;
@@ -337,8 +342,8 @@ public:
 		depthStencilView.image = offScreenFrameBuf.depth.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &offScreenFrameBuf.depth.view));
 
-		// Create sampler used to sample from depth attachment 
-		// in shadowing fragment shader
+		// Create sampler to sample from to depth attachment 
+		// Used to sample in the fragment shader for shadowed rendering
 		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
 		sampler.magFilter = SHADOWMAP_FILTER;
 		sampler.minFilter = SHADOWMAP_FILTER;
