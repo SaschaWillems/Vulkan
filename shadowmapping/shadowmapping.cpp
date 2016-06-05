@@ -1,9 +1,5 @@
 /*
-* Vulkan Example - Offscreen rendering using a separate framebuffer
-*
-*	p - Toggle light source animation
-*	l - Toggle between scene and light's POV
-*	s - Toggle shadowmap display
+* Vulkan Example - Shadow mapping for directional light sources
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
@@ -31,12 +27,16 @@
 // 16 bits of depth is enough for such a small scene
 #define DEPTH_FORMAT VK_FORMAT_D16_UNORM
 
-// Texture properties
-#define TEX_DIM 2048
-#define TEX_FILTER VK_FILTER_LINEAR
+// Shadowmap properties
+#if defined(__ANDROID__)
+#define SHADOWMAP_DIM 1024
+#else
+#define SHADOWMAP_DIM 2048
+#endif
+#define SHADOWMAP_FILTER VK_FILTER_LINEAR
 
 // Offscreen frame buffer properties
-#define FB_DIM TEX_DIM
+#define FB_DIM SHADOWMAP_DIM
 #define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
 
 // Vertex layout for this example
@@ -59,6 +59,7 @@ public:
 	float zNear = 1.0f;
 	float zFar = 96.0f;
 
+	// Depth bias (and slope) are used to avoid shadowing artefacts
 	// Constant depth bias factor (always applied)
 	float depthBiasConstant = 1.25f;
 	// Slope depth bias factor, applied depending on polygon's slope
@@ -78,10 +79,11 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	vkTools::UniformData uniformDataVS, uniformDataOffscreenVS;
+	vkTools::UniformData uniformDataVS;
 
 	struct {
 		vkTools::UniformData scene;
+		vkTools::UniformData offscreen;
 	} uniformData;
 
 	struct {
@@ -131,7 +133,7 @@ public:
 		VkFramebuffer frameBuffer;
 		FrameBufferAttachment color, depth;
 		VkRenderPass renderPass;
-		vkTools::VulkanTexture textureTarget;
+		VkSampler depthSampler;
 	} offScreenFrameBuf;
 
 	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
@@ -143,6 +145,7 @@ public:
 	{
 		zoom = -20.0f;
 		rotation = { -15.0f, -390.0f, 0.0f };
+		enableTextOverlay = true;
 		title = "Vulkan Example - Projected shadow mapping";
 		timerSpeed *= 0.5f;
 	}
@@ -151,9 +154,6 @@ public:
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-
-		// Texture target
-		textureLoader->destroyTexture(offScreenFrameBuf.textureTarget);
 
 		// Frame buffer
 
@@ -186,91 +186,18 @@ public:
 
 		// Uniform buffers
 		vkTools::destroyUniformData(device, &uniformDataVS);
-		vkTools::destroyUniformData(device, &uniformDataOffscreenVS);
+		vkTools::destroyUniformData(device, &uniformData.offscreen);
+		vkTools::destroyUniformData(device, &uniformData.scene);
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
 		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
-	}
-
-	// Preapre an empty texture as the blit target from 
-	// the offscreen framebuffer
-	void prepareTextureTarget(uint32_t width, uint32_t height, VkFormat format)
-	{
-		// Get device properites for the requested texture format
-		VkFormatProperties formatProperties;
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
-		// Check if format is supported for optimal tiling
-		assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-		// Prepare blit target texture
-		offScreenFrameBuf.textureTarget.width = width;
-		offScreenFrameBuf.textureTarget.height = height;
-
-		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.format = format;
-		imageCreateInfo.extent = { width, height, 1 };
-		imageCreateInfo.mipLevels = 1;
-		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
-
-		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
-
-		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &offScreenFrameBuf.textureTarget.image));
-		vkGetImageMemoryRequirements(device, offScreenFrameBuf.textureTarget.image, &memReqs);
-		memAllocInfo.allocationSize = memReqs.size;
-		memAllocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &offScreenFrameBuf.textureTarget.deviceMemory));
-		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.textureTarget.image, offScreenFrameBuf.textureTarget.deviceMemory, 0));
-
-		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-		offScreenFrameBuf.textureTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		vkTools::setImageLayout(
-			layoutCmd,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
-			VK_IMAGE_LAYOUT_PREINITIALIZED,
-			offScreenFrameBuf.textureTarget.imageLayout);
-
-		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
-
-		// Create sampler
-		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
-		sampler.magFilter = TEX_FILTER;
-		sampler.minFilter = TEX_FILTER;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler.addressModeV = sampler.addressModeU;
-		sampler.addressModeW = sampler.addressModeU;
-		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 0;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = 1.0f;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &offScreenFrameBuf.textureTarget.sampler));
-
-		// Create image view
-		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
-		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		view.format = format;
-		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		view.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 };
-		view.image = offScreenFrameBuf.textureTarget.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &offScreenFrameBuf.textureTarget.view));
 	}
 
 	// Set up a separate render pass for the offscreen frame buffer
 	// This is necessary as the offscreen frame buffer attachments
 	// use formats different to the ones from the visible frame buffer
 	// and at least the depth one may not be compatible
-	void setupOffScreenRenderPass()
+	void prepareOffscreenRenderpass()
 	{
 		VkAttachmentDescription attDesc[2];
 		attDesc[0].format = FB_COLOR_FORMAT;
@@ -333,13 +260,13 @@ public:
 		image.format = fbColorFormat;
 		image.extent.width = offScreenFrameBuf.width;
 		image.extent.height = offScreenFrameBuf.height;
+		image.extent.depth = 1;
 		image.mipLevels = 1;
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
 		// Image of the framebuffer is blit source
-		image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		image.flags = 0;
+		image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -376,12 +303,12 @@ public:
 
 		// Depth stencil attachment
 		image.format = DEPTH_FORMAT;
-		image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		// We will sample directly from the depth attachment for the shadow mapping
+		image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		VkImageViewCreateInfo depthStencilView = vkTools::initializers::imageViewCreateInfo();
 		depthStencilView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		depthStencilView.format = DEPTH_FORMAT;
-		depthStencilView.flags = 0;
 		depthStencilView.subresourceRange = {};
 		depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		depthStencilView.subresourceRange.baseMipLevel = 0;
@@ -396,6 +323,8 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.depth.mem));
 		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.depth.image, offScreenFrameBuf.depth.mem, 0));
 
+		// Set the initial layout to shader read instead of attachment 
+		// This is done as teh render loop does the actualy image layout transitions
 		vkTools::setImageLayout(
 			layoutCmd,
 			offScreenFrameBuf.depth.image,
@@ -408,11 +337,27 @@ public:
 		depthStencilView.image = offScreenFrameBuf.depth.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &offScreenFrameBuf.depth.view));
 
+		// Create sampler used to sample from depth attachment 
+		// in shadowing fragment shader
+		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
+		sampler.magFilter = SHADOWMAP_FILTER;
+		sampler.minFilter = SHADOWMAP_FILTER;
+		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeV = sampler.addressModeU;
+		sampler.addressModeW = sampler.addressModeU;
+		sampler.mipLodBias = 0.0f;
+		sampler.maxAnisotropy = 0;
+		sampler.minLod = 0.0f;
+		sampler.maxLod = 1.0f;
+		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &offScreenFrameBuf.depthSampler));
+
 		VkImageView attachments[2];
 		attachments[0] = offScreenFrameBuf.color.view;
 		attachments[1] = offScreenFrameBuf.depth.view;
 
-		setupOffScreenRenderPass();
+		prepareOffscreenRenderpass();
 
 		// Create frame buffer
 		VkFramebufferCreateInfo fbufCreateInfo = vkTools::initializers::framebufferCreateInfo();
@@ -428,15 +373,9 @@ public:
 
 	void buildOffscreenCommandBuffer()
 	{
-		// Create separate command buffer for offscreen 
-		// rendering
 		if (offScreenCmdBuffer == VK_NULL_HANDLE)
 		{
-			VkCommandBufferAllocateInfo cmd = vkTools::initializers::commandBufferAllocateInfo(
-				cmdPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1);
-			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmd, &offScreenCmdBuffer));
+			offScreenCmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
 		}
 
 		// Create a semaphore used to synchronize offscreen rendering and usage
@@ -461,6 +400,14 @@ public:
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
 
+		// Change back layout of the depth attachment after sampling in the fragment shader
+		vkTools::setImageLayout(
+			offScreenCmdBuffer,
+			offScreenFrameBuf.depth.image,
+			VK_IMAGE_ASPECT_DEPTH_BIT,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
 		VkViewport viewport = vkTools::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
 		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
 
@@ -468,6 +415,7 @@ public:
 		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
 
 		// Set depth bias (aka "Polygon offset")
+		// Required to avoid shadow mapping artefacts
 		vkCmdSetDepthBias(
 			offScreenCmdBuffer,
 			depthBiasConstant,
@@ -486,7 +434,13 @@ public:
 
 		vkCmdEndRenderPass(offScreenCmdBuffer);
 
-		updateTexture();
+		// Change back layout of the depth attachment after sampling in the fragment shader
+		vkTools::setImageLayout(
+			offScreenCmdBuffer,
+			offScreenFrameBuf.depth.image,
+			VK_IMAGE_ASPECT_DEPTH_BIT,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
 	}
@@ -548,47 +502,6 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void draw()
-	{
-		// Get next image in the swap chain (back/front buffer)
-		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Submit offscreen command buffer for rendering depth buffer from light's pov
-
-		// Wait for swap chain presentation to finish
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-		// Signal ready with offscreen semaphore
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &offscreenSemaphore;
-
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &offScreenCmdBuffer;
-
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		// Submit current render command buffer
-		
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Wait for offscreen semaphore
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &offscreenSemaphore;
-		// Signal ready with render complete semaphpre
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
 	}
 
 	void loadMeshes()
@@ -747,11 +660,11 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		// Image descriptor for the shadow map texture
+		// Image descriptor for the shadow map attachment
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
-				offScreenFrameBuf.textureTarget.sampler,
-				offScreenFrameBuf.textureTarget.view,
+				offScreenFrameBuf.depthSampler,
+				offScreenFrameBuf.depth.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -782,16 +695,16 @@ public:
 				descriptorSets.offscreen,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformDataOffscreenVS.descriptor),
+				&uniformData.offscreen.descriptor),
 		};
 		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
 
 		// 3D scene
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
 
-		// Image descriptor for the shadow map texture
-		texDescriptor.sampler = offScreenFrameBuf.textureTarget.sampler;
-		texDescriptor.imageView = offScreenFrameBuf.textureTarget.view;
+		// Image descriptor for the shadow map attachment
+		texDescriptor.sampler = offScreenFrameBuf.depthSampler;
+		texDescriptor.imageView = offScreenFrameBuf.depth.view;
 
 		std::vector<VkWriteDescriptorSet> sceneDescriptorSets =
 		{
@@ -823,7 +736,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_FRONT_BIT,
+				VK_CULL_MODE_NONE,
 				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
@@ -874,8 +787,6 @@ public:
 				renderPass,
 				0);
 
-		rasterizationState.cullMode = VK_CULL_MODE_NONE;
-
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
@@ -892,13 +803,12 @@ public:
 		// 3D scene
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapping/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapping/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		rasterizationState.cullMode = VK_CULL_MODE_NONE;
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.scene));
 
 		// Offscreen pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapping/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapping/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
 		// Cull front faces
 		depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		// Enable depth bias
@@ -911,6 +821,8 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
+		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
+		pipelineCreateInfo.renderPass = offScreenFrameBuf.renderPass;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreen));
 	}
 
@@ -920,6 +832,7 @@ public:
 		// Debug quad vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboVSscene),
 			nullptr,
 			&uniformDataVS.buffer,
@@ -929,15 +842,17 @@ public:
 		// Offsvreen vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboOffscreenVS),
 			nullptr,
-			&uniformDataOffscreenVS.buffer,
-			&uniformDataOffscreenVS.memory,
-			&uniformDataOffscreenVS.descriptor);
+			&uniformData.offscreen.buffer,
+			&uniformData.offscreen.memory,
+			&uniformData.offscreen.descriptor);
 
 		// Scene vertex shader uniform buffer block 
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboVSscene),
 			nullptr,
 			&uniformData.scene.buffer,
@@ -962,7 +877,7 @@ public:
 		// Shadow map debug quad
 		float AR = (float)height / (float)width;
 
-		uboVSquad.projection = glm::ortho(0.0f, 2.5f / AR, 0.0f, 2.5f, -1.0f, 1.0f);
+		uboVSquad.projection = glm::ortho(2.5f / AR, 0.0f, 0.0f, 2.5f, -1.0f, 1.0f);
 		uboVSquad.model = glm::mat4();
 
 		uint8_t *pData;
@@ -986,9 +901,8 @@ public:
 		if (lightPOV)
 		{
 			uboVSscene.projection = glm::perspective(glm::radians(lightFOV), (float)width / (float)height, zNear, zFar);
-			uboVSscene.view = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
+			uboVSscene.view = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		}
-
 	
 		uboVSscene.depthBiasMVP = uboOffscreenVS.depthMVP;
 
@@ -1001,82 +915,50 @@ public:
 	{
 		// Matrix from light's point of view
 		glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
-		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
 		glm::mat4 depthModelMatrix = glm::mat4();
 
 		uboOffscreenVS.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
 
 		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataOffscreenVS.memory, 0, sizeof(uboOffscreenVS), 0, (void **)&pData));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.offscreen.memory, 0, sizeof(uboOffscreenVS), 0, (void **)&pData));
 		memcpy(pData, &uboOffscreenVS, sizeof(uboOffscreenVS));
-		vkUnmapMemory(device, uniformDataOffscreenVS.memory);
+		vkUnmapMemory(device, uniformData.offscreen.memory);
 	}
 
-	// Copy offscreen depth frame buffer contents to the depth texture
-	void updateTexture()
+	void draw()
 	{
-		// Make sure color writes to the framebuffer are finished before using it as transfer source
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.depth.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		VulkanExampleBase::prepareFrame();
+		
+		// The scene render command buffer has to wait for the offscreen
+		// rendering (and transfer) to be finished before using
+		// the shadow map, so we need to synchronize
+		// We use an additional semaphore for this
 
-		// Transform texture target to transfer source
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		// Offscreen rendering
 
-		VkImageCopy imgCopy = {};
+		// Wait for swap chain presentation to finish
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		// Signal ready with offscreen semaphore
+		submitInfo.pSignalSemaphores = &offscreenSemaphore;
 
-		imgCopy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		imgCopy.srcSubresource.mipLevel = 0;
-		imgCopy.srcSubresource.baseArrayLayer = 0;
-		imgCopy.srcSubresource.layerCount = 1;
+		// Submit work
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &offScreenCmdBuffer;
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
-		imgCopy.srcOffset = { 0, 0, 0 };
+		// Scene rendering
 
-		imgCopy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		imgCopy.dstSubresource.mipLevel = 0;
-		imgCopy.dstSubresource.baseArrayLayer = 0;
-		imgCopy.dstSubresource.layerCount = 1;
+		// Wait for offscreen semaphore
+		submitInfo.pWaitSemaphores = &offscreenSemaphore;
+		// Signal ready with render complete semaphpre
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
-		imgCopy.dstOffset = { 0, 0, 0 };
+		// Submit work
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
-		imgCopy.extent.width = TEX_DIM;
-		imgCopy.extent.height = TEX_DIM;
-		imgCopy.extent.depth = 1;
-
-		vkCmdCopyImage(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.depth.image,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&imgCopy);
-
-		// Transform framebuffer color attachment back 
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.depth.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-		// Transform texture target back to shader read
-		// Makes sure that writes to the textuer are finished before
-		// it's accessed in the shader
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.textureTarget.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
@@ -1084,14 +966,13 @@ public:
 		VulkanExampleBase::prepare();
 		generateQuad();
 		loadMeshes();
+		prepareOffscreenFramebuffer();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		prepareTextureTarget(TEX_DIM, TEX_DIM, DEPTH_FORMAT);
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
 		setupDescriptorSets();
-		prepareOffscreenFramebuffer();
 		buildCommandBuffers();
 		buildOffscreenCommandBuffer();
 		prepared = true;
@@ -1104,7 +985,6 @@ public:
 		draw();
 		if (!paused)
 		{
-			vkDeviceWaitIdle(device);
 			updateLight();
 			updateUniformBufferOffscreen();
 			updateUniformBuffers();
@@ -1113,7 +993,6 @@ public:
 
 	virtual void viewChanged()
 	{
-		vkDeviceWaitIdle(device);
 		updateUniformBufferOffscreen();
 		updateUniformBuffers();
 	}
@@ -1129,6 +1008,33 @@ public:
 		lightPOV = !lightPOV;
 		viewChanged();
 	}
+
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x53:
+		case GAMEPAD_BUTTON_A:
+			toggleShadowMapDisplay();
+			break;
+		case 0x4C:
+		case GAMEPAD_BUTTON_X:
+			toogleLightPOV();
+			break;
+		}
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+#if defined(__ANDROID__)
+		textOverlay->addText("Press \"Button A\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button X\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+#else
+		textOverlay->addText("Press \"s\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"l\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+#endif
+	}
+
 };
 
 VulkanExample *vulkanExample;
@@ -1139,18 +1045,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (vulkanExample != NULL)
 	{
 		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-		if (uMsg == WM_KEYDOWN)
-		{
-			switch (wParam)
-			{
-			case 0x53:
-				vulkanExample->toggleShadowMapDisplay();
-				break;
-			case 0x4C:
-				vulkanExample->toogleLightPOV();
-				break;
-			}
-		}
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
