@@ -124,8 +124,9 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -90.0f;
+		zoom = -75.0f;
 		rotation = { -15.0f, 45.0f, 0.0f };
+		enableTextOverlay = true;
 		title = "Vulkan Example - Particle system";
 		zoomSpeed *= 1.5f;
 		timerSpeed *= 8.0f;
@@ -178,30 +179,19 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0,0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			// Environment
@@ -216,36 +206,8 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void draw()
-	{
-		VkResult err;
-
-		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
 	}
 
 	float rnd(float range)
@@ -323,8 +285,7 @@ public:
 			&particles.memory);
 
 		// Map the memory and store the pointer for reuse
-		VkResult err = vkMapMemory(device, particles.memory, 0, particles.size, 0, &particles.mappedMemory);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, particles.memory, 0, particles.size, 0, &particles.mappedMemory));
 	}
 
 	void updateParticles()
@@ -399,8 +360,7 @@ public:
 		samplerCreateInfo.anisotropyEnable = VK_TRUE;
 		// Use a different border color (than the normal texture loader) for additive blending
 		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-		VkResult err = vkCreateSampler(device, &samplerCreateInfo, nullptr, &textures.particles.sampler);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateSampler(device, &samplerCreateInfo, nullptr, &textures.particles.sampler));
 	}
 
 	void loadMeshes()
@@ -486,8 +446,7 @@ public:
 				poolSizes.data(),
 				2);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -516,16 +475,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSets()
@@ -536,8 +493,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		// Image descriptor for the color map texture
 		VkDescriptorImageInfo texDescriptorSmoke =
@@ -576,8 +532,7 @@ public:
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Environment
-		vkRes = vkAllocateDescriptorSets(device, &allocInfo, &meshes.environment.descriptorSet);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &meshes.environment.descriptorSet));
 
 		VkDescriptorImageInfo texDescriptorColorMap =
 			vkTools::initializers::descriptorImageInfo(
@@ -701,8 +656,7 @@ public:
 		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 		blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.particles);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.particles));
 
 		// Environment rendering pipeline (normal mapped)
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -711,8 +665,8 @@ public:
 		blendAttachmentState.blendEnable = VK_FALSE;
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.environment);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.environment));
+
 		meshes.environment.pipeline = pipelines.environment;
 		meshes.environment.pipelineLayout = pipelineLayout;
 	}
@@ -723,6 +677,7 @@ public:
 		// Vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboVS),
 			&uboVS,
 			&uniformData.fire.buffer,
@@ -732,6 +687,7 @@ public:
 		// Vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			sizeof(uboEnv),
 			&uboEnv,
 			&uniformData.environment.buffer,
@@ -748,8 +704,7 @@ public:
 		uboEnv.lightPos.y = 0.0f;
 		uboEnv.lightPos.z = cos(timer * 2 * M_PI) * 1.5f;
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData));
 		memcpy(pData, &uboEnv, sizeof(uboEnv));
 		vkUnmapMemory(device, uniformData.environment.memory);
 	}
@@ -770,8 +725,7 @@ public:
 		uboVS.viewportDim = glm::vec2((float)width, (float)height);
 
 		uint8_t *pData;
-		VkResult err = vkMapMemory(device, uniformData.fire.memory, 0, sizeof(uboVS), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fire.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		vkUnmapMemory(device, uniformData.fire.memory);
 
@@ -780,10 +734,23 @@ public:
 		uboEnv.model = uboVS.model;
 		uboEnv.normal = glm::inverseTranspose(uboEnv.model);
 		uboEnv.cameraPos = glm::vec4(0.0, 0.0, zoom, 0.0);
-		err = vkMapMemory(device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData);
-		assert(!err);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData));
 		memcpy(pData, &uboEnv, sizeof(uboEnv));
 		vkUnmapMemory(device, uniformData.environment.memory);
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		// Command buffer to be sumitted to the queue
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+
+		// Submit to queue
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
@@ -806,9 +773,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 		if (!paused)
 		{
 			updateUniformBufferLight();
