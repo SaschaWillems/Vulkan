@@ -3,7 +3,7 @@
 *
 * See readme.md for details
 *
-* Copyright (C) 2015 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -12,11 +12,7 @@
 
 int32_t VulkanGear::newVertex(std::vector<Vertex> *vBuffer, float x, float y, float z, const glm::vec3& normal)
 {
-	Vertex v(
-		glm::vec3(x, y, z),
-		normal,
-		color
-		);
+	Vertex v(glm::vec3(x, y, z), normal, color);
 	vBuffer->push_back(v);
 	return vBuffer->size() - 1;
 }
@@ -47,12 +43,12 @@ VulkanGear::~VulkanGear()
 	vkFreeMemory(device, indexBuffer.mem, nullptr);
 }
 
-void VulkanGear::generate(float inner_radius, float outer_radius, float width, int teeth, float tooth_depth, glm::vec3 color, glm::vec3 pos, float rotSpeed, float rotOffset)
+void VulkanGear::generate(GearInfo *gearinfo, VkQueue queue)
 {
-	this->color = color;
-	this->pos = pos;
-	this->rotOffset = rotOffset;
-	this->rotSpeed = rotSpeed;
+	this->color = gearinfo->color;
+	this->pos = gearinfo->pos;
+	this->rotOffset = gearinfo->rotOffset;
+	this->rotSpeed = gearinfo->rotSpeed;
 
 	std::vector<Vertex> vBuffer;
 	std::vector<uint32_t> iBuffer;
@@ -65,17 +61,17 @@ void VulkanGear::generate(float inner_radius, float outer_radius, float width, i
 	float sin_ta, sin_ta_1da, sin_ta_2da, sin_ta_3da, sin_ta_4da;
 	int32_t ix0, ix1, ix2, ix3, ix4, ix5;
 
-	r0 = inner_radius;
-	r1 = outer_radius - tooth_depth / 2.0;
-	r2 = outer_radius + tooth_depth / 2.0;
-	da = 2.0 * M_PI / teeth / 4.0;
+	r0 = gearinfo->innerRadius;
+	r1 = gearinfo->outerRadius - gearinfo->toothDepth / 2.0;
+	r2 = gearinfo->outerRadius + gearinfo->toothDepth / 2.0;
+	da = 2.0 * M_PI / gearinfo->numTeeth / 4.0;
 
 	glm::vec3 normal;
 
-	for (i = 0; i < teeth; i++)
+	for (i = 0; i < gearinfo->numTeeth; i++)
 	{
-		ta = i * 2.0 * M_PI / teeth;
-		// todo : naming
+		ta = i * 2.0 * M_PI / gearinfo->numTeeth;
+
 		cos_ta = cos(ta);
 		cos_ta_1da = cos(ta + da);
 		cos_ta_2da = cos(ta + 2 * da);
@@ -97,12 +93,12 @@ void VulkanGear::generate(float inner_radius, float outer_radius, float width, i
 
 		// front face
 		normal = glm::vec3(0.0, 0.0, 1.0);
-		ix0 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, width * 0.5, normal);
-		ix1 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, width * 0.5, normal);
-		ix2 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, width * 0.5, normal);
-		ix3 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, width * 0.5, normal);
-		ix4 = newVertex(&vBuffer, r0 * cos_ta_4da, r0 * sin_ta_4da, width * 0.5, normal);
-		ix5 = newVertex(&vBuffer, r1 * cos_ta_4da, r1 * sin_ta_4da, width * 0.5, normal);
+		ix0 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, gearinfo->width * 0.5, normal);
+		ix1 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, gearinfo->width * 0.5, normal);
+		ix2 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, gearinfo->width * 0.5, normal);
+		ix3 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, gearinfo->width * 0.5, normal);
+		ix4 = newVertex(&vBuffer, r0 * cos_ta_4da, r0 * sin_ta_4da, gearinfo->width * 0.5, normal);
+		ix5 = newVertex(&vBuffer, r1 * cos_ta_4da, r1 * sin_ta_4da, gearinfo->width * 0.5, normal);
 		newFace(&iBuffer, ix0, ix1, ix2);
 		newFace(&iBuffer, ix1, ix3, ix2);
 		newFace(&iBuffer, ix2, ix3, ix4);
@@ -110,21 +106,21 @@ void VulkanGear::generate(float inner_radius, float outer_radius, float width, i
 
 		// front sides of teeth
 		normal = glm::vec3(0.0, 0.0, 1.0);
-		ix0 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, width * 0.5, normal);
-		ix1 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, width * 0.5, normal);
-		ix2 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, width * 0.5, normal);
-		ix3 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, width * 0.5, normal);
+		ix0 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, gearinfo->width * 0.5, normal);
+		ix1 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, gearinfo->width * 0.5, normal);
+		ix2 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, gearinfo->width * 0.5, normal);
+		ix3 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, gearinfo->width * 0.5, normal);
 		newFace(&iBuffer, ix0, ix1, ix2);
 		newFace(&iBuffer, ix1, ix3, ix2);
 
 		// back face 
 		normal = glm::vec3(0.0, 0.0, -1.0);
-		ix0 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, -width * 0.5, normal);
-		ix1 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, -width * 0.5, normal);
-		ix2 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, -width * 0.5, normal);
-		ix3 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, -width * 0.5, normal);
-		ix4 = newVertex(&vBuffer, r1 * cos_ta_4da, r1 * sin_ta_4da, -width * 0.5, normal);
-		ix5 = newVertex(&vBuffer, r0 * cos_ta_4da, r0 * sin_ta_4da, -width * 0.5, normal);
+		ix0 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, -gearinfo->width * 0.5, normal);
+		ix1 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, -gearinfo->width * 0.5, normal);
+		ix2 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, -gearinfo->width * 0.5, normal);
+		ix3 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, -gearinfo->width * 0.5, normal);
+		ix4 = newVertex(&vBuffer, r1 * cos_ta_4da, r1 * sin_ta_4da, -gearinfo->width * 0.5, normal);
+		ix5 = newVertex(&vBuffer, r0 * cos_ta_4da, r0 * sin_ta_4da, -gearinfo->width * 0.5, normal);
 		newFace(&iBuffer, ix0, ix1, ix2);
 		newFace(&iBuffer, ix1, ix3, ix2);
 		newFace(&iBuffer, ix2, ix3, ix4);
@@ -132,51 +128,51 @@ void VulkanGear::generate(float inner_radius, float outer_radius, float width, i
 
 		// back sides of teeth 
 		normal = glm::vec3(0.0, 0.0, -1.0);
-		ix0 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, -width * 0.5, normal);
-		ix1 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, -width * 0.5, normal);
-		ix2 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, -width * 0.5, normal);
-		ix3 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, -width * 0.5, normal);
+		ix0 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, -gearinfo->width * 0.5, normal);
+		ix1 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, -gearinfo->width * 0.5, normal);
+		ix2 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, -gearinfo->width * 0.5, normal);
+		ix3 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, -gearinfo->width * 0.5, normal);
 		newFace(&iBuffer, ix0, ix1, ix2);
 		newFace(&iBuffer, ix1, ix3, ix2);
 
 		// draw outward faces of teeth 
 		normal = glm::vec3(v1, -u1, 0.0);
-		ix0 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, width * 0.5, normal);
-		ix1 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, -width * 0.5, normal);
-		ix2 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, width * 0.5, normal);
-		ix3 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, -width * 0.5, normal);
+		ix0 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, gearinfo->width * 0.5, normal);
+		ix1 = newVertex(&vBuffer, r1 * cos_ta, r1 * sin_ta, -gearinfo->width * 0.5, normal);
+		ix2 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, gearinfo->width * 0.5, normal);
+		ix3 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, -gearinfo->width * 0.5, normal);
 		newFace(&iBuffer, ix0, ix1, ix2);
 		newFace(&iBuffer, ix1, ix3, ix2);
 
 		normal = glm::vec3(cos_ta, sin_ta, 0.0);
-		ix0 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, width * 0.5, normal);
-		ix1 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, -width * 0.5, normal);
-		ix2 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, width * 0.5, normal);
-		ix3 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, -width * 0.5, normal);
+		ix0 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, gearinfo->width * 0.5, normal);
+		ix1 = newVertex(&vBuffer, r2 * cos_ta_1da, r2 * sin_ta_1da, -gearinfo->width * 0.5, normal);
+		ix2 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, gearinfo->width * 0.5, normal);
+		ix3 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, -gearinfo->width * 0.5, normal);
 		newFace(&iBuffer, ix0, ix1, ix2);
 		newFace(&iBuffer, ix1, ix3, ix2);
 
 		normal = glm::vec3(v2, -u2, 0.0);
-		ix0 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, width * 0.5, normal);
-		ix1 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, -width * 0.5, normal);
-		ix2 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, width * 0.5, normal);
-		ix3 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, -width * 0.5, normal);
+		ix0 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, gearinfo->width * 0.5, normal);
+		ix1 = newVertex(&vBuffer, r2 * cos_ta_2da, r2 * sin_ta_2da, -gearinfo->width * 0.5, normal);
+		ix2 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, gearinfo->width * 0.5, normal);
+		ix3 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, -gearinfo->width * 0.5, normal);
 		newFace(&iBuffer, ix0, ix1, ix2);
 		newFace(&iBuffer, ix1, ix3, ix2);
 
 		normal = glm::vec3(cos_ta, sin_ta, 0.0);
-		ix0 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, width * 0.5, normal);
-		ix1 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, -width * 0.5, normal);
-		ix2 = newVertex(&vBuffer, r1 * cos_ta_4da, r1 * sin_ta_4da, width * 0.5, normal);
-		ix3 = newVertex(&vBuffer, r1 * cos_ta_4da, r1 * sin_ta_4da, -width * 0.5, normal);
+		ix0 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, gearinfo->width * 0.5, normal);
+		ix1 = newVertex(&vBuffer, r1 * cos_ta_3da, r1 * sin_ta_3da, -gearinfo->width * 0.5, normal);
+		ix2 = newVertex(&vBuffer, r1 * cos_ta_4da, r1 * sin_ta_4da, gearinfo->width * 0.5, normal);
+		ix3 = newVertex(&vBuffer, r1 * cos_ta_4da, r1 * sin_ta_4da, -gearinfo->width * 0.5, normal);
 		newFace(&iBuffer, ix0, ix1, ix2);
 		newFace(&iBuffer, ix1, ix3, ix2);
 
 		// draw inside radius cylinder 
-		ix0 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, -width * 0.5, glm::vec3(-cos_ta, -sin_ta, 0.0));
-		ix1 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, width * 0.5, glm::vec3(-cos_ta, -sin_ta, 0.0));
-		ix2 = newVertex(&vBuffer, r0 * cos_ta_4da, r0 * sin_ta_4da, -width * 0.5, glm::vec3(-cos_ta_4da, -sin_ta_4da, 0.0));
-		ix3 = newVertex(&vBuffer, r0 * cos_ta_4da, r0 * sin_ta_4da, width * 0.5, glm::vec3(-cos_ta_4da, -sin_ta_4da, 0.0));
+		ix0 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, -gearinfo->width * 0.5, glm::vec3(-cos_ta, -sin_ta, 0.0));
+		ix1 = newVertex(&vBuffer, r0 * cos_ta, r0 * sin_ta, gearinfo->width * 0.5, glm::vec3(-cos_ta, -sin_ta, 0.0));
+		ix2 = newVertex(&vBuffer, r0 * cos_ta_4da, r0 * sin_ta_4da, -gearinfo->width * 0.5, glm::vec3(-cos_ta_4da, -sin_ta_4da, 0.0));
+		ix3 = newVertex(&vBuffer, r0 * cos_ta_4da, r0 * sin_ta_4da, gearinfo->width * 0.5, glm::vec3(-cos_ta_4da, -sin_ta_4da, 0.0));
 		newFace(&iBuffer, ix0, ix1, ix2);
 		newFace(&iBuffer, ix1, ix3, ix2);
 	}
@@ -184,43 +180,99 @@ void VulkanGear::generate(float inner_radius, float outer_radius, float width, i
 	int vertexBufferSize = vBuffer.size() * sizeof(Vertex);
 	int indexBufferSize = iBuffer.size() * sizeof(uint32_t);
 
-	VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-	VkMemoryRequirements memReqs;
+	bool useStaging = true;
 
-	VkResult err;
-	void *data;
+	if (useStaging)
+	{
+		struct {
+			VkBuffer buffer;
+			VkDeviceMemory memory;
+		} vertexStaging, indexStaging;
 
-	// Generate vertex buffer
-	VkBufferCreateInfo vBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBufferSize);
-	err = vkCreateBuffer(device, &vBufferInfo, nullptr, &vertexBuffer.buf);
-	assert(!err);
-	vkGetBufferMemoryRequirements(device, vertexBuffer.buf, &memReqs);
-	memAlloc.allocationSize = memReqs.size;
-	exampleBase->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-	err = vkAllocateMemory(device, &memAlloc, nullptr, &vertexBuffer.mem);
-	assert(!err);
-	err = vkMapMemory(device, vertexBuffer.mem, 0, vertexBufferSize, 0, &data);
-	assert(!err);
-	memcpy(data, vBuffer.data(), vertexBufferSize);
-	vkUnmapMemory(device, vertexBuffer.mem);
-	err = vkBindBufferMemory(device, vertexBuffer.buf, vertexBuffer.mem, 0);
-	assert(!err);
+		// Create staging buffers
+		// Vertex data
+		exampleBase->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			vertexBufferSize,
+			vBuffer.data(),
+			&vertexStaging.buffer,
+			&vertexStaging.memory);
+		// Index data
+		exampleBase->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			indexBufferSize,
+			iBuffer.data(),
+			&indexStaging.buffer,
+			&indexStaging.memory);
 
-	// Generate index buffer
-	VkBufferCreateInfo iBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indexBufferSize);
-	err = vkCreateBuffer(device, &iBufferInfo, nullptr, &indexBuffer.buf);
-	assert(!err);
-	vkGetBufferMemoryRequirements(device, indexBuffer.buf, &memReqs);
-	memAlloc.allocationSize = memReqs.size;
-	exampleBase->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &memAlloc.memoryTypeIndex);
-	err = vkAllocateMemory(device, &memAlloc, nullptr, &indexBuffer.mem);
-	assert(!err);
-	err = vkMapMemory(device, indexBuffer.mem, 0, indexBufferSize, 0, &data);
-	assert(!err);
-	memcpy(data, iBuffer.data(), indexBufferSize);
-	vkUnmapMemory(device, indexBuffer.mem);
-	err = vkBindBufferMemory(device, indexBuffer.buf, indexBuffer.mem, 0);
-	assert(!err);
+		// Create device local buffers
+		// Vertex buffer
+		exampleBase->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			vertexBufferSize,
+			nullptr,
+			&vertexBuffer.buf,
+			&vertexBuffer.mem);
+		// Index buffer
+		exampleBase->createBuffer(
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			indexBufferSize,
+			nullptr,
+			&indexBuffer.buf,
+			&indexBuffer.mem);
+
+		// Copy from staging buffers
+		VkCommandBuffer copyCmd = exampleBase->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+		VkBufferCopy copyRegion = {};
+
+		copyRegion.size = vertexBufferSize;
+		vkCmdCopyBuffer(
+			copyCmd,
+			vertexStaging.buffer,
+			vertexBuffer.buf,
+			1,
+			&copyRegion);
+
+		copyRegion.size = indexBufferSize;
+		vkCmdCopyBuffer(
+			copyCmd,
+			indexStaging.buffer,
+			indexBuffer.buf,
+			1,
+			&copyRegion);
+
+		exampleBase->flushCommandBuffer(copyCmd, queue, true);
+
+		vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
+		vkFreeMemory(device, vertexStaging.memory, nullptr);
+		vkDestroyBuffer(device, indexStaging.buffer, nullptr);
+		vkFreeMemory(device, indexStaging.memory, nullptr);
+	}
+	else
+	{
+		// Vertex buffer
+		exampleBase->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			vertexBufferSize,
+			vBuffer.data(),
+			&vertexBuffer.buf,
+			&vertexBuffer.mem);
+		// Index buffer
+		exampleBase->createBuffer(
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			indexBufferSize,
+			iBuffer.data(),
+			&indexBuffer.buf,
+			&indexBuffer.mem);
+	}
+
 	indexBuffer.count = iBuffer.size();
 
 	prepareUniformBuffer();
@@ -254,14 +306,12 @@ void VulkanGear::updateUniformBuffer(glm::mat4 perspective, glm::vec3 rotation, 
 
 	ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
 
-	//ubo.lightPos = lightPos;
 	ubo.lightPos = glm::vec3(0.0f, 0.0f, 2.5f);
 	ubo.lightPos.x = sin(glm::radians(timer)) * 8.0f;
 	ubo.lightPos.z = cos(glm::radians(timer)) * 8.0f;
 
 	uint8_t *pData;
-	VkResult err = vkMapMemory(device, uniformData.memory, 0, sizeof(ubo), 0, (void **)&pData);
-	assert(!err);
+	VK_CHECK_RESULT(vkMapMemory(device, uniformData.memory, 0, sizeof(ubo), 0, (void **)&pData));
 	memcpy(pData, &ubo, sizeof(ubo));
 	vkUnmapMemory(device, uniformData.memory);
 }
@@ -274,8 +324,7 @@ void VulkanGear::setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout
 			&descriptorSetLayout,
 			1);
 
-	VkResult vkRes = vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-	assert(!vkRes);
+	VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 	// Binding 0 : Vertex shader uniform buffer
 	VkWriteDescriptorSet writeDescriptorSet =
@@ -290,8 +339,6 @@ void VulkanGear::setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout
 
 void VulkanGear::prepareUniformBuffer()
 {
-	VkResult err;
-
 	// Vertex shader uniform buffer block
 	VkMemoryAllocateInfo allocInfo = vkTools::initializers::memoryAllocateInfo();
 	VkMemoryRequirements memReqs;
@@ -300,15 +347,12 @@ void VulkanGear::prepareUniformBuffer()
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		sizeof(ubo));
 
-	err = vkCreateBuffer(device, &bufferInfo, nullptr, &uniformData.buffer);
-	assert(!err);
+	VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &uniformData.buffer));
 	vkGetBufferMemoryRequirements(device, uniformData.buffer, &memReqs);
 	allocInfo.allocationSize = memReqs.size;
-	exampleBase->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &allocInfo.memoryTypeIndex);
-	err = vkAllocateMemory(device, &allocInfo, nullptr, &uniformData.memory);
-	assert(!err);
-	err = vkBindBufferMemory(device, uniformData.buffer, uniformData.memory, 0);
-	assert(!err);
+	allocInfo.memoryTypeIndex = exampleBase->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &uniformData.memory));
+	VK_CHECK_RESULT(vkBindBufferMemory(device, uniformData.buffer, uniformData.memory, 0));
 
 	uniformData.descriptor.buffer = uniformData.buffer;
 	uniformData.descriptor.offset = 0;

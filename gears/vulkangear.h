@@ -44,6 +44,19 @@ struct Vertex
 	}
 };
 
+struct GearInfo
+{
+	float innerRadius;
+	float outerRadius;
+	float width;
+	int numTeeth;
+	float toothDepth;
+	glm::vec3 color;
+	glm::vec3 pos;
+	float rotSpeed;
+	float rotOffset;
+};
+
 class VulkanGear
 {
 private:
@@ -96,7 +109,7 @@ public:
 	VulkanGear(VkDevice device, VulkanExampleBase *example);
 	~VulkanGear();
 
-	void generate(float inner_radius, float outer_radius, float width, int teeth, float tooth_depth, glm::vec3 color, glm::vec3 pos, float rotSpeed, float rotOffset);
+	void generate(GearInfo *gearinfo, VkQueue queue);
 
 };
 

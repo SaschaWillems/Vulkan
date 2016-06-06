@@ -47,6 +47,7 @@ public:
 		zoom = -16.0f;
 		rotation = glm::vec3(-23.75, 41.25, 21.0);
 		timerSpeed *= 0.25f;
+		enableTextOverlay = true;
 		title = "Vulkan Example - Gears";
 	}
 
@@ -82,30 +83,18 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkResult err;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
-			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			err = vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
-			assert(!err);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(
-				(float)width,
-				(float)height,
-				0.0f,
-				1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(
-				width,
-				height,
-				0,
-				0);
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
@@ -117,36 +106,8 @@ public:
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-			err = vkEndCommandBuffer(drawCmdBuffers[i]);
-			assert(!err);
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void draw()
-	{
-		VkResult err;
-
-		// Get next image in the swap chain (back/front buffer)
-		err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-		assert(!err);
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		err = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(!err);
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		err = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		assert(!err);
-
-		err = vkQueueWaitIdle(queue);
-		assert(!err);
 	}
 
 	void prepareVertices()
@@ -168,22 +129,24 @@ public:
 			glm::vec3(-3.1, -6.2, 0.0)
 		};
 		std::vector<float> rotationSpeeds = { 1.0f, -2.0f, -2.0f };
-		std::vector<float> rotationStarts = { 0.0f, -9.0f, -30.0f };
+		std::vector<float> rotationOffsets = { 0.0f, -9.0f, -30.0f };
 
 		gears.resize(positions.size());
 		for (int32_t i = 0; i < gears.size(); ++i)
 		{
+			GearInfo gearInfo = {};
+			gearInfo.innerRadius = innerRadiuses[i];
+			gearInfo.outerRadius = outerRadiuses[i];
+			gearInfo.width = widths[i];
+			gearInfo.numTeeth = toothCount[i];
+			gearInfo.toothDepth = toothDepth[i];
+			gearInfo.color = colors[i];
+			gearInfo.pos = positions[i];
+			gearInfo.rotSpeed = rotationSpeeds[i];
+			gearInfo.rotOffset = rotationOffsets[i];
+
 			gears[i] = new VulkanGear(device, this);
-			gears[i]->generate(
-				innerRadiuses[i],
-				outerRadiuses[i],
-				widths[i],
-				toothCount[i],
-				toothDepth[i],
-				colors[i],
-				positions[i],
-				rotationSpeeds[i],
-				rotationStarts[i]);
+			gears[i]->generate(&gearInfo, queue);
 		}
 
 		// Binding and attribute descriptions are shared across all gears
@@ -228,7 +191,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// One UBO for each gears
+		// One UBO for each gear
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
@@ -241,8 +204,7 @@ public:
 				// Three descriptor sets (for each gear)
 				3);
 
-		VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool);
-		assert(!vkRes);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
@@ -261,16 +223,14 @@ public:
 				setLayoutBindings.data(),
 				setLayoutBindings.size());
 
-		VkResult err = vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vkTools::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
-		err = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSets()
@@ -292,7 +252,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
+				VK_CULL_MODE_BACK_BIT,
 				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
@@ -354,8 +314,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VkResult err = vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid);
-		assert(!err);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
 	}
 
 	void updateUniformBuffers()
@@ -365,6 +324,20 @@ public:
 		{
 			gear->updateUniformBuffer(perspective, rotation, zoom, timer * 360.0f);
 		}
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		// Command buffer to be sumitted to the queue
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+
+		// Submit to queue
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
