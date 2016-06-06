@@ -29,3 +29,4 @@ call _build raytracing %1
 call _build multisampling %1
 call _build multithreading %1
 call _build textoverlay %1
+call _build debugmarker %1
