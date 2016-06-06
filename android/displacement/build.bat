@@ -12,12 +12,10 @@ if %ERRORLEVEL% EQU 0 (
 	xcopy "..\..\data\shaders\displacement\*.spv" "assets\shaders\displacement" /Y
 
 	mkdir "assets\textures"
-	xcopy "..\..\data\textures\stonewall_colormap_bc3.dds" "assets\textures" /Y
-	xcopy "..\..\data\textures\stonewall_heightmap_rgba.dds" "assets\textures" /Y
-
+	xcopy "..\..\data\textures\pattern_36_bc3.ktx" "assets\textures" /Y
 
 	mkdir "assets\models"
-	xcopy "..\..\data\models\torus.obj" "assets\models" /Y 
+	xcopy "..\..\data\models\plane.obj" "assets\models" /Y 
 	
 	mkdir "res\drawable"
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y

@@ -3,7 +3,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout (binding = 3) uniform sampler2D colorMap;
+layout (binding = 2) uniform sampler2D colorMap;
 
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec2 inUV;
@@ -25,5 +25,5 @@ void main()
 	vec4 IAmbient = vec4(0.0, 0.0, 0.0, 1.0);
 	vec4 IDiffuse = vec4(1.0) * max(dot(inNormal, inLightVec), 0.0);
 
-	outFragColor = vec4((IAmbient + IDiffuse) * texture(colorMap, inUV));	
+	outFragColor = vec4((IAmbient + IDiffuse) * vec4(texture(colorMap, inUV).rgb, 1.0));	
 }

@@ -36,11 +36,11 @@ class VulkanExample : public VulkanExampleBase
 {
 private:
 	struct {
-		vkTools::VulkanTexture colorMap;
-		vkTools::VulkanTexture heightMap;
+		vkTools::VulkanTexture colorHeightMap;
 	} textures;
 public:
 	bool splitScreen = true;
+	bool displacement = true;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -55,25 +55,21 @@ public:
 	vkTools::UniformData uniformDataTC, uniformDataTE;
 
 	struct {
-		float tessLevel = 8.0;
+		float tessLevel = 64.0f;
 	} uboTC;
 
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
-		glm::vec4 lightPos = glm::vec4(0.0, -25.0, 0.0, 0.0);
-		float tessAlpha = 1.0;
-		float tessStrength = 1.0;
+		glm::vec4 lightPos = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+		float tessAlpha = 1.0f;
+		float tessStrength = 0.1f;
 	} uboTE;
 
 	struct {
 		VkPipeline solid;
-		VkPipeline wire;
-		VkPipeline solidPassThrough;
-		VkPipeline wirePassThrough;
+		VkPipeline wireframe;
 	} pipelines;
-	VkPipeline *pipelineLeft = &pipelines.solidPassThrough;
-	VkPipeline *pipelineRight = &pipelines.solid;
 
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
@@ -81,8 +77,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -35;
-		rotation = glm::vec3(-35.0, 0.0, 0);
+		zoom = -1.25f;
+		rotation = glm::vec3(-20.0f, 45.0f, 0.0f);
 		enableTextOverlay = true;
 		title = "Vulkan Example - Tessellation shader displacement mapping";
 		// Support for tessellation shaders is optional, so check first
@@ -97,9 +93,7 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
-		vkDestroyPipeline(device, pipelines.wire, nullptr);
-		vkDestroyPipeline(device, pipelines.solidPassThrough, nullptr);
-		vkDestroyPipeline(device, pipelines.wirePassThrough, nullptr);
+		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -112,20 +106,15 @@ public:
 		vkDestroyBuffer(device, uniformDataTE.buffer, nullptr);
 		vkFreeMemory(device, uniformDataTE.memory, nullptr);
 
-		textureLoader->destroyTexture(textures.colorMap);
-		textureLoader->destroyTexture(textures.heightMap);
+		textureLoader->destroyTexture(textures.colorHeightMap);
 	}
 
 	void loadTextures()
 	{
 		textureLoader->loadTexture(
-			getAssetPath() + "textures/stonewall_colormap_bc3.dds", 
+			getAssetPath() + "textures/pattern_36_bc3.ktx", 
 			VK_FORMAT_BC3_UNORM_BLOCK, 
-			&textures.colorMap);
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/stonewall_heightmap_rgba.dds", 
-			VK_FORMAT_R8G8B8A8_UNORM, 
-			&textures.heightMap);
+			&textures.colorHeightMap);
 	}
 
 	void reBuildCommandBuffers()
@@ -164,10 +153,10 @@ public:
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport(splitScreen ? (float)width / 2.0f : (float)width, (float)height, 0.0f, 1.0f);
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(width,	height,	0, 0);
+			VkRect2D scissor = vkTools::initializers::rect2D(splitScreen ? width / 2 : width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdSetLineWidth(drawCmdBuffers[i], 1.0f);
@@ -180,14 +169,13 @@ public:
 
 			if (splitScreen)
 			{
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineLeft);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireframe);
 				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
-				viewport.x = float(width) / 2;
+				scissor.offset.x = width / 2;
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 			}
 
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineRight);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -198,7 +186,7 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/torus.obj", &meshes.object, vertexLayout, 0.25f);
+		loadMesh(getAssetPath() + "models/plane.obj", &meshes.object, vertexLayout, 0.25f);
 	}
 
 	void setupVertexDescriptions()
@@ -252,7 +240,7 @@ public:
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -278,16 +266,11 @@ public:
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, 
 				1),
-			// Binding 2 : Tessellation evaluation shader displacement map image sampler
+			// Binding 2 : Combined color (rgb) and height (alpha) map
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 				2),
-			// Binding 3 : Fragment shader color map image sampler
-			vkTools::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				3),
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
@@ -315,18 +298,11 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		// Displacement map image descriptor
-		VkDescriptorImageInfo texDescriptorDisplacementMap =
+		// Color and height map image descriptor
+		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
-				textures.heightMap.sampler,
-				textures.heightMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-
-		// Color map image descriptor
-		VkDescriptorImageInfo texDescriptorColorMap =
-			vkTools::initializers::descriptorImageInfo(
-				textures.colorMap.sampler,
-				textures.colorMap.view,
+				textures.colorHeightMap.sampler,
+				textures.colorHeightMap.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -343,18 +319,12 @@ public:
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				1, 
 				&uniformDataTE.descriptor),
-			// Binding 2 : Displacement map
+			// Binding 2 : Color and displacement map (alpha channel)
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				2,
-				&texDescriptorDisplacementMap),
-			// Binding 3 : Color map
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSet,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				3,
-				&texDescriptorColorMap),
+				&texDescriptor),
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -446,20 +416,7 @@ public:
 		// Wireframe pipeline
 		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wire));
-
-		// Pass through pipelines
-		// Load pass through tessellation shaders (Vert and frag are reused)
-		shaderStages[2] = loadShader(getAssetPath() + "shaders/displacement/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader(getAssetPath() + "shaders/displacement/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
-		// Solid
-		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solidPassThrough));
-		// Wireframe
-		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		rasterizationState.cullMode = VK_CULL_MODE_NONE;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wirePassThrough));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -492,7 +449,7 @@ public:
 	{
 		// Tessellation eval
 		glm::mat4 viewMatrix = glm::mat4();
-		uboTE.projection = glm::perspective(glm::radians(45.0f), (float)(width* ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.1f, 256.0f);
+		uboTE.projection = glm::perspective(glm::radians(45.0f), (float)(width) / (float)height, 0.1f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
 		float offset = 0.5f;
@@ -503,15 +460,27 @@ public:
 		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
+		uboTE.lightPos.y = -0.5f - uboTE.tessStrength;
 		uint8_t *pData;
 		VK_CHECK_RESULT(vkMapMemory(device, uniformDataTE.memory, 0, sizeof(uboTE), 0, (void **)&pData));
 		memcpy(pData, &uboTE, sizeof(uboTE));
 		vkUnmapMemory(device, uniformDataTE.memory);
 
 		// Tessellation control
+		float savedLevel = uboTC.tessLevel;
+		if (!displacement)
+		{
+			uboTC.tessLevel = 1.0f;
+		}
+
 		VK_CHECK_RESULT(vkMapMemory(device, uniformDataTC.memory, 0, sizeof(uboTC), 0, (void **)&pData));
 		memcpy(pData, &uboTC, sizeof(uboTC));
 		vkUnmapMemory(device, uniformDataTC.memory);
+
+		if (!displacement)
+		{
+			uboTC.tessLevel = savedLevel;
+		}
 	}
 
 	void draw()
@@ -547,9 +516,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 	}
 
 	virtual void viewChanged()
@@ -560,25 +527,17 @@ public:
 	void changeTessellationLevel(float delta)
 	{
 		uboTC.tessLevel += delta;
-		// Clamp
 		uboTC.tessLevel = fmax(1.0, fmin(uboTC.tessLevel, 32.0));
 		updateUniformBuffers();
 		updateTextOverlay();
 	}
 
-	void togglePipelines()
+	void changeTessellationStrength(float delta)
 	{
-		if (pipelineRight == &pipelines.solid)
-		{
-			pipelineRight = &pipelines.wire;
-			pipelineLeft = &pipelines.wirePassThrough;
-		}
-		else
-		{
-			pipelineRight = &pipelines.solid;
-			pipelineLeft = &pipelines.solidPassThrough;
-		}
-		reBuildCommandBuffers();
+		uboTE.tessStrength += delta;
+		uboTE.tessStrength = fmax(0.0f, fmin(uboTE.tessStrength, 1.0f));
+		updateUniformBuffers();
+		updateTextOverlay();
 	}
 
 	void toggleSplitScreen()
@@ -588,21 +547,27 @@ public:
 		updateUniformBuffers();
 	}
 
+	void toggleDisplacement()
+	{
+		displacement = !displacement;
+		updateUniformBuffers();
+	}
+
 	virtual void keyPressed(uint32_t keyCode)
 	{
 		switch (keyCode)
 		{
 		case 0x6B:
 		case GAMEPAD_BUTTON_R1:
-			changeTessellationLevel(0.25);
+			changeTessellationStrength(0.025);
 			break;
 		case 0x6D:
 		case GAMEPAD_BUTTON_L1:
-			changeTessellationLevel(-0.25);
+			changeTessellationStrength(-0.025);
 			break;
-		case 0x57:
+		case 0x44:
 		case GAMEPAD_BUTTON_A:
-			togglePipelines();
+			toggleDisplacement();
 			break;
 		case 0x53:
 		case GAMEPAD_BUTTON_X:
@@ -614,14 +579,14 @@ public:
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
 		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboTC.tessLevel;
+		ss << std::setprecision(2) << std::fixed << uboTE.tessStrength;
 #if defined(__ANDROID__)
-		textOverlay->addText("Tessellation level: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button A\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button X\" to toggle splitscreen", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Tessellation height: " + ss.str() + " (Buttons L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button A\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button X\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("Tessellation level: " + ss.str() + " (NUMPAD +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"w\" to toggle wireframe", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Tessellation height: " + ss.str() + " (numpad +/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"d\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("Press \"s\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}

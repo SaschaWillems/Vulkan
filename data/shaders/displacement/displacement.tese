@@ -26,12 +26,11 @@ layout (location = 3) out vec3 outLightVec;
 
 void main()
 {
-
 	gl_Position = (gl_TessCoord.x * gl_in[0].gl_Position) + (gl_TessCoord.y * gl_in[1].gl_Position) + (gl_TessCoord.z * gl_in[2].gl_Position); 
 	outUV = gl_TessCoord.x * inUV[0] + gl_TessCoord.y * inUV[1] + gl_TessCoord.z * inUV[2];
 	outNormal = gl_TessCoord.x * inNormal[0] + gl_TessCoord.y * inNormal[1] + gl_TessCoord.z * inNormal[2]; 
 				
-	gl_Position.xyz += normalize(outNormal) * (max(textureLod(displacementMap, outUV.st, 0.0).r, 0.45) * ubo.tessStrength);
+	gl_Position.xyz += normalize(outNormal) * (max(textureLod(displacementMap, outUV.st, 0.0).a, 0.0) * ubo.tessStrength);
 				
 	outEyesPos = (gl_Position).xyz;
 	outLightVec = normalize(ubo.lightPos.xyz - outEyesPos);	
