@@ -187,10 +187,7 @@ public:
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 
-		if (free)
-		{
-			vkFreeCommandBuffers(device, cmdPool, 1, &commandBuffer);
-		}
+		vkFreeCommandBuffers(device, cmdPool, 1, &commandBuffer);
 	}
 
 	// Build separate command buffers for every framebuffer image
