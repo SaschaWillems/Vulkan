@@ -59,6 +59,7 @@ PFN_vkDestroySemaphore vkDestroySemaphore;
 PFN_vkCreateFence vkCreateFence;
 PFN_vkDestroyFence vkDestroyFence;
 PFN_vkWaitForFences vkWaitForFences;
+PFN_vkResetFences vkResetFences;
 PFN_vkCreateCommandPool vkCreateCommandPool;
 PFN_vkDestroyCommandPool vkDestroyCommandPool;
 PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
@@ -192,6 +193,7 @@ void loadVulkanFunctions(VkInstance instance)
 	vkCreateFence = reinterpret_cast<PFN_vkCreateFence>(vkGetInstanceProcAddr(instance, "vkCreateFence"));
 	vkDestroyFence = reinterpret_cast<PFN_vkDestroyFence>(vkGetInstanceProcAddr(instance, "vkDestroyFence"));
 	vkWaitForFences = reinterpret_cast<PFN_vkWaitForFences>(vkGetInstanceProcAddr(instance, "vkWaitForFences"));
+	vkResetFences = reinterpret_cast<PFN_vkResetFences>(vkGetInstanceProcAddr(instance, "vkResetFences"));;
 
 	vkCreateCommandPool = reinterpret_cast<PFN_vkCreateCommandPool>(vkGetInstanceProcAddr(instance, "vkCreateCommandPool"));
 	vkDestroyCommandPool = reinterpret_cast<PFN_vkDestroyCommandPool>(vkGetInstanceProcAddr(instance, "vkDestroyCommandPool"));;

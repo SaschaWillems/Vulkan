@@ -89,6 +89,7 @@ extern PFN_vkDestroySemaphore vkDestroySemaphore;
 extern PFN_vkCreateFence vkCreateFence;
 extern PFN_vkDestroyFence vkDestroyFence;
 extern PFN_vkWaitForFences vkWaitForFences;
+extern PFN_vkResetFences vkResetFences;
 extern PFN_vkCreateCommandPool vkCreateCommandPool;
 extern PFN_vkDestroyCommandPool vkDestroyCommandPool;
 extern PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
