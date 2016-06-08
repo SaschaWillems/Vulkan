@@ -242,7 +242,11 @@ void VulkanExampleBase::prepare()
 {
 	if (enableValidation)
 	{
-		vkDebug::setupDebugging(instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, VK_NULL_HANDLE);
+		// The report flags determine what type of messages for the layers will be displayed
+		// For validating (debugging) an appplication the error and warning bits should suffice
+		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT; // VK_DEBUG_REPORT_WARNING_BIT_EXT (enable to also display warnings)
+		// Additional flags include performance info, loader and layer debug messages, etc.
+		vkDebug::setupDebugging(instance,  debugReportFlags, VK_NULL_HANDLE);
 	}
 	if (enableDebugMarkers)
 	{
