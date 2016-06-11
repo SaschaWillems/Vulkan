@@ -426,6 +426,11 @@ void VulkanExampleBase::renderLoop()
 		auto tEnd = std::chrono::high_resolution_clock::now();
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = (float)tDiff / 1000.0f;
+		camera.update(frameTimer);
+		if (camera.moving())
+		{
+			viewChanged();
+		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -489,6 +494,7 @@ void VulkanExampleBase::renderLoop()
 			auto tEnd = std::chrono::high_resolution_clock::now();
 			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 			frameTimer = tDiff / 1000.0f;
+			camera.update(frameTimer);
 			// Convert to clamped timer value
 			if (!paused)
 			{
@@ -515,11 +521,13 @@ void VulkanExampleBase::renderLoop()
 			if (std::abs(gamePadState.axes.x) > deadZone)
 			{
 				rotation.y += gamePadState.axes.x * 0.5f * rotationSpeed;
+				camera.rotate(glm::vec3(0.0f, gamePadState.axes.x * 0.5f, 0.0f));
 				updateView = true;
 			}
 			if (std::abs(gamePadState.axes.y) > deadZone)
 			{
 				rotation.x -= gamePadState.axes.y * 0.5f * rotationSpeed;
+				camera.rotate(glm::vec3(gamePadState.axes.y * 0.5f, 0.0f, 0.0f));
 				updateView = true;
 			}
 			// Zoom
@@ -553,6 +561,7 @@ void VulkanExampleBase::renderLoop()
 		auto tEnd = std::chrono::high_resolution_clock::now();
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
+		camera.update(frameTimer);
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -1114,7 +1123,47 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			PostQuitMessage(0);
 			break;
 		}
+
+		if (camera.firtsperson)
+		{
+			switch (wParam)
+			{
+			case 0x57:
+				camera.keys.up = true;
+				break;
+			case 0x53:
+				camera.keys.down = true;
+				break;
+			case 0x41:
+				camera.keys.left = true;
+				break;
+			case 0x44:
+				camera.keys.right = true;
+				break;
+			}
+		}
+
 		keyPressed((uint32_t)wParam);
+		break;
+	case WM_KEYUP:
+		if (camera.firtsperson)
+		{
+			switch (wParam)
+			{
+			case 0x57:
+				camera.keys.up = false;
+				break;
+			case 0x53:
+				camera.keys.down = false;
+				break;
+			case 0x41:
+				camera.keys.left = false;
+				break;
+			case 0x44:
+				camera.keys.right = false;
+				break;
+			}
+		}
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
@@ -1126,6 +1175,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	{
 		short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 		zoom += (float)wheelDelta * 0.005f * zoomSpeed;
+		camera.translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f * zoomSpeed));
 		viewChanged();
 		break;
 	}
@@ -1135,6 +1185,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			int32_t posx = LOWORD(lParam);
 			int32_t posy = HIWORD(lParam);
 			zoom += (mousePos.y - (float)posy) * .005f * zoomSpeed;
+			camera.translate(glm::vec3(-0.0f, 0.0f, (mousePos.y - (float)posy) * .005f * zoomSpeed));
 			mousePos = glm::vec2((float)posx, (float)posy);
 			viewChanged();
 		}
@@ -1144,6 +1195,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			int32_t posy = HIWORD(lParam);
 			rotation.x += (mousePos.y - (float)posy) * 1.25f * rotationSpeed;
 			rotation.y -= (mousePos.x - (float)posx) * 1.25f * rotationSpeed;
+			camera.rotate(glm::vec3((mousePos.y - (float)posy), -(mousePos.x - (float)posx), 0.0f));
 			mousePos = glm::vec2((float)posx, (float)posy);
 			viewChanged();
 		}
@@ -1153,6 +1205,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			int32_t posy = HIWORD(lParam);
 			cameraPos.x -= (mousePos.x - (float)posx) * 0.01f;
 			cameraPos.y -= (mousePos.y - (float)posy) * 0.01f;
+			camera.translate(glm::vec3(-(mousePos.x - (float)posx) * 0.01f, -(mousePos.y - (float)posy) * 0.01f, 0.0f));
 			viewChanged();
 			mousePos.x = (float)posx;
 			mousePos.y = (float)posy;
@@ -1673,6 +1726,8 @@ void VulkanExampleBase::windowResize()
 		updateTextOverlay();
 	}
 
+	camera.updateAspectRatio((float)width / (float)height);
+
 	// Notify derived class
 	windowResized();
 	viewChanged();
@@ -1700,4 +1755,3 @@ void VulkanExampleBase::setupSwapChain()
 {
 	swapChain.create(setupCmdBuffer, &width, &height);
 }
-
