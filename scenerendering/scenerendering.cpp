@@ -129,7 +129,7 @@ private:
 			// Properties
 			aiColor4D color;
 			aScene->mMaterials[i]->Get(AI_MATKEY_COLOR_AMBIENT, color);
-			materials[i].properties.ambient = glm::make_vec4(&color.r);
+			materials[i].properties.ambient = glm::make_vec4(&color.r) + glm::vec4(0.1f);
 			aScene->mMaterials[i]->Get(AI_MATKEY_COLOR_DIFFUSE, color);
 			materials[i].properties.diffuse = glm::make_vec4(&color.r);
 			aScene->mMaterials[i]->Get(AI_MATKEY_COLOR_SPECULAR, color);
@@ -437,7 +437,7 @@ public:
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 model;
-		glm::vec4 lightPos = glm::vec4(8.15f, -1.8f, -0.0f, 0.0f);
+		glm::vec4 lightPos = glm::vec4(1.25f, 8.35f, 0.0f, 0.0f);
 	} uniformData;
 
 	// Scene uses multiple pipelines
@@ -724,7 +724,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
+				VK_CULL_MODE_BACK_BIT,
 				VK_FRONT_FACE_COUNTER_CLOCKWISE,
 				0);
 
