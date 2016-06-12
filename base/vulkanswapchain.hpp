@@ -235,7 +235,7 @@ public:
 	}
 
 	// Create the swap chain and get images with given width and height
-	void create(VkCommandBuffer cmdBuffer, uint32_t *width, uint32_t *height, VkBool32 vsync = VK_FALSE)
+	void create(VkCommandBuffer cmdBuffer, uint32_t *width, uint32_t *height, bool vsync = false)
 	{
 		VkResult err;
 		VkSwapchainKHR oldSwapchain = swapChain;
@@ -275,22 +275,26 @@ public:
 
 
 		// Select a present mode for the swapchain
+
 		// The VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
 		// This mode waits for the vertical blank ("v-sync")
 		VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
 		// If v-sync is not requested, try to find a mailbox mode if present
 		// It's the lowest latency non-tearing present mode available
-		for (size_t i = 0; i < presentModeCount; i++) 
+		if (!vsync)
 		{
-			if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) 
+			for (size_t i = 0; i < presentModeCount; i++)
 			{
-				swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-				break;
-			}
-			if ((swapchainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)) 
-			{
-				swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+				if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+				{
+					swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+					break;
+				}
+				if ((swapchainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR))
+				{
+					swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+				}
 			}
 		}
 

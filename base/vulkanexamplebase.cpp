@@ -761,6 +761,10 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		{
 			enableValidation = true;
 		}
+		if (__argv[i] == std::string("-vsync"))
+		{
+			enableVSync = true;
+		}
 	}
 #elif defined(__ANDROID__)
 	// Vulkan library is loaded dynamically on Android
@@ -1753,5 +1757,5 @@ void VulkanExampleBase::initSwapchain()
 
 void VulkanExampleBase::setupSwapChain()
 {
-	swapChain.create(setupCmdBuffer, &width, &height);
+	swapChain.create(setupCmdBuffer, &width, &height, enableVSync);
 }
