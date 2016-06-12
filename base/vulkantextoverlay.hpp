@@ -67,6 +67,8 @@ private:
 
 	// Pointer to mapped vertex buffer
 	glm::vec4 *mapped = nullptr;
+	// Used during text updates
+	glm::vec4 *mappedLocal = nullptr;
 
 	stb_fontchar stbFontData[STB_NUM_CHARS];
 	uint32_t numLetters;
@@ -148,7 +150,7 @@ public:
 		vkDestroyPipelineCache(device, pipelineCache, nullptr);
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyRenderPass(device, renderPass, nullptr);
-		vkFreeCommandBuffers(device, commandPool, cmdBuffers.size(), cmdBuffers.data());
+		vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
 		vkDestroyCommandPool(device, commandPool, nullptr);
 	}
 
@@ -187,10 +189,13 @@ public:
 
 		vkGetBufferMemoryRequirements(device, buffer, &memReqs);
 		allocInfo.allocationSize = memReqs.size;
-		allocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
+		allocInfo.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &memory));
 		VK_CHECK_RESULT(vkBindBufferMemory(device, buffer, memory, 0));
+
+		// Map persistent
+		VK_CHECK_RESULT(vkMapMemory(device, memory, 0, VK_WHOLE_SIZE, 0, (void **)&mapped));
+
 
 		// Font texture
 		VkImageCreateInfo imageInfo = vkTools::initializers::imageCreateInfo();
@@ -330,7 +335,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				1);
 
@@ -343,7 +348,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo =
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout));
 
@@ -372,7 +377,7 @@ public:
 
 		std::array<VkWriteDescriptorSet, 1> writeDescriptorSets;
 		writeDescriptorSets[0] = vkTools::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &texDescriptor);
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
 		// Pipeline cache
 		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -435,7 +440,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		std::array<VkVertexInputBindingDescription, 2> vertexBindings = {};
@@ -449,9 +454,9 @@ public:
 		vertexAttribs[1] = vkTools::initializers::vertexInputAttributeDescription(1, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(glm::vec2));
 
 		VkPipelineVertexInputStateCreateInfo inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		inputState.vertexBindingDescriptionCount = vertexBindings.size();
+		inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindings.size());
 		inputState.pVertexBindingDescriptions = vertexBindings.data();
-		inputState.vertexAttributeDescriptionCount = vertexAttribs.size();
+		inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribs.size());
 		inputState.pVertexAttributeDescriptions = vertexAttribs.data();
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
@@ -468,7 +473,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
@@ -536,7 +541,7 @@ public:
 	// Map buffer 
 	void beginTextUpdate()
 	{
-		VK_CHECK_RESULT(vkMapMemory(device, memory, 0, VK_WHOLE_SIZE, 0, (void **)&mapped));
+		mappedLocal = mapped;
 		numLetters = 0;
 	}
 
@@ -579,29 +584,29 @@ public:
 		{
 			stb_fontchar *charData = &stbFontData[(uint32_t)letter - STB_FIRST_CHAR];
 
-			mapped->x = (x + (float)charData->x0 * charW);
-			mapped->y = (y + (float)charData->y0 * charH);
-			mapped->z = charData->s0;
-			mapped->w = charData->t0;
-			mapped++;
+			mappedLocal->x = (x + (float)charData->x0 * charW);
+			mappedLocal->y = (y + (float)charData->y0 * charH);
+			mappedLocal->z = charData->s0;
+			mappedLocal->w = charData->t0;
+			mappedLocal++;
 
-			mapped->x = (x + (float)charData->x1 * charW);
-			mapped->y = (y + (float)charData->y0 * charH);
-			mapped->z = charData->s1;
-			mapped->w = charData->t0;
-			mapped++;
+			mappedLocal->x = (x + (float)charData->x1 * charW);
+			mappedLocal->y = (y + (float)charData->y0 * charH);
+			mappedLocal->z = charData->s1;
+			mappedLocal->w = charData->t0;
+			mappedLocal++;
 
-			mapped->x = (x + (float)charData->x0 * charW);
-			mapped->y = (y + (float)charData->y1 * charH);
-			mapped->z = charData->s0;
-			mapped->w = charData->t1;
-			mapped++;
+			mappedLocal->x = (x + (float)charData->x0 * charW);
+			mappedLocal->y = (y + (float)charData->y1 * charH);
+			mappedLocal->z = charData->s0;
+			mappedLocal->w = charData->t1;
+			mappedLocal++;
 
-			mapped->x = (x + (float)charData->x1 * charW);
-			mapped->y = (y + (float)charData->y1 * charH);
-			mapped->z = charData->s1;
-			mapped->w = charData->t1;
-			mapped++;
+			mappedLocal->x = (x + (float)charData->x1 * charW);
+			mappedLocal->y = (y + (float)charData->y1 * charH);
+			mappedLocal->z = charData->s1;
+			mappedLocal->w = charData->t1;
+			mappedLocal++;
 
 			x += charData->advance * charW;
 
@@ -612,8 +617,6 @@ public:
 	// Unmap buffer and update command buffers
 	void endTextUpdate()
 	{
-		vkUnmapMemory(device, memory);
-		mapped = nullptr;
 		updateCommandBuffers();
 	}
 
@@ -689,13 +692,13 @@ public:
 
 	void reallocateCommandBuffers()
 	{
-		vkFreeCommandBuffers(device, commandPool, cmdBuffers.size(), cmdBuffers.data());
+		vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
 
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 			vkTools::initializers::commandBufferAllocateInfo(
 				commandPool,
 				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				(uint32_t)cmdBuffers.size());
+				static_cast<uint32_t>(cmdBuffers.size()));
 
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, cmdBuffers.data()));
 	}
