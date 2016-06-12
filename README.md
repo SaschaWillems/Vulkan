@@ -6,7 +6,7 @@ Assorted C++ examples for [Vulkan(tm)](https://www.khronos.org/vulkan/), the new
 
 # Building
 
-The repository contains everything required to compile and build the examples on Windows, Linux and Android. All required dependencies are included.
+The repository contains everything required to compile and build the examples on Windows, Linux and Android using a C++ compiler that supports C++11. All required dependencies are included.
 
 ## <img src="./images/windowslogo.png" alt="" height="32px"> Windows
 A Visual Studio solution file for compiling all examples is included with the repository, examples will compile with VS2015 out of the box.
@@ -102,6 +102,14 @@ Vulkan interpretation of glxgears. Procedurally generates separate meshes for ea
 <img src="./screenshots/basic_mesh.png" height="96px" align="right">
 
 Uses [assimp](https://github.com/assimp/assimp) to load a mesh from a common 3D format including a color map. The mesh data is then converted to a fixed vertex layout matching the shader vertex attribute bindings.
+<br><br>
+
+## [Scene rendering](scenerendering/)
+<img src="./screenshots/scenerendering.jpg" height="96px" align="right">
+
+This example demonstrates a way to render a scene consisting of multiple meshes with different materials and textures. It makes use of separate per-material descriptor sets for passing texturing information and uses push constants to pass material properties to the shaders.
+
+Also shows how to use multiple descriptor sets simultaneously with the new GLSL "set" layout qualifier introduced with [GL_KHR_vulkan_glsl](https://www.khronos.org/registry/vulkan/specs/misc/GL_KHR_vulkan_glsl.txt).
 <br><br>
 
 ## [Mesh instancing](instancing/)
@@ -271,9 +279,9 @@ Please note that (some) models and textures use separate licenses. Please comply
 - Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://www.humus.name/)
 - Armored knight model used in deferred example by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
 - Voyager model by [NASA](http://nasa3d.arc.nasa.gov/models)
-- Astroboy COLLADA model copyright 2008 Sony Computer Entertainment Inc.
 - Old deer model used in tessellation example by [Čestmír Dammer](http://opengameart.org/users/cdmir)
 - Hidden treasure scene used in pipeline and debug marker examples by [Laurynas Jurgila](http://www.blendswap.com/user/PigArt)
+- Sibenik Cathedral model by Marko Dabrovic, using updated version by [Kenzie Lamar and Morgan McGuire](http://graphics.cs.williams.edu/data/meshes.xml)
 - Textures used in some examples by [Hugues Muller](http://www.yughues-folio.com)
 - Updated compute particle system shader by [Lukas Bergdoll](https://github.com/Voultapher)
 - Vulkan scene model (and derived models) by [Dominic Agoro-Ombaka](http://www.agorodesign.com/) and [Sascha Willems](http://www.saschawillems.de)
