@@ -34,16 +34,22 @@ struct Vertex {
 
 // Scene related structs
 
+// Shader properites for a material
+// Will be passed to the shaders using push constant
+struct SceneMaterialProperites
+{
+	glm::vec4 ambient;
+	glm::vec4 diffuse;
+	glm::vec4 specular;
+	float opacity;
+};
+
 // Stores info on the materials used in the scene
 struct SceneMaterial
 {
 	std::string name;
-	// Properties
-	struct
-	{
-		glm::vec3 diffuse;
-		glm::vec3 specular;
-	} colors;
+	// Material properties
+	SceneMaterialProperites properties;
 	// The example only uses a diffuse channel
 	vkTools::VulkanTexture diffuse;
 	// The material's descriptor contains the material descriptors
@@ -75,11 +81,7 @@ private:
 	VkDevice device;
 	VkQueue queue;
 
-	// todo 
-	vkTools::UniformData *defaultUBO;
-
 	VkDescriptorPool descriptorPool;
-//	VkDescriptorSetLayout descriptorSetLayout;
 
 	// We will be using separate descriptor sets (and bindings)
 	// for material and scene related uniforms
@@ -125,14 +127,17 @@ private:
 			aScene->mMaterials[i]->Get(AI_MATKEY_NAME, name);
 
 			// Properties
-			aiColor3D color;
+			aiColor4D color;
+			aScene->mMaterials[i]->Get(AI_MATKEY_COLOR_AMBIENT, color);
+			materials[i].properties.ambient = glm::make_vec4(&color.r);
 			aScene->mMaterials[i]->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-			materials[i].colors.diffuse = glm::make_vec3(&color.r);
+			materials[i].properties.diffuse = glm::make_vec4(&color.r);
 			aScene->mMaterials[i]->Get(AI_MATKEY_COLOR_SPECULAR, color);
-			materials[i].colors.specular = glm::make_vec3(&color.r);
+			materials[i].properties.specular = glm::make_vec4(&color.r);
+			aScene->mMaterials[i]->Get(AI_MATKEY_OPACITY, materials[i].properties.opacity);
 
-			// todo : alpha blended materials
-			// illum 4 in mtl (e.g. window), not accessible via assimp?
+			if ((materials[i].properties.opacity) > 0.0f)
+				materials[i].properties.specular = glm::vec4(0.0f);
 
 			materials[i].name = name.C_Str();
 			std::cout << "Material \"" << materials[i].name << "\"" << std::endl;
@@ -157,6 +162,9 @@ private:
 
 			// For scenes with multiple textures per material we would need to check for additional texture types, e.g.:
 			// aiTextureType_HEIGHT, aiTextureType_OPACITY, aiTextureType_SPECULAR, etc.
+
+			// Assign pipeline
+			materials[i].pipeline = (materials[i].properties.opacity == 0.0f) ? &pipelines.solid : &pipelines.blending;
 		}
 
 		// Generate descriptor sets for the materials
@@ -201,7 +209,10 @@ private:
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vkTools::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 
 		// We will be using a push constant block to pass material properties to the fragment shaders
-		VkPushConstantRange pushConstantRange = vkTools::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4) * 2, 0);
+		VkPushConstantRange pushConstantRange = vkTools::initializers::pushConstantRange(
+			VK_SHADER_STAGE_FRAGMENT_BIT, 
+			sizeof(SceneMaterialProperites), 
+			0);
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
@@ -253,7 +264,7 @@ private:
 			descriptorSetScene,
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			0,
-			&defaultUBO->descriptor));
+			&uniformBuffer.descriptor));
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
@@ -419,20 +430,51 @@ public:
 	std::vector<SceneMaterial> materials;
 	std::vector<SceneMesh> meshes;
 
-	// Same for all meshes in the scene
+	// Shared ubo containing matrices used by all
+	// materials and meshes
+	vkTools::UniformData uniformBuffer;
+	struct {
+		glm::mat4 projection;
+		glm::mat4 view;
+		glm::mat4 model;
+		glm::vec4 lightPos = glm::vec4(8.15f, -1.8f, -0.0f, 0.0f);
+	} uniformData;
+
+	// Scene uses multiple pipelines
+	struct {
+		VkPipeline solid;
+		VkPipeline blending;
+		VkPipeline wireframe;
+	} pipelines;
+
+	// Shared pipeline layout
 	VkPipelineLayout pipelineLayout;
 
 	// For displaying only a single part of the scene
 	bool renderSingleScenePart = false;
 	uint32_t scenePartIndex = 0;
 
-	Scene(VkDevice device, VkQueue queue, VkPhysicalDeviceMemoryProperties memprops, vkTools::VulkanTextureLoader *textureloader, vkTools::UniformData *defaultUBO)
+	Scene(VkDevice device, VkQueue queue, VkPhysicalDeviceMemoryProperties memprops, vkTools::VulkanTextureLoader *textureloader)
 	{
 		this->device = device;
 		this->queue = queue;
 		this->deviceMemProps = memprops;
 		this->textureLoader = textureloader;
-		this->defaultUBO = defaultUBO;
+
+		// Prepare uniform buffer for global matrices
+		VkMemoryRequirements memReqs;
+		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
+		VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(uniformData));
+		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &uniformBuffer.buffer));
+		vkGetBufferMemoryRequirements(device, uniformBuffer.buffer, &memReqs);
+		memAlloc.allocationSize = memReqs.size;
+		memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &uniformBuffer.memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, uniformBuffer.buffer, uniformBuffer.memory, 0));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformBuffer.memory, 0, sizeof(uniformData), 0, (void **)&uniformBuffer.mapped));
+		uniformBuffer.descriptor.offset = 0;
+		uniformBuffer.descriptor.buffer = uniformBuffer.buffer;
+		uniformBuffer.descriptor.range = sizeof(uniformData);
 	}
 
 	~Scene()
@@ -452,13 +494,17 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.material, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(device, pipelines.blending, nullptr);
+		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		vkTools::destroyUniformData(device, &uniformBuffer);
 	}
 
 	void load(std::string filename, VkCommandBuffer copyCmd)
 	{
 		Assimp::Importer Importer;
 
-		int flags = aiProcess_PreTransformVertices | aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FixInfacingNormals;
+		int flags = aiProcess_PreTransformVertices | aiProcess_Triangulate | aiProcess_GenNormals;
 
 #if defined(__ANDROID__)
 		AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
@@ -490,13 +536,17 @@ public:
 
 	// Renders the scene into an active command buffer
 	// In a real world application we would do some visibility culling in here
-	void render(VkCommandBuffer cmdBuffer)
+	void render(VkCommandBuffer cmdBuffer, bool wireframe)
 	{
 		VkDeviceSize offsets[1] = { 0 };
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
 			if ((renderSingleScenePart) && (i != scenePartIndex))
 				continue;
+
+			//if (meshes[i].material->opacity == 0.0f)
+			//	continue;
+
 			// todo : per material pipelines
 //			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *mesh.material->pipeline);
 
@@ -511,30 +561,25 @@ public:
 			// Set 1: Per-Material descriptor set containing bound images
 			descriptorSets[1] = meshes[i].material->descriptorSet;
 
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : *meshes[i].material->pipeline);
 			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, NULL);
 
 			// Pass material properies via push constants
-			struct
-			{
-				glm::vec4 diffuse;
-				glm::vec4 specular;
-			} materialProps;
-
-			materialProps.diffuse = glm::vec4(meshes[i].material->colors.diffuse, 1.0f);
-			materialProps.specular = glm::vec4(meshes[i].material->colors.specular, 1.0f);
-
 			vkCmdPushConstants(
 				cmdBuffer,
 				pipelineLayout,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
 				0,
-				sizeof(materialProps),
-				&materialProps);
+				sizeof(SceneMaterialProperites),
+				&meshes[i].material->properties);
 
 			vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &meshes[i].vertexBuffer, offsets);
 			vkCmdBindIndexBuffer(cmdBuffer, meshes[i].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(cmdBuffer, meshes[i].indexCount, 1, 0, 0, 0);
 		}
+
+		// Render transparent objects last
+
 	}
 };
 
@@ -552,22 +597,6 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	struct {
-		vkTools::UniformData vsScene;
-	} uniformData;
-
-	struct {
-		glm::mat4 projection;
-		glm::mat4 view;
-		glm::mat4 model;
-		glm::vec4 lightPos = glm::vec4(8.15f, -1.8f, -0.0f, 0.0f);
-	} uboVS;
-
-	struct {
-		VkPipeline solid;
-		VkPipeline wireframe;
-	} pipelines;
-
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		rotationSpeed = 0.5f;
@@ -582,12 +611,6 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
-		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
-		
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
-
 		delete(scene);
 	}
 
@@ -633,9 +656,7 @@ public:
 			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.solid);
-
-			scene->render(drawCmdBuffers[i]);
+			scene->render(drawCmdBuffers[i], wireframe);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -692,24 +713,6 @@ public:
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
-	void setupDescriptorPool()
-	{
-		// Example uses one ubo and one combined image sampler
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
-		};
-
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
-				poolSizes.data(),
-				1);
-
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
-
 	void preparePipelines()
 	{
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
@@ -721,7 +724,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_BACK_BIT,
+				VK_CULL_MODE_NONE,
 				VK_FRONT_FACE_COUNTER_CLOCKWISE,
 				0);
 
@@ -759,10 +762,9 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Solid rendering pipeline
-		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
+		// Solid rendering pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/scenerendering/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/scenerendering/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -783,46 +785,37 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &scene->pipelines.solid));
+
+		// Alpha blended pipeline
+		rasterizationState.cullMode = VK_CULL_MODE_NONE;
+		blendAttachmentState.blendEnable = VK_TRUE;
+		blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &scene->pipelines.blending));
 
 		// Wire frame rendering pipeline
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+		blendAttachmentState.blendEnable = VK_FALSE;
 		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 		rasterizationState.lineWidth = 1.0f;
-
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
-	}
-
-	// Prepare and initialize uniform buffer containing shader uniforms
-	void prepareUniformBuffers()
-	{
-		// Vertex shader uniform buffer block
-		createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
-
-		updateUniformBuffers();
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &scene->pipelines.wireframe));
 	}
 
 	void updateUniformBuffers()
 	{
 		if (attachLight)
 		{
-			uboVS.lightPos = glm::vec4(-camera.position, 1.0f);
+			scene->uniformData.lightPos = glm::vec4(-camera.position, 1.0f);
 		}
 
-		uboVS.projection = camera.matrices.perspective;
-		uboVS.view = camera.matrices.view;
-		uboVS.model = glm::mat4();
+		scene->uniformData.projection = camera.matrices.perspective;
+		scene->uniformData.view = camera.matrices.view;
+		scene->uniformData.model = glm::mat4();
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		memcpy(scene->uniformBuffer.mapped, &scene->uniformData, sizeof(scene->uniformData));
 	}
 
 	void draw()
@@ -842,7 +835,7 @@ public:
 	void loadScene()
 	{
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
-		scene = new Scene(device, queue, deviceMemoryProperties, textureLoader, &uniformData.vsScene);
+		scene = new Scene(device, queue, deviceMemoryProperties, textureLoader);
 
 #if defined(__ANDROID__)
 		scene->assetManager = androidApp->activity->assetManager;
@@ -850,16 +843,15 @@ public:
 		scene->assetPath = getAssetPath() + "models/sibenik/";
 		scene->load(getAssetPath() + "models/sibenik/sibenik.dae", copyCmd);
 		vkFreeCommandBuffers(device, cmdPool, 1, &copyCmd);
+		updateUniformBuffers();
 	}
 
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
 		setupVertexDescriptions();
-		prepareUniformBuffers();
 		loadScene();
 		preparePipelines();
-		setupDescriptorPool();
 		buildCommandBuffers();
 		prepared = true;
 	}
@@ -885,20 +877,19 @@ public:
 			wireframe = !wireframe;
 			reBuildCommandBuffers();
 			break;
+		case 0x50:
+			scene->renderSingleScenePart = !scene->renderSingleScenePart;
+			reBuildCommandBuffers();
+			updateTextOverlay();
+			break;
 		case 0x6B:
-			if (scene->renderSingleScenePart)
-			{
-				scene->scenePartIndex++;
-				if (scene->scenePartIndex >= scene->meshes.size())
-				{
-					scene->scenePartIndex = 0;
-					scene->renderSingleScenePart = false;
-				}
-			}
-			else
-			{
-				scene->renderSingleScenePart = true;
-			}
+			scene->scenePartIndex = (scene->scenePartIndex < static_cast<uint32_t>(scene->meshes.size())) ? scene->scenePartIndex + 1 : 0;
+			reBuildCommandBuffers();
+			updateTextOverlay();
+			break;
+		case 0x6D:
+			scene->scenePartIndex = (scene->scenePartIndex > 0) ? scene->scenePartIndex - 1 : static_cast<uint32_t>(scene->meshes.size()) - 1;
+			updateTextOverlay();
 			reBuildCommandBuffers();
 			break;
 		case 0x4C:
@@ -917,11 +908,11 @@ public:
 #endif
 		if ((scene) && (scene->renderSingleScenePart))
 		{
-			textOverlay->addText("Rendering mesh " + std::to_string(scene->scenePartIndex) + " of " + std::to_string(static_cast<uint32_t>(scene->meshes.size())), 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+			textOverlay->addText("Rendering mesh " + std::to_string(scene->scenePartIndex + 1) + " of " + std::to_string(static_cast<uint32_t>(scene->meshes.size())) + "(\"p\" to toggle)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		}
 		else
 		{
-			textOverlay->addText("Rendering whole scene", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+			textOverlay->addText("Rendering whole scene (\"p\" to toggle)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		}
 	}
 };
