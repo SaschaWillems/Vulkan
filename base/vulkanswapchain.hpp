@@ -34,21 +34,21 @@
 // Macro to get a procedure address based on a vulkan instance
 #define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                        \
 {                                                                       \
-    fp##entrypoint = (PFN_vk##entrypoint) vkGetInstanceProcAddr(inst, "vk"#entrypoint); \
-    if (fp##entrypoint == NULL)                                         \
+	fp##entrypoint = (PFN_vk##entrypoint) vkGetInstanceProcAddr(inst, "vk"#entrypoint); \
+	if (fp##entrypoint == NULL)                                         \
 	{																    \
-        exit(1);                                                        \
-    }                                                                   \
+		exit(1);                                                        \
+	}                                                                   \
 }
 
 // Macro to get a procedure address based on a vulkan device
 #define GET_DEVICE_PROC_ADDR(dev, entrypoint)                           \
 {                                                                       \
-    fp##entrypoint = (PFN_vk##entrypoint) vkGetDeviceProcAddr(dev, "vk"#entrypoint);   \
-    if (fp##entrypoint == NULL)                                         \
+	fp##entrypoint = (PFN_vk##entrypoint) vkGetDeviceProcAddr(dev, "vk"#entrypoint);   \
+	if (fp##entrypoint == NULL)                                         \
 	{																    \
-        exit(1);                                                        \
-    }                                                                   \
+		exit(1);                                                        \
+	}                                                                   \
 }
 
 typedef struct _SwapChainBuffers {
@@ -235,7 +235,7 @@ public:
 	}
 
 	// Create the swap chain and get images with given width and height
-	void create(VkCommandBuffer cmdBuffer, uint32_t *width, uint32_t *height)
+	void create(VkCommandBuffer cmdBuffer, uint32_t *width, uint32_t *height, VkBool32 vsync = VK_FALSE)
 	{
 		VkResult err;
 		VkSwapchainKHR oldSwapchain = swapChain;
@@ -273,8 +273,14 @@ public:
 			*height = surfCaps.currentExtent.height;
 		}
 
-		// Prefer mailbox mode if present, it's the lowest latency non-tearing present  mode
+
+		// Select a present mode for the swapchain
+		// The VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
+		// This mode waits for the vertical blank ("v-sync")
 		VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+		// If v-sync is not requested, try to find a mailbox mode if present
+		// It's the lowest latency non-tearing present mode available
 		for (size_t i = 0; i < presentModeCount; i++) 
 		{
 			if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) 
