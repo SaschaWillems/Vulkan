@@ -41,6 +41,8 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)\bin\</OutDir>
     <IntDir>$(SolutionDir)\bin\intermediate\$(ProjectName)\$(ConfigurationName)</IntDir>
+    <CodeAnalysisRuleSet>NativeMinimumRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)\bin\</OutDir>
@@ -54,6 +56,8 @@
       <Optimization>Disabled</Optimization>
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+      <EnablePREfast>false</EnablePREfast>
+      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\libs\vulkan\vulkan-1.lib;..\libs\assimp\assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>

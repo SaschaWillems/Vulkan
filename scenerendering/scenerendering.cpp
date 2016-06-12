@@ -79,7 +79,17 @@ private:
 	vkTools::UniformData *defaultUBO;
 
 	VkDescriptorPool descriptorPool;
-	VkDescriptorSetLayout descriptorSetLayout;
+//	VkDescriptorSetLayout descriptorSetLayout;
+
+	// We will be using separate descriptor sets (and bindings)
+	// for material and scene related uniforms
+	struct
+	{
+		VkDescriptorSetLayout material;
+		VkDescriptorSetLayout scene;
+	} descriptorSetLayouts;
+
+	VkDescriptorSet descriptorSetScene;
 
 	vkTools::VulkanTextureLoader *textureLoader;
 
@@ -160,31 +170,35 @@ private:
 			vkTools::initializers::descriptorPoolCreateInfo(
 				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
-				static_cast<uint32_t>(materials.size()));
+				static_cast<uint32_t>(materials.size()) + 1);
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
-		// Shared descriptor set and pipeline layout
+		// Descriptor set and pipeline layouts
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
-		// Binding 0 : UBO
+		VkDescriptorSetLayoutCreateInfo descriptorLayout;
+
+		// Set 0: Scene matrices
 		setLayoutBindings.push_back(vkTools::initializers::descriptorSetLayoutBinding(
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			VK_SHADER_STAGE_VERTEX_BIT,
 			0));
-		// Binding 1 : Diffuse
+		descriptorLayout = vkTools::initializers::descriptorSetLayoutCreateInfo(
+				setLayoutBindings.data(),
+				static_cast<uint32_t>(setLayoutBindings.size()));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.scene));
+
+		// Set 1: Material data
+		setLayoutBindings.clear();
 		setLayoutBindings.push_back(vkTools::initializers::descriptorSetLayoutBinding(
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			VK_SHADER_STAGE_FRAGMENT_BIT,
-			1));
+			0));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.material));
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vkTools::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				static_cast<uint32_t>(setLayoutBindings.size()));
-
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
-
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vkTools::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout,	1);
+		// Setup pipeline layout
+		std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayouts.scene, descriptorSetLayouts.material };
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vkTools::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 
 		// We will be using a push constant block to pass material properties to the fragment shaders
 		VkPushConstantRange pushConstantRange = vkTools::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4) * 2, 0);
@@ -193,14 +207,14 @@ private:
 
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
-		// Descriptor sets
+		// Material descriptor sets
 		for (size_t i = 0; i < materials.size(); i++)
 		{
 			// Descriptor set
 			VkDescriptorSetAllocateInfo allocInfo =
 				vkTools::initializers::descriptorSetAllocateInfo(
 					descriptorPool,
-					&descriptorSetLayout,
+					&descriptorSetLayouts.material,
 					1);
 
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &materials[i].descriptorSet));
@@ -215,22 +229,33 @@ private:
 
 			// todo : only use image sampler descriptor set and use one scene ubo for matrices
 
-			// Binding 0 : Vertex shader uniform buffer
-			writeDescriptorSets.push_back(vkTools::initializers::writeDescriptorSet(
-				materials[i].descriptorSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&defaultUBO->descriptor));
-			// Binding 1 : Diffuse texture
+			// Binding 0: Diffuse texture
 			writeDescriptorSets.push_back(vkTools::initializers::writeDescriptorSet(
 				materials[i].descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
+				0,
 				&texDescriptor));
 
 			vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 		}
 
+		// Scene descriptor set
+		VkDescriptorSetAllocateInfo allocInfo =
+			vkTools::initializers::descriptorSetAllocateInfo(
+				descriptorPool,
+				&descriptorSetLayouts.scene,
+				1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSetScene));
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+		// Binding 0 : Vertex shader uniform buffer
+		writeDescriptorSets.push_back(vkTools::initializers::writeDescriptorSet(
+			descriptorSetScene,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			0,
+			&defaultUBO->descriptor));
+
+		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	// Load all meshes from the scene and generate the Vulkan resources
@@ -256,23 +281,23 @@ private:
 			bool hasColor = aMesh->HasVertexColors(0);
 			bool hasNormals = aMesh->HasNormals();
 
-			for (uint32_t i = 0; i < aMesh->mNumVertices; i++)
+			for (uint32_t v = 0; v < aMesh->mNumVertices; v++)
 			{
-				vertices[i].pos = glm::make_vec3(&aMesh->mVertices[i].x);
-				vertices[i].pos.y = -vertices[i].pos.y;
-				vertices[i].uv = hasUV ? glm::make_vec2(&aMesh->mTextureCoords[0][i].x) : glm::vec2(0.0f);
-				vertices[i].normal = hasNormals ? glm::make_vec3(&aMesh->mNormals[i].x) : glm::vec3(0.0f);
-				vertices[i].normal.y = -vertices[i].normal.y;
-				vertices[i].color = hasColor ? glm::make_vec3(&aMesh->mColors[0][i].r) : glm::vec3(1.0f);
+				vertices[v].pos = glm::make_vec3(&aMesh->mVertices[v].x);
+				vertices[v].pos.y = -vertices[v].pos.y;
+				vertices[v].uv = hasUV ? glm::make_vec2(&aMesh->mTextureCoords[0][v].x) : glm::vec2(0.0f);
+				vertices[v].normal = hasNormals ? glm::make_vec3(&aMesh->mNormals[v].x) : glm::vec3(0.0f);
+				vertices[v].normal.y = -vertices[v].normal.y;
+				vertices[v].color = hasColor ? glm::make_vec3(&aMesh->mColors[0][v].r) : glm::vec3(1.0f);
 			}
 
 			// Indices
 			std::vector<uint32_t> indices;
 			meshes[i].indexCount = aMesh->mNumFaces * 3;
 			indices.resize(aMesh->mNumFaces * 3);
-			for (uint32_t i = 0; i < aMesh->mNumFaces; i++)
+			for (uint32_t f = 0; f < aMesh->mNumFaces; f++)
 			{
-				memcpy(&indices[i*3], &aMesh->mFaces[i].mIndices[0], sizeof(uint32_t) * 3);
+				memcpy(&indices[f*3], &aMesh->mFaces[f].mIndices[0], sizeof(uint32_t) * 3);
 			}
 
 			// Create buffers
@@ -283,9 +308,6 @@ private:
 
 			VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 			VkMemoryRequirements memReqs;
-
-			VkResult err;
-			void *data;
 
 			struct
 			{
@@ -301,6 +323,7 @@ private:
 
 			// Generate vertex buffer
 			VkBufferCreateInfo vBufferInfo;
+			void* data;
 
 			// Staging buffer
 			vBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, vertexDataSize);
@@ -426,7 +449,8 @@ public:
 			textureLoader->destroyTexture(material.diffuse);
 		}
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.material, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 	}
 
@@ -475,13 +499,21 @@ public:
 				continue;
 			// todo : per material pipelines
 //			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *mesh.material->pipeline);
-			// todo : ds for mesh at 0, ds for mat at 1 (update shaders!)
 
-			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &meshes[i].material->descriptorSet, 0, NULL);
+			// We will be using multiple descriptor sets for rendering
+			// In GLSL the selection is done via the set and binding keywords
+			// VS: layout (set = 0, binding = 0) uniform UBO;
+			// FS: layout (set = 1, binding = 0) uniform sampler2D samplerColorMap;
+
+			std::array<VkDescriptorSet, 2> descriptorSets;
+			// Set 0: Scene descriptor set containing global matrices
+			descriptorSets[0] = descriptorSetScene;
+			// Set 1: Per-Material descriptor set containing bound images
+			descriptorSets[1] = meshes[i].material->descriptorSet;
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, NULL);
 
 			// Pass material properies via push constants
-
-
 			struct
 			{
 				glm::vec4 diffuse;
@@ -589,7 +621,6 @@ public:
 
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
-			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
@@ -817,7 +848,7 @@ public:
 		scene->assetManager = androidApp->activity->assetManager;
 #endif
 		scene->assetPath = getAssetPath() + "models/sibenik/";
-		scene->load(getAssetPath() + "models/sibenik/sibenik.obj", copyCmd);
+		scene->load(getAssetPath() + "models/sibenik/sibenik.dae", copyCmd);
 		vkFreeCommandBuffers(device, cmdPool, 1, &copyCmd);
 	}
 
