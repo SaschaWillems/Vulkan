@@ -348,7 +348,7 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	SkinnedMesh *skinnedMesh;
+	SkinnedMesh *skinnedMesh = nullptr;
 
 	struct {
 		vkTools::UniformData vsScene;
