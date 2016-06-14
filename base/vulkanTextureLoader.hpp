@@ -28,6 +28,7 @@ namespace vkTools
 		uint32_t width, height;
 		uint32_t mipLevels;
 		uint32_t layerCount;
+		VkDescriptorImageInfo descriptor;
 	};
 
 	class VulkanTextureLoader
@@ -383,6 +384,11 @@ namespace vkTools
 			view.subresourceRange.levelCount = (useStaging) ? texture->mipLevels : 1;
 			view.image = texture->image;
 			VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture->view));
+
+			// Fill descriptor image info that can be used for setting up descriptor sets
+			texture->descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			texture->descriptor.imageView = texture->view;
+			texture->descriptor.sampler = texture->sampler;
 		}
 
 		// Clean up vulkan resources used by a texture object
@@ -601,6 +607,11 @@ namespace vkTools
 			// Clean up staging resources
 			vkFreeMemory(device, stagingMemory, nullptr);
 			vkDestroyBuffer(device, stagingBuffer, nullptr);
+
+			// Fill descriptor image info that can be used for setting up descriptor sets
+			texture->descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			texture->descriptor.imageView = texture->view;
+			texture->descriptor.sampler = texture->sampler;
 		}
 
 		// Load an array texture (single file)
@@ -825,10 +836,12 @@ namespace vkTools
 			// Clean up staging resources
 			vkFreeMemory(device, stagingMemory, nullptr);
 			vkDestroyBuffer(device, stagingBuffer, nullptr);
+
+			// Fill descriptor image info that can be used for setting up descriptor sets
+			texture->descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			texture->descriptor.imageView = texture->view;
+			texture->descriptor.sampler = texture->sampler;
 		}
-
-
-
 	};
 
 };
