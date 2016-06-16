@@ -47,7 +47,7 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 #define STB_NUM_CHARS STB_FONT_consolas_24_latin1_NUM_CHARS
 
 // Max. number of chars the text overlay buffer can hold
-#define MAX_CHAR_COUNT 2048
+#define TEXTOVERLAY_MAX_CHAR_COUNT 2048
 
 // Mostly self-contained text overlay class
 class TextOverlay
@@ -187,7 +187,7 @@ public:
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, cmdBuffers.data()));
 
 		// Vertex buffer
-		VkDeviceSize bufferSize = MAX_CHAR_COUNT * sizeof(glm::vec4);
+		VkDeviceSize bufferSize = TEXTOVERLAY_MAX_CHAR_COUNT * sizeof(glm::vec4);
 
 		VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, bufferSize);
 		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
