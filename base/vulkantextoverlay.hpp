@@ -26,7 +26,7 @@
 // STB font files can be found at http://nothings.org/stb/font/
 #define STB_FONT_NAME stb_font_consolas_24_latin1
 #define STB_FONT_WIDTH STB_FONT_consolas_24_latin1_BITMAP_WIDTH
-#define STB_FONT_HEIGHT STB_FONT_consolas_24_latin1_BITMAP_HEIGHT 
+#define STB_FONT_HEIGHT STB_FONT_consolas_24_latin1_BITMAP_HEIGHT
 #define STB_FIRST_CHAR STB_FONT_consolas_24_latin1_FIRST_CHAR
 #define STB_NUM_CHARS STB_FONT_consolas_24_latin1_NUM_CHARS
 
@@ -538,7 +538,7 @@ public:
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 	}
 
-	// Map buffer 
+	// Map buffer
 	void beginTextUpdate()
 	{
 		mappedLocal = mapped;
@@ -653,7 +653,7 @@ public:
 
 			VkRect2D scissor = vkTools::initializers::rect2D(*frameBufferWidth, *frameBufferHeight, 0, 0);
 			vkCmdSetScissor(cmdBuffers[i], 0, 1, &scissor);
-			
+
 			vkCmdBindPipeline(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 			vkCmdBindDescriptorSets(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
