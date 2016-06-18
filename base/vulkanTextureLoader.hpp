@@ -449,8 +449,9 @@ namespace vkTools
 #endif	
 			assert(!texCube.empty());
 
-			texture->width = (uint32_t)texCube[0].dimensions().x;
-			texture->height = (uint32_t)texCube[0].dimensions().y;
+			texture->width = static_cast<uint32_t>(texCube.dimensions().x);
+			texture->height = static_cast<uint32_t>(texCube.dimensions().y);
+			texture->mipLevels = static_cast<uint32_t>(texCube.levels());
 
 			VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 			VkMemoryRequirements memReqs;
@@ -483,22 +484,36 @@ namespace vkTools
 			memcpy(data, texCube.data(), texCube.size());
 			vkUnmapMemory(device, stagingMemory);
 
-			// Setup buffer copy regions for the cube faces
-			// As all faces of a cube map must have the same dimensions, we can do a single copy
-			VkBufferImageCopy bufferCopyRegion = {};
-			bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			bufferCopyRegion.imageSubresource.mipLevel = 0;
-			bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
-			bufferCopyRegion.imageSubresource.layerCount = 6;
-			bufferCopyRegion.imageExtent.width = texture->width;
-			bufferCopyRegion.imageExtent.height = texture->height;
-			bufferCopyRegion.imageExtent.depth = 1;
+			// Setup buffer copy regions for each face including all of it's miplevels
+			std::vector<VkBufferImageCopy> bufferCopyRegions;
+			size_t offset = 0;
+
+			for (uint32_t face = 0; face < 6; face++)
+			{
+				for (uint32_t level = 0; level < texture->mipLevels; level++)
+				{
+					VkBufferImageCopy bufferCopyRegion = {};
+					bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					bufferCopyRegion.imageSubresource.mipLevel = level;
+					bufferCopyRegion.imageSubresource.baseArrayLayer = face;
+					bufferCopyRegion.imageSubresource.layerCount = 1;
+					bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(texCube[face][level].dimensions().x);
+					bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(texCube[face][level].dimensions().y);
+					bufferCopyRegion.imageExtent.depth = 1;
+					bufferCopyRegion.bufferOffset = offset;
+
+					bufferCopyRegions.push_back(bufferCopyRegion);
+
+					// Increase offset into staging buffer for next level / face
+					offset += texCube[face][level].size();
+				}
+			}
 
 			// Create optimal tiled target image
 			VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
 			imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 			imageCreateInfo.format = format;
-			imageCreateInfo.mipLevels = 1;
+			imageCreateInfo.mipLevels = texture->mipLevels;
 			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -529,7 +544,7 @@ namespace vkTools
 			VkImageSubresourceRange subresourceRange = {};
 			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			subresourceRange.baseMipLevel = 0;
-			subresourceRange.levelCount = 1;
+			subresourceRange.levelCount = texture->mipLevels;
 			subresourceRange.layerCount = 6;
 
 			vkTools::setImageLayout(
@@ -546,9 +561,8 @@ namespace vkTools
 				stagingBuffer,
 				texture->image,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				1,
-				&bufferCopyRegion
-				);
+				static_cast<uint32_t>(bufferCopyRegions.size()),
+				bufferCopyRegions.data());
 
 			// Change texture image layout to shader read after all faces have been copied
 			texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -589,7 +603,7 @@ namespace vkTools
 			sampler.maxAnisotropy = 8;
 			sampler.compareOp = VK_COMPARE_OP_NEVER;
 			sampler.minLod = 0.0f;
-			sampler.maxLod = 0.0f;
+			sampler.maxLod = (float)texture->mipLevels;
 			sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 			VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture->sampler));
 
@@ -601,6 +615,7 @@ namespace vkTools
 			view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 			view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 			view.subresourceRange.layerCount = 6;
+			view.subresourceRange.levelCount = texture->mipLevels;
 			view.image = texture->image;
 			VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture->view));
 
@@ -643,6 +658,7 @@ namespace vkTools
 			texture->width = static_cast<uint32_t>(tex2DArray.dimensions().x);
 			texture->height = static_cast<uint32_t>(tex2DArray.dimensions().y);
 			texture->layerCount = static_cast<uint32_t>(tex2DArray.layers());
+			texture->mipLevels = static_cast<uint32_t>(tex2DArray.levels());
 
 			VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 			VkMemoryRequirements memReqs;
@@ -672,57 +688,31 @@ namespace vkTools
 			// Copy texture data into staging buffer
 			uint8_t *data;
 			VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
-			memcpy(data, tex2DArray.data(), tex2DArray.size());
+			memcpy(data, tex2DArray.data(), static_cast<size_t>(tex2DArray.size()));
 			vkUnmapMemory(device, stagingMemory);
 
-			// Setup buffer copy regions for array layers
+			// Setup buffer copy regions for each layer including all of it's miplevels
 			std::vector<VkBufferImageCopy> bufferCopyRegions;
-			uint32_t offset = 0;
+			size_t offset = 0;
 
-			// Check if all array layers have the same dimesions
-			bool sameDims = true;
 			for (uint32_t layer = 0; layer < texture->layerCount; layer++)
 			{
-				if (tex2DArray[layer].dimensions().x != texture->width || tex2DArray[layer].dimensions().y != texture->height)
-				{
-					sameDims = false;
-					break;
-				}
-			}
-
-			// If all layers of the texture array have the same dimensions, we only need to do one copy
-			if (sameDims)
-			{
-				VkBufferImageCopy bufferCopyRegion = {};
-				bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				bufferCopyRegion.imageSubresource.mipLevel = 0;
-				bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
-				bufferCopyRegion.imageSubresource.layerCount = texture->layerCount;
-				bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2DArray[0].dimensions().x);
-				bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2DArray[0].dimensions().y);
-				bufferCopyRegion.imageExtent.depth = 1;
-				bufferCopyRegion.bufferOffset = offset;
-
-				bufferCopyRegions.push_back(bufferCopyRegion);
-			}
-			else
-			{
-				// If dimensions differ, copy layer by layer and pass offsets
-				for (uint32_t layer = 0; layer < texture->layerCount; layer++)
+				for (uint32_t level = 0; level < texture->mipLevels; level++)
 				{
 					VkBufferImageCopy bufferCopyRegion = {};
 					bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-					bufferCopyRegion.imageSubresource.mipLevel = 0;
+					bufferCopyRegion.imageSubresource.mipLevel = level;
 					bufferCopyRegion.imageSubresource.baseArrayLayer = layer;
 					bufferCopyRegion.imageSubresource.layerCount = 1;
-					bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2DArray[layer].dimensions().x);
-					bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2DArray[layer].dimensions().y);
+					bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2DArray[layer][level].dimensions().x);
+					bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2DArray[layer][level].dimensions().y);
 					bufferCopyRegion.imageExtent.depth = 1;
 					bufferCopyRegion.bufferOffset = offset;
 
 					bufferCopyRegions.push_back(bufferCopyRegion);
 
-					offset += static_cast<uint32_t>(tex2DArray[layer].size());
+					// Increase offset into staging buffer for next level / face
+					offset += tex2DArray[layer][level].size();
 				}
 			}
 
@@ -730,7 +720,6 @@ namespace vkTools
 			VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
 			imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 			imageCreateInfo.format = format;
-			imageCreateInfo.mipLevels = 1;
 			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -739,6 +728,7 @@ namespace vkTools
 			imageCreateInfo.extent = { texture->width, texture->height, 1 };
 			imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			imageCreateInfo.arrayLayers = texture->layerCount;
+			imageCreateInfo.mipLevels = texture->mipLevels;
 
 			VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &texture->image));
 
@@ -758,7 +748,7 @@ namespace vkTools
 			VkImageSubresourceRange subresourceRange = {};
 			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			subresourceRange.baseMipLevel = 0;
-			subresourceRange.levelCount = 1;
+			subresourceRange.levelCount = texture->mipLevels;
 			subresourceRange.layerCount = texture->layerCount;
 
 			vkTools::setImageLayout(
@@ -769,15 +759,14 @@ namespace vkTools
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				subresourceRange);
 
-			// Copy the cube map faces from the staging buffer to the optimal tiled image
+			// Copy the layers and mip levels from the staging buffer to the optimal tiled image
 			vkCmdCopyBufferToImage(
 				cmdBuffer,
 				stagingBuffer,
 				texture->image,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				static_cast<uint32_t>(bufferCopyRegions.size()),
-				bufferCopyRegions.data()
-				);
+				bufferCopyRegions.data());
 
 			// Change texture image layout to shader read after all faces have been copied
 			texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -818,7 +807,7 @@ namespace vkTools
 			sampler.maxAnisotropy = 8;
 			sampler.compareOp = VK_COMPARE_OP_NEVER;
 			sampler.minLod = 0.0f;
-			sampler.maxLod = 0.0f;
+			sampler.maxLod = (float)texture->mipLevels;
 			sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 			VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture->sampler));
 
@@ -830,6 +819,7 @@ namespace vkTools
 			view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 			view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 			view.subresourceRange.layerCount = texture->layerCount;
+			view.subresourceRange.levelCount = texture->mipLevels;
 			view.image = texture->image;
 			VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture->view));
 
