@@ -1228,8 +1228,8 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x6B:
-		case 0x20:
+		case KEY_NP_PLUS:
+		case KEY_SPACE:
 			textOverlay->visible = !textOverlay->visible;
 		}
 	}

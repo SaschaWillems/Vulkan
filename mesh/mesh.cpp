@@ -94,14 +94,14 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		// Destroy and free mesh resources 
+		// Destroy and free mesh resources
 		vkDestroyBuffer(device, mesh.vertices.buf, nullptr);
 		vkFreeMemory(device, mesh.vertices.mem, nullptr);
 		vkDestroyBuffer(device, mesh.indices.buf, nullptr);
@@ -171,7 +171,7 @@ public:
 		}
 	}
 
-	// Load a mesh based on data read via assimp 
+	// Load a mesh based on data read via assimp
 	// The other example will use the VulkanMesh loader which has some additional functionality for loading meshes
 	void loadMesh()
 	{
@@ -443,7 +443,7 @@ public:
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformData.vsScene.descriptor),
-			// Binding 1 : Color map 
+			// Binding 1 : Color map
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -613,7 +613,7 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x57:
+		case KEY_W:
 		case GAMEPAD_BUTTON_A:
 			wireframe = !wireframe;
 			reBuildCommandBuffers();
@@ -665,7 +665,7 @@ int main(const int argc, const char *argv[])
 #endif
 {
 #if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
+	// Removing this may cause the compiler to omit the main entry point
 	// which would make the application crash at start
 	app_dummy();
 #endif
