@@ -66,7 +66,7 @@ public:
 		glm::mat4 projection;
 		glm::mat4 modelview;
 		glm::vec4 lightPos = glm::vec4(0.0f, -2.0f, 0.0f, 0.0f);
-		float displacementFactor = 16.0f;
+		float displacementFactor = 16.0f * 2.0f;
 		float tessellationFactor = 0.75f;
 		glm::vec2 viewportDim;
 		// Desired size of tessellated quad patch edge
@@ -146,9 +146,10 @@ public:
 	void loadTextures()
 	{
 		textureLoader->loadTexture(getAssetPath() + "textures/skysphere_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.skySphere);
-		textureLoader->loadTexture(getAssetPath() + "textures/terrain_desert_heightmap.ktx", VK_FORMAT_R8G8B8A8_UNORM, &textures.heightMap);
-
-		textureLoader->loadTextureArray(getAssetPath() + "textures/terrain_array_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.terrainArray);
+		// Height data is stored in a one-channel texture
+		textureLoader->loadTexture(getAssetPath() + "textures/terrain_heightmap_r8.ktx", VK_FORMAT_R8_UNORM, &textures.heightMap);
+		// Terrain textures are stored in a texture array with layers corresponding to terrain height
+		textureLoader->loadTextureArray(getAssetPath() + "textures/terrain_texturearray_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.terrainArray);
 
 		VkSamplerCreateInfo samplerInfo = vkTools::initializers::samplerCreateInfo();
 
@@ -270,7 +271,7 @@ public:
 		};
 
 		#define PATCH_SIZE 64
-		#define UV_SCALE 2.0f
+		#define UV_SCALE 1.0f
 
 		Vertex *vertices = new Vertex[PATCH_SIZE * PATCH_SIZE * 4];
 			

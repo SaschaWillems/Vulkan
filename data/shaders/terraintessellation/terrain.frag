@@ -16,22 +16,24 @@ layout (location = 0) out vec4 outFragColor;
 vec4 sampleTerrainLayer()
 {
 	// Define some layer ranges for sampling depending on terrain height
-	vec2 layers[4];
-	layers[0] = vec2(0.0, 5.0);
-	layers[1] = vec2(5.0, 50.0);
-	layers[2] = vec2(50.0, 120.0);
-	layers[3] = vec2(120.0, 255.0);
+	vec2 layers[6];
+	layers[0] = vec2(-10.0, 10.0);
+	layers[1] = vec2(5.0, 35.0);
+	layers[2] = vec2(30.0, 70.0);
+	layers[3] = vec2(60.0, 95.0);
+	layers[4] = vec2(85.0, 140.0);
+	layers[5] = vec2(140.0, 190.0);
 
 	vec3 color = vec3(0.0);
 	
 	// Get height from displacement map
 	float height = textureLod(displacementMap, inUV, 0.0).r * 255.0;
 	
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 6; i++)
 	{
 		float range = layers[i].y - layers[i].x;
 		float weight = (range - abs(height - layers[i].y)) / range;
-		weight = max(0.05, weight);
+		weight = max(0.0, weight);
 		color += weight * texture(terrainLayers, vec3(inUV * 16.0, i)).rgb;
 	}
 
