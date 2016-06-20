@@ -42,7 +42,7 @@ private:
 		vkTools::VulkanTexture terrainArray;
 	} textures;
 public:
-	bool wireframe = true;
+	bool wireframe = false;
 	bool tessellation = true;
 
 	struct {
@@ -103,12 +103,11 @@ public:
 	{
 		enableTextOverlay = true;
 		title = "Vulkan Example - Dynamic terrain tessellation";
-		camera.type = Camera::CameraType::firtsperson;
+		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-22.0f, 135.0f, 0.6f));
 		camera.setTranslation(glm::vec3(0.0f, 30.0f, 0.0f));
-//		camera.setTranslation(glm::vec3(36.5f, 13.25f, 36.2f));
-		camera.movementSpeed = 10.0f;
+		camera.movementSpeed = 7.5f;
 		timerSpeed *= 15.0f;
 		// Support for tessellation shaders is optional, so check first
 		//if (!deviceFeatures.tessellationShader)

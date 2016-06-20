@@ -601,7 +601,7 @@ public:
 	{
 		rotationSpeed = 0.5f;
 		enableTextOverlay = true;
-		camera.type = Camera::CameraType::firtsperson;
+		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 7.5f;
 		camera.position = { 15.0f, -13.5f, 0.0f };
 		camera.setRotation(glm::vec3(5.0f, 90.0f, 0.0f));

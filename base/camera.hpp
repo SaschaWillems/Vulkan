@@ -30,7 +30,7 @@ private:
 
 		transM = glm::translate(glm::mat4(), position);
 
-		if (type == CameraType::firtsperson)
+		if (type == CameraType::firstperson)
 		{
 			matrices.view = rotM * transM;
 		}
@@ -40,7 +40,7 @@ private:
 		}
 	};
 public:
-	enum CameraType { lookat, firtsperson };
+	enum CameraType { lookat, firstperson };
 	CameraType type = CameraType::lookat;
 
 	glm::vec3 rotation = glm::vec3();
@@ -107,7 +107,7 @@ public:
 
 	void update(float deltaTime)
 	{
-		if (type == CameraType::firtsperson)
+		if (type == CameraType::firstperson)
 		{
 			if (moving())
 			{
