@@ -786,13 +786,14 @@ public:
 		case GAMEPAD_BUTTON_L1:
 			changeTessellationFactor(-0.05f);
 			break;
-		case 0x20:
-		case GAMEPAD_BUTTON_X:
+		case 0x46:
+		case GAMEPAD_BUTTON_A:
 			toggleWireframe();
 			break;
-		//case VK_RETURN:
-		//	toggleTessellation();
-		//	break;
+		case 0x54:
+		case GAMEPAD_BUTTON_X:
+			toggleTessellation();
+			break;
 		}
 	}
 
@@ -803,12 +804,12 @@ public:
 
 #if defined(__ANDROID__)
 		textOverlay->addText("Tessellation factor: " + ss.str() + " (Buttons L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-//		textOverlay->addText("Press \"Button A\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-//		textOverlay->addText("Press \"Button X\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button A\" to toggle wireframe", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button X\" to toggle tessellation", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #else
 		textOverlay->addText("Tessellation factor: " + ss.str() + " (numpad +/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		//textOverlay->addText("Press \"d\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		//textOverlay->addText("Press \"s\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"f\" to toggle wireframe", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"t\" to toggle tessellation", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 };
