@@ -517,31 +517,40 @@ void VulkanExampleBase::renderLoop()
 			// todo : check if gamepad is present
 			// todo : time based and relative axis positions
 			bool updateView = false;
-			// Rotate
-			if (std::abs(gamePadState.axes.x) > deadZone)
+			if (camera.type != Camera::CameraType::firstperson)
 			{
-				rotation.y += gamePadState.axes.x * 0.5f * rotationSpeed;
-				camera.rotate(glm::vec3(0.0f, gamePadState.axes.x * 0.5f, 0.0f));
-				updateView = true;
+				// Rotate
+				if (std::abs(gamePadState.axisLeft.x) > deadZone)
+				{
+					rotation.y += gamePadState.axisLeft.x * 0.5f * rotationSpeed;
+					camera.rotate(glm::vec3(0.0f, gamePadState.axisLeft.x * 0.5f, 0.0f));
+					updateView = true;
+				}
+				if (std::abs(gamePadState.axisLeft.y) > deadZone)
+				{
+					rotation.x -= gamePadState.axisLeft.y * 0.5f * rotationSpeed;
+					camera.rotate(glm::vec3(gamePadState.axisLeft.y * 0.5f, 0.0f, 0.0f));
+					updateView = true;
+				}
+				// Zoom
+				if (std::abs(gamePadState.axisRight.y) > deadZone)
+				{
+					zoom -= gamePadState.axisRight.y * 0.01f * zoomSpeed;
+					updateView = true;
+				}
+				if (updateView)
+				{
+					viewChanged();
+				}
 			}
-			if (std::abs(gamePadState.axes.y) > deadZone)
+			else
 			{
-				rotation.x -= gamePadState.axes.y * 0.5f * rotationSpeed;
-				camera.rotate(glm::vec3(gamePadState.axes.y * 0.5f, 0.0f, 0.0f));
-				updateView = true;
+				updateView = camera.updatePad(gamePadState.axisLeft, gamePadState.axisRight, frameTimer);
+				if (updateView)
+				{
+					viewChanged();
+				}
 			}
-			// Zoom
-			if (std::abs(gamePadState.axes.rz) > deadZone)
-			{
-				zoom -= gamePadState.axes.rz * 0.01f * zoomSpeed;
-				updateView = true;
-			}
-			if (updateView)
-			{
-				viewChanged();
-			}
-
-
 		}
 	}
 #elif defined(__linux__)
@@ -1128,7 +1137,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			break;
 		}
 
-		if (camera.firtsperson)
+		if (camera.firstperson)
 		{
 			switch (wParam)
 			{
@@ -1150,7 +1159,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		keyPressed((uint32_t)wParam);
 		break;
 	case WM_KEYUP:
-		if (camera.firtsperson)
+		if (camera.firstperson)
 		{
 			switch (wParam)
 			{
@@ -1242,10 +1251,12 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 	{
 		if (AInputEvent_getSource(event) == AINPUT_SOURCE_JOYSTICK)
 		{
-			vulkanExample->gamePadState.axes.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_X, 0);
-			vulkanExample->gamePadState.axes.y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Y, 0);
-			vulkanExample->gamePadState.axes.z = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Z, 0);
-			vulkanExample->gamePadState.axes.rz = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RZ, 0);
+			// Left thumbstick
+			vulkanExample->gamePadState.axisLeft.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_X, 0);
+			vulkanExample->gamePadState.axisLeft.y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Y, 0);
+			// Right thumbstick
+			vulkanExample->gamePadState.axisRight.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Z, 0);
+			vulkanExample->gamePadState.axisRight.y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RZ, 0);
 		}
 		else
 		{

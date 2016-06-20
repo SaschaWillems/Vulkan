@@ -180,16 +180,10 @@ public:
 	} depthStencil;
 
 	// Gamepad state (only one pad supported)
-
 	struct
 	{
-		struct
-		{
-			float x = 0.0f;
-			float y = 0.0f;
-			float z = 0.0f;
-			float rz = 0.0f;
-		} axes;
+		glm::vec2 axisLeft = glm::vec2(0.0f);
+		glm::vec2 axisRight = glm::vec2(0.0f);
 	} gamePadState;
 
 	// OS specific 
