@@ -867,30 +867,6 @@ public:
 		textOverlay->endTextUpdate();
 	}
 
-	void draw()
-	{
-		// Get next image in the swap chain (back/front buffer)
-		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
-
-		submitPostPresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		// Submit text overlay to queue
-		textOverlay->submit(queue, currentBuffer);
-
-		submitPrePresentBarrier(swapChain.buffers[currentBuffer].image);
-
-		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete));
-
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
-	}
-
 	void loadTextures()
 	{
 		textureLoader->loadTexture(getAssetPath() + "textures/skysphere_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.background);
@@ -1182,6 +1158,23 @@ public:
 			shaderStages
 			);
 		updateTextOverlay();
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		// Command buffer to be sumitted to the queue
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+
+		// Submit to queue
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		// Submit text overlay to queue
+		textOverlay->submit(queue, currentBuffer);
+
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
