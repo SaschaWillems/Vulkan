@@ -292,6 +292,44 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
+
+		// Build command buffers for the post present image barrier for each swap chain image
+		// Note: The command Buffers are allocated in the base class
+
+		for (uint32_t i = 0; i < swapChain.imageCount; i++)
+		{
+			// Insert a post present image barrier to transform the image back to a
+			// color attachment that our render pass can write to
+			// We always use undefined image layout as the source as it doesn't actually matter
+			// what is done with the previous image contents
+			VkImageMemoryBarrier postPresentBarrier = vkTools::initializers::imageMemoryBarrier();
+			postPresentBarrier.srcAccessMask = 0;
+			postPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			postPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			postPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			postPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			postPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			postPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			postPresentBarrier.image = swapChain.buffers[i].image;
+
+			// Use dedicated command buffer from example base class for submitting the post present barrier
+			VkCommandBufferBeginInfo cmdBufInfo = {};
+			cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+			VK_CHECK_RESULT(vkBeginCommandBuffer(postPresentCmdBuffers[i], &cmdBufInfo));
+
+			// Put post present barrier into command buffer
+			vkCmdPipelineBarrier(
+				postPresentCmdBuffers[i],
+				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				0, nullptr,
+				1, &postPresentBarrier);
+
+			VK_CHECK_RESULT(vkEndCommandBuffer(postPresentCmdBuffers[i]));
+		}
 	}
 
 	void draw()
@@ -299,43 +337,12 @@ public:
 		// Get next image in the swap chain (back/front buffer)
 		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
-		// Insert a post present image barrier to transform the image back to a
-		// color attachment that our render pass can write to
-		// We always use undefined image layout as the source as it doesn't actually matter
-		// what is done with the previous image contents
-		VkImageMemoryBarrier postPresentBarrier = vkTools::initializers::imageMemoryBarrier();
-		postPresentBarrier.srcAccessMask = 0;
-		postPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		postPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		postPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		postPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		postPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		postPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		postPresentBarrier.image = swapChain.buffers[currentBuffer].image;
-
-		// Use dedicated command buffer from example base class for submitting the post present barrier
-		VkCommandBufferBeginInfo cmdBufInfo = {};
-		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(postPresentCmdBuffer, &cmdBufInfo));
-
-		// Put post present barrier into command buffer
-		vkCmdPipelineBarrier(
-			postPresentCmdBuffer,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-			VK_FLAGS_NONE,
-			0, nullptr,
-			0, nullptr,
-			1, &postPresentBarrier);
-
-		VK_CHECK_RESULT(vkEndCommandBuffer(postPresentCmdBuffer));
-
-		// Submit the image barrier to the current queue
-		submitInfo = {};
+		// Submit the post present image barrier to transform the image back to a color attachment
+		// that can be used to write to by our render pass
+		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &postPresentCmdBuffer;
+		submitInfo.pCommandBuffers = &postPresentCmdBuffers[currentBuffer];
 
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 		
@@ -347,7 +354,6 @@ public:
 		// command buffers and semaphores to be submitted to a queue
 		// If you want to submit multiple command buffers, pass an array
 		VkPipelineStageFlags pipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.pWaitDstStageMask = &pipelineStages;
 		// The wait semaphore ensures that the image is presented 

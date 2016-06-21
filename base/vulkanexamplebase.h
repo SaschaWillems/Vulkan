@@ -102,9 +102,9 @@ protected:
 	// Command buffer used for setup
 	VkCommandBuffer setupCmdBuffer = VK_NULL_HANDLE;
 	// Command buffer for submitting a post present image barrier
-	VkCommandBuffer postPresentCmdBuffer = VK_NULL_HANDLE;
-	// Command buffer for submitting a pre present image barrier
-	VkCommandBuffer prePresentCmdBuffer = VK_NULL_HANDLE;
+	std::vector<VkCommandBuffer> postPresentCmdBuffers = { VK_NULL_HANDLE };
+	// Command buffers for submitting a pre present image barrier
+	std::vector<VkCommandBuffer> prePresentCmdBuffers = { VK_NULL_HANDLE };
 	// Pipeline stage flags for the submit info structure
 	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 	// Contains command buffers and semaphores to be presented to the queue
@@ -245,6 +245,9 @@ public:
 	// Called in case of an event where e.g. the framebuffer has to be rebuild and thus
 	// all command buffers that may reference this
 	virtual void buildCommandBuffers();
+
+	// Builds the command buffers used to submit the present barriers
+	void buildPresentCommandBuffers();
 
 	// Get memory type for a given memory allocation (flags and bits)
 	VkBool32 getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex);
