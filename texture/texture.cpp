@@ -114,54 +114,58 @@ public:
 
 	// Create an image memory barrier for changing the layout of
 	// an image and put it into an active command buffer
-	void setImageLayout(VkCommandBuffer cmdBuffer, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, uint32_t mipLevel, uint32_t mipLevelCount)
+	void setImageLayout(VkCommandBuffer cmdBuffer, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange)
 	{
 		// Create an image barrier object
 		VkImageMemoryBarrier imageMemoryBarrier = vkTools::initializers::imageMemoryBarrier();;
 		imageMemoryBarrier.oldLayout = oldImageLayout;
 		imageMemoryBarrier.newLayout = newImageLayout;
 		imageMemoryBarrier.image = image;
-		imageMemoryBarrier.subresourceRange.aspectMask = aspectMask;
-		imageMemoryBarrier.subresourceRange.baseMipLevel = mipLevel;
-		imageMemoryBarrier.subresourceRange.levelCount = mipLevelCount;
-		imageMemoryBarrier.subresourceRange.layerCount = 1;
+		imageMemoryBarrier.subresourceRange = subresourceRange;
 
 		// Only sets masks for layouts used in this example
-		// For a more complete version that can be used with
-		// other layouts see vkTools::setImageLayout
+		// For a more complete version that can be used with other layouts see vkTools::setImageLayout
 
-		// Source layouts (new)
-
-		if (oldImageLayout == VK_IMAGE_LAYOUT_PREINITIALIZED)
+		// Source layouts (old)
+		switch (oldImageLayout)
 		{
-			imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			// Only valid as initial layout, memory contents are not preserved
+			// Can be accessed directly, no source dependency required
+			imageMemoryBarrier.srcAccessMask = 0;
+			break;
+		case VK_IMAGE_LAYOUT_PREINITIALIZED:
+			// Only valid as initial layout for linear images, preserves memory contents
+			// Make sure host writes to the image have been finished
+			imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			// Old layout is transfer destination
+			// Make sure any writes to the image have been finished
+			imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			break;
 		}
-
+		
 		// Target layouts (new)
-
-		// New layout is transfer destination (copy, blit)
-		// Make sure any reads from and writes to the image have been finished
-		if (newImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+		switch (newImageLayout)
 		{
-			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-		}
-
-		// New layout is shader read (sampler, input attachment)
-		// Make sure any writes to the image have been finished
-		if (newImageLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-		{
-			imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			// Transfer source (copy, blit)
+			// Make sure any reads from the image have been finished
+			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			// Transfer destination (copy, blit)
+			// Make sure any writes to the image have been finished
+			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			// Shader read (sampler, input attachment)
 			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			break;
 		}
 
-		// New layout is transfer source (copy, blit)
-		// Make sure any reads from and writes to the image have been finished
-		if (newImageLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
-		{
-			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-		}
-
-		// Put barrier on top
+		// Put barrier on top of pipeline
 		VkPipelineStageFlags srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		VkPipelineStageFlags destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
@@ -284,7 +288,8 @@ public:
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
+			// Set initial layout of the image to undefined
+			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			imageCreateInfo.extent = { texture.width, texture.height, 1 };
 			imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -300,16 +305,28 @@ public:
 
 			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-			// Image barrier for optimal image (target)
-			// Optimal image will be used as destination for the copy
+			// Image barrier for optimal image
+
+			// The sub resource range describes the regions of the image we will be transition
+			VkImageSubresourceRange subresourceRange = {};
+			// Image only contains color data
+			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			// Start at first mip level
+			subresourceRange.baseMipLevel = 0;
+			// We will transition on all mip levels
+			subresourceRange.levelCount = texture.mipLevels;
+			// The 2D texture only has one layer
+			subresourceRange.layerCount = 1;
+
+			// Optimal image will be used as destination for the copy, so we must transfer from our
+			// initial undefined image layout to the transfer destination layout
 			setImageLayout(
 				copyCmd,
 				texture.image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_PREINITIALIZED,
+				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				0,
-				texture.mipLevels);
+				subresourceRange);
 
 			// Copy mip levels from staging buffer
 			vkCmdCopyBufferToImage(
@@ -318,8 +335,7 @@ public:
 				texture.image,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				bufferCopyRegions.size(),
-				bufferCopyRegions.data()
-				);
+				bufferCopyRegions.data());
 
 			// Change texture image layout to shader read after all mip levels have been copied
 			texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -329,8 +345,7 @@ public:
 				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				texture.imageLayout,
-				0,
-				texture.mipLevels);
+				subresourceRange);
 
 			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 
@@ -405,14 +420,25 @@ public:
 			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 			// Setup image memory barrier transfer image to shader read layout
+
+			// The sub resource range describes the regions of the image we will be transition
+			VkImageSubresourceRange subresourceRange = {};
+			// Image only contains color data
+			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			// Start at first mip level
+			subresourceRange.baseMipLevel = 0;
+			// Only one mip level, most implementations won't support more for linear tiled images
+			subresourceRange.levelCount = 1;
+			// The 2D texture only has one layer
+			subresourceRange.layerCount = 1;
+
 			setImageLayout(
 				copyCmd, 
 				texture.image,
 				VK_IMAGE_ASPECT_COLOR_BIT, 
 				VK_IMAGE_LAYOUT_PREINITIALIZED,
 				texture.imageLayout,
-				0,
-				1);
+				subresourceRange);
 
 			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 		}
