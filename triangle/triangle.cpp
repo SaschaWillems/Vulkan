@@ -283,7 +283,7 @@ public:
 			VkImageMemoryBarrier *pMemoryBarrier = &prePresentBarrier;
 			vkCmdPipelineBarrier(
 				drawCmdBuffers[i], 
-				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
+				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				VK_FLAGS_NONE,
 				0, nullptr,
@@ -299,16 +299,14 @@ public:
 		// Get next image in the swap chain (back/front buffer)
 		VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
 
-		// Add a post present image memory barrier
-		// This will transform the frame buffer color attachment back
-		// to it's initial layout after it has been presented to the
-		// windowing system
-		VkImageMemoryBarrier postPresentBarrier = {};
-		postPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		postPresentBarrier.pNext = NULL;
+		// Insert a post present image barrier to transform the image back to a
+		// color attachment that our render pass can write to
+		// We always use undefined image layout as the source as it doesn't actually matter
+		// what is done with the previous image contents
+		VkImageMemoryBarrier postPresentBarrier = vkTools::initializers::imageMemoryBarrier();
 		postPresentBarrier.srcAccessMask = 0;
 		postPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		postPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		postPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		postPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		postPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		postPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -325,7 +323,7 @@ public:
 		vkCmdPipelineBarrier(
 			postPresentCmdBuffer,
 			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 			VK_FLAGS_NONE,
 			0, nullptr,
 			0, nullptr,
