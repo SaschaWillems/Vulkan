@@ -337,14 +337,6 @@ public:
 	// Start the main render loop
 	void renderLoop();
 
-	// Submit a pre present image barrier to the queue
-	// Transforms the (framebuffer) image layout from color attachment to present(khr) for presenting to the swap chain
-	void submitPrePresentBarrier(VkImage image);
-
-	// Submit a post present image barrier to the queue
-	// Transforms the (framebuffer) image layout back from present(khr) to color attachment layout
-	void submitPostPresentBarrier(VkImage image);
-
 	// Prepare a submit info structure containing
 	// semaphores and submit buffer info for vkQueueSubmit
 	VkSubmitInfo prepareSubmitInfo(
