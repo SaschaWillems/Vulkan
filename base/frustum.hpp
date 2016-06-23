@@ -14,10 +14,10 @@ namespace vkTools
 {
 	class Frustum
 	{
-	private:
+	public:
 		enum side { LEFT = 0, RIGHT = 1, TOP = 2, BOTTOM = 3, BACK = 4, FRONT = 5 };
 		std::array<glm::vec4, 6> planes;
-	public:
+
 		void update(glm::mat4 matrix)
 		{
 			planes[LEFT].x = matrix[0].w + matrix[0].x;

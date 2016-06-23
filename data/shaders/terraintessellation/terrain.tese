@@ -8,8 +8,11 @@ layout (set = 0, binding = 0) uniform UBO
 	mat4 projection;
 	mat4 modelview;
 	vec4 lightPos;
+	vec4 frustumPlanes[6];
 	float displacementFactor;
-	float tessellationFalloff;
+	float tessellationFactor;
+	vec2 viewportDim;
+	float tessellatedEdgeSize;
 } ubo; 
 
 layout (set = 0, binding = 1) uniform sampler2D displacementMap; 

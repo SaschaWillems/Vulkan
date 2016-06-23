@@ -54,4 +54,6 @@ void main()
 	outFragColor = vec4((IAmbient + IDiffuse) * vec4(texture(terrainLayers, vec3(inUV, 0.0)).rgb, 1.0));	
 */
 	outFragColor = sampleTerrainLayer();
+
+	//outFragColor.rgb = normalize(inNormal);
 }

@@ -20,7 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanMeshLoader.hpp"
+#include "frustum.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -66,8 +66,9 @@ public:
 		glm::mat4 projection;
 		glm::mat4 modelview;
 		glm::vec4 lightPos = glm::vec4(0.0f, -2.0f, 0.0f, 0.0f);
-		float displacementFactor = 16.0f * 2.0f;
-		float tessellationFactor = 0.75f;
+		glm::vec4 frustumPlanes[6];
+		float displacementFactor = 32.0f;
+		float tessellationFactor = 1.0f;
 		glm::vec2 viewportDim;
 		// Desired size of tessellated quad patch edge
 		float tessellatedEdgeSize = 20.0f;
@@ -98,6 +99,17 @@ public:
 		VkDescriptorSet terrain;
 		VkDescriptorSet skysphere;
 	} descriptorSets;
+
+	// Pipeline statistics
+	struct {
+		VkBuffer buffer;
+		VkDeviceMemory memory;
+	} queryResult;
+	VkQueryPool queryPool;
+	uint64_t pipelineStats[2] = { 0 };
+
+	// View frustum passed to tessellation control shader for culling
+	vkTools::Frustum frustum;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -140,6 +152,58 @@ public:
 		textureLoader->destroyTexture(textures.heightMap);
 		textureLoader->destroyTexture(textures.skySphere);
 		textureLoader->destroyTexture(textures.terrainArray);
+
+		vkDestroyQueryPool(device, queryPool, nullptr);
+
+		vkDestroyBuffer(device, queryResult.buffer, nullptr);
+		vkFreeMemory(device, queryResult.memory, nullptr);
+	}
+
+	// Setup pool and buffer for storing pipeline statistics results
+	void setupQueryResultBuffer()
+	{
+		uint32_t bufSize = 2 * sizeof(uint64_t);
+
+		VkMemoryRequirements memReqs;
+		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
+		VkBufferCreateInfo bufferCreateInfo =
+			vkTools::initializers::bufferCreateInfo(
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				bufSize);
+
+		// Results are saved in a host visible buffer for easy access by the application
+		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &queryResult.buffer));
+		vkGetBufferMemoryRequirements(device, queryResult.buffer, &memReqs);
+		memAlloc.allocationSize = memReqs.size;
+		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &queryResult.memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, queryResult.buffer, queryResult.memory, 0));
+
+		// Create query pool
+		VkQueryPoolCreateInfo queryPoolInfo = {};
+		queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+		queryPoolInfo.queryType = VK_QUERY_TYPE_PIPELINE_STATISTICS;
+		queryPoolInfo.pipelineStatistics = 
+			VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT | 
+			VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT;
+		queryPoolInfo.queryCount = 2;
+
+		VK_CHECK_RESULT(vkCreateQueryPool(device, &queryPoolInfo, NULL, &queryPool));
+	}
+
+	// Retrieves the results of the pipeline statistics query submitted to the command buffer
+	void getQueryResults()
+	{
+		// We use vkGetQueryResults to copy the results into a host visible buffer
+		vkGetQueryPoolResults(
+			device,
+			queryPool,
+			0,
+			1,
+			sizeof(pipelineStats),
+			pipelineStats,
+			sizeof(uint64_t),
+			VK_QUERY_RESULT_64_BIT);
 	}
 
 	void loadTextures()
@@ -223,6 +287,8 @@ public:
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
+			vkCmdResetQueryPool(drawCmdBuffers[i], queryPool, 0, 2);
+
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
@@ -243,11 +309,16 @@ public:
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skysphere.indexCount, 1, 0, 0, 0);
 
 			// Terrrain
+			// Begin pipeline statistics query			
+			vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, VK_QUERY_CONTROL_PRECISE_BIT);
+			// Render
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.terrain);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.terrain, 0, 1, &descriptorSets.terrain, 0, NULL);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.object.vertices.buf, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.object.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
+			// End pipeline statistics query
+			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -285,7 +356,7 @@ public:
 				vertices[index].pos[0] = x * wx + wx / 2.0f - (float)PATCH_SIZE * wx / 2.0f;
 				vertices[index].pos[1] = 0.0f;
 				vertices[index].pos[2] = y * wy + wy / 2.0f - (float)PATCH_SIZE * wy / 2.0f;
-				vertices[index].normal = glm::vec3(0.0f, -1.0f, 0.0f);
+				vertices[index].normal = glm::vec3(0.0f, 1.0f, 0.0f);
 				vertices[index].uv = glm::vec2((float)x / PATCH_SIZE, (float)y / PATCH_SIZE) * UV_SCALE;
 			}
 		}
@@ -459,7 +530,7 @@ public:
 			// Binding 1 : Height map
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 				1),
 			// Binding 3 : Terrain texture array layers
 			vkTools::initializers::descriptorSetLayoutBinding(
@@ -685,6 +756,9 @@ public:
 		uboTess.lightPos.y = -0.5f - uboTess.displacementFactor; // todo: Not uesed yet
 		uboTess.viewportDim = glm::vec2((float)width, (float)height);
 
+		frustum.update(uboTess.projection * uboTess.modelview);
+		memcpy(uboTess.frustumPlanes, frustum.planes.data(), sizeof(glm::vec4) * 6);
+
 		float savedFactor = uboTess.tessellationFactor;
 		if (!tessellation)
 		{
@@ -721,6 +795,9 @@ public:
 		// Submit to queue
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
+		// Read query results for displaying in next frame
+		getQueryResults();
+
 		VulkanExampleBase::submitFrame();
 	}
 
@@ -728,8 +805,9 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadMeshes();
-		generateTerrain();
 		loadTextures();
+		generateTerrain();
+		setupQueryResultBuffer();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayouts();
@@ -810,6 +888,10 @@ public:
 		textOverlay->addText("Press \"f\" to toggle wireframe", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("Press \"t\" to toggle tessellation", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #endif
+
+		textOverlay->addText("pipeline stats:", width - 5.0f, 5.0f, VulkanTextOverlay::alignRight);
+		textOverlay->addText("VS:" + std::to_string(pipelineStats[0]), width - 5.0f, 20.0f, VulkanTextOverlay::alignRight);
+		textOverlay->addText("TE:" + std::to_string(pipelineStats[1]), width - 5.0f, 35.0f, VulkanTextOverlay::alignRight);
 	}
 };
 
