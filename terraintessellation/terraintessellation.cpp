@@ -68,7 +68,7 @@ public:
 		glm::vec4 lightPos = glm::vec4(0.0f, -2.0f, 0.0f, 0.0f);
 		glm::vec4 frustumPlanes[6];
 		float displacementFactor = 32.0f;
-		float tessellationFactor = 1.0f;
+		float tessellationFactor = 0.75f;
 		glm::vec2 viewportDim;
 		// Desired size of tessellated quad patch edge
 		float tessellatedEdgeSize = 20.0f;
@@ -117,8 +117,8 @@ public:
 		title = "Vulkan Example - Dynamic terrain tessellation";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
-		camera.setRotation(glm::vec3(-22.0f, 135.0f, 0.6f));
-		camera.setTranslation(glm::vec3(0.0f, 30.0f, 0.0f));
+		camera.setRotation(glm::vec3(-6.0f, -56.0f, 0.0f));
+		camera.setTranslation(glm::vec3(-45.0f, 14.0f, -28.5f));
 		camera.movementSpeed = 7.5f;
 		timerSpeed *= 15.0f;
 		// Support for tessellation shaders is optional, so check first
@@ -210,7 +210,7 @@ public:
 	{
 		textureLoader->loadTexture(getAssetPath() + "textures/skysphere_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.skySphere);
 		// Height data is stored in a one-channel texture
-		textureLoader->loadTexture(getAssetPath() + "textures/terrain_heightmap_r8.ktx", VK_FORMAT_R8_UNORM, &textures.heightMap);
+		textureLoader->loadTexture(getAssetPath() + "textures/terrain_heightmap_r16.ktx", VK_FORMAT_R16_UNORM, &textures.heightMap);
 		// Terrain textures are stored in a texture array with layers corresponding to terrain height
 		textureLoader->loadTextureArray(getAssetPath() + "textures/terrain_texturearray_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.terrainArray);
 

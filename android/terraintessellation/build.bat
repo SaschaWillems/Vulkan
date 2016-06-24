@@ -10,7 +10,7 @@ if %ERRORLEVEL% EQU 0 (
 	xcopy "..\..\data\shaders\terraintessellation\*.*" "assets\shaders\terraintessellation" /Y
 
 	mkdir "assets\textures"
-	xcopy "..\..\data\textures\terrain_heightmap_r8.ktx" "assets\textures" /Y
+	xcopy "..\..\data\textures\terrain_heightmap_r16.ktx" "assets\textures" /Y
 	xcopy "..\..\data\textures\terrain_texturearray_bc3.ktx" "assets\textures" /Y
 	xcopy "..\..\data\textures\skysphere_bc3.ktx" "assets\textures" /Y
 

@@ -38,6 +38,7 @@ adb uninstall de.saschawillems.vulkanMultithreading
 adb uninstall de.saschawillems.vulkanTextoverlay
 adb uninstall de.saschawillems.vulkanDebugmarker
 adb uninstall de.saschawillems.vulkanScenerendering
+adb uninstall de.saschawillems.vulkanTerraintessellation
 goto finish
 
 :exit

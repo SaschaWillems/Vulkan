@@ -31,3 +31,4 @@ call _build multithreading %1
 call _build textoverlay %1
 call _build debugmarker %1
 call _build scenerendering %1
+call _build terraintessellation %1
