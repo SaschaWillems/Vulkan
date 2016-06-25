@@ -53,7 +53,7 @@ public:
 	} vertices;
 
 	struct {
-		vkMeshLoader::MeshBuffer object;
+		vkMeshLoader::MeshBuffer terrain;
 		vkMeshLoader::MeshBuffer skysphere;
 	} meshes;
 
@@ -134,6 +134,7 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.terrain, nullptr);
 		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		vkDestroyPipeline(device, pipelines.skysphere, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayouts.skysphere, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayouts.terrain, nullptr);
@@ -141,7 +142,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.terrain, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.skysphere, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
+		vkMeshLoader::freeMeshBufferResources(device, &meshes.terrain);
+		vkMeshLoader::freeMeshBufferResources(device, &meshes.skysphere);
 
 		vkDestroyBuffer(device, uniformData.terrainTessellation.buffer, nullptr);
 		vkFreeMemory(device, uniformData.terrainTessellation.memory, nullptr);
@@ -314,9 +316,9 @@ public:
 			// Render
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.terrain);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.terrain, 0, 1, &descriptorSets.terrain, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.object.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.object.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.terrain.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.terrain.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.terrain.indexCount, 1, 0, 0, 0);
 			// End pipeline statistics query
 			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 0);
 
@@ -342,7 +344,7 @@ public:
 		HeightMap(std::string filename, uint32_t patchsize)
 		{
 			gli::texture2D heightTex(gli::load(filename));
-			dim = heightTex.dimensions().x;
+			dim = static_cast<uint32_t>(heightTex.dimensions().x);
 			heightdata = new uint16_t[dim * dim];
 			memcpy(heightdata, heightTex.data(), heightTex.size());
 			this->scale = dim / patchsize;
@@ -436,7 +438,7 @@ public:
 				indices[index + 3] = indices[index] + 1;
 			}
 		}
-		meshes.object.indexCount = (PATCH_SIZE - 1) * (PATCH_SIZE - 1) * 4;
+		meshes.terrain.indexCount = (PATCH_SIZE - 1) * (PATCH_SIZE - 1) * 4;
 
 		uint32_t vertexBufferSize = (PATCH_SIZE * PATCH_SIZE * 4) * sizeof(Vertex);
 		uint32_t indexBufferSize = (w * w * 4) * sizeof(uint32_t);
@@ -469,16 +471,16 @@ public:
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			vertexBufferSize,
 			nullptr,
-			&meshes.object.vertices.buf,
-			&meshes.object.vertices.mem);
+			&meshes.terrain.vertices.buf,
+			&meshes.terrain.vertices.mem);
 
 		createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			indexBufferSize,
 			nullptr,
-			&meshes.object.indices.buf,
-			&meshes.object.indices.mem);
+			&meshes.terrain.indices.buf,
+			&meshes.terrain.indices.mem);
 
 		// Copy from staging buffers
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -489,7 +491,7 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			vertexStaging.buffer,
-			meshes.object.vertices.buf,
+			meshes.terrain.vertices.buf,
 			1,
 			&copyRegion);
 
@@ -497,7 +499,7 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			indexStaging.buffer,
-			meshes.object.indices.buf,
+			meshes.terrain.indices.buf,
 			1,
 			&copyRegion);
 
@@ -551,9 +553,9 @@ public:
 				sizeof(float) * 6);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -567,7 +569,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
 
@@ -656,7 +658,7 @@ public:
 				2,
 				&textures.terrainArray.descriptor),
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
 		// Skysphere
 		allocInfo = vkTools::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.skysphere, 1);
@@ -677,7 +679,7 @@ public:
 				1,
 				&textures.skySphere.descriptor),
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -727,7 +729,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		// We render the terrain as a grid of quad patches
