@@ -342,9 +342,25 @@ public:
 		uint32_t dim;
 		uint32_t scale;
 	public:
+#if defined(__ANDROID__)
+		HeightMap(std::string filename, uint32_t patchsize, AAssetManager* assetManager)
+#else
 		HeightMap(std::string filename, uint32_t patchsize)
+#endif
 		{
+#if defined(__ANDROID__)
+			AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+			assert(asset);
+			size_t size = AAsset_getLength(asset);
+			assert(size > 0);
+			void *textureData = malloc(size);
+			AAsset_read(asset, textureData, size);
+			AAsset_close(asset);
+			gli::texture2D heightTex(gli::load((const char*)textureData, size));
+			free(textureData);
+#else
 			gli::texture2D heightTex(gli::load(filename));
+#endif
 			dim = static_cast<uint32_t>(heightTex.dimensions().x);
 			heightdata = new uint16_t[dim * dim];
 			memcpy(heightdata, heightTex.data(), heightTex.size());
@@ -396,7 +412,11 @@ public:
 		}
 
 		// Calculate normals from height map using a sobel filter
+#if defined(__ANDROID__)
+		HeightMap heightMap(getAssetPath() + "textures/terrain_heightmap_r16.ktx", PATCH_SIZE, androidApp->activity->assetManager);
+#else
 		HeightMap heightMap(getAssetPath() + "textures/terrain_heightmap_r16.ktx", PATCH_SIZE);
+#endif
 		for (auto x = 0; x < PATCH_SIZE; x++)
 		{
 			for (auto y = 0; y < PATCH_SIZE; y++)
