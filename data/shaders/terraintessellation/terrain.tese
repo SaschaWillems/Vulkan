@@ -26,6 +26,8 @@ layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec2 outUV;
 layout (location = 2) out vec3 outViewVec;
 layout (location = 3) out vec3 outLightVec;
+layout (location = 4) out vec3 outEyePos;
+layout (location = 5) out vec3 outWorldPos;
 
 void main()
 {
@@ -50,4 +52,6 @@ void main()
 	// Calculate vectors for lighting based on tessellated position
 	outViewVec = -pos.xyz;
 	outLightVec = normalize(ubo.lightPos.xyz + outViewVec);
+	outWorldPos = pos.xyz;
+	outEyePos = vec3(ubo.modelview * pos);
 }
