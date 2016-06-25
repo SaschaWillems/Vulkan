@@ -11,6 +11,7 @@
 #include <string.h>
 #include <assert.h>
 #include <vector>
+#include <algorithm>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -65,7 +66,7 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 modelview;
-		glm::vec4 lightPos = glm::vec4(0.0f, -2.0f, 0.0f, 0.0f);
+		glm::vec4 lightPos = glm::vec4(-48.0f, -40.0f, 46.0f, 0.0f);
 		glm::vec4 frustumPlanes[6];
 		float displacementFactor = 32.0f;
 		float tessellationFactor = 0.75f;
@@ -117,10 +118,9 @@ public:
 		title = "Vulkan Example - Dynamic terrain tessellation";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
-		camera.setRotation(glm::vec3(-6.0f, -56.0f, 0.0f));
-		camera.setTranslation(glm::vec3(-45.0f, 14.0f, -28.5f));
+		camera.setRotation(glm::vec3(-11.0f, 56.0f, 0.0f));
+		camera.setTranslation(glm::vec3(60.0f, 20.5f, -44.0f));
 		camera.movementSpeed = 7.5f;
-		timerSpeed *= 15.0f;
 		// Support for tessellation shaders is optional, so check first
 		//if (!deviceFeatures.tessellationShader)
 		//{
@@ -331,6 +331,38 @@ public:
 		loadMesh(getAssetPath() + "models/geosphere.obj", &meshes.skysphere, vertexLayout, 1.0f);
 	}
 
+	// Encapsulate height map data for easy sampling
+	struct HeightMap
+	{
+	private:
+		uint16_t *heightdata;
+		uint32_t dim;
+		uint32_t scale;
+	public:
+		HeightMap(std::string filename, uint32_t patchsize)
+		{
+			gli::texture2D heightTex(gli::load(filename));
+			dim = heightTex.dimensions().x;
+			heightdata = new uint16_t[dim * dim];
+			memcpy(heightdata, heightTex.data(), heightTex.size());
+			this->scale = dim / patchsize;
+		};
+
+		~HeightMap()
+		{		
+			delete[] heightdata;
+		}
+
+		float getHeight(uint32_t x, uint32_t y)
+		{
+			glm::ivec2 rpos = glm::ivec2(x, y) * glm::ivec2(scale);
+			rpos.x = std::max(0, std::min(rpos.x, (int)dim-1));
+			rpos.y = std::max(0, std::min(rpos.y, (int)dim-1));
+			rpos /= glm::ivec2(scale);
+			return *(heightdata + (rpos.x + rpos.y * dim) * scale) / 65535.0f;
+		}
+	};
+
 	// Generate a terrain quad patch for feeding to the tessellation control shader
 	void generateTerrain() 
 	{
@@ -356,11 +388,41 @@ public:
 				vertices[index].pos[0] = x * wx + wx / 2.0f - (float)PATCH_SIZE * wx / 2.0f;
 				vertices[index].pos[1] = 0.0f;
 				vertices[index].pos[2] = y * wy + wy / 2.0f - (float)PATCH_SIZE * wy / 2.0f;
-				vertices[index].normal = glm::vec3(0.0f, 1.0f, 0.0f);
 				vertices[index].uv = glm::vec2((float)x / PATCH_SIZE, (float)y / PATCH_SIZE) * UV_SCALE;
 			}
 		}
 
+		// Calculate normals from height map using a sobel filter
+		HeightMap heightMap(getAssetPath() + "textures/terrain_heightmap_r16.ktx", PATCH_SIZE);
+		for (auto x = 0; x < PATCH_SIZE; x++)
+		{
+			for (auto y = 0; y < PATCH_SIZE; y++)
+			{			
+				// Get height samples centered around current position
+				float heights[3][3];
+				for (auto hx = -1; hx <= 1; hx++)
+				{
+					for (auto hy = -1; hy <= 1; hy++)
+					{
+						heights[hx+1][hy+1] = heightMap.getHeight(x + hx, y + hy);
+					}
+				}
+
+				// Calcualte the normal
+				glm::vec3 normal;
+				// Gx sobel filter
+				normal.x = heights[0][0] - heights[2][0] + 2.0f * heights[0][1] - 2.0f * heights[2][1] + heights[0][2] - heights[2][2];
+				// Gy sobel filter
+				normal.z = heights[0][0] + 2.0f * heights[1][0] + heights[2][0] - heights[0][2] - 2.0f * heights[1][2] - heights[2][2];
+				// Calculate missing up component of the normal using the filtered x and y axis
+				// The first value controls the bump strength
+				normal.y = 0.25f * sqrt( 1.0f - normal.x * normal.x - normal.z * normal.z);
+
+				vertices[x + y * PATCH_SIZE].normal = glm::normalize(normal * glm::vec3(2.0f, 1.0f, 2.0f));
+			}
+		}
+
+		// Indices
 		const uint32_t w = (PATCH_SIZE - 1);
 		uint32_t *indices = new uint32_t[w * w * 4];
 		for (auto x = 0; x < w; x++)
@@ -374,7 +436,6 @@ public:
 				indices[index + 3] = indices[index] + 1;
 			}
 		}
-
 		meshes.object.indexCount = (PATCH_SIZE - 1) * (PATCH_SIZE - 1) * 4;
 
 		uint32_t vertexBufferSize = (PATCH_SIZE * PATCH_SIZE * 4) * sizeof(Vertex);
