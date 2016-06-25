@@ -20,10 +20,10 @@ vec3 sampleTerrainLayer()
 	// Define some layer ranges for sampling depending on terrain height
 	vec2 layers[6];
 	layers[0] = vec2(-10.0, 10.0);
-	layers[1] = vec2(5.0, 35.0);
-	layers[2] = vec2(30.0, 70.0);
-	layers[3] = vec2(60.0, 95.0);
-	layers[4] = vec2(85.0, 140.0);
+	layers[1] = vec2(5.0, 45.0);
+	layers[2] = vec2(45.0, 80.0);
+	layers[3] = vec2(75.0, 100.0);
+	layers[4] = vec2(95.0, 140.0);
 	layers[5] = vec2(140.0, 190.0);
 
 	vec3 color = vec3(0.0);
