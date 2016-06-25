@@ -397,6 +397,7 @@ void android_main(android_app* state)																\
 #elif defined(__linux__)
 // Linux entry point
 // todo: extract command line arguments
+#define VULKAN_EXAMPLE_MAIN(example, enabledfeatures)												\
 int main(const int argc, const char *argv[])													    \
 {																									\
 	example = new VulkanExample();																	\
