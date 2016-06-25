@@ -54,12 +54,18 @@ VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues
 {
 	std::vector<const char*> enabledExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
+	VkPhysicalDeviceFeatures enabledFeatures = {};
+	enabledFeatures.tessellationShader = true;
+	enabledFeatures.shaderTessellationAndGeometryPointSize = true;
+	enabledFeatures.shaderClipDistance = true;
+	enabledFeatures.shaderCullDistance = true;
+
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.pNext = NULL;
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &requestedQueues;
-	deviceCreateInfo.pEnabledFeatures = NULL;
+	deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
 
 	// enable the debug marker extension if it is present (likely meaning a debugging tool is present)
 	if (vkTools::checkDeviceExtensionPresent(physicalDevice, VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
@@ -72,11 +78,6 @@ VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues
 	{
 		deviceCreateInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
 		deviceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
-	}
-	if (enableValidation)
-	{
-		deviceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount;
-		deviceCreateInfo.ppEnabledLayerNames = vkDebug::validationLayerNames;
 	}
 
 	return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
