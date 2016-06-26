@@ -42,12 +42,12 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 // STB font files can be found at http://nothings.org/stb/font/
 #define STB_FONT_NAME stb_font_consolas_24_latin1
 #define STB_FONT_WIDTH STB_FONT_consolas_24_latin1_BITMAP_WIDTH
-#define STB_FONT_HEIGHT STB_FONT_consolas_24_latin1_BITMAP_HEIGHT 
+#define STB_FONT_HEIGHT STB_FONT_consolas_24_latin1_BITMAP_HEIGHT
 #define STB_FIRST_CHAR STB_FONT_consolas_24_latin1_FIRST_CHAR
 #define STB_NUM_CHARS STB_FONT_consolas_24_latin1_NUM_CHARS
 
 // Max. number of chars the text overlay buffer can hold
-#define MAX_CHAR_COUNT 2048
+#define TEXTOVERLAY_MAX_CHAR_COUNT 2048
 
 // Mostly self-contained text overlay class
 class TextOverlay
@@ -187,7 +187,7 @@ public:
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, cmdBuffers.data()));
 
 		// Vertex buffer
-		VkDeviceSize bufferSize = MAX_CHAR_COUNT * sizeof(glm::vec4);
+		VkDeviceSize bufferSize = TEXTOVERLAY_MAX_CHAR_COUNT * sizeof(glm::vec4);
 
 		VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, bufferSize);
 		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
@@ -260,7 +260,7 @@ public:
 		VkCommandBuffer copyCmd;
 		cmdBufAllocateInfo.commandBufferCount = 1;
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &copyCmd));
-	
+
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 		VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
 
@@ -545,7 +545,7 @@ public:
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 	}
 
-	// Map buffer 
+	// Map buffer
 	void beginTextUpdate()
 	{
 		VK_CHECK_RESULT(vkMapMemory(device, memory, 0, VK_WHOLE_SIZE, 0, (void **)&mapped));
@@ -827,7 +827,7 @@ public:
 		textOverlay->addText(ss.str(), 5.0f, 25.0f, TextOverlay::alignLeft);
 
 		textOverlay->addText(deviceProperties.deviceName, 5.0f, 45.0f, TextOverlay::alignLeft);
-		
+
 		textOverlay->addText("Press \"space\" to toggle text overlay", 5.0f, height - 20.0f, TextOverlay::alignLeft);
 
 		// Display projected cube vertices
@@ -1001,7 +1001,7 @@ public:
 				0,
 				&uniformData.vsScene.descriptor));
 
-		// Binding 1 : Color map 
+		// Binding 1 : Color map
 		writeDescriptorSets.push_back(
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.background,
@@ -1221,8 +1221,8 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x6B:
-		case 0x20:
+		case KEY_NP_PLUS:
+		case KEY_SPACE:
 			textOverlay->visible = !textOverlay->visible;
 		}
 	}
@@ -1262,7 +1262,7 @@ int main(const int argc, const char *argv[])
 #endif
 {
 #if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
+	// Removing this may cause the compiler to omit the main entry point
 	// which would make the application crash at start
 	app_dummy();
 #endif

@@ -774,11 +774,11 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x6B:
+		case KEY_NP_PLUS:
 		case GAMEPAD_BUTTON_R1:
 			switchComputePipeline(1);
 			break;
-		case 0x6D:
+		case KEY_NP_MINUS:
 		case GAMEPAD_BUTTON_L1:
 			switchComputePipeline(-1);
 			break;

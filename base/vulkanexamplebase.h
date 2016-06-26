@@ -50,9 +50,59 @@
 #define GAMEPAD_BUTTON_R1 0x1005
 #define GAMEPAD_BUTTON_START 0x1006
 
+#if defined(__linux__) && !defined(__ANDROID__)
+
+#define KEY_W 25
+#define KEY_A 38
+#define KEY_S 39
+#define KEY_D 40
+
+#define KEY_Q 24
+#define KEY_E 26
+#define KEY_F 41
+#define KEY_B 56
+#define KEY_O 32
+#define KEY_N 57
+#define KEY_T 28
+#define KEY_L 46
+
+#define KEY_LEFT 113
+#define KEY_RIGHT 114
+#define KEY_UP 111
+#define KEY_DOWN 116
+
+#define KEY_SPACE 65
+#define KEY_RETURN 36
+#define KEY_ESC 9
+
+#define KEY_LSHIFT 50
+#define KEY_RSHIFT 62
+
+#define KEY_NP_PLUS 86
+#define KEY_NP_MINUS 82
+
+#else
+
+#define KEY_W 0x57
+#define KEY_S 0x53
+#define KEY_D 0x44
+
+#define KEY_B 0x42
+#define KEY_O 0x4F
+#define KEY_N 0x4E
+#define KEY_T 0x54
+#define KEY_L 0x4C
+
+#define KEY_SPACE 0x20
+
+#define KEY_NP_PLUS 0x6B
+#define KEY_NP_MINUS 0x6D
+
+#endif
+
 class VulkanExampleBase
 {
-private:	
+private:
 	// Set to true when example is created with enabled validation layers
 	bool enableValidation = false;
 	// Set to true when the debug marker extension is detected
@@ -138,7 +188,7 @@ protected:
 	vkTools::VulkanTextureLoader *textureLoader = nullptr;
 	// Returns the base asset path (for shaders, models, textures) depending on the os
 	const std::string getAssetPath();
-public: 
+public:
 	bool prepared = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
@@ -152,7 +202,7 @@ public:
 	float timer = 0.0f;
 	// Multiplier for speeding up (or slowing down) the global timer
 	float timerSpeed = 0.25f;
-	
+
 	bool paused = false;
 
 	bool enableTextOverlay = false;
@@ -172,7 +222,7 @@ public:
 	std::string title = "Vulkan Example";
 	std::string name = "vulkanExample";
 
-	struct 
+	struct
 	{
 		VkImage image;
 		VkDeviceMemory mem;
@@ -186,7 +236,7 @@ public:
 		glm::vec2 axisRight = glm::vec2(0.0f);
 	} gamePadState;
 
-	// OS specific 
+	// OS specific
 #if defined(_WIN32)
 	HWND window;
 	HINSTANCE windowInstance;
@@ -232,7 +282,7 @@ public:
 	// Pure virtual render function (override in derived class)
 	virtual void render() = 0;
 	// Called when view change occurs
-	// Can be overriden in derived class to e.g. update uniform buffers 
+	// Can be overriden in derived class to e.g. update uniform buffers
 	// Containing view dependant matrices
 	virtual void viewChanged();
 	// Called if a key is pressed
@@ -274,7 +324,7 @@ public:
 	// Create command buffers for drawing commands
 	void createCommandBuffers();
 	// Destroy all command buffers and set their handles to VK_NULL_HANDLE
-	// May be necessary during runtime if options are toggled 
+	// May be necessary during runtime if options are toggled
 	void destroyCommandBuffers();
 	// Create command buffer for setup commands
 	void createSetupCommandBuffer();
@@ -296,7 +346,7 @@ public:
 
 	// Load a SPIR-V shader
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
-	
+
 	// Create a buffer, fill it with data (if != NULL) and bind buffer memory
 	VkBool32 createBuffer(
 		VkBufferUsageFlags usageFlags,
@@ -353,14 +403,14 @@ public:
 	virtual void getOverlayText(VulkanTextOverlay * textOverlay);
 
 	// Prepare the frame for workload submission
-	// - Acquires the next image from the swap chain 
+	// - Acquires the next image from the swap chain
 	// - Submits a post present barrier
 	// - Sets the default wait and signal semaphores
 	void prepareFrame();
 
-	// Submit the frames' workload 
+	// Submit the frames' workload
 	// - Submits the text overlay (if enabled)
-	// - 
+	// -
 	void submitFrame();
 
 };

@@ -1113,15 +1113,15 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x6B:
+		case KEY_NP_PLUS:
 		case GAMEPAD_BUTTON_R1:
 			changeBlurScale(0.25f);
 			break;
-		case 0x6D:
+		case KEY_NP_MINUS:
 		case GAMEPAD_BUTTON_L1:
 			changeBlurScale(-0.25f);
 			break;
-		case 0x42:
+		case KEY_B:
 		case GAMEPAD_BUTTON_A:
 			toggleBloom();
 			break;

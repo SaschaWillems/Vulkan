@@ -478,7 +478,7 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x4E:
+		case KEY_N:
 		case GAMEPAD_BUTTON_A:
 			toggleNormals();
 			break;

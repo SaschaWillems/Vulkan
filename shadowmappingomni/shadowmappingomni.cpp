@@ -1068,7 +1068,7 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x44:
+		case KEY_D:
 		case GAMEPAD_BUTTON_A:
 			toggleCubeMapDisplay();
 			break;
