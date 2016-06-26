@@ -54,18 +54,12 @@ VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues
 {
 	std::vector<const char*> enabledExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-	VkPhysicalDeviceFeatures enabledFeatures = {};
-	enabledFeatures.tessellationShader = true;
-	enabledFeatures.shaderTessellationAndGeometryPointSize = true;
-	enabledFeatures.shaderClipDistance = true;
-	enabledFeatures.shaderCullDistance = true;
-
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.pNext = NULL;
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &requestedQueues;
-	deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+	deviceCreateInfo.pEnabledFeatures = nullptr;
 
 	// enable the debug marker extension if it is present (likely meaning a debugging tool is present)
 	if (vkTools::checkDeviceExtensionPresent(physicalDevice, VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
