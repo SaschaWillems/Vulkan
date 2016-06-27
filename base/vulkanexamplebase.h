@@ -50,6 +50,9 @@
 #define GAMEPAD_BUTTON_R1 0x1005
 #define GAMEPAD_BUTTON_START 0x1006
 
+// Function pointer for getting physical device fetures to be enabled
+typedef VkPhysicalDeviceFeatures (*PFN_GetEnabledFeatures)();
+
 class VulkanExampleBase
 {
 private:	
@@ -59,6 +62,9 @@ private:
 	bool enableDebugMarkers = false;
 	// Set tot true if v-sync will be forced for the swapchain
 	bool enableVSync = false;
+	// Device features enabled by the example
+	// If not set, no additional features are enabled (may result in validation layer errors)
+	VkPhysicalDeviceFeatures enabledFeatures = {};
 	// fps timer (one second interval)
 	float fpsTimer = 0.0f;
 	// Create application wide Vulkan instance
@@ -208,7 +214,7 @@ public:
 #endif
 
 	// Default ctor
-	VulkanExampleBase(bool enableValidation);
+	VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatures enabledFeaturesFn = nullptr);
 
 	// dtor
 	~VulkanExampleBase();
@@ -228,7 +234,6 @@ public:
 	void initxcbConnection();
 	void handleEvent(const xcb_generic_event_t *event);
 #endif
-
 	// Pure virtual render function (override in derived class)
 	virtual void render() = 0;
 	// Called when view change occurs
@@ -368,7 +373,7 @@ public:
 // OS specific macros for the example main entry points
 #if defined(_WIN32)
 // Windows entry point
-#define VULKAN_EXAMPLE_MAIN(enabledfeatures)														\
+#define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)						\
 {																									\
@@ -391,7 +396,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 #elif defined(__ANDROID__)
 // Android entry point
 // A note on app_dummy(): This is required as the compiler may otherwise remove the main entry point of the application
-#define VULKAN_EXAMPLE_MAIN(enabledfeatures)														\
+#define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 void android_main(android_app* state)																\
 {																									\
@@ -407,7 +412,7 @@ void android_main(android_app* state)																\
 #elif defined(__linux__)
 // Linux entry point
 // todo: extract command line arguments
-#define VULKAN_EXAMPLE_MAIN( enabledfeatures)														\
+#define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 static void handleEvent(const xcb_generic_event_t *event)											\
 {																									\

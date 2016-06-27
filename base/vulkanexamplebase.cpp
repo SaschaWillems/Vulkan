@@ -59,7 +59,7 @@ VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues
 	deviceCreateInfo.pNext = NULL;
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &requestedQueues;
-	deviceCreateInfo.pEnabledFeatures = nullptr;
+	deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
 
 	// enable the debug marker extension if it is present (likely meaning a debugging tool is present)
 	if (vkTools::checkDeviceExtensionPresent(physicalDevice, VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
@@ -641,35 +641,6 @@ void VulkanExampleBase::prepareFrame()
 {
 	// Acquire the next image from the swap chaing
 	VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
-/*	
-	// Insert a post present image barrier to transform the image back to a
-	// color attachment that our render pass can write to
-	// We always use undefined image layout as the source as it doesn't actually matter
-	// what is done with the previous image contents
-	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
-	VK_CHECK_RESULT(vkBeginCommandBuffer(postPresentCmdBuffer, &cmdBufInfo));
-
-	VkImageMemoryBarrier postPresentBarrier = vkTools::initializers::imageMemoryBarrier();
-	postPresentBarrier.srcAccessMask = 0;
-	postPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	postPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	postPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	postPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	postPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	postPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	postPresentBarrier.image = swapChain.buffers[currentBuffer].image;
-
-	vkCmdPipelineBarrier(
-		postPresentCmdBuffer,
-		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-		0,
-		0, nullptr, 
-		0, nullptr, 
-		1, &postPresentBarrier);
-
-	VK_CHECK_RESULT(vkEndCommandBuffer(postPresentCmdBuffer));
-*/
 
 	// Submit post present image barrier to transform the image back to a color attachment that our render pass can write to
 	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
@@ -712,33 +683,6 @@ void VulkanExampleBase::submitFrame()
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 	}
 
-	// Submit a pre present image barrier to the queue
-	// Transforms the (framebuffer) image layout from color attachment to present(khr) for presenting to the swap chain
-	/*
-	VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
-	VK_CHECK_RESULT(vkBeginCommandBuffer(prePresentCmdBuffer, &cmdBufInfo));
-
-	VkImageMemoryBarrier prePresentBarrier = vkTools::initializers::imageMemoryBarrier();
-	prePresentBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	prePresentBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	prePresentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	prePresentBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	prePresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	prePresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	prePresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	prePresentBarrier.image = swapChain.buffers[currentBuffer].image;
-
-	vkCmdPipelineBarrier(
-		prePresentCmdBuffer,
-		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-		VK_FLAGS_NONE,
-		0, nullptr, // No memory barriers,
-		0, nullptr, // No buffer barriers,
-		1, &prePresentBarrier);
-
-	VK_CHECK_RESULT(vkEndCommandBuffer(prePresentCmdBuffer));
-	*/
 	// Submit pre present image barrier to transform the image from color attachment to present(khr) for presenting to the swap chain
 	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
 	submitInfo.commandBufferCount = 1;
@@ -750,7 +694,7 @@ void VulkanExampleBase::submitFrame()
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
 
-VulkanExampleBase::VulkanExampleBase(bool enableValidation)
+VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatures enabledFeaturesFn)
 {
 	// Check for validation command line flag
 #if defined(_WIN32)
@@ -772,6 +716,11 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 #elif defined(__linux__)
 	initxcbConnection();
 #endif
+
+	if (enabledFeaturesFn != nullptr)
+	{
+		this->enabledFeatures = enabledFeaturesFn();
+	}
 
 #if !defined(__ANDROID__)
 	// Android Vulkan initialization is handled in APP_CMD_INIT_WINDOW event
