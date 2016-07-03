@@ -15,6 +15,11 @@ layout (binding = 0) uniform UBO
 
 layout (location = 0) out vec3 outUV;
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+};
+
 void main() 
 {
 	outUV = vec3(inUV.st, inNormal.z);
