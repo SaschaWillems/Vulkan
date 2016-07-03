@@ -1,5 +1,5 @@
 /*
-* Simple wrapper for getting an index buffer and vertices out of an assimp mesh
+* Mesh loader for creating Vulkan resources from models loaded with ASSIMP
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
@@ -62,6 +62,14 @@ namespace vkMeshLoader
 		MeshBufferInfo indices;
 		uint32_t indexCount;
 		glm::vec3 dim;
+	};
+
+	// Used to set parameters upon mesh creation
+	struct MeshCreateInfo
+	{
+		glm::vec3 center;
+		glm::vec3 scale;
+		glm::vec2 uvscale;
 	};
 
 	// Get vertex size from vertex layout
@@ -349,7 +357,7 @@ public:
 
 			Vertex v(glm::vec3(pPos->x, -pPos->y, pPos->z), 
 				glm::vec2(pTexCoord->x , pTexCoord->y),
-				glm::vec3(pNormal->x, pNormal->y, pNormal->z),
+				glm::vec3(pNormal->x, -pNormal->y, pNormal->z),
 				glm::vec3(pTangent->x, pTangent->y, pTangent->z),
 				glm::vec3(pBiTangent->x, pBiTangent->y, pBiTangent->z),
 				glm::vec3(pColor.r, pColor.g, pColor.b)
@@ -418,11 +426,27 @@ public:
 		VkPhysicalDeviceMemoryProperties deviceMemoryProperties,
 		vkMeshLoader::MeshBuffer *meshBuffer,
 		std::vector<vkMeshLoader::VertexLayout> layout,
-		float scale,
+		vkMeshLoader::MeshCreateInfo *createInfo,
 		bool useStaging,
 		VkCommandBuffer copyCmd,
 		VkQueue copyQueue)
 	{
+		glm::vec3 scale;
+		glm::vec2 uvscale;
+		glm::vec3 center;
+		if (createInfo == nullptr)
+		{
+			scale = glm::vec3(1.0f);
+			uvscale = glm::vec2(1.0f);
+			center = glm::vec3(0.0f);
+		}
+		else
+		{
+			scale = createInfo->scale;
+			uvscale = createInfo->uvscale;
+			center = createInfo->center;
+		}
+
 		std::vector<float> vertexBuffer;
 		for (int m = 0; m < m_Entries.size(); m++)
 		{
@@ -434,9 +458,9 @@ public:
 					// Position
 					if (layoutDetail == vkMeshLoader::VERTEX_LAYOUT_POSITION)
 					{
-						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_pos.x * scale);
-						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_pos.y * scale);
-						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_pos.z * scale);
+						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_pos.x * scale.x + center.x);
+						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_pos.y * scale.y + center.y);
+						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_pos.z * scale.z + center.z);
 					}
 					// Normal
 					if (layoutDetail == vkMeshLoader::VERTEX_LAYOUT_NORMAL)
@@ -448,8 +472,8 @@ public:
 					// Texture coordinates
 					if (layoutDetail == vkMeshLoader::VERTEX_LAYOUT_UV)
 					{
-						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_tex.s);
-						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_tex.t);
+						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_tex.s * uvscale.s);
+						vertexBuffer.push_back(m_Entries[m].Vertices[i].m_tex.t * uvscale.t);
 					}
 					// Color
 					if (layoutDetail == vkMeshLoader::VERTEX_LAYOUT_COLOR)
@@ -633,24 +657,5 @@ public:
 			memcpy(data, indexBuffer.data(), meshBuffer->indices.size);
 			vkUnmapMemory(device, meshBuffer->indices.mem);
 		}
-	}
-
-	// Create vertex and index buffer with given layout
-	void createVulkanBuffers(
-		VkDevice device, 
-		VkPhysicalDeviceMemoryProperties deviceMemoryProperties,
-		vkMeshLoader::MeshBuffer *meshBuffer, 
-		std::vector<vkMeshLoader::VertexLayout> layout, 
-		float scale)
-	{
-		createBuffers(
-			device,
-			deviceMemoryProperties,
-			meshBuffer,
-			layout,
-			scale,
-			false,
-			VK_NULL_HANDLE,
-			VK_NULL_HANDLE);
 	}
 };
