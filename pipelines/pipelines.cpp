@@ -64,7 +64,15 @@ public:
 		VkPipeline toon;
 	} pipelines;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	// Device features to be enabled for this example 
+	static VkPhysicalDeviceFeatures getEnabledFeatures()
+	{
+		VkPhysicalDeviceFeatures enabledFeatures = {};
+		enabledFeatures.wideLines = VK_TRUE;
+		return enabledFeatures;
+	}
+
+	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION, getEnabledFeatures)
 	{
 		zoom = -10.5f;
 		rotation = glm::vec3(-25.0f, 15.0f, 0.0f);
@@ -319,7 +327,8 @@ public:
 
 		std::vector<VkDynamicState> dynamicStateEnables = {
 			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
+			VK_DYNAMIC_STATE_SCISSOR,
+			VK_DYNAMIC_STATE_LINE_WIDTH,
 		};
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
