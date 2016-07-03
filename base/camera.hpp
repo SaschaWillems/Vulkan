@@ -153,8 +153,8 @@ public:
 			camFront = glm::normalize(camFront);
 
 			float moveSpeed = deltaTime * movementSpeed * 2.0f;
-			float rotSpeed = deltaTime * 50.0f;
-
+			float rotSpeed = deltaTime * rotationSpeed * 50.0f;
+			 
 			// Move
 			if (fabsf(axisLeft.y) > deadZone)
 			{
