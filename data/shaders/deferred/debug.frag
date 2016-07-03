@@ -17,6 +17,7 @@ void main()
 	components[0] = texture(samplerPosition, inUV.st).rgb;  
 	components[1] = texture(samplerNormal, inUV.st).rgb;  
 	components[2] = texture(samplerAlbedo, inUV.st).rgb;  
+	// Uncomment to display specular component
 	//components[2] = vec3(texture(samplerAlbedo, inUV.st).a);  
 	
 	// Select component depending on z coordinate of quad
