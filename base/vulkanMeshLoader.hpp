@@ -357,7 +357,7 @@ public:
 
 			Vertex v(glm::vec3(pPos->x, -pPos->y, pPos->z), 
 				glm::vec2(pTexCoord->x , pTexCoord->y),
-				glm::vec3(pNormal->x, -pNormal->y, pNormal->z),
+				glm::vec3(pNormal->x, pNormal->y, pNormal->z),
 				glm::vec3(pTangent->x, pTangent->y, pTangent->z),
 				glm::vec3(pBiTangent->x, pBiTangent->y, pBiTangent->z),
 				glm::vec3(pColor.r, pColor.g, pColor.b)
