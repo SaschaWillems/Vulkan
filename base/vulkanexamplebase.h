@@ -426,6 +426,7 @@ static void handleEvent(const xcb_generic_event_t *event)											\
 	{																								\
 		vulkanExample->handleEvent(event);															\
 	}																								\
+}																									\
 int main(const int argc, const char *argv[])													    \
 {																									\
 	vulkanExample = new VulkanExample();															\
