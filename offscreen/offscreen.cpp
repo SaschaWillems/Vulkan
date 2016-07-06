@@ -789,13 +789,14 @@ public:
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.debug));
 
-		// Flip culling
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-
 		// Mirror
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/offscreen/mirror.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/offscreen/mirror.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.mirror));
+
+		// Flip culling
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
 		// Phong shading pipelines
 		pipelineCreateInfo.layout = pipelineLayouts.shaded;

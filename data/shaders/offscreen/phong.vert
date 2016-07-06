@@ -22,6 +22,7 @@ layout (location = 3) out vec3 outLightVec;
 out gl_PerVertex
 {
 	vec4 gl_Position;
+	float gl_ClipDistance[];
 };
 
 void main() 
@@ -33,8 +34,6 @@ void main()
 	outLightVec = normalize(ubo.lightPos.xyz - outEyePos);
 
 	// Clip against reflection plane
-	//vec4 clipPlane = vec4(0.0, -1.0, 0.0, 0.0);
-	
-	//gl_ClipDistance[0] = dot(inPos, clipPlane);
-	
+	vec4 clipPlane = vec4(0.0, -1.0, 0.0, 1.5);	
+	gl_ClipDistance[0] = dot(inPos, clipPlane);	
 }
