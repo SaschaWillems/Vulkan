@@ -661,6 +661,8 @@ void android_main(android_app* state)
 #elif defined(__linux__)
 // Linux entry point
 int main(const int argc, const char *argv[])
+#else
+#error Vulkan not supported by platform
 #endif
 {
 #if defined(__ANDROID__)
