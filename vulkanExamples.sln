@@ -71,6 +71,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scenerendering", "scenerend
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "terraintessellation", "terraintessellation\terraintessellation.vcxproj", "{6C6E48B1-5946-4754-9E31-E1C989EC25FE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "deferredshadows", "deferredshadows\deferredshadows.vcxproj", "{BFEB15A3-D252-4AF7-8CA8-B9396F374DDB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -213,6 +215,10 @@ Global
 		{6C6E48B1-5946-4754-9E31-E1C989EC25FE}.Debug|x64.Build.0 = Debug|x64
 		{6C6E48B1-5946-4754-9E31-E1C989EC25FE}.Release|x64.ActiveCfg = Release|x64
 		{6C6E48B1-5946-4754-9E31-E1C989EC25FE}.Release|x64.Build.0 = Release|x64
+		{BFEB15A3-D252-4AF7-8CA8-B9396F374DDB}.Debug|x64.ActiveCfg = Debug|x64
+		{BFEB15A3-D252-4AF7-8CA8-B9396F374DDB}.Debug|x64.Build.0 = Debug|x64
+		{BFEB15A3-D252-4AF7-8CA8-B9396F374DDB}.Release|x64.ActiveCfg = Release|x64
+		{BFEB15A3-D252-4AF7-8CA8-B9396F374DDB}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
