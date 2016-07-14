@@ -91,6 +91,35 @@ namespace vkMeshLoader
 		return vSize;
 	}
 
+	// Generate vertex attribute descriptions for a layout at the given binding point
+	// Note: Always assumes float formats
+	static void getVertexInputAttributeDescriptions(std::vector<vkMeshLoader::VertexLayout> layout, std::vector<VkVertexInputAttributeDescription> &attributeDescriptions, uint32_t binding)
+	{
+		uint32_t offset = 0;
+		uint32_t location = 0;
+		for (auto& layoutDetail : layout)
+		{
+			VkVertexInputAttributeDescription inputAttribDescription = {};
+			inputAttribDescription.binding = binding;
+			inputAttribDescription.location = location;
+			inputAttribDescription.offset = offset;
+
+			switch (layoutDetail)
+			{
+			// UV only has two components
+			case VERTEX_LAYOUT_UV:
+				offset += 2 * sizeof(float);
+				inputAttribDescription.format = VK_FORMAT_R32G32_SFLOAT;
+				break;
+			default:
+				offset += 3 * sizeof(float);
+				inputAttribDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+			}
+			attributeDescriptions.push_back(inputAttribDescription);
+			location++;
+		}
+	}
+
 	// Stores some additonal info and functions for 
 	// specifying pipelines, vertex bindings, etc.
 	class Mesh
