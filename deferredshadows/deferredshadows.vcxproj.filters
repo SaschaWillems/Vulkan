@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{9e89ec36-20e5-4fab-8bb2-2db119827e59}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\base\vulkandebug.cpp">
@@ -38,5 +41,37 @@
     <ClInclude Include="..\base\vulkantools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\base\vulkanframebuffer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\deferredshadows\debug.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferredshadows\debug.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferredshadows\deferred.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferredshadows\deferred.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferredshadows\mrt.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferredshadows\mrt.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferredshadows\shadow.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferredshadows\shadow.geom">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferredshadows\shadow.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

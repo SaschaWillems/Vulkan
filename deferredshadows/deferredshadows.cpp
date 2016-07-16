@@ -20,13 +20,13 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanframebuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
 // Shadowmap properties
 #define SHADOWMAP_DIM 2048
-#define SHADOWMAP_FILTER VK_FILTER_LINEAR
 // 16 bits of depth is enough for such a small scene
 #define SHADOWMAP_FORMAT VK_FORMAT_D32_SFLOAT_S8_UINT
 
@@ -55,7 +55,7 @@ public:
 	// for better shadow map precision
 	float zNear = 0.1f;
 	float zFar = 64.0f;
-	float lightFOV = 75.0f;
+	float lightFOV = 120.0f;
 
 	// Depth bias (and slope) are used to avoid shadowing artefacts
 	float depthBiasConstant = 1.25f;
@@ -141,44 +141,12 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	// todo : move to vktools (or separate unit)
-	struct FrameBufferAttachment 
-	{
-		VkImage image;
-		VkDeviceMemory mem;
-		VkImageView view;
-		VkFormat format;
-		bool isDepth = false;
-	};
-
-	// todo : move to vktools (or separate unit) and turn into class
-	struct FrameBuffer
-	{
-		uint32_t width, height;
-		VkFramebuffer frameBuffer;
-		std::vector<FrameBufferAttachment> attachments;
-		VkRenderPass renderPass;
-		VkSampler sampler;
-		void FreeResources(VkDevice device)
-		{
-			for (auto attachment : attachments)
-			{
-				vkDestroyImage(device, attachment.image, nullptr);
-				vkDestroyImageView(device, attachment.view, nullptr);
-				vkFreeMemory(device, attachment.mem, nullptr);
-			}
-			vkDestroySampler(device, sampler, nullptr);
-			vkDestroyRenderPass(device, renderPass, nullptr);
-			vkDestroyFramebuffer(device, frameBuffer, nullptr);
-		}
-	};
-
 	struct
 	{
 		// Framebuffer resources for the deferred pass
-		FrameBuffer deferred;
+		vk::Framebuffer *deferred;
 		// Framebuffer resources for the shadow pass
-		FrameBuffer shadow;
+		vk::Framebuffer *shadow;
 	} frameBuffers;
 
 	struct {
@@ -209,13 +177,21 @@ public:
 		camera.position = { 2.15f, 0.3f, -8.75f };
 		camera.setRotation(glm::vec3(-0.75f, 12.5f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, zNear, zFar);
+		timerSpeed *= 0.25f;
+		paused = true;
 	}
 
 	~VulkanExample()
 	{
 		// Frame buffers
-		frameBuffers.shadow.FreeResources(device);
-		frameBuffers.deferred.FreeResources(device);
+		if (frameBuffers.deferred)
+		{
+			delete frameBuffers.deferred;
+		}
+		if (frameBuffers.shadow)
+		{
+			delete frameBuffers.shadow;
+		}
 
 		vkDestroyPipeline(device, pipelines.deferred, nullptr);
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
@@ -249,167 +225,6 @@ public:
 		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 	}
 
-	// Create a frame buffer attachment
-	// todo : move into frame buffer class
-	void createAttachment(VkFormat format, VkImageUsageFlagBits usage, FrameBufferAttachment *attachment, VkCommandBuffer layoutCmd, bool depthSample = false)
-	{
-		VkImageAspectFlags aspectMask = 0;
-		VkImageLayout imageLayout;
-
-		attachment->format = format;
-
-		if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-		{
-			aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		}
-		if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-		{
-			aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-			imageLayout = depthSample ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			attachment->isDepth = true;
-		}
-
-		assert(aspectMask > 0);
-
-		VkImageCreateInfo image = vkTools::initializers::imageCreateInfo();
-		image.imageType = VK_IMAGE_TYPE_2D;
-		image.format = format;
-		image.extent.width = frameBuffers.deferred.width;
-		image.extent.height = frameBuffers.deferred.height;
-		image.extent.depth = 1;
-		image.mipLevels = 1;
-		image.arrayLayers = 1;
-		image.samples = VK_SAMPLE_COUNT_1_BIT;
-		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
-
-		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &attachment->image));
-		vkGetImageMemoryRequirements(device, attachment->image, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &attachment->mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, attachment->image, attachment->mem, 0));
-
-		if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-		{
-			// Set the initial layout to shader read instead of attachment 
-			// This is done as the render loop does the actualy image layout transitions
-			vkTools::setImageLayout(
-				layoutCmd,
-				attachment->image,
-				aspectMask,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		}
-		else
-		{
-			vkTools::setImageLayout(
-				layoutCmd,
-				attachment->image,
-				aspectMask,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				imageLayout);
-		}
-
-		VkImageViewCreateInfo imageView = vkTools::initializers::imageViewCreateInfo();
-		imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageView.format = format;
-		imageView.subresourceRange = {};
-		imageView.subresourceRange.aspectMask = aspectMask;
-		imageView.subresourceRange.baseMipLevel = 0;
-		imageView.subresourceRange.levelCount = 1;
-		imageView.subresourceRange.baseArrayLayer = 0;
-		imageView.subresourceRange.layerCount = 1;
-		imageView.image = attachment->image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &imageView, nullptr, &attachment->view));
-	}
-
-	// Create a layered attachment
-	// todo: not used yet, move into framebuffer class
-	void createLayeredAttachment(VkFormat format, VkImageUsageFlagBits usage, FrameBufferAttachment *attachment, uint32_t layerCount, VkCommandBuffer layoutCmd, bool depthSample = false)
-	{
-		VkImageAspectFlags aspectMask = 0;
-		VkImageLayout imageLayout;
-
-		attachment->format = format;
-
-		if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-		{
-			aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		}
-		if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-		{
-			aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-			imageLayout = depthSample ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		}
-
-		assert(aspectMask > 0);
-
-		VkImageCreateInfo image = vkTools::initializers::imageCreateInfo();
-		image.imageType = VK_IMAGE_TYPE_2D;
-		image.format = format;
-		image.extent.width = frameBuffers.deferred.width;
-		image.extent.height = frameBuffers.deferred.height;
-		image.extent.depth = 1;
-		image.mipLevels = 1;
-		image.arrayLayers = layerCount;
-		image.samples = VK_SAMPLE_COUNT_1_BIT;
-		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
-
-		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &attachment->image));
-		vkGetImageMemoryRequirements(device, attachment->image, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &attachment->mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, attachment->image, attachment->mem, 0));
-
-		VkImageSubresourceRange subresourceRange = {};
-		subresourceRange.aspectMask = aspectMask;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = 1;
-		subresourceRange.layerCount = layerCount;
-
-		if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-		{
-			// Set the initial layout to shader read instead of attachment 
-			// This is done as the render loop does the actualy image layout transitions
-			vkTools::setImageLayout(
-				layoutCmd,
-				attachment->image,
-				aspectMask,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-				subresourceRange);
-		}
-		else
-		{
-			vkTools::setImageLayout(
-				layoutCmd,
-				attachment->image,
-				aspectMask,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				imageLayout,
-				subresourceRange);
-		}
-
-		VkImageViewCreateInfo imageView = vkTools::initializers::imageViewCreateInfo();
-		imageView.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-		imageView.format = format;
-		imageView.subresourceRange = subresourceRange;
-		imageView.image = attachment->image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &imageView, nullptr, &attachment->view));
-	}
-
-
 	// Prepare a layered shadow map with each layer containing depth from a light's point of view
 	// The shadow mapping pass uses geometry shader instancing to output the scene from the different
 	// light sources' point of view to the layers of the depth attachment in one single pass 
@@ -417,121 +232,31 @@ public:
 	{
 		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		frameBuffers.shadow.width = SHADOWMAP_DIM;
-		frameBuffers.shadow.height = SHADOWMAP_DIM;
-		// One layered (depth) attachment
-		frameBuffers.shadow.attachments.resize(1);
+		frameBuffers.shadow = new vk::Framebuffer(&vulkanDevice);
 
-		// Color attachment
-		VkImageCreateInfo image = vkTools::initializers::imageCreateInfo();
-		image.imageType = VK_IMAGE_TYPE_2D;
-		image.format = SHADOWMAP_FORMAT;
-		image.extent.width = frameBuffers.shadow.width;
-		image.extent.height = frameBuffers.shadow.height;
-		image.extent.depth = 1;
-		image.mipLevels = 1;
-		// Use a layererd attachment with one layer per light
-		image.arrayLayers = LIGHT_COUNT;
-		image.samples = VK_SAMPLE_COUNT_1_BIT;
-		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		// Sample directly from the depth attachment for the shadow mapping
-		image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		frameBuffers.shadow->width = SHADOWMAP_DIM;
+		frameBuffers.shadow->height = SHADOWMAP_DIM;
 
-		VkImageViewCreateInfo depthStencilView = vkTools::initializers::imageViewCreateInfo();
-		depthStencilView.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-		depthStencilView.format = SHADOWMAP_FORMAT;
-		depthStencilView.subresourceRange = {};
-		depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		depthStencilView.subresourceRange.baseMipLevel = 0;
-		depthStencilView.subresourceRange.levelCount = 1;
-		depthStencilView.subresourceRange.baseArrayLayer = 0;
-		depthStencilView.subresourceRange.layerCount = LIGHT_COUNT;
-		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &frameBuffers.shadow.attachments[0].image));
-
-		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
-		vkGetImageMemoryRequirements(device, frameBuffers.shadow.attachments[0].image, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &frameBuffers.shadow.attachments[0].mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, frameBuffers.shadow.attachments[0].image, frameBuffers.shadow.attachments[0].mem, 0));
-
-		// Set the initial layout to shader read instead of attachment 
-		// This is done as the render loop does the actualy image layout transitions
-
-		VkImageSubresourceRange subresourceRange = {};
-		subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = 1;
-		subresourceRange.layerCount = LIGHT_COUNT;
-
-		vkTools::setImageLayout(
-			layoutCmd,
-			frameBuffers.shadow.attachments[0].image,
-			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			subresourceRange);
+		// Create a layered depth attachment for rendering the depth maps from the lights' point of view
+		// Each layer corresponds to one of the lights
+		// The actual output to the separate layers is done in the geometry shader using shader instancing
+		// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
+		vk::AttachmentCreateInfo framebufferInfo = {};
+		framebufferInfo.format = SHADOWMAP_FORMAT;
+		framebufferInfo.width = SHADOWMAP_DIM;
+		framebufferInfo.height = SHADOWMAP_DIM;
+		framebufferInfo.layerCount = LIGHT_COUNT;
+		framebufferInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		frameBuffers.shadow->addAttachment(framebufferInfo, layoutCmd);
 
 		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
-		depthStencilView.image = frameBuffers.shadow.attachments[0].image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &frameBuffers.shadow.attachments[0].view));
-
 		// Create sampler to sample from to depth attachment 
 		// Used to sample in the fragment shader for shadowed rendering
-		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
-		sampler.magFilter = SHADOWMAP_FILTER;
-		sampler.minFilter = SHADOWMAP_FILTER;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler.addressModeV = sampler.addressModeU;
-		sampler.addressModeW = sampler.addressModeU;
-		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 0;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = 1.0f;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &frameBuffers.shadow.sampler));
+		VK_CHECK_RESULT(frameBuffers.shadow->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 
-		VkAttachmentDescription attachmentDescription = {};
-		attachmentDescription.format = SHADOWMAP_FORMAT;
-		attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-		attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference attachmentReference = {};
-		attachmentReference.attachment = 0;
-		attachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpass = {};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 0;
-		subpass.pColorAttachments = nullptr;
-		subpass.pDepthStencilAttachment = &attachmentReference;
-
-		VkRenderPassCreateInfo renderPassCreateInfo = vkTools::initializers::renderPassCreateInfo();
-		renderPassCreateInfo.attachmentCount = 1;
-		renderPassCreateInfo.pAttachments = &attachmentDescription;
-		renderPassCreateInfo.subpassCount = 1;
-		renderPassCreateInfo.pSubpasses = &subpass;
-
-		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &frameBuffers.shadow.renderPass));
-
-		// Create frame buffer
-		VkFramebufferCreateInfo fbufCreateInfo = vkTools::initializers::framebufferCreateInfo();
-		fbufCreateInfo.renderPass = frameBuffers.shadow.renderPass;
-		// Only one (layered depth) attachment
-		fbufCreateInfo.attachmentCount = 1;
-		fbufCreateInfo.pAttachments = &frameBuffers.shadow.attachments[0].view;
-		fbufCreateInfo.width = frameBuffers.shadow.width;
-		fbufCreateInfo.height = frameBuffers.shadow.height;
-		fbufCreateInfo.layers = LIGHT_COUNT;
-		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &frameBuffers.shadow.frameBuffer));
+		// Create default renderpass for the framebuffer
+		VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass());
 	}
 
 	// Prepare the framebuffer for offscreen rendering with multiple attachments used as render targets inside the fragment shaders
@@ -539,33 +264,30 @@ public:
 	{
 		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		frameBuffers.deferred.width = FB_DIM;
-		frameBuffers.deferred.height = FB_DIM;
+		frameBuffers.deferred = new vk::Framebuffer(&vulkanDevice);
+
+		frameBuffers.deferred->width = FB_DIM;
+		frameBuffers.deferred->height = FB_DIM;
 
 		// Four attachments (3 color, 1 depth)
-		frameBuffers.deferred.attachments.resize(4);
+		vk::AttachmentCreateInfo framebufferInfo = {};
+		framebufferInfo.width = FB_DIM;
+		framebufferInfo.height = FB_DIM;
+		framebufferInfo.layerCount = 1;
+		framebufferInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		// Color attachments
 		// Attachment 0: (World space) Positions
-		createAttachment(
-			VK_FORMAT_R16G16B16A16_SFLOAT,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&frameBuffers.deferred.attachments[0],
-			layoutCmd);
+		framebufferInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		frameBuffers.deferred->addAttachment(framebufferInfo, layoutCmd);
 
 		// Attachment 1: (World space) Normals
-		createAttachment(
-			VK_FORMAT_R16G16B16A16_SFLOAT,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&frameBuffers.deferred.attachments[1],
-			layoutCmd);
+		framebufferInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		frameBuffers.deferred->addAttachment(framebufferInfo, layoutCmd);
 
-		// Attachment 1: Albedo (color)
-		createAttachment(
-			VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&frameBuffers.deferred.attachments[2],
-			layoutCmd);
+		// Attachment 2: Albedo (color)
+		framebufferInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+		frameBuffers.deferred->addAttachment(framebufferInfo, layoutCmd);
 
 		// Depth attachment
 		// Find a suitable depth format
@@ -573,94 +295,17 @@ public:
 		VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &attDepthFormat);
 		assert(validDepthFormat);
 
-		createAttachment(
-			attDepthFormat,
-			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-			&frameBuffers.deferred.attachments[3],
-			layoutCmd);
+		framebufferInfo.format = attDepthFormat;
+		framebufferInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		frameBuffers.deferred->addAttachment(framebufferInfo, layoutCmd);
 
 		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
-		// Set up separate renderpass with references
-		// to the color and depth attachments
-
-		std::array<VkAttachmentDescription, 4> attachmentDescs = {};
-
-		// Init attachment properties
-		for (uint32_t i = 0; i < 4; ++i)
-		{
-			attachmentDescs[i].samples = VK_SAMPLE_COUNT_1_BIT;
-			attachmentDescs[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			attachmentDescs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachmentDescs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			attachmentDescs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			attachmentDescs[i].format = frameBuffers.deferred.attachments[i].format;
-			if (i == 3)
-			{
-				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			}
-			else
-			{
-				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			}
-		}
-
-		std::vector<VkAttachmentReference> colorReferences;
-		colorReferences.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-		colorReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-		colorReferences.push_back({ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-
-		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 3;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpass = {};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.pColorAttachments = colorReferences.data();
-		subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
-		subpass.pDepthStencilAttachment = &depthReference;
-
-		VkRenderPassCreateInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.pAttachments = attachmentDescs.data();
-		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescs.size());
-		renderPassInfo.subpassCount = 1;
-		renderPassInfo.pSubpasses = &subpass;
-		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &frameBuffers.deferred.renderPass));
-
-		std::vector<VkImageView> attachments;
-		for (auto attachment : frameBuffers.deferred.attachments)
-		{
-			attachments.push_back(attachment.view);
-		}
-
-		VkFramebufferCreateInfo fbufCreateInfo = {};
-		fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		fbufCreateInfo.pNext = NULL;
-		fbufCreateInfo.renderPass = frameBuffers.deferred.renderPass;
-		fbufCreateInfo.pAttachments = attachments.data();
-		fbufCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-		fbufCreateInfo.width = frameBuffers.deferred.width;
-		fbufCreateInfo.height = frameBuffers.deferred.height;
-		fbufCreateInfo.layers = LIGHT_COUNT;
-
-		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &frameBuffers.deferred.frameBuffer));
 		// Create sampler to sample from the color attachments
-		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
-		sampler.magFilter = VK_FILTER_LINEAR;
-		sampler.minFilter = VK_FILTER_LINEAR;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler.addressModeV = sampler.addressModeU;
-		sampler.addressModeW = sampler.addressModeU;
-		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 0;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = 1.0f;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &frameBuffers.deferred.sampler));
+		VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+
+		// Create default renderpass for the framebuffer
+		VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass());
 	}
 
 	// Put render commands for the scene into the given command buffer
@@ -704,10 +349,10 @@ public:
 		
 		clearValues[0].depthStencil = { 1.0f, 0 };
 
-		renderPassBeginInfo.renderPass = frameBuffers.shadow.renderPass;
-		renderPassBeginInfo.framebuffer = frameBuffers.shadow.frameBuffer;
-		renderPassBeginInfo.renderArea.extent.width = frameBuffers.shadow.width;
-		renderPassBeginInfo.renderArea.extent.height = frameBuffers.shadow.height;
+		renderPassBeginInfo.renderPass = frameBuffers.shadow->renderPass;
+		renderPassBeginInfo.framebuffer = frameBuffers.shadow->framebuffer;
+		renderPassBeginInfo.renderArea.extent.width = frameBuffers.shadow->width;
+		renderPassBeginInfo.renderArea.extent.height = frameBuffers.shadow->height;
 		renderPassBeginInfo.clearValueCount = 1;
 		renderPassBeginInfo.pClearValues = clearValues.data();
 
@@ -715,24 +360,18 @@ public:
 
 		// Change back layout of the depth attachment after sampling in the fragment shader
 		// todo: replace with subpass dependency
-		VkImageSubresourceRange subresourceRange = {};
-		subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = 1;
-		subresourceRange.layerCount = LIGHT_COUNT;
-
 		vkTools::setImageLayout(
 			commandBuffers.deferred,
-			frameBuffers.shadow.attachments[0].image,
+			frameBuffers.shadow->attachments[0].image,
 			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			subresourceRange);
+			frameBuffers.shadow->attachments[0].subresourceRange);
 
-		viewport = vkTools::initializers::viewport((float)frameBuffers.shadow.width, (float)frameBuffers.shadow.height, 0.0f, 1.0f);
+		viewport = vkTools::initializers::viewport((float)frameBuffers.shadow->width, (float)frameBuffers.shadow->height, 0.0f, 1.0f);
 		vkCmdSetViewport(commandBuffers.deferred, 0, 1, &viewport);
 
-		scissor = vkTools::initializers::rect2D(frameBuffers.shadow.width, frameBuffers.shadow.height, 0, 0);
+		scissor = vkTools::initializers::rect2D(frameBuffers.shadow->width, frameBuffers.shadow->height, 0, 0);
 		vkCmdSetScissor(commandBuffers.deferred, 0, 1, &scissor);
 
 		// Set depth bias (aka "Polygon offset")
@@ -751,20 +390,20 @@ public:
 		// todo: replace with subpass dependency
 		vkTools::setImageLayout(
 			commandBuffers.deferred,
-			frameBuffers.shadow.attachments[0].image,
+			frameBuffers.shadow->attachments[0].image,
 			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			subresourceRange);
+			frameBuffers.shadow->attachments[0].subresourceRange);
 
 		// Deferred pass second 
 		// -------------------------------------------------------------------------------------------------------
 
 		// Change back layout of the color attachments after sampling in the fragment shader
 		// todo: replace with subpass dependency
-		for (auto attachment : frameBuffers.deferred.attachments)
+		for (auto attachment : frameBuffers.deferred->attachments)
 		{
-			if (!attachment.isDepth)
+			if (!attachment.hasDepth())
 			{
 				vkTools::setImageLayout(
 					commandBuffers.deferred,
@@ -781,19 +420,19 @@ public:
 		clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 		clearValues[3].depthStencil = { 1.0f, 0 };
 
-		renderPassBeginInfo.renderPass = frameBuffers.deferred.renderPass;
-		renderPassBeginInfo.framebuffer = frameBuffers.deferred.frameBuffer;
-		renderPassBeginInfo.renderArea.extent.width = frameBuffers.deferred.width;
-		renderPassBeginInfo.renderArea.extent.height = frameBuffers.deferred.height;
+		renderPassBeginInfo.renderPass = frameBuffers.deferred->renderPass;
+		renderPassBeginInfo.framebuffer = frameBuffers.deferred->framebuffer;
+		renderPassBeginInfo.renderArea.extent.width = frameBuffers.deferred->width;
+		renderPassBeginInfo.renderArea.extent.height = frameBuffers.deferred->height;
 		renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 		renderPassBeginInfo.pClearValues = clearValues.data();
 
 		vkCmdBeginRenderPass(commandBuffers.deferred, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		viewport = vkTools::initializers::viewport((float)frameBuffers.deferred.width, (float)frameBuffers.deferred.height, 0.0f, 1.0f);
+		viewport = vkTools::initializers::viewport((float)frameBuffers.deferred->width, (float)frameBuffers.deferred->height, 0.0f, 1.0f);
 		vkCmdSetViewport(commandBuffers.deferred, 0, 1, &viewport);
 
-		scissor = vkTools::initializers::rect2D(frameBuffers.deferred.width, frameBuffers.deferred.height, 0, 0);
+		scissor = vkTools::initializers::rect2D(frameBuffers.deferred->width, frameBuffers.deferred->height, 0, 0);
 		vkCmdSetScissor(commandBuffers.deferred, 0, 1, &scissor);
 
 		vkCmdBindPipeline(commandBuffers.deferred, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
@@ -802,9 +441,9 @@ public:
 
 		// Change back layout of the color attachments after sampling in the fragment shader
 		// todo: replace with subpass dependency
-		for (auto attachment : frameBuffers.deferred.attachments)
+		for (auto attachment : frameBuffers.deferred->attachments)
 		{
-			if (!attachment.isDepth)
+			if (!attachment.hasDepth())
 			{
 				vkTools::setImageLayout(
 					commandBuffers.deferred,
@@ -822,8 +461,8 @@ public:
 	{
 		textureLoader->loadTexture(getAssetPath() + "models/armor/colormap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.model.colorMap);
 		textureLoader->loadTexture(getAssetPath() + "models/armor/normalmap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.model.normalMap);
-		textureLoader->loadTexture(getAssetPath() + "textures/pattern57_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.background.colorMap);
-		textureLoader->loadTexture(getAssetPath() + "textures/pattern57_normal_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.background.normalMap);
+		textureLoader->loadTexture(getAssetPath() + "textures/pattern_57_diffuse_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.background.colorMap);
+		textureLoader->loadTexture(getAssetPath() + "textures/pattern_57_normal_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.background.normalMap);
 	}
 
 	void reBuildCommandBuffers()
@@ -1077,26 +716,26 @@ public:
 		// Image descriptors for the offscreen color attachments
 		VkDescriptorImageInfo texDescriptorPosition =
 			vkTools::initializers::descriptorImageInfo(
-				frameBuffers.deferred.sampler,
-				frameBuffers.deferred.attachments[0].view,
+				frameBuffers.deferred->sampler,
+				frameBuffers.deferred->attachments[0].view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		VkDescriptorImageInfo texDescriptorNormal =
 			vkTools::initializers::descriptorImageInfo(
-				frameBuffers.deferred.sampler,
-				frameBuffers.deferred.attachments[1].view,
+				frameBuffers.deferred->sampler,
+				frameBuffers.deferred->attachments[1].view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		VkDescriptorImageInfo texDescriptorAlbedo =
 			vkTools::initializers::descriptorImageInfo(
-				frameBuffers.deferred.sampler,
-				frameBuffers.deferred.attachments[2].view,
+				frameBuffers.deferred->sampler,
+				frameBuffers.deferred->attachments[2].view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		VkDescriptorImageInfo texDescriptorShadowMap =
 			vkTools::initializers::descriptorImageInfo(
-				frameBuffers.shadow.sampler,
-				frameBuffers.shadow.attachments[0].view,
+				frameBuffers.shadow->sampler,
+				frameBuffers.shadow->attachments[0].view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		writeDescriptorSets = {
@@ -1290,7 +929,7 @@ public:
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/deferredshadows/mrt.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Separate render pass
-		pipelineCreateInfo.renderPass = frameBuffers.deferred.renderPass;
+		pipelineCreateInfo.renderPass = frameBuffers.deferred->renderPass;
 
 		// Separate layout
 		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
@@ -1321,7 +960,7 @@ public:
 		pipelineCreateInfo.pStages = shadowStages.data();
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shadowStages.size());
 		
-		// Shadow pass doesn't use a color attachment
+		// Shadow pass doesn't use any color attachments
 		colorBlendState.attachmentCount = 0;
 		colorBlendState.pAttachments = nullptr;
 		// Cull front faces
@@ -1334,11 +973,10 @@ public:
 		dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 		// Reset blend attachment state
-		colorBlendState = vkTools::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-		pipelineCreateInfo.renderPass = frameBuffers.shadow.renderPass;
+		pipelineCreateInfo.renderPass = frameBuffers.shadow->renderPass;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.shadowpass));
 	}
 
@@ -1390,6 +1028,10 @@ public:
 		uboOffscreenVS.instancePos[1] = glm::vec4(-4.0f, 0.0, -4.0f, 0.0f);
 		uboOffscreenVS.instancePos[2] = glm::vec4(4.0f, 0.0, -4.0f, 0.0f);
 
+		uboOffscreenVS.instancePos[1] = glm::vec4(-7.0f, 0.0, -4.0f, 0.0f);
+		uboOffscreenVS.instancePos[2] = glm::vec4(4.0f, 0.0, -6.0f, 0.0f);
+
+
 		// Update
 		updateUniformBuffersScreen();
 		updateUniformBufferDeferredMatrices();
@@ -1431,7 +1073,7 @@ public:
 	{
 		std::vector<glm::vec4> lightPositions =
 		{
-			glm::vec4(-14.0f, -0.0f, 15.0f, 0.0f),
+			glm::vec4(-14.0f, -0.5f, 15.0f, 0.0f),
 			glm::vec4(14.0f, -4.0f, 12.0f, 0.0f),
 			glm::vec4(0.0f, -10.0f, 4.0f, 0.0f)
 		};
@@ -1448,6 +1090,17 @@ public:
 			glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
 		};
 
+		// Animate
+		// todo: wip
+		lightPositions[0].x = -14.0f + abs(sin(glm::radians(timer * 360.0f)) * 20.0f);
+		lightPositions[0].z = 15.0f + cos(glm::radians(timer *360.0f)) * 1.0f;
+
+		lightPositions[1].x = 14.0f - abs(sin(glm::radians(timer * 360.0f)) * 2.5f);
+		lightPositions[1].z = 13.0f + cos(glm::radians(timer *360.0f)) * 4.0f;
+
+		lightPositions[2].x = 0.0f + sin(glm::radians(timer *360.0f)) * 4.0f;
+		lightPositions[2].z = 4.0f + cos(glm::radians(timer *360.0f)) * 2.0f;
+
 		for (uint32_t i = 0; i < static_cast<uint32_t>(lightPositions.size()); i++)
 		{
 			Light *light = &uboFragmentLights.lights[i];
@@ -1462,7 +1115,7 @@ public:
 			glm::mat4 shadowModel = glm::mat4();
 
 			uboShadowGS.mvp[i] = shadowProj * shadowView * shadowModel;
-			light->viewMatrix = uboShadowGS.mvp[i];
+			light->viewMatrix = uboShadowGS.mvp[i];		
 		}
 
 		uint8_t *pData;
@@ -1536,7 +1189,8 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		//updateUniformBufferDeferredLights();
+		if (!paused)
+			updateUniformBufferDeferredLights();
 	}
 
 	virtual void viewChanged()

@@ -33,7 +33,7 @@ void main()
 	highp int index = int(inUV.z);
 	if (index == 2)
 	{
-		float depth = texture(samplerDepth, vec3(inUV.st, 0.0)).r;
+		float depth = texture(samplerDepth, vec3(inUV.st, 2.0)).r;
 		outFragColor = vec4(vec3(1.0-LinearizeDepth(depth)), 1.0);
 	}
 	else

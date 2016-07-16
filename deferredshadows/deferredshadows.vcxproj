@@ -87,7 +87,19 @@
   <ItemGroup>
     <ClInclude Include="..\base\vulkandebug.h" />
     <ClInclude Include="..\base\vulkanexamplebase.h" />
+    <ClInclude Include="..\base\vulkanframebuffer.hpp" />
     <ClInclude Include="..\base\vulkantools.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\deferredshadows\debug.frag" />
+    <None Include="..\data\shaders\deferredshadows\debug.vert" />
+    <None Include="..\data\shaders\deferredshadows\deferred.frag" />
+    <None Include="..\data\shaders\deferredshadows\deferred.vert" />
+    <None Include="..\data\shaders\deferredshadows\mrt.frag" />
+    <None Include="..\data\shaders\deferredshadows\mrt.vert" />
+    <None Include="..\data\shaders\deferredshadows\shadow.frag" />
+    <None Include="..\data\shaders\deferredshadows\shadow.geom" />
+    <None Include="..\data\shaders\deferredshadows\shadow.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

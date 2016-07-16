@@ -539,8 +539,6 @@ public:
 
 		meshBuffer->indexCount = (uint32_t)indexBuffer.size();
 
-		void* data;
-
 		// Use staging buffer to move vertex and index buffer to device local memory
 		if (useStaging && copyQueue != VK_NULL_HANDLE && copyCmd != VK_NULL_HANDLE)
 		{
