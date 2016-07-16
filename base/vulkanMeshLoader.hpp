@@ -32,6 +32,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "vulkandevice.hpp"
+
 #if defined(__ANDROID__)
 #include <android/asset_manager.h>
 #endif
@@ -201,8 +203,10 @@ namespace vkMeshLoader
 }
 
 // Simple mesh class for getting all the necessary stuff from models loaded via ASSIMP
-class VulkanMeshLoader {
+class VulkanMeshLoader 
+{
 private:
+	vk::VulkanDevice *vulkanDevice;
 
 	struct Vertex
 	{
@@ -233,24 +237,6 @@ private:
 		std::vector<Vertex> Vertices;
 		std::vector<unsigned int> Indices;
 	};
-
-	VkBool32 getMemoryType(VkPhysicalDeviceMemoryProperties deviceMemoryProperties, uint32_t typeBits, VkMemoryPropertyFlags properties)
-	{
-		for (uint32_t i = 0; i < 32; i++)
-		{
-			if ((typeBits & 1) == 1)
-			{
-				if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
-				{
-					return i;
-				}
-			}
-			typeBits >>= 1;
-		}
-
-		// todo : throw error
-		return 0;
-	}
 
 public:
 #if defined(__ANDROID__)
@@ -288,6 +274,12 @@ public:
 
 	Assimp::Importer Importer;
 	const aiScene* pScene;
+
+	VulkanMeshLoader(vk::VulkanDevice *vulkanDevice)
+	{
+		assert(vulkanDevice != nullptr);
+		this->vulkanDevice = vulkanDevice;
+	}
 
 	~VulkanMeshLoader()
 	{
@@ -416,7 +408,9 @@ public:
 		}
 	}
 
-	// Clean up vulkan resources used by a mesh
+	/**
+	* Free up all Vulkan resources used by a mesh
+	*/
 	static void freeVulkanResources(VkDevice device, VulkanMeshLoader *mesh)
 	{
 		vkDestroyBuffer(device, mesh->vertexBuffer.buf, nullptr);
@@ -425,34 +419,20 @@ public:
 		vkFreeMemory(device, mesh->indexBuffer.mem, nullptr);
 	}
 
-	VkResult createBuffer(
-		VkDevice device, 
-		VkPhysicalDeviceMemoryProperties deviceMemoryProperties,
-		VkBufferUsageFlags usageFlags, 
-		VkMemoryPropertyFlags memoryPropertyFlags, 
-		VkDeviceSize size, 
-		VkBuffer *buffer, 
-		VkDeviceMemory *memory)
-	{
-		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();	
-		VkMemoryRequirements memReqs;
-
-		VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(usageFlags, size);
-		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, buffer));
-		vkGetBufferMemoryRequirements(device, *buffer, &memReqs);
-		memAllocInfo.allocationSize = memReqs.size;
-		memAllocInfo.memoryTypeIndex = getMemoryType(deviceMemoryProperties, memReqs.memoryTypeBits, memoryPropertyFlags);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, memory));
-		VK_CHECK_RESULT(vkBindBufferMemory(device, *buffer, *memory, 0));
-
-		return VK_SUCCESS;
-	}
-
 	// Create vertex and index buffer with given layout
 	// Note : Only does staging if a valid command buffer and transfer queue are passed
+
+	/**
+	* Create Vulkan buffers for the index and vertex buffer using a vertex layout
+	*
+	* @param meshBuffer Pointer to the mesh buffer containing buffer handles and memory
+	* @param layout Vertex layout for the vertex buffer
+	* @param createInfo Structure containing information for mesh creation time (center, scaling, etc.)
+	* @param useStaging If true, buffers are staged to device local memory
+	* @param copyCmd (Required for staging) Command buffer to put the copy commands into
+	* @param copyQueue (Required for staging) Queue to put copys into
+	*/
 	void createBuffers(
-		VkDevice device,
-		VkPhysicalDeviceMemoryProperties deviceMemoryProperties,
 		vkMeshLoader::MeshBuffer *meshBuffer,
 		std::vector<vkMeshLoader::VertexLayout> layout,
 		vkMeshLoader::MeshCreateInfo *createInfo,
@@ -571,38 +551,26 @@ public:
 			} vertexStaging, indexStaging;
 
 			// Vertex buffer
-			createBuffer(
-				device,
-				deviceMemoryProperties,
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				meshBuffer->vertices.size,
 				&vertexStaging.buffer,
-				&vertexStaging.memory);
-
-			VK_CHECK_RESULT(vkMapMemory(device, vertexStaging.memory, 0, VK_WHOLE_SIZE, 0, &data));
-			memcpy(data, vertexBuffer.data(), meshBuffer->vertices.size);
-			vkUnmapMemory(device, vertexStaging.memory);
+				&vertexStaging.memory,
+				vertexBuffer.data());
 
 			// Index buffer
-			createBuffer(
-				device,
-				deviceMemoryProperties,
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				meshBuffer->indices.size,
 				&indexStaging.buffer,
-				&indexStaging.memory);
-
-			VK_CHECK_RESULT(vkMapMemory(device, indexStaging.memory, 0, VK_WHOLE_SIZE, 0, &data));
-			memcpy(data, indexBuffer.data(), meshBuffer->indices.size);
-			vkUnmapMemory(device, indexStaging.memory);
+				&indexStaging.memory,
+				indexBuffer.data());
 
 			// Create device local target buffers
 			// Vertex buffer
-			createBuffer(
-				device,
-				deviceMemoryProperties,
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				meshBuffer->vertices.size,
@@ -610,9 +578,7 @@ public:
 				&meshBuffer->vertices.mem);
 
 			// Index buffer
-			createBuffer(
-				device,
-				deviceMemoryProperties,
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				meshBuffer->indices.size,
@@ -651,40 +617,30 @@ public:
 			VK_CHECK_RESULT(vkQueueSubmit(copyQueue, 1, &submitInfo, VK_NULL_HANDLE));
 			VK_CHECK_RESULT(vkQueueWaitIdle(copyQueue));
 
-			vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
-			vkFreeMemory(device, vertexStaging.memory, nullptr);
-			vkDestroyBuffer(device, indexStaging.buffer, nullptr);
-			vkFreeMemory(device, indexStaging.memory, nullptr);
+			vkDestroyBuffer(vulkanDevice->device, vertexStaging.buffer, nullptr);
+			vkFreeMemory(vulkanDevice->device, vertexStaging.memory, nullptr);
+			vkDestroyBuffer(vulkanDevice->device, indexStaging.buffer, nullptr);
+			vkFreeMemory(vulkanDevice->device, indexStaging.memory, nullptr);
 		}
 		else
 		{
 			// Generate vertex buffer
-			createBuffer(
-				device,
-				deviceMemoryProperties,
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				meshBuffer->vertices.size,
 				&meshBuffer->vertices.buf,
-				&meshBuffer->vertices.mem);
-
-			VK_CHECK_RESULT(vkMapMemory(device, meshBuffer->vertices.mem, 0, meshBuffer->vertices.size, 0, &data));
-			memcpy(data, vertexBuffer.data(), meshBuffer->vertices.size);
-			vkUnmapMemory(device, meshBuffer->vertices.mem);
+				&meshBuffer->vertices.mem,
+				vertexBuffer.data());
 
 			// Generate index buffer
-			createBuffer(
-				device,
-				deviceMemoryProperties,
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				meshBuffer->indices.size,
 				&meshBuffer->indices.buf,
-				&meshBuffer->indices.mem);
-
-			VK_CHECK_RESULT(vkMapMemory(device, meshBuffer->indices.mem, 0, meshBuffer->indices.size, 0, &data));
-			memcpy(data, indexBuffer.data(), meshBuffer->indices.size);
-			vkUnmapMemory(device, meshBuffer->indices.mem);
+				&meshBuffer->indices.mem,
+				indexBuffer.data());
 		}
 	}
 };

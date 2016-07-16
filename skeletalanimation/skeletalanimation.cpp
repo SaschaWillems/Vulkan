@@ -482,7 +482,7 @@ public:
 	void loadMesh()
 	{
 		skinnedMesh = new SkinnedMesh();
-		skinnedMesh->meshLoader = new VulkanMeshLoader();
+		skinnedMesh->meshLoader = new VulkanMeshLoader(&vulkanDevice);
 #if defined(__ANDROID__)
 		skinnedMesh->meshLoader->assetManager = androidApp->activity->assetManager;
 #endif

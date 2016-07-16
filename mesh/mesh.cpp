@@ -175,7 +175,7 @@ public:
 	// The other example will use the VulkanMesh loader which has some additional functionality for loading meshes
 	void loadMesh()
 	{
-		VulkanMeshLoader *meshLoader = new VulkanMeshLoader();
+		VulkanMeshLoader *meshLoader = new VulkanMeshLoader(&vulkanDevice);
 #if defined(__ANDROID__)
 		meshLoader->assetManager = androidApp->activity->assetManager;
 #endif

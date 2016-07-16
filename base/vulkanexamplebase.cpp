@@ -346,7 +346,7 @@ void VulkanExampleBase::loadMesh(std::string filename, vkMeshLoader::MeshBuffer 
 
 void VulkanExampleBase::loadMesh(std::string filename, vkMeshLoader::MeshBuffer * meshBuffer, std::vector<vkMeshLoader::VertexLayout> vertexLayout, vkMeshLoader::MeshCreateInfo *meshCreateInfo)
 {
-	VulkanMeshLoader *mesh = new VulkanMeshLoader();
+	VulkanMeshLoader *mesh = new VulkanMeshLoader(&vulkanDevice);
 
 #if defined(__ANDROID__)
 	mesh->assetManager = androidApp->activity->assetManager;
@@ -358,8 +358,6 @@ void VulkanExampleBase::loadMesh(std::string filename, vkMeshLoader::MeshBuffer 
 	VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
 
 	mesh->createBuffers(
-		device,
-		deviceMemoryProperties,
 		meshBuffer,
 		vertexLayout,
 		meshCreateInfo,

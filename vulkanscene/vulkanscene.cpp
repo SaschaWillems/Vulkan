@@ -182,10 +182,10 @@ public:
 		};
 
 		// Load meshes for demos scene
-		demoMeshes.logos = new VulkanMeshLoader();
-		demoMeshes.background = new VulkanMeshLoader();
-		demoMeshes.models = new VulkanMeshLoader();
-		demoMeshes.skybox = new VulkanMeshLoader();
+		demoMeshes.logos = new VulkanMeshLoader(&vulkanDevice);
+		demoMeshes.background = new VulkanMeshLoader(&vulkanDevice);
+		demoMeshes.models = new VulkanMeshLoader(&vulkanDevice);
+		demoMeshes.skybox = new VulkanMeshLoader(&vulkanDevice);
 
 #if defined(__ANDROID__)
 		demoMeshes.logos->assetManager = androidApp->activity->assetManager;

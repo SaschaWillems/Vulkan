@@ -585,7 +585,7 @@ public:
 	// Load a model file as separate meshes into a scene
 	void loadModel(std::string filename, Scene *scene)
 	{
-		VulkanMeshLoader *meshLoader = new VulkanMeshLoader();
+		VulkanMeshLoader *meshLoader = new VulkanMeshLoader(&vulkanDevice);
 #if defined(__ANDROID__)
 		meshLoader->assetManager = androidApp->activity->assetManager;
 #endif
