@@ -62,9 +62,9 @@ namespace vk
 	};
 
 	/**
-	* @brief Describes the attributes of a framebuffer to be created
+	* @brief Describes the attributes of an attachment to be created
 	*/
-	struct FramebufferCreateInfo
+	struct AttachmentCreateInfo
 	{
 		uint32_t width, height;
 		uint32_t layerCount;
@@ -124,7 +124,7 @@ namespace vk
 		*
 		* @return Index of the new attachment
 		*/
-		uint32_t addAttachment(vk::FramebufferCreateInfo createinfo, VkCommandBuffer layoutCmd)
+		uint32_t addAttachment(vk::AttachmentCreateInfo createinfo, VkCommandBuffer layoutCmd)
 		{
 			vk::FramebufferAttachment attachment;
 
