@@ -114,32 +114,14 @@ void main()
 
 		// Diffuse lighting.
 		float NdotL = max(0.0, dot(N, L));
-		vec3 diff = /*ubo.lights[i].color.rgb * albedo.rgb */ vec3(NdotL);
+		vec3 diff = vec3(NdotL);
 
 		// Specular lighting.
 		vec3 R = reflect(-L, N);
 		float NdotR = max(0.0, dot(R, V));
-		vec3 spec = /*ubo.lights[i].color.rgb * albedo.a */ vec3(pow(NdotR, 16.0));
+		vec3 spec = vec3(pow(NdotR, 16.0));
 
-		vec4 shadowClip	= ubo.lights[i].viewMatrix * vec4(fragPos, 1.0);
-
-		float shadowFactor;
-		#ifdef USE_PCFA
-			shadowFactor= filterPCF(shadowClip, i);
-		#else
-			shadowFactor = textureProj(shadowClip, i, vec2(0.0));
-		#endif
-
-		//fragcolor += vec3(diff * spotEffect * heightAttenuation);
-		//fragcolor += vec3(diff * spotEffect * heightAttenuation) * shadowFactor * ubo.lights[i].color.rgb;
-		fragcolor += vec3(diff * spotEffect * heightAttenuation) * ubo.lights[i].color.rgb;
-
-		shadow += shadowFactor;
-		//if (shadowFactor > 0.5)
-		//	fragcolor += vec3(0.25);
-		//else
-		//	fragcolor += vec3(1.0-shadowFactor);
-		//fragcolor += (diff + spec) * spotEffect * heightAttenuation * shadowFactor;	
+		fragcolor += vec3((diff + spec) * spotEffect * heightAttenuation) * ubo.lights[i].color.rgb * albedo.rgb ;
 	}    	
 
 	for(int i = 0; i < LIGHT_COUNT; ++i)
@@ -156,5 +138,5 @@ void main()
 		fragcolor *= shadowFactor;
 	}
 
-	outFragColor.rgb = fragcolor;// * shadow;
+	outFragColor.rgb = fragcolor;
 }
