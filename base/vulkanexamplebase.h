@@ -36,6 +36,7 @@
 #include "vulkantools.h"
 #include "vulkandebug.h"
 
+#include "vulkandevice.hpp"
 #include "vulkanswapchain.hpp"
 #include "vulkanTextureLoader.hpp"
 #include "vulkanMeshLoader.hpp"
@@ -60,7 +61,7 @@ private:
 	bool enableValidation = false;
 	// Set to true when the debug marker extension is detected
 	bool enableDebugMarkers = false;
-	// Set tot true if v-sync will be forced for the swapchain
+	// Set to true if v-sync will be forced for the swapchain
 	bool enableVSync = false;
 	// Device features enabled by the example
 	// If not set, no additional features are enabled (may result in validation layer errors)
@@ -69,8 +70,6 @@ private:
 	float fpsTimer = 0.0f;
 	// Create application wide Vulkan instance
 	VkResult createInstance(bool enableValidation);
-	// Create logical Vulkan device based on physical device
-	VkResult createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation);
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
 	// Destination dimensions for resizing the window
@@ -94,8 +93,11 @@ protected:
 	VkPhysicalDeviceFeatures deviceFeatures;
 	// Stores all available memory (type) properties for the physical device
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
-	// Logical device, application's view of the physical device (GPU)
+	/** @brief Logical device, application's view of the physical device (GPU) */
+	// todo: getter? should always point to VulkanDevice->device
 	VkDevice device;
+	/** @brief Encapsulated physical and logical vulkan device */
+	vk::VulkanDevice vulkanDevice;
 	// Handle to the device graphics queue that command buffers are submitted to
 	VkQueue queue;
 	// Color buffer format

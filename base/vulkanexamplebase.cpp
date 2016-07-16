@@ -50,33 +50,6 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
 
-VkResult VulkanExampleBase::createDevice(VkDeviceQueueCreateInfo requestedQueues, bool enableValidation)
-{
-	std::vector<const char*> enabledExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-
-	VkDeviceCreateInfo deviceCreateInfo = {};
-	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.pNext = NULL;
-	deviceCreateInfo.queueCreateInfoCount = 1;
-	deviceCreateInfo.pQueueCreateInfos = &requestedQueues;
-	deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
-
-	// enable the debug marker extension if it is present (likely meaning a debugging tool is present)
-	if (vkTools::checkDeviceExtensionPresent(physicalDevice, VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
-	{
-		enabledExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
-		enableDebugMarkers = true;
-	}
-
-	if (enabledExtensions.size() > 0)
-	{
-		deviceCreateInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
-		deviceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
-	}
-
-	return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
-}
-
 std::string VulkanExampleBase::getWindowTitle()
 {
 	std::string device(deviceProperties.deviceName);
@@ -858,21 +831,27 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	}
 	assert(graphicsQueueIndex < queueCount);
 
-	// Vulkan device
-	std::array<float, 1> queuePriorities = { 0.0f };
-	VkDeviceQueueCreateInfo queueCreateInfo = {};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = graphicsQueueIndex;
-	queueCreateInfo.queueCount = 1;
-	queueCreateInfo.pQueuePriorities = queuePriorities.data();
+	// Vulkan device creation
 
-	VK_CHECK_RESULT(createDevice(queueCreateInfo, enableValidation));
+	// We will be requesting queues from one family only
+	// todo: Multiple queue families for transfer and async compute
+	std::vector<float> queuePriorities = { 0.0f };
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = {};
+	queueCreateInfos.resize(1);
+	queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfos[0].queueFamilyIndex = graphicsQueueIndex;
+	queueCreateInfos[0].queueCount = 1;
+	queueCreateInfos[0].pQueuePriorities = queuePriorities.data();
+
+	VK_CHECK_RESULT(vulkanDevice.create(physicalDevice, queueCreateInfos, enabledFeatures));
+	
+	// Assign device to base class context
+	device = vulkanDevice.device;
 
 	// Store properties (including limits) and features of the phyiscal device
 	// So examples can check against them and see if a feature is actually supported
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
-
 	// Gather physical device memory properties
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
