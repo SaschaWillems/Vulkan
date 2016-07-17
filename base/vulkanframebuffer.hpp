@@ -334,6 +334,16 @@ namespace vk
 				attachmentViews.push_back(attachment.view);
 			}
 
+			// Find. max number of layers across attachments
+			uint32_t maxLayers = 0;
+			for (auto attachment : attachments)
+			{
+				if (attachment.subresourceRange.layerCount > maxLayers)
+				{
+					maxLayers = attachment.subresourceRange.layerCount;
+				}
+			}
+
 			VkFramebufferCreateInfo framebufferInfo = {};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass = renderPass;
@@ -341,7 +351,7 @@ namespace vk
 			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachmentViews.size());
 			framebufferInfo.width = width;
 			framebufferInfo.height = height;
-			framebufferInfo.layers = 1;
+			framebufferInfo.layers = maxLayers;
 			VK_CHECK_RESULT(vkCreateFramebuffer(vulkanDevice->device, &framebufferInfo, nullptr, &framebuffer));
 
 			return VK_SUCCESS;
