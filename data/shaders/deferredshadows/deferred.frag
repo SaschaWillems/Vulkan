@@ -73,7 +73,6 @@ float filterPCF(vec4 sc, float layer)
 	return shadowFactor / count;
 }
 
-
 void main() 
 {
 	// Get G-Buffer values
@@ -112,18 +111,19 @@ void main()
 		float spotEffect = smoothstep(lightCosOuterAngle, lightCosInnerAngle, cosDir);
 		float heightAttenuation = smoothstep(lightRange, 0.0f, dist);
 
-		// Diffuse lighting.
+		// Diffuse lighting
 		float NdotL = max(0.0, dot(N, L));
 		vec3 diff = vec3(NdotL);
 
-		// Specular lighting.
+		// Specular lighting
 		vec3 R = reflect(-L, N);
 		float NdotR = max(0.0, dot(R, V));
-		vec3 spec = vec3(pow(NdotR, 16.0));
+		vec3 spec = vec3(pow(NdotR, 16.0) * albedo.a * 2.5);
 
-		fragcolor += vec3((diff + spec) * spotEffect * heightAttenuation) * ubo.lights[i].color.rgb * albedo.rgb ;
+		fragcolor += vec3((diff + spec) * spotEffect * heightAttenuation) * ubo.lights[i].color.rgb * albedo.rgb;
 	}    	
 
+	// Shadow calculations in a separate pass
 	for(int i = 0; i < LIGHT_COUNT; ++i)
 	{
 		vec4 shadowClip	= ubo.lights[i].viewMatrix * vec4(fragPos, 1.0);

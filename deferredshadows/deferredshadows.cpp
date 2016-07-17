@@ -540,7 +540,7 @@ public:
 
 		vkMeshLoader::MeshCreateInfo meshCreateInfo;
 		meshCreateInfo.scale = glm::vec3(15.0f);
-		meshCreateInfo.uvscale = glm::vec2(2.0f);
+		meshCreateInfo.uvscale = glm::vec2(1.0f, 1.5f);
 		meshCreateInfo.center = glm::vec3(0.0f, 2.3f, 0.0f);
 		loadMesh(getAssetPath() + "models/openbox.dae", &meshes.background, vertexLayout, &meshCreateInfo);
 	}
@@ -1073,13 +1073,14 @@ public:
 	{
 		std::vector<glm::vec4> lightPositions =
 		{
-			glm::vec4(-14.0f, -0.5f, 15.0f, 0.0f),
+			glm::vec4(-14.0f, -0.5f, 15.0f, 0.0f), 
 			glm::vec4(14.0f, -4.0f, 12.0f, 0.0f),
 			glm::vec4(0.0f, -10.0f, 4.0f, 0.0f)
 		};
 		std::vector<glm::vec4> lightColors =
 		{
-			glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+//			glm::vec4(1.0f),
+			glm::vec4(1.0f, 0.5f, 0.5f, 0.0f),
 			glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
 			glm::vec4(1.0f, 1.0f, 1.0f, 0.0f),
 		};
@@ -1091,15 +1092,17 @@ public:
 		};
 
 		// Animate
-		// todo: wip
-		lightPositions[0].x = -14.0f + abs(sin(glm::radians(timer * 360.0f)) * 20.0f);
-		lightPositions[0].z = 15.0f + cos(glm::radians(timer *360.0f)) * 1.0f;
+		if (!paused)
+		{
+			lightPositions[0].x = -14.0f + abs(sin(glm::radians(timer * 360.0f)) * 20.0f);
+			lightPositions[0].z = 15.0f + cos(glm::radians(timer *360.0f)) * 1.0f;
 
-		lightPositions[1].x = 14.0f - abs(sin(glm::radians(timer * 360.0f)) * 2.5f);
-		lightPositions[1].z = 13.0f + cos(glm::radians(timer *360.0f)) * 4.0f;
+			lightPositions[1].x = 14.0f - abs(sin(glm::radians(timer * 360.0f)) * 2.5f);
+			lightPositions[1].z = 13.0f + cos(glm::radians(timer *360.0f)) * 4.0f;
 
-		lightPositions[2].x = 0.0f + sin(glm::radians(timer *360.0f)) * 4.0f;
-		lightPositions[2].z = 4.0f + cos(glm::radians(timer *360.0f)) * 2.0f;
+			lightPositions[2].x = 0.0f + sin(glm::radians(timer *360.0f)) * 4.0f;
+			lightPositions[2].z = 4.0f + cos(glm::radians(timer *360.0f)) * 2.0f;
+		}
 
 		for (uint32_t i = 0; i < static_cast<uint32_t>(lightPositions.size()); i++)
 		{
@@ -1115,7 +1118,7 @@ public:
 			glm::mat4 shadowModel = glm::mat4();
 
 			uboShadowGS.mvp[i] = shadowProj * shadowView * shadowModel;
-			light->viewMatrix = uboShadowGS.mvp[i];		
+			light->viewMatrix = uboShadowGS.mvp[i];
 		}
 
 		uint8_t *pData;
@@ -1127,6 +1130,7 @@ public:
 		vkUnmapMemory(device, uniformData.uboShadowGS.memory);
 
 		uboFragmentLights.viewPos = glm::vec4(uboOffscreenVS.view[3]);
+		uboFragmentLights.viewPos = glm::vec4(camera.position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);;
 	
 		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fsLights.memory, 0, sizeof(uboFragmentLights), 0, (void **)&pData));
 		memcpy(pData, &uboFragmentLights, sizeof(uboFragmentLights));
@@ -1189,7 +1193,7 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		if (!paused)
+		//if (!paused)
 			updateUniformBufferDeferredLights();
 	}
 

@@ -14,23 +14,14 @@ layout (binding = 0) uniform UBO
 } ubo;
 
 layout (location = 0) out vec2 outUV;
-//layout (location = 1) out vec4 outShadowCoord;
 
 out gl_PerVertex
 {
 	vec4 gl_Position;
 };
 
-/*
-const mat4 biasMat = mat4( 
-	0.5, 0.0, 0.0, 0.0,
-	0.0, 0.5, 0.0, 0.0,
-	0.0, 0.0, 1.0, 0.0,
-	0.5, 0.5, 0.0, 1.0 );
-	*/
 void main() 
 {
 	outUV = inUV;
 	gl_Position = ubo.projection * ubo.modelview * vec4(inPos.xyz, 1.0);
-	//outShadowCoord = (biasMat * ubo.lightMVP * ubo.modelview) * vec4(inPos, 1.0);	
 }
