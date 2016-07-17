@@ -14,30 +14,16 @@ layout (location = 0) out vec4 outFragColor;
 
 float LinearizeDepth(float depth)
 {
-  float n = 1.0; // camera z near
-  float f = 96.0; // camera z far
+  float n = 0.1; // camera z near
+  float f = 64.0; // camera z far
   float z = depth;
   return (2.0 * n) / (f + n - z * (f - n));	
 }
 
 void main() 
 {
-	vec3 components[3];
-	components[0] = texture(samplerPosition, inUV.st).rgb;  
-	components[1] = texture(samplerNormal, inUV.st).rgb;  
-	//components[2] = texture(samplerDepth, inUV.st).rgb;  
-	// Uncomment to display specular component
-	//components[2] = vec3(texture(samplerAlbedo, inUV.st).a);  
-	
-	// Select component depending on z coordinate of quad
-	highp int index = int(inUV.z);
-	if (index == 2)
-	{
-		float depth = texture(samplerDepth, vec3(inUV.st, 2.0)).r;
-		outFragColor = vec4(vec3(1.0-LinearizeDepth(depth)), 1.0);
-	}
-	else
-	{
-		outFragColor.rgb = components[index];
-	}
+	// Display depth from light's point-of-view 
+	// inUV.w = number of light source
+	float depth = texture(samplerDepth, vec3(inUV)).r;
+	outFragColor = vec4(vec3(1.0 - LinearizeDepth(depth)), 0.0);
 }

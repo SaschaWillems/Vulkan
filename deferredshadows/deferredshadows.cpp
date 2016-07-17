@@ -26,7 +26,7 @@
 #define ENABLE_VALIDATION false
 
 // Shadowmap properties
-#define SHADOWMAP_DIM 2048
+#define SHADOWMAP_DIM 1024
 // 16 bits of depth is enough for such a small scene
 #define SHADOWMAP_FORMAT VK_FORMAT_D32_SFLOAT_S8_UINT
 
@@ -50,12 +50,13 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool debugDisplay = false;
+	bool enableShadows = true;
 
 	// Keep depth range as small as possible
 	// for better shadow map precision
 	float zNear = 0.1f;
 	float zFar = 64.0f;
-	float lightFOV = 120.0f;
+	float lightFOV = 100.0f;
 
 	// Depth bias (and slope) are used to avoid shadowing artefacts
 	float depthBiasConstant = 1.25f;
@@ -110,6 +111,7 @@ public:
 	struct {
 		glm::vec4 viewPos;
 		Light lights[LIGHT_COUNT];
+		uint32_t useShadows = 1;
 	} uboFragmentLights;
 
 	struct {
@@ -170,7 +172,7 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION, getEnabledFeatures)
 	{
 		enableTextOverlay = true;
-		title = "Vulkan Example - Deferred shading with shadow mapping";
+		title = "Vulkan Example - Deferred shading with shadows (2016 by Sascha Willems)";
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 5.0f;
 		camera.rotationSpeed = 0.25f;
@@ -510,23 +512,18 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.deferred, 0, 1, &descriptorSet, 0, NULL);
 
-			if (debugDisplay)
-			{
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.quad.indexCount, 1, 0, 0, 1);
-				// Move viewport to display final composition in lower right corner
-				viewport.x = viewport.width * 0.5f;
-				viewport.y = viewport.height * 0.5f;
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-			}
-
 			// Final composition as full screen quad
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.deferred);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], 6, 1, 0, 0, 1);
+			vkCmdDrawIndexed(drawCmdBuffers[i], 6, 1, 0, 0, 0);
+
+			if (debugDisplay)
+			{
+				// Visualize depth maps
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);
+				vkCmdDrawIndexed(drawCmdBuffers[i], 6, LIGHT_COUNT, 0, 0, 0);
+			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -545,10 +542,9 @@ public:
 		loadMesh(getAssetPath() + "models/openbox.dae", &meshes.background, vertexLayout, &meshCreateInfo);
 	}
 
+	/** @brief Create a single quad for fullscreen deferred pass and debug passes (debug pass uses instancing for light visualization) */
 	void generateQuads()
 	{
-		// Setup vertices for multiple screen aligned quads
-		// Used for displaying final result and debug 
 		struct Vertex {
 			float pos[3];
 			float uv[2];
@@ -559,22 +555,10 @@ public:
 
 		std::vector<Vertex> vertexBuffer;
 
-		float x = 0.0f;
-		float y = 0.0f;
-		for (uint32_t i = 0; i < 3; i++)
-		{
-			// Last component of normal is used for debug display sampler index
-			vertexBuffer.push_back({ { x + 1.0f, y + 1.0f, 0.0f },{ 1.0f, 1.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, (float)i } });
-			vertexBuffer.push_back({ { x,      y + 1.0f, 0.0f },{ 0.0f, 1.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, (float)i } });
-			vertexBuffer.push_back({ { x,      y,      0.0f },{ 0.0f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, (float)i } });
-			vertexBuffer.push_back({ { x + 1.0f, y,      0.0f },{ 1.0f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, (float)i } });
-			x += 1.0f;
-			if (x > 1.0f)
-			{
-				x = 0.0f;
-				y += 1.0f;
-			}
-		}
+		vertexBuffer.push_back({ { 1.0f, 1.0f, 0.0f },{ 1.0f, 1.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
+		vertexBuffer.push_back({ { 0.0f, 1.0f, 0.0f },{ 0.0f, 1.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
+		vertexBuffer.push_back({ { 0.0f, 0.0f, 0.0f },{ 0.0f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
+		vertexBuffer.push_back({ { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
 
 		createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -1040,14 +1024,7 @@ public:
 
 	void updateUniformBuffersScreen()
 	{
-		if (debugDisplay)
-		{
-			uboVS.projection = glm::ortho(0.0f, 2.0f, 0.0f, 2.0f, -1.0f, 1.0f);
-		}
-		else
-		{
-			uboVS.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-		}
+		uboVS.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
 		uboVS.model = glm::mat4();
 
 		uint8_t *pData;
@@ -1079,7 +1056,6 @@ public:
 		};
 		std::vector<glm::vec4> lightColors =
 		{
-//			glm::vec4(1.0f),
 			glm::vec4(1.0f, 0.5f, 0.5f, 0.0f),
 			glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
 			glm::vec4(1.0f, 1.0f, 1.0f, 0.0f),
@@ -1209,6 +1185,12 @@ public:
 		updateUniformBuffersScreen();
 	}
 
+	void toggleShadows()
+	{
+		uboFragmentLights.useShadows = !uboFragmentLights.useShadows;
+		updateUniformBufferDeferredLights();
+	}
+
 	virtual void keyPressed(uint32_t keyCode)
 	{
 		switch (keyCode)
@@ -1218,24 +1200,23 @@ public:
 			toggleDebugDisplay();
 			updateTextOverlay();
 			break;
+		case 0x71:
+		case GAMEPAD_BUTTON_B:
+			toggleShadows();
+			updateTextOverlay();
+			break;
 		}
 	}
 
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
 #if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to toggle debug display", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button A\" to toggle debug view", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button A\" to toggle shadows", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("Press \"F1\" to toggle debug display", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"F1\" to toggle debug view", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"F2\" to toggle shadows", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #endif
-		// Render targets
-		if (debugDisplay)
-		{
-			textOverlay->addText("World space position", (float)width * 0.25f, (float)height * 0.5f - 25.0f, VulkanTextOverlay::alignCenter);
-			textOverlay->addText("World space normals", (float)width * 0.75f, (float)height * 0.5f - 25.0f, VulkanTextOverlay::alignCenter);
-			textOverlay->addText("Albedo", (float)width * 0.25f, (float)height - 25.0f, VulkanTextOverlay::alignCenter);
-			textOverlay->addText("Final image", (float)width * 0.75f, (float)height - 25.0f, VulkanTextOverlay::alignCenter);
-		}
 	}
 };
 

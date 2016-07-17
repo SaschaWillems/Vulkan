@@ -31,6 +31,7 @@ layout (binding = 4) uniform UBO
 {
 	vec4 viewPos;
 	Light lights[LIGHT_COUNT];
+	int useShadows;
 } ubo;
 
 float textureProj(vec4 P, float layer, vec2 offset)
@@ -124,18 +125,21 @@ void main()
 	}    	
 
 	// Shadow calculations in a separate pass
-	for(int i = 0; i < LIGHT_COUNT; ++i)
+	if (ubo.useShadows > 0)
 	{
-		vec4 shadowClip	= ubo.lights[i].viewMatrix * vec4(fragPos, 1.0);
+		for(int i = 0; i < LIGHT_COUNT; ++i)
+		{
+			vec4 shadowClip	= ubo.lights[i].viewMatrix * vec4(fragPos, 1.0);
 
-		float shadowFactor;
-		#ifdef USE_PCF
-			shadowFactor= filterPCF(shadowClip, i);
-		#else
-			shadowFactor = textureProj(shadowClip, i, vec2(0.0));
-		#endif
+			float shadowFactor;
+			#ifdef USE_PCF
+				shadowFactor= filterPCF(shadowClip, i);
+			#else
+				shadowFactor = textureProj(shadowClip, i, vec2(0.0));
+			#endif
 
-		fragcolor *= shadowFactor;
+			fragcolor *= shadowFactor;
+		}
 	}
 
 	outFragColor.rgb = fragcolor;
