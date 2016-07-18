@@ -208,7 +208,7 @@ public:
 		bool right = false;
 		bool middle = false;
 	} mouseButtons;
-	bool quit;
+	bool quit = false;
 	xcb_connection_t *connection;
 	xcb_screen_t *screen;
 	xcb_window_t window;
