@@ -572,7 +572,6 @@ public:
 			indexbufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
 			// Copy index data to a buffer visible to the host
-			memset(&indices, 0, sizeof(indices));
 			VK_CHECK_RESULT(vkCreateBuffer(device, &indexbufferInfo, nullptr, &indices.buf));
 			vkGetBufferMemoryRequirements(device, indices.buf, &memReqs);
 			memAlloc.allocationSize = memReqs.size;
