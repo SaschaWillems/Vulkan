@@ -26,11 +26,20 @@
 #define ENABLE_VALIDATION false
 
 // Shadowmap properties
+#if defined(__ANDROID__)
 #define SHADOWMAP_DIM 1024
+#else
+#define SHADOWMAP_DIM 2048
+#endif
 // 16 bits of depth is enough for such a small scene
 #define SHADOWMAP_FORMAT VK_FORMAT_D32_SFLOAT_S8_UINT
 
+#if defined(__ANDROID__)
+// Use max. screen dimension as deferred framebuffer size
+#define FB_DIM std::max(width,height) 
+#else
 #define FB_DIM 2048
+#endif
 
 // Must match the LIGHT_COUNT define in the shadow and deferred shaders
 #define LIGHT_COUNT 3
@@ -174,8 +183,12 @@ public:
 		enableTextOverlay = true;
 		title = "Vulkan Example - Deferred shading with shadows (2016 by Sascha Willems)";
 		camera.type = Camera::CameraType::firstperson;
+#if defined(__ANDROID__)
+		camera.movementSpeed = 2.5f;
+#else
 		camera.movementSpeed = 5.0f;
 		camera.rotationSpeed = 0.25f;
+#endif
 		camera.position = { 2.15f, 0.3f, -8.75f };
 		camera.setRotation(glm::vec3(-0.75f, 12.5f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, zNear, zFar);
@@ -1201,7 +1214,7 @@ public:
 			updateTextOverlay();
 			break;
 		case 0x71:
-		case GAMEPAD_BUTTON_B:
+		case GAMEPAD_BUTTON_X:
 			toggleShadows();
 			updateTextOverlay();
 			break;
@@ -1212,7 +1225,7 @@ public:
 	{
 #if defined(__ANDROID__)
 		textOverlay->addText("Press \"Button A\" to toggle debug view", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button A\" to toggle shadows", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"Button X\" to toggle shadows", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #else
 		textOverlay->addText("Press \"F1\" to toggle debug view", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("Press \"F2\" to toggle shadows", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
