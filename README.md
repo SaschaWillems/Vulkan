@@ -175,6 +175,16 @@ Demonstrates the use of multiple render targets to fill a G-Buffer for a deferre
 Deferred shading collects all values (color, normal, position) into different render targets in one pass thanks to multiple render targets, and then does all shading and lighting calculations based on these in screen space, thus allowing for much more light sources than traditional forward renderers.
 <br><br>
 
+## [Deferred shading and shadow mapping](deferredshadows/)
+<img src="./screenshots/deferred_shadows.jpg" height="96px" align="right">
+
+Building on the deferred shading setup this example adds directional shadows using shadow maps from multiple spotlights.
+
+Scene depth from the different light's point-of-view is renderer to a layered depth attachment using only one pass. This is done using multiple geometry shader invocations that allows to output multiple instances of the same geoemtry using different matrices into the layers of the depth attachment.
+
+The final scene compositing pass then samples from the layered depth map to determine if a fragment is shadowed or not.
+<br><br>
+
 ## [Shadow mapping](shadowmapping/)
 <img src="./screenshots/shadowmapping.png" height="96px" align="right">
 
