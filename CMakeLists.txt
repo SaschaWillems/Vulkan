@@ -53,12 +53,12 @@ endfunction(buildExample)
 function(buildExamples)
 	foreach(EXAMPLE ${EXAMPLES})
 		buildExample(${EXAMPLE})
-    endforeach(EXAMPLE)
+	endforeach(EXAMPLE)
 endfunction(buildExamples)
 
 # Compiler specific stuff
 IF(MSVC)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
 ENDIF(MSVC)
 
 IF(WIN32)
@@ -74,13 +74,14 @@ set(EXAMPLES
 	computeshader
 	computeparticles
 	deferred
+	deferredshadows
 	displacement
 	distancefieldfonts
 	gears
 	geometryshader
 	instancing
 	mesh
-    multithreading
+	multithreading
 	multisampling
 	occlusionquery
 	offscreen
