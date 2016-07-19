@@ -44,7 +44,7 @@ namespace vk
 		*/
 		uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties)
 		{
-			for (uint32_t i = 0; i < memoryProperties.memoryTypeCount - 1; i++)
+			for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
 			{
 				if ((typeBits & 1) == 1)
 				{
