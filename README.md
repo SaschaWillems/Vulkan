@@ -15,7 +15,7 @@ If you're using a different IDE or compiler you can use the provided CMakeLists.
 
 ## <img src="./images/linuxlogo.png" alt="" height="32px"> Linux
 
-Use the provided the provided CMakeLists.txt for use with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler.
+Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler.
 
 Note that you need [assimp](https://github.com/assimp/assimp) in order to compile the examples for Linux. Either compile and install from the repository, or install libassimp-dev. The examples require at least version 3.2.
 
@@ -32,9 +32,6 @@ Note that these only contain the binaries, you still need the repository for the
 ## Additional documentation
 
 Additional documentation for several base classes and some Presentations can be found [in this directory](./documentation/additionaldocs.md).
-
-### Presentations
-- [From OpenGL to Vulkan (Khronos Meetup Munich, 2016-04-08)](./documentation/Khronos_meetup_munich_fromGLtoVulkan.pdf)
 
 # Examples
 
