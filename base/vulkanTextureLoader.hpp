@@ -44,7 +44,7 @@ namespace vkTools
 		// Get appropriate memory type index for a memory allocation
 		uint32_t getMemoryType(uint32_t typeBits, VkFlags properties)
 		{
-			for (uint32_t i = 0; i < 32; i++)
+			for (uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++)
 			{
 				if ((typeBits & 1) == 1)
 				{
