@@ -13,6 +13,7 @@
 #include <exception>
 #include "vulkan/vulkan.h"
 #include "vulkantools.h"
+#include "vulkanbuffer.hpp"
 
 namespace vk
 {	
@@ -157,6 +158,54 @@ namespace vk
 			VK_CHECK_RESULT(vkBindBufferMemory(device, *buffer, *memory, 0));
 
 			return VK_SUCCESS;
+		}
+
+		/**
+		* Create a buffer on the device
+		*
+		* @param usageFlags Usage flag bitmask for the buffer (i.e. index, vertex, uniform buffer)
+		* @param memoryPropertyFlags Memory properties for this buffer (i.e. device local, host visible, coherent)
+		* @param buffer Pointer to a vk::Vulkan buffer object
+		* @param size Size of the buffer in byes
+		* @param data Pointer to the data that should be copied to the buffer after creation (optional, if not set, no data is copied over)
+		*
+		* @return VK_SUCCESS if buffer handle and memory have been created and (optionally passed) data has been copied
+		*/
+		VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vk::Buffer *buffer, VkDeviceSize size, void *data = nullptr)
+		{
+			buffer->device = device;
+
+			// Create the buffer handle
+			VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usageFlags, size);
+			VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer->buffer));
+
+			// Create the memory backing up the buffer handle
+			VkMemoryRequirements memReqs;
+			VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
+			vkGetBufferMemoryRequirements(device, buffer->buffer, &memReqs);
+			memAlloc.allocationSize = memReqs.size;
+			// Find a memory type index that fits the properties of the buffer
+			memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &buffer->memory));
+
+			buffer->alignment = memReqs.alignment;
+			buffer->size = memAlloc.allocationSize;
+			buffer->usageFlags = usageFlags;
+			buffer->memoryPropertyFlags = memoryPropertyFlags;
+
+			// If a pointer to the buffer data has been passed, map the buffer and copy over the data
+			if (data != nullptr)
+			{
+				VK_CHECK_RESULT(buffer->map());
+				memcpy(buffer->mapped, data, size);
+				buffer->unmap();
+			}
+
+			// Initialize a default descriptor that covers the whole buffer size
+			buffer->setupDescriptor();
+
+			// Attach the memory to the buffer object
+			return buffer->bind();
 		}
 	};
 }
