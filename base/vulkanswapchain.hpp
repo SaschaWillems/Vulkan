@@ -438,32 +438,11 @@ public:
 	*
 	* @param queue Presentation queue for presenting the image
 	* @param imageIndex Index of the swapchain image to queue for presentation
-	*
-	* @note Does not wait on a semaphore
-	*
-	* @return VkResult of the queue presentation 
-	*/
-	VkResult queuePresent(VkQueue queue, uint32_t imageIndex)
-	{
-		VkPresentInfoKHR presentInfo = {};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.pNext = NULL;
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &swapChain;
-		presentInfo.pImageIndices = &imageIndex;
-		return fpQueuePresentKHR(queue, &presentInfo);
-	}
-
-	/**
-	* Queue an image for presentation
-	*
-	* @param queue Presentation queue for presenting the image
-	* @param imageIndex Index of the swapchain image to queue for presentation
 	* @param waitSemaphore (Optional) Semaphore that is waited on before the image is presented (only used if != VK_NULL_HANDLE)
 	*
 	* @return VkResult of the queue presentation
 	*/
-	VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
+	VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE)
 	{
 		VkPresentInfoKHR presentInfo = {};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
