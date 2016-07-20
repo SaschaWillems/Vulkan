@@ -84,7 +84,7 @@ namespace vk
 	};
 
 	/**
-	* @brief Encaspulates a complete Vulkan framebuffer with an arbitrary number and combination of attachments
+	* @brief Encapsulates a complete Vulkan framebuffer with an arbitrary number and combination of attachments
 	*/
 	struct Framebuffer
 	{

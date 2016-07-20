@@ -1756,5 +1756,5 @@ void VulkanExampleBase::initSwapchain()
 
 void VulkanExampleBase::setupSwapChain()
 {
-	swapChain.create(setupCmdBuffer, &width, &height, enableVSync);
+	swapChain.create(&width, &height, enableVSync);
 }
