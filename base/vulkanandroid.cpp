@@ -32,6 +32,8 @@ PFN_vkCreateBuffer vkCreateBuffer;
 PFN_vkGetBufferMemoryRequirements vkGetBufferMemoryRequirements;
 PFN_vkMapMemory vkMapMemory;
 PFN_vkUnmapMemory vkUnmapMemory;
+PFN_vkFlushMappedMemoryRanges vkFlushMappedMemoryRanges;
+PFN_vkInvalidateMappedMemoryRanges vkInvalidateMappedMemoryRanges;
 PFN_vkBindBufferMemory vkBindBufferMemory;
 PFN_vkDestroyBuffer vkDestroyBuffer;
 PFN_vkAllocateMemory vkAllocateMemory;
@@ -159,6 +161,8 @@ void loadVulkanFunctions(VkInstance instance)
 	vkGetBufferMemoryRequirements = reinterpret_cast<PFN_vkGetBufferMemoryRequirements>(vkGetInstanceProcAddr(instance, "vkGetBufferMemoryRequirements"));
 	vkMapMemory = reinterpret_cast<PFN_vkMapMemory>(vkGetInstanceProcAddr(instance, "vkMapMemory"));
 	vkUnmapMemory = reinterpret_cast<PFN_vkUnmapMemory>(vkGetInstanceProcAddr(instance, "vkUnmapMemory"));
+	vkFlushMappedMemoryRanges = reinterpret_cast<PFN_vkFlushMappedMemoryRanges>(vkGetInstanceProcAddr(instance, "vkFlushMappedMemoryRanges"));
+	vkInvalidateMappedMemoryRanges = reinterpret_cast<PFN_vkInvalidateMappedMemoryRanges>(vkGetInstanceProcAddr(instance, "vkInvalidateMappedMemoryRanges"));
 	vkBindBufferMemory = reinterpret_cast<PFN_vkBindBufferMemory>(vkGetInstanceProcAddr(instance, "vkBindBufferMemory"));
 	vkDestroyBuffer = reinterpret_cast<PFN_vkDestroyBuffer>(vkGetInstanceProcAddr(instance, "vkDestroyBuffer"));
 

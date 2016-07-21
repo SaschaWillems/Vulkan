@@ -62,6 +62,8 @@ extern PFN_vkCreateBuffer vkCreateBuffer;
 extern PFN_vkGetBufferMemoryRequirements vkGetBufferMemoryRequirements;
 extern PFN_vkMapMemory vkMapMemory;
 extern PFN_vkUnmapMemory vkUnmapMemory;
+extern PFN_vkFlushMappedMemoryRanges vkFlushMappedMemoryRanges;
+extern PFN_vkInvalidateMappedMemoryRanges vkInvalidateMappedMemoryRanges;
 extern PFN_vkBindBufferMemory vkBindBufferMemory;
 extern PFN_vkDestroyBuffer vkDestroyBuffer;
 extern PFN_vkAllocateMemory vkAllocateMemory;
