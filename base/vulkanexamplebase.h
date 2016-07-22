@@ -97,7 +97,7 @@ protected:
 	// todo: getter? should always point to VulkanDevice->device
 	VkDevice device;
 	/** @brief Encapsulated physical and logical vulkan device */
-	vk::VulkanDevice vulkanDevice;
+	vk::VulkanDevice *vulkanDevice;
 	// Handle to the device graphics queue that command buffers are submitted to
 	VkQueue queue;
 	// Color buffer format

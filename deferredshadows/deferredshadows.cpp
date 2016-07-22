@@ -247,7 +247,7 @@ public:
 	{
 		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		frameBuffers.shadow = new vk::Framebuffer(&vulkanDevice);
+		frameBuffers.shadow = new vk::Framebuffer(vulkanDevice);
 
 		frameBuffers.shadow->width = SHADOWMAP_DIM;
 		frameBuffers.shadow->height = SHADOWMAP_DIM;
@@ -279,7 +279,7 @@ public:
 	{
 		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		frameBuffers.deferred = new vk::Framebuffer(&vulkanDevice);
+		frameBuffers.deferred = new vk::Framebuffer(vulkanDevice);
 
 		frameBuffers.deferred->width = FB_DIM;
 		frameBuffers.deferred->height = FB_DIM;

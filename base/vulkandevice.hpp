@@ -22,7 +22,7 @@ namespace vk
 		/** @brief Physical device representation */
 		VkPhysicalDevice physicalDevice;
 		/** @brief Logical device representation (application's view of the device) */
-		VkDevice device;
+		VkDevice logicalDevice;
 		/** @brief Properties of the physical device including limits that the application can check against */
 		VkPhysicalDeviceProperties properties;
 		/** @brief Features of the physical device that an application can use to check if a feature is supported */
@@ -34,7 +34,39 @@ namespace vk
 		bool enableDebugMarkers = false;
 
 		/**
-		* Return the index of a memory type that has all the requested property bits set
+		* Default constructor
+		*
+		* @param physicalDevice Phyiscal device that is to be used
+		*/
+		VulkanDevice(VkPhysicalDevice physicalDevice)
+		{
+			assert(physicalDevice);
+			this->physicalDevice = physicalDevice;
+
+			// Store Properties features, limits and properties of the physical device for later use
+			// Device properties also contain limits and sparse properties
+			vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+			// Features should be checked by the examples before using them
+			vkGetPhysicalDeviceFeatures(physicalDevice, &features);
+			// Memory properties are used regularly for creating all kinds of buffer
+			vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+		}
+
+		/** 
+		* Default destructor
+		*
+		* @note Frees the logical device
+		*/
+		~VulkanDevice()
+		{
+			if (logicalDevice)
+			{
+				vkDestroyDevice(logicalDevice, nullptr);
+			}
+		}
+
+		/**
+		* Get the index of a memory type that has all the requested property bits set
 		*
 		* @param typeBits Bitmask with bits set for each memory type supported by the resource to request for (from VkMemoryRequirements)
 		* @param properties Bitmask of properties for the memory type to request
@@ -61,32 +93,21 @@ namespace vk
 			//todo : Exceptions are disabled by default on Android (need to add LOCAL_CPP_FEATURES += exceptions to Android.mk), so for now just return zero
 			return 0;
 #else
-			throw "Could not find a memory type for the passed properties";
+			throw std::runtime_error("Could not find a matching memory type");
 #endif
 		}
 
 		/**
-		* Create the logical device based on the passed physical device
+		* Create the logical device based on the assigned physical device
 		*
-		* @param physicalDevice The physical device for which the logical reprenstation is to be created
 		* @param queueCreateInfos A vector containing queue create infos for all queues to be requested on the device 
 		* @param enabledFeatures Can be used to enable certain features upon device creation
 		* @param useSwapChain Set to false for headless rendering to omit the swapchain device extensions
 		* 
 		* @return VkResult of the device creation call
 		*/
-		VkResult create(VkPhysicalDevice physicalDevice, std::vector<VkDeviceQueueCreateInfo> &queueCreateInfos, VkPhysicalDeviceFeatures enabledFeatures, bool useSwapChain = true)
+		VkResult createLogicalDevice(std::vector<VkDeviceQueueCreateInfo> &queueCreateInfos, VkPhysicalDeviceFeatures enabledFeatures, bool useSwapChain = true)
 		{
-			this->physicalDevice = physicalDevice;
-
-			// Store Properties features, limits and properties of the physical device for later use
-			// Device properties also contain limits and sparse properties
-			vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-			// Features should be checked by the examples before using them
-			vkGetPhysicalDeviceFeatures(physicalDevice, &features);
-			// Memory properties are used regularly for creating all kinds of buffer
-			vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-
 			// Create the logical device representation
 			std::vector<const char*> deviceExtensions;
 			if (useSwapChain)
@@ -115,7 +136,7 @@ namespace vk
 				deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 			}
 
-			return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
+			return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
 		}
 
 		/**
@@ -134,28 +155,28 @@ namespace vk
 		{
 			// Create the buffer handle
 			VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usageFlags, size);
-			VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, buffer));
+			VK_CHECK_RESULT(vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, buffer));
 
 			// Create the memory backing up the buffer handle
 			VkMemoryRequirements memReqs;
 			VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-			vkGetBufferMemoryRequirements(device, *buffer, &memReqs);
+			vkGetBufferMemoryRequirements(logicalDevice, *buffer, &memReqs);
 			memAlloc.allocationSize = memReqs.size;
 			// Find a memory type index that fits the properties of the buffer
 			memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
-			VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, memory));
+			VK_CHECK_RESULT(vkAllocateMemory(logicalDevice, &memAlloc, nullptr, memory));
 			
 			// If a pointer to the buffer data has been passed, map the buffer and copy over the data
 			if (data != nullptr)
 			{
 				void *mapped;
-				VK_CHECK_RESULT(vkMapMemory(device, *memory, 0, size, 0, &mapped));
+				VK_CHECK_RESULT(vkMapMemory(logicalDevice, *memory, 0, size, 0, &mapped));
 				memcpy(mapped, data, size);
-				vkUnmapMemory(device, *memory);
+				vkUnmapMemory(logicalDevice, *memory);
 			}
 
 			// Attach the memory to the buffer object
-			VK_CHECK_RESULT(vkBindBufferMemory(device, *buffer, *memory, 0));
+			VK_CHECK_RESULT(vkBindBufferMemory(logicalDevice, *buffer, *memory, 0));
 
 			return VK_SUCCESS;
 		}
@@ -173,20 +194,20 @@ namespace vk
 		*/
 		VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vk::Buffer *buffer, VkDeviceSize size, void *data = nullptr)
 		{
-			buffer->device = device;
+			buffer->device = logicalDevice;
 
 			// Create the buffer handle
 			VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usageFlags, size);
-			VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer->buffer));
+			VK_CHECK_RESULT(vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer));
 
 			// Create the memory backing up the buffer handle
 			VkMemoryRequirements memReqs;
 			VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-			vkGetBufferMemoryRequirements(device, buffer->buffer, &memReqs);
+			vkGetBufferMemoryRequirements(logicalDevice, buffer->buffer, &memReqs);
 			memAlloc.allocationSize = memReqs.size;
 			// Find a memory type index that fits the properties of the buffer
 			memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
-			VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &buffer->memory));
+			VK_CHECK_RESULT(vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &buffer->memory));
 
 			buffer->alignment = memReqs.alignment;
 			buffer->size = memAlloc.allocationSize;

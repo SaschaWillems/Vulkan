@@ -289,7 +289,7 @@ public:
 	// Loads the mesh with some default flags
 	bool LoadMesh(const std::string& filename) 
 	{
-		int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
+		int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate/* | aiProcess_PreTransformVertices*/ | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
 
 		return LoadMesh(filename, flags);
 	}
@@ -615,10 +615,10 @@ public:
 			VK_CHECK_RESULT(vkQueueSubmit(copyQueue, 1, &submitInfo, VK_NULL_HANDLE));
 			VK_CHECK_RESULT(vkQueueWaitIdle(copyQueue));
 
-			vkDestroyBuffer(vulkanDevice->device, vertexStaging.buffer, nullptr);
-			vkFreeMemory(vulkanDevice->device, vertexStaging.memory, nullptr);
-			vkDestroyBuffer(vulkanDevice->device, indexStaging.buffer, nullptr);
-			vkFreeMemory(vulkanDevice->device, indexStaging.memory, nullptr);
+			vkDestroyBuffer(vulkanDevice->logicalDevice, vertexStaging.buffer, nullptr);
+			vkFreeMemory(vulkanDevice->logicalDevice, vertexStaging.memory, nullptr);
+			vkDestroyBuffer(vulkanDevice->logicalDevice, indexStaging.buffer, nullptr);
+			vkFreeMemory(vulkanDevice->logicalDevice, indexStaging.memory, nullptr);
 		}
 		else
 		{

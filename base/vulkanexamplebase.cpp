@@ -346,7 +346,7 @@ void VulkanExampleBase::loadMesh(std::string filename, vkMeshLoader::MeshBuffer 
 
 void VulkanExampleBase::loadMesh(std::string filename, vkMeshLoader::MeshBuffer * meshBuffer, std::vector<vkMeshLoader::VertexLayout> vertexLayout, vkMeshLoader::MeshCreateInfo *meshCreateInfo)
 {
-	VulkanMeshLoader *mesh = new VulkanMeshLoader(&vulkanDevice);
+	VulkanMeshLoader *mesh = new VulkanMeshLoader(vulkanDevice);
 
 #if defined(__ANDROID__)
 	mesh->assetManager = androidApp->activity->assetManager;
@@ -759,7 +759,7 @@ VulkanExampleBase::~VulkanExampleBase()
 		delete textOverlay;
 	}
 
-	vkDestroyDevice(device, nullptr);
+	delete vulkanDevice;
 
 	if (enableValidation)
 	{
@@ -812,6 +812,8 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	// and want to use another one
 	physicalDevice = physicalDevices[0];
 
+	vulkanDevice = new vk::VulkanDevice(physicalDevice);
+	
 	// Find a queue that supports graphics operations
 	uint32_t graphicsQueueIndex = 0;
 	uint32_t queueCount;
@@ -841,10 +843,10 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	queueCreateInfos[0].queueCount = 1;
 	queueCreateInfos[0].pQueuePriorities = queuePriorities.data();
 
-	VK_CHECK_RESULT(vulkanDevice.create(physicalDevice, queueCreateInfos, enabledFeatures));
+	VK_CHECK_RESULT(vulkanDevice->createLogicalDevice(queueCreateInfos, enabledFeatures));
 	
 	// Assign device to base class context
-	device = vulkanDevice.device;
+	device = vulkanDevice->logicalDevice;
 
 	// Store properties (including limits) and features of the phyiscal device
 	// So examples can check against them and see if a feature is actually supported
