@@ -33,6 +33,13 @@ namespace vk
 		/** @brief Set to true when the debug marker extension is detected */
 		bool enableDebugMarkers = false;
 
+		/**  @brief Contains queue family indices */
+		struct
+		{
+			uint32_t graphics = 0;
+			uint32_t compute = 0;
+		} queueFamilyIndices;
+
 		/**
 		* Default constructor
 		*
@@ -98,6 +105,51 @@ namespace vk
 		}
 
 		/**
+		* Get the index of a queue family that supports the requested queue flags
+		*
+		* @param queueFlags Queue flags to find a queue family index for
+		*
+		* @return INdex
+		*
+		* @throw Throws an exception if no queue family index could be found that supports the requested flags
+		*/
+		uint32_t getQueueFamiliyIndex(VkQueueFlagBits queueFlags)
+		{
+			uint32_t queueIndex;
+			uint32_t queueCount;
+
+			// Get number of available queue families on this device
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, NULL);
+			assert(queueCount >= 1);
+
+			// Get available queue families
+			std::vector<VkQueueFamilyProperties> queueProps;
+			queueProps.resize(queueCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queueProps.data());
+
+			for (uint32_t i = 0; i < queueCount; i++)
+			{
+				if (queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+				{
+					return i;
+					break;
+				}
+			}
+
+			// todo: Advanced search for devices that have dedicated queues for compute and transfer
+			//       Try to find queues with only the requested flags or (if not present) with as few 
+			//       other flags set as possible (example: http://vulkan.gpuinfo.org/displayreport.php?id=509#queuefamilies)
+
+
+#if defined(__ANDROID__)
+			//todo : Exceptions are disabled by default on Android (need to add LOCAL_CPP_FEATURES += exceptions to Android.mk), so for now just return zero
+			return 0;
+#else
+			throw std::runtime_error("Could not find a matching queue family index");
+#endif
+		}
+
+		/**
 		* Create the logical device based on the assigned physical device
 		*
 		* @param queueCreateInfos A vector containing queue create infos for all queues to be requested on the device 
@@ -137,6 +189,59 @@ namespace vk
 			}
 
 			return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
+		}
+
+		/**
+		* Create the logical device based on the assigned physical device
+		*
+		* @note Using this overload will implicitly get default queue family indices for graphics and compute
+		*
+		* @param enabledFeatures Can be used to enable certain features upon device creation
+		* @param useSwapChain Set to false for headless rendering to omit the swapchain device extensions
+		*
+		* @return VkResult of the device creation call
+		*/
+		VkResult createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, bool useSwapChain = true)
+		{
+			// Get queue family indices for graphics and compute
+			// Note that the indices may overlap depending on the implementation
+			queueFamilyIndices.graphics = getQueueFamiliyIndex(VK_QUEUE_GRAPHICS_BIT);
+			queueFamilyIndices.compute = getQueueFamiliyIndex(VK_QUEUE_COMPUTE_BIT);
+			//todo: Transfer?
+
+			// Pass queue information for graphics and compute, so examples can later on request queues from both
+			std::vector<float> queuePriorities;
+
+			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+			// We need one queue create info per queue family index
+			// If graphics and compute share the same queue family index we only need one queue create info but
+			// with two queues to request
+			queueCreateInfos.resize(1);
+			queuePriorities.resize(1, 0.0f);
+			// Graphics
+			queueCreateInfos[0] = {};
+			queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfos[0].queueFamilyIndex = queueFamilyIndices.graphics;
+			queueCreateInfos[0].queueCount = 1;
+			queueCreateInfos[0].pQueuePriorities = queuePriorities.data();
+			// Compute
+			// If compute has a different queue family index, add another create info, else just add
+			if (queueFamilyIndices.graphics != queueFamilyIndices.compute)
+			{
+				queueCreateInfos.resize(2);
+				queueCreateInfos[1] = {};
+				queueCreateInfos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+				queueCreateInfos[1].queueFamilyIndex = queueFamilyIndices.compute;
+				queueCreateInfos[1].queueCount = 1;
+				queueCreateInfos[1].pQueuePriorities = queuePriorities.data();
+			}
+			else
+			{
+				queueCreateInfos[0].queueCount++;
+				queuePriorities.push_back(0.0f);
+			}
+
+			return createLogicalDevice(queueCreateInfos, enabledFeatures, useSwapChain);
 		}
 
 		/**
