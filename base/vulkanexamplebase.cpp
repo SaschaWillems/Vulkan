@@ -208,14 +208,6 @@ void VulkanExampleBase::createPipelineCache()
 
 void VulkanExampleBase::prepare()
 {
-	if (enableValidation)
-	{
-		// The report flags determine what type of messages for the layers will be displayed
-		// For validating (debugging) an appplication the error and warning bits should suffice
-		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT; // VK_DEBUG_REPORT_WARNING_BIT_EXT (enable to also display warnings)
-		// Additional flags include performance info, loader and layer debug messages, etc.
-		vkDebug::setupDebugging(instance, debugReportFlags, VK_NULL_HANDLE);
-	}
 	if (enableDebugMarkers)
 	{
 		vkDebug::DebugMarker::setup(device);
@@ -698,11 +690,6 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatur
 		this->enabledFeatures = enabledFeaturesFn();
 	}
 
-#if !defined(__ANDROID__)
-	// Android Vulkan initialization is handled in APP_CMD_INIT_WINDOW event
-	initVulkan(enableValidation);
-#endif
-
 #if defined(_WIN32)
 	// Enable console if validation is active
 	// Debug message callback will output to it
@@ -710,6 +697,11 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatur
 	{
 		setupConsole("VulkanExample");
 	}
+#endif
+
+#if !defined(__ANDROID__)
+	// Android Vulkan initialization is handled in APP_CMD_INIT_WINDOW event
+	initVulkan(enableValidation);
 #endif
 }
 
@@ -793,6 +785,16 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	loadVulkanFunctions(instance);
 #endif
 
+	// If requested, we enable the default validation layers for debugging
+	if (enableValidation)
+	{
+		// The report flags determine what type of messages for the layers will be displayed
+		// For validating (debugging) an appplication the error and warning bits should suffice
+		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+		// Additional flags include performance info, loader and layer debug messages, etc.
+		vkDebug::setupDebugging(instance, debugReportFlags, VK_NULL_HANDLE);
+	}
+
 	// Physical device
 	uint32_t gpuCount = 0;
 	// Get number of available physical devices
@@ -812,42 +814,14 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	// and want to use another one
 	physicalDevice = physicalDevices[0];
 
-	vulkanDevice = new vk::VulkanDevice(physicalDevice);
-	
-	// Find a queue that supports graphics operations
-	uint32_t graphicsQueueIndex = 0;
-	uint32_t queueCount;
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, NULL);
-	assert(queueCount >= 1);
-
-	std::vector<VkQueueFamilyProperties> queueProps;
-	queueProps.resize(queueCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queueProps.data());
-
-	for (graphicsQueueIndex = 0; graphicsQueueIndex < queueCount; graphicsQueueIndex++)
-	{
-		if (queueProps[graphicsQueueIndex].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-			break;
-	}
-	assert(graphicsQueueIndex < queueCount);
-
 	// Vulkan device creation
-
-	// We will be requesting queues from one family only
-	// todo: Multiple queue families for transfer and async compute
-	std::vector<float> queuePriorities = { 0.0f };
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = {};
-	queueCreateInfos.resize(1);
-	queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfos[0].queueFamilyIndex = graphicsQueueIndex;
-	queueCreateInfos[0].queueCount = 1;
-	queueCreateInfos[0].pQueuePriorities = queuePriorities.data();
-
-	VK_CHECK_RESULT(vulkanDevice->createLogicalDevice(queueCreateInfos, enabledFeatures));
-	
-	// Assign device to base class context
+	// This is handled by a separate class that gets a logical device representation
+	// and encapsulates functions related to a device
+	vulkanDevice = new vk::VulkanDevice(physicalDevice);
+	VK_CHECK_RESULT(vulkanDevice->createLogicalDevice(enabledFeatures));
 	device = vulkanDevice->logicalDevice;
 
+	// todo: remove
 	// Store properties (including limits) and features of the phyiscal device
 	// So examples can check against them and see if a feature is actually supported
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
@@ -855,8 +829,8 @@ void VulkanExampleBase::initVulkan(bool enableValidation)
 	// Gather physical device memory properties
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
-	// Get the graphics queue
-	vkGetDeviceQueue(device, graphicsQueueIndex, 0, &queue);
+	// Get a graphics queue from the device
+	vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
 
 	// Find a suitable depth format
 	VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &depthFormat);
@@ -897,10 +871,6 @@ void VulkanExampleBase::setupConsole(std::string title)
 	FILE *stream;
 	freopen_s(&stream, "CONOUT$", "w+", stdout);
 	SetConsoleTitle(TEXT(title.c_str()));
-	if (enableValidation)
-	{
-		std::cout << "Validation enabled:\n";
-	}
 }
 
 HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)

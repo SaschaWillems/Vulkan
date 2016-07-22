@@ -115,7 +115,6 @@ namespace vk
 		*/
 		uint32_t getQueueFamiliyIndex(VkQueueFlagBits queueFlags)
 		{
-			uint32_t queueIndex;
 			uint32_t queueCount;
 
 			// Get number of available queue families on this device
@@ -150,16 +149,53 @@ namespace vk
 		}
 
 		/**
-		* Create the logical device based on the assigned physical device
+		* Create the logical device based on the assigned physical device, also gets default queue family indices
 		*
-		* @param queueCreateInfos A vector containing queue create infos for all queues to be requested on the device 
 		* @param enabledFeatures Can be used to enable certain features upon device creation
 		* @param useSwapChain Set to false for headless rendering to omit the swapchain device extensions
-		* 
+		*
 		* @return VkResult of the device creation call
 		*/
-		VkResult createLogicalDevice(std::vector<VkDeviceQueueCreateInfo> &queueCreateInfos, VkPhysicalDeviceFeatures enabledFeatures, bool useSwapChain = true)
+		VkResult createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, bool useSwapChain = true)
 		{
+			// Get queue family indices for graphics and compute
+			// Note that the indices may overlap depending on the implementation
+			queueFamilyIndices.graphics = getQueueFamiliyIndex(VK_QUEUE_GRAPHICS_BIT);
+			queueFamilyIndices.compute = getQueueFamiliyIndex(VK_QUEUE_COMPUTE_BIT);
+			//todo: Transfer?
+
+			// Pass queue information for graphics and compute, so examples can later on request queues from both
+			std::vector<float> queuePriorities;
+
+			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+			// We need one queue create info per queue family index
+			// If graphics and compute share the same queue family index we only need one queue create info but
+			// with two queues to request
+			queueCreateInfos.resize(1);
+			// Graphics
+			queuePriorities.push_back(0.0f);
+			queueCreateInfos[0] = {};
+			queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfos[0].queueFamilyIndex = queueFamilyIndices.graphics;
+			queueCreateInfos[0].queueCount = 1;
+			// Compute
+			// If compute has a different queue family index, add another create info, else just add
+			if (queueFamilyIndices.graphics != queueFamilyIndices.compute)
+			{
+				queueCreateInfos.resize(2);
+				queueCreateInfos[1] = {};
+				queueCreateInfos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+				queueCreateInfos[1].queueFamilyIndex = queueFamilyIndices.compute;
+				queueCreateInfos[1].queueCount = 1;
+				queueCreateInfos[1].pQueuePriorities = queuePriorities.data();
+			}
+			else
+			{
+				queueCreateInfos[0].queueCount++;
+				queuePriorities.push_back(0.0f);
+			}
+			queueCreateInfos[0].pQueuePriorities = queuePriorities.data();
+
 			// Create the logical device representation
 			std::vector<const char*> deviceExtensions;
 			if (useSwapChain)
@@ -189,59 +225,6 @@ namespace vk
 			}
 
 			return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
-		}
-
-		/**
-		* Create the logical device based on the assigned physical device
-		*
-		* @note Using this overload will implicitly get default queue family indices for graphics and compute
-		*
-		* @param enabledFeatures Can be used to enable certain features upon device creation
-		* @param useSwapChain Set to false for headless rendering to omit the swapchain device extensions
-		*
-		* @return VkResult of the device creation call
-		*/
-		VkResult createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, bool useSwapChain = true)
-		{
-			// Get queue family indices for graphics and compute
-			// Note that the indices may overlap depending on the implementation
-			queueFamilyIndices.graphics = getQueueFamiliyIndex(VK_QUEUE_GRAPHICS_BIT);
-			queueFamilyIndices.compute = getQueueFamiliyIndex(VK_QUEUE_COMPUTE_BIT);
-			//todo: Transfer?
-
-			// Pass queue information for graphics and compute, so examples can later on request queues from both
-			std::vector<float> queuePriorities;
-
-			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
-			// We need one queue create info per queue family index
-			// If graphics and compute share the same queue family index we only need one queue create info but
-			// with two queues to request
-			queueCreateInfos.resize(1);
-			queuePriorities.resize(1, 0.0f);
-			// Graphics
-			queueCreateInfos[0] = {};
-			queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueCreateInfos[0].queueFamilyIndex = queueFamilyIndices.graphics;
-			queueCreateInfos[0].queueCount = 1;
-			queueCreateInfos[0].pQueuePriorities = queuePriorities.data();
-			// Compute
-			// If compute has a different queue family index, add another create info, else just add
-			if (queueFamilyIndices.graphics != queueFamilyIndices.compute)
-			{
-				queueCreateInfos.resize(2);
-				queueCreateInfos[1] = {};
-				queueCreateInfos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-				queueCreateInfos[1].queueFamilyIndex = queueFamilyIndices.compute;
-				queueCreateInfos[1].queueCount = 1;
-				queueCreateInfos[1].pQueuePriorities = queuePriorities.data();
-			}
-			else
-			{
-				queueCreateInfos[0].queueCount++;
-				queuePriorities.push_back(0.0f);
-			}
-
-			return createLogicalDevice(queueCreateInfos, enabledFeatures, useSwapChain);
 		}
 
 		/**
