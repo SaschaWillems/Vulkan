@@ -1,9 +1,24 @@
 /*
-* Vulkan Example -  Rendering a scene with multiple meshes and materials
+* Vulkan Example - Scene rendering
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+*
+* Summary:
+* Renders a scene made of multiple meshes with different materials and textures.
+*
+* The example loads a scene made up of multiple meshes into one vertex and index buffer to only
+* have one (big) memory allocation. In Vulkan it's advised to keep number of memory allocations
+* down and try to allocate large blocks of memory at once instead of having many small allocations.
+*
+* Every mesh has a separate material and multiple descriptor sets (set = x layout qualifier in GLSL)
+* are used to bind a uniform buffer with global matrices and the mesh' material's sampler at once.
+*
+* To demonstrate another way of passing data the example also uses push constants for passing
+* material properties.
+*
+* Note that this example is just one way of rendering a scene made up of multiple meshes iin Vulkan.
 */
 
 #include <stdio.h>
@@ -63,9 +78,8 @@ struct SceneMaterial
 // Stores per-mesh Vulkan resources
 struct SceneMesh
 {
-	vk::Buffer vertexBuffer;
-	vk::Buffer indexBuffer;
-
+	// Index of first index in the scene buffer
+	uint32_t indexBase;
 	uint32_t indexCount;
 
 	// Pointer to the material used by this mesh
@@ -88,6 +102,12 @@ private:
 		VkDescriptorSetLayout material;
 		VkDescriptorSetLayout scene;
 	} descriptorSetLayouts;
+
+	// We will be using one single index and vertex buffer
+	// containing vertices and indices for all meshes in the scene
+	// This allows us to keep memory allocations down
+	vk::Buffer vertexBuffer;
+	vk::Buffer indexBuffer;
 
 	VkDescriptorSet descriptorSetScene;
 
@@ -211,12 +231,6 @@ private:
 
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &allocInfo, &materials[i].descriptorSet));
 
-			VkDescriptorImageInfo texDescriptor = 
-				vkTools::initializers::descriptorImageInfo(
-					materials[i].diffuse.sampler,
-					materials[i].diffuse.view,
-					VK_IMAGE_LAYOUT_GENERAL);
-
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
 			// todo : only use image sampler descriptor set and use one scene ubo for matrices
@@ -226,9 +240,9 @@ private:
 				materials[i].descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				0,
-				&texDescriptor));
+				&materials[i].diffuse.descriptor));
 
-			vkUpdateDescriptorSets(vulkanDevice->logicalDevice, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+			vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 		}
 
 		// Scene descriptor set
@@ -247,13 +261,16 @@ private:
 			0,
 			&uniformBuffer.descriptor));
 
-		vkUpdateDescriptorSets(vulkanDevice->logicalDevice, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
-	// Load all meshes from the scene and generate the Vulkan resources
-	// for rendering them
+	// Load all meshes from the scene and generate the buffers for rendering them
 	void loadMeshes(VkCommandBuffer copyCmd)
 	{
+		std::vector<Vertex> vertices;
+		std::vector<uint32_t> indices;
+		uint32_t indexBase = 0;
+
 		meshes.resize(aScene->mNumMeshes);
 		for (uint32_t i = 0; i < meshes.size(); i++)
 		{
@@ -264,107 +281,109 @@ private:
 			std::cout << "	Faces: " << aMesh->mNumFaces << std::endl;
 
 			meshes[i].material = &materials[aMesh->mMaterialIndex];
+			meshes[i].indexBase = indexBase;
+			meshes[i].indexCount = aMesh->mNumFaces * 3;
 
 			// Vertices
-			std::vector<Vertex> vertices;
-			vertices.resize(aMesh->mNumVertices);
-
 			bool hasUV = aMesh->HasTextureCoords(0);
 			bool hasColor = aMesh->HasVertexColors(0);
 			bool hasNormals = aMesh->HasNormals();
 
 			for (uint32_t v = 0; v < aMesh->mNumVertices; v++)
 			{
-				vertices[v].pos = glm::make_vec3(&aMesh->mVertices[v].x);
-				vertices[v].pos.y = -vertices[v].pos.y;
-				vertices[v].uv = hasUV ? glm::make_vec2(&aMesh->mTextureCoords[0][v].x) : glm::vec2(0.0f);
-				vertices[v].normal = hasNormals ? glm::make_vec3(&aMesh->mNormals[v].x) : glm::vec3(0.0f);
-				vertices[v].normal.y = -vertices[v].normal.y;
-				vertices[v].color = hasColor ? glm::make_vec3(&aMesh->mColors[0][v].r) : glm::vec3(1.0f);
+				Vertex vertex;
+				vertex.pos = glm::make_vec3(&aMesh->mVertices[v].x);
+				vertex.pos.y = -vertex.pos.y;
+				vertex.uv = hasUV ? glm::make_vec2(&aMesh->mTextureCoords[0][v].x) : glm::vec2(0.0f);
+				vertex.normal = hasNormals ? glm::make_vec3(&aMesh->mNormals[v].x) : glm::vec3(0.0f);
+				vertex.normal.y = -vertex.normal.y;
+				vertex.color = hasColor ? glm::make_vec3(&aMesh->mColors[0][v].r) : glm::vec3(1.0f);
+				vertices.push_back(vertex);
 			}
 
 			// Indices
-			std::vector<uint32_t> indices;
-			meshes[i].indexCount = aMesh->mNumFaces * 3;
-			indices.resize(aMesh->mNumFaces * 3);
 			for (uint32_t f = 0; f < aMesh->mNumFaces; f++)
 			{
-				memcpy(&indices[f*3], &aMesh->mFaces[f].mIndices[0], sizeof(uint32_t) * 3);
+				for (uint32_t j = 0; j < 3; j++)
+				{
+					indices.push_back(aMesh->mFaces[f].mIndices[j]);
+				}
 			}
 
-			// Create buffers
-			// todo : only one memory allocation for the whole scene, use offsets to render
-
-			uint32_t vertexDataSize = vertices.size() * sizeof(Vertex);
-			uint32_t indexDataSize = indices.size() * sizeof(uint32_t);
-
-			vk::Buffer vertexStaging, indexStaging;
-
-			// Vertex buffer
-			// Staging buffer
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				&vertexStaging,
-				vertexDataSize,
-				vertices.data()));
-			// Target
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				&meshes[i].vertexBuffer,
-				vertexDataSize));
-
-			// Index buffer
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				&indexStaging,
-				indexDataSize,
-				indices.data()));
-			// Target
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				&meshes[i].indexBuffer,
-				indexDataSize));
-
-			// Copy
-			VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
-			VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
-
-			VkBufferCopy copyRegion = {};
-
-			copyRegion.size = vertexDataSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				vertexStaging.buffer,
-				meshes[i].vertexBuffer.buffer,
-				1,
-				&copyRegion);
-
-			copyRegion.size = indexDataSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				indexStaging.buffer,
-				meshes[i].indexBuffer.buffer,
-				1,
-				&copyRegion);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
-
-			VkSubmitInfo submitInfo = {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &copyCmd;
-
-			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-			VK_CHECK_RESULT(vkQueueWaitIdle(queue));
-
-			//todo: fence
-			vertexStaging.destroy();
-			indexStaging.destroy();
+			indexBase += aMesh->mNumFaces * 3;
 		}
+
+		// Create buffers
+		// For better performance we only create one index and vertex buffer to keep number of memory allocations down
+		size_t vertexDataSize = vertices.size() * sizeof(Vertex);
+		size_t indexDataSize = indices.size() * sizeof(uint32_t);
+		
+		vk::Buffer vertexStaging, indexStaging;
+
+		// Vertex buffer
+		// Staging buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&vertexStaging,
+			static_cast<uint32_t>(vertexDataSize),
+			vertices.data()));
+		// Target
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&vertexBuffer,
+			static_cast<uint32_t>(vertexDataSize)));
+
+		// Index buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&indexStaging,
+			static_cast<uint32_t>(indexDataSize),
+			indices.data()));
+		// Target
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&indexBuffer,
+			static_cast<uint32_t>(indexDataSize)));
+
+		// Copy
+		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+		VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
+
+		VkBufferCopy copyRegion = {};
+
+		copyRegion.size = vertexDataSize;
+		vkCmdCopyBuffer(
+			copyCmd,
+			vertexStaging.buffer,
+			vertexBuffer.buffer,
+			1,
+			&copyRegion);
+
+		copyRegion.size = indexDataSize;
+		vkCmdCopyBuffer(
+			copyCmd,
+			indexStaging.buffer,
+			indexBuffer.buffer,
+			1,
+			&copyRegion);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &copyCmd;
+
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+
+		//todo: fence
+		vertexStaging.destroy();
+		indexStaging.destroy();
 	}
 
 public:
@@ -427,11 +446,8 @@ public:
 	// Default destructor
 	~Scene()
 	{
-		for (auto mesh : meshes)
-		{
-			mesh.vertexBuffer.destroy();
-			mesh.indexBuffer.destroy();
-		}
+		vertexBuffer.destroy();
+		indexBuffer.destroy();
 		for (auto material : materials)
 		{
 			textureLoader->destroyTexture(material.diffuse);
@@ -485,16 +501,18 @@ public:
 	void render(VkCommandBuffer cmdBuffer, bool wireframe)
 	{
 		VkDeviceSize offsets[1] = { 0 };
+
+		// Bind scene vertex and index buffers
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBuffer.buffer, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
 			if ((renderSingleScenePart) && (i != scenePartIndex))
 				continue;
 
-			//if (meshes[i].material->opacity == 0.0f)
-			//	continue;
-
 			// todo : per material pipelines
-//			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *mesh.material->pipeline);
+			// vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *mesh.material->pipeline);
 
 			// We will be using multiple descriptor sets for rendering
 			// In GLSL the selection is done via the set and binding keywords
@@ -519,13 +537,9 @@ public:
 				sizeof(SceneMaterialProperites),
 				&meshes[i].material->properties);
 
-			vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &meshes[i].vertexBuffer.buffer, offsets);
-			vkCmdBindIndexBuffer(cmdBuffer, meshes[i].indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(cmdBuffer, meshes[i].indexCount, 1, 0, 0, 0);
+			// Render from the global scene vertex buffer using the mesh index offset
+			vkCmdDrawIndexed(cmdBuffer, meshes[i].indexCount, 1, 0, meshes[i].indexBase, 0);
 		}
-
-		// Render transparent objects last
-
 	}
 };
 
@@ -653,9 +667,9 @@ public:
 				sizeof(float) * 8);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -705,7 +719,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
@@ -728,7 +742,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &scene->pipelines.solid));
