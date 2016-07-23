@@ -20,6 +20,8 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkandevice.hpp"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -61,14 +63,10 @@ struct SceneMaterial
 // Stores per-mesh Vulkan resources
 struct SceneMesh
 {
-	VkBuffer vertexBuffer;
-	VkDeviceMemory vertexMemory;
+	vk::Buffer vertexBuffer;
+	vk::Buffer indexBuffer;
 
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexMemory;
 	uint32_t indexCount;
-
-	//VkDescriptorSet descriptorSet;
 
 	// Pointer to the material used by this mesh
 	SceneMaterial *material;
@@ -78,7 +76,7 @@ struct SceneMesh
 class Scene
 {
 private:
-	VkDevice device;
+	vk::VulkanDevice *vulkanDevice;
 	VkQueue queue;
 
 	VkDescriptorPool descriptorPool;
@@ -96,23 +94,6 @@ private:
 	vkTools::VulkanTextureLoader *textureLoader;
 
 	const aiScene* aScene;
-
-	VkPhysicalDeviceMemoryProperties deviceMemProps;
-	uint32_t getMemoryTypeIndex(uint32_t typeBits, VkFlags properties)
-	{
-		for (int i = 0; i < 32; i++)
-		{
-			if ((typeBits & 1) == 1)
-			{
-				if ((deviceMemProps.memoryTypes[i].propertyFlags & properties) == properties)
-				{
-					return i;
-				}
-			}
-			typeBits >>= 1;
-		}
-		return 0;
-	}
 
 	// Get materials from the assimp scene and map to our scene structures
 	void loadMaterials()
@@ -180,7 +161,7 @@ private:
 				poolSizes.data(),
 				static_cast<uint32_t>(materials.size()) + 1);
 
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
+		VK_CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Descriptor set and pipeline layouts
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
@@ -194,7 +175,7 @@ private:
 		descriptorLayout = vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
 				static_cast<uint32_t>(setLayoutBindings.size()));
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.scene));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayouts.scene));
 
 		// Set 1: Material data
 		setLayoutBindings.clear();
@@ -202,7 +183,7 @@ private:
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			VK_SHADER_STAGE_FRAGMENT_BIT,
 			0));
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.material));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayouts.material));
 
 		// Setup pipeline layout
 		std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayouts.scene, descriptorSetLayouts.material };
@@ -216,7 +197,7 @@ private:
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+		VK_CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 		// Material descriptor sets
 		for (size_t i = 0; i < materials.size(); i++)
@@ -228,7 +209,7 @@ private:
 					&descriptorSetLayouts.material,
 					1);
 
-			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &materials[i].descriptorSet));
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &allocInfo, &materials[i].descriptorSet));
 
 			VkDescriptorImageInfo texDescriptor = 
 				vkTools::initializers::descriptorImageInfo(
@@ -247,7 +228,7 @@ private:
 				0,
 				&texDescriptor));
 
-			vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+			vkUpdateDescriptorSets(vulkanDevice->logicalDevice, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 		}
 
 		// Scene descriptor set
@@ -256,7 +237,7 @@ private:
 				descriptorPool,
 				&descriptorSetLayouts.scene,
 				1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSetScene));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &allocInfo, &descriptorSetScene));
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 		// Binding 0 : Vertex shader uniform buffer
@@ -266,7 +247,7 @@ private:
 			0,
 			&uniformBuffer.descriptor));
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(vulkanDevice->logicalDevice, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	// Load all meshes from the scene and generate the Vulkan resources
@@ -312,74 +293,41 @@ private:
 			}
 
 			// Create buffers
-			// todo : only one memory allocation
+			// todo : only one memory allocation for the whole scene, use offsets to render
 
 			uint32_t vertexDataSize = vertices.size() * sizeof(Vertex);
 			uint32_t indexDataSize = indices.size() * sizeof(uint32_t);
 
-			VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-			VkMemoryRequirements memReqs;
+			vk::Buffer vertexStaging, indexStaging;
 
-			struct
-			{
-				struct {
-					VkDeviceMemory memory;
-					VkBuffer buffer;
-				} vBuffer;
-				struct {
-					VkDeviceMemory memory;
-					VkBuffer buffer;
-				} iBuffer;
-			} staging;
-
-			// Generate vertex buffer
-			VkBufferCreateInfo vBufferInfo;
-			void* data;
-
+			// Vertex buffer
 			// Staging buffer
-			vBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, vertexDataSize);
-			VK_CHECK_RESULT(vkCreateBuffer(device, &vBufferInfo, nullptr, &staging.vBuffer.buffer));
-			vkGetBufferMemoryRequirements(device, staging.vBuffer.buffer, &memReqs);
-			memAlloc.allocationSize = memReqs.size;
-			memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-			VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &staging.vBuffer.memory));
-			VK_CHECK_RESULT(vkMapMemory(device, staging.vBuffer.memory, 0, VK_WHOLE_SIZE, 0, &data));
-			memcpy(data, vertices.data(), vertexDataSize);
-			vkUnmapMemory(device, staging.vBuffer.memory);
-			VK_CHECK_RESULT(vkBindBufferMemory(device, staging.vBuffer.buffer, staging.vBuffer.memory, 0));
-
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&vertexStaging,
+				vertexDataSize,
+				vertices.data()));
 			// Target
-			vBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, vertexDataSize);
-			VK_CHECK_RESULT(vkCreateBuffer(device, &vBufferInfo, nullptr, &meshes[i].vertexBuffer));
-			vkGetBufferMemoryRequirements(device, meshes[i].vertexBuffer, &memReqs);
-			memAlloc.allocationSize = memReqs.size;
-			memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &meshes[i].vertexMemory));
-			VK_CHECK_RESULT(vkBindBufferMemory(device, meshes[i].vertexBuffer, meshes[i].vertexMemory, 0));
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				&meshes[i].vertexBuffer,
+				vertexDataSize));
 
-			// Generate index buffer
-			VkBufferCreateInfo iBufferInfo;
-
-			// Staging buffer
-			iBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, indexDataSize);
-			VK_CHECK_RESULT(vkCreateBuffer(device, &iBufferInfo, nullptr, &staging.iBuffer.buffer));
-			vkGetBufferMemoryRequirements(device, staging.iBuffer.buffer, &memReqs);
-			memAlloc.allocationSize = memReqs.size;
-			memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-			VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &staging.iBuffer.memory));
-			VK_CHECK_RESULT(vkMapMemory(device, staging.iBuffer.memory, 0, VK_WHOLE_SIZE, 0, &data));
-			memcpy(data, indices.data(), indexDataSize);
-			vkUnmapMemory(device, staging.iBuffer.memory);
-			VK_CHECK_RESULT(vkBindBufferMemory(device, staging.iBuffer.buffer, staging.iBuffer.memory, 0));
-
+			// Index buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&indexStaging,
+				indexDataSize,
+				indices.data()));
 			// Target
-			iBufferInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, indexDataSize);
-			VK_CHECK_RESULT(vkCreateBuffer(device, &iBufferInfo, nullptr, &meshes[i].indexBuffer));
-			vkGetBufferMemoryRequirements(device, meshes[i].indexBuffer, &memReqs);
-			memAlloc.allocationSize = memReqs.size;
-			memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &meshes[i].indexMemory));
-			VK_CHECK_RESULT(vkBindBufferMemory(device, meshes[i].indexBuffer, meshes[i].indexMemory, 0));
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				&meshes[i].indexBuffer,
+				indexDataSize));
 
 			// Copy
 			VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
@@ -390,16 +338,16 @@ private:
 			copyRegion.size = vertexDataSize;
 			vkCmdCopyBuffer(
 				copyCmd,
-				staging.vBuffer.buffer,
-				meshes[i].vertexBuffer,
+				vertexStaging.buffer,
+				meshes[i].vertexBuffer.buffer,
 				1,
 				&copyRegion);
 
 			copyRegion.size = indexDataSize;
 			vkCmdCopyBuffer(
 				copyCmd,
-				staging.iBuffer.buffer,
-				meshes[i].indexBuffer,
+				indexStaging.buffer,
+				meshes[i].indexBuffer.buffer,
 				1,
 				&copyRegion);
 
@@ -413,10 +361,9 @@ private:
 			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 			VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 
-			vkDestroyBuffer(device, staging.vBuffer.buffer, nullptr);
-			vkFreeMemory(device, staging.vBuffer.memory, nullptr);
-			vkDestroyBuffer(device, staging.iBuffer.buffer, nullptr);
-			vkFreeMemory(device, staging.iBuffer.memory, nullptr);
+			//todo: fence
+			vertexStaging.destroy();
+			indexStaging.destroy();
 		}
 	}
 
@@ -454,50 +401,49 @@ public:
 	bool renderSingleScenePart = false;
 	uint32_t scenePartIndex = 0;
 
-	Scene(VkDevice device, VkQueue queue, VkPhysicalDeviceMemoryProperties memprops, vkTools::VulkanTextureLoader *textureloader)
+	// Default constructor
+	Scene(vk::VulkanDevice *vulkanDevice, VkQueue queue, vkTools::VulkanTextureLoader *textureloader)
 	{
-		this->device = device;
+		this->vulkanDevice = vulkanDevice;
 		this->queue = queue;
-		this->deviceMemProps = memprops;
 		this->textureLoader = textureloader;
 
 		// Prepare uniform buffer for global matrices
 		VkMemoryRequirements memReqs;
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(uniformData));
-		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &uniformBuffer.buffer));
-		vkGetBufferMemoryRequirements(device, uniformBuffer.buffer, &memReqs);
+		VK_CHECK_RESULT(vkCreateBuffer(vulkanDevice->logicalDevice, &bufferCreateInfo, nullptr, &uniformBuffer.buffer));
+		vkGetBufferMemoryRequirements(vulkanDevice->logicalDevice, uniformBuffer.buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &uniformBuffer.memory));
-		VK_CHECK_RESULT(vkBindBufferMemory(device, uniformBuffer.buffer, uniformBuffer.memory, 0));
-		VK_CHECK_RESULT(vkMapMemory(device, uniformBuffer.memory, 0, sizeof(uniformData), 0, (void **)&uniformBuffer.mapped));
+		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(vulkanDevice->logicalDevice, &memAlloc, nullptr, &uniformBuffer.memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(vulkanDevice->logicalDevice, uniformBuffer.buffer, uniformBuffer.memory, 0));
+		VK_CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, uniformBuffer.memory, 0, sizeof(uniformData), 0, (void **)&uniformBuffer.mapped));
 		uniformBuffer.descriptor.offset = 0;
 		uniformBuffer.descriptor.buffer = uniformBuffer.buffer;
 		uniformBuffer.descriptor.range = sizeof(uniformData);
 	}
 
+	// Default destructor
 	~Scene()
 	{
 		for (auto mesh : meshes)
 		{
-			vkDestroyBuffer(device, mesh.vertexBuffer, nullptr);
-			vkFreeMemory(device, mesh.vertexMemory, nullptr);
-			vkDestroyBuffer(device, mesh.indexBuffer, nullptr);
-			vkFreeMemory(device, mesh.indexMemory, nullptr);
+			mesh.vertexBuffer.destroy();
+			mesh.indexBuffer.destroy();
 		}
 		for (auto material : materials)
 		{
 			textureLoader->destroyTexture(material.diffuse);
 		}
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.material, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
-		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
-		vkDestroyPipeline(device, pipelines.blending, nullptr);
-		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
-		vkTools::destroyUniformData(device, &uniformBuffer);
+		vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayouts.material, nullptr);
+		vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayouts.scene, nullptr);
+		vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
+		vkDestroyPipeline(vulkanDevice->logicalDevice, pipelines.solid, nullptr);
+		vkDestroyPipeline(vulkanDevice->logicalDevice, pipelines.blending, nullptr);
+		vkDestroyPipeline(vulkanDevice->logicalDevice, pipelines.wireframe, nullptr);
+		vkTools::destroyUniformData(vulkanDevice->logicalDevice, &uniformBuffer);
 	}
 
 	void load(std::string filename, VkCommandBuffer copyCmd)
@@ -573,8 +519,8 @@ public:
 				sizeof(SceneMaterialProperites),
 				&meshes[i].material->properties);
 
-			vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &meshes[i].vertexBuffer, offsets);
-			vkCmdBindIndexBuffer(cmdBuffer, meshes[i].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &meshes[i].vertexBuffer.buffer, offsets);
+			vkCmdBindIndexBuffer(cmdBuffer, meshes[i].indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(cmdBuffer, meshes[i].indexCount, 1, 0, 0, 0);
 		}
 
@@ -835,7 +781,7 @@ public:
 	void loadScene()
 	{
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
-		scene = new Scene(device, queue, deviceMemoryProperties, textureLoader);
+		scene = new Scene(vulkanDevice, queue, textureLoader);
 
 #if defined(__ANDROID__)
 		scene->assetManager = androidApp->activity->assetManager;
@@ -904,7 +850,7 @@ public:
 #if defined(__ANDROID__)
 		textOverlay->addText("Press \"Button A\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("Press \"w\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Press \"space\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		if ((scene) && (scene->renderSingleScenePart))
 		{
 			textOverlay->addText("Rendering mesh " + std::to_string(scene->scenePartIndex + 1) + " of " + std::to_string(static_cast<uint32_t>(scene->meshes.size())) + "(\"p\" to toggle)", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
