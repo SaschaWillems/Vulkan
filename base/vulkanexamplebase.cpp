@@ -225,7 +225,7 @@ void VulkanExampleBase::prepare()
 	// Recreate setup command buffer for derived class
 	createSetupCommandBuffer();
 	// Create a simple texture loader class
-	textureLoader = new vkTools::VulkanTextureLoader(physicalDevice, device, queue, cmdPool);
+	textureLoader = new vkTools::VulkanTextureLoader(vulkanDevice, queue, cmdPool);
 #if defined(__ANDROID__)
 	textureLoader->assetManager = androidApp->activity->assetManager;
 #endif
