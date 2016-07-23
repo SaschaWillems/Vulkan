@@ -248,10 +248,15 @@ namespace vk
 				deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 			}
 
-			return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
+			VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
 
-			// Create a default command pool for graphics command buffers
-			commandPool = createCommandPool(queueFamilyIndices.graphics);
+			if (result == VK_SUCCESS)
+			{
+				// Create a default command pool for graphics command buffers
+				commandPool = createCommandPool(queueFamilyIndices.graphics);
+			}
+
+			return result;
 		}
 
 		/**
@@ -364,6 +369,72 @@ namespace vk
 			VkCommandPool cmdPool;
 			VK_CHECK_RESULT(vkCreateCommandPool(logicalDevice, &cmdPoolInfo, nullptr, &cmdPool));
 			return cmdPool;
+		}
+
+		/**
+		* Allocate a command buffer from the command pool
+		*
+		* @param level Level of the new command buffer (primary or secondary)
+		* @param (Optional) begin If true, recording on the new command buffer will be started (vkBeginCommandBuffer) (Defaults to false)
+		*
+		* @return A handle to the allocated command buffer
+		*/
+		VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin = false)
+		{
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vkTools::initializers::commandBufferAllocateInfo(commandPool, level, 1);
+
+			VkCommandBuffer cmdBuffer;
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(logicalDevice, &cmdBufAllocateInfo, &cmdBuffer));
+
+			// If requested, also start recording for the new command buffer
+			if (begin)
+			{
+				VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+				VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+			}
+
+			return cmdBuffer;
+		}
+
+		/**
+		* Finish command buffer recording and submit it to a queue
+		*
+		* @param commandBuffer Command buffer to flush
+		* @param queue Queue to submit the command buffer to 
+		* @param free (Optional) Free the command buffer once it has been submitted (Defaults to true)
+		*
+		* @note The queue that the command buffer is submitted to must be from the same family index as the pool it was allocated from
+		* @note Uses a fence to ensure command buffer has finished executing
+		*/
+		void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true)
+		{
+			if (commandBuffer == VK_NULL_HANDLE)
+			{
+				return;
+			}
+
+			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+
+			VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &commandBuffer;
+
+			// Create fence to ensure that the command buffer has finished executing
+			VkFenceCreateInfo fenceInfo = vkTools::initializers::fenceCreateInfo(VK_FLAGS_NONE);
+			VkFence fence;
+			VK_CHECK_RESULT(vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence));
+			
+			// Submit to the queue
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
+			// Wait for the fence to signal that command buffer has finished executing
+			VK_CHECK_RESULT(vkWaitForFences(logicalDevice, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
+
+			vkDestroyFence(logicalDevice, fence, nullptr);
+
+			if (free)
+			{
+				vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+			}
 		}
 
 	};
