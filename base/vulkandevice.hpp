@@ -119,6 +119,7 @@ namespace vk
 			if (memTypeFound)
 			{
 				*memTypeFound = false;
+				return 0;
 			}
 			else
 			{
