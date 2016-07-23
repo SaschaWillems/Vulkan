@@ -243,6 +243,7 @@ namespace vk
 		{
 			// Create the buffer handle
 			VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usageFlags, size);
+			bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			VK_CHECK_RESULT(vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, buffer));
 
 			// Create the memory backing up the buffer handle

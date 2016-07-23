@@ -236,8 +236,7 @@ void VulkanExampleBase::prepare()
 		shaderStages.push_back(loadShader(getAssetPath() + "shaders/base/textoverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
 		shaderStages.push_back(loadShader(getAssetPath() + "shaders/base/textoverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
 		textOverlay = new VulkanTextOverlay(
-			physicalDevice,
-			device,
+			vulkanDevice,
 			queue,
 			frameBuffers,
 			colorformat,
