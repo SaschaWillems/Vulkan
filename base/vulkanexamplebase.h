@@ -256,10 +256,6 @@ public:
 	// Builds the command buffers used to submit the present barriers
 	void buildPresentCommandBuffers();
 
-	// Get memory type for a given memory allocation (flags and bits)
-	VkBool32 getMemoryType(uint32_t typeBits, VkFlags properties, uint32_t *typeIndex);
-	uint32_t getMemoryType(uint32_t typeBits, VkFlags properties);
-
 	// Creates a new (graphics) command pool object storing command buffers
 	void createCommandPool();
 	// Setup default depth and stencil views
