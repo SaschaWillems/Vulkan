@@ -362,6 +362,7 @@ namespace vk
 			cmdPoolInfo.flags = createFlags;
 			VkCommandPool cmdPool;
 			VK_CHECK_RESULT(vkCreateCommandPool(logicalDevice, &cmdPoolInfo, nullptr, &cmdPool));
+			return cmdPool;
 		}
 
 	};
