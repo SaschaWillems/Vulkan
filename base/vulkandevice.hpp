@@ -30,6 +30,9 @@ namespace vk
 		/** @brief Memory types and heaps of the physical device */
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 
+		/** @brief Default command pool for the graphics queue family index */
+		VkCommandPool commandPool = VK_NULL_HANDLE;
+
 		/** @brief Set to true when the debug marker extension is detected */
 		bool enableDebugMarkers = false;
 
@@ -66,6 +69,10 @@ namespace vk
 		*/
 		~VulkanDevice()
 		{
+			if (commandPool)
+			{
+				vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+			}
 			if (logicalDevice)
 			{
 				vkDestroyDevice(logicalDevice, nullptr);
@@ -77,12 +84,13 @@ namespace vk
 		*
 		* @param typeBits Bitmask with bits set for each memory type supported by the resource to request for (from VkMemoryRequirements)
 		* @param properties Bitmask of properties for the memory type to request
-		*
+		* @param (Optional) memTypeFound Pointer to a bool that is set to true if a matching memory type has been found
+		* 
 		* @return Index of the requested memory type
 		*
-		* @throw Throws an exception if no memory type could be found that supports the requested properties
+		* @throw Throws an exception if memTypeFound is null and no memory type could be found that supports the requested properties
 		*/
-		uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties)
+		uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr)
 		{
 			for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
 			{
@@ -90,6 +98,10 @@ namespace vk
 				{
 					if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
 					{
+						if (memTypeFound)
+						{
+							*memTypeFound = true;
+						}
 						return i;
 					}
 				}
@@ -98,9 +110,20 @@ namespace vk
 
 #if defined(__ANDROID__)
 			//todo : Exceptions are disabled by default on Android (need to add LOCAL_CPP_FEATURES += exceptions to Android.mk), so for now just return zero
+			if (memTypeFound)
+			{
+				*memTypeFound = false;
+			}
 			return 0;
 #else
-			throw std::runtime_error("Could not find a matching memory type");
+			if (memTypeFound)
+			{
+				*memTypeFound = false;
+			}
+			else
+			{
+				throw std::runtime_error("Could not find a matching memory type");
+			}
 #endif
 		}
 
@@ -225,6 +248,9 @@ namespace vk
 			}
 
 			return vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
+
+			// Create a default command pool for graphics command buffers
+			commandPool = createCommandPool(queueFamilyIndices.graphics);
 		}
 
 		/**
@@ -317,5 +343,26 @@ namespace vk
 			// Attach the memory to the buffer object
 			return buffer->bind();
 		}
+
+		/** 
+		* Create a command pool for allocation command buffers from
+		* 
+		* @param queueFamilyIndex Family index of the queue to create the command pool for
+		* @param createFlags (Optional) Command pool creation flags (Defaults to VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
+		*
+		* @note Command buffers allocated from the created pool can only be submitted to a queue with the same family index
+		*
+		* @return A handle to the created command buffer
+		*/
+		VkCommandPool createCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
+		{
+			VkCommandPoolCreateInfo cmdPoolInfo = {};
+			cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+			cmdPoolInfo.queueFamilyIndex = queueFamilyIndex;
+			cmdPoolInfo.flags = createFlags;
+			VkCommandPool cmdPool;
+			VK_CHECK_RESULT(vkCreateCommandPool(logicalDevice, &cmdPoolInfo, nullptr, &cmdPool));
+		}
+
 	};
 }
