@@ -22,7 +22,8 @@
 #include "vulkan/vulkan.h"
 
 #include "vulkantools.h"
-#include "vulkanexamplebase.h"
+#include "vulkandevice.hpp"
+#include "vulkanbuffer.hpp"
 
 struct Vertex
 {
@@ -69,27 +70,16 @@ private:
 		glm::vec3 lightPos;
 	};
 
-	VkDevice device;
-
-	// Reference to example for getting memory types
-	VulkanExampleBase *exampleBase;
+	vk::VulkanDevice *vulkanDevice;
 
 	glm::vec3 color;
 	glm::vec3 pos;
 	float rotSpeed;
 	float rotOffset;
 
-	struct
-	{
-		VkBuffer buf;
-		VkDeviceMemory mem;
-	} vertexBuffer;
-
-	struct {
-		VkBuffer buf;
-		VkDeviceMemory mem;
-		uint32_t count;
-	} indexBuffer;
+	vk::Buffer vertexBuffer;
+	vk::Buffer indexBuffer;
+	uint32_t indexCount;
 
 	UBO ubo;
 	vkTools::UniformData uniformData;
@@ -106,7 +96,7 @@ public:
 
 	void setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout descriptorSetLayout);
 
-	VulkanGear(VkDevice device, VulkanExampleBase *example);
+	VulkanGear(vk::VulkanDevice *vulkanDevice) : vulkanDevice(vulkanDevice) {};
 	~VulkanGear();
 
 	void generate(GearInfo *gearinfo, VkQueue queue);

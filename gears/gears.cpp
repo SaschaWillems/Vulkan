@@ -145,7 +145,7 @@ public:
 			gearInfo.rotSpeed = rotationSpeeds[i];
 			gearInfo.rotOffset = rotationOffsets[i];
 
-			gears[i] = new VulkanGear(device, this);
+			gears[i] = new VulkanGear(vulkanDevice);
 			gears[i]->generate(&gearInfo, queue);
 		}
 
