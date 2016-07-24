@@ -19,6 +19,8 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkandevice.hpp"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -43,25 +45,22 @@ public:
 		VkImageLayout imageLayout;
 		VkDeviceMemory deviceMemory;
 		VkImageView view;
+		VkDescriptorImageInfo descriptor;
 		uint32_t width, height;
 		uint32_t mipLevels;
 	} texture;
 
 	struct {
-		VkBuffer buf;
-		VkDeviceMemory mem;
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	struct {
-		int count;
-		VkBuffer buf;
-		VkDeviceMemory mem;
-	} indices;
+	vk::Buffer vertexBuffer;
+	vk::Buffer indexBuffer;
+	uint32_t indexCount;
 
-	vkTools::UniformData uniformDataVS;
+	vk::Buffer uniformBufferVS;
 
 	struct {
 		glm::mat4 projection;
@@ -91,25 +90,16 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		// Clean up texture resources
-		vkDestroyImageView(device, texture.view, nullptr);
-		vkDestroyImage(device, texture.image, nullptr);
-		vkDestroySampler(device, texture.sampler, nullptr);
-		vkFreeMemory(device, texture.deviceMemory, nullptr);
+		destroyTextureImage(texture);
 
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkDestroyBuffer(device, vertices.buf, nullptr);
-		vkFreeMemory(device, vertices.mem, nullptr);
-
-		vkDestroyBuffer(device, indices.buf, nullptr);
-		vkFreeMemory(device, indices.mem, nullptr);
-
-		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
-		vkFreeMemory(device, uniformDataVS.memory, nullptr);
+		vertexBuffer.destroy();
+		indexBuffer.destroy();
+		uniformBufferVS.destroy();
 	}
 
 	// Create an image memory barrier for changing the layout of
@@ -203,9 +193,9 @@ public:
 
 		VkFormatProperties formatProperties;
 
-		texture.width = tex2D[0].dimensions().x;
-		texture.height = tex2D[0].dimensions().y;
-		texture.mipLevels = tex2D.levels();
+		texture.width = static_cast<uint32_t>(tex2D[0].dimensions().x);
+		texture.height = static_cast<uint32_t>(tex2D[0].dimensions().y);
+		texture.mipLevels = static_cast<uint32_t>(tex2D.levels());
 
 		// Get device properites for the requested texture format
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
@@ -268,14 +258,14 @@ public:
 				bufferCopyRegion.imageSubresource.mipLevel = i;
 				bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 				bufferCopyRegion.imageSubresource.layerCount = 1;
-				bufferCopyRegion.imageExtent.width = tex2D[i].dimensions().x;
-				bufferCopyRegion.imageExtent.height = tex2D[i].dimensions().y;
+				bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2D[i].dimensions().x);
+				bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2D[i].dimensions().y);
 				bufferCopyRegion.imageExtent.depth = 1;
 				bufferCopyRegion.bufferOffset = offset;
 
 				bufferCopyRegions.push_back(bufferCopyRegion);
 
-				offset += tex2D[i].size();
+				offset += static_cast<uint32_t>(tex2D[i].size());
 			}
 
 			// Create optimal tiled target image
@@ -334,7 +324,7 @@ public:
 				stagingBuffer,
 				texture.image,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				bufferCopyRegions.size(),
+				static_cast<uint32_t>(bufferCopyRegions.size()),
 				bufferCopyRegions.data());
 
 			// Change texture image layout to shader read after all mip levels have been copied
@@ -460,11 +450,22 @@ public:
 		sampler.mipLodBias = 0.0f;
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
-		// Max level-of-detail should match mip level count
+		// Set max level-of-detail to mip level count of the texture
 		sampler.maxLod = (useStaging) ? (float)texture.mipLevels : 0.0f;
 		// Enable anisotropic filtering
-		sampler.maxAnisotropy = 8;
-		sampler.anisotropyEnable = VK_TRUE;
+		// This feature is optional, so we must check if it's supported on the device
+		if (vulkanDevice->features.samplerAnisotropy)
+		{
+			// Use max. level of anisotropy for this example
+			sampler.maxAnisotropy = vulkanDevice->properties.limits.maxSamplerAnisotropy;
+			sampler.anisotropyEnable = VK_TRUE;
+		}
+		else
+		{
+			// The device does not support anisotropic filtering
+			sampler.maxAnisotropy = 1.0;
+			sampler.anisotropyEnable = VK_FALSE;
+		}
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
 
@@ -477,6 +478,8 @@ public:
 		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		view.format = format;
 		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+		// The subresource range describes the set of mip levels (and array layers) that can be accessed through this image view
+		// It's possible to create multiple image views for a single image referring to different (and/or overlapping) ranges of the image
 		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		view.subresourceRange.baseMipLevel = 0;
 		view.subresourceRange.baseArrayLayer = 0;
@@ -486,12 +489,19 @@ public:
 		view.subresourceRange.levelCount = (useStaging) ? texture.mipLevels : 1;
 		view.image = texture.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
+
+		// Fill image descriptor image info that can be used during the descriptor set setup
+		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		texture.descriptor.imageView = texture.view;
+		texture.descriptor.sampler = texture.sampler;
 	}
 
-	// Free staging resources used while creating a texture
+	// Free all Vulkan resources used a texture object
 	void destroyTextureImage(Texture texture)
 	{
+		vkDestroyImageView(device, texture.view, nullptr);
 		vkDestroyImage(device, texture.image, nullptr);
+		vkDestroySampler(device, texture.sampler, nullptr);
 		vkFreeMemory(device, texture.deviceMemory, nullptr);
 	}
 
@@ -531,10 +541,10 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(drawCmdBuffers[i], indices.count, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -558,35 +568,35 @@ public:
 
 	void generateQuad()
 	{
-		// Setup vertices for a single uv-mapped quad
-#define DIM 1.0f
-#define NORMAL { 0.0f, 0.0f, 1.0f }
-		std::vector<Vertex> vertexBuffer =
+		// Setup vertices for a single uv-mapped quad made from two triangles
+		std::vector<Vertex> vertices =
 		{
-			{ {  DIM,  DIM, 0.0f }, { 1.0f, 1.0f }, NORMAL },
-			{ { -DIM,  DIM, 0.0f }, { 0.0f, 1.0f }, NORMAL },
-			{ { -DIM, -DIM, 0.0f }, { 0.0f, 0.0f }, NORMAL },
-			{ {  DIM, -DIM, 0.0f }, { 1.0f, 0.0f }, NORMAL }
+			{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {  1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
 		};
-#undef dim
-#undef normal
-		createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			vertexBuffer.size() * sizeof(Vertex),
-			vertexBuffer.data(),
-			&vertices.buf,
-			&vertices.mem);
 
 		// Setup indices
-		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-		indices.count = indexBuffer.size();
+		std::vector<uint32_t> indices = { 0,1,2, 2,3,0 };
+		indexCount = static_cast<uint32_t>(indices.size());
 
-		createBuffer(
+		// Create buffers
+		// For the sake of simplicity we won't stage the vertex data to the gpu memory
+		// Vertex buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&vertexBuffer,
+			vertices.size() * sizeof(Vertex),
+			vertices.data()));
+		// Index buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			indexBuffer.size() * sizeof(uint32_t),
-			indexBuffer.data(),
-			&indices.buf,
-			&indices.mem);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&indexBuffer,
+			indices.size() * sizeof(uint32_t),
+			indices.data()));
 	}
 
 	void setupVertexDescriptions()
@@ -608,26 +618,26 @@ public:
 				VERTEX_BUFFER_BIND_ID,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				0);			
+				offsetof(Vertex, pos));			
 		// Location 1 : Texture coordinates
 		vertices.attributeDescriptions[1] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				1,
 				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 3);
+				offsetof(Vertex, uv));
 		// Location 1 : Vertex normal
 		vertices.attributeDescriptions[2] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 5);
+				offsetof(Vertex, normal));
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -642,7 +652,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = 
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
 
@@ -668,7 +678,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = 
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
@@ -690,13 +700,6 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		// Image descriptor for the color map texture
-		VkDescriptorImageInfo texDescriptor =
-			vkTools::initializers::descriptorImageInfo(
-				texture.sampler,
-				texture.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
 			// Binding 0 : Vertex shader uniform buffer
@@ -704,16 +707,16 @@ public:
 				descriptorSet, 
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
 				0, 
-				&uniformDataVS.descriptor),
+				&uniformBufferVS.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet, 
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 				1, 
-				&texDescriptor)
+				&texture.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -762,7 +765,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		// Load shaders
@@ -785,7 +788,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
@@ -795,13 +798,12 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniformBufferVS,
 			sizeof(uboVS),
-			&uboVS,
-			&uniformDataVS.buffer,
-			&uniformDataVS.memory,
-			&uniformDataVS.descriptor);
+			&uboVS));
 
 		updateUniformBuffers();
 	}
@@ -819,10 +821,9 @@ public:
 
 		uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformDataVS.memory);
+		VK_CHECK_RESULT(uniformBufferVS.map());
+		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
+		uniformBufferVS.unmap();
 	}
 
 	void prepare()
@@ -864,7 +865,7 @@ public:
 		}
 		if (uboVS.lodBias > texture.mipLevels)
 		{
-			uboVS.lodBias = texture.mipLevels;
+			uboVS.lodBias = (float)texture.mipLevels;
 		}
 		updateUniformBuffers();
 		updateTextOverlay();
@@ -897,63 +898,4 @@ public:
 	}
 };
 
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
-
-// Main entry point
-#if defined(_WIN32)
-// Windows entry point
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#elif defined(__ANDROID__)
-// Android entry point
-void android_main(android_app* state)
-#elif defined(__linux__)
-// Linux entry point
-int main(const int argc, const char *argv[])
-#endif
-{
-#if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
-	// which would make the application crash at start
-	app_dummy();
-#endif
-	vulkanExample = new VulkanExample();
-#if defined(_WIN32)
-	vulkanExample->setupWindow(hInstance, WndProc);
-#elif defined(__ANDROID__)
-	// Attach vulkan example to global android application state
-	state->userData = vulkanExample;
-	state->onAppCmd = VulkanExample::handleAppCommand;
-	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
-#elif defined(__linux__)
-	vulkanExample->setupWindow();
-#endif
-#if !defined(__ANDROID__)
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-#endif
-	vulkanExample->renderLoop();
-	delete(vulkanExample);
-#if !defined(__ANDROID__)
-	return 0;
-#endif
-}
+VULKAN_EXAMPLE_MAIN()
