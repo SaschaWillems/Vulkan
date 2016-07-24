@@ -54,7 +54,11 @@ std::string VulkanExampleBase::getWindowTitle()
 {
 	std::string device(deviceProperties.deviceName);
 	std::string windowTitle;
-	windowTitle = title + " - " + device + " - " + std::to_string(frameCounter) + " fps";
+	windowTitle = title + " - " + device;
+	if (!enableTextOverlay)
+	{
+		windowTitle += " - " + std::to_string(frameCounter) + " fps";
+	}
 	return windowTitle;
 }
 
@@ -406,9 +410,9 @@ void VulkanExampleBase::renderLoop()
 		fpsTimer += (float)tDiff;
 		if (fpsTimer > 1000.0f)
 		{
-			std::string windowTitle = getWindowTitle();
 			if (!enableTextOverlay)
 			{
+				std::string windowTitle = getWindowTitle();
 				SetWindowText(window, windowTitle.c_str());
 			}
 			lastFPS = frameCounter;
