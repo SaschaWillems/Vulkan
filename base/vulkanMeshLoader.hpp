@@ -289,7 +289,7 @@ public:
 	// Loads the mesh with some default flags
 	bool LoadMesh(const std::string& filename) 
 	{
-		int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate/* | aiProcess_PreTransformVertices*/ | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
+		int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
 
 		return LoadMesh(filename, flags);
 	}
