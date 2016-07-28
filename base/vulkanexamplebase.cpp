@@ -958,20 +958,10 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	}
 
 	RECT windowRect;
-	if (fullscreen)
-	{
-		windowRect.left = (long)0;
-		windowRect.right = (long)screenWidth;
-		windowRect.top = (long)0;
-		windowRect.bottom = (long)screenHeight;
-	}
-	else
-	{
-		windowRect.left = (long)screenWidth / 2 - width / 2;
-		windowRect.right = (long)width;
-		windowRect.top = (long)screenHeight / 2 - height / 2;
-		windowRect.bottom = (long)height;
-	}
+	windowRect.left = 0L;
+	windowRect.top = 0L;
+	windowRect.right = fullscreen ? (long)screenWidth : (long)width;
+	windowRect.bottom = fullscreen ? (long)screenHeight : (long)height;
 
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
@@ -980,14 +970,22 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		name.c_str(),
 		windowTitle.c_str(),
 		dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-		windowRect.left,
-		windowRect.top,
-		windowRect.right,
-		windowRect.bottom,
+		0,
+		0,
+		windowRect.right - windowRect.left,
+		windowRect.bottom - windowRect.top,
 		NULL,
 		NULL,
 		hinstance,
 		NULL);
+
+	if (!fullscreen)
+	{
+		// Center on screen
+		uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRect.right) / 2;
+		uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - windowRect.bottom) / 2;
+		SetWindowPos(window, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+	}
 
 	if (!window)
 	{
