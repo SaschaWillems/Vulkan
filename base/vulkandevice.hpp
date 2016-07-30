@@ -11,6 +11,7 @@
 #pragma once
 
 #include <exception>
+#include <assert.h>
 #include "vulkan/vulkan.h"
 #include "vulkantools.h"
 #include "vulkanbuffer.hpp"
@@ -133,7 +134,7 @@ namespace vk
 		*
 		* @param queueFlags Queue flags to find a queue family index for
 		*
-		* @return INdex
+		* @return Index of the queue family index that matches the flags
 		*
 		* @throw Throws an exception if no queue family index could be found that supports the requested flags
 		*/
@@ -348,6 +349,36 @@ namespace vk
 
 			// Attach the memory to the buffer object
 			return buffer->bind();
+		}
+
+		/**
+		* Copy buffer data from src to dst using VkCmdCopyBuffer
+		* 
+		* @param src Pointer to the source buffer to copy from
+		* @param dst Pointer to the destination buffer to copy tp
+		* @param queue Pointer
+		* @param copyRegion (Optional) Pointer to a copy region, if NULL, the whole buffer is copied
+		*
+		* @note Source and destionation pointers must have the approriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
+		*/
+		void copyBuffer(vk::Buffer *src, vk::Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr)
+		{
+			assert(dst->size <= src->size);
+			assert(src->buffer && src->buffer);
+			VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			VkBufferCopy bufferCopy{};
+			if (copyRegion == nullptr)
+			{
+				bufferCopy.size = src->size;
+			}
+			else
+			{
+				bufferCopy = *copyRegion;
+			}
+
+			vkCmdCopyBuffer(copyCmd, src->buffer, dst->buffer, 1, &bufferCopy);
+
+			flushCommandBuffer(copyCmd, queue);
 		}
 
 		/** 
