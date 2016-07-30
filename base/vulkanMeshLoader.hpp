@@ -31,6 +31,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "vulkandevice.hpp"
 
@@ -58,15 +59,25 @@ namespace vkMeshLoader
 		size_t size = 0;
 	};
 
+	/** @brief Stores a mesh's vertex and index descriptions */
+	struct MeshDescriptor
+	{
+		uint32_t vertexCount;
+		uint32_t indexBase;
+		uint32_t indexCount;
+	};
+
+	/** @brief Mesh representation storing all data required to generate buffers */
 	struct MeshBuffer 
 	{
+		std::vector<MeshDescriptor> meshDescriptors;
 		MeshBufferInfo vertices;
 		MeshBufferInfo indices;
 		uint32_t indexCount;
 		glm::vec3 dim;
 	};
 
-	// Used to set parameters upon mesh creation
+	/** @brief Holds parameters for mesh creation */
 	struct MeshCreateInfo
 	{
 		glm::vec3 center;
@@ -74,7 +85,13 @@ namespace vkMeshLoader
 		glm::vec2 uvscale;
 	};
 
-	// Get vertex size from vertex layout
+	/** 
+	* Get the size of a vertex layout	
+	* 
+	* @param layout VertexLayout to get the size for
+	*
+	* @return Size of the vertex layout in bytes
+	*/
 	static uint32_t vertexSize(std::vector<vkMeshLoader::VertexLayout> layout)
 	{
 		uint32_t vSize = 0;
@@ -93,8 +110,16 @@ namespace vkMeshLoader
 		return vSize;
 	}
 
-	// Generate vertex attribute descriptions for a layout at the given binding point
 	// Note: Always assumes float formats
+	/**
+	* Generate vertex attribute descriptions for a layout at the given binding point
+	*
+	* @param layout VertexLayout from which to generate the descriptions 
+	* @param attributeDescriptions Refernce to a vector of the descriptions to generate
+	* @param binding Index of the attribute description binding point
+	*
+	* @note Always assumes float formats
+	*/
 	static void getVertexInputAttributeDescriptions(std::vector<vkMeshLoader::VertexLayout> layout, std::vector<VkVertexInputAttributeDescription> &attributeDescriptions, uint32_t binding)
 	{
 		uint32_t offset = 0;
@@ -208,6 +233,8 @@ class VulkanMeshLoader
 private:
 	vk::VulkanDevice *vulkanDevice;
 
+	static const int defaultFlags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
+
 	struct Vertex
 	{
 		glm::vec3 m_pos;
@@ -254,48 +281,39 @@ public:
 
 	uint32_t numVertices = 0;
 
-	// Optional
-	struct
-	{
-		VkBuffer buf;
-		VkDeviceMemory mem;
-	} vertexBuffer;
-
-	struct {
-		VkBuffer buf;
-		VkDeviceMemory mem;
-		uint32_t count;
-	} indexBuffer;
-
-	VkPipelineVertexInputStateCreateInfo vi;
-	std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-	std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	VkPipeline pipeline;
-
 	Assimp::Importer Importer;
 	const aiScene* pScene;
 
+	/**
+	* Default constructor
+	*
+	* @param vulkanDevice Pointer to a valid VulkanDevice
+	*/
 	VulkanMeshLoader(vk::VulkanDevice *vulkanDevice)
 	{
 		assert(vulkanDevice != nullptr);
 		this->vulkanDevice = vulkanDevice;
 	}
 
+	/**
+	* Default destructor
+	*
+	* @note Does not free any Vulkan resources
+	*/
 	~VulkanMeshLoader()
 	{
 		m_Entries.clear();
 	}
 
-	// Loads the mesh with some default flags
-	bool LoadMesh(const std::string& filename) 
-	{
-		int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
-
-		return LoadMesh(filename, flags);
-	}
-
-	// Load the mesh with custom flags
-	bool LoadMesh(const std::string& filename, int flags)
+	/** 
+	* Load a scene from a supported 3D file format
+	*
+	* @param filename Name of the file (or asset) to load
+	* @param flags (Optional) Set of ASSIMP processing flags
+	*
+	* @return Returns true if the scene has been loaded
+	*/
+	bool LoadMesh(const std::string& filename, int flags = defaultFlags)
 	{
 #if defined(__ANDROID__)
 		// Meshes are stored inside the apk on Android (compressed)
@@ -320,7 +338,17 @@ public:
 
 		if (pScene)
 		{
-			return InitFromScene(pScene, filename);
+			m_Entries.clear();
+			m_Entries.resize(pScene->mNumMeshes);
+			// Read in all meshes in the scene
+			for (auto i = 0; i < m_Entries.size(); i++)
+			{
+				m_Entries[i].vertexBase = numVertices;
+				numVertices += pScene->mMeshes[i]->mNumVertices;
+				const aiMesh* paiMesh = pScene->mMeshes[i];
+				InitMesh(&m_Entries[i], paiMesh, pScene);
+			}
+			return true;
 		}
 		else 
 		{
@@ -332,58 +360,39 @@ public:
 		}
 	}
 
-	bool InitFromScene(const aiScene* pScene, const std::string& Filename)
+	/**
+	* Read mesh data from ASSIMP mesh to an internal mesh representation that can be used to generate Vulkan buffers
+	*
+	* @param meshEntry Pointer to the target MeshEntry strucutre for the mesh data
+	* @param paiMesh ASSIMP mesh to get the data from
+	* @param pScene Scene file of the ASSIMP mesh
+	*/
+	void InitMesh(MeshEntry *meshEntry, const aiMesh* paiMesh, const aiScene* pScene)
 	{
-		m_Entries.resize(pScene->mNumMeshes);
-
-		// Counters
-		for (unsigned int i = 0; i < m_Entries.size(); i++)
-		{
-			m_Entries[i].vertexBase = numVertices;
-			numVertices += pScene->mMeshes[i]->mNumVertices;
-		}
-
-		// Initialize the meshes in the scene one by one
-		for (unsigned int i = 0; i < m_Entries.size(); i++) 
-		{
-			const aiMesh* paiMesh = pScene->mMeshes[i];
-			InitMesh(i, paiMesh, pScene);
-		}
-
-		return true;
-	}
-
-	void InitMesh(unsigned int index, const aiMesh* paiMesh, const aiScene* pScene)
-	{
-		m_Entries[index].MaterialIndex = paiMesh->mMaterialIndex;
+		meshEntry->MaterialIndex = paiMesh->mMaterialIndex;
 
 		aiColor3D pColor(0.f, 0.f, 0.f);
 		pScene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor);
 
 		aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
 
-		for (unsigned int i = 0; i < paiMesh->mNumVertices; i++) {
+		for (unsigned int i = 0; i < paiMesh->mNumVertices; i++) 
+		{
 			aiVector3D* pPos = &(paiMesh->mVertices[i]);
 			aiVector3D* pNormal = &(paiMesh->mNormals[i]);
-			aiVector3D *pTexCoord;
-			if (paiMesh->HasTextureCoords(0))
-			{
-				pTexCoord = &(paiMesh->mTextureCoords[0][i]);
-			}
-			else {
-				pTexCoord = &Zero3D;
-			}
+			aiVector3D* pTexCoord = (paiMesh->HasTextureCoords(0)) ? &(paiMesh->mTextureCoords[0][i]) : &Zero3D;
 			aiVector3D* pTangent = (paiMesh->HasTangentsAndBitangents()) ? &(paiMesh->mTangents[i]) : &Zero3D;
 			aiVector3D* pBiTangent = (paiMesh->HasTangentsAndBitangents()) ? &(paiMesh->mBitangents[i]) : &Zero3D;
 
-			Vertex v(glm::vec3(pPos->x, -pPos->y, pPos->z), 
+			Vertex v(
+				glm::vec3(pPos->x, -pPos->y, pPos->z), 
 				glm::vec2(pTexCoord->x , pTexCoord->y),
 				glm::vec3(pNormal->x, pNormal->y, pNormal->z),
 				glm::vec3(pTangent->x, pTangent->y, pTangent->z),
 				glm::vec3(pBiTangent->x, pBiTangent->y, pBiTangent->z),
 				glm::vec3(pColor.r, pColor.g, pColor.b)
 				);
-
+		
 			dim.max.x = fmax(pPos->x, dim.max.x);
 			dim.max.y = fmax(pPos->y, dim.max.y);
 			dim.max.z = fmax(pPos->z, dim.max.z);
@@ -392,38 +401,27 @@ public:
 			dim.min.y = fmin(pPos->y, dim.min.y);
 			dim.min.z = fmin(pPos->z, dim.min.z);
 
-			m_Entries[index].Vertices.push_back(v);
+			meshEntry->Vertices.push_back(v);
 		}
 
 		dim.size = dim.max - dim.min;
 
-		for (unsigned int i = 0; i < paiMesh->mNumFaces; i++) 
+		uint32_t indexBase = static_cast<uint32_t>(meshEntry->Indices.size());
+		for (unsigned int i = 0; i < paiMesh->mNumFaces; i++)
 		{
 			const aiFace& Face = paiMesh->mFaces[i];
 			if (Face.mNumIndices != 3)
 				continue;
-			m_Entries[index].Indices.push_back(Face.mIndices[0]);
-			m_Entries[index].Indices.push_back(Face.mIndices[1]);
-			m_Entries[index].Indices.push_back(Face.mIndices[2]);
+			meshEntry->Indices.push_back(indexBase + Face.mIndices[0]);
+			meshEntry->Indices.push_back(indexBase + Face.mIndices[1]);
+			meshEntry->Indices.push_back(indexBase + Face.mIndices[2]);
 		}
 	}
 
 	/**
-	* Free up all Vulkan resources used by a mesh
-	*/
-	static void freeVulkanResources(VkDevice device, VulkanMeshLoader *mesh)
-	{
-		vkDestroyBuffer(device, mesh->vertexBuffer.buf, nullptr);
-		vkFreeMemory(device, mesh->vertexBuffer.mem, nullptr);
-		vkDestroyBuffer(device, mesh->indexBuffer.buf, nullptr);
-		vkFreeMemory(device, mesh->indexBuffer.mem, nullptr);
-	}
-
-	// Create vertex and index buffer with given layout
-	// Note : Only does staging if a valid command buffer and transfer queue are passed
-
-	/**
 	* Create Vulkan buffers for the index and vertex buffer using a vertex layout
+	*
+	* @note Only does staging if a valid command buffer and transfer queue are passed
 	*
 	* @param meshBuffer Pointer to the mesh buffer containing buffer handles and memory
 	* @param layout Vertex layout for the vertex buffer
@@ -529,15 +527,19 @@ public:
 		std::vector<uint32_t> indexBuffer;
 		for (uint32_t m = 0; m < m_Entries.size(); m++)
 		{
-			uint32_t indexBase = (uint32_t)indexBuffer.size();
+			uint32_t indexBase = static_cast<uint32_t>(indexBuffer.size());
 			for (uint32_t i = 0; i < m_Entries[m].Indices.size(); i++)
 			{
 				indexBuffer.push_back(m_Entries[m].Indices[i] + indexBase);
 			}
+			vkMeshLoader::MeshDescriptor descriptor{};
+			descriptor.indexBase = indexBase;
+			descriptor.indexCount = static_cast<uint32_t>(m_Entries[m].Indices.size());
+			descriptor.vertexCount = static_cast<uint32_t>(m_Entries[m].Vertices.size());
+			meshBuffer->meshDescriptors.push_back(descriptor);
 		}
 		meshBuffer->indices.size = indexBuffer.size() * sizeof(uint32_t);
-
-		meshBuffer->indexCount = (uint32_t)indexBuffer.size();
+		meshBuffer->indexCount = static_cast<uint32_t>(indexBuffer.size());
 
 		// Use staging buffer to move vertex and index buffer to device local memory
 		if (useStaging && copyQueue != VK_NULL_HANDLE && copyCmd != VK_NULL_HANDLE)

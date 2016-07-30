@@ -32,22 +32,38 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 
+	struct DemoMesh
+	{
+		vk::Buffer vertexBuffer;
+		vk::Buffer indexBuffer;
+		uint32_t indexCount;
+		VkPipeline *pipeline;
+
+		void draw(VkCommandBuffer cmdBuffer)
+		{
+			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *pipeline);
+			vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
+			vkCmdBindIndexBuffer(cmdBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(cmdBuffer, indexCount, 1, 0, 0, 0);
+		}
+	};
+
 	struct DemoMeshes
 	{
 		std::vector<std::string> names{ "logos", "background", "models", "skybox" };
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-		VkPipeline pipeline;
-		VulkanMeshLoader* logos;
-		VulkanMeshLoader* background;
-		VulkanMeshLoader* models;
-		VulkanMeshLoader* skybox;
+		DemoMesh logos;
+		DemoMesh background;
+		DemoMesh models;
+		DemoMesh skybox;
 	} demoMeshes;
-	std::vector<VulkanMeshLoader*> meshes;
+	std::vector<DemoMesh> meshes;
 
 	struct {
-		vkTools::UniformData meshVS;
+		vk::Buffer meshVS;
 	} uniformData;
 
 	struct {
@@ -97,23 +113,15 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkTools::destroyUniformData(device, &uniformData.meshVS);
+		uniformData.meshVS.destroy();
 
-		for (auto& mesh : meshes)
+		for (auto mesh : meshes)
 		{
-			vkDestroyBuffer(device, mesh->vertexBuffer.buf, nullptr);
-			vkFreeMemory(device, mesh->vertexBuffer.mem, nullptr);
-
-			vkDestroyBuffer(device, mesh->indexBuffer.buf, nullptr);
-			vkFreeMemory(device, mesh->indexBuffer.mem, nullptr);
+			mesh.vertexBuffer.destroy();
+			mesh.indexBuffer.destroy();
 		}
 
 		textureLoader->destroyTexture(textures.skybox);
-	
-		delete(demoMeshes.logos);
-		delete(demoMeshes.background);
-		delete(demoMeshes.models);
-		delete(demoMeshes.skybox);
 	}
 
 	void loadTextures()
@@ -158,12 +166,9 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
-			for (auto& mesh : meshes)
+			for (auto mesh : meshes)
 			{
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipeline);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &mesh->vertexBuffer.buf, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], mesh->indexBuffer.buf, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], mesh->indexBuffer.count, 1, 0, 0, 0);
+				mesh.draw(drawCmdBuffers[i]);
 			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -174,154 +179,111 @@ public:
 
 	void prepareVertices()
 	{
-		struct Vertex {
+		struct Vertex 
+		{
 			float pos[3];
 			float normal[3];
 			float uv[2];
 			float color[3];
 		};
 
-		// Load meshes for demos scene
-		demoMeshes.logos = new VulkanMeshLoader(vulkanDevice);
-		demoMeshes.background = new VulkanMeshLoader(vulkanDevice);
-		demoMeshes.models = new VulkanMeshLoader(vulkanDevice);
-		demoMeshes.skybox = new VulkanMeshLoader(vulkanDevice);
-
-#if defined(__ANDROID__)
-		demoMeshes.logos->assetManager = androidApp->activity->assetManager;
-		demoMeshes.background->assetManager = androidApp->activity->assetManager;
-		demoMeshes.models->assetManager = androidApp->activity->assetManager;
-		demoMeshes.skybox->assetManager = androidApp->activity->assetManager;
-#endif
-
-		demoMeshes.logos->LoadMesh(getAssetPath() + "models/vulkanscenelogos.dae");
-		demoMeshes.background->LoadMesh(getAssetPath() + "models/vulkanscenebackground.dae");
-		demoMeshes.models->LoadMesh(getAssetPath() + "models/vulkanscenemodels.dae");
-		demoMeshes.skybox->LoadMesh(getAssetPath() + "models/cube.obj");
-
-		std::vector<VulkanMeshLoader*> meshList;
-		meshList.push_back(demoMeshes.skybox); // skybox first because of depth writes
-		meshList.push_back(demoMeshes.logos);
-		meshList.push_back(demoMeshes.background);
-		meshList.push_back(demoMeshes.models);
-
-		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
+		std::vector<std::string> meshFiles = { "vulkanscenelogos.dae", "vulkanscenebackground.dae", "vulkanscenemodels.dae", "cube.obj" };
+		std::vector<VkPipeline*> meshPipelines = { &pipelines.logos, &pipelines.models, &pipelines.models, &pipelines.skybox};
 
 		// todo : Use mesh function for loading
 		float scale = 1.0f;
-		for (auto& mesh : meshList)
+		for (auto i = 0; i < meshFiles.size(); i++)
 		{
+			VulkanMeshLoader scene(vulkanDevice);
+
+#if defined(__ANDROID__)
+			scene.assetManager = androidApp->activity->assetManager;
+#endif
+			scene.LoadMesh(getAssetPath() + "models/" + meshFiles[i]);
+
 			// Generate vertex buffer (pos, normal, uv, color)
 			std::vector<Vertex> vertexBuffer;
-			for (size_t m = 0; m < mesh->m_Entries.size(); m++)
+			glm::vec3 offset(0.0f);
+			// Offset on Y (except skypbox)
+			if (meshFiles[i] != "cube.obj")
 			{
-				for (size_t i = 0; i < mesh->m_Entries[m].Vertices.size(); i++) {
-					glm::vec3 pos = mesh->m_Entries[m].Vertices[i].m_pos * scale;
-					glm::vec3 normal = mesh->m_Entries[m].Vertices[i].m_normal;
-					glm::vec2 uv = mesh->m_Entries[m].Vertices[i].m_tex;
-					glm::vec3 col = mesh->m_Entries[m].Vertices[i].m_color;
-					Vertex vert = {
+				offset.y += 1.15f;
+			}
+			for (size_t m = 0; m < scene.m_Entries.size(); m++)
+			{
+				for (size_t v = 0; v < scene.m_Entries[m].Vertices.size(); v++) 
+				{
+					glm::vec3 pos = (scene.m_Entries[m].Vertices[v].m_pos + offset) * scale;
+					glm::vec3 normal = scene.m_Entries[m].Vertices[v].m_normal;
+					glm::vec2 uv = scene.m_Entries[m].Vertices[v].m_tex;
+					glm::vec3 col = scene.m_Entries[m].Vertices[v].m_color;
+					Vertex vert = 
+					{
 						{ pos.x, pos.y, pos.z },
 						{ normal.x, -normal.y, normal.z },
 						{ uv.s, uv.t },
 						{ col.r, col.g, col.b }
 					};
 
-					// Offset skybox mesh
-					// todo : center before export
-					if (mesh != demoMeshes.skybox)
-					{
-						vert.pos[1] += 1.15f;
-					}
-
 					vertexBuffer.push_back(vert);
 				}
 			}
 
 			std::vector<uint32_t> indexBuffer;
-			for (size_t m = 0; m < mesh->m_Entries.size(); m++)
+			for (size_t m = 0; m < scene.m_Entries.size(); m++)
 			{
 				int indexBase = indexBuffer.size();
-				for (size_t i = 0; i < mesh->m_Entries[m].Indices.size(); i++) {
-					indexBuffer.push_back(mesh->m_Entries[m].Indices[i] + indexBase);
+				for (size_t i = 0; i < scene.m_Entries[m].Indices.size(); i++) {
+					indexBuffer.push_back(scene.m_Entries[m].Indices[i] + indexBase);
 				}
 			}
-			mesh->indexBuffer.count = static_cast<uint32_t>(indexBuffer.size());
+
+			DemoMesh mesh;
+
+			mesh.indexCount = static_cast<uint32_t>(indexBuffer.size());
+			mesh.pipeline = meshPipelines[i];
 
 			uint32_t vertexBufferSize = static_cast<uint32_t>(vertexBuffer.size()) * sizeof(Vertex);
 			uint32_t indexBufferSize = static_cast<uint32_t>(indexBuffer.size()) * sizeof(uint32_t);
 
-			struct {
-				VkBuffer buffer;
-				VkDeviceMemory memory;
-			} vertexStaging, indexStaging;
+			vk::Buffer vertexStaging, indexStaging;
 
 			// Create staging buffers
 			// Vertex data
-			createBuffer(
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&vertexStaging,
 				vertexBufferSize,
-				vertexBuffer.data(),
-				&vertexStaging.buffer,
-				&vertexStaging.memory);
+				vertexBuffer.data());
 			// Index data
-			createBuffer(
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&indexStaging,
 				indexBufferSize,
-				indexBuffer.data(),
-				&indexStaging.buffer,
-				&indexStaging.memory);
+				indexBuffer.data());
 
 			// Create device local buffers
 			// Vertex buffer
-			createBuffer(
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				vertexBufferSize,
-				nullptr,
-				&mesh->vertexBuffer.buf,
-				&mesh->vertexBuffer.mem);
+				&mesh.vertexBuffer,
+				vertexBufferSize);
 			// Index buffer
-			createBuffer(
+			vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				indexBufferSize,
-				nullptr,
-				&mesh->indexBuffer.buf,
-				&mesh->indexBuffer.mem);
+				&mesh.indexBuffer,
+				indexBufferSize);
 
 			// Copy from staging buffers
-			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			vulkanDevice->copyBuffer(&vertexStaging, &mesh.vertexBuffer, queue);
+			vulkanDevice->copyBuffer(&indexStaging, &mesh.indexBuffer, queue);
 
-			VkBufferCopy copyRegion = {};
-
-			copyRegion.size = vertexBufferSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				vertexStaging.buffer,
-				mesh->vertexBuffer.buf,
-				1,
-				&copyRegion);
-
-			copyRegion.size = indexBufferSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				indexStaging.buffer,
-				mesh->indexBuffer.buf,
-				1,
-				&copyRegion);
-
-			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
-
-			vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
-			vkFreeMemory(device, vertexStaging.memory, nullptr);
-			vkDestroyBuffer(device, indexStaging.buffer, nullptr);
-			vkFreeMemory(device, indexStaging.memory, nullptr);
-
-			// todo : staging
+			vertexStaging.destroy();
+			indexStaging.destroy();
 
 			meshes.push_back(mesh);
 		}
@@ -342,28 +304,28 @@ public:
 				VERTEX_BUFFER_BIND_ID,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				0);
+				offsetof(Vertex, pos));
 		// Location 1 : Normal
 		demoMeshes.attributeDescriptions[1] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				1,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3);
+				offsetof(Vertex, normal));
 		// Location 2 : Texture coordinates
 		demoMeshes.attributeDescriptions[2] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
 				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6);
+				offsetof(Vertex, uv));
 		// Location 3 : Color
 		demoMeshes.attributeDescriptions[3] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				3,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8);
+				offsetof(Vertex, color));
 
 		demoMeshes.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
 		demoMeshes.inputState.vertexBindingDescriptionCount = demoMeshes.bindingDescriptions.size();
@@ -542,26 +504,16 @@ public:
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skybox));
-
-		// Assign pipelines
-		demoMeshes.logos->pipeline = pipelines.logos;
-		demoMeshes.models->pipeline = pipelines.models;
-		demoMeshes.background->pipeline = pipelines.models;
-		demoMeshes.skybox->pipeline = pipelines.skybox;
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Vertex shader uniform buffer block
-		createBuffer(
+		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformData.meshVS.buffer,
-			&uniformData.meshVS.memory,
-			&uniformData.meshVS.descriptor);
+			&uniformData.meshVS,
+			sizeof(uboVS));
 
 		updateUniformBuffers();
 	}
@@ -585,10 +537,9 @@ public:
 
 		uboVS.lightPos = lightPos;
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.meshVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.meshVS.memory);
+		VK_CHECK_RESULT(uniformData.meshVS.map());
+		memcpy(uniformData.meshVS.mapped, &uboVS, sizeof(uboVS));
+		uniformData.meshVS.unmap();
 	}
 
 	void draw()
@@ -630,63 +581,4 @@ public:
 
 };
 
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-}
-		}
-#endif
-
-// Main entry point
-#if defined(_WIN32)
-// Windows entry point
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#elif defined(__ANDROID__)
-// Android entry point
-void android_main(android_app* state)
-#elif defined(__linux__)
-// Linux entry point
-int main(const int argc, const char *argv[])
-#endif
-{
-#if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
-	// which would make the application crash at start
-	app_dummy();
-#endif
-	vulkanExample = new VulkanExample();
-#if defined(_WIN32)
-	vulkanExample->setupWindow(hInstance, WndProc);
-#elif defined(__ANDROID__)
-	// Attach vulkan example to global android application state
-	state->userData = vulkanExample;
-	state->onAppCmd = VulkanExample::handleAppCommand;
-	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
-#elif defined(__linux__)
-	vulkanExample->setupWindow();
-#endif
-#if !defined(__ANDROID__)
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-#endif
-	vulkanExample->renderLoop();
-	delete(vulkanExample);
-#if !defined(__ANDROID__)
-	return 0;
-#endif
-}
+VULKAN_EXAMPLE_MAIN()
