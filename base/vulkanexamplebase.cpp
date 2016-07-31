@@ -376,18 +376,23 @@ void VulkanExampleBase::renderLoop()
 	while (TRUE)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		if (viewUpdated)
 		{
-			if (msg.message == WM_QUIT)
-			{
-				break;
-			}
-			else
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
+			viewUpdated = false;
+			viewChanged();
 		}
+
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+
+		if (msg.message == WM_QUIT)
+		{
+			break;
+		}
+
 		render();
 		frameCounter++;
 		auto tEnd = std::chrono::high_resolution_clock::now();
@@ -396,7 +401,7 @@ void VulkanExampleBase::renderLoop()
 		camera.update(frameTimer);
 		if (camera.moving())
 		{
-			viewChanged();
+			viewUpdated = true;
 		}
 		// Convert to clamped timer value
 		if (!paused)
@@ -1083,7 +1088,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 		zoom += (float)wheelDelta * 0.005f * zoomSpeed;
 		camera.translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f * zoomSpeed));
-		viewChanged();
+		viewUpdated = true;
 		break;
 	}
 	case WM_MOUSEMOVE:
@@ -1094,7 +1099,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			zoom += (mousePos.y - (float)posy) * .005f * zoomSpeed;
 			camera.translate(glm::vec3(-0.0f, 0.0f, (mousePos.y - (float)posy) * .005f * zoomSpeed));
 			mousePos = glm::vec2((float)posx, (float)posy);
-			viewChanged();
+			viewUpdated = true;
 		}
 		if (wParam & MK_LBUTTON)
 		{
@@ -1104,7 +1109,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			rotation.y -= (mousePos.x - (float)posx) * 1.25f * rotationSpeed;
 			camera.rotate(glm::vec3((mousePos.y - (float)posy) * camera.rotationSpeed, -(mousePos.x - (float)posx) * camera.rotationSpeed, 0.0f));
 			mousePos = glm::vec2((float)posx, (float)posy);
-			viewChanged();
+			viewUpdated = true;
 		}
 		if (wParam & MK_MBUTTON)
 		{
@@ -1113,7 +1118,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			cameraPos.x -= (mousePos.x - (float)posx) * 0.01f;
 			cameraPos.y -= (mousePos.y - (float)posy) * 0.01f;
 			camera.translate(glm::vec3(-(mousePos.x - (float)posx) * 0.01f, -(mousePos.y - (float)posy) * 0.01f, 0.0f));
-			viewChanged();
+			viewUpdated = true;
 			mousePos.x = (float)posx;
 			mousePos.y = (float)posy;
 		}

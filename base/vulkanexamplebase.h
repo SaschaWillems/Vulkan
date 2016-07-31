@@ -72,6 +72,8 @@ private:
 	VkResult createInstance(bool enableValidation);
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
+	/** brief Indicates that the view (position, rotation) has changed and */
+	bool viewUpdated = false;
 	// Destination dimensions for resizing the window
 	uint32_t destWidth;
 	uint32_t destHeight;
