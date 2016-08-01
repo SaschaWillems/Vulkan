@@ -121,6 +121,8 @@ extern PFN_vkCmdSetDepthBias vkCmdSetDepthBias;
 extern PFN_vkCmdPushConstants vkCmdPushConstants;
 extern PFN_vkCmdDrawIndexed vkCmdDrawIndexed;
 extern PFN_vkCmdDraw vkCmdDraw;
+extern PFN_vkCmdDrawIndexedIndirect vkCmdDrawIndexedIndirect;
+extern PFN_vkCmdDrawIndirect vkCmdDrawIndirect;
 extern PFN_vkCmdDispatch vkCmdDispatch;
 extern PFN_vkDestroyPipeline vkDestroyPipeline;
 extern PFN_vkDestroyPipelineLayout vkDestroyPipelineLayout;

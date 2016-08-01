@@ -91,6 +91,8 @@ PFN_vkCmdSetDepthBias vkCmdSetDepthBias;
 PFN_vkCmdPushConstants vkCmdPushConstants;
 PFN_vkCmdDrawIndexed vkCmdDrawIndexed;
 PFN_vkCmdDraw vkCmdDraw;
+PFN_vkCmdDrawIndexedIndirect vkCmdDrawIndexedIndirect;
+PFN_vkCmdDrawIndirect vkCmdDrawIndirect;
 PFN_vkCmdDispatch vkCmdDispatch;
 PFN_vkDestroyPipeline vkDestroyPipeline;
 PFN_vkDestroyPipelineLayout vkDestroyPipelineLayout;
@@ -238,6 +240,8 @@ void loadVulkanFunctions(VkInstance instance)
 
 	vkCmdDrawIndexed = reinterpret_cast<PFN_vkCmdDrawIndexed>(vkGetInstanceProcAddr(instance, "vkCmdDrawIndexed"));
 	vkCmdDraw = reinterpret_cast<PFN_vkCmdDraw>(vkGetInstanceProcAddr(instance, "vkCmdDraw"));
+	vkCmdDrawIndexedIndirect = reinterpret_cast<PFN_vkCmdDrawIndexedIndirect>(vkGetInstanceProcAddr(instance, "vkCmdDrawIndexedIndirect"));
+	vkCmdDrawIndirect = reinterpret_cast<PFN_vkCmdDrawIndirect>(vkGetInstanceProcAddr(instance, "vkCmdDrawIndirect"));
 	vkCmdDispatch = reinterpret_cast<PFN_vkCmdDispatch>(vkGetInstanceProcAddr(instance, "vkCmdDispatch"));
 
 	vkDestroyPipeline = reinterpret_cast<PFN_vkDestroyPipeline>(vkGetInstanceProcAddr(instance, "vkDestroyPipeline"));
