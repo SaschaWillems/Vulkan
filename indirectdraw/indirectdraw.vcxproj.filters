@@ -49,5 +49,17 @@
     <None Include="..\data\shaders\indirectdraw\indirectdraw.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="..\data\shaders\indirectdraw\ground.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\indirectdraw\ground.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\indirectdraw\skysphere.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\indirectdraw\skysphere.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

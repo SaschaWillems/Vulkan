@@ -12,22 +12,20 @@ layout (location = 3) in vec3 inColor;
 // Instanced attributes
 layout (location = 4) in vec3 instancePos;
 layout (location = 5) in vec3 instanceRot;
-layout (location = 6) in vec3 instanceColor;
-layout (location = 7) in float instanceScale;
-layout (location = 8) in int instanceTexIndex;
+layout (location = 6) in float instanceScale;
+layout (location = 7) in int instanceTexIndex;
 
 layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
-	mat4 view;
-	float time;
+	mat4 modelview;
 } ubo;
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
-layout (location = 2) out vec3 outEyePos;
-layout (location = 3) out vec3 outLightVec;
-layout (location = 4) out vec3 outUV;
+layout (location = 2) out vec3 outUV;
+layout (location = 3) out vec3 outViewVec;
+layout (location = 4) out vec3 outLightVec;
 
 out gl_PerVertex
 {
@@ -36,8 +34,9 @@ out gl_PerVertex
 
 void main() 
 {
-	outColor = instanceColor;
+	outColor = inColor;
 	outUV = vec3(inUV, instanceTexIndex);
+	outUV.t = 1.0 - outUV.t;
 
 	mat4 mx, my, mz;
 	
@@ -51,8 +50,8 @@ void main()
 	mx[3] = vec4(0.0, 0.0, 0.0, 1.0);	
 	
 	// rotate around y
-	s = sin(instanceRot.y + ubo.time);
-	c = cos(instanceRot.y + ubo.time);
+	s = sin(instanceRot.y);
+	c = cos(instanceRot.y);
 
 	my[0] = vec4(c, 0.0, s, 0.0);
 	my[1] = vec4(0.0, 1.0, 0.0, 0.0);
@@ -74,10 +73,10 @@ void main()
 	
 	vec4 pos = vec4((inPos.xyz * instanceScale) + instancePos, 1.0) * rotMat;
 
-	outEyePos = vec3(ubo.view * pos);
+	gl_Position = ubo.projection * ubo.modelview * pos;
 	
-	gl_Position = ubo.projection * ubo.view * pos;
-	
-	vec4 lightPos = vec4(0.0, 0.0, 0.0, 1.0) * ubo.view;
-	outLightVec = normalize(lightPos.xyz - outEyePos);
+	vec4 wPos = ubo.modelview * vec4(pos.xyz, 1.0); 
+	vec4 lPos = vec4(0.0, -5.0, 0.0, 1.0);
+	outLightVec = lPos.xyz - pos.xyz;
+	outViewVec = -pos.xyz;	
 }

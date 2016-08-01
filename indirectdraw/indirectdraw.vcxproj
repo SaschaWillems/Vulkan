@@ -22,8 +22,12 @@
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\data\shaders\indirectdraw\ground.frag" />
+    <None Include="..\data\shaders\indirectdraw\ground.vert" />
     <None Include="..\data\shaders\indirectdraw\indirectdraw.frag" />
     <None Include="..\data\shaders\indirectdraw\indirectdraw.vert" />
+    <None Include="..\data\shaders\indirectdraw\skysphere.frag" />
+    <None Include="..\data\shaders\indirectdraw\skysphere.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2BBDD10F-2C9D-4BEA-8C7B-1C510A2CE08B}</ProjectGuid>

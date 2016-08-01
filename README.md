@@ -115,6 +115,13 @@ Also shows how to use multiple descriptor sets simultaneously with the new GLSL 
 Shows the use of instancing for rendering many copies of the same mesh using different attributes and textures. A secondary vertex buffer containing instanced data, stored in device local memory, is used to pass instance data to the shader via vertex attributes with a per-instance step rate. The instance data also contains a texture layer index for having different textures for the instanced meshes.
 <br><br>
 
+## [Indirect drawing](indirectdraw/)
+<img src="./screenshots/indirectdraw.jpg" height="96px" align="right">
+
+This example renders thousands of instanced objects with different geometries using only one single indirect draw call. Unlike direct drawing function, indirect drawing functions take their draw commands from a buffer object containing information like index cound, index offset and number of instances to draw.
+
+Shows how to generate and render such an indirect draw command buffer that is staged to the device. Indirect draw buffers are the base for generating and updating draw commands on the GPU using shaders.
+
 ## [Multi sampling](multisampling/)
 <img src="./screenshots/multisampling.png" height="96px" align="right">
 

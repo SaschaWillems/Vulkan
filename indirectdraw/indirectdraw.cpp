@@ -6,13 +6,16 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
 * Summary:
-* Use a device local buffer that stores draw commands for instanced rendering of different meshes.
+* Use a device local buffer that stores draw commands for instanced rendering of different meshes stored
+* in the same buffer.
 *
 * Indirect drawing offloads draw command generation and offers the ability to update them on the GPU 
 * without the CPU having to touch the buffer again, also reducing the number of drawcalls.
 *
 * The example shows how to setup and fill such a buffer on the CPU side, stages it to the device and
-* shows how render it using only one draw command.
+* shows how to render it using only one draw command.
+*
+* See readme.md for details
 *
 */
 
@@ -39,6 +42,8 @@
 
 // Number of instances per object
 #define OBJECT_INSTANCE_COUNT 2048
+// Circular range of plant distribution
+#define PLANT_RADIUS 25.0f
 
 // Vertex layout for this example
 std::vector<vkMeshLoader::VertexLayout> vertexLayout =
@@ -59,18 +64,20 @@ public:
 	} vertices;
 
 	struct {
-		vkMeshLoader::MeshBuffer example;
+		vkMeshLoader::MeshBuffer plants;
+		vkMeshLoader::MeshBuffer ground;
+		vkMeshLoader::MeshBuffer skysphere;
 	} meshes;
 
 	struct {
 		vkTools::VulkanTexture colorMap;
+		vkTools::VulkanTexture ground;
 	} textures;
 
 	// Per-instance data block
 	struct InstanceData {
 		glm::vec3 pos;
 		glm::vec3 rot;
-		glm::vec3 color;
 		float scale;
 		uint32_t texIndex;
 	};
@@ -84,7 +91,6 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 view;
-		float time = 0.0f;
 	} uboVS;
 
 	struct {
@@ -92,12 +98,16 @@ public:
 	} uniformData;
 
 	struct {
-		VkPipeline solid;
+		VkPipeline plants;
+		VkPipeline ground;
+		VkPipeline skysphere;
 	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
+
+	VkSampler samplerRepeat;
 
 	uint32_t objectCount = 0;
 
@@ -106,19 +116,23 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -12.0f;
-		rotationSpeed = 0.25f;
 		enableTextOverlay = true;
 		title = "Vulkan Example - Indirect rendering";
+		camera.type = Camera::CameraType::firstperson;
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
+		camera.setRotation(glm::vec3(-12.0f, 159.0f, 0.0f));
+		camera.setTranslation(glm::vec3(0.4f, 1.25f, 0.0f));
+		camera.movementSpeed = 5.0f;
 		srand(time(NULL));
 	}
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(device, pipelines.plants, nullptr);
+		vkDestroyPipeline(device, pipelines.ground, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
+		vkMeshLoader::freeMeshBufferResources(device, &meshes.plants);
 		textureLoader->destroyTexture(textures.colorMap);
 		instanceBuffer.destroy();
 		indirectCommandsBuffer.destroy();
@@ -140,7 +154,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+		clearValues[0].color = { { 0.18f, 0.27f, 0.5f, 0.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
@@ -165,20 +179,32 @@ public:
 			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
-
 			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+
+			// Plants
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.plants);
 			// Binding point 0 : Mesh vertex buffer
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plants.vertices.buf, offsets);
 			// Binding point 1 : Instance data buffer
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], INSTANCE_BUFFER_BIND_ID, 1, &instanceBuffer.buffer, offsets);
-
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.plants.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
 			// One draw call for an arbitrary number of ojects
 			// Index offsets and instance count are taken from the indirect buffer
 			vkCmdDrawIndexedIndirect(drawCmdBuffers[i], indirectCommandsBuffer.buffer, 0, indirectDrawCount, sizeof(VkDrawIndexedIndirectCommand));
+
+			// Ground
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ground);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.ground.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.ground.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.ground.indexCount, 1, 0, 0, 0);
+			// Skysphere
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skysphere);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skysphere.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skysphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skysphere.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -186,17 +212,14 @@ public:
 		}
 	}
 
-	void loadMeshes()
+	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/basicmeshes.dae", &meshes.example, vertexLayout, 0.1f);
-	}
+		loadMesh(getAssetPath() + "models/plants.dae", &meshes.plants, vertexLayout, 0.0025f);
+		loadMesh(getAssetPath() + "models/plane_circle.dae", &meshes.ground, vertexLayout, PLANT_RADIUS + 1.0f);
+		loadMesh(getAssetPath() + "models/skysphere.dae", &meshes.skysphere, vertexLayout, 512.0f);
 
-	void loadTextures()
-	{
-		textureLoader->loadTextureArray(
-			getAssetPath() + "textures/texturearray_rocks_bc3.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.colorMap);
+		textureLoader->loadTextureArray(getAssetPath() + "textures/texturearray_plants_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.colorMap);
+		textureLoader->loadTexture(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.ground);
 	}
 
 	void setupVertexDescriptions()
@@ -270,20 +293,15 @@ public:
 			vkTools::initializers::vertexInputAttributeDescription(
 				INSTANCE_BUFFER_BIND_ID, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, rot))
 			);
-		// Location 6: Color
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 6,	VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, color))
-			);
 		// Location 6: Scale
 		vertices.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 7, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, scale))
+				INSTANCE_BUFFER_BIND_ID, 6, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, scale))
 			);
 		// Location 7: Texture array layer index
 		vertices.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 8, VK_FORMAT_R32_SINT, offsetof(InstanceData, texIndex))
+				INSTANCE_BUFFER_BIND_ID, 7, VK_FORMAT_R32_SINT, offsetof(InstanceData, texIndex))
 			);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
@@ -299,7 +317,7 @@ public:
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2),
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -315,16 +333,21 @@ public:
 	{
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
 		{
-			// Binding 0 : Vertex shader uniform buffer
+			// Binding 0: Vertex shader uniform buffer
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_VERTEX_BIT,
 				0),
-			// Binding 1 : Fragment shader combined sampler
+			// Binding 1: Fragment shader combined sampler (plants texture array)
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
 				1),
+			// Binding 1: Fragment shader combined sampler (ground texture)
+			vkTools::initializers::descriptorSetLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				2),
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
@@ -352,26 +375,26 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		VkDescriptorImageInfo texDescriptor =
-			vkTools::initializers::descriptorImageInfo(
-				textures.colorMap.sampler,
-				textures.colorMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
-			// Binding 0 : Vertex shader uniform buffer
+			// Binding 0: Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
 			descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformData.scene.descriptor),
-			// Binding 1 : Color map 
+			// Binding 1: Plants texture array combined 
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&texDescriptor)
+				&textures.colorMap.descriptor),
+			// Binding 2: Ground texture combined 
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSet,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				2,
+				&textures.ground.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -388,7 +411,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_BACK_BIT,
+				VK_CULL_MODE_NONE,
 				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
@@ -426,18 +449,13 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Instacing pipeline
-		// Load shaders
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/indirectdraw/indirectdraw.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/indirectdraw/indirectdraw.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
 				renderPass,
 				0);
+
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
@@ -450,29 +468,43 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		// Indirect (and instanced) pipeline for the plants
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/indirectdraw/indirectdraw.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/indirectdraw/indirectdraw.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.plants));
+
+		// Ground
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/indirectdraw/ground.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/indirectdraw/ground.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.ground));
+
+		// Skysphere
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/indirectdraw/skysphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/indirectdraw/skysphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skysphere));
 	}
 
 	// Prepare (and stage) a buffer containing the indirect draw commands
 	void prepareIndirectData()
 	{
-		VkDrawIndexedIndirectCommand dic{};
-		dic.firstInstance = 0;
-		dic.instanceCount = OBJECT_INSTANCE_COUNT;
+		indirectCommands.clear();
 
-		dic.firstIndex = 0;
-		dic.indexCount = 36;
-		indirectCommands.push_back(dic); 
+		// Create on indirect command for each mesh in the scene
+		uint32_t m = 0;
+		for (auto& meshDescriptor : meshes.plants.meshDescriptors)
+		{
+			VkDrawIndexedIndirectCommand indirectCmd{};
+			indirectCmd.instanceCount = OBJECT_INSTANCE_COUNT;
+			indirectCmd.firstInstance = m * OBJECT_INSTANCE_COUNT;
+			indirectCmd.firstIndex = meshDescriptor.indexBase;
+			indirectCmd.indexCount = meshDescriptor.indexCount;
+			
+			indirectCommands.push_back(indirectCmd);
 
-		dic.firstInstance += OBJECT_INSTANCE_COUNT;
-		dic.firstIndex = 36;
-		dic.indexCount = 2880;
-		indirectCommands.push_back(dic);
-
-		dic.firstInstance += OBJECT_INSTANCE_COUNT;
-		dic.firstIndex = 2916;
-		dic.indexCount = 186;
-		indirectCommands.push_back(dic);
+			m++;
+		}
 
 		indirectDrawCount = static_cast<uint32_t>(indirectCommands.size());
 
@@ -496,19 +528,7 @@ public:
 			&indirectCommandsBuffer,
 			stagingBuffer.size));
 
-		// Copy to staging buffer
-		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-		VkBufferCopy copyRegion = {};
-		copyRegion.size = indirectCommandsBuffer.size;
-		vkCmdCopyBuffer(
-			copyCmd,
-			stagingBuffer.buffer,
-			indirectCommandsBuffer.buffer,
-			1,
-			&copyRegion);
-
-		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+		vulkanDevice->copyBuffer(&stagingBuffer, &indirectCommandsBuffer, queue);
 
 		stagingBuffer.destroy();
 	}
@@ -529,14 +549,12 @@ public:
 
 		for (auto i = 0; i < objectCount; i++)
 		{
-			instanceData[i].rot = glm::vec3(M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator));
+			instanceData[i].rot = glm::vec3(0.0f, M_PI * uniformDist(rndGenerator), 0.0f);
 			float theta = 2 * M_PI * uniformDist(rndGenerator);
 			float phi = acos(1 - 2 * uniformDist(rndGenerator));
-			glm::vec3 pos;
-			instanceData[i].pos = glm::vec3(sin(phi) * cos(theta), sin(theta) * uniformDist(rndGenerator) / 1500.0f, cos(phi)) * 7.5f;
-			instanceData[i].color = glm::vec3(rnd(1.0f), rnd(1.0f), rnd(1.0f));
+			instanceData[i].pos = glm::vec3(sin(phi) * cos(theta), 0.0f, cos(phi)) * PLANT_RADIUS;
 			instanceData[i].scale = 1.0f + uniformDist(rndGenerator) * 2.0f;
-			instanceData[i].texIndex = rnd(textures.colorMap.layerCount);
+			instanceData[i].texIndex = i / OBJECT_INSTANCE_COUNT;
 		}
 
 		vk::Buffer stagingBuffer;
@@ -553,19 +571,7 @@ public:
 			&instanceBuffer,
 			stagingBuffer.size));
 
-		// Copy to staging buffer
-		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-		VkBufferCopy copyRegion = { };
-		copyRegion.size = instanceBuffer.size;
-		vkCmdCopyBuffer(
-			copyCmd,
-			stagingBuffer.buffer,
-			instanceBuffer.buffer,
-			1,
-			&copyRegion);
-
-		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+		vulkanDevice->copyBuffer(&stagingBuffer, &instanceBuffer, queue);
 
 		stagingBuffer.destroy();
 	}
@@ -587,16 +593,8 @@ public:
 	{
 		if (viewChanged)
 		{
-			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
-			uboVS.view = glm::translate(glm::mat4(), cameraPos + glm::vec3(0.0f, 0.0f, zoom));
-			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-		}
-
-		if (!paused)
-		{
-			uboVS.time += frameTimer * 0.05f;
+			uboVS.projection = camera.matrices.perspective;
+			uboVS.view = camera.matrices.view;
 		}
 
 		memcpy(uniformData.scene.mapped, &uboVS, sizeof(uboVS));
@@ -619,8 +617,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
-		loadMeshes();
+		loadAssets();
 		prepareIndirectData();
 		prepareInstanceData();
 		setupVertexDescriptions();
@@ -640,10 +637,6 @@ public:
 			return;
 		}
 		draw();
-		if (!paused)
-		{
-			updateUniformBuffer(false);
-		}
 	}
 
 	virtual void viewChanged()
@@ -653,67 +646,8 @@ public:
 
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
-		textOverlay->addText("Rendering " + std::to_string(objectCount) + " objects", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText(std::to_string(objectCount) + " objects", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 	}
 };
 
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
-
-// Main entry point
-#if defined(_WIN32)
-// Windows entry point
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#elif defined(__ANDROID__)
-// Android entry point
-void android_main(android_app* state)
-#elif defined(__linux__)
-// Linux entry point
-int main(const int argc, const char *argv[])
-#endif
-{
-#if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
-	// which would make the application crash at start
-	app_dummy();
-#endif
-	vulkanExample = new VulkanExample();
-#if defined(_WIN32)
-	vulkanExample->setupWindow(hInstance, WndProc);
-#elif defined(__ANDROID__)
-	// Attach vulkan example to global android application state
-	state->userData = vulkanExample;
-	state->onAppCmd = VulkanExample::handleAppCommand;
-	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
-#elif defined(__linux__)
-	vulkanExample->setupWindow();
-#endif
-#if !defined(__ANDROID__)
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-#endif
-	vulkanExample->renderLoop();
-	delete(vulkanExample);
-#if !defined(__ANDROID__)
-	return 0;
-#endif
-}
+VULKAN_EXAMPLE_MAIN()
