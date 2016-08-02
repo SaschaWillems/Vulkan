@@ -200,12 +200,15 @@ namespace vkTools
 				imageCreateInfo.arrayLayers = 1;
 				imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 				imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-				imageCreateInfo.usage = imageUsageFlags;
 				imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 				imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				imageCreateInfo.extent = { texture->width, texture->height, 1 };
-				imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
+				imageCreateInfo.usage = imageUsageFlags;
+				// Ensure that the TRANSFER_DST bit is set for staging
+				if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
+				{
+					imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+				}
 				VK_CHECK_RESULT(vkCreateImage(vulkanDevice->logicalDevice, &imageCreateInfo, nullptr, &texture->image));
 
 				vkGetImageMemoryRequirements(vulkanDevice->logicalDevice, texture->image, &memReqs);
@@ -418,7 +421,7 @@ namespace vkTools
 		*
 		* @note Only supports .ktx and .dds
 		*/
-		void loadCubemap(std::string filename, VkFormat format, VulkanTexture *texture)
+		void loadCubemap(std::string filename, VkFormat format, VulkanTexture *texture, VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT)
 		{
 #if defined(__ANDROID__)
 			assert(assetManager != nullptr);
@@ -509,15 +512,20 @@ namespace vkTools
 			imageCreateInfo.mipLevels = texture->mipLevels;
 			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			imageCreateInfo.extent = { texture->width, texture->height, 1 };
-			imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			imageCreateInfo.usage = imageUsageFlags;
+			// Ensure that the TRANSFER_DST bit is set for staging
+			if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
+			{
+				imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			}
 			// Cube faces count as array layers in Vulkan
 			imageCreateInfo.arrayLayers = 6;
 			// This flag is required for cube map images
 			imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
 
 			VK_CHECK_RESULT(vkCreateImage(vulkanDevice->logicalDevice, &imageCreateInfo, nullptr, &texture->image));
 
@@ -602,7 +610,6 @@ namespace vkTools
 
 			// Create image view
 			VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
-			view.image = VK_NULL_HANDLE;
 			view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
 			view.format = format;
 			view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
@@ -631,7 +638,7 @@ namespace vkTools
 		*
 		* @note Only supports .ktx and .dds
 		*/
-		void loadTextureArray(std::string filename, VkFormat format, VulkanTexture *texture)
+		void loadTextureArray(std::string filename, VkFormat format, VulkanTexture *texture, VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT)
 		{
 #if defined(__ANDROID__)
 			assert(assetManager != nullptr);
@@ -723,11 +730,15 @@ namespace vkTools
 			imageCreateInfo.format = format;
 			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			imageCreateInfo.extent = { texture->width, texture->height, 1 };
-			imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			imageCreateInfo.usage = imageUsageFlags;
+			// Ensure that the TRANSFER_DST bit is set for staging
+			if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
+			{
+				imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			}
 			imageCreateInfo.arrayLayers = texture->layerCount;
 			imageCreateInfo.mipLevels = texture->mipLevels;
 
@@ -814,7 +825,6 @@ namespace vkTools
 
 			// Create image view
 			VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
-			view.image = VK_NULL_HANDLE;
 			view.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 			view.format = format;
 			view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
