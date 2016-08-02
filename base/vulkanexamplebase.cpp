@@ -1145,7 +1145,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 #elif defined(__ANDROID__)
 int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* event)
 {
-	VulkanExampleBase* vulkanExample = (VulkanExampleBase*)app->userData;
+	VulkanExampleBase* vulkanExample = reinterpret_cast<VulkanExampleBase*>(app->userData);
 	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
 	{
 		if (AInputEvent_getSource(event) == AINPUT_SOURCE_JOYSTICK)
@@ -1207,7 +1207,7 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 {
 	assert(app->userData != NULL);
-	VulkanExampleBase* vulkanExample = (VulkanExampleBase*)app->userData;
+	VulkanExampleBase* vulkanExample = reinterpret_cast<VulkanExampleBase*>(app->userData);
 	switch (cmd)
 	{
 	case APP_CMD_SAVE_STATE:
