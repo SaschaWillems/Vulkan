@@ -1381,12 +1381,44 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 			mouseButtons.right = false;
 	}
 	break;
+	case XCB_KEY_PRESS:
+	{
+		const xcb_key_release_event_t *keyEvent = (const xcb_key_release_event_t *)event;
+		switch (keyEvent->detail)
+		{
+			case KEY_W:
+				camera.keys.up = true;
+				break;
+			case KEY_S:
+				camera.keys.down = true;
+				break;
+			case KEY_A:
+				camera.keys.left = true;
+				break;
+			case KEY_D:
+				camera.keys.right = true;
+				break;
+		}
+	}
+	break;	
 	case XCB_KEY_RELEASE:
 	{
 		const xcb_key_release_event_t *keyEvent = (const xcb_key_release_event_t *)event;
 		switch (keyEvent->detail)
 		{
-			case 0x9:
+			case KEY_W:
+				camera.keys.up = false;
+				break;
+			case KEY_S:
+				camera.keys.down = false;
+				break;
+			case KEY_A:
+				camera.keys.left = false;
+				break;
+			case KEY_D:
+				camera.keys.right = false;
+				break;			
+			case KEY_ESCAPE:
 				quit = true;
 				break;
 		}

@@ -33,6 +33,7 @@
 
 #include "vulkan/vulkan.h"
 
+#include "keycodes.hpp"
 #include "vulkantools.h"
 #include "vulkandebug.h"
 
