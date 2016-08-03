@@ -530,9 +530,13 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
+		if (viewUpdated)
+		{
+			viewUpdated = false;
+			viewChanged();
+		}
 		xcb_generic_event_t *event;
-		event = xcb_poll_for_event(connection);
-		if (event)
+		while ((event = xcb_poll_for_event(connection)))
 		{
 			handleEvent(event);
 			free(event);
@@ -543,6 +547,10 @@ void VulkanExampleBase::renderLoop()
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
+		if (camera.moving())
+		{
+			viewUpdated = true;
+		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -1254,6 +1262,7 @@ xcb_window_t VulkanExampleBase::setupWindow()
 	value_list[0] = screen->black_pixel;
 	value_list[1] =
 		XCB_EVENT_MASK_KEY_RELEASE |
+		XCB_EVENT_MASK_KEY_PRESS |
 		XCB_EVENT_MASK_EXPOSURE |
 		XCB_EVENT_MASK_STRUCTURE_NOTIFY |
 		XCB_EVENT_MASK_POINTER_MOTION |
@@ -1329,18 +1338,21 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 		{
 			rotation.x += (mousePos.y - (float)motion->event_y) * 1.25f;
 			rotation.y -= (mousePos.x - (float)motion->event_x) * 1.25f;
-			viewChanged();
+			camera.rotate(glm::vec3((mousePos.y - (float)motion->event_y) * camera.rotationSpeed, -(mousePos.x - (float)motion->event_x) * camera.rotationSpeed, 0.0f));
+			viewUpdated = true;
 		}
 		if (mouseButtons.right)
 		{
 			zoom += (mousePos.y - (float)motion->event_y) * .005f;
-			viewChanged();
+			camera.translate(glm::vec3(-0.0f, 0.0f, (mousePos.y - (float)motion->event_y) * .005f * zoomSpeed));
+			viewUpdated = true;
 		}
 		if (mouseButtons.middle)
 		{
 			cameraPos.x -= (mousePos.x - (float)motion->event_x) * 0.01f;
 			cameraPos.y -= (mousePos.y - (float)motion->event_y) * 0.01f;
-			viewChanged();
+			camera.translate(glm::vec3(-(mousePos.x - (float)(float)motion->event_x) * 0.01f, -(mousePos.y - (float)motion->event_y) * 0.01f, 0.0f));
+			viewUpdated = true;
 			mousePos.x = (float)motion->event_x;
 			mousePos.y = (float)motion->event_y;
 		}
@@ -1372,8 +1384,12 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	case XCB_KEY_RELEASE:
 	{
 		const xcb_key_release_event_t *keyEvent = (const xcb_key_release_event_t *)event;
-		if (keyEvent->detail == 0x9)
-			quit = true;
+		switch (keyEvent->detail)
+		{
+			case 0x9:
+				quit = true;
+				break;
+		}
 		keyPressed(keyEvent->detail);
 	}
 	break;
