@@ -79,6 +79,7 @@ set(EXAMPLES
 	distancefieldfonts
 	gears
 	geometryshader
+	indirectdraw	
 	instancing
 	mesh
 	multithreading
@@ -95,6 +96,7 @@ set(EXAMPLES
 	shadowmappingomni
 	skeletalanimation
 	sphericalenvmapping
+	terraintessellation
 	tessellation
 	textoverlay
 	texture
