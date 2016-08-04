@@ -1030,10 +1030,10 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
-		case 0x50:
+		case KEY_P:
 			paused = !paused;
 			break;
-		case VK_F1:
+		case KEY_F1:
 			if (enableTextOverlay)
 			{
 				textOverlay->visible = !textOverlay->visible;
@@ -1398,6 +1398,15 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 			case KEY_D:
 				camera.keys.right = true;
 				break;
+			case KEY_P:
+				paused = !paused;
+				break;
+			case KEY_F1:
+				if (enableTextOverlay)
+				{
+					textOverlay->visible = !textOverlay->visible;
+				}
+				break;				
 		}
 	}
 	break;	
