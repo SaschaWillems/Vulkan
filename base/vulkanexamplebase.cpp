@@ -1039,7 +1039,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 				textOverlay->visible = !textOverlay->visible;
 			}
 			break;
-		case VK_ESCAPE:
+		case KEY_ESCAPE:
 			PostQuitMessage(0);
 			break;
 		}
@@ -1048,16 +1048,16 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		{
 			switch (wParam)
 			{
-			case 0x57:
+			case KEY_W:
 				camera.keys.up = true;
 				break;
-			case 0x53:
+			case KEY_S:
 				camera.keys.down = true;
 				break;
-			case 0x41:
+			case KEY_A:
 				camera.keys.left = true;
 				break;
-			case 0x44:
+			case KEY_D:
 				camera.keys.right = true;
 				break;
 			}
@@ -1070,16 +1070,16 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		{
 			switch (wParam)
 			{
-			case 0x57:
+			case KEY_W:
 				camera.keys.up = false;
 				break;
-			case 0x53:
+			case KEY_S:
 				camera.keys.down = false;
 				break;
-			case 0x41:
+			case KEY_A:
 				camera.keys.left = false;
 				break;
-			case 0x44:
+			case KEY_D:
 				camera.keys.right = false;
 				break;
 			}
