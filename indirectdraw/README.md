@@ -7,8 +7,7 @@
 Issue multiple instanced draws for different meshes in one single draw call using indirect draw commands.
 
 ## Requirements
-The example requires a GPU that supports the [`multiDrawIndirect`](http://vulkan.gpuinfo.org/listreports.php?feature=multiDrawIndirect) feature. If this feature is not available, the `drawCount` parameter for the `vkCmdDrawIndexedIndirect` call must be 1.
-When issuing many draw counts also make sure to stay within the limitations of [`maxDrawIndirectCount`](http://vulkan.gpuinfo.org/listreports.php?limit=maxDrawIndirectCount).
+If the [`multiDrawIndirect`](http://vulkan.gpuinfo.org/listreports.php?feature=multiDrawIndirect) feature is supported, only one draw call is issued for the plants. If this feature is not available multiple indirect draw commands are used. ***Note:*** When issuing many draw counts also make sure to stay within the limitations of [`maxDrawIndirectCount`](http://vulkan.gpuinfo.org/listreports.php?limit=maxDrawIndirectCount).
 
 ## Description
 
@@ -74,7 +73,7 @@ vulkanDevice->copyBuffer(&stagingBuffer, &indirectCommandsBuffer, queue);
 To use a buffer for indirect draw commands you need to specify the ```VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT``` usage flag at creation time. As the buffer is never again changed on the host side we stage it to the GPU to maximize performance.
 
 ### Rendering
-Issuing the actual indirect draw command is pretty straightforward:
+If the [`multiDrawIndirect`](http://vulkan.gpuinfo.org/listreports.php?feature=multiDrawIndirect) is supported, we can issue all indirect draws with one single draw call:
 ```cpp
 void buildCommandBuffers()
 {
@@ -97,5 +96,14 @@ for (auto indirectCmd : indirectCommands)
     }
   }
 ```
+
+If the GPU does not support ```multiDrawIndirect``` we have to issue the indirect draw commands one-by-one using a buffer offset instead:
+```cpp
+for (auto j = 0; j < indirectCommands.size(); j++)
+{
+  vkCmdDrawIndexedIndirect(drawCmdBuffers[i], indirectCommandsBuffer.buffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+}
+```
+
 ### Acknowledgements
 - Plant and foliage models by [Hugues Muller](http://www.yughues-folio.com/)

@@ -118,7 +118,7 @@ Shows the use of instancing for rendering many copies of the same mesh using dif
 ## [Indirect drawing](indirectdraw/)
 <img src="./screenshots/indirectdraw.jpg" height="96px" align="right">
 
-This example renders thousands of instanced objects with different geometries using only one single indirect draw call. Unlike direct drawing function, indirect drawing functions take their draw commands from a buffer object containing information like index cound, index offset and number of instances to draw.
+This example renders thousands of instanced objects with different geometries using only one single indirect draw call (if ```multiDrawIndirect``` is supported). Unlike direct drawing function, indirect drawing functions take their draw commands from a buffer object containing information like index cound, index offset and number of instances to draw.
 
 Shows how to generate and render such an indirect draw command buffer that is staged to the device. Indirect draw buffers are the base for generating and updating draw commands on the GPU using shaders.
 

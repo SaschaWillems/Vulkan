@@ -76,7 +76,7 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture colorMap;
+		vkTools::VulkanTexture plants;
 		vkTools::VulkanTexture ground;
 	} textures;
 
@@ -136,10 +136,14 @@ public:
 	{
 		vkDestroyPipeline(device, pipelines.plants, nullptr);
 		vkDestroyPipeline(device, pipelines.ground, nullptr);
+		vkDestroyPipeline(device, pipelines.skysphere, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.plants);
-		textureLoader->destroyTexture(textures.colorMap);
+		vkMeshLoader::freeMeshBufferResources(device, &meshes.ground);
+		vkMeshLoader::freeMeshBufferResources(device, &meshes.skysphere);
+		textureLoader->destroyTexture(textures.plants);
+		textureLoader->destroyTexture(textures.ground);
 		instanceBuffer.destroy();
 		indirectCommandsBuffer.destroy();
 		uniformData.scene.destroy();
@@ -197,9 +201,21 @@ public:
 			
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.plants.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
+			// If the multi draw feature is supported:
 			// One draw call for an arbitrary number of ojects
 			// Index offsets and instance count are taken from the indirect buffer
-			vkCmdDrawIndexedIndirect(drawCmdBuffers[i], indirectCommandsBuffer.buffer, 0, indirectDrawCount, sizeof(VkDrawIndexedIndirectCommand));
+			if (vulkanDevice->features.multiDrawIndirect)
+			{
+				vkCmdDrawIndexedIndirect(drawCmdBuffers[i], indirectCommandsBuffer.buffer, 0, indirectDrawCount, sizeof(VkDrawIndexedIndirectCommand));
+			}
+			else
+			{
+				// If multi draw is not available, we must issue separate draw commands
+				for (auto j = 0; j < indirectCommands.size(); j++)
+				{
+					vkCmdDrawIndexedIndirect(drawCmdBuffers[i], indirectCommandsBuffer.buffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+				}
+			}
 
 			// Ground
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ground);
@@ -224,7 +240,7 @@ public:
 		loadMesh(getAssetPath() + "models/plane_circle.dae", &meshes.ground, vertexLayout, PLANT_RADIUS + 1.0f);
 		loadMesh(getAssetPath() + "models/skysphere.dae", &meshes.skysphere, vertexLayout, 512.0f);
 
-		textureLoader->loadTextureArray(getAssetPath() + "textures/texturearray_plants_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.colorMap);
+		textureLoader->loadTextureArray(getAssetPath() + "textures/texturearray_plants_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.plants);
 		textureLoader->loadTexture(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.ground);
 	}
 
@@ -394,7 +410,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&textures.colorMap.descriptor),
+				&textures.plants.descriptor),
 			// Binding 2: Ground texture combined 
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -653,6 +669,10 @@ public:
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
 		textOverlay->addText(std::to_string(objectCount) + " objects", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		if (!vulkanDevice->features.multiDrawIndirect)
+		{
+			textOverlay->addText("multiDrawIndirect not supported", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
+		}
 	}
 };
 
