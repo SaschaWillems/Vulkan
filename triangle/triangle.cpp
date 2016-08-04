@@ -760,23 +760,12 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &depthStencil.mem));
 		VK_CHECK_RESULT(vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0));
 
-		// We need to do an initial layout transition before we can use this image
-		// as the depth (and stencil) attachment
+		// We need to do an initial layout transition before we can use this image as the depth (and stencil) attachment
 		// Note that this may be ignored by implementations that don't care about image layout
 		// transitions, but it's crucial for those that do
 
 		VkCommandBuffer layoutCmd = getCommandBuffer(true);
 
-		vkTools::setImageLayout(
-			setupCmdBuffer,
-			depthStencil.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-		// Add a present memory barrier to the end of the command buffer
-		// This will transform the frame buffer color attachment to a
-		// new layout for presenting it to the windowing system integration 
 		VkImageMemoryBarrier imageMemoryBarrier = {};
 		imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		imageMemoryBarrier.srcAccessMask = VK_FLAGS_NONE;
