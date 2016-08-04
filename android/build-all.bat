@@ -33,3 +33,4 @@ call _build debugmarker %1
 call _build scenerendering %1
 call _build terraintessellation %1
 call _build deferredshadows %1
+call _build indirectdraw %1
