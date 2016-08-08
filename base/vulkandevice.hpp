@@ -30,6 +30,8 @@ namespace vk
 		VkPhysicalDeviceFeatures features;
 		/** @brief Memory types and heaps of the physical device */
 		VkPhysicalDeviceMemoryProperties memoryProperties;
+		/** @brief Queue family properties of the physical device */
+		std::vector<VkQueueFamilyProperties> queueFamilyProperties;
 
 		/** @brief Default command pool for the graphics queue family index */
 		VkCommandPool commandPool = VK_NULL_HANDLE;
@@ -37,11 +39,11 @@ namespace vk
 		/** @brief Set to true when the debug marker extension is detected */
 		bool enableDebugMarkers = false;
 
-		/**  @brief Contains queue family indices */
+		/** @brief Contains queue family indices */
 		struct
 		{
-			uint32_t graphics = 0;
-			uint32_t compute = 0;
+			uint32_t graphics;
+			uint32_t compute;
 		} queueFamilyIndices;
 
 		/**
@@ -61,6 +63,12 @@ namespace vk
 			vkGetPhysicalDeviceFeatures(physicalDevice, &features);
 			// Memory properties are used regularly for creating all kinds of buffer
 			vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+			// Queue family properties, used for setting up requested queues upon device creation
+			uint32_t queueFamilyCount;
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+			assert(queueFamilyCount > 0);
+			queueFamilyProperties.resize(queueFamilyCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
 		}
 
 		/** 
@@ -140,30 +148,28 @@ namespace vk
 		*/
 		uint32_t getQueueFamiliyIndex(VkQueueFlagBits queueFlags)
 		{
-			uint32_t queueCount;
-
-			// Get number of available queue families on this device
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, NULL);
-			assert(queueCount >= 1);
-
-			// Get available queue families
-			std::vector<VkQueueFamilyProperties> queueProps;
-			queueProps.resize(queueCount);
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queueProps.data());
-
-			for (uint32_t i = 0; i < queueCount; i++)
+			// If a compute queue is requested, try to find a separate compute queue family from graphics first
+			if (queueFlags & VK_QUEUE_COMPUTE_BIT)
 			{
-				if (queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+				for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
+				{
+					if ((queueFamilyProperties[i].queueFlags & queueFlags) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
+					{
+						return i;
+						break;
+					}
+				}
+			}
+
+			// For other queue types or if no separate compute queue is present, return the first one to support the requested flags
+			for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
+			{
+				if (queueFamilyProperties[i].queueFlags & queueFlags)
 				{
 					return i;
 					break;
 				}
 			}
-
-			// todo: Advanced search for devices that have dedicated queues for compute and transfer
-			//       Try to find queues with only the requested flags or (if not present) with as few 
-			//       other flags set as possible (example: http://vulkan.gpuinfo.org/displayreport.php?id=509#queuefamilies)
-
 
 #if defined(__ANDROID__)
 			//todo : Exceptions are disabled by default on Android (need to add LOCAL_CPP_FEATURES += exceptions to Android.mk), so for now just return zero
@@ -178,55 +184,65 @@ namespace vk
 		*
 		* @param enabledFeatures Can be used to enable certain features upon device creation
 		* @param useSwapChain Set to false for headless rendering to omit the swapchain device extensions
+		* @param requestedQueueTypes Bit flags specifying the queue types to be requested from the device  
 		*
 		* @return VkResult of the device creation call
 		*/
-		VkResult createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, bool useSwapChain = true)
-		{
-			// Get queue family indices for graphics and compute
-			// Note that the indices may overlap depending on the implementation
-			queueFamilyIndices.graphics = getQueueFamiliyIndex(VK_QUEUE_GRAPHICS_BIT);
-			queueFamilyIndices.compute = getQueueFamiliyIndex(VK_QUEUE_COMPUTE_BIT);
-			//todo: Transfer?
-
-			// Pass queue information for graphics and compute, so examples can later on request queues from both
-			std::vector<float> queuePriorities;
+		VkResult createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)
+		{			
+			// Desired queues need to be requested upon logical device creation
+			// Due to differing queue family configurations of Vulkan implementations this can be a bit tricky, especially if the application
+			// requests different queue types
 
 			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
-			// We need one queue create info per queue family index
-			// If graphics and compute share the same queue family index we only need one queue create info but
-			// with two queues to request
-			queueCreateInfos.resize(1);
-			// Graphics
-			queuePriorities.push_back(0.0f);
-			queueCreateInfos[0] = {};
-			queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueCreateInfos[0].queueFamilyIndex = queueFamilyIndices.graphics;
-			queueCreateInfos[0].queueCount = 1;
-			// Compute
-			// If compute has a different queue family index, add another create info, else just add
-			if (queueFamilyIndices.graphics != queueFamilyIndices.compute)
+
+			// Get queue family indices for graphics and compute
+			// Note that the indices may overlap depending on the implementation
+
+			// Graphics queue
+			if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
 			{
-				queueCreateInfos.resize(2);
-				queueCreateInfos[1] = {};
-				queueCreateInfos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-				queueCreateInfos[1].queueFamilyIndex = queueFamilyIndices.compute;
-				queueCreateInfos[1].queueCount = 1;
-				queueCreateInfos[1].pQueuePriorities = queuePriorities.data();
+				queueFamilyIndices.graphics = getQueueFamiliyIndex(VK_QUEUE_GRAPHICS_BIT);
+				float queuePriority(0.0f);
+				VkDeviceQueueCreateInfo queueInfo{};
+				queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+				queueInfo.queueFamilyIndex = queueFamilyIndices.graphics;
+				queueInfo.queueCount = 1;
+				queueInfo.pQueuePriorities = &queuePriority;
+				queueCreateInfos.push_back(queueInfo);
 			}
 			else
 			{
-				queueCreateInfos[0].queueCount++;
-				queuePriorities.push_back(0.0f);
+				queueFamilyIndices.graphics = VK_NULL_HANDLE;
 			}
-			queueCreateInfos[0].pQueuePriorities = queuePriorities.data();
+
+			// Compute queue
+			if (requestedQueueTypes & VK_QUEUE_COMPUTE_BIT)
+			{
+				queueFamilyIndices.compute = getQueueFamiliyIndex(VK_QUEUE_COMPUTE_BIT);
+				if (queueFamilyIndices.compute != queueFamilyIndices.graphics)
+				{
+					// If compute family index differs, we need an additional queue create info for the compute queue
+					float queuePriority(0.0f);
+					VkDeviceQueueCreateInfo queueInfo{};
+					queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+					queueInfo.queueFamilyIndex = queueFamilyIndices.compute;
+					queueInfo.queueCount = 1;
+					queueInfo.pQueuePriorities = &queuePriority;
+					queueCreateInfos.push_back(queueInfo);
+				}
+				// Else we use the same queue
+			}
+			else
+			{
+				queueFamilyIndices.compute = VK_NULL_HANDLE;
+			}
 
 			// Create the logical device representation
 			std::vector<const char*> deviceExtensions;
 			if (useSwapChain)
 			{
-				// If the device will be used for presenting to a display via a swapchain
-				// we need to request the swapchain extension
+				// If the device will be used for presenting to a display via a swapchain we need to request the swapchain extension
 				deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 			}
 
@@ -236,7 +252,7 @@ namespace vk
 			deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 			deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
 
-			// Cnable the debug marker extension if it is present (likely meaning a debugging tool is present)
+			// Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
 			if (vkTools::checkDeviceExtensionPresent(physicalDevice, VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
 			{
 				deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
