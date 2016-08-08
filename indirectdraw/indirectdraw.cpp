@@ -129,7 +129,6 @@ public:
 		camera.setRotation(glm::vec3(-12.0f, 159.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.4f, 1.25f, 0.0f));
 		camera.movementSpeed = 5.0f;
-		srand(time(NULL));
 	}
 
 	~VulkanExample()
@@ -238,7 +237,7 @@ public:
 	{
 		loadMesh(getAssetPath() + "models/plants.dae", &meshes.plants, vertexLayout, 0.0025f);
 		loadMesh(getAssetPath() + "models/plane_circle.dae", &meshes.ground, vertexLayout, PLANT_RADIUS + 1.0f);
-		loadMesh(getAssetPath() + "models/skysphere.dae", &meshes.skysphere, vertexLayout, 512.0f);
+		loadMesh(getAssetPath() + "models/skysphere.dae", &meshes.skysphere, vertexLayout, 512.0f / 10.0f);
 
 		textureLoader->loadTextureArray(getAssetPath() + "textures/texturearray_plants_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.plants);
 		textureLoader->loadTexture(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.ground);
@@ -327,9 +326,9 @@ public:
 			);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -344,7 +343,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
 
@@ -375,7 +374,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
@@ -419,7 +418,7 @@ public:
 				&textures.ground.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -468,7 +467,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
@@ -487,7 +486,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		// Indirect (and instanced) pipeline for the plants
@@ -498,13 +497,13 @@ public:
 		// Ground
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/indirectdraw/ground.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/indirectdraw/ground.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+		//rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.ground));
 
 		// Skysphere
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/indirectdraw/skysphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/indirectdraw/skysphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
+		//rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skysphere));
 	}
 
@@ -555,24 +554,19 @@ public:
 		stagingBuffer.destroy();
 	}
 
-	float rnd(float range)
-	{
-		return range * (rand() / double(RAND_MAX));
-	}
-
 	// Prepare (and stage) a buffer containing instanced data for the mesh draws
 	void prepareInstanceData()
 	{
 		std::vector<InstanceData> instanceData;
 		instanceData.resize(objectCount);
 
-		std::mt19937 rndGenerator(time(NULL));
-		std::uniform_real_distribution<double> uniformDist(0.0, 1.0);
+		std::mt19937 rndGenerator((unsigned)time(NULL));
+		std::uniform_real_distribution<float> uniformDist(0.0f, 1.0f);
 
-		for (auto i = 0; i < objectCount; i++)
+		for (uint32_t i = 0; i < objectCount; i++)
 		{
-			instanceData[i].rot = glm::vec3(0.0f, M_PI * uniformDist(rndGenerator), 0.0f);
-			float theta = 2 * M_PI * uniformDist(rndGenerator);
+			instanceData[i].rot = glm::vec3(0.0f, float(M_PI) * uniformDist(rndGenerator), 0.0f);
+			float theta = 2 * float(M_PI) * uniformDist(rndGenerator);
 			float phi = acos(1 - 2 * uniformDist(rndGenerator));
 			instanceData[i].pos = glm::vec3(sin(phi) * cos(theta), 0.0f, cos(phi)) * PLANT_RADIUS;
 			instanceData[i].scale = 1.0f + uniformDist(rndGenerator) * 2.0f;
