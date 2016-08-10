@@ -138,6 +138,7 @@ public:
 		vkDestroyRenderPass(vulkanDevice->logicalDevice, renderPass, nullptr);
 		vkFreeCommandBuffers(vulkanDevice->logicalDevice, commandPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
 		vkDestroyCommandPool(vulkanDevice->logicalDevice, commandPool, nullptr);
+		vkDestroyFence(vulkanDevice->logicalDevice, waitFence, nullptr);
 	}
 
 	/**
@@ -458,8 +459,8 @@ public:
 		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 		// Depth attachment
 		attachments[1].format = depthFormat;
@@ -468,7 +469,7 @@ public:
 		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		VkAttachmentReference colorReference = {};
@@ -479,17 +480,37 @@ public:
 		depthReference.attachment = 1;
 		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		VkSubpassDescription subpass = {};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.flags = 0;
-		subpass.inputAttachmentCount = 0;
-		subpass.pInputAttachments = NULL;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &colorReference;
-		subpass.pResolveAttachments = NULL;
-		subpass.pDepthStencilAttachment = &depthReference;
-		subpass.preserveAttachmentCount = 0;
-		subpass.pPreserveAttachments = NULL;
+		VkSubpassDependency subpassDependencies[2] = {};
+
+		// Transition from final to initial (VK_SUBPASS_EXTERNAL refers to all commmands executed outside of the actual renderpass)
+		subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		subpassDependencies[0].dstSubpass = 0;
+		subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		subpassDependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		subpassDependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		// Transition from initial to final
+		subpassDependencies[1].srcSubpass = 0;
+		subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+		subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		subpassDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		subpassDependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		subpassDependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		VkSubpassDescription subpassDescription = {};
+		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpassDescription.flags = 0;
+		subpassDescription.inputAttachmentCount = 0;
+		subpassDescription.pInputAttachments = NULL;
+		subpassDescription.colorAttachmentCount = 1;
+		subpassDescription.pColorAttachments = &colorReference;
+		subpassDescription.pResolveAttachments = NULL;
+		subpassDescription.pDepthStencilAttachment = &depthReference;
+		subpassDescription.preserveAttachmentCount = 0;
+		subpassDescription.pPreserveAttachments = NULL;
 
 		VkRenderPassCreateInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -497,9 +518,9 @@ public:
 		renderPassInfo.attachmentCount = 2;
 		renderPassInfo.pAttachments = attachments;
 		renderPassInfo.subpassCount = 1;
-		renderPassInfo.pSubpasses = &subpass;
-		renderPassInfo.dependencyCount = 0;
-		renderPassInfo.pDependencies = NULL;
+		renderPassInfo.pSubpasses = &subpassDescription;
+		renderPassInfo.dependencyCount = 2;
+		renderPassInfo.pDependencies = subpassDependencies;
 
 		VK_CHECK_RESULT(vkCreateRenderPass(vulkanDevice->logicalDevice, &renderPassInfo, nullptr, &renderPass));
 	}
@@ -668,6 +689,8 @@ public:
 		submitInfo.commandBufferCount = 1;
 
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		//todo: fence
 	}
 
 	/**
