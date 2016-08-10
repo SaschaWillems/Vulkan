@@ -66,6 +66,7 @@ private:
 	VkCommandPool commandPool;
 	std::vector<VkFramebuffer*> frameBuffers;
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+	VkFence fence;
 
 	// Used during text updates
 	glm::vec4 *mappedLocal = nullptr;
@@ -138,7 +139,7 @@ public:
 		vkDestroyRenderPass(vulkanDevice->logicalDevice, renderPass, nullptr);
 		vkFreeCommandBuffers(vulkanDevice->logicalDevice, commandPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
 		vkDestroyCommandPool(vulkanDevice->logicalDevice, commandPool, nullptr);
-		vkDestroyFence(vulkanDevice->logicalDevice, waitFence, nullptr);
+		vkDestroyFence(vulkanDevice->logicalDevice, fence, nullptr);
 	}
 
 	/**
@@ -346,6 +347,10 @@ public:
 		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 		VK_CHECK_RESULT(vkCreatePipelineCache(vulkanDevice->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
+
+		// Command buffer execution fence
+		VkFenceCreateInfo fenceCreateInfo = vkTools::initializers::fenceCreateInfo();
+		VK_CHECK_RESULT(vkCreateFence(vulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &fence));
 	}
 
 	/**
@@ -688,9 +693,10 @@ public:
 		submitInfo.pCommandBuffers = &cmdBuffers[bufferindex];
 		submitInfo.commandBufferCount = 1;
 
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
 
-		//todo: fence
+		VK_CHECK_RESULT(vkWaitForFences(vulkanDevice->logicalDevice, 1, &fence, VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(vulkanDevice->logicalDevice, 1, &fence));
 	}
 
 	/**
