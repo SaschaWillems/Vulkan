@@ -980,11 +980,11 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x42:
+		case KEY_B:
 		case GAMEPAD_BUTTON_A:
 			toggleBlur();
 			break;
-		case 0x54:
+		case KEY_T:
 		case GAMEPAD_BUTTON_X:
 			toggleTextureDisplay();
 			break;

@@ -1221,7 +1221,7 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x70:
+		case KEY_F1:
 		case GAMEPAD_BUTTON_A:
 			toggleDebugDisplay();
 			updateTextOverlay();
