@@ -875,11 +875,11 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x6B:
+		case KEY_KPADD:
 		case GAMEPAD_BUTTON_R1:
 			changeLodBias(0.1f);
 			break;
-		case 0x6D:
+		case KEY_KPSUB:
 		case GAMEPAD_BUTTON_L1:
 			changeLodBias(-0.1f);
 			break;

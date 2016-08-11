@@ -583,15 +583,15 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x4F:
+		case KEY_O:
 		case GAMEPAD_BUTTON_A:
 			toggleParallaxOffset();
 			break;
-		case 0x4E:
+		case KEY_N:
 		case GAMEPAD_BUTTON_X:
 			toggleNormalMapDisplay();
 			break;
-		case 0x53:
+		case KEY_S:
 		case GAMEPAD_BUTTON_Y:
 			toggleSplitScreen();
 			break;

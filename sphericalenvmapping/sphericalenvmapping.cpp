@@ -452,12 +452,12 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x6B:
-		case 0x20:
+		case KEY_KPADD:
+		case KEY_SPACE:
 		case GAMEPAD_BUTTON_A:
 			changeMatCapIndex(1);
 			break;
-		case 0x6D:
+		case KEY_KPSUB:
 		case GAMEPAD_BUTTON_X:
 			changeMatCapIndex(-1);
 			break;
