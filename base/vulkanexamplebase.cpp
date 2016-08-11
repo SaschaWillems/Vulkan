@@ -565,21 +565,6 @@ void VulkanExampleBase::renderLoop()
 	vkDeviceWaitIdle(device);
 }
 
-VkSubmitInfo VulkanExampleBase::prepareSubmitInfo(
-	std::vector<VkCommandBuffer> commandBuffers,
-	VkPipelineStageFlags *pipelineStages)
-{
-	VkSubmitInfo submitInfo = vkTools::initializers::submitInfo();
-	submitInfo.pWaitDstStageMask = pipelineStages;
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-	submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
-	submitInfo.pCommandBuffers = commandBuffers.data();
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
-	return submitInfo;
-}
-
 void VulkanExampleBase::updateTextOverlay()
 {
 	if (!enableTextOverlay)

@@ -832,27 +832,27 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x20:
+		case KEY_SPACE:
 		case GAMEPAD_BUTTON_A:
 			wireframe = !wireframe;
 			reBuildCommandBuffers();
 			break;
-		case 0x50:
+		case KEY_P:
 			scene->renderSingleScenePart = !scene->renderSingleScenePart;
 			reBuildCommandBuffers();
 			updateTextOverlay();
 			break;
-		case 0x6B:
+		case KEY_KPADD:
 			scene->scenePartIndex = (scene->scenePartIndex < static_cast<uint32_t>(scene->meshes.size())) ? scene->scenePartIndex + 1 : 0;
 			reBuildCommandBuffers();
 			updateTextOverlay();
 			break;
-		case 0x6D:
+		case KEY_KPSUB:
 			scene->scenePartIndex = (scene->scenePartIndex > 0) ? scene->scenePartIndex - 1 : static_cast<uint32_t>(scene->meshes.size()) - 1;
 			updateTextOverlay();
 			reBuildCommandBuffers();
 			break;
-		case 0x4C:
+		case KEY_L:
 			attachLight = !attachLight;
 			updateUniformBuffers();
 			break;

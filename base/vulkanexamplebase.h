@@ -104,8 +104,8 @@ protected:
 	VkCommandPool cmdPool;
 	// Command buffer used for setup
 	VkCommandBuffer setupCmdBuffer = VK_NULL_HANDLE;
-	// Pipeline stage flags for the submit info structure
-	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	/** @brief Pipeline stages used to wait at for graphics queue submissions */
+	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	// Contains command buffers and semaphores to be presented to the queue
 	VkSubmitInfo submitInfo;
 	// Command buffers used for rendering
@@ -336,12 +336,6 @@ public:
 
 	// Start the main render loop
 	void renderLoop();
-
-	// Prepare a submit info structure containing
-	// semaphores and submit buffer info for vkQueueSubmit
-	VkSubmitInfo prepareSubmitInfo(
-		std::vector<VkCommandBuffer> commandBuffers,
-		VkPipelineStageFlags *pipelineStages);
 
 	void updateTextOverlay();
 

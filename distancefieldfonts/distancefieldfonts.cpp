@@ -716,11 +716,11 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x53:
+		case KEY_S:
 		case GAMEPAD_BUTTON_X:
 			toggleSplitScreen();
 			break;
-		case 0x4F:
+		case KEY_O:
 		case GAMEPAD_BUTTON_A:
 			toggleFontOutline();
 			break;
