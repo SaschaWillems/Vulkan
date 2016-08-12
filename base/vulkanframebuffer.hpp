@@ -129,11 +129,10 @@ namespace vk
 		* Add a new attachment described by createinfo to the framebuffer's attachment list
 		*
 		* @param createinfo Structure that specifices the framebuffer to be constructed
-		* @param layoutCmd A valid and active command buffer used for the initial layout transitions
 		*
 		* @return Index of the new attachment
 		*/
-		uint32_t addAttachment(vk::AttachmentCreateInfo createinfo, VkCommandBuffer layoutCmd)
+		uint32_t addAttachment(vk::AttachmentCreateInfo createinfo)
 		{
 			vk::FramebufferAttachment attachment;
 
@@ -197,16 +196,6 @@ namespace vk
 			attachment.subresourceRange.levelCount = 1;
 			attachment.subresourceRange.layerCount = createinfo.layerCount;
 
-			// Set the initial layout to shader read instead of attachment 
-			// Note that the render loop has to take care of the transition from read to attachment
-			vkTools::setImageLayout(
-				layoutCmd,
-				attachment.image,
-				aspectMask,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				imageLayout,
-				attachment.subresourceRange);
-
 			VkImageViewCreateInfo imageView = vkTools::initializers::imageViewCreateInfo();
 			imageView.viewType = (createinfo.layerCount == 1) ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 			imageView.format = createinfo.format;
@@ -224,15 +213,24 @@ namespace vk
 			attachment.description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachment.description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachment.description.format = createinfo.format;
-			if (attachment.hasDepth() || attachment.hasStencil())
+			attachment.description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			// Final layout
+			if ((createinfo.usage & VK_IMAGE_USAGE_SAMPLED_BIT))
 			{
-				attachment.description.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-				attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				// If sampled, final layout is always SHADER_READ
+				attachment.description.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
 			else
 			{
-				attachment.description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				attachment.description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				// If not, final layout depends on attachment type
+				if (attachment.hasDepth() || attachment.hasStencil())
+				{
+					attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				}
+				else
+				{
+					attachment.description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				}
 			}
 
 			attachments.push_back(attachment);
@@ -319,6 +317,25 @@ namespace vk
 				subpass.pDepthStencilAttachment = &depthReference;
 			}
 
+			// Use subpass dependencies for attachment layout transitions
+			std::array<VkSubpassDependency, 2> dependencies;
+
+			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[0].dstSubpass = 0;
+			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+			dependencies[1].srcSubpass = 0;
+			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
 			// Create render pass
 			VkRenderPassCreateInfo renderPassInfo = {};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -326,6 +343,8 @@ namespace vk
 			renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
 			renderPassInfo.subpassCount = 1;
 			renderPassInfo.pSubpasses = &subpass;
+			renderPassInfo.dependencyCount = 2;
+			renderPassInfo.pDependencies = dependencies.data();
 			VK_CHECK_RESULT(vkCreateRenderPass(vulkanDevice->logicalDevice, &renderPassInfo, nullptr, &renderPass));
 
 			std::vector<VkImageView> attachmentViews;
