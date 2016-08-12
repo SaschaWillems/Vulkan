@@ -255,27 +255,6 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &attachment->mem));
 		VK_CHECK_RESULT(vkBindImageMemory(device, attachment->image, attachment->mem, 0));
 		
-		if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-		{
-			// Set the initial layout to shader read instead of attachment 
-			// This is done as the render loop does the actualy image layout transitions
-			vkTools::setImageLayout(
-				layoutCmd,
-				attachment->image,
-				aspectMask,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		} 
-		else
-		{
-			vkTools::setImageLayout(
-				layoutCmd,
-				attachment->image,
-				aspectMask,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				imageLayout);
-		}
-
 		VkImageViewCreateInfo imageView = vkTools::initializers::imageViewCreateInfo();
 		imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		imageView.format = format;
@@ -352,13 +331,13 @@ public:
 			attachmentDescs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			if (i == 3)
 			{
-				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			}
 			else
 			{
-				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
 		}
 
@@ -383,12 +362,33 @@ public:
 		subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
 		subpass.pDepthStencilAttachment = &depthReference;
 
+		// Use subpass dependencies for attachment layput transitions
+		std::array<VkSubpassDependency, 2> dependencies;
+
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		dependencies[1].srcSubpass = 0;													
+		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;								
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
 		VkRenderPassCreateInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.pAttachments = attachmentDescs.data();
 		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescs.size());
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = 2;
+		renderPassInfo.pDependencies = dependencies.data();
 	
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &offScreenFrameBuf.renderPass));
 	
@@ -396,7 +396,6 @@ public:
 		attachments[0] = offScreenFrameBuf.position.view;
 		attachments[1] = offScreenFrameBuf.normal.view;
 		attachments[2] = offScreenFrameBuf.albedo.view;
-		// depth
 		attachments[3] = offScreenFrameBuf.depth.view;
 
 		VkFramebufferCreateInfo fbufCreateInfo = {};
@@ -408,8 +407,8 @@ public:
 		fbufCreateInfo.width = offScreenFrameBuf.width;
 		fbufCreateInfo.height = offScreenFrameBuf.height;
 		fbufCreateInfo.layers = 1;
-
 		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer));
+
 		// Create sampler to sample from the color attachments
 		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
 		sampler.magFilter = VK_FILTER_LINEAR;
@@ -457,19 +456,6 @@ public:
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
 
-		std::vector<FrameBufferAttachment> attachments = { offScreenFrameBuf.position, offScreenFrameBuf.normal, offScreenFrameBuf.albedo };
-
-		// Change back layout of the color attachments after sampling in the fragment shader
-		for (auto attachment : attachments)
-		{
-			vkTools::setImageLayout(
-				offScreenCmdBuffer,
-				attachment.image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		}
-
 		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		VkViewport viewport = vkTools::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
@@ -495,17 +481,6 @@ public:
 		vkCmdDrawIndexed(offScreenCmdBuffer, meshes.model.indexCount, 3, 0, 0, 0);
 
 		vkCmdEndRenderPass(offScreenCmdBuffer);
-
-		// Change back layout of the color attachments after sampling in the fragment shader
-		for (auto attachment : attachments)
-		{
-			vkTools::setImageLayout(
-				offScreenCmdBuffer,
-				attachment.image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		}
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
 	}
