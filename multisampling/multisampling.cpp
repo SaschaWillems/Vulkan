@@ -399,7 +399,7 @@ public:
 		}
 	}
 
-	void loadMeshesAssets()
+	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/voyager/voyager.dae", &meshes.example, vertexLayout, 1.0f);
 		textureLoader->loadTexture(getAssetPath() + "models/voyager/voyager.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.colorMap);
@@ -667,7 +667,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadMeshesAssets();
+		loadAssets();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
