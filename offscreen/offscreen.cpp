@@ -23,13 +23,8 @@
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-// Texture properties
-#define TEX_DIM 512
-#define TEX_FORMAT VK_FORMAT_R8G8B8A8_UNORM
-#define TEX_FILTER VK_FILTER_LINEAR
-
 // Offscreen frame buffer properties
-#define FB_DIM TEX_DIM
+#define FB_DIM 512
 #define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
 
 // Vertex layout for this example
