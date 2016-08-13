@@ -7,8 +7,6 @@ layout (binding = 1) uniform sampler2D samplerColor;
 
 layout (binding = 2) uniform UBO 
 {
-	int texWidth;
-	int texHeight;
 	float radialBlurScale;
 	float radialBlurStrength;
 	vec2 radialOrigin;
@@ -20,7 +18,8 @@ layout (location = 0) out vec4 outFragColor;
 
 void main() 
 {
-	vec2 radialSize = vec2(1.0 / ubo.texWidth, 1.0 / ubo.texHeight); 
+	ivec2 texDim = textureSize(samplerColor, 0);
+	vec2 radialSize = vec2(1.0 / texDim.s, 1.0 / texDim.t); 
 	
 	vec2 UV = inUV;
  
