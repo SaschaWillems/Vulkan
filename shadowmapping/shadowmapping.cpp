@@ -127,18 +127,17 @@ public:
 		VkDeviceMemory mem;
 		VkImageView view;
 	};
-	struct FrameBuffer {
+	struct OffscreenPass {
 		int32_t width, height;
 		VkFramebuffer frameBuffer;
-		FrameBufferAttachment color, depth;
+		FrameBufferAttachment depth;
 		VkRenderPass renderPass;
 		VkSampler depthSampler;
-	} offScreenFrameBuf;
-
-	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
-	
-	// Semaphore used to synchronize offscreen rendering before using it's texture target for sampling
-	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
+		VkDescriptorImageInfo descriptor;
+		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+		// Semaphore used to synchronize between offscreen and final scene render pass
+		VkSemaphore semaphore = VK_NULL_HANDLE;
+	} offscreenPass;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -155,21 +154,16 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		// Frame buffer
-		vkDestroySampler(device, offScreenFrameBuf.depthSampler, nullptr);
-
-		// Color attachment
-		vkDestroyImageView(device, offScreenFrameBuf.color.view, nullptr);
-		vkDestroyImage(device, offScreenFrameBuf.color.image, nullptr);
-		vkFreeMemory(device, offScreenFrameBuf.color.mem, nullptr);
+		vkDestroySampler(device, offscreenPass.depthSampler, nullptr);
 
 		// Depth attachment
-		vkDestroyImageView(device, offScreenFrameBuf.depth.view, nullptr);
-		vkDestroyImage(device, offScreenFrameBuf.depth.image, nullptr);
-		vkFreeMemory(device, offScreenFrameBuf.depth.mem, nullptr);
+		vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
+		vkDestroyImage(device, offscreenPass.depth.image, nullptr);
+		vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
 
-		vkDestroyFramebuffer(device, offScreenFrameBuf.frameBuffer, nullptr);
+		vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
 
-		vkDestroyRenderPass(device, offScreenFrameBuf.renderPass, nullptr);
+		vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
 
 		vkDestroyPipeline(device, pipelines.quad, nullptr);
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
@@ -189,128 +183,93 @@ public:
 		vkTools::destroyUniformData(device, &uniformData.offscreen);
 		vkTools::destroyUniformData(device, &uniformData.scene);
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
-		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
+		vkFreeCommandBuffers(device, cmdPool, 1, &offscreenPass.commandBuffer);
+		vkDestroySemaphore(device, offscreenPass.semaphore, nullptr);
 	}
 
 	// Set up a separate render pass for the offscreen frame buffer
-	// This is necessary as the offscreen frame buffer attachments
-	// use formats different to the ones from the visible frame buffer
-	// and at least the depth one may not be compatible
+	// This is necessary as the offscreen frame buffer attachments use formats different to those from the example render pass
 	void prepareOffscreenRenderpass()
 	{
-		VkAttachmentDescription attDesc[2];
-		attDesc[0].format = FB_COLOR_FORMAT;
-		attDesc[0].samples = VK_SAMPLE_COUNT_1_BIT;
-		attDesc[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		// We only need depth information for shadow mapping
-		// So we don't need to store the color information
-		// after the render pass has finished
-		attDesc[0].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attDesc[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attDesc[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attDesc[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		attDesc[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		attDesc[0].flags = VK_FLAGS_NONE;
-
-		attDesc[1].format = DEPTH_FORMAT;
-		attDesc[1].samples = VK_SAMPLE_COUNT_1_BIT;
-		attDesc[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		// Since we need to copy the depth attachment contents to our texture
-		// used for shadow mapping we must use STORE_OP_STORE to make sure that
-		// the depth attachment contents are preserved after rendering to it 
-		// has finished
-		attDesc[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attDesc[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attDesc[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attDesc[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		attDesc[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		attDesc[1].flags = VK_FLAGS_NONE;
-
-		VkAttachmentReference colorReference = {};
-		colorReference.attachment = 0;
-		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		VkAttachmentDescription attchmentDescription{};
+		attchmentDescription.format = DEPTH_FORMAT;
+		attchmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+		attchmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;						// Clear depth at beginning of the render pass
+		attchmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;					// We will read from depth, so it's important to store the depth attachment results
+		attchmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attchmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attchmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;					// We don't care about initial layout of the attachment
+		attchmentDescription.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;	// Attachment will be transitioned to shader read at render pass end
 
 		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 1;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthReference.attachment = 0;
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;		// Attachment will be used as depth/stencil during render pass
 
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &colorReference;
-		subpass.pDepthStencilAttachment = &depthReference;
+		subpass.colorAttachmentCount = 0;												// No color attachments
+		subpass.pDepthStencilAttachment = &depthReference;								// Reference to our depth attachment
+
+		// Use subpass dependencies for layout transitions
+		std::array<VkSubpassDependency, 2> dependencies;
+
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		dependencies[1].srcSubpass = 0;
+		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 		VkRenderPassCreateInfo renderPassCreateInfo = vkTools::initializers::renderPassCreateInfo();
-		renderPassCreateInfo.attachmentCount = 2;
-		renderPassCreateInfo.pAttachments = attDesc;
+		renderPassCreateInfo.attachmentCount = 1;
+		renderPassCreateInfo.pAttachments = &attchmentDescription;
 		renderPassCreateInfo.subpassCount = 1;
 		renderPassCreateInfo.pSubpasses = &subpass;
+		renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+		renderPassCreateInfo.pDependencies = dependencies.data();
 
-		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &offScreenFrameBuf.renderPass));
+		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &offscreenPass.renderPass));
 	}
 
-	// Setup the offscreen framebuffer for rendering the scene from
-	// light's point-of-view to
-	// The depth attachment of this framebuffer will then be used
-	// to sample frame in the fragment shader of the shadowing pass
+	// Setup the offscreen framebuffer for rendering the scene from light's point-of-view to
+	// The depth attachment of this framebuffer will then be used to sample from in the fragment shader of the shadowing pass
 	void prepareOffscreenFramebuffer()
 	{
-		offScreenFrameBuf.width = SHADOWMAP_DIM;
-		offScreenFrameBuf.height = SHADOWMAP_DIM;
+		offscreenPass.width = SHADOWMAP_DIM;
+		offscreenPass.height = SHADOWMAP_DIM;
 
 		VkFormat fbColorFormat = FB_COLOR_FORMAT;
 
-		// Color attachment
+		// For shadow mapping we only need a depth attachment
 		VkImageCreateInfo image = vkTools::initializers::imageCreateInfo();
 		image.imageType = VK_IMAGE_TYPE_2D;
-		image.format = fbColorFormat;
-		image.extent.width = offScreenFrameBuf.width;
-		image.extent.height = offScreenFrameBuf.height;
+		image.extent.width = offscreenPass.width;
+		image.extent.height = offscreenPass.height;
 		image.extent.depth = 1;
 		image.mipLevels = 1;
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		// Image of the framebuffer is blit source
-		image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		image.format = DEPTH_FORMAT;																// Depth stencil attachment
+		image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;		// We will sample directly from the depth attachment for the shadow mapping
+		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &offscreenPass.depth.image));
 
 		VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
-
-		VkImageViewCreateInfo colorImageView = vkTools::initializers::imageViewCreateInfo();
-		colorImageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		colorImageView.format = fbColorFormat;
-		colorImageView.subresourceRange = {};
-		colorImageView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		colorImageView.subresourceRange.baseMipLevel = 0;
-		colorImageView.subresourceRange.levelCount = 1;
-		colorImageView.subresourceRange.baseArrayLayer = 0;
-		colorImageView.subresourceRange.layerCount = 1;
-		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &offScreenFrameBuf.color.image));
-
-		vkGetImageMemoryRequirements(device, offScreenFrameBuf.color.image, &memReqs);
+		vkGetImageMemoryRequirements(device, offscreenPass.depth.image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.color.mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.color.image, offScreenFrameBuf.color.mem, 0));
-
-		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-		vkTools::setImageLayout(
-			layoutCmd,
-			offScreenFrameBuf.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-		colorImageView.image = offScreenFrameBuf.color.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &colorImageView, nullptr, &offScreenFrameBuf.color.view));
-
-		// Depth stencil attachment
-		image.format = DEPTH_FORMAT;
-		// We will sample directly from the depth attachment for the shadow mapping
-		image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.depth.mem));
+		VK_CHECK_RESULT(vkBindImageMemory(device, offscreenPass.depth.image, offscreenPass.depth.mem, 0));
 
 		VkImageViewCreateInfo depthStencilView = vkTools::initializers::imageViewCreateInfo();
 		depthStencilView.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -321,27 +280,8 @@ public:
 		depthStencilView.subresourceRange.levelCount = 1;
 		depthStencilView.subresourceRange.baseArrayLayer = 0;
 		depthStencilView.subresourceRange.layerCount = 1;
-		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &offScreenFrameBuf.depth.image));
-
-		vkGetImageMemoryRequirements(device, offScreenFrameBuf.depth.image, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.depth.mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.depth.image, offScreenFrameBuf.depth.mem, 0));
-
-		// Set the initial layout to shader read instead of attachment 
-		// This is done as the render loop does the actualy image layout transitions
-		vkTools::setImageLayout(
-			layoutCmd,
-			offScreenFrameBuf.depth.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
-
-		depthStencilView.image = offScreenFrameBuf.depth.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &offScreenFrameBuf.depth.view));
+		depthStencilView.image = offscreenPass.depth.image;
+		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &offscreenPass.depth.view));
 
 		// Create sampler to sample from to depth attachment 
 		// Used to sample in the fragment shader for shadowed rendering
@@ -357,98 +297,79 @@ public:
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &offScreenFrameBuf.depthSampler));
-
-		VkImageView attachments[2];
-		attachments[0] = offScreenFrameBuf.color.view;
-		attachments[1] = offScreenFrameBuf.depth.view;
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &offscreenPass.depthSampler));
 
 		prepareOffscreenRenderpass();
 
 		// Create frame buffer
 		VkFramebufferCreateInfo fbufCreateInfo = vkTools::initializers::framebufferCreateInfo();
-		fbufCreateInfo.renderPass = offScreenFrameBuf.renderPass; 
-		fbufCreateInfo.attachmentCount = 2;
-		fbufCreateInfo.pAttachments = attachments;
-		fbufCreateInfo.width = offScreenFrameBuf.width;
-		fbufCreateInfo.height = offScreenFrameBuf.height;
+		fbufCreateInfo.renderPass = offscreenPass.renderPass; 
+		fbufCreateInfo.attachmentCount = 1;
+		fbufCreateInfo.pAttachments = &offscreenPass.depth.view;
+		fbufCreateInfo.width = offscreenPass.width;
+		fbufCreateInfo.height = offscreenPass.height;
 		fbufCreateInfo.layers = 1;
 
-		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer));
+		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offscreenPass.frameBuffer));
 	}
 
 	void buildOffscreenCommandBuffer()
 	{
-		if (offScreenCmdBuffer == VK_NULL_HANDLE)
+		if (offscreenPass.commandBuffer == VK_NULL_HANDLE)
 		{
-			offScreenCmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
+			offscreenPass.commandBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
 		}
-
-		// Create a semaphore used to synchronize offscreen rendering and usage
-		VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenSemaphore));
+		if (offscreenPass.semaphore == VK_NULL_HANDLE)
+		{
+			// Create a semaphore used to synchronize offscreen rendering and usage
+			VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenPass.semaphore));
+		}
 
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
+		VkClearValue clearValues[1];
+		clearValues[0].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = offScreenFrameBuf.renderPass;
-		renderPassBeginInfo.framebuffer = offScreenFrameBuf.frameBuffer;
+		renderPassBeginInfo.renderPass = offscreenPass.renderPass;
+		renderPassBeginInfo.framebuffer = offscreenPass.frameBuffer;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = offScreenFrameBuf.width;
-		renderPassBeginInfo.renderArea.extent.height = offScreenFrameBuf.height;
+		renderPassBeginInfo.renderArea.extent.width = offscreenPass.width;
+		renderPassBeginInfo.renderArea.extent.height = offscreenPass.height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenPass.commandBuffer, &cmdBufInfo));
 
-		// Change back layout of the depth attachment after sampling in the fragment shader
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.depth.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+		VkViewport viewport = vkTools::initializers::viewport((float)offscreenPass.width, (float)offscreenPass.height, 0.0f, 1.0f);
+		vkCmdSetViewport(offscreenPass.commandBuffer, 0, 1, &viewport);
 
-		VkViewport viewport = vkTools::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
-		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
-
-		VkRect2D scissor = vkTools::initializers::rect2D(offScreenFrameBuf.width, offScreenFrameBuf.height, 0, 0);
-		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
+		VkRect2D scissor = vkTools::initializers::rect2D(offscreenPass.width, offscreenPass.height, 0, 0);
+		vkCmdSetScissor(offscreenPass.commandBuffer, 0, 1, &scissor);
 
 		// Set depth bias (aka "Polygon offset")
 		// Required to avoid shadow mapping artefacts
 		vkCmdSetDepthBias(
-			offScreenCmdBuffer,
+			offscreenPass.commandBuffer,
 			depthBiasConstant,
 			0.0f,
 			depthBiasSlope);
 
-		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(offscreenPass.commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
-		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
+		vkCmdBindPipeline(offscreenPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
+		vkCmdBindDescriptorSets(offscreenPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(offScreenCmdBuffer, meshes.scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offScreenCmdBuffer, meshes.scene.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
+		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, meshes.scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(offscreenPass.commandBuffer, meshes.scene.indexCount, 1, 0, 0, 0);
 
-		vkCmdEndRenderPass(offScreenCmdBuffer);
+		vkCmdEndRenderPass(offscreenPass.commandBuffer);
 
-		// Change layout of the depth attachment for sampling in the fragment shader
-		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.depth.image,
-			VK_IMAGE_ASPECT_DEPTH_BIT,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
+		VK_CHECK_RESULT(vkEndCommandBuffer(offscreenPass.commandBuffer));
 	}
 
 	void buildCommandBuffers()
@@ -510,7 +431,7 @@ public:
 		}
 	}
 
-	void loadMeshes()
+	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/vulkanscene_shadow.dae", &meshes.scene, vertexLayout, 4.0f);
 	}
@@ -669,8 +590,8 @@ public:
 		// Image descriptor for the shadow map attachment
 		VkDescriptorImageInfo texDescriptor =
 			vkTools::initializers::descriptorImageInfo(
-				offScreenFrameBuf.depthSampler,
-				offScreenFrameBuf.depth.view,
+				offscreenPass.depthSampler,
+				offscreenPass.depth.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
@@ -709,8 +630,8 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
 
 		// Image descriptor for the shadow map attachment
-		texDescriptor.sampler = offScreenFrameBuf.depthSampler;
-		texDescriptor.imageView = offScreenFrameBuf.depth.view;
+		texDescriptor.sampler = offscreenPass.depthSampler;
+		texDescriptor.imageView = offscreenPass.depth.view;
 
 		std::vector<VkWriteDescriptorSet> sceneDescriptorSets =
 		{
@@ -815,6 +736,8 @@ public:
 		// Offscreen pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapping/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapping/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// No blend attachment states (no color attachments used)
+		colorBlendState.attachmentCount = 0;
 		// Cull front faces
 		depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		// Enable depth bias
@@ -828,7 +751,7 @@ public:
 				0);
 
 		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
-		pipelineCreateInfo.renderPass = offScreenFrameBuf.renderPass;
+		pipelineCreateInfo.renderPass = offscreenPass.renderPass;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreen));
 	}
 
@@ -845,7 +768,7 @@ public:
 			&uniformDataVS.memory,
 			&uniformDataVS.descriptor);
 
-		// Offsvreen vertex shader uniform buffer block
+		// Offscreen vertex shader uniform buffer block
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -936,27 +859,25 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 		
-		// The scene render command buffer has to wait for the offscreen
-		// rendering (and transfer) to be finished before using
-		// the shadow map, so we need to synchronize
-		// We use an additional semaphore for this
+		// The scene render command buffer has to wait for the offscreen rendering (and transfer) to be finished before using the shadow map
+		// Therefore we synchronize using an additional semaphore
 
 		// Offscreen rendering
 
 		// Wait for swap chain presentation to finish
 		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 		// Signal ready with offscreen semaphore
-		submitInfo.pSignalSemaphores = &offscreenSemaphore;
+		submitInfo.pSignalSemaphores = &offscreenPass.semaphore;
 
 		// Submit work
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &offScreenCmdBuffer;
+		submitInfo.pCommandBuffers = &offscreenPass.commandBuffer;
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		// Scene rendering
 
 		// Wait for offscreen semaphore
-		submitInfo.pWaitSemaphores = &offscreenSemaphore;
+		submitInfo.pWaitSemaphores = &offscreenPass.semaphore;;
 		// Signal ready with render complete semaphpre
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
@@ -970,8 +891,8 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		loadAssets();
 		generateQuad();
-		loadMeshes();
 		prepareOffscreenFramebuffer();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
@@ -1043,63 +964,4 @@ public:
 
 };
 
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
-
-// Main entry point
-#if defined(_WIN32)
-// Windows entry point
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#elif defined(__ANDROID__)
-// Android entry point
-void android_main(android_app* state)
-#elif defined(__linux__)
-// Linux entry point
-int main(const int argc, const char *argv[])
-#endif
-{
-#if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
-	// which would make the application crash at start
-	app_dummy();
-#endif
-	vulkanExample = new VulkanExample();
-#if defined(_WIN32)
-	vulkanExample->setupWindow(hInstance, WndProc);
-#elif defined(__ANDROID__)
-	// Attach vulkan example to global android application state
-	state->userData = vulkanExample;
-	state->onAppCmd = VulkanExample::handleAppCommand;
-	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
-#elif defined(__linux__)
-	vulkanExample->setupWindow();
-#endif
-#if !defined(__ANDROID__)
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-#endif
-	vulkanExample->renderLoop();
-	delete(vulkanExample);
-#if !defined(__ANDROID__)
-	return 0;
-#endif
-}
+VULKAN_EXAMPLE_MAIN()

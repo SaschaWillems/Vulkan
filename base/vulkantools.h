@@ -145,7 +145,7 @@ namespace vkTools
 		VkFramebufferCreateInfo framebufferCreateInfo();
 
 		VkSemaphoreCreateInfo semaphoreCreateInfo();
-		VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags);
+		VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags = VK_FLAGS_NONE);
 		VkEventCreateInfo eventCreateInfo();
 
 		VkSubmitInfo submitInfo();

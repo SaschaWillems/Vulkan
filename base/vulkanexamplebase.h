@@ -104,10 +104,6 @@ protected:
 	VkCommandPool cmdPool;
 	// Command buffer used for setup
 	VkCommandBuffer setupCmdBuffer = VK_NULL_HANDLE;
-	// Command buffer for submitting a post present image barrier
-	std::vector<VkCommandBuffer> postPresentCmdBuffers = { VK_NULL_HANDLE };
-	// Command buffers for submitting a pre present image barrier
-	std::vector<VkCommandBuffer> prePresentCmdBuffers = { VK_NULL_HANDLE };
 	/** @brief Pipeline stages used to wait at for graphics queue submissions */
 	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	// Contains command buffers and semaphores to be presented to the queue
@@ -248,9 +244,6 @@ public:
 	// all command buffers that may reference this
 	virtual void buildCommandBuffers();
 
-	// Builds the command buffers used to submit the present barriers
-	void buildPresentCommandBuffers();
-
 	// Creates a new (graphics) command pool object storing command buffers
 	void createCommandPool();
 	// Setup default depth and stencil views
@@ -352,13 +345,11 @@ public:
 
 	// Prepare the frame for workload submission
 	// - Acquires the next image from the swap chain 
-	// - Submits a post present barrier
 	// - Sets the default wait and signal semaphores
 	void prepareFrame();
 
 	// Submit the frames' workload 
 	// - Submits the text overlay (if enabled)
-	// - 
 	void submitFrame();
 
 };

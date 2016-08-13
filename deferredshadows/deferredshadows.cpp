@@ -245,8 +245,6 @@ public:
 	// light sources' point of view to the layers of the depth attachment in one single pass 
 	void shadowSetup()
 	{
-		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 		frameBuffers.shadow = new vk::Framebuffer(vulkanDevice);
 
 		frameBuffers.shadow->width = SHADOWMAP_DIM;
@@ -262,9 +260,7 @@ public:
 		framebufferInfo.height = SHADOWMAP_DIM;
 		framebufferInfo.layerCount = LIGHT_COUNT;
 		framebufferInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		frameBuffers.shadow->addAttachment(framebufferInfo, layoutCmd);
-
-		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
+		frameBuffers.shadow->addAttachment(framebufferInfo);
 
 		// Create sampler to sample from to depth attachment 
 		// Used to sample in the fragment shader for shadowed rendering
@@ -277,8 +273,6 @@ public:
 	// Prepare the framebuffer for offscreen rendering with multiple attachments used as render targets inside the fragment shaders
 	void deferredSetup()
 	{
-		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 		frameBuffers.deferred = new vk::Framebuffer(vulkanDevice);
 
 		frameBuffers.deferred->width = FB_DIM;
@@ -294,15 +288,15 @@ public:
 		// Color attachments
 		// Attachment 0: (World space) Positions
 		framebufferInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-		frameBuffers.deferred->addAttachment(framebufferInfo, layoutCmd);
+		frameBuffers.deferred->addAttachment(framebufferInfo);
 
 		// Attachment 1: (World space) Normals
 		framebufferInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-		frameBuffers.deferred->addAttachment(framebufferInfo, layoutCmd);
+		frameBuffers.deferred->addAttachment(framebufferInfo);
 
 		// Attachment 2: Albedo (color)
 		framebufferInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-		frameBuffers.deferred->addAttachment(framebufferInfo, layoutCmd);
+		frameBuffers.deferred->addAttachment(framebufferInfo);
 
 		// Depth attachment
 		// Find a suitable depth format
@@ -312,9 +306,7 @@ public:
 
 		framebufferInfo.format = attDepthFormat;
 		framebufferInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		frameBuffers.deferred->addAttachment(framebufferInfo, layoutCmd);
-
-		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
+		frameBuffers.deferred->addAttachment(framebufferInfo);
 
 		// Create sampler to sample from the color attachments
 		VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
@@ -360,8 +352,9 @@ public:
 		VkViewport viewport;
 		VkRect2D scissor;
 
-		// Shadow map generation pass first
-		
+		// First pass: Shadow map generation
+		// -------------------------------------------------------------------------------------------------------
+	
 		clearValues[0].depthStencil = { 1.0f, 0 };
 
 		renderPassBeginInfo.renderPass = frameBuffers.shadow->renderPass;
@@ -372,16 +365,6 @@ public:
 		renderPassBeginInfo.pClearValues = clearValues.data();
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers.deferred, &cmdBufInfo));
-
-		// Change back layout of the depth attachment after sampling in the fragment shader
-		// todo: replace with subpass dependency
-		vkTools::setImageLayout(
-			commandBuffers.deferred,
-			frameBuffers.shadow->attachments[0].image,
-			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			frameBuffers.shadow->attachments[0].subresourceRange);
 
 		viewport = vkTools::initializers::viewport((float)frameBuffers.shadow->width, (float)frameBuffers.shadow->height, 0.0f, 1.0f);
 		vkCmdSetViewport(commandBuffers.deferred, 0, 1, &viewport);
@@ -401,33 +384,8 @@ public:
 		renderScene(commandBuffers.deferred, true);
 		vkCmdEndRenderPass(commandBuffers.deferred);
 
-		// Change layout of the depth attachment for sampling in the fragment shader
-		// todo: replace with subpass dependency
-		vkTools::setImageLayout(
-			commandBuffers.deferred,
-			frameBuffers.shadow->attachments[0].image,
-			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			frameBuffers.shadow->attachments[0].subresourceRange);
-
-		// Deferred pass second 
+		// Second pass: Deferred calculations
 		// -------------------------------------------------------------------------------------------------------
-
-		// Change back layout of the color attachments after sampling in the fragment shader
-		// todo: replace with subpass dependency
-		for (auto attachment : frameBuffers.deferred->attachments)
-		{
-			if (!attachment.hasDepth())
-			{
-				vkTools::setImageLayout(
-					commandBuffers.deferred,
-					attachment.image,
-					VK_IMAGE_ASPECT_COLOR_BIT,
-					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			}
-		}
 
 		// Clear values for all attachments written in the fragment sahder
 		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -453,21 +411,6 @@ public:
 		vkCmdBindPipeline(commandBuffers.deferred, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
 		renderScene(commandBuffers.deferred, false);
 		vkCmdEndRenderPass(commandBuffers.deferred);
-
-		// Change back layout of the color attachments after sampling in the fragment shader
-		// todo: replace with subpass dependency
-		for (auto attachment : frameBuffers.deferred->attachments)
-		{
-			if (!attachment.hasDepth())
-			{
-				vkTools::setImageLayout(
-					commandBuffers.deferred,
-					attachment.image,
-					VK_IMAGE_ASPECT_COLOR_BIT,
-					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			}
-		}
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers.deferred));
 	}
