@@ -1074,18 +1074,28 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		std::vector<VkCommandBuffer> submitCmdBuffers;
-
-		// Submit offscreen rendering command buffer 
-		// todo : use event to ensure that offscreen result is finished bfore render command buffer is started
+		// Offscreen rendering
 		if (glow)
 		{
-			submitCmdBuffers.push_back(offscreenPass.commandBuffer);
-		}
-		submitCmdBuffers.push_back(drawCmdBuffers[currentBuffer]);
+			// Wait for swap chain presentation to finish
+			submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+			// Signal ready with offscreen semaphore
+			submitInfo.pSignalSemaphores = &offscreenPass.semaphore;
 
-		submitInfo.commandBufferCount = submitCmdBuffers.size();
-		submitInfo.pCommandBuffers = submitCmdBuffers.data();
+			// Submit work
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &offscreenPass.commandBuffer;
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		}
+
+		// Scene rendering
+		// Wait for offscreen semaphore
+		submitInfo.pWaitSemaphores = &offscreenPass.semaphore;
+		// Signal ready with render complete semaphpre
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+
+		// Submit work
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		VulkanExampleBase::submitFrame();
