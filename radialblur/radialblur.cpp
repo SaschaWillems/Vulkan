@@ -48,6 +48,10 @@ public:
 	} meshes;
 
 	struct {
+		vkTools::VulkanTexture gradient;
+	} textures;
+
+	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
@@ -59,18 +63,14 @@ public:
 		vkTools::UniformData fsQuad;
 	} uniformData;
 
-	struct {
+	struct UboVS {
 		glm::mat4 projection;
 		glm::mat4 model;
-	} uboVS;
+		float gradientPos = 0.0f;
+	} uboSceneVS, uboQuadVS;
 
-	struct {
-		glm::mat4 projection;
-		glm::mat4 model;
-	} uboQuadVS;
-
-	struct {
-		float radialBlurScale = 0.25f;
+	struct UboQuadFS {
+		float radialBlurScale = 0.35f;
 		float radialBlurStrength = 0.75f;
 		glm::vec2 radialOrigin = glm::vec2(0.5f, 0.5f);
 	} uboQuadFS;
@@ -165,6 +165,8 @@ public:
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offscreenPass.commandBuffer);
 		vkDestroySemaphore(device, offscreenPass.semaphore, nullptr);
+
+		textureLoader->destroyTexture(textures.gradient);
 	}
 
 	// Setup the offscreen framebuffer for rendering the blurred scene
@@ -457,6 +459,7 @@ public:
 	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/glowsphere.dae", &meshes.example, vertexLayout, 0.05f);
+		textureLoader->loadTexture(getAssetPath() + "textures/particle_gradient_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, &textures.gradient, false);
 	}
 
 	// Setup vertices for a single uv-mapped quad
@@ -552,7 +555,7 @@ public:
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6)
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -649,7 +652,14 @@ public:
 				descriptorSets.scene,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsQuad.descriptor)
+				&uniformData.vsQuad.descriptor),
+			// Binding 1 : Color gradient sampler
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSets.scene,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				1,
+				&textures.gradient.descriptor)
+
 		};
 		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
 	}
@@ -765,8 +775,8 @@ public:
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			&uboVS,
+			sizeof(uboSceneVS),
+			&uboSceneVS,
 			&uniformData.vsScene.buffer,
 			&uniformData.vsScene.memory,
 			&uniformData.vsScene.descriptor);
@@ -775,8 +785,8 @@ public:
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			&uboVS,
+			sizeof(uboQuadVS),
+			&uboQuadVS,
 			&uniformData.vsQuad.buffer,
 			&uniformData.vsQuad.memory,
 			&uniformData.vsQuad.descriptor);
@@ -808,6 +818,11 @@ public:
 		uboQuadVS.model = glm::rotate(uboQuadVS.model, glm::radians(timer * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboQuadVS.model = glm::rotate(uboQuadVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
+		if (!paused)
+		{
+			uboQuadVS.gradientPos += frameTimer * 0.1f;
+		}
+
 		uint8_t *pData;
 		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsQuad.memory, 0, sizeof(uboQuadVS), 0, (void **)&pData));
 		memcpy(pData, &uboQuadVS, sizeof(uboQuadVS));
@@ -818,13 +833,18 @@ public:
 	void updateUniformBuffersScreen() 
 	{
 		// Vertex shader
-		uboVS.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-		uboVS.model = glm::mat4();
+		uboSceneVS.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
+		uboSceneVS.model = glm::mat4();
 
 		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboSceneVS), 0, (void **)&pData));
+		memcpy(pData, &uboSceneVS, sizeof(uboSceneVS));
 		vkUnmapMemory(device, uniformData.vsScene.memory);
+
+		if (!paused)
+		{
+			uboSceneVS.gradientPos += uboQuadVS.gradientPos;
+		}
 
 		// Fragment shader
 		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fsQuad.memory, 0, sizeof(uboQuadFS), 0, (void **)&pData));

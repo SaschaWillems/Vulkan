@@ -26,7 +26,7 @@ void main()
 	vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
 	UV += radialSize * 0.5 - ubo.radialOrigin;
  
-	#define samples 16
+	#define samples 32
 
 	for (int i = 0; i < samples; i++) 
 	{
