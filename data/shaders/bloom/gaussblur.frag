@@ -7,8 +7,6 @@ layout (binding = 1) uniform sampler2D samplerColor;
 
 layout (binding = 2) uniform UBO 
 {
-	int texWidth;
-	int texHeight;
 	float blurScale;
 	float blurStrength;
 	int horizontal;
@@ -28,9 +26,9 @@ void main()
 	weight[4] = 0.016216;
 
 	vec2 tex_offset = 1.0 / textureSize(samplerColor, 0) * ubo.blurScale; // gets size of single texel
-    vec3 result = texture(samplerColor, inUV).rgb * weight[0]; // current fragment's contribution
-    for(int i = 1; i < 5; ++i)
-    {
+	vec3 result = texture(samplerColor, inUV).rgb * weight[0]; // current fragment's contribution
+	for(int i = 1; i < 5; ++i)
+	{
 		if (ubo.horizontal == 1)
 		{
 			result += texture(samplerColor, inUV + vec2(tex_offset.x * i, 0.0)).rgb * weight[i] * ubo.blurStrength;
@@ -42,6 +40,5 @@ void main()
 			result += texture(samplerColor, inUV - vec2(0.0, tex_offset.y * i)).rgb * weight[i] * ubo.blurStrength;
 		}
 	}
-
 	outFragColor = vec4(result, 1.0);
 }
