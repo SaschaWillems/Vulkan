@@ -13,5 +13,5 @@ out gl_PerVertex
 void main() 
 {
 	outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
-	gl_Position = vec4(outUV * vec2(2.0f, 2.0f) + vec2(-1.0f, -1.0f), 0.0f, 1.0f);
+	gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
 }
