@@ -191,7 +191,6 @@ public:
 	// This is necessary as the offscreen frame buffer attachments use formats different to those from the example render pass
 	void prepareOffscreenRenderpass()
 	{
-		// todo: no color attachment required
 		VkAttachmentDescription attchmentDescription{};
 		attchmentDescription.format = DEPTH_FORMAT;
 		attchmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -432,7 +431,7 @@ public:
 		}
 	}
 
-	void loadMeshes()
+	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/vulkanscene_shadow.dae", &meshes.scene, vertexLayout, 4.0f);
 	}
@@ -892,8 +891,8 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		loadAssets();
 		generateQuad();
-		loadMeshes();
 		prepareOffscreenFramebuffer();
 		setupVertexDescriptions();
 		prepareUniformBuffers();

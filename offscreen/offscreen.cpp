@@ -116,7 +116,6 @@ public:
 		VkSemaphore semaphore = VK_NULL_HANDLE;
 	} offscreenPass;
 
-
 	glm::vec3 meshPos = glm::vec3(0.0f, -1.5f, 0.0f);
 	glm::vec3 meshRot = glm::vec3(0.0f);
 

@@ -111,18 +111,19 @@ public:
 		VkDeviceMemory mem;
 		VkImageView view;
 	};
-	struct FrameBuffer {
+	struct OffscreenPass {
 		int32_t width, height;
 		VkFramebuffer frameBuffer;
 		FrameBufferAttachment color, depth;
 		VkRenderPass renderPass;
-	} offScreenFrameBuf;
+		VkSampler sampler;
+		VkDescriptorImageInfo descriptor;
+		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+		// Semaphore used to synchronize between offscreen and final scene render pass
+		VkSemaphore semaphore = VK_NULL_HANDLE;
+	} offscreenPass;
 
-	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
 	VkFormat fbDepthFormat;
-
-	// Semaphore used to synchronize offscreen rendering before using it's texture target for sampling
-	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -148,18 +149,18 @@ public:
 		// Frame buffer
 
 		// Color attachment
-		vkDestroyImageView(device, offScreenFrameBuf.color.view, nullptr);
-		vkDestroyImage(device, offScreenFrameBuf.color.image, nullptr);
-		vkFreeMemory(device, offScreenFrameBuf.color.mem, nullptr);
+		vkDestroyImageView(device, offscreenPass.color.view, nullptr);
+		vkDestroyImage(device, offscreenPass.color.image, nullptr);
+		vkFreeMemory(device, offscreenPass.color.mem, nullptr);
 
 		// Depth attachment
-		vkDestroyImageView(device, offScreenFrameBuf.depth.view, nullptr);
-		vkDestroyImage(device, offScreenFrameBuf.depth.image, nullptr);
-		vkFreeMemory(device, offScreenFrameBuf.depth.mem, nullptr);
+		vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
+		vkDestroyImage(device, offscreenPass.depth.image, nullptr);
+		vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
 
-		vkDestroyFramebuffer(device, offScreenFrameBuf.frameBuffer, nullptr);
+		vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
 
-		vkDestroyRenderPass(device, offScreenFrameBuf.renderPass, nullptr);
+		vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
 
 		// Pipelibes
 		vkDestroyPipeline(device, pipelines.scene, nullptr);
@@ -179,8 +180,8 @@ public:
 		vkTools::destroyUniformData(device, &uniformData.offscreen);
 		vkTools::destroyUniformData(device, &uniformData.scene);
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
-		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
+		vkFreeCommandBuffers(device, cmdPool, 1, &offscreenPass.commandBuffer);
+		vkDestroySemaphore(device, offscreenPass.semaphore, nullptr);
 	}
 
 	void prepareCubeMap()
@@ -269,8 +270,8 @@ public:
 	// copied to the different cube map faces
 	void prepareOffscreenFramebuffer()
 	{
-		offScreenFrameBuf.width = FB_DIM;
-		offScreenFrameBuf.height = FB_DIM;
+		offscreenPass.width = FB_DIM;
+		offscreenPass.height = FB_DIM;
 
 		VkFormat fbColorFormat = FB_COLOR_FORMAT;
 
@@ -278,8 +279,8 @@ public:
 		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageCreateInfo.format = fbColorFormat;
-		imageCreateInfo.extent.width = offScreenFrameBuf.width;
-		imageCreateInfo.extent.height = offScreenFrameBuf.height;
+		imageCreateInfo.extent.width = offscreenPass.width;
+		imageCreateInfo.extent.height = offscreenPass.height;
 		imageCreateInfo.extent.depth = 1;
 		imageCreateInfo.mipLevels = 1;
 		imageCreateInfo.arrayLayers = 1;
@@ -305,24 +306,24 @@ public:
 
 		VkMemoryRequirements memReqs;
 
-		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &offScreenFrameBuf.color.image));
-		vkGetImageMemoryRequirements(device, offScreenFrameBuf.color.image, &memReqs);
+		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &offscreenPass.color.image));
+		vkGetImageMemoryRequirements(device, offscreenPass.color.image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.color.mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.color.image, offScreenFrameBuf.color.mem, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.color.mem));
+		VK_CHECK_RESULT(vkBindImageMemory(device, offscreenPass.color.image, offscreenPass.color.mem, 0));
 
 		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 		vkTools::setImageLayout(
 			layoutCmd,
-			offScreenFrameBuf.color.image, 
+			offscreenPass.color.image, 
 			VK_IMAGE_ASPECT_COLOR_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-		colorImageView.image = offScreenFrameBuf.color.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &colorImageView, nullptr, &offScreenFrameBuf.color.view));
+		colorImageView.image = offscreenPass.color.image;
+		VK_CHECK_RESULT(vkCreateImageView(device, &colorImageView, nullptr, &offscreenPass.color.view));
 
 		// Depth stencil attachment
 		imageCreateInfo.format = fbDepthFormat;
@@ -339,38 +340,38 @@ public:
 		depthStencilView.subresourceRange.baseArrayLayer = 0;
 		depthStencilView.subresourceRange.layerCount = 1;
 
-		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &offScreenFrameBuf.depth.image));
-		vkGetImageMemoryRequirements(device, offScreenFrameBuf.depth.image, &memReqs);
+		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &offscreenPass.depth.image));
+		vkGetImageMemoryRequirements(device, offscreenPass.depth.image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offScreenFrameBuf.depth.mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, offScreenFrameBuf.depth.image, offScreenFrameBuf.depth.mem, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.depth.mem));
+		VK_CHECK_RESULT(vkBindImageMemory(device, offscreenPass.depth.image, offscreenPass.depth.mem, 0));
 
 		vkTools::setImageLayout(
 			layoutCmd,
-			offScreenFrameBuf.depth.image, 
+			offscreenPass.depth.image, 
 			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
-		depthStencilView.image = offScreenFrameBuf.depth.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &offScreenFrameBuf.depth.view));
+		depthStencilView.image = offscreenPass.depth.image;
+		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &offscreenPass.depth.view));
 
 		VkImageView attachments[2];
-		attachments[0] = offScreenFrameBuf.color.view;
-		attachments[1] = offScreenFrameBuf.depth.view;
+		attachments[0] = offscreenPass.color.view;
+		attachments[1] = offscreenPass.depth.view;
 
 		VkFramebufferCreateInfo fbufCreateInfo = vkTools::initializers::framebufferCreateInfo();
-		fbufCreateInfo.renderPass = offScreenFrameBuf.renderPass;
+		fbufCreateInfo.renderPass = offscreenPass.renderPass;
 		fbufCreateInfo.attachmentCount = 2;
 		fbufCreateInfo.pAttachments = attachments;
-		fbufCreateInfo.width = offScreenFrameBuf.width;
-		fbufCreateInfo.height = offScreenFrameBuf.height;
+		fbufCreateInfo.width = offscreenPass.width;
+		fbufCreateInfo.height = offscreenPass.height;
 		fbufCreateInfo.layers = 1;
 
-		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer));
+		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offscreenPass.frameBuffer));
 	}
 
 	// Updates a single cube map face
@@ -386,10 +387,10 @@ public:
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
 		// Reuse render pass from example pass
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.framebuffer = offScreenFrameBuf.frameBuffer;
-		renderPassBeginInfo.renderArea.extent.width = offScreenFrameBuf.width;
-		renderPassBeginInfo.renderArea.extent.height = offScreenFrameBuf.height;
+		renderPassBeginInfo.renderPass = offscreenPass.renderPass;
+		renderPassBeginInfo.framebuffer = offscreenPass.frameBuffer;
+		renderPassBeginInfo.renderArea.extent.width = offscreenPass.width;
+		renderPassBeginInfo.renderArea.extent.height = offscreenPass.height;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -421,31 +422,31 @@ public:
 		}
 
 		// Render scene from cube face's point of view
-		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(offscreenPass.commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		// Update shader push constant block
 		// Contains current face view matrix
 		vkCmdPushConstants(
-			offScreenCmdBuffer,
+			offscreenPass.commandBuffer,
 			pipelineLayouts.offscreen,
 			VK_SHADER_STAGE_VERTEX_BIT,
 			0,
 			sizeof(glm::mat4),
 			&viewMatrix);
 
-		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
-		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
+		vkCmdBindPipeline(offscreenPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
+		vkCmdBindDescriptorSets(offscreenPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(offScreenCmdBuffer, meshes.scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offScreenCmdBuffer, meshes.scene.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
+		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, meshes.scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(offscreenPass.commandBuffer, meshes.scene.indexCount, 1, 0, 0, 0);
 
-		vkCmdEndRenderPass(offScreenCmdBuffer);
+		vkCmdEndRenderPass(offscreenPass.commandBuffer);
 		// Make sure color writes to the framebuffer are finished before using it as transfer source
 		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
+			offscreenPass.commandBuffer,
+			offscreenPass.color.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
@@ -471,8 +472,8 @@ public:
 
 		// Put image copy into command buffer
 		vkCmdCopyImage(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
+			offscreenPass.commandBuffer,
+			offscreenPass.color.image,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			shadowCubeMap.image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -481,8 +482,8 @@ public:
 
 		// Transform framebuffer color attachment back 
 		vkTools::setImageLayout(
-			offScreenCmdBuffer,
-			offScreenFrameBuf.color.image,
+			offscreenPass.commandBuffer,
+			offscreenPass.color.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -491,24 +492,26 @@ public:
 	// Command buffer for rendering and copying all cube map faces
 	void buildOffscreenCommandBuffer()
 	{
-		if (offScreenCmdBuffer == VK_NULL_HANDLE)
+		if (offscreenPass.commandBuffer == VK_NULL_HANDLE)
 		{
-			offScreenCmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
+			offscreenPass.commandBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
 		}
-
-		// Create a semaphore used to synchronize offscreen rendering and usage
-		VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenSemaphore));
+		if (offscreenPass.semaphore == VK_NULL_HANDLE)
+		{
+			// Create a semaphore used to synchronize offscreen rendering and usage
+			VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenPass.semaphore));
+		}
 
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
-		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenPass.commandBuffer, &cmdBufInfo));
 
-		VkViewport viewport = vkTools::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
-		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
+		VkViewport viewport = vkTools::initializers::viewport((float)offscreenPass.width, (float)offscreenPass.height, 0.0f, 1.0f);
+		vkCmdSetViewport(offscreenPass.commandBuffer, 0, 1, &viewport);
 
-		VkRect2D scissor = vkTools::initializers::rect2D(offScreenFrameBuf.width, offScreenFrameBuf.height,	0, 0);
-		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
+		VkRect2D scissor = vkTools::initializers::rect2D(offscreenPass.width, offscreenPass.height,	0, 0);
+		vkCmdSetScissor(offscreenPass.commandBuffer, 0, 1, &scissor);
 
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -518,7 +521,7 @@ public:
 
 		// Change image layout for all cubemap faces to transfer destination
 		vkTools::setImageLayout(
-			offScreenCmdBuffer,
+			offscreenPass.commandBuffer,
 			shadowCubeMap.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -532,14 +535,14 @@ public:
 
 		// Change image layout for all cubemap faces to shader read after they have been copied
 		vkTools::setImageLayout(
-			offScreenCmdBuffer,
+			offscreenPass.commandBuffer,
 			shadowCubeMap.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			subresourceRange);
 
-		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
+		VK_CHECK_RESULT(vkEndCommandBuffer(offscreenPass.commandBuffer));
 	}
 
 	void reBuildCommandBuffers()
@@ -616,7 +619,7 @@ public:
 		}
 	}	
 
-	void loadMeshes()
+	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skybox, vertexLayout, 2.0f);
 		loadMesh(getAssetPath() + "models/shadowscene_fire.dae", &meshes.scene, vertexLayout, 2.0f);
@@ -836,7 +839,7 @@ public:
 		renderPassCreateInfo.subpassCount = 1;
 		renderPassCreateInfo.pSubpasses = &subpass;
 
-		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &offScreenFrameBuf.renderPass));
+		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &offscreenPass.renderPass));
 	}
 
 	void preparePipelines()
@@ -925,7 +928,7 @@ public:
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapomni/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
-		pipelineCreateInfo.renderPass = offScreenFrameBuf.renderPass;
+		pipelineCreateInfo.renderPass = offscreenPass.renderPass;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreen));
 	}
 
@@ -997,27 +1000,22 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		// The scene render command buffer has to wait for the offscreen
-		// rendering (and transfer) to be finished before using
-		// the shadow map, so we need to synchronize
-		// We use an additional semaphore for this
-
 		// Offscreen rendering
 
 		// Wait for swap chain presentation to finish
 		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 		// Signal ready with offscreen semaphore
-		submitInfo.pSignalSemaphores = &offscreenSemaphore;
+		submitInfo.pSignalSemaphores = &offscreenPass.semaphore;
 
 		// Submit work
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &offScreenCmdBuffer;
+		submitInfo.pCommandBuffers = &offscreenPass.commandBuffer;
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		// Scene rendering
 
 		// Wait for offscreen semaphore
-		submitInfo.pWaitSemaphores = &offscreenSemaphore;
+		submitInfo.pWaitSemaphores = &offscreenPass.semaphore;
 		// Signal ready with render complete semaphpre
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
@@ -1031,7 +1029,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadMeshes();
+		loadAssets();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		prepareCubeMap();
