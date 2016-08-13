@@ -5,7 +5,7 @@
 
 layout (binding = 1) uniform sampler2D samplerColor;
 
-layout (binding = 2) uniform UBO 
+layout (binding = 0) uniform UBO 
 {
 	float radialBlurScale;
 	float radialBlurStrength;

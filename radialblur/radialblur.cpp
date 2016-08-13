@@ -44,7 +44,6 @@ public:
 
 	struct {
 		vkMeshLoader::MeshBuffer example;
-		vkMeshLoader::MeshBuffer quad;
 	} meshes;
 
 	struct {
@@ -58,28 +57,27 @@ public:
 	} vertices;
 
 	struct {
-		vkTools::UniformData vsScene;
-		vkTools::UniformData vsQuad;
-		vkTools::UniformData fsQuad;
+		vkTools::UniformData scene;
+		vkTools::UniformData blurParams;
 	} uniformData;
 
 	struct UboVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		float gradientPos = 0.0f;
-	} uboSceneVS, uboQuadVS;
+	} uboScene;
 
-	struct UboQuadFS {
+	struct UboBlurParams {
 		float radialBlurScale = 0.35f;
 		float radialBlurStrength = 0.75f;
 		glm::vec2 radialOrigin = glm::vec2(0.5f, 0.5f);
-	} uboQuadFS;
+	} uboBlurParams;
 
 	struct {
 		VkPipeline radialBlur;
 		VkPipeline colorPass;
 		VkPipeline phongPass;
-		VkPipeline fullScreenOnly;
+		VkPipeline offscreenDisplay;
 	} pipelines;
 
 	struct {
@@ -89,12 +87,13 @@ public:
 
 	struct {
 		VkDescriptorSet scene;
-		VkDescriptorSet quad;
+		VkDescriptorSet radialBlur;
 	} descriptorSets;
 
-	// Descriptor set layout is shared amongst
-	// all descriptor sets
-	VkDescriptorSetLayout descriptorSetLayout;
+	struct {
+		VkDescriptorSetLayout scene;
+		VkDescriptorSetLayout radialBlur;
+	} descriptorSetLayouts;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -147,21 +146,20 @@ public:
 		vkDestroyPipeline(device, pipelines.radialBlur, nullptr);
 		vkDestroyPipeline(device, pipelines.phongPass, nullptr);
 		vkDestroyPipeline(device, pipelines.colorPass, nullptr);
-		vkDestroyPipeline(device, pipelines.fullScreenOnly, nullptr);
+		vkDestroyPipeline(device, pipelines.offscreenDisplay, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayouts.radialBlur, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayouts.scene, nullptr);
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.radialBlur, nullptr);
 
 		// Meshes
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
 
 		// Uniform buffers
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
-		vkTools::destroyUniformData(device, &uniformData.vsQuad);
-		vkTools::destroyUniformData(device, &uniformData.fsQuad);
+		vkTools::destroyUniformData(device, &uniformData.scene);
+		vkTools::destroyUniformData(device, &uniformData.blurParams);
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offscreenPass.commandBuffer);
 		vkDestroySemaphore(device, offscreenPass.semaphore, nullptr);
@@ -440,14 +438,12 @@ public:
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.example.indexCount, 1, 0, 0, 0);
 
-			// Fullscreen quad with radial blur
+			// Fullscreen triangle (clipped to a quad) with radial blur
 			if (blur)
 			{
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.radialBlur, 0, 1, &descriptorSets.quad, 0, NULL);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, (displayTexture) ? pipelines.fullScreenOnly : pipelines.radialBlur);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.quad.indexCount, 1, 0, 0, 0);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.radialBlur, 0, 1, &descriptorSets.radialBlur, 0, NULL);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, (displayTexture) ? pipelines.offscreenDisplay : pipelines.radialBlur);
+				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -460,45 +456,6 @@ public:
 	{
 		loadMesh(getAssetPath() + "models/glowsphere.dae", &meshes.example, vertexLayout, 0.05f);
 		textureLoader->loadTexture(getAssetPath() + "textures/particle_gradient_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, &textures.gradient, false);
-	}
-
-	// Setup vertices for a single uv-mapped quad
-	void generateQuad()
-	{
-		struct Vertex {
-			float pos[3];
-			float uv[2];
-			float col[3];
-			float normal[3];
-		};
-
-#define QUAD_COLOR_NORMAL { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }
-		std::vector<Vertex> vertexBuffer =
-		{
-			{ { 1.0f, 1.0f, 0.0f },{ 1.0f, 1.0f }, QUAD_COLOR_NORMAL },
-			{ { 0.0f, 1.0f, 0.0f },{ 0.0f, 1.0f }, QUAD_COLOR_NORMAL },
-			{ { 0.0f, 0.0f, 0.0f },{ 0.0f, 0.0f }, QUAD_COLOR_NORMAL },
-			{ { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f }, QUAD_COLOR_NORMAL }
-		};
-#undef QUAD_COLOR_NORMAL
-
-		createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			vertexBuffer.size() * sizeof(Vertex),
-			vertexBuffer.data(),
-			&meshes.quad.vertices.buf,
-			&meshes.quad.vertices.mem);
-
-		// Setup indices
-		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-		meshes.quad.indexCount = indexBuffer.size();
-
-		createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			indexBuffer.size() * sizeof(uint32_t),
-			indexBuffer.data(),
-			&meshes.quad.indices.buf,
-			&meshes.quad.indices.mem);
 	}
 
 	void setupVertexDescriptions()
@@ -569,99 +526,100 @@ public:
 
 	void setupDescriptorSetLayout()
 	{
-		// Textured quad pipeline layout
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
+		VkDescriptorSetLayoutCreateInfo descriptorLayout;
+		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo;
+
+		// Scene rendering
+		setLayoutBindings =
 		{
-			// Binding 0 : Vertex shader uniform buffer
+			// Binding 0: Vertex shader uniform buffer
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_VERTEX_BIT,
 				0),
-			// Binding 1 : Fragment shader image sampler
+			// Binding 1: Fragment shader image sampler
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
 				1),
-			// Binding 2 : Fragment shader uniform buffer
+			// Binding 2: Fragment shader uniform buffer
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
 				2)
 		};
-
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vkTools::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				setLayoutBindings.size());
-
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
-
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vkTools::initializers::pipelineLayoutCreateInfo(
-				&descriptorSetLayout,
-				1);
-
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.radialBlur));
-
-		// Offscreen pipeline layout
+		descriptorLayout = vkTools::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.scene));
+		pPipelineLayoutCreateInfo = vkTools::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.scene, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene));
+
+		// Fullscreen radial blur
+		setLayoutBindings =
+		{
+			// Binding 0 : Vertex shader uniform buffer
+			vkTools::initializers::descriptorSetLayoutBinding(
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				0),
+			// Binding 0: Fragment shader image sampler
+			vkTools::initializers::descriptorSetLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				1)
+		};
+		descriptorLayout = vkTools::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.radialBlur));
+		pPipelineLayoutCreateInfo = vkTools::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.radialBlur, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.radialBlur));
 	}
 
 	void setupDescriptorSet()
 	{
-		// Textured quad descriptor set
-		VkDescriptorSetAllocateInfo allocInfo =
-			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
+		VkDescriptorSetAllocateInfo descriptorSetAllocInfo;
 
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.quad));
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
-			// Binding 0 : Vertex shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSets.quad,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&uniformData.vsScene.descriptor),
-			// Binding 1 : Fragment shader texture sampler
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSets.quad,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&offscreenPass.descriptor),
-			// Binding 2 : Fragment shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSets.quad,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				2,
-				&uniformData.fsQuad.descriptor)
-		};
-
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
-
-		// Offscreen 3D scene descriptor set
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
+		// Scene rendering
+		descriptorSetAllocInfo = vkTools::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.scene, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocInfo, &descriptorSets.scene));
 
 		std::vector<VkWriteDescriptorSet> offScreenWriteDescriptorSets =
 		{
-			// Binding 0 : Vertex shader uniform buffer
+			// Binding 0: Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.scene,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsQuad.descriptor),
-			// Binding 1 : Color gradient sampler
+				&uniformData.scene.descriptor),
+			// Binding 1: Color gradient sampler
 			vkTools::initializers::writeDescriptorSet(
-				descriptorSets.scene,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&textures.gradient.descriptor)
-
+				descriptorSets.scene, 
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+				1, 
+				&textures.gradient.descriptor),
 		};
 		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
+
+		// Fullscreen radial blur
+		descriptorSetAllocInfo = vkTools::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.radialBlur, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocInfo, &descriptorSets.radialBlur));
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+		{
+			// Binding 0: Vertex shader uniform buffer
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSets.radialBlur,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				0,
+				&uniformData.blurParams.descriptor),
+			// Binding 0: Fragment shader texture sampler
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSets.radialBlur, 
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				1, 
+				&offscreenPass.descriptor),
+		};
+
+		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -713,12 +671,7 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Radial blur pipeline
-		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/radialblur/radialblur.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/radialblur/radialblur.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -726,7 +679,6 @@ public:
 				renderPass,
 				0);
 
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -737,6 +689,13 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
+		// Radial blur pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/radialblur/radialblur.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/radialblur/radialblur.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// Empty vertex input state
+		VkPipelineVertexInputStateCreateInfo emptyInputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+		pipelineCreateInfo.pVertexInputState = &emptyInputState;
+		pipelineCreateInfo.layout = pipelineLayouts.radialBlur;
 		// Additive blending
 		blendAttachmentState.colorWriteMask = 0xF;
 		blendAttachmentState.blendEnable = VK_TRUE;
@@ -750,12 +709,13 @@ public:
 
 		// No blending (for debug display)
 		blendAttachmentState.blendEnable = VK_FALSE;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.fullScreenOnly));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreenDisplay));
 
 		// Phong pass
+		pipelineCreateInfo.layout = pipelineLayouts.scene;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/radialblur/phongpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/radialblur/phongpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		pipelineCreateInfo.layout = pipelineLayouts.scene;
+		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		blendAttachmentState.blendEnable = VK_FALSE;
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phongPass));
@@ -764,7 +724,6 @@ public:
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/radialblur/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/radialblur/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		pipelineCreateInfo.renderPass = offscreenPass.renderPass;
-		pipelineCreateInfo.layout = pipelineLayouts.radialBlur;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.colorPass));
 	}
 
@@ -775,81 +734,47 @@ public:
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboSceneVS),
-			&uboSceneVS,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
-
-		// Fullscreen quad vertex shader uniform buffer
-		createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboQuadVS),
-			&uboQuadVS,
-			&uniformData.vsQuad.buffer,
-			&uniformData.vsQuad.memory,
-			&uniformData.vsQuad.descriptor);
+			sizeof(uboScene),
+			&uboScene,
+			&uniformData.scene.buffer,
+			&uniformData.scene.memory,
+			&uniformData.scene.descriptor);
 
 		// Fullscreen quad fragment shader uniform buffer
 		createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboQuadFS),
-			&uboQuadFS,
-			&uniformData.fsQuad.buffer,
-			&uniformData.fsQuad.memory,
-			&uniformData.fsQuad.descriptor);
+			sizeof(uboBlurParams),
+			&uboBlurParams,
+			&uniformData.blurParams.buffer,
+			&uniformData.blurParams.memory,
+			&uniformData.blurParams.descriptor);
 
 		updateUniformBuffersScene();
-		updateUniformBuffersScreen();
 	}
 
 	// Update uniform buffers for rendering the 3D scene
 	void updateUniformBuffersScene()
 	{
-		uboQuadVS.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 1.0f, 256.0f);
+		uboScene.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 1.0f, 256.0f);
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 
-		uboQuadVS.model = glm::mat4();
-		uboQuadVS.model = viewMatrix * glm::translate(uboQuadVS.model, cameraPos);
-		uboQuadVS.model = glm::rotate(uboQuadVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboQuadVS.model = glm::rotate(uboQuadVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboQuadVS.model = glm::rotate(uboQuadVS.model, glm::radians(timer * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboQuadVS.model = glm::rotate(uboQuadVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboScene.model = glm::mat4();
+		uboScene.model = viewMatrix * glm::translate(uboScene.model, cameraPos);
+		uboScene.model = glm::rotate(uboScene.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboScene.model = glm::rotate(uboScene.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboScene.model = glm::rotate(uboScene.model, glm::radians(timer * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboScene.model = glm::rotate(uboScene.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		if (!paused)
 		{
-			uboQuadVS.gradientPos += frameTimer * 0.1f;
+			uboScene.gradientPos += frameTimer * 0.1f;
 		}
 
 		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsQuad.memory, 0, sizeof(uboQuadVS), 0, (void **)&pData));
-		memcpy(pData, &uboQuadVS, sizeof(uboQuadVS));
-		vkUnmapMemory(device, uniformData.vsQuad.memory);
-	}
-
-	// Update uniform buffers for the fullscreen quad
-	void updateUniformBuffersScreen() 
-	{
-		// Vertex shader
-		uboSceneVS.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-		uboSceneVS.model = glm::mat4();
-
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboSceneVS), 0, (void **)&pData));
-		memcpy(pData, &uboSceneVS, sizeof(uboSceneVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
-
-		if (!paused)
-		{
-			uboSceneVS.gradientPos += uboQuadVS.gradientPos;
-		}
-
-		// Fragment shader
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fsQuad.memory, 0, sizeof(uboQuadFS), 0, (void **)&pData));
-		memcpy(pData, &uboQuadFS, sizeof(uboQuadFS));
-		vkUnmapMemory(device, uniformData.fsQuad.memory);
+		VK_CHECK_RESULT(vkMapMemory(device, uniformData.scene.memory, 0, sizeof(uboScene), 0, (void **)&pData));
+		memcpy(pData, &uboScene, sizeof(uboScene));
+		vkUnmapMemory(device, uniformData.scene.memory);
 	}
 
 	void draw()
@@ -886,7 +811,6 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
-		generateQuad();
 		prepareOffscreen();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
@@ -913,7 +837,6 @@ public:
 	virtual void viewChanged()
 	{
 		updateUniformBuffersScene();
-		updateUniformBuffersScreen();
 	}
 
 	void toggleBlur()
