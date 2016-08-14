@@ -185,7 +185,8 @@ public:
 		// Fences (Used to check draw command buffer completion)
 		VkFenceCreateInfo fenceCreateInfo = {};
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceCreateInfo.flags = 0;
+		// Create in signaled state so we don't wait on first render of each command buffer
+		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 		waitFences.resize(drawCmdBuffers.size());
 		for (auto& fence : waitFences)
 		{
@@ -330,6 +331,10 @@ public:
 		// Get next image in the swap chain (back/front buffer)
 		VK_CHECK_RESULT(swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer));
 
+		// Use a fence to wait until the command buffer has finished execution before using it again
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+
 		// Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
 		VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		// The submit info structure specifices a command buffer queue submission batch
@@ -346,10 +351,6 @@ public:
 		// Submit to the graphics queue passing a wait fence
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
 		
-		// Wait until the fence has signaled, which is the case when the command buffer has actually finished execution of all it's commands 
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
-
 		// Present the current buffer to the swap chain
 		// Pass the semaphore signaled by the command buffer submission from the submit info as the wait semaphore for swap chain presentation
 		// This ensures that the image is not presented to the windowing system until all commands have been submitted
