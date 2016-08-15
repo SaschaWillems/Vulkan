@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tessellation", "tessellation\tessellation.vcxproj", "{015C3F70-FFCE-45DA-80E0-5DED015868D7}"
 EndProject
@@ -96,6 +96,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "indirectdraw", "indirectdraw\indirectdraw.vcxproj", "{2BBDD10F-2C9D-4BEA-8C7B-1C510A2CE08B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "texturemipmapgen", "texturemipmapgen\texturemipmapgen.vcxproj", "{24AD09B4-6ABE-4A82-83E7-6A7799A88762}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -247,6 +249,10 @@ Global
 		{2BBDD10F-2C9D-4BEA-8C7B-1C510A2CE08B}.Debug|x64.Build.0 = Debug|x64
 		{2BBDD10F-2C9D-4BEA-8C7B-1C510A2CE08B}.Release|x64.ActiveCfg = Release|x64
 		{2BBDD10F-2C9D-4BEA-8C7B-1C510A2CE08B}.Release|x64.Build.0 = Release|x64
+		{24AD09B4-6ABE-4A82-83E7-6A7799A88762}.Debug|x64.ActiveCfg = Debug|x64
+		{24AD09B4-6ABE-4A82-83E7-6A7799A88762}.Debug|x64.Build.0 = Debug|x64
+		{24AD09B4-6ABE-4A82-83E7-6A7799A88762}.Release|x64.ActiveCfg = Release|x64
+		{24AD09B4-6ABE-4A82-83E7-6A7799A88762}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
