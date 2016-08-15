@@ -102,6 +102,7 @@ set(EXAMPLES
 	texture
 	texturearray
 	texturecubemap
+	texturemipmapgen
 	triangle
 	vulkanscene
 )
