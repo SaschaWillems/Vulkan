@@ -10,8 +10,8 @@ layout (location = 2) in vec3 inNormal;
 layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
+	mat4 view;
 	mat4 model;
-	vec4 viewPos;
 	float lodBias;
 	float samplerIndex;
 } ubo;
@@ -31,5 +31,5 @@ void main()
 	outUV.s *= 10.0;
 	outLodBias = ubo.lodBias;
 	outSamplerIndex = ubo.samplerIndex;
-	gl_Position = ubo.projection * ubo.model * vec4(inPos, 1.0);
+	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos, 1.0);
 }

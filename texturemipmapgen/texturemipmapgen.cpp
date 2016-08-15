@@ -28,13 +28,6 @@
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-// Vertex layout for this example
-struct Vertex {
-	float pos[3];
-	float uv[2];
-	float normal[3];
-};
-
 std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 {
 	vkMeshLoader::VERTEX_LAYOUT_POSITION,
@@ -72,9 +65,9 @@ public:
 	struct uboVS {
 		glm::mat4 projection;
 		glm::mat4 view;
-		glm::vec4 viewPos;
+		glm::mat4 model;
 		float lodBias = 0.0f;
-		float samplerIndex = 0.0f;
+		float samplerIndex = 1.0f;
 	} uboVS;
 
 	struct {
@@ -95,6 +88,8 @@ public:
 		camera.setTranslation(glm::vec3(10.0f, 0.0f, 0.0f));
 		camera.movementSpeed = 2.5f;
 		camera.rotationSpeed = 0.5f;
+		timerSpeed *= 0.15f;
+		paused = true;
 	}
 
 	~VulkanExample()
@@ -439,7 +434,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID, 
-				sizeof(Vertex), 
+				vkMeshLoader::vertexSize(vertexLayout),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions
@@ -451,21 +446,21 @@ public:
 				VERTEX_BUFFER_BIND_ID,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, pos));			
+				0);			
 		// Location 1 : Texture coordinates
 		vertices.attributeDescriptions[1] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				1,
 				VK_FORMAT_R32G32_SFLOAT,
-				offsetof(Vertex, uv));
+				3 * sizeof(float));
 		// Location 1 : Vertex normal
 		vertices.attributeDescriptions[2] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, normal));
+				5 * sizeof(float));
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
 		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
@@ -670,6 +665,11 @@ public:
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
 
+		if (!paused)
+		{
+			uboVS.model = glm::rotate(glm::mat4(), glm::radians(timer * 360.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		}
+
 		VK_CHECK_RESULT(uniformBufferVS.map());
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
 		uniformBufferVS.unmap();
@@ -694,6 +694,10 @@ public:
 		if (!prepared)
 			return;
 		draw();
+		if (!paused)
+		{
+			updateUniformBuffers();
+		}
 	}
 
 	virtual void viewChanged()
