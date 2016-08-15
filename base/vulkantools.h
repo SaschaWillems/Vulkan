@@ -180,7 +180,8 @@ namespace vkTools
 		VkDescriptorSetLayoutBinding descriptorSetLayoutBinding(
 			VkDescriptorType type, 
 			VkShaderStageFlags stageFlags, 
-			uint32_t binding);
+			uint32_t binding,
+			uint32_t count = 1);
 
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo(
 			const VkDescriptorSetLayoutBinding* pBindings,

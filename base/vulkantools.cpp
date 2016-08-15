@@ -630,14 +630,14 @@ VkDescriptorPoolSize vkTools::initializers::descriptorPoolSize(
 VkDescriptorSetLayoutBinding vkTools::initializers::descriptorSetLayoutBinding(
 	VkDescriptorType type, 
 	VkShaderStageFlags stageFlags, 
-	uint32_t binding)
+	uint32_t binding,
+	uint32_t count)
 {
 	VkDescriptorSetLayoutBinding setLayoutBinding = {};
 	setLayoutBinding.descriptorType = type;
 	setLayoutBinding.stageFlags = stageFlags;
 	setLayoutBinding.binding = binding;
-	// Default value in all examples
-	setLayoutBinding.descriptorCount = 1; 
+	setLayoutBinding.descriptorCount = count; 
 	return setLayoutBinding;
 }
 
