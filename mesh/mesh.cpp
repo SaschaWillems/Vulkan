@@ -613,7 +613,7 @@ public:
 	{
 		switch (keyCode)
 		{
-		case 0x57:
+		case KEY_W:
 		case GAMEPAD_BUTTON_A:
 			wireframe = !wireframe;
 			reBuildCommandBuffers();
