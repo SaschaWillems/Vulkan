@@ -70,19 +70,19 @@ public:
 		VkDescriptorSet descriptorSet;				// Compute shader bindings
 		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
 		VkPipeline pipeline;						// Compute pipeline for updating particle positions
+		struct computeUBO {							// Compute shader uniform block object
+			float deltaT;							//		Frame delta time
+			float destX;							//		x position of the attractor
+			float destY;							//		y position of the attractor
+			int32_t particleCount = PARTICLE_COUNT;
+		} ubo;
 	} compute;
 
-	struct ComputeUBO {
-		float deltaT;
-		float destX;
-		float destY;
-		int32_t particleCount = PARTICLE_COUNT;
-	} computeUbo;
-
+	// SSBO particle declaration
 	struct Particle {
-		glm::vec2 pos;
-		glm::vec2 vel;
-		glm::vec4 gradientPos;
+		glm::vec2 pos;								// Particle position
+		glm::vec2 vel;								// Particle velocity
+		glm::vec4 gradientPos;						// Texture coordiantes for the gradient ramp map
 	};
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
@@ -93,9 +93,6 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
-		// Note : Inherited destructor cleans up resources stored in base class
-
 		// Graphics
 		vkDestroyPipeline(device, graphics.pipeline, nullptr);
 		vkDestroyPipelineLayout(device, graphics.pipelineLayout, nullptr);
@@ -183,13 +180,14 @@ public:
 
 		// Compute particle movement
 
-		// Add memory barrier to ensure that the (rendering) vertex shader operations have finished
-		// Required as the compute shader will overwrite the vertex buffer data
+		// Add memory barrier to ensure that the (graphics) vertex shader has fetched attributes before compute starts to write to the buffer
 		VkBufferMemoryBarrier bufferBarrier = vkTools::initializers::bufferMemoryBarrier();
 		bufferBarrier.buffer = compute.storageBuffer.buffer;
 		bufferBarrier.size = compute.storageBuffer.descriptor.range;
 		bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;						// Vertex shader invocations have finished reading from the buffer
-		bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;								// Compute shader has finished buffer writes
+		bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;								// Compute shader wants to write to the buffer
+		// Compute and graphics queue may have different queue families (see VulkanDevice::createLogicalDevice)
+		// For the barrier to work across different queues, we need to set their family indices
 		bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;			// Required as compute and graphics queue may have different families
 		bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;			// Required as compute and graphics queue may have different families
 
@@ -209,13 +207,13 @@ public:
 		vkCmdDispatch(compute.commandBuffer, PARTICLE_COUNT / 16, 1, 1);
 
 		// Add memory barrier to ensure that compute shader has finished writing to the buffer
-		// Without this the (rendering) vertex shader may display incomplete results (partial data from last frame)
-		// Compute shader has finished writes to the buffer
-		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-		// Vertex shader access (attribute binding)
-		bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+		// Without this the (rendering) vertex shader may display incomplete results (partial data from last frame) 
+		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;								// Compute shader has finished writes to the buffer
+		bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;						// Vertex shader invocations want to read from the buffer
 		bufferBarrier.buffer = compute.storageBuffer.buffer;
 		bufferBarrier.size = compute.storageBuffer.descriptor.range;
+		// Compute and graphics queue may have different queue families (see VulkanDevice::createLogicalDevice)
+		// For the barrier to work across different queues, we need to set their family indices
 		bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;			// Required as compute and graphics queue may have different families
 		bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;			// Required as compute and graphics queue may have different families
 
@@ -231,11 +229,9 @@ public:
 		vkEndCommandBuffer(compute.commandBuffer);
 	}
 
-	// Setup and fill the compute shader storage buffers for
-	// vertex positions and velocities
+	// Setup and fill the compute shader storage buffers containing the particles
 	void prepareStorageBuffers()
 	{
-
 		std::mt19937 rGenerator;
 		std::uniform_real_distribution<float> rDistribution(-1.0f, 1.0f);
 
@@ -248,7 +244,7 @@ public:
 			particle.gradientPos.x = particle.pos.x / 2.0f;
 		}
 
-		uint32_t storageBufferSize = particleBuffer.size() * sizeof(Particle);
+		VkDeviceSize storageBufferSize = particleBuffer.size() * sizeof(Particle);
 
 		// Staging
 		// SSBO won't be changed on the host after upload so copy to device local memory 
@@ -271,16 +267,9 @@ public:
 
 		// Copy to staging buffer
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 		VkBufferCopy copyRegion = {};
 		copyRegion.size = storageBufferSize;
-		vkCmdCopyBuffer(
-			copyCmd,
-			stagingBuffer.buffer,
-			compute.storageBuffer.buffer,
-			1,
-			&copyRegion);
-
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.storageBuffer.buffer, 1, &copyRegion);
 		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 
 		stagingBuffer.destroy();
@@ -313,9 +302,9 @@ public:
 
 		// Assign to vertex buffer
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -330,7 +319,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
 
@@ -354,7 +343,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &graphics.descriptorSetLayout));
 
@@ -376,32 +365,21 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &graphics.descriptorSet));
 
-		// Image descriptor for the color map texture
-		std::vector<VkDescriptorImageInfo> texDescriptors;
-		texDescriptors.push_back(vkTools::initializers::descriptorImageInfo(
-			textures.particle.sampler,
-			textures.particle.view,
-			VK_IMAGE_LAYOUT_GENERAL));
-		texDescriptors.push_back(vkTools::initializers::descriptorImageInfo(
-			textures.gradient.sampler,
-			textures.gradient.view,
-			VK_IMAGE_LAYOUT_GENERAL));
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 		// Binding 0 : Particle color map
 		writeDescriptorSets.push_back(vkTools::initializers::writeDescriptorSet(
 			graphics.descriptorSet,
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			0,
-			&texDescriptors[0]));
+			&textures.particle.descriptor));
 		// Binding 1 : Particle gradient ramp
 		writeDescriptorSets.push_back(vkTools::initializers::writeDescriptorSet(
 			graphics.descriptorSet,
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			1,
-			&texDescriptors[1]));
+			&textures.gradient.descriptor));
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -450,7 +428,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		// Rendering pipeline
@@ -474,7 +452,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 		pipelineCreateInfo.renderPass = renderPass;
 
@@ -494,7 +472,9 @@ public:
 	void prepareCompute()
 	{
 		// Create a compute capable device queue
-		// todo: comment (queue families, etc.)
+		// The VulkanDevice::createLogicalDevice functions finds a compute capable queue and prefers queue families that only support compute
+		// Depending on the implementation this may result in different queue family indices for graphics and computes,
+		// requiring proper synchronization (see the memory barriers in buildComputeCommandBuffer)
 		VkDeviceQueueCreateInfo queueCreateInfo = {};
 		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 		queueCreateInfo.pNext = NULL;
@@ -521,7 +501,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device,	&descriptorLayout, nullptr,	&compute.descriptorSetLayout));
 
@@ -556,13 +536,10 @@ public:
 				&compute.uniformBuffer.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, computeWriteDescriptorSets.size(), computeWriteDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, NULL);
 
 		// Create pipeline		
-		VkComputePipelineCreateInfo computePipelineCreateInfo =
-			vkTools::initializers::computePipelineCreateInfo(
-				compute.pipelineLayout,
-				0);
+		VkComputePipelineCreateInfo computePipelineCreateInfo = vkTools::initializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
 		computePipelineCreateInfo.stage = loadShader(getAssetPath() + "shaders/computeparticles/particle.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
 		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipeline));
 
@@ -573,8 +550,7 @@ public:
 		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
 
-		// Create command buffer for compute operations
-		// tood: differring indices? separate cmd pool?
+		// Create a command buffer for compute operations
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 			vkTools::initializers::commandBufferAllocateInfo(
 				compute.commandPool,
@@ -587,7 +563,7 @@ public:
 		VkFenceCreateInfo fenceCreateInfo = vkTools::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &compute.fence));
 
-		//todo: comment
+		// Build a single command buffer containing the compute dispatch commands
 		buildComputeCommandBuffer();
 	}
 
@@ -599,7 +575,7 @@ public:
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&compute.uniformBuffer,
-			sizeof(computeUbo));
+			sizeof(compute.ubo));
 
 		// Map for host access
 		VK_CHECK_RESULT(compute.uniformBuffer.map());
@@ -609,25 +585,26 @@ public:
 
 	void updateUniformBuffers()
 	{
-		computeUbo.deltaT = frameTimer * 2.5f;
+		compute.ubo.deltaT = frameTimer * 2.5f;
 		if (animate) 
 		{
-			computeUbo.destX = sin(glm::radians(timer*360.0)) * 0.75f;
-			computeUbo.destY = 0.f;
+			compute.ubo.destX = sin(glm::radians(timer * 360.0f)) * 0.75f;
+			compute.ubo.destY = 0.0f;
 		}
 		else
 		{
 			float normalizedMx = (mousePos.x - static_cast<float>(width / 2)) / static_cast<float>(width / 2);
 			float normalizedMy = (mousePos.y - static_cast<float>(height / 2)) / static_cast<float>(height / 2);
-			computeUbo.destX = normalizedMx;
-			computeUbo.destY = normalizedMy;
+			compute.ubo.destX = normalizedMx;
+			compute.ubo.destY = normalizedMy;
 		}
 
-		memcpy(compute.uniformBuffer.mapped, &computeUbo, sizeof(computeUbo));
+		memcpy(compute.uniformBuffer.mapped, &compute.ubo, sizeof(compute.ubo));
 	}
 
 	void draw()
 	{
+		// Submit graphics commands
 		VulkanExampleBase::prepareFrame();
 
 		submitInfo.commandBufferCount = 1;
@@ -636,8 +613,7 @@ public:
 
 		VulkanExampleBase::submitFrame();
 
-		// Submit compute
-		// todo: async compute
+		// Submit compute commands
 		vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
 		vkResetFences(device, 1, &compute.fence);
 
