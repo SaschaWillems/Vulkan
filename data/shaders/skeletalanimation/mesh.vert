@@ -15,6 +15,7 @@ layout (location = 5) in ivec4 inBoneIDs;
 layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
+	mat4 view;
 	mat4 model;
 	mat4 bones[MAX_BONES];	
 	vec4 lightPos;
@@ -29,24 +30,24 @@ layout (location = 4) out vec3 outLightVec;
 
 out gl_PerVertex 
 {
-    vec4 gl_Position;   
+	vec4 gl_Position;   
 };
 
 void main() 
 {
-    mat4 boneTransform = ubo.bones[inBoneIDs[0]] * inBoneWeights[0];
-    boneTransform     += ubo.bones[inBoneIDs[1]] * inBoneWeights[1];
-    boneTransform     += ubo.bones[inBoneIDs[2]] * inBoneWeights[2];
-    boneTransform     += ubo.bones[inBoneIDs[3]] * inBoneWeights[3];	
-	
+	mat4 boneTransform = ubo.bones[inBoneIDs[0]] * inBoneWeights[0];
+	boneTransform     += ubo.bones[inBoneIDs[1]] * inBoneWeights[1];
+	boneTransform     += ubo.bones[inBoneIDs[2]] * inBoneWeights[2];
+	boneTransform     += ubo.bones[inBoneIDs[3]] * inBoneWeights[3];	
+
 	outNormal = inNormal;
 	outColor = inColor;
 	outUV = inUV;
 
-	gl_Position = ubo.projection * ubo.model * boneTransform * vec4(inPos.xyz, 1.0);
+	gl_Position = ubo.projection * ubo.view * ubo.model * boneTransform * vec4(inPos.xyz, 1.0);
 
-    vec4 pos = ubo.model * vec4(inPos, 1.0);
+	vec4 pos = ubo.model * vec4(inPos, 1.0);
 	outNormal = mat3(inverse(transpose(ubo.model))) * inNormal;
-    outLightVec = ubo.lightPos.xyz - pos.xyz;
-    outViewVec = ubo.viewPos.xyz - pos.xyz;		
+	outLightVec = ubo.lightPos.xyz - pos.xyz;
+	outViewVec = ubo.viewPos.xyz - pos.xyz;		
 }

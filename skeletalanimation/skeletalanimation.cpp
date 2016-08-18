@@ -358,6 +358,7 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
+		glm::mat4 view;
 		glm::mat4 bones[MAX_BONES];
 		glm::vec4 lightPos = glm::vec4(0.0f, -250.0f, 250.0f, 1.0);
 		glm::vec4 viewPos;
@@ -366,6 +367,7 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
+		glm::mat4 view;
 		glm::vec4 lightPos = glm::vec4(0.0, 0.0f, -25.0f, 1.0);
 		glm::vec4 viewPos;
 		glm::vec2 uvOffset;
@@ -407,16 +409,19 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.skinning, nullptr);
+		vkDestroyPipeline(device, pipelines.texture, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-
 		textureLoader->destroyTexture(textures.colorMap);
+		textureLoader->destroyTexture(textures.floor);
 
 		vkTools::destroyUniformData(device, &uniformData.vsScene);
+		vkTools::destroyUniformData(device, &uniformData.floor);
 
 		// Destroy and free mesh resources 
+		vkMeshLoader::freeMeshBufferResources(device, &meshes.floor);
 		vkMeshLoader::freeMeshBufferResources(device, &skinnedMesh->meshBuffer);
 		delete(skinnedMesh->meshLoader);
 		delete(skinnedMesh);
@@ -951,15 +956,16 @@ public:
 			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			viewMatrix = glm::scale(viewMatrix, glm::vec3(0.025f));
 
-			uboVS.model = viewMatrix * glm::translate(glm::mat4(), glm::vec3(cameraPos.x, -cameraPos.z, cameraPos.y) * 100.0f);
-			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 1.0f, 0.0f));
-			uboVS.model = glm::rotate(uboVS.model, glm::radians(-rotation.y), glm::vec3(0.0f, 0.0f, 1.0f));
+			uboVS.view = viewMatrix * glm::translate(glm::mat4(), glm::vec3(cameraPos.x, -cameraPos.z, cameraPos.y) * 100.0f);
+			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.z), glm::vec3(0.0f, 1.0f, 0.0f));
+			uboVS.view = glm::rotate(uboVS.view, glm::radians(-rotation.y), glm::vec3(0.0f, 0.0f, 1.0f));
 
 			uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
 
 			uboFloor.projection = uboVS.projection;
-			uboFloor.model = viewMatrix * glm::translate(glm::mat4(), glm::vec3(cameraPos.x, -cameraPos.z, cameraPos.y) * 100.0f);
+			uboFloor.view = viewMatrix;
+			uboFloor.model = glm::translate(glm::mat4(), glm::vec3(cameraPos.x, -cameraPos.z, cameraPos.y) * 100.0f);
 			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(rotation.z), glm::vec3(0.0f, 1.0f, 0.0f));
 			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(-rotation.y), glm::vec3(0.0f, 0.0f, 1.0f));
