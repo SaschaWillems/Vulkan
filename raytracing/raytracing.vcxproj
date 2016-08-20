@@ -90,6 +90,11 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\raytracing\raytracing.comp" />
+    <None Include="..\data\shaders\raytracing\texture.frag" />
+    <None Include="..\data\shaders\raytracing\texture.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
