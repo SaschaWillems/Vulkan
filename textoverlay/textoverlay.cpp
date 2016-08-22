@@ -234,6 +234,7 @@ public:
 
 		uint8_t *data;
 		VK_CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, stagingBuffer.memory, 0, allocInfo.allocationSize, 0, (void **)&data));
+		// Size of the font texture is WIDTH * HEIGHT * 1 byte (only one channel)
 		memcpy(data, &font24pixels[0][0], STB_FONT_WIDTH * STB_FONT_HEIGHT);
 		vkUnmapMemory(vulkanDevice->logicalDevice, stagingBuffer.memory);
 

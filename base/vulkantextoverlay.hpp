@@ -197,7 +197,7 @@ public:
 		VkMemoryRequirements memReqs;
 		VkMemoryAllocateInfo allocInfo = vkTools::initializers::memoryAllocateInfo();
 		vkGetImageMemoryRequirements(vulkanDevice->logicalDevice, image, &memReqs);
-		allocInfo.allocationSize = STB_FONT_WIDTH * STB_NUM_CHARS;
+		allocInfo.allocationSize = memReqs.size;
 		allocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		VK_CHECK_RESULT(vkAllocateMemory(vulkanDevice->logicalDevice, &allocInfo, nullptr, &imageMemory));
 		VK_CHECK_RESULT(vkBindImageMemory(vulkanDevice->logicalDevice, image, imageMemory, 0));
@@ -212,7 +212,7 @@ public:
 			allocInfo.allocationSize));
 
 		stagingBuffer.map();
-		memcpy(stagingBuffer.mapped, &font24pixels[0][0], STB_FONT_WIDTH * STB_FONT_HEIGHT);
+		memcpy(stagingBuffer.mapped, &font24pixels[0][0], STB_FONT_WIDTH * STB_FONT_HEIGHT);	// Only one channel, so data size = W * H (*R8)
 		stagingBuffer.unmap();
 
 		// Copy to image
