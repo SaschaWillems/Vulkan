@@ -67,7 +67,7 @@ public:
 		glm::mat4 view;
 		glm::mat4 model;
 		float lodBias = 0.0f;
-		float samplerIndex = 1.0f;
+		float samplerIndex = 2.0f;
 	} uboVS;
 
 	struct {
@@ -80,15 +80,15 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Texturing";
+		title = "Vulkan Example - Runtime mip map generation";
 		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
-		camera.setTranslation(glm::vec3(10.0f, 0.0f, 0.0f));
+		camera.setTranslation(glm::vec3(10.75f, 0.0f, 0.0f));
 		camera.movementSpeed = 2.5f;
 		camera.rotationSpeed = 0.5f;
-		timerSpeed *= 0.15f;
+		timerSpeed *= 0.05f;
 		paused = true;
 	}
 
@@ -664,12 +664,10 @@ public:
 	{
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
-
 		if (!paused)
 		{
 			uboVS.model = glm::rotate(glm::mat4(), glm::radians(timer * 360.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		}
-
 		VK_CHECK_RESULT(uniformBufferVS.map());
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
 		uniformBufferVS.unmap();
@@ -724,6 +722,7 @@ public:
 	{
 		uboVS.samplerIndex = (uboVS.samplerIndex < static_cast<uint32_t>(samplers.size()) - 1) ? uboVS.samplerIndex + 1 : 0;
 		updateUniformBuffers();
+		updateTextOverlay();
 	}
 	
 	virtual void keyPressed(uint32_t keyCode)
