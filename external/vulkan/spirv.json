@@ -52,7 +52,7 @@
             ],
             "MagicNumber": 119734787,
             "Version": 65536,
-            "Revision": 3,
+            "Revision": 6,
             "OpCodeMask": 65535,
             "WordCountShift": 16
         },
@@ -266,7 +266,8 @@
                     "sRGB": 15,
                     "sRGBx": 16,
                     "sRGBA": 17,
-                    "sBGRA": 18
+                    "sBGRA": 18,
+                    "ABGR": 19
                 }
             },
             {

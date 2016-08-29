@@ -39,7 +39,7 @@ typedef VkResult (VKAPI_PTR *PFN_vkNegotiateLoaderICDInterfaceVersion)(uint32_t 
 
 #define ICD_LOADER_MAGIC 0x01CDC0DE
 
-typedef union _VK_LOADER_DATA {
+typedef union {
     uintptr_t loaderMagic;
     void *loaderData;
 } VK_LOADER_DATA;
@@ -58,7 +58,7 @@ static inline bool valid_loader_magic_value(void *pNewObject) {
  * Windows and Linux ICDs will treat VkSurfaceKHR as a pointer to a struct that
  * contains the platform-specific connection and surface information.
  */
-typedef enum _VkIcdWsiPlatform {
+typedef enum {
     VK_ICD_WSI_PLATFORM_MIR,
     VK_ICD_WSI_PLATFORM_WAYLAND,
     VK_ICD_WSI_PLATFORM_WIN32,
@@ -67,12 +67,12 @@ typedef enum _VkIcdWsiPlatform {
     VK_ICD_WSI_PLATFORM_DISPLAY
 } VkIcdWsiPlatform;
 
-typedef struct _VkIcdSurfaceBase {
+typedef struct {
     VkIcdWsiPlatform platform;
 } VkIcdSurfaceBase;
 
 #ifdef VK_USE_PLATFORM_MIR_KHR
-typedef struct _VkIcdSurfaceMir {
+typedef struct {
     VkIcdSurfaceBase base;
     MirConnection *connection;
     MirSurface *mirSurface;
@@ -80,7 +80,7 @@ typedef struct _VkIcdSurfaceMir {
 #endif // VK_USE_PLATFORM_MIR_KHR
 
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
-typedef struct _VkIcdSurfaceWayland {
+typedef struct {
     VkIcdSurfaceBase base;
     struct wl_display *display;
     struct wl_surface *surface;
@@ -88,7 +88,7 @@ typedef struct _VkIcdSurfaceWayland {
 #endif // VK_USE_PLATFORM_WAYLAND_KHR
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
-typedef struct _VkIcdSurfaceWin32 {
+typedef struct {
     VkIcdSurfaceBase base;
     HINSTANCE hinstance;
     HWND hwnd;
@@ -96,7 +96,7 @@ typedef struct _VkIcdSurfaceWin32 {
 #endif // VK_USE_PLATFORM_WIN32_KHR
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
-typedef struct _VkIcdSurfaceXcb {
+typedef struct {
     VkIcdSurfaceBase base;
     xcb_connection_t *connection;
     xcb_window_t window;
@@ -104,14 +104,14 @@ typedef struct _VkIcdSurfaceXcb {
 #endif // VK_USE_PLATFORM_XCB_KHR
 
 #ifdef VK_USE_PLATFORM_XLIB_KHR
-typedef struct _VkIcdSurfaceXlib {
+typedef struct {
     VkIcdSurfaceBase base;
     Display *dpy;
     Window window;
 } VkIcdSurfaceXlib;
 #endif // VK_USE_PLATFORM_XLIB_KHR
 
-typedef struct _VkIcdSurfaceDisplay {
+typedef struct {
     VkIcdSurfaceBase base;
     VkDisplayModeKHR displayMode;
     uint32_t planeIndex;

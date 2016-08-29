@@ -42,7 +42,7 @@
 spv = {
     'MagicNumber' : 0x07230203,
     'Version' : 0x00010000,
-    'Revision' : 3,
+    'Revision' : 6,
     'OpCodeMask' : 0xffff,
     'WordCountShift' : 16,
 
@@ -211,6 +211,7 @@ spv = {
         'sRGBx' : 16,
         'sRGBA' : 17,
         'sBGRA' : 18,
+        'ABGR' : 19,
     },
 
     'ImageChannelDataType' : {
