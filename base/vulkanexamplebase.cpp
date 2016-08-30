@@ -197,7 +197,7 @@ void VulkanExampleBase::createPipelineCache()
 
 void VulkanExampleBase::prepare()
 {
-	if (enableDebugMarkers)
+	if (vulkanDevice->enableDebugMarkers)
 	{
 		vkDebug::DebugMarker::setup(device);
 	}
@@ -404,7 +404,7 @@ void VulkanExampleBase::renderLoop()
 				std::string windowTitle = getWindowTitle();
 				SetWindowText(window, windowTitle.c_str());
 			}
-			lastFPS = frameCounter;
+			lastFPS = roundf(1.0f / frameTimer);
 			updateTextOverlay();
 			fpsTimer = 0.0f;
 			frameCounter = 0;
@@ -575,7 +575,7 @@ void VulkanExampleBase::updateTextOverlay()
 	textOverlay->addText(title, 5.0f, 5.0f, VulkanTextOverlay::alignLeft);
 
 	std::stringstream ss;
-	ss << std::fixed << std::setprecision(2) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
+	ss << std::fixed << std::setprecision(3) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
 	textOverlay->addText(ss.str(), 5.0f, 25.0f, VulkanTextOverlay::alignLeft);
 
 	textOverlay->addText(deviceProperties.deviceName, 5.0f, 45.0f, VulkanTextOverlay::alignLeft);

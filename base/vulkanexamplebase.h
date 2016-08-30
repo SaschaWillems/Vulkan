@@ -52,8 +52,6 @@ class VulkanExampleBase
 private:	
 	// Set to true when example is created with enabled validation layers
 	bool enableValidation = false;
-	// Set to true when the debug marker extension is detected
-	bool enableDebugMarkers = false;
 	// Set to true if v-sync will be forced for the swapchain
 	bool enableVSync = false;
 	// Device features enabled by the example
