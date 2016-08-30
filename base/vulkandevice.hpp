@@ -199,16 +199,17 @@ namespace vk
 			// Get queue family indices for graphics and compute
 			// Note that the indices may overlap depending on the implementation
 
+			const float defaultQueuePriority(0.0f);
+
 			// Graphics queue
 			if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
 			{
 				queueFamilyIndices.graphics = getQueueFamiliyIndex(VK_QUEUE_GRAPHICS_BIT);
-				float queuePriority(0.0f);
 				VkDeviceQueueCreateInfo queueInfo{};
 				queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 				queueInfo.queueFamilyIndex = queueFamilyIndices.graphics;
 				queueInfo.queueCount = 1;
-				queueInfo.pQueuePriorities = &queuePriority;
+				queueInfo.pQueuePriorities = &defaultQueuePriority;
 				queueCreateInfos.push_back(queueInfo);
 			}
 			else
@@ -223,12 +224,13 @@ namespace vk
 				if (queueFamilyIndices.compute != queueFamilyIndices.graphics)
 				{
 					// If compute family index differs, we need an additional queue create info for the compute queue
+					//todo: possibly wrong for release due to scope
 					float queuePriority(0.0f);
 					VkDeviceQueueCreateInfo queueInfo{};
 					queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 					queueInfo.queueFamilyIndex = queueFamilyIndices.compute;
 					queueInfo.queueCount = 1;
-					queueInfo.pQueuePriorities = &queuePriority;
+					queueInfo.pQueuePriorities = &defaultQueuePriority;
 					queueCreateInfos.push_back(queueInfo);
 				}
 				// Else we use the same queue
