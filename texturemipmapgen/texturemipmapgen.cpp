@@ -67,7 +67,7 @@ public:
 		glm::mat4 view;
 		glm::mat4 model;
 		float lodBias = 0.0f;
-		float samplerIndex = 2.0f;
+		uint32_t samplerIndex = 2;
 	} uboVS;
 
 	struct {

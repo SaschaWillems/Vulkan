@@ -13,12 +13,12 @@ layout (binding = 0) uniform UBO
 	mat4 view;
 	mat4 model;
 	float lodBias;
-	float samplerIndex;
+	int samplerIndex;
 } ubo;
 
 layout (location = 0) out vec2 outUV;
 layout (location = 1) out float outLodBias;
-layout (location = 2) out float outSamplerIndex;
+layout (location = 2) flat out int outSamplerIndex;
 
 out gl_PerVertex 
 {

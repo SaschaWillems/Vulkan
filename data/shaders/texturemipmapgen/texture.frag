@@ -8,12 +8,11 @@ layout (set = 0, binding = 2) uniform sampler samplers[3];
 
 layout (location = 0) in vec2 inUV;
 layout (location = 1) in float inLodBias;
-layout (location = 2) in float inSamplerIndex;
+layout (location = 2) flat in int inSamplerIndex;
 
 layout (location = 0) out vec4 outFragColor;
 
 void main() 
 {
-	highp int samplerIndex = int(inSamplerIndex);
-	outFragColor = texture(sampler2D(textureColor, samplers[samplerIndex]), inUV, inLodBias);
+	outFragColor = texture(sampler2D(textureColor, samplers[inSamplerIndex]), inUV, inLodBias);
 }
