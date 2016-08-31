@@ -1205,6 +1205,11 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		LOGD("APP_CMD_GAINED_FOCUS");
 		vulkanExample->focused = true;
 		break;
+	case APP_CMD_TERM_WINDOW:
+		// Window is hidden or closed, clean up resources
+		LOGD("APP_CMD_TERM_WINDOW");
+		vulkanExample->swapChain.cleanup();
+		break;
 	}
 }
 #elif defined(__linux__)

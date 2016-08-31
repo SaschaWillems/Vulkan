@@ -75,14 +75,13 @@ private:
 public:
 	VkFormat colorFormat;
 	VkColorSpaceKHR colorSpace;
-
-	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-
+	/** @brief Handle to the current swap chain, required for recreation */
+	VkSwapchainKHR swapChain = VK_NULL_HANDLE;	
 	uint32_t imageCount;
 	std::vector<VkImage> images;
 	std::vector<SwapChainBuffer> buffers;
-
 	// Index of the deteced graphics and presenting device queue
+	/** @brief Queue family index of the deteced graphics and presenting device queue */
 	uint32_t queueNodeIndex = UINT32_MAX;
 
 	// Creates an os specific surface
@@ -465,12 +464,20 @@ public:
 	*/
 	void cleanup()
 	{
-		for (uint32_t i = 0; i < imageCount; i++)
+		if (swapChain != VK_NULL_HANDLE)
 		{
-			vkDestroyImageView(device, buffers[i].view, nullptr);
+			for (uint32_t i = 0; i < imageCount; i++)
+			{
+				vkDestroyImageView(device, buffers[i].view, nullptr);
+			}
 		}
-		fpDestroySwapchainKHR(device, swapChain, nullptr);
-		vkDestroySurfaceKHR(instance, surface, nullptr);
+		if (surface != VK_NULL_HANDLE)
+		{
+			fpDestroySwapchainKHR(device, swapChain, nullptr);
+			vkDestroySurfaceKHR(instance, surface, nullptr);
+		}
+		surface = VK_NULL_HANDLE;
+		swapChain = VK_NULL_HANDLE;
 	}
 
 };
