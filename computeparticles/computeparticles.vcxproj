@@ -89,6 +89,11 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\computeparticles\particle.comp" />
+    <None Include="..\data\shaders\computeparticles\particle.frag" />
+    <None Include="..\data\shaders\computeparticles\particle.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

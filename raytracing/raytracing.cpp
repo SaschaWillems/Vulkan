@@ -45,6 +45,11 @@ public:
 
 	// Resources for the compute part of the example
 	struct {
+		struct {
+			vk::Buffer spheres;						// (Shader) storage buffer object with scene spheres
+			vk::Buffer planes;						// (Shader) storage buffer object with scene planes
+		} storageBuffers;
+		vk::Buffer uniformBuffer;					// Uniform buffer object containing scene data
 		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
 		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
 		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
@@ -53,26 +58,43 @@ public:
 		VkDescriptorSet descriptorSet;				// Compute shader bindings
 		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
 		VkPipeline pipeline;						// Compute raytracing pipeline
+		struct UBOCompute {							// Compute shader uniform block object
+			glm::vec3 lightPos;
+			float aspectRatio;						// Aspect ratio of the viewport
+			glm::vec4 fogColor = glm::vec4(0.0f);
+			struct {
+				glm::vec3 pos = glm::vec3(0.0f, 0.0f, 4.0f);
+				glm::vec3 lookat = glm::vec3(0.0f, 0.5f, 0.0f);
+				float fov = 10.0f;
+			} camera;
+		} ubo;
 	} compute;
 
-	vk::Buffer uniformDataCompute;
+	// SSBO sphere declaration 
+	struct Sphere {									// Shader uses std140 layout (so we only use vec4 instead of vec3)
+		glm::vec3 pos;								
+		float radius;
+		glm::vec3 diffuse;
+		float specular;
+		uint32_t id;								// Id used to identify sphere for raytracing
+		glm::ivec3 _pad;
+	};
 
-	struct {
-		glm::vec3 lightPos;							
-		float aspectRatio;							// Aspect ratio of the viewport
-		glm::vec4 fogColor = glm::vec4(0.0f);
-		struct {
-			glm::vec3 pos = glm::vec3(0.0f, 1.5f, 4.0f);
-			glm::vec3 lookat = glm::vec3(0.0f, 0.5f, 0.0f);
-			float fov = 10.0f;
-		} camera;
-	} uboCompute;
+	// SSBO plane declaration
+	struct Plane {
+		glm::vec3 normal;
+		float distance;
+		glm::vec3 diffuse;
+		float specular;
+		uint32_t id;
+		glm::ivec3 _pad;
+	};
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Vulkan Example - Compute shader ray tracing";
 		enableTextOverlay = true;
-		uboCompute.aspectRatio = (float)width / (float)height;
+		compute.ubo.aspectRatio = (float)width / (float)height;
 		paused = true;
 		timerSpeed *= 0.5f;
 	}
@@ -90,7 +112,9 @@ public:
 		vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
 		vkDestroyFence(device, compute.fence, nullptr);
 		vkDestroyCommandPool(device, compute.commandPool, nullptr);
-		uniformDataCompute.destroy();
+		compute.uniformBuffer.destroy();
+		compute.storageBuffers.spheres.destroy();
+		compute.storageBuffers.planes.destroy();
 
 		textureLoader->destroyTexture(textureComputeTarget);
 	}
@@ -259,15 +283,113 @@ public:
 		vkEndCommandBuffer(compute.commandBuffer);
 	}
 
+	uint32_t currentId = 0;	// Id used to identify objects by the ray tracing shader
+
+	Sphere newSphere(glm::vec3 pos, float radius, glm::vec3 diffuse, float specular)
+	{
+		Sphere sphere;
+		sphere.id = currentId++;
+		sphere.pos = pos;
+		sphere.radius = radius;
+		sphere.diffuse = diffuse;
+		sphere.specular = specular;
+		return sphere;
+	}
+
+	Plane newPlane(glm::vec3 normal, float distance, glm::vec3 diffuse, float specular)
+	{
+		Plane plane;
+		plane.id = currentId++;
+		plane.normal = normal;
+		plane.distance = distance;
+		plane.diffuse = diffuse;
+		plane.specular = specular;
+		return plane;
+	}
+
+	// Setup and fill the compute shader storage buffers containing primitives for the raytraced scene
+	void prepareStorageBuffers()
+	{
+		// Spheres
+		std::vector<Sphere> spheres;
+		spheres.push_back(newSphere(glm::vec3(1.75f, -0.5f, 0.0f), 1.0f, glm::vec3(0.0f, 1.0f, 0.0f), 32.0f));
+		spheres.push_back(newSphere(glm::vec3(0.0f, 1.0f, -0.5f), 1.0f, glm::vec3(0.65f, 0.77f, 0.97f), 32.0f));
+		spheres.push_back(newSphere(glm::vec3(-1.75f, -0.75f, -0.5f), 1.25f, glm::vec3(0.9f, 0.76f, 0.46f), 32.0f));
+//		spheres.push_back(newSphere(glm::vec3(-2.25f, -1.0f, 0.5f), 1.0f, glm::vec3(1.0f, 0.32f, 0.36f), 32.0f));
+		//spheres.push_back(newSphere(glm::vec3(-2.25f, 1.0f, 0.0f), 1.0f, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(2.0f)));
+		//spheres.push_back(newSphere(glm::vec3(0.f, 2.5f, 0.0f), 1.0f, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(2.0f)));
+		//spheres.push_back(newSphere(glm::vec3(2.25f, 1.0f, 0.0f), 1.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(2.0f)));
+		VkDeviceSize storageBufferSize = spheres.size() * sizeof(Sphere);
+
+		// Stage
+		vk::Buffer stagingBuffer;
+
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&stagingBuffer,
+			storageBufferSize,
+			spheres.data());
+
+		vulkanDevice->createBuffer(
+			// The SSBO will be used as a storage buffer for the compute pipeline and as a vertex buffer in the graphics pipeline
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&compute.storageBuffers.spheres,
+			storageBufferSize);
+
+		// Copy to staging buffer
+		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkBufferCopy copyRegion = {};
+		copyRegion.size = storageBufferSize;
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.storageBuffers.spheres.buffer, 1, &copyRegion);
+		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+		stagingBuffer.destroy();
+
+		// Planes
+		std::vector<Plane> planes;
+		const float roomDim = 4.0f;
+		planes.push_back(newPlane(glm::vec3(0.0f, 1.0f, 0.0f), roomDim, glm::vec3(1.0f), 32.0f));
+		planes.push_back(newPlane(glm::vec3(0.0f, -1.0f, 0.0f), roomDim, glm::vec3(1.0f), 32.0f));
+		planes.push_back(newPlane(glm::vec3(0.0f, 0.0f, 1.0f), roomDim, glm::vec3(1.0f), 32.0f));
+		planes.push_back(newPlane(glm::vec3(0.0f, 0.0f, -1.0f), roomDim, glm::vec3(0.0f), 32.0f));
+		planes.push_back(newPlane(glm::vec3(-1.0f, 0.0f, 0.0f), roomDim, glm::vec3(1.0f, 0.0f, 0.0f), 32.0f));
+		planes.push_back(newPlane(glm::vec3(1.0f, 0.0f, 0.0f), roomDim, glm::vec3(0.0f, 1.0f, 0.0f), 32.0f));
+		storageBufferSize = planes.size() * sizeof(Plane);
+
+		// Stage
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&stagingBuffer,
+			storageBufferSize,
+			planes.data());
+
+		vulkanDevice->createBuffer(
+			// The SSBO will be used as a storage buffer for the compute pipeline and as a vertex buffer in the graphics pipeline
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&compute.storageBuffers.planes,
+			storageBufferSize);
+
+		// Copy to staging buffer
+		copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		copyRegion.size = storageBufferSize;
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.storageBuffers.planes.buffer, 1, &copyRegion);
+		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+		stagingBuffer.destroy();
+	}
+
 	void setupDescriptorPool()
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
-			// Graphics pipeline uses image samplers for display
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4),
-			// Compute pipeline uses storage images image loads and stores
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),			// Compute UBO
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4),	// Graphics image samplers
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1),				// Storage image for ray traced image output
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2),			// Storage buffer for the scene primitives
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -426,16 +548,26 @@ public:
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.compute, 0, &compute.queue);
 
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-			// Binding 0 : Sampled image (write)
+			// Binding 0: Storage image (raytraced output)
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 				VK_SHADER_STAGE_COMPUTE_BIT,
 				0),
-			// Binding 1 : Uniform buffer block
+			// Binding 1: Uniform buffer block
 			vkTools::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_COMPUTE_BIT,
-				1)
+				1),
+			// Binding 1: Shader storage buffer for the spheres
+			vkTools::initializers::descriptorSetLayoutBinding(
+				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				VK_SHADER_STAGE_COMPUTE_BIT,
+				2),
+			// Binding 1: Shader storage buffer for the planes
+			vkTools::initializers::descriptorSetLayoutBinding(
+				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				VK_SHADER_STAGE_COMPUTE_BIT,
+				3)
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
@@ -462,18 +594,30 @@ public:
 
 		std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets =
 		{
-			// Binding 0 : Output storage image
+			// Binding 0: Output storage image
 			vkTools::initializers::writeDescriptorSet(
 				compute.descriptorSet,
 				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 				0,
 				&textureComputeTarget.descriptor),
-			// Binding 1 : Uniform buffer block
+			// Binding 1: Uniform buffer block
 			vkTools::initializers::writeDescriptorSet(
 				compute.descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				1,
-				&uniformDataCompute.descriptor)
+				&compute.uniformBuffer.descriptor),
+			// Binding 2: Shader storage buffer for the spheres
+			vkTools::initializers::writeDescriptorSet(
+				compute.descriptorSet,
+				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				2,
+				&compute.storageBuffers.spheres.descriptor),
+			// Binding 2: Shader storage buffer for the planes
+			vkTools::initializers::writeDescriptorSet(
+				compute.descriptorSet,
+				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				3,
+				&compute.storageBuffers.planes.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, computeWriteDescriptorSets.size(), computeWriteDescriptorSets.data(), 0, NULL);
@@ -517,22 +661,24 @@ public:
 		// Compute shader parameter uniform buffer block
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformDataCompute,
-			sizeof(uboCompute));
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&compute.uniformBuffer,
+			sizeof(compute.ubo));
 
 		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
 	{
-		uboCompute.lightPos.x = 0.0f + sin(glm::radians(timer * 360.0f)) * 2.0f;
-		uboCompute.lightPos.y = 5.0f;
-		uboCompute.lightPos.z = 1.0f;
-		uboCompute.lightPos.z = 0.0f + cos(glm::radians(timer * 360.0f)) * 2.0f;
-		VK_CHECK_RESULT(uniformDataCompute.map());
-		memcpy(uniformDataCompute.mapped, &uboCompute, sizeof(uboCompute));
-		uniformDataCompute.unmap();
+		compute.ubo.lightPos.x = 0.0f + sin(glm::radians(timer * 360.0f)) * cos(glm::radians(timer * 360.0f)) * 2.0f;
+		compute.ubo.lightPos.y = 0.0f + sin(glm::radians(timer * 360.0f)) * 2.0f;
+		compute.ubo.lightPos.z = 0.0f + cos(glm::radians(timer * 360.0f)) * 2.0f;
+
+		compute.ubo.lightPos.y = 2.0f;
+
+		VK_CHECK_RESULT(compute.uniformBuffer.map());
+		memcpy(compute.uniformBuffer.mapped, &compute.ubo, sizeof(compute.ubo));
+		compute.uniformBuffer.unmap();
 	}
 
 	void draw()
@@ -547,7 +693,7 @@ public:
 		VulkanExampleBase::submitFrame();
 
 		// Submit compute commands
-		// Use a fence to ensure that compute command buffer has finished executin before using it again
+		// Use a fence to ensure that compute command buffer has finished executing before using it again
 		vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
 		vkResetFences(device, 1, &compute.fence);
 
@@ -561,6 +707,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		prepareStorageBuffers();
 		prepareUniformBuffers();
 		prepareTextureTarget(&textureComputeTarget, TEX_DIM, TEX_DIM, VK_FORMAT_R8G8B8A8_UNORM);
 		setupDescriptorSetLayout();
@@ -585,7 +732,7 @@ public:
 
 	virtual void viewChanged()
 	{
-		uboCompute.aspectRatio = (float)width / (float)height;
+		compute.ubo.aspectRatio = (float)width / (float)height;
 		updateUniformBuffers();
 	}
 };
