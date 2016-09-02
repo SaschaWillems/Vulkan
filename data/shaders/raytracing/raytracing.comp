@@ -206,7 +206,7 @@ vec3 renderScene(inout vec3 rayO, inout vec3 rayD, inout int id)
 			normal = sphereNormal(pos, spheres[i]);	
 			float diffuse = lightDiffuse(normal, lightVec);
 			float specular = lightSpecular(normal, lightVec, spheres[i].specular);
-			color = diffuse * spheres[i].diffuse.rgb + specular;	
+			color = diffuse * spheres[i].diffuse + specular;	
 		}
 	}
 
