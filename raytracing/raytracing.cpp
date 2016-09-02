@@ -315,10 +315,6 @@ public:
 		spheres.push_back(newSphere(glm::vec3(1.75f, -0.5f, 0.0f), 1.0f, glm::vec3(0.0f, 1.0f, 0.0f), 32.0f));
 		spheres.push_back(newSphere(glm::vec3(0.0f, 1.0f, -0.5f), 1.0f, glm::vec3(0.65f, 0.77f, 0.97f), 32.0f));
 		spheres.push_back(newSphere(glm::vec3(-1.75f, -0.75f, -0.5f), 1.25f, glm::vec3(0.9f, 0.76f, 0.46f), 32.0f));
-//		spheres.push_back(newSphere(glm::vec3(-2.25f, -1.0f, 0.5f), 1.0f, glm::vec3(1.0f, 0.32f, 0.36f), 32.0f));
-		//spheres.push_back(newSphere(glm::vec3(-2.25f, 1.0f, 0.0f), 1.0f, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(2.0f)));
-		//spheres.push_back(newSphere(glm::vec3(0.f, 2.5f, 0.0f), 1.0f, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(2.0f)));
-		//spheres.push_back(newSphere(glm::vec3(2.25f, 1.0f, 0.0f), 1.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(2.0f)));
 		VkDeviceSize storageBufferSize = spheres.size() * sizeof(Sphere);
 
 		// Stage
