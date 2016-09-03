@@ -215,22 +215,14 @@ namespace vk
 			attachment.description.format = createinfo.format;
 			attachment.description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			// Final layout
-			if ((createinfo.usage & VK_IMAGE_USAGE_SAMPLED_BIT))
+			// If not, final layout depends on attachment type
+			if (attachment.hasDepth() || attachment.hasStencil())
 			{
-				// If sampled, final layout is always SHADER_READ
-				attachment.description.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			}
 			else
 			{
-				// If not, final layout depends on attachment type
-				if (attachment.hasDepth() || attachment.hasStencil())
-				{
-					attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-				}
-				else
-				{
-					attachment.description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				}
+				attachment.description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			}
 
 			attachments.push_back(attachment);
