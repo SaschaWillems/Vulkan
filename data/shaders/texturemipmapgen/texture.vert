@@ -27,8 +27,7 @@ out gl_PerVertex
 
 void main() 
 {
-	outUV = inUV;
-	outUV.s *= 10.0;
+	outUV = inUV * vec2(50.0, 2.0);
 	outLodBias = ubo.lodBias;
 	outSamplerIndex = ubo.samplerIndex;
 	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos, 1.0);

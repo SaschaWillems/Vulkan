@@ -10,7 +10,7 @@ if %ERRORLEVEL% EQU 0 (
 	xcopy "..\..\data\shaders\texturemipmapgen\*.spv" "assets\shaders\texturemipmapgen" /Y
 
 	mkdir "assets\textures"
-	xcopy "..\..\data\textures\checkerboard_nomips_rgba.ktx" "assets\textures" /Y
+	xcopy "..\..\data\textures\metalplate_nomips_rgba.ktx" "assets\textures" /Y
 
 	mkdir "assets\models"
 	xcopy "..\..\data\models\tunnel.dae" "assets\models" /Y

@@ -83,9 +83,9 @@ public:
 		title = "Vulkan Example - Runtime mip map generation";
 		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
-		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 1024.0f);
 		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
-		camera.setTranslation(glm::vec3(10.75f, 0.0f, 0.0f));
+		camera.setTranslation(glm::vec3(40.75f, 0.0f, 0.0f));
 		camera.movementSpeed = 2.5f;
 		camera.rotationSpeed = 0.5f;
 		timerSpeed *= 0.05f;
@@ -312,9 +312,9 @@ public:
 		sampler.magFilter = VK_FILTER_LINEAR;
 		sampler.minFilter = VK_FILTER_LINEAR;
 		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 		sampler.mipLodBias = 0.0f;
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
@@ -424,7 +424,7 @@ public:
 	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/tunnel.dae", &meshes.tunnel, vertexLayout, 1.0f);
-		loadTexture(getAssetPath() + "textures/checkerboard_nomips_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, false);
+		loadTexture(getAssetPath() + "textures/metalplate_nomips_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, false);
 	}
 
 	void setupVertexDescriptions()
@@ -664,10 +664,7 @@ public:
 	{
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
-		if (!paused)
-		{
-			uboVS.model = glm::rotate(glm::mat4(), glm::radians(timer * 360.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		}
+		uboVS.model = glm::rotate(glm::mat4(), glm::radians((timer + 45.0f/360.0f) * 360.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		VK_CHECK_RESULT(uniformBufferVS.map());
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
 		uniformBufferVS.unmap();
