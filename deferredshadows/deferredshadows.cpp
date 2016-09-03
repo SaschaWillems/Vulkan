@@ -11,6 +11,7 @@
 #include <string.h>
 #include <assert.h>
 #include <vector>
+#include <algorithm>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -254,13 +255,13 @@ public:
 		// Each layer corresponds to one of the lights
 		// The actual output to the separate layers is done in the geometry shader using shader instancing
 		// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
-		vk::AttachmentCreateInfo framebufferInfo = {};
-		framebufferInfo.format = SHADOWMAP_FORMAT;
-		framebufferInfo.width = SHADOWMAP_DIM;
-		framebufferInfo.height = SHADOWMAP_DIM;
-		framebufferInfo.layerCount = LIGHT_COUNT;
-		framebufferInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		frameBuffers.shadow->addAttachment(framebufferInfo);
+		vk::AttachmentCreateInfo attachmentInfo = {};
+		attachmentInfo.format = SHADOWMAP_FORMAT;
+		attachmentInfo.width = SHADOWMAP_DIM;
+		attachmentInfo.height = SHADOWMAP_DIM;
+		attachmentInfo.layerCount = LIGHT_COUNT;
+		attachmentInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		frameBuffers.shadow->addAttachment(attachmentInfo);
 
 		// Create sampler to sample from to depth attachment 
 		// Used to sample in the fragment shader for shadowed rendering
@@ -268,6 +269,16 @@ public:
 
 		// Create default renderpass for the framebuffer
 		VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass());
+
+		VkCommandBuffer cmdBuf = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		vkTools::setImageLayout(
+			cmdBuf,
+			frameBuffers.shadow->attachments[0].image,
+			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			frameBuffers.shadow->attachments[0].subresourceRange);
+		vulkanDevice->flushCommandBuffer(cmdBuf, queue);
 	}
 
 	// Prepare the framebuffer for offscreen rendering with multiple attachments used as render targets inside the fragment shaders
@@ -279,24 +290,24 @@ public:
 		frameBuffers.deferred->height = FB_DIM;
 
 		// Four attachments (3 color, 1 depth)
-		vk::AttachmentCreateInfo framebufferInfo = {};
-		framebufferInfo.width = FB_DIM;
-		framebufferInfo.height = FB_DIM;
-		framebufferInfo.layerCount = 1;
-		framebufferInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		vk::AttachmentCreateInfo attachmentInfo = {};
+		attachmentInfo.width = FB_DIM;
+		attachmentInfo.height = FB_DIM;
+		attachmentInfo.layerCount = 1;
+		attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		// Color attachments
 		// Attachment 0: (World space) Positions
-		framebufferInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-		frameBuffers.deferred->addAttachment(framebufferInfo);
+		attachmentInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		frameBuffers.deferred->addAttachment(attachmentInfo);
 
 		// Attachment 1: (World space) Normals
-		framebufferInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-		frameBuffers.deferred->addAttachment(framebufferInfo);
+		attachmentInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		frameBuffers.deferred->addAttachment(attachmentInfo);
 
 		// Attachment 2: Albedo (color)
-		framebufferInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-		frameBuffers.deferred->addAttachment(framebufferInfo);
+		attachmentInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+		frameBuffers.deferred->addAttachment(attachmentInfo);
 
 		// Depth attachment
 		// Find a suitable depth format
@@ -304,9 +315,9 @@ public:
 		VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &attDepthFormat);
 		assert(validDepthFormat);
 
-		framebufferInfo.format = attDepthFormat;
-		framebufferInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		frameBuffers.deferred->addAttachment(framebufferInfo);
+		attachmentInfo.format = attDepthFormat;
+		attachmentInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		frameBuffers.deferred->addAttachment(attachmentInfo);
 
 		// Create sampler to sample from the color attachments
 		VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
@@ -1001,56 +1012,47 @@ public:
 		vkUnmapMemory(device, uniformData.vsOffscreen.memory);
 	}
 
+	Light initLight(glm::vec3 pos, glm::vec3 target, glm::vec3 color)
+	{
+		Light light;
+		light.position = glm::vec4(pos, 1.0f);
+		light.target = glm::vec4(target, 0.0f);
+		light.color = glm::vec4(color, 0.0f);
+		return light;
+	}
+
+	void initLights()
+	{
+		uboFragmentLights.lights[0] = initLight(glm::vec3(-14.0f, -0.5f, 15.0f), glm::vec3(-2.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.5f, 0.5f));
+		uboFragmentLights.lights[1] = initLight(glm::vec3(14.0f, -4.0f, 12.0f), glm::vec3(2.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboFragmentLights.lights[2] = initLight(glm::vec3(0.0f, -10.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+	}
+
 	// Update fragment shader light position uniform block
 	void updateUniformBufferDeferredLights()
 	{
-		std::vector<glm::vec4> lightPositions =
-		{
-			glm::vec4(-14.0f, -0.5f, 15.0f, 0.0f), 
-			glm::vec4(14.0f, -4.0f, 12.0f, 0.0f),
-			glm::vec4(0.0f, -10.0f, 4.0f, 0.0f)
-		};
-		std::vector<glm::vec4> lightColors =
-		{
-			glm::vec4(1.0f, 0.5f, 0.5f, 0.0f),
-			glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
-			glm::vec4(1.0f, 1.0f, 1.0f, 0.0f),
-		};
-		std::vector<glm::vec4> lightTargets =
-		{
-			glm::vec4(-2.0f, 0.0f, 0.0f, 0.0f),
-			glm::vec4(2.0f, 0.0f, 0.0f, 0.0f),
-			glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-		};
-
 		// Animate
-		if (!paused)
+		//if (!paused)
 		{
-			lightPositions[0].x = -14.0f + abs(sin(glm::radians(timer * 360.0f)) * 20.0f);
-			lightPositions[0].z = 15.0f + cos(glm::radians(timer *360.0f)) * 1.0f;
+			uboFragmentLights.lights[0].position.x = -14.0f + std::abs(sin(glm::radians(timer * 360.0f)) * 20.0f);
+			uboFragmentLights.lights[0].position.z = 15.0f + cos(glm::radians(timer *360.0f)) * 1.0f;
 
-			lightPositions[1].x = 14.0f - abs(sin(glm::radians(timer * 360.0f)) * 2.5f);
-			lightPositions[1].z = 13.0f + cos(glm::radians(timer *360.0f)) * 4.0f;
+			uboFragmentLights.lights[1].position.x = 14.0f - std::abs(sin(glm::radians(timer * 360.0f)) * 2.5f);
+			uboFragmentLights.lights[1].position.z = 13.0f + cos(glm::radians(timer *360.0f)) * 4.0f;
 
-			lightPositions[2].x = 0.0f + sin(glm::radians(timer *360.0f)) * 4.0f;
-			lightPositions[2].z = 4.0f + cos(glm::radians(timer *360.0f)) * 2.0f;
+			uboFragmentLights.lights[2].position.x = 0.0f + sin(glm::radians(timer *360.0f)) * 4.0f;
+			uboFragmentLights.lights[2].position.z = 4.0f + cos(glm::radians(timer *360.0f)) * 2.0f;
 		}
 
-		for (uint32_t i = 0; i < static_cast<uint32_t>(lightPositions.size()); i++)
+		for (uint32_t i = 0; i < LIGHT_COUNT; i++)
 		{
-			Light *light = &uboFragmentLights.lights[i];
-
-			light->position = lightPositions[i];
-			light->color = lightColors[i];
-			light->target = lightTargets[i];
-
 			// mvp from light's pov (for shadows)
 			glm::mat4 shadowProj = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
-			glm::mat4 shadowView = glm::lookAt(glm::vec3(light->position), glm::vec3(light->target), glm::vec3(0.0f, 1.0f, 0.0f));
+			glm::mat4 shadowView = glm::lookAt(glm::vec3(uboFragmentLights.lights[i].position), glm::vec3(uboFragmentLights.lights[i].target), glm::vec3(0.0f, 1.0f, 0.0f));
 			glm::mat4 shadowModel = glm::mat4();
 
 			uboShadowGS.mvp[i] = shadowProj * shadowView * shadowModel;
-			light->viewMatrix = uboShadowGS.mvp[i];
+			uboFragmentLights.lights[i].viewMatrix = uboShadowGS.mvp[i];
 		}
 
 		uint8_t *pData;
@@ -1061,7 +1063,6 @@ public:
 		memcpy(pData, &uboShadowGS, sizeof(uboShadowGS));
 		vkUnmapMemory(device, uniformData.uboShadowGS.memory);
 
-		uboFragmentLights.viewPos = glm::vec4(uboOffscreenVS.view[3]);
 		uboFragmentLights.viewPos = glm::vec4(camera.position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);;
 	
 		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fsLights.memory, 0, sizeof(uboFragmentLights), 0, (void **)&pData));
@@ -1110,6 +1111,7 @@ public:
 		setupVertexDescriptions();
 		deferredSetup();
 		shadowSetup();
+		initLights();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
@@ -1125,8 +1127,7 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		//if (!paused)
-			updateUniformBufferDeferredLights();
+		updateUniformBufferDeferredLights();
 	}
 
 	virtual void viewChanged()
