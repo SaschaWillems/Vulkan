@@ -10,7 +10,7 @@
     <uses-feature android:name="android.hardware.gamepad" android:required="false"/>
     <uses-feature android:name="android.software.leanback" android:required="false"/>  	
 	
-    <application android:label="vulkanTexture" android:icon="@drawable/icon" android:hasCode="false">
+    <application android:label="vulkanTexturemipmapgen" android:icon="@drawable/icon" android:hasCode="false">
 		<activity android:name="android.app.NativeActivity"
                 android:label="Texture mip map generation"
                 android:theme="@android:style/Theme.NoTitleBar.Fullscreen"

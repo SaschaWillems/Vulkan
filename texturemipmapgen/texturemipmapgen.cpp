@@ -66,6 +66,7 @@ public:
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 model;
+		glm::vec4 viewPos;
 		float lodBias = 0.0f;
 		uint32_t samplerIndex = 2;
 	} uboVS;
@@ -665,6 +666,7 @@ public:
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
 		uboVS.model = glm::rotate(glm::mat4(), glm::radians((timer + 45.0f/360.0f) * 360.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.viewPos = glm::vec4(camera.position, 0.0f) * glm::vec4(-1.0f);
 		VK_CHECK_RESULT(uniformBufferVS.map());
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
 		uniformBufferVS.unmap();
