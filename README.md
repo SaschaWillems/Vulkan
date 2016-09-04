@@ -23,11 +23,9 @@ Note that you need [assimp](https://github.com/assimp/assimp) in order to compil
 
 Building on Android is done using the [Android NDK](http://developer.android.com/tools/sdk/ndk/index.html) and requires a device that supports Vulkan. Please see the [Android readme](./android/README.md) on how to build and deploy the examples.
 
-## Binaries
+## Precompiled binaries
 
-Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found here](http://vulkan.gpuinfo.org/examples.php). I'll try keep them up-to-date with the repository.
-
-Note that these only contain the binaries, you still need the repository for the data (shaders, models, textures) and put the binaries into to bin subfolder. Except for Android, where all required assets are stored inside of the apk.
+Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found here](http://vulkan.gpuinfo.org/examples.php). Note that these may not always be up-to-date with the repository.
 
 ## Additional documentation
 
