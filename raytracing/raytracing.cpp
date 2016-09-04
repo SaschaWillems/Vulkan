@@ -95,8 +95,7 @@ public:
 		title = "Vulkan Example - Compute shader ray tracing";
 		enableTextOverlay = true;
 		compute.ubo.aspectRatio = (float)width / (float)height;
-		paused = true;
-		timerSpeed *= 0.5f;
+		timerSpeed *= 0.25f;
 
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
@@ -676,9 +675,7 @@ public:
 		compute.ubo.lightPos.x = 0.0f + sin(glm::radians(timer * 360.0f)) * cos(glm::radians(timer * 360.0f)) * 2.0f;
 		compute.ubo.lightPos.y = 0.0f + sin(glm::radians(timer * 360.0f)) * 2.0f;
 		compute.ubo.lightPos.z = 0.0f + cos(glm::radians(timer * 360.0f)) * 2.0f;
-
 		compute.ubo.camera.pos = camera.position * -1.0f;
-
 		VK_CHECK_RESULT(compute.uniformBuffer.map());
 		memcpy(compute.uniformBuffer.mapped, &compute.ubo, sizeof(compute.ubo));
 		compute.uniformBuffer.unmap();
