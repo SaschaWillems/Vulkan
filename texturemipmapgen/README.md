@@ -1,4 +1,4 @@
-# Indirect drawing
+# Run-time mip-map generation
 
 <img src="../screenshots/texture_mipmap_gen.jpg" height="256px">
 
