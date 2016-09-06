@@ -141,7 +141,9 @@ public:
 		// Get device properites for the requested texture format
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 
-		// todo check blit flags
+		// Mip-chain generation requires support for blit source and destination
+		assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT);
+		assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT);
 
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs = {};
@@ -228,18 +230,13 @@ public:
 
 		// Generate the mip chain
 		// ---------------------------------------------------------------
-		// We copy down the whole mip chain doint a blit from mip-1 to mip
+		// We copy down the whole mip chain doing a blit from mip-1 to mip
 		// An alternative way would be to always blit from the first mip level and sample that one down
-		// todo: comment
-
 		VkCommandBuffer blitCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 		// Copy down mips from n-1 to n
 		for (int32_t i = 1; i < texture.mipLevels; i++)
 		{
-			int32_t mipWidth = texture.width >> i;
-			int32_t mipHeight = texture.height >> i;
-
 			VkImageBlit imageBlit{};				
 
 			// Source

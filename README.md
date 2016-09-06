@@ -41,15 +41,15 @@ Most basic example. Renders a colored triangle using an indexed vertex buffer. V
 This example is far more explicit than the other examples and is meant to be a starting point for learning Vulkan from the ground up. Much of the code is boilerplate that you'd usually encapsulate in helper functions and classes (which is what the other examples do).
 <br><br>
 
-## [Texture mapping](texture/)
+## [(Texture mapping) Basic texture mapping](texture/)
 <img src="./screenshots/basic_texture.png" height="96px" align="right">
 
-Shows how to upload a 2D texture to video memory for sampling in a shader. Loads a compressed texture into a host visible staging buffer and copies all mip levels to a device local optimal tiled image for best performance.
+Shows how to upload a 2D texture into video memory for sampling in a shader. Loads a compressed texture into a host visible staging buffer and copies all mip levels to a device local optimal tiled image for best performance.
 
-Also demonstrates the use of (combined) image samplers. Samplers are detached from the actual texture image and only contain information on how a image is sampled in the shader.
+Also demonstrates the use of combined image samplers. Samplers are detached from the actual texture image and only contain information on how an image is sampled in the shader.
 <br><br>
 
-## [Cubemap texture](texturecubemap/)
+## [(Texture mapping) Cube maps](texturecubemap/)
 <img src="./screenshots/texture_cubemap.jpg" height="96px" align="right">
 
 Building on the basic texture loading example, a cubemap texture is loaded into a staging buffer and is copied over to a device local optimal image using buffer to image copies for all of it's faces and mip maps.
@@ -57,12 +57,19 @@ Building on the basic texture loading example, a cubemap texture is loaded into 
 The demo then uses two different pipelines (and shader sets) to display the cubemap as a skybox (background) and as a source for reflections.
 <br><br>
 
-## [Texture array](texturearray/)
+## [(Texture mapping) Texture arrays](texturearray/)
 <img src="./screenshots/texture_array.png" height="96px" align="right">
 
 Texture arrays allow storing of multiple images in different layers without any interpolation between the layers.
 This example demonstrates the use of a 2D texture array with instanced rendering. Each instance samples from a different layer of the texture array.
 <br><br>
+
+## [(Texture mapping) Run-time mip-map generation](texturemipmapgen/)
+<img src="./screenshots/texture_mipmap_gen.jpg" height="96px" align="right">
+
+Generates a complete mip-chain at runtime (instead of using mip levels stored in texture file) by blitting from one mip level down to the next smaller size until the lower end of the mip chain (1x1 pixels is reached). 
+
+This is done using image blits and proper image memory barriers.     
 
 ## [Text overlay (Multi pass)](textoverlay/)
 <img src="./screenshots/textoverlay.png" height="96px" align="right">
