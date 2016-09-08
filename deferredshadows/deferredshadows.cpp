@@ -669,25 +669,25 @@ public:
 			vkTools::initializers::descriptorImageInfo(
 				frameBuffers.deferred->sampler,
 				frameBuffers.deferred->attachments[0].view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VkDescriptorImageInfo texDescriptorNormal =
 			vkTools::initializers::descriptorImageInfo(
 				frameBuffers.deferred->sampler,
 				frameBuffers.deferred->attachments[1].view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VkDescriptorImageInfo texDescriptorAlbedo =
 			vkTools::initializers::descriptorImageInfo(
 				frameBuffers.deferred->sampler,
 				frameBuffers.deferred->attachments[2].view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VkDescriptorImageInfo texDescriptorShadowMap =
 			vkTools::initializers::descriptorImageInfo(
 				frameBuffers.shadow->sampler,
 				frameBuffers.shadow->attachments[0].view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
 		writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
