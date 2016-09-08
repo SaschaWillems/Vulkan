@@ -1,0 +1,807 @@
+/*
+* Vulkan Example - 3D texture loading (and generation using perlin noise) example
+*
+* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+*
+* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <vector>
+#include <random>
+#include <numeric>
+#include <ctime>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <vulkan/vulkan.h>
+#include "vulkanexamplebase.h"
+#include "vulkandevice.hpp"
+#include "vulkanbuffer.hpp"
+
+#define VERTEX_BUFFER_BIND_ID 0
+#define ENABLE_VALIDATION false
+
+// Vertex layout for this example
+struct Vertex {
+	float pos[3];
+	float uv[2];
+	float normal[3];
+};
+
+// Translation of Ken Perlin's JAVA implementation (http://mrl.nyu.edu/~perlin/noise/)
+template <typename T>
+class PerlinNoise
+{
+private:
+	uint32_t permutations[512];
+	T fade(T t) 
+	{ 
+		return t * t * t * (t * (t * (T)6 - (T)15) + (T)10); 
+	}
+	T lerp(T t, T a, T b) 
+	{ 
+		return a + t * (b - a); 
+	}
+	T grad(int hash, T x, T y, T z) 
+	{
+		// Convert LO 4 bits of hash code into 12 gradient directions
+		int h = hash & 15;                     
+		T u = h < 8 ? x : y;
+		T v = h < 4 ? y : h == 12 || h == 14 ? x : z;
+		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+	}
+public:
+	PerlinNoise()
+	{
+		// Generate random lookup for permutations containing all numbers from 0..255
+		std::vector<byte> plookup;
+		plookup.resize(256);
+		std::iota(plookup.begin(), plookup.end(), 0);
+		std::default_random_engine rndEngine(std::random_device{}());
+		std::shuffle(plookup.begin(), plookup.end(), rndEngine);
+
+		for (uint32_t i = 0; i < 256; i++)
+		{
+			permutations[i] = permutations[256 + i] = plookup[i];
+		}		
+	}
+	T noise(T x, T y, T z)
+	{
+		// Find unit cube that contains point
+		int32_t X = (int32_t)floor(x) & 255;
+		int32_t Y = (int32_t)floor(y) & 255;
+		int32_t Z = (int32_t)floor(z) & 255;
+		// Find relative x,y,z of point in cube
+		x -= floor(x);
+		y -= floor(y);
+		z -= floor(z);
+
+		// Compute fade curves for each of x,y,z
+		T u = fade(x);
+		T v = fade(y);
+		T w = fade(z);
+
+		// Hash coordinates of the 8 cube corners
+		uint32_t A = permutations[X] + Y;
+		uint32_t AA = permutations[A] + Z;
+		uint32_t AB = permutations[A + 1] + Z;
+		uint32_t B = permutations[X + 1] + Y;
+		uint32_t BA = permutations[B] + Z;
+		uint32_t BB = permutations[B + 1] + Z;
+
+		// And add blended results for 8 corners of the cube;
+		T res = lerp(w, lerp(v, 
+			lerp(u, grad(permutations[AA], x, y, z), grad(permutations[BA], x - 1, y, z)), lerp(u, grad(permutations[AB], x, y - 1, z), grad(permutations[BB], x - 1, y - 1, z))),
+			lerp(v, lerp(u, grad(permutations[AA + 1], x, y, z - 1), grad(permutations[BA + 1], x - 1, y, z - 1)), lerp(u, grad(permutations[AB + 1], x, y - 1, z - 1), grad(permutations[BB + 1], x - 1, y - 1, z - 1))));
+		return res;
+	}
+};
+
+// Fractal noise generator based on perlin noise above
+template <typename T>
+class FractalNoise
+{
+private:
+	PerlinNoise<float> perlinNoise;
+	uint32_t octaves; 
+	T frequency;
+	T amplitude;
+	T persistence;
+public:
+
+	FractalNoise(const PerlinNoise<T> &perlinNoise) 
+	{
+		this->perlinNoise = perlinNoise;
+		octaves = 6;
+		persistence = (T)0.5;
+	}
+
+	T noise(T x, T y, T z)
+	{
+		T sum = 0;
+		T frequency = (T)1;
+		T amplitude = (T)1;
+		T max = (T)0;  
+		for (int32_t i = 0; i < octaves; i++)
+		{
+			sum += perlinNoise.noise(x * frequency, y * frequency, z * frequency) * amplitude;
+			max += amplitude;
+			amplitude *= persistence;
+			frequency *= (T)2;
+		}
+
+		sum = sum / max;
+		return (sum + (T)1.0) / (T)2.0;
+	}
+};
+
+class VulkanExample : public VulkanExampleBase
+{
+public:
+	// Contains all Vulkan objects that are required to store and use a 3D texture
+	struct Texture {
+		VkSampler sampler;
+		VkImage image;
+		VkImageLayout imageLayout;
+		VkDeviceMemory deviceMemory;
+		VkImageView view;
+		VkDescriptorImageInfo descriptor;
+		uint32_t width, height, depth;
+		uint32_t mipLevels;
+	} texture;
+
+	struct {
+		VkPipelineVertexInputStateCreateInfo inputState;
+		std::vector<VkVertexInputBindingDescription> inputBinding;
+		std::vector<VkVertexInputAttributeDescription> inputAttributes;
+	} vertices;
+
+	vk::Buffer vertexBuffer;
+	vk::Buffer indexBuffer;
+	uint32_t indexCount;
+
+	vk::Buffer uniformBufferVS;
+
+	struct {
+		glm::mat4 projection;
+		glm::mat4 model;
+		glm::vec4 viewPos;
+		float depth = 0.0f;
+	} uboVS;
+
+	struct {
+		VkPipeline solid;
+	} pipelines;
+
+	VkPipelineLayout pipelineLayout;
+	VkDescriptorSet descriptorSet;
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	{
+		zoom = -2.5f;
+		rotation = { 0.0f, 15.0f, 0.0f };
+		title = "Vulkan Example - 3D textures";
+		enableTextOverlay = true;
+	}
+
+	~VulkanExample()
+	{
+		// Clean up used Vulkan resources 
+		// Note : Inherited destructor cleans up resources stored in base class
+
+		destroyTextureImage(texture);
+
+		vkDestroyPipeline(device, pipelines.solid, nullptr);
+
+		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+
+		vertexBuffer.destroy();
+		indexBuffer.destroy();
+		uniformBufferVS.destroy();
+	}
+
+	// Generate 3D fractal noise
+	void generateNoise3D(byte *data, uint32_t width, uint32_t height, uint32_t depth)
+	{
+		std::cout << "Generating " << width << " x " << height << " x " << depth << " noise texture..." << std::endl;
+
+		auto tStart = std::chrono::high_resolution_clock::now();
+
+		PerlinNoise<float> perlinNoise;
+		FractalNoise<float> fractalNoise(perlinNoise);
+
+#pragma omp parallel for
+		for (int32_t z = 0; z < depth; z++)
+		{
+			for (int32_t y = 0; y < height; y++)
+			{
+				for (int32_t x = 0; x < width; x++)
+				{
+					float nx = (float)x / (float)width;
+					float ny = (float)y / (float)height;
+					float nz = (float)z / (float)depth;
+#define FRACTAL
+#ifdef FRACTAL
+					float n = fractalNoise.noise(nx * 10, ny * 10, nz * 10);
+#else
+					float n = 20.0 * perlinNoise.noise(nx, ny, nz);
+#endif
+					n = n - floor(n);
+
+					data[x + y * width + z * width * height] = floor(n * 255);
+				}
+			}
+		}
+
+		auto tEnd = std::chrono::high_resolution_clock::now();
+		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+
+		std::cout << "Done in " << tDiff << "ms" << std::endl;
+	}
+
+
+	void generateNoiseTexture(uint32_t width, uint32_t height, uint32_t depth)
+	{
+		const uint32_t texMemSize = width * height * depth;
+		const VkFormat texFormat = VK_FORMAT_R8_UNORM;
+
+		byte *data = new byte[texMemSize];
+		memset(data, 0, texMemSize);
+
+		generateNoise3D(data, width, height, depth);
+
+		VkFormatProperties formatProperties;
+
+		// A 3D texture is described as width x height x depth
+		texture.width = width;
+		texture.height = height;
+		texture.depth = depth;
+		texture.mipLevels = 1;
+
+		// Get device properites for the requested texture format
+		vkGetPhysicalDeviceFormatProperties(physicalDevice, texFormat, &formatProperties);
+
+		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
+		VkMemoryRequirements memReqs = {};
+
+		// Create a host-visible staging buffer that contains the raw image data
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingMemory;
+
+		// Buffer
+		VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo();
+		bufferCreateInfo.size = texMemSize;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;			
+		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
+		// Allocate host visible memory for data upload
+		vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
+		memAllocInfo.allocationSize = memReqs.size;
+		memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
+
+		// Copy texture data into staging buffer
+		uint8_t *mapped;
+		VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&mapped));
+		memcpy(mapped, data, texMemSize);
+		vkUnmapMemory(device, stagingMemory);
+
+		// Create optimal tiled target image
+		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
+		imageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
+		imageCreateInfo.format = texFormat;
+		imageCreateInfo.mipLevels = texture.mipLevels;
+		imageCreateInfo.arrayLayers = 1;
+		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		// A 3D texture is described as width x height x depth
+		imageCreateInfo.extent.width = texture.width;
+		imageCreateInfo.extent.height = texture.width;
+		imageCreateInfo.extent.depth = texture.depth;
+		// Set initial layout of the image to undefined
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image));
+
+		vkGetImageMemoryRequirements(device, texture.image, &memReqs);
+		memAllocInfo.allocationSize = memReqs.size;
+		memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &texture.deviceMemory));
+		VK_CHECK_RESULT(vkBindImageMemory(device, texture.image, texture.deviceMemory, 0));
+
+		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+		// Image barrier for optimal image
+
+		// The sub resource range describes the regions of the image we will be transition
+		VkImageSubresourceRange subresourceRange = {};
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.baseMipLevel = 0;
+		subresourceRange.levelCount = 1;
+		subresourceRange.layerCount = 1;
+
+		// Optimal image will be used as destination for the copy, so we must transfer from our
+		// initial undefined image layout to the transfer destination layout
+		vkTools::setImageLayout(
+			copyCmd,
+			texture.image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			subresourceRange);
+
+		// Copy 3D noise data to texture
+
+		// Setup buffer copy regions
+		VkBufferImageCopy bufferCopyRegion{};
+		bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		bufferCopyRegion.imageSubresource.mipLevel = 0;
+		bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+		bufferCopyRegion.imageSubresource.layerCount = 1;
+		bufferCopyRegion.imageExtent.width = texture.width;
+		bufferCopyRegion.imageExtent.height = texture.height;
+		bufferCopyRegion.imageExtent.depth = texture.depth;
+
+		vkCmdCopyBufferToImage(
+			copyCmd,
+			stagingBuffer,
+			texture.image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1, 
+			&bufferCopyRegion);
+
+		// Change texture image layout to shader read after all mip levels have been copied
+		texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		vkTools::setImageLayout(
+			copyCmd,
+			texture.image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			texture.imageLayout,
+			subresourceRange);
+
+		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+		// Clean up staging resources
+		delete[] data;
+		vkFreeMemory(device, stagingMemory, nullptr);
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+
+		// Create sampler
+		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
+		sampler.magFilter = VK_FILTER_LINEAR;
+		sampler.minFilter = VK_FILTER_LINEAR;
+		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		sampler.mipLodBias = 0.0f;
+		sampler.compareOp = VK_COMPARE_OP_NEVER;
+		sampler.minLod = 0.0f;
+		sampler.maxLod = 0.0f;
+		sampler.maxAnisotropy = 1.0;
+		sampler.anisotropyEnable = VK_FALSE;
+		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
+
+		// Create image view
+		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
+		view.image = VK_NULL_HANDLE;
+		view.viewType = VK_IMAGE_VIEW_TYPE_3D;
+		view.format = texFormat;
+		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		view.subresourceRange.baseMipLevel = 0;
+		view.subresourceRange.baseArrayLayer = 0;
+		view.subresourceRange.layerCount = 1;
+		view.subresourceRange.levelCount = 1;
+		view.image = texture.image;
+		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
+
+		// Fill image descriptor image info that can be used during the descriptor set setup
+		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		texture.descriptor.imageView = texture.view;
+		texture.descriptor.sampler = texture.sampler;
+	}
+
+	// Free all Vulkan resources used a texture object
+	void destroyTextureImage(Texture texture)
+	{
+		vkDestroyImageView(device, texture.view, nullptr);
+		vkDestroyImage(device, texture.image, nullptr);
+		vkDestroySampler(device, texture.sampler, nullptr);
+		vkFreeMemory(device, texture.deviceMemory, nullptr);
+	}
+
+	void buildCommandBuffers()
+	{
+		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+
+		VkClearValue clearValues[2];
+		clearValues[0].color = defaultClearColor;
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+
+		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		{
+			// Set target frame buffer
+			renderPassBeginInfo.framebuffer = frameBuffers[i];
+
+			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+
+			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+
+			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
+			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+
+			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
+
+			vkCmdEndRenderPass(drawCmdBuffers[i]);
+
+			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
+		}
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+
+		// Command buffer to be sumitted to the queue
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+
+		// Submit to queue
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();
+	}
+
+	void generateQuad()
+	{
+		// Setup vertices for a single uv-mapped quad made from two triangles
+		std::vector<Vertex> vertices =
+		{
+			{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {  1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
+		};
+
+		// Setup indices
+		std::vector<uint32_t> indices = { 0,1,2, 2,3,0 };
+		indexCount = static_cast<uint32_t>(indices.size());
+
+		// Create buffers
+		// For the sake of simplicity we won't stage the vertex data to the gpu memory
+		// Vertex buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&vertexBuffer,
+			vertices.size() * sizeof(Vertex),
+			vertices.data()));
+		// Index buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&indexBuffer,
+			indices.size() * sizeof(uint32_t),
+			indices.data()));
+	}
+
+	void setupVertexDescriptions()
+	{
+		// Binding description
+		vertices.inputBinding.resize(1);
+		vertices.inputBinding[0] =
+			vkTools::initializers::vertexInputBindingDescription(
+				VERTEX_BUFFER_BIND_ID, 
+				sizeof(Vertex), 
+				VK_VERTEX_INPUT_RATE_VERTEX);
+
+		// Attribute descriptions
+		// Describes memory layout and shader positions
+		vertices.inputAttributes.resize(3);
+		// Location 0 : Position
+		vertices.inputAttributes[0] =
+			vkTools::initializers::vertexInputAttributeDescription(
+				VERTEX_BUFFER_BIND_ID,
+				0,
+				VK_FORMAT_R32G32B32_SFLOAT,
+				offsetof(Vertex, pos));			
+		// Location 1 : Texture coordinates
+		vertices.inputAttributes[1] =
+			vkTools::initializers::vertexInputAttributeDescription(
+				VERTEX_BUFFER_BIND_ID,
+				1,
+				VK_FORMAT_R32G32_SFLOAT,
+				offsetof(Vertex, uv));
+		// Location 1 : Vertex normal
+		vertices.inputAttributes[2] =
+			vkTools::initializers::vertexInputAttributeDescription(
+				VERTEX_BUFFER_BIND_ID,
+				2,
+				VK_FORMAT_R32G32B32_SFLOAT,
+				offsetof(Vertex, normal));
+
+		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.inputBinding.size());
+		vertices.inputState.pVertexBindingDescriptions = vertices.inputBinding.data();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.inputAttributes.size());
+		vertices.inputState.pVertexAttributeDescriptions = vertices.inputAttributes.data();
+	}
+
+	void setupDescriptorPool()
+	{
+		// Example uses one ubo and one image sampler
+		std::vector<VkDescriptorPoolSize> poolSizes =
+		{
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
+		};
+
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = 
+			vkTools::initializers::descriptorPoolCreateInfo(
+				static_cast<uint32_t>(poolSizes.size()),
+				poolSizes.data(),
+				2);
+
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
+	}
+
+	void setupDescriptorSetLayout()
+	{
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = 
+		{
+			// Binding 0 : Vertex shader uniform buffer
+			vkTools::initializers::descriptorSetLayoutBinding(
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
+				VK_SHADER_STAGE_VERTEX_BIT, 
+				0),
+			// Binding 1 : Fragment shader image sampler
+			vkTools::initializers::descriptorSetLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+				VK_SHADER_STAGE_FRAGMENT_BIT, 
+				1)
+		};
+
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = 
+			vkTools::initializers::descriptorSetLayoutCreateInfo(
+				setLayoutBindings.data(),
+				static_cast<uint32_t>(setLayoutBindings.size()));
+
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
+
+		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
+			vkTools::initializers::pipelineLayoutCreateInfo(
+				&descriptorSetLayout,
+				1);
+
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+	}
+
+	void setupDescriptorSet()
+	{
+		VkDescriptorSetAllocateInfo allocInfo = 
+			vkTools::initializers::descriptorSetAllocateInfo(
+				descriptorPool,
+				&descriptorSetLayout,
+				1);
+
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+		{
+			// Binding 0 : Vertex shader uniform buffer
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSet, 
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
+				0, 
+				&uniformBufferVS.descriptor),
+			// Binding 1 : Fragment shader texture sampler
+			vkTools::initializers::writeDescriptorSet(
+				descriptorSet, 
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+				1, 
+				&texture.descriptor)
+		};
+
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+	}
+
+	void preparePipelines()
+	{
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
+			vkTools::initializers::pipelineInputAssemblyStateCreateInfo(
+				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+				0,
+				VK_FALSE);
+
+		VkPipelineRasterizationStateCreateInfo rasterizationState =
+			vkTools::initializers::pipelineRasterizationStateCreateInfo(
+				VK_POLYGON_MODE_FILL,
+				VK_CULL_MODE_NONE,
+				VK_FRONT_FACE_COUNTER_CLOCKWISE,
+				0);
+
+		VkPipelineColorBlendAttachmentState blendAttachmentState =
+			vkTools::initializers::pipelineColorBlendAttachmentState(
+				0xf,
+				VK_FALSE);
+
+		VkPipelineColorBlendStateCreateInfo colorBlendState =
+			vkTools::initializers::pipelineColorBlendStateCreateInfo(
+				1, 
+				&blendAttachmentState);
+
+		VkPipelineDepthStencilStateCreateInfo depthStencilState =
+			vkTools::initializers::pipelineDepthStencilStateCreateInfo(
+				VK_TRUE,
+				VK_TRUE,
+				VK_COMPARE_OP_LESS_OR_EQUAL);
+
+		VkPipelineViewportStateCreateInfo viewportState =
+			vkTools::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+
+		VkPipelineMultisampleStateCreateInfo multisampleState =
+			vkTools::initializers::pipelineMultisampleStateCreateInfo(
+				VK_SAMPLE_COUNT_1_BIT,
+				0);
+
+		std::vector<VkDynamicState> dynamicStateEnables = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
+		VkPipelineDynamicStateCreateInfo dynamicState =
+			vkTools::initializers::pipelineDynamicStateCreateInfo(
+				dynamicStateEnables.data(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
+				0);
+
+		// Load shaders
+		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
+
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/texture3D/texture3D.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/texture3D/texture3D.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
+			vkTools::initializers::pipelineCreateInfo(
+				pipelineLayout,
+				renderPass,
+				0);
+
+		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
+		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
+		pipelineCreateInfo.pRasterizationState = &rasterizationState;
+		pipelineCreateInfo.pColorBlendState = &colorBlendState;
+		pipelineCreateInfo.pMultisampleState = &multisampleState;
+		pipelineCreateInfo.pViewportState = &viewportState;
+		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
+		pipelineCreateInfo.pDynamicState = &dynamicState;
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+		pipelineCreateInfo.pStages = shaderStages.data();
+
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+	}
+
+	// Prepare and initialize uniform buffer containing shader uniforms
+	void prepareUniformBuffers()
+	{
+		// Vertex shader uniform buffer block
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniformBufferVS,
+			sizeof(uboVS),
+			&uboVS));
+
+		updateUniformBuffers();
+	}
+
+	void updateUniformBuffers(bool viewchanged = true)
+	{
+		if (viewchanged)
+		{
+			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
+			glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+
+			uboVS.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
+			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+			uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
+		}
+		else
+		{
+			uboVS.depth += frameTimer * 0.15f;
+			if (uboVS.depth > 2.0f)
+				uboVS.depth = uboVS.depth - 2.0f;
+		}
+
+		VK_CHECK_RESULT(uniformBufferVS.map());
+		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
+		uniformBufferVS.unmap();
+	}
+
+	void prepare()
+	{
+		VulkanExampleBase::prepare();
+		generateQuad();
+		setupVertexDescriptions();
+		prepareUniformBuffers();
+		generateNoiseTexture(256, 256, 256);
+		setupDescriptorSetLayout();
+		preparePipelines();
+		setupDescriptorPool();
+		setupDescriptorSet();
+		buildCommandBuffers();
+		prepared = true;
+	}
+
+	virtual void render()
+	{
+		if (!prepared)
+			return;
+		draw();
+		if (!paused)
+			updateUniformBuffers(false);
+	}
+
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
+	}
+
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case KEY_KPADD:
+		case GAMEPAD_BUTTON_R1:
+			break;
+		case KEY_KPSUB:
+		case GAMEPAD_BUTTON_L1:
+			break;
+		}
+	}
+
+	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	{
+#if defined(__ANDROID__)
+#else
+#endif
+	}
+};
+
+VULKAN_EXAMPLE_MAIN()
