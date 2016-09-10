@@ -61,7 +61,7 @@ public:
 	PerlinNoise()
 	{
 		// Generate random lookup for permutations containing all numbers from 0..255
-		std::vector<byte> plookup;
+		std::vector<uint8_t> plookup;
 		plookup.resize(256);
 		std::iota(plookup.begin(), plookup.end(), 0);
 		std::default_random_engine rndEngine(std::random_device{}());
@@ -147,15 +147,22 @@ class VulkanExample : public VulkanExampleBase
 public:
 	// Contains all Vulkan objects that are required to store and use a 3D texture
 	struct Texture {
-		VkSampler sampler;
-		VkImage image;
+		VkSampler sampler = VK_NULL_HANDLE;
+		VkImage image = VK_NULL_HANDLE;
 		VkImageLayout imageLayout;
-		VkDeviceMemory deviceMemory;
-		VkImageView view;
+		VkDeviceMemory deviceMemory = VK_NULL_HANDLE;
+		VkImageView view = VK_NULL_HANDLE;
 		VkDescriptorImageInfo descriptor;
+		VkFormat format;
 		uint32_t width, height, depth;
 		uint32_t mipLevels;
 	} texture;
+
+	bool regenerateNoise = true;
+
+	struct {
+		vkMeshLoader::MeshBuffer cube;
+	} meshes;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -169,7 +176,7 @@ public:
 
 	vk::Buffer uniformBufferVS;
 
-	struct {
+	struct UboVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 viewPos;
@@ -190,6 +197,7 @@ public:
 		rotation = { 0.0f, 15.0f, 0.0f };
 		title = "Vulkan Example - 3D textures";
 		enableTextOverlay = true;
+		srand(std::time(0));
 	}
 
 	~VulkanExample()
@@ -209,35 +217,137 @@ public:
 		uniformBufferVS.destroy();
 	}
 
-	// Generate 3D fractal noise
-	void generateNoise3D(byte *data, uint32_t width, uint32_t height, uint32_t depth)
+	// Prepare all Vulkan resources for the 3D texture (including descriptors)
+	// Does not fill the texture with data
+	void prepareNoiseTexture(uint32_t width, uint32_t height, uint32_t depth)
 	{
-		std::cout << "Generating " << width << " x " << height << " x " << depth << " noise texture..." << std::endl;
+		// A 3D texture is described as width x height x depth
+		texture.width = width;
+		texture.height = height;
+		texture.depth = depth;
+		texture.mipLevels = 1;
+		texture.format = VK_FORMAT_R8_UNORM;
+
+		// Format support check
+		// 3D texture support in Vulkan is mandatory (in contrast to OpenGL) so no need to check if it's supported
+		VkFormatProperties formatProperties;
+		vkGetPhysicalDeviceFormatProperties(physicalDevice, texture.format, &formatProperties);
+		// Check if format supports transfer
+		if (!formatProperties.optimalTilingFeatures & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+		{
+			std::cout << "Error: Device does not support flag TRANSFER_DST for selected texture format!" << std::endl;
+			return;
+		}
+		// Check if GPU supports requested 3D texture dimensions
+		uint32_t maxImageDimension3D(vulkanDevice->properties.limits.maxImageDimension3D);
+		if (width > maxImageDimension3D || height > maxImageDimension3D || depth > maxImageDimension3D)
+		{
+			std::cout << "Error: Requested texture dimensions is greater than supported 3D texture dimension!" << std::endl;
+			return;
+		}
+
+		// Create optimal tiled target image
+		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
+		imageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
+		imageCreateInfo.format = texture.format;
+		imageCreateInfo.mipLevels = texture.mipLevels;
+		imageCreateInfo.arrayLayers = 1;
+		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageCreateInfo.extent.width = texture.width;
+		imageCreateInfo.extent.height = texture.width;
+		imageCreateInfo.extent.depth = texture.depth;
+		// Set initial layout of the image to undefined
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image));
+
+		// Device local memory to back up image
+		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
+		VkMemoryRequirements memReqs = {};
+		vkGetImageMemoryRequirements(device, texture.image, &memReqs);
+		memAllocInfo.allocationSize = memReqs.size;
+		memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &texture.deviceMemory));
+		VK_CHECK_RESULT(vkBindImageMemory(device, texture.image, texture.deviceMemory, 0));
+
+		// Create sampler
+		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
+		sampler.magFilter = VK_FILTER_LINEAR;
+		sampler.minFilter = VK_FILTER_LINEAR;
+		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.mipLodBias = 0.0f;
+		sampler.compareOp = VK_COMPARE_OP_NEVER;
+		sampler.minLod = 0.0f;
+		sampler.maxLod = 0.0f;
+		sampler.maxAnisotropy = 1.0;
+		sampler.anisotropyEnable = VK_FALSE;
+		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
+
+		// Create image view
+		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
+		view.image = texture.image;
+		view.viewType = VK_IMAGE_VIEW_TYPE_3D;
+		view.format = texture.format;
+		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		view.subresourceRange.baseMipLevel = 0;
+		view.subresourceRange.baseArrayLayer = 0;
+		view.subresourceRange.layerCount = 1;
+		view.subresourceRange.levelCount = 1;
+		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
+
+		// Fill image descriptor image info to be used descriptor set setup
+		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		texture.descriptor.imageView = texture.view;
+		texture.descriptor.sampler = texture.sampler;
+	}
+
+	// Generate randomized noise and upload it to the 3D texture using staging
+	void updateNoiseTexture()
+	{
+		const uint32_t texMemSize = texture.width * texture.height * texture.depth;
+
+		uint8_t *data = new uint8_t[texMemSize];
+		memset(data, 0, texMemSize);
+
+		// Generate perlin based noise
+		std::cout << "Generating " << texture.width << " x " << texture.height << " x " << texture.depth << " noise texture..." << std::endl;
 
 		auto tStart = std::chrono::high_resolution_clock::now();
 
 		PerlinNoise<float> perlinNoise;
 		FractalNoise<float> fractalNoise(perlinNoise);
 
+		std::default_random_engine rndEngine(std::random_device{}());
+		const int32_t noiseType = rand() % 2;
+		const float noiseScale = static_cast<float>(rand() % 10) + 4.0f;
+
 #pragma omp parallel for
-		for (int32_t z = 0; z < depth; z++)
+		for (int32_t z = 0; z < texture.depth; z++)
 		{
-			for (int32_t y = 0; y < height; y++)
+			for (int32_t y = 0; y < texture.height; y++)
 			{
-				for (int32_t x = 0; x < width; x++)
+				for (int32_t x = 0; x < texture.width; x++)
 				{
-					float nx = (float)x / (float)width;
-					float ny = (float)y / (float)height;
-					float nz = (float)z / (float)depth;
+					float nx = (float)x / (float)texture.width;
+					float ny = (float)y / (float)texture.height;
+					float nz = (float)z / (float)texture.depth;
 #define FRACTAL
 #ifdef FRACTAL
-					float n = fractalNoise.noise(nx * 10, ny * 10, nz * 10);
+					float n = fractalNoise.noise(nx * noiseScale, ny * noiseScale, nz * noiseScale);
 #else
 					float n = 20.0 * perlinNoise.noise(nx, ny, nz);
 #endif
 					n = n - floor(n);
 
-					data[x + y * width + z * width * height] = floor(n * 255);
+					data[x + y * texture.width + z * texture.width * texture.height] = static_cast<uint8_t>(floor(n * 255));
 				}
 			}
 		}
@@ -246,44 +356,21 @@ public:
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 
 		std::cout << "Done in " << tDiff << "ms" << std::endl;
-	}
-
-
-	void generateNoiseTexture(uint32_t width, uint32_t height, uint32_t depth)
-	{
-		const uint32_t texMemSize = width * height * depth;
-		const VkFormat texFormat = VK_FORMAT_R8_UNORM;
-
-		byte *data = new byte[texMemSize];
-		memset(data, 0, texMemSize);
-
-		generateNoise3D(data, width, height, depth);
-
-		VkFormatProperties formatProperties;
-
-		// A 3D texture is described as width x height x depth
-		texture.width = width;
-		texture.height = height;
-		texture.depth = depth;
-		texture.mipLevels = 1;
-
-		// Get device properites for the requested texture format
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, texFormat, &formatProperties);
-
-		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs = {};
 
 		// Create a host-visible staging buffer that contains the raw image data
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingMemory;
 
-		// Buffer
+		// Buffer object
 		VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo();
 		bufferCreateInfo.size = texMemSize;
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;			
 		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
+
 		// Allocate host visible memory for data upload
+		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
+		VkMemoryRequirements memReqs = {};
 		vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
 		memAllocInfo.allocationSize = memReqs.size;
 		memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
@@ -295,31 +382,6 @@ public:
 		VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&mapped));
 		memcpy(mapped, data, texMemSize);
 		vkUnmapMemory(device, stagingMemory);
-
-		// Create optimal tiled target image
-		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
-		imageCreateInfo.format = texFormat;
-		imageCreateInfo.mipLevels = texture.mipLevels;
-		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
-		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		// A 3D texture is described as width x height x depth
-		imageCreateInfo.extent.width = texture.width;
-		imageCreateInfo.extent.height = texture.width;
-		imageCreateInfo.extent.depth = texture.depth;
-		// Set initial layout of the image to undefined
-		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image));
-
-		vkGetImageMemoryRequirements(device, texture.image, &memReqs);
-		memAllocInfo.allocationSize = memReqs.size;
-		memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &texture.deviceMemory));
-		VK_CHECK_RESULT(vkBindImageMemory(device, texture.image, texture.deviceMemory, 0));
 
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
@@ -378,51 +440,20 @@ public:
 		delete[] data;
 		vkFreeMemory(device, stagingMemory, nullptr);
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
-
-		// Create sampler
-		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
-		sampler.magFilter = VK_FILTER_LINEAR;
-		sampler.minFilter = VK_FILTER_LINEAR;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		sampler.mipLodBias = 0.0f;
-		sampler.compareOp = VK_COMPARE_OP_NEVER;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = 0.0f;
-		sampler.maxAnisotropy = 1.0;
-		sampler.anisotropyEnable = VK_FALSE;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
-
-		// Create image view
-		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
-		view.image = VK_NULL_HANDLE;
-		view.viewType = VK_IMAGE_VIEW_TYPE_3D;
-		view.format = texFormat;
-		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		view.subresourceRange.baseMipLevel = 0;
-		view.subresourceRange.baseArrayLayer = 0;
-		view.subresourceRange.layerCount = 1;
-		view.subresourceRange.levelCount = 1;
-		view.image = texture.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
-
-		// Fill image descriptor image info that can be used during the descriptor set setup
-		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		texture.descriptor.imageView = texture.view;
-		texture.descriptor.sampler = texture.sampler;
+		regenerateNoise = false;
 	}
 
 	// Free all Vulkan resources used a texture object
 	void destroyTextureImage(Texture texture)
 	{
-		vkDestroyImageView(device, texture.view, nullptr);
-		vkDestroyImage(device, texture.image, nullptr);
-		vkDestroySampler(device, texture.sampler, nullptr);
-		vkFreeMemory(device, texture.deviceMemory, nullptr);
+		if (texture.view != VK_NULL_HANDLE)
+			vkDestroyImageView(device, texture.view, nullptr);
+		if (texture.image != VK_NULL_HANDLE)
+			vkDestroyImage(device, texture.image, nullptr);
+		if (texture.sampler != VK_NULL_HANDLE)
+			vkDestroySampler(device, texture.sampler, nullptr);
+		if (texture.deviceMemory != VK_NULL_HANDLE)
+			vkFreeMemory(device, texture.deviceMemory, nullptr);
 	}
 
 	void buildCommandBuffers()
@@ -463,7 +494,6 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
 			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -691,8 +721,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/texture3D/texture3D.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/texture3D/texture3D.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/texture3d/texture3d.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/texture3d/texture3d.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -745,8 +775,8 @@ public:
 		else
 		{
 			uboVS.depth += frameTimer * 0.15f;
-			if (uboVS.depth > 2.0f)
-				uboVS.depth = uboVS.depth - 2.0f;
+			if (uboVS.depth > 1.0f)
+				uboVS.depth = uboVS.depth - 1.0f;
 		}
 
 		VK_CHECK_RESULT(uniformBufferVS.map());
@@ -760,7 +790,7 @@ public:
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		generateNoiseTexture(256, 256, 256);
+		prepareNoiseTexture(256, 256, 256);
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
@@ -774,6 +804,10 @@ public:
 		if (!prepared)
 			return;
 		draw();
+		if (regenerateNoise)
+		{
+			updateNoiseTexture();
+		}
 		if (!paused)
 			updateUniformBuffers(false);
 	}
@@ -787,20 +821,31 @@ public:
 	{
 		switch (keyCode)
 		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
+		case KEY_N:
+		case GAMEPAD_BUTTON_A:
+			if (!regenerateNoise)
+			{
+				regenerateNoise = true;
+				updateTextOverlay();
+			}
 			break;
 		}
 	}
 
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
-#if defined(__ANDROID__)
+		if (regenerateNoise)
+		{
+			textOverlay->addText("Generating new noise texture...", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		}
+		else
+		{
+#ifdef __ANDROID__
+			textOverlay->addText("Press \"Button A\" to generate new noise", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #else
+			textOverlay->addText("Press \"n\" to generate new noise", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #endif
+		}
 	}
 };
 

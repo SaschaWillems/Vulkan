@@ -100,6 +100,7 @@ set(EXAMPLES
 	tessellation
 	textoverlay
 	texture
+	texture3d
 	texturearray
 	texturecubemap
 	texturemipmapgen
