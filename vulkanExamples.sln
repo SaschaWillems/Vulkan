@@ -107,6 +107,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tessellation", "Tessellatio
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "texture3d", "texture3d\texture3d.vcxproj", "{D36B82DD-9114-44D2-A9C9-8DF0F8544BD5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "texturesparseresidency", "texturesparseresidency\texturesparseresidency.vcxproj", "{1FA0178C-F5E9-4B2E-A488-14F310F8DBD9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -265,6 +267,10 @@ Global
 		{D36B82DD-9114-44D2-A9C9-8DF0F8544BD5}.Debug|x64.Build.0 = Debug|x64
 		{D36B82DD-9114-44D2-A9C9-8DF0F8544BD5}.Release|x64.ActiveCfg = Release|x64
 		{D36B82DD-9114-44D2-A9C9-8DF0F8544BD5}.Release|x64.Build.0 = Release|x64
+		{1FA0178C-F5E9-4B2E-A488-14F310F8DBD9}.Debug|x64.ActiveCfg = Debug|x64
+		{1FA0178C-F5E9-4B2E-A488-14F310F8DBD9}.Debug|x64.Build.0 = Debug|x64
+		{1FA0178C-F5E9-4B2E-A488-14F310F8DBD9}.Release|x64.ActiveCfg = Release|x64
+		{1FA0178C-F5E9-4B2E-A488-14F310F8DBD9}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -281,5 +287,6 @@ Global
 		{6C6E48B1-5946-4754-9E31-E1C989EC25FE} = {C93DE675-A816-4412-8E9F-1EFE9AC07750}
 		{24AD09B4-6ABE-4A82-83E7-6A7799A88762} = {A8492D6D-5243-456E-8173-39B99F1FEA9C}
 		{D36B82DD-9114-44D2-A9C9-8DF0F8544BD5} = {A8492D6D-5243-456E-8173-39B99F1FEA9C}
+		{1FA0178C-F5E9-4B2E-A488-14F310F8DBD9} = {A8492D6D-5243-456E-8173-39B99F1FEA9C}
 	EndGlobalSection
 EndGlobal
