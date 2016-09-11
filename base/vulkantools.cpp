@@ -902,3 +902,10 @@ VkPushConstantRange vkTools::initializers::pushConstantRange(
 	pushConstantRange.size = size;
 	return pushConstantRange;
 }
+
+VkBindSparseInfo vkTools::initializers::bindSparseInfo()
+{
+	VkBindSparseInfo bindSparseInfo{};
+	bindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+	return VkBindSparseInfo();
+}
