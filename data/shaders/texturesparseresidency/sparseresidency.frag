@@ -18,7 +18,7 @@ layout (location = 0) out vec4 outFragColor;
 void main() 
 {
 	// Get residency code for current texel
-	int residencyCode = sparseTextureARB(samplerColor, inUV, outFragColor);
+	int residencyCode = sparseTextureARB(samplerColor, inUV, outFragColor, inLodBias);
 	// Check if texel is resident
 	bool texelResident = sparseTexelsResidentARB(residencyCode);
 

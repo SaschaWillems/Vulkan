@@ -210,8 +210,7 @@ public:
 	{
 		texture.width = width;
 		texture.height = height;
-		//texture.mipLevels = floor(log2(std::max(width, height))) + 1; //todo
-		texture.mipLevels = 1;
+		texture.mipLevels = floor(log2(std::max(width, height))) + 1; //todo
 		texture.layerCount = layerCount;
 		texture.format = format;
 
@@ -330,9 +329,14 @@ public:
 		uint32_t sparseBindsCount = static_cast<uint32_t>(sparseImageMemoryReqs.size / sparseImageMemoryReqs.alignment);		
 		std::vector<VkSparseMemoryBind>	sparseMemoryBinds(sparseBindsCount);
 
+		// Check if the format has a single mip tail for all layers or one mip tail for each layer
+		// The mip tail contains all mip levels > sparseMemoryReq.imageMipTailFirstLod
+		bool singleMipTail = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT;
+
 		// Sparse bindings for each mip level of all layers outside of the mip tail
 		for (uint32_t layer = 0; layer < texture.layerCount; layer++)
 		{
+			// sparseMemoryReq.imageMipTailFirstLod is the first mip level that's stored inside the mip tail
 			for (uint32_t mipLevel = 0; mipLevel < sparseMemoryReq.imageMipTailFirstLod; mipLevel++)
 			{
 				VkExtent3D extent;
@@ -396,13 +400,46 @@ public:
 				}
 			}
 
-			// Sparse binding for the mip tail (if present) containing the remaining mip levels
-			// The mip tail contains all mip levels > sparseMemoryReq.imageMipTailFirstLod
-			if ((sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT) && (sparseMemoryReq.imageMipTailFirstLod < texture.mipLevels))
+			// Check if format has one mip tail per layer
+			if ((!singleMipTail) && (sparseMemoryReq.imageMipTailFirstLod < texture.mipLevels))
 			{
-				//todo
-			} 
+				// Allocate memory for the mip tail
+				VkMemoryAllocateInfo allocInfo = vkTools::initializers::memoryAllocateInfo();
+				allocInfo.allocationSize = sparseMemoryReq.imageMipTailSize;
+				allocInfo.memoryTypeIndex = memoryTypeIndex;
+
+				VkDeviceMemory deviceMemory;
+				VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &deviceMemory));
+
+				// (Opaque) sparse memory binding
+				VkSparseMemoryBind sparseMemoryBind{};
+				sparseMemoryBind.resourceOffset = sparseMemoryReq.imageMipTailOffset + layer * sparseMemoryReq.imageMipTailStride;
+				sparseMemoryBind.size = sparseMemoryReq.imageMipTailSize;
+				sparseMemoryBind.memory = deviceMemory;
+
+				texture.opaqueMemoryBinds.push_back(sparseMemoryBind);
+			}
 		} // end layers and mips
+
+		// Check if format has one mip tail for all layers
+		if ((sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT) && (sparseMemoryReq.imageMipTailFirstLod < texture.mipLevels))
+		{
+			// Allocate memory for the mip tail
+			VkMemoryAllocateInfo allocInfo = vkTools::initializers::memoryAllocateInfo();
+			allocInfo.allocationSize = sparseMemoryReq.imageMipTailSize;
+			allocInfo.memoryTypeIndex = memoryTypeIndex;
+
+			VkDeviceMemory deviceMemory;
+			VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &deviceMemory));
+
+			// (Opaque) sparse memory binding
+			VkSparseMemoryBind sparseMemoryBind{};
+			sparseMemoryBind.resourceOffset = sparseMemoryReq.imageMipTailOffset;
+			sparseMemoryBind.size = sparseMemoryReq.imageMipTailSize;
+			sparseMemoryBind.memory = deviceMemory;
+
+			texture.opaqueMemoryBinds.push_back(sparseMemoryBind);
+		}
 
 		// Create signal semaphore for sparse binding
 		VkSemaphoreCreateInfo semaphoreCreateInfo = vkTools::initializers::semaphoreCreateInfo();
@@ -442,21 +479,15 @@ public:
 		sampler.magFilter = VK_FILTER_LINEAR;
 		sampler.minFilter = VK_FILTER_LINEAR;
 		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		sampler.mipLodBias = 0.0f;
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
-		sampler.maxLod = (float)texture.mipLevels;
-		sampler.maxAnisotropy = 1.0;
-		sampler.anisotropyEnable = VK_FALSE;
-		if (vulkanDevice->features.samplerAnisotropy)
-		{
-			// Use max. level of anisotropy for this example
-			sampler.maxAnisotropy = vulkanDevice->properties.limits.maxSamplerAnisotropy;
-			sampler.anisotropyEnable = VK_TRUE;
-		}
+		sampler.maxLod = static_cast<float>(texture.mipLevels);
+		sampler.anisotropyEnable = vulkanDevice->features.samplerAnisotropy;
+		sampler.maxAnisotropy = vulkanDevice->features.samplerAnisotropy ? vulkanDevice->properties.limits.maxSamplerAnisotropy : 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
 
@@ -486,11 +517,15 @@ public:
 		vkDestroyImageView(device, texture.view, nullptr);
 		vkDestroyImage(device, texture.image, nullptr);
 		vkDestroySampler(device, texture.sampler, nullptr);
-		//vkFreeMemory(device, texture.deviceMemory, nullptr);
-		// Sparse memory
-		for (auto residency : texture.residencyMemoryBinds)
+		// Release sparse image memory
+		for (auto residencyBind : texture.residencyMemoryBinds)
 		{
-			vkFreeMemory(device, residency.memory, nullptr);
+			vkFreeMemory(device, residencyBind.memory, nullptr);
+		}
+		// Release sparse opqaue memory (mip tail)
+		for (auto opaqueBind : texture.opaqueMemoryBinds)
+		{
+			vkFreeMemory(device, opaqueBind.memory, nullptr);
 		}
 	}
 
