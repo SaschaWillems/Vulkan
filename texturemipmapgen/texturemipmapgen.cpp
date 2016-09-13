@@ -421,7 +421,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/tunnel.dae", &meshes.tunnel, vertexLayout, 1.0f);
+		loadMesh(getAssetPath() + "models/tunnel_cylinder.dae", &meshes.tunnel, vertexLayout, 1.0f);
 		loadTexture(getAssetPath() + "textures/metalplate_nomips_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, false);
 	}
 
@@ -662,7 +662,7 @@ public:
 	{
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
-		uboVS.model = glm::rotate(glm::mat4(), glm::radians((timer + 45.0f/360.0f) * 360.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(glm::mat4(), glm::radians(timer * 360.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.viewPos = glm::vec4(camera.position, 0.0f) * glm::vec4(-1.0f);
 		VK_CHECK_RESULT(uniformBufferVS.map());
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));

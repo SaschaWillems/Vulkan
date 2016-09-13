@@ -31,7 +31,7 @@ out gl_PerVertex
 
 void main() 
 {
-	outUV = inUV * vec2(50.0, 2.0);
+	outUV = inUV * vec2(2.0, 1.0);
 	outLodBias = ubo.lodBias;
 	outSamplerIndex = ubo.samplerIndex;
 

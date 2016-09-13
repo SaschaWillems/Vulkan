@@ -13,7 +13,7 @@ if %ERRORLEVEL% EQU 0 (
 	xcopy "..\..\data\textures\metalplate_nomips_rgba.ktx" "assets\textures" /Y
 
 	mkdir "assets\models"
-	xcopy "..\..\data\models\tunnel.dae" "assets\models" /Y
+	xcopy "..\..\data\models\tunnel_cylinder.dae" "assets\models" /Y
 	
 	mkdir "res\drawable"
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y
