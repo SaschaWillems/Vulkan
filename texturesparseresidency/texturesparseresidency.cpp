@@ -20,6 +20,7 @@ todos:
 #include <assert.h>
 #include <vector>
 #include <algorithm>
+#include <random>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -41,13 +42,151 @@ struct Vertex {
 	float normal[3];
 };
 
+// Virtual texture page as a part of the partially resident texture
+// Contains memory bindings, offsets and status information
+struct VirtualTexturePage
+{	
+	VkOffset3D offset;
+	VkExtent3D extent;
+	VkSparseImageMemoryBind imageMemoryBind;							// Sparse image memory bind for this page
+	VkDeviceSize size;													// Page (memory) size in bytes
+	uint32_t mipLevel;													// Mip level that this page belongs to
+	uint32_t layer;														// Array layer that this page belongs to
+	uint32_t index;	
+
+	VirtualTexturePage()
+	{
+		imageMemoryBind.memory = VK_NULL_HANDLE;						// Page initially not backed up by memory
+	}
+
+	// Allocate Vulkan memory for the virtual page
+	void allocate(VkDevice device, uint32_t memoryTypeIndex)
+	{
+		if (imageMemoryBind.memory != VK_NULL_HANDLE)
+		{
+			//std::cout << "Page " << index << " already allocated" << std::endl;
+			return;
+		};
+
+		imageMemoryBind = {};
+
+		VkMemoryAllocateInfo allocInfo = vkTools::initializers::memoryAllocateInfo();
+		allocInfo.allocationSize = size;
+		allocInfo.memoryTypeIndex = memoryTypeIndex;
+		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemoryBind.memory));
+
+		VkImageSubresource subResource{};
+		subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subResource.mipLevel = mipLevel;
+		subResource.arrayLayer = layer;
+
+		// Sparse image memory binding
+		imageMemoryBind.subresource = subResource;
+		imageMemoryBind.extent = extent;
+		imageMemoryBind.offset = offset;
+	}
+
+	// Release Vulkan memory allocated for this page
+	void release(VkDevice device)
+	{
+		if (imageMemoryBind.memory != VK_NULL_HANDLE)
+		{
+			vkFreeMemory(device, imageMemoryBind.memory, nullptr);
+			imageMemoryBind.memory = VK_NULL_HANDLE;
+			//std::cout << "Page " << index << " released" << std::endl;
+		}
+	}
+};
+
+// Virtual texture object containing all pages 
+struct VirtualTexture
+{
+	VkDevice device;
+	VkImage image;														// Texture image handle
+	VkBindSparseInfo bindSparseInfo;									// Sparse queue binding information
+	std::vector<VirtualTexturePage> pages;								// Contains all virtual pages of the texture
+	std::vector<VkSparseImageMemoryBind> sparseImageMemoryBinds;		// Sparse image memory bindings of all memory-backed virtual tables
+	std::vector<VkSparseMemoryBind>	opaqueMemoryBinds;					// Sparse ópaque memory bindings for the mip tail (if present)
+	VkSparseImageMemoryBindInfo imageMemoryBindInfo;					// Sparse image memory bind info 
+	VkSparseImageOpaqueMemoryBindInfo opaqueMemoryBindInfo;				// Sparse image opaque memory bind info (mip tail)
+	
+	VirtualTexturePage* addPage(VkOffset3D offset, VkExtent3D extent, const VkDeviceSize size, const uint32_t mipLevel, uint32_t layer)
+	{
+		VirtualTexturePage newPage;
+		newPage.offset = offset;
+		newPage.extent = extent;
+		newPage.size = size;
+		newPage.mipLevel = mipLevel;
+		newPage.layer = layer;
+		newPage.index = static_cast<uint32_t>(pages.size());
+		newPage.imageMemoryBind.offset = offset;
+		newPage.imageMemoryBind.extent = extent;
+		pages.push_back(newPage);
+		return &pages.back();
+	}
+
+	// Call before sparse binding to update memory bind list etc.
+	void updateSparseBindInfo()
+	{
+		// Update list of memory-backed sparse image memory binds
+		sparseImageMemoryBinds.clear();
+		for (auto page : pages)
+		{
+			sparseImageMemoryBinds.push_back(page.imageMemoryBind);
+		}
+		// Update sparse bind info
+		bindSparseInfo = vkTools::initializers::bindSparseInfo();
+		// todo: Semaphore for queue submission
+		// bindSparseInfo.signalSemaphoreCount = 1;
+		// bindSparseInfo.pSignalSemaphores = &bindSparseSemaphore;
+
+		// Image memory binds
+		imageMemoryBindInfo.image = image;
+		imageMemoryBindInfo.bindCount = static_cast<uint32_t>(sparseImageMemoryBinds.size());
+		imageMemoryBindInfo.pBinds = sparseImageMemoryBinds.data();
+		bindSparseInfo.imageBindCount = (imageMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		bindSparseInfo.pImageBinds = &imageMemoryBindInfo;
+
+		// Opaque image memory binds (mip tail)
+		opaqueMemoryBindInfo.image = image;
+		opaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(opaqueMemoryBinds.size());
+		opaqueMemoryBindInfo.pBinds = opaqueMemoryBinds.data();
+		bindSparseInfo.imageOpaqueBindCount = (opaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		bindSparseInfo.pImageOpaqueBinds = &opaqueMemoryBindInfo;
+
+		uint32_t memBackedPages(0);
+		for (auto page : pages)
+		{
+			if (page.imageMemoryBind.memory != VK_NULL_HANDLE)
+			{
+				memBackedPages++;
+			}
+		}
+		std::cout << "Bound " << memBackedPages << " memory backed virtual pages " << std::endl;
+	}
+
+	// Release all Vulkan resources
+	void destroy()
+	{
+		for (auto page : pages)
+		{
+			page.release(device);
+		}
+		for (auto bind : opaqueMemoryBinds)
+		{
+			vkFreeMemory(device, bind.memory, nullptr);
+		}
+	}
+};
+
+uint32_t memoryTypeIndex;
+
 class VulkanExample : public VulkanExampleBase
 {
 public:
 	//todo: comments
-	struct SparseTexture {
+	struct SparseTexture : VirtualTexture {
 		VkSampler sampler;
-		VkImage image;
 		VkImageLayout imageLayout;
 		VkImageView view;
 		VkDescriptorImageInfo descriptor;
@@ -55,10 +194,6 @@ public:
 		uint32_t width, height;
 		uint32_t mipLevels;
 		uint32_t layerCount;
-		std::vector<VkSparseImageMemoryBind> residencyMemoryBinds;		// Sparse image mempory bindings for the resident part of the image
-		std::vector<VkSparseMemoryBind>	opaqueMemoryBinds;				// Sparse memory bindings for the mip tail (if present)
-		VkSparseImageMemoryBindInfo imageMemoryBindInfo;				// Bind info for queue
-		VkSparseImageOpaqueMemoryBindInfo opaqueMemoryBindInfo;			// Opaque bind info for queue
 	} texture;
 
 	struct {
@@ -89,7 +224,6 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 
 	//todo: comment
-	VkBindSparseInfo bindSparseInfo;
 	VkSemaphore bindSparseSemaphore = VK_NULL_HANDLE;
 
 	// Device features to be enabled for this example 
@@ -129,74 +263,6 @@ public:
 		uniformBufferVS.destroy();
 	}
 
-	// Create an image memory barrier for changing the layout of
-	// an image and put it into an active command buffer
-	void setImageLayout(VkCommandBuffer cmdBuffer, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange)
-	{
-		// Create an image barrier object
-		VkImageMemoryBarrier imageMemoryBarrier = vkTools::initializers::imageMemoryBarrier();;
-		imageMemoryBarrier.oldLayout = oldImageLayout;
-		imageMemoryBarrier.newLayout = newImageLayout;
-		imageMemoryBarrier.image = image;
-		imageMemoryBarrier.subresourceRange = subresourceRange;
-
-		// Only sets masks for layouts used in this example
-		// For a more complete version that can be used with other layouts see vkTools::setImageLayout
-
-		// Source layouts (old)
-		switch (oldImageLayout)
-		{
-		case VK_IMAGE_LAYOUT_UNDEFINED:
-			// Only valid as initial layout, memory contents are not preserved
-			// Can be accessed directly, no source dependency required
-			imageMemoryBarrier.srcAccessMask = 0;
-			break;
-		case VK_IMAGE_LAYOUT_PREINITIALIZED:
-			// Only valid as initial layout for linear images, preserves memory contents
-			// Make sure host writes to the image have been finished
-			imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			// Old layout is transfer destination
-			// Make sure any writes to the image have been finished
-			imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			break;
-		}
-		
-		// Target layouts (new)
-		switch (newImageLayout)
-		{
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			// Transfer source (copy, blit)
-			// Make sure any reads from the image have been finished
-			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			// Transfer destination (copy, blit)
-			// Make sure any writes to the image have been finished
-			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			// Shader read (sampler, input attachment)
-			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			break;
-		}
-
-		// Put barrier on top of pipeline
-		VkPipelineStageFlags srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		VkPipelineStageFlags destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
-		// Put barrier inside setup command buffer
-		vkCmdPipelineBarrier(
-			cmdBuffer,
-			srcStageFlags, 
-			destStageFlags, 
-			VK_FLAGS_NONE, 
-			0, nullptr,
-			0, nullptr,
-			1, &imageMemoryBarrier);
-	}
-
 	glm::uvec3 alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity)
 	{
 		glm::uvec3 res;
@@ -208,6 +274,7 @@ public:
 
 	void prepareSparseTexture(uint32_t width, uint32_t height, uint32_t layerCount, VkFormat format)
 	{
+		texture.device = vulkanDevice->logicalDevice;
 		texture.width = width;
 		texture.height = height;
 		texture.mipLevels = floor(log2(std::max(width, height))) + 1; //todo
@@ -323,7 +390,7 @@ public:
 		// todo:
 		// Calculate number of required sparse memory bindings by alignment
 		assert((sparseImageMemoryReqs.size % sparseImageMemoryReqs.alignment) == 0);
-		uint32_t memoryTypeIndex = vulkanDevice->getMemoryType(sparseImageMemoryReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		memoryTypeIndex = vulkanDevice->getMemoryType(sparseImageMemoryReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		// Get sparse bindings
 		uint32_t sparseBindsCount = static_cast<uint32_t>(sparseImageMemoryReqs.size / sparseImageMemoryReqs.alignment);		
@@ -365,36 +432,28 @@ public:
 					{
 						for (uint32_t x = 0; x < sparseBindCounts.x; x++)
 						{
-
-							if ((x % 2 == 1) || (y % 2 == 1))
-								continue;
-
+							// Offset 
 							VkOffset3D offset;
 							offset.x = x * imageGranularity.width;
 							offset.y = y * imageGranularity.height;
 							offset.z = z * imageGranularity.depth;
-
+							// Size of the page
 							VkExtent3D extent;
 							extent.width = (x == sparseBindCounts.x - 1) ? lastBlockExtent.x : imageGranularity.width;
 							extent.height = (y == sparseBindCounts.y - 1) ? lastBlockExtent.y : imageGranularity.height;
 							extent.depth = (z == sparseBindCounts.z - 1) ? lastBlockExtent.z : imageGranularity.depth;
 
-							// Allocate memory for this sparse block
-							VkMemoryAllocateInfo allocInfo = vkTools::initializers::memoryAllocateInfo();
-							allocInfo.allocationSize = sparseImageMemoryReqs.alignment;
-							allocInfo.memoryTypeIndex = memoryTypeIndex;
+							// Add new virtual page
+							VirtualTexturePage *newPage = texture.addPage(offset, extent, sparseImageMemoryReqs.alignment, mipLevel, layer);
+							newPage->imageMemoryBind.subresource = subResource;
 
-							VkDeviceMemory deviceMemory;
-							VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &deviceMemory));
+							if ((x % 2 == 1) || (y % 2 == 1))
+							{
+								// Allocate memory for this virtual page
+								newPage->allocate(device, memoryTypeIndex);
+							}
 
-							// Sparse image memory binding
-							VkSparseImageMemoryBind sparseImageMemoryBind{};
-							sparseImageMemoryBind.subresource = subResource;
-							sparseImageMemoryBind.extent = extent;
-							sparseImageMemoryBind.offset = offset;
-							sparseImageMemoryBind.memory = deviceMemory;
-
-							texture.residencyMemoryBinds.push_back(sparseImageMemoryBind);
+							index++;
 						}
 					}
 				}
@@ -421,6 +480,10 @@ public:
 			}
 		} // end layers and mips
 
+		std::cout << "Texture info:" << std::endl;
+		std::cout << "\tDim: " << texture.width << " x " << texture.height << std::endl;
+		std::cout << "\tVirtual pages: " << texture.pages.size() << std::endl;
+
 		// Check if format has one mip tail for all layers
 		if ((sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT) && (sparseMemoryReq.imageMipTailFirstLod < texture.mipLevels))
 		{
@@ -446,31 +509,11 @@ public:
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &bindSparseSemaphore));
 
 		// Prepare bind sparse info for reuse in queue submission
-		bindSparseInfo = vkTools::initializers::bindSparseInfo();
-		//bindSparseInfo.signalSemaphoreCount = 1;
-		//bindSparseInfo.pSignalSemaphores = &bindSparseSemaphore;
-
-		if (texture.residencyMemoryBinds.size() > 0)
-		{
-			texture.imageMemoryBindInfo.image = texture.image;
-			texture.imageMemoryBindInfo.bindCount = static_cast<uint32_t>(texture.residencyMemoryBinds.size());
-			texture.imageMemoryBindInfo.pBinds = texture.residencyMemoryBinds.data();
-			bindSparseInfo.imageBindCount = 1;
-			bindSparseInfo.pImageBinds = &texture.imageMemoryBindInfo;
-		}
-
-		if (texture.opaqueMemoryBinds.size() > 0)
-		{
-			texture.opaqueMemoryBindInfo.image = texture.image;
-			texture.opaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(texture.opaqueMemoryBinds.size());
-			texture.opaqueMemoryBindInfo.pBinds = texture.opaqueMemoryBinds.data();
-			bindSparseInfo.imageOpaqueBindCount = 1;
-			bindSparseInfo.pImageOpaqueBinds = &texture.opaqueMemoryBindInfo;
-		}
+		texture.updateSparseBindInfo();
 
 		// Bind to queue
 		// todo: in draw?
-		vkQueueBindSparse(queue, 1, &bindSparseInfo, VK_NULL_HANDLE);
+		vkQueueBindSparse(queue, 1, &texture.bindSparseInfo, VK_NULL_HANDLE);
 		//todo: use sparse bind semaphore
 		vkQueueWaitIdle(queue);
 
@@ -517,16 +560,7 @@ public:
 		vkDestroyImageView(device, texture.view, nullptr);
 		vkDestroyImage(device, texture.image, nullptr);
 		vkDestroySampler(device, texture.sampler, nullptr);
-		// Release sparse image memory
-		for (auto residencyBind : texture.residencyMemoryBinds)
-		{
-			vkFreeMemory(device, residencyBind.memory, nullptr);
-		}
-		// Release sparse opqaue memory (mip tail)
-		for (auto opaqueBind : texture.opaqueMemoryBinds)
-		{
-			vkFreeMemory(device, opaqueBind.memory, nullptr);
-		}
+		texture.destroy();
 	}
 
 	void buildCommandBuffers()
@@ -897,6 +931,41 @@ public:
 		updateTextOverlay();
 	}
 
+	// Clear all pages of the virtual texture
+	// todo: just for testing
+	void flushVirtualTexture()
+	{
+		vkDeviceWaitIdle(device);
+		for (auto& page : texture.pages)
+		{
+			page.release(device);
+		}
+		texture.updateSparseBindInfo();
+		vkQueueBindSparse(queue, 1, &texture.bindSparseInfo, VK_NULL_HANDLE);
+		//todo: use sparse bind semaphore
+		vkQueueWaitIdle(queue);
+	}
+
+	// Randomly fill pages
+	// todo: just for testing
+	void fillVirtualTexture()
+	{
+		vkDeviceWaitIdle(device);
+		std::default_random_engine rndEngine(std::random_device{}());
+		std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
+		for (auto& page : texture.pages)
+		{
+			if (rndDist(rndEngine) < 0.5f)
+			{
+				page.allocate(device, memoryTypeIndex);
+			}
+		}
+		texture.updateSparseBindInfo();
+		vkQueueBindSparse(queue, 1, &texture.bindSparseInfo, VK_NULL_HANDLE);
+		//todo: use sparse bind semaphore
+		vkQueueWaitIdle(queue);
+	}
+
 	virtual void keyPressed(uint32_t keyCode)
 	{
 		switch (keyCode)
@@ -908,6 +977,12 @@ public:
 		case KEY_KPSUB:
 		case GAMEPAD_BUTTON_L1:
 			changeLodBias(-0.1f);
+			break;
+		case KEY_F:
+			flushVirtualTexture();
+			break;
+		case KEY_N:
+			fillVirtualTexture();
 			break;
 		}
 	}
