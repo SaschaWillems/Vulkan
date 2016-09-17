@@ -197,6 +197,10 @@ public:
 	} texture;
 
 	struct {
+		vkTools::VulkanTexture source;
+	} textures;
+
+	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
@@ -230,18 +234,23 @@ public:
 	static VkPhysicalDeviceFeatures getEnabledFeatures()
 	{
 		VkPhysicalDeviceFeatures enabledFeatures = {};
-		enabledFeatures.shaderResourceResidency = VK_TRUE;
+		enabledFeatures.shaderResourceResidency = VK_TRUE;		
+		enabledFeatures.shaderResourceMinLod = VK_TRUE;
 		return enabledFeatures;
 	}
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION, getEnabledFeatures)
 	{
-		zoom = -2.5f;
-		rotation = { 0.0f, 15.0f, 0.0f };
-		title = "Vulkan Example - Sparse textures residency";
+		zoom = -1.3f; 
+		rotation = { 76.25f, 0.0f, 0.0f }; 
+		title = "Vulkan Example - Sparse texture residency";
 		enableTextOverlay = true;
 		std::cout.imbue(std::locale(""));
-		//todo: check if GPU supports sparse binding feature
+		// Check if the GPU supports sparse residency for 2D images
+		if (!vulkanDevice->features.sparseResidencyImage2D)
+		{
+			vkTools::exitFatal("Device does not support sparse residency for 2D images!", "Feature not supported");
+		}
 	}
 
 	~VulkanExample()
@@ -277,7 +286,7 @@ public:
 		texture.device = vulkanDevice->logicalDevice;
 		texture.width = width;
 		texture.height = height;
-		texture.mipLevels = floor(log2(std::max(width, height))) + 1; //todo
+		texture.mipLevels = floor(log2(std::max(width, height))) + 1; 
 		texture.layerCount = layerCount;
 		texture.format = format;
 
@@ -450,7 +459,7 @@ public:
 							if ((x % 2 == 1) || (y % 2 == 1))
 							{
 								// Allocate memory for this virtual page
-								newPage->allocate(device, memoryTypeIndex);
+								//newPage->allocate(device, memoryTypeIndex);
 							}
 
 							index++;
@@ -627,6 +636,11 @@ public:
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		VulkanExampleBase::submitFrame();
+	}
+
+	void loadAssets()
+	{
+		textureLoader->loadTextureArray(getAssetPath() + "textures/terrain_texturearray_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.source, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 	}
 
 	void generateQuad()
@@ -892,10 +906,11 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		loadAssets();
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		prepareSparseTexture(8192, 8192, 1, VK_FORMAT_R8G8B8A8_UNORM);
+		prepareSparseTexture(4096, 4096, 1, VK_FORMAT_R8G8B8A8_UNORM);
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
@@ -953,16 +968,74 @@ public:
 		vkDeviceWaitIdle(device);
 		std::default_random_engine rndEngine(std::random_device{}());
 		std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
+		// Fill random parts of the texture blitting from a source to the virtual texture
+		std::vector<VkImageBlit> imageBlits;
 		for (auto& page : texture.pages)
 		{
-			if (rndDist(rndEngine) < 0.5f)
+			if ((rndDist(rndEngine) < 0.5f) && (page.imageMemoryBind.memory == VK_NULL_HANDLE))
 			{
+				// Allocate page memory
 				page.allocate(device, memoryTypeIndex);
+
+				// Current mip level scaling
+				uint32_t scale = texture.width / (texture.width >> page.mipLevel);
+
+				for (uint32_t x = 0; x < scale; x++)
+				{
+					for (uint32_t y = 0; y < scale; y++)
+					{
+						// Image blit
+						VkImageBlit blit{};
+						// Source
+						blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+						blit.srcSubresource.baseArrayLayer = 1;
+						blit.srcSubresource.layerCount = 1;
+						blit.srcSubresource.mipLevel = 0;
+						blit.srcOffsets[0] = { 0, 0, 0 };
+						blit.srcOffsets[1] = { static_cast<int32_t>(textures.source.width), static_cast<int32_t>(textures.source.height), 1 };
+						// Dest
+						blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+						blit.dstSubresource.baseArrayLayer = 0;
+						blit.dstSubresource.layerCount = 1;
+						blit.dstSubresource.mipLevel = page.mipLevel;
+						blit.dstOffsets[0].x = static_cast<int32_t>(page.offset.x + x * 128 / scale);
+						blit.dstOffsets[0].y = static_cast<int32_t>(page.offset.y + y * 128 / scale);
+						blit.dstOffsets[0].z = 0;
+						blit.dstOffsets[1].x = static_cast<int32_t>(blit.dstOffsets[0].x + page.extent.width / scale);
+						blit.dstOffsets[1].y = static_cast<int32_t>(blit.dstOffsets[0].y + page.extent.height / scale);
+						blit.dstOffsets[1].z = 1;
+
+						imageBlits.push_back(blit);
+					}
+				}
 			}
 		}
+
+		// Update sparse queue binding
 		texture.updateSparseBindInfo();
 		vkQueueBindSparse(queue, 1, &texture.bindSparseInfo, VK_NULL_HANDLE);
 		//todo: use sparse bind semaphore
+		vkQueueWaitIdle(queue);
+
+		// Issue blit commands
+		if (imageBlits.size() > 0)
+		{
+			VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+			vkCmdBlitImage(
+				copyCmd,
+				textures.source.image,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				texture.image,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				static_cast<uint32_t>(imageBlits.size()),
+				imageBlits.data(),
+				VK_FILTER_LINEAR
+			);
+
+			vulkanDevice->flushCommandBuffer(copyCmd, queue);
+		}
+
 		vkQueueWaitIdle(queue);
 	}
 
@@ -989,12 +1062,15 @@ public:
 
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
+		uint32_t respages = 0;
+		std::for_each(texture.pages.begin(), texture.pages.end(), [&respages](VirtualTexturePage page) { respages += (page.imageMemoryBind.memory != VK_NULL_HANDLE) ? 1 :0; });
 		std::stringstream ss;
 		ss << std::setprecision(2) << std::fixed << uboVS.lodBias;
 #if defined(__ANDROID__)
-		textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+//		textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		//textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Resident pages: " + std::to_string(respages), 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 };
