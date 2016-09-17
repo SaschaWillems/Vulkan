@@ -89,6 +89,12 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\cubemap\reflect.frag" />
+    <None Include="..\data\shaders\cubemap\reflect.vert" />
+    <None Include="..\data\shaders\cubemap\skybox.frag" />
+    <None Include="..\data\shaders\cubemap\skybox.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

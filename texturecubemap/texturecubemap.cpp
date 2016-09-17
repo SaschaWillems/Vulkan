@@ -80,7 +80,7 @@ public:
 	{
 		zoom = -4.0f;
 		rotationSpeed = 0.25f;
-		rotation = { -7.25f, 120.0f, 0.0f };
+		rotation = { -7.25f, -120.0f, 0.0f };
 		enableTextOverlay = true;
 		title = "Vulkan Example - Cube map";
 	}
@@ -267,11 +267,16 @@ public:
 		sampler.addressModeV = sampler.addressModeU;
 		sampler.addressModeW = sampler.addressModeU;
 		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 8.0f;
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
 		sampler.maxLod = cubeMap.mipLevels;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		sampler.maxAnisotropy = 1.0f;
+		if (vulkanDevice->features.samplerAnisotropy)
+		{
+			sampler.maxAnisotropy = vulkanDevice->properties.limits.maxSamplerAnisotropy;
+			sampler.anisotropyEnable = VK_TRUE;
+		}
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &cubeMap.sampler));
 
 		// Create image view
