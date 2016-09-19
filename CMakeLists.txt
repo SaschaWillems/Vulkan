@@ -92,6 +92,7 @@ set(EXAMPLES
 	pushconstants
 	raytracing
 	radialblur
+	scenerendering
 	shadowmapping
 	shadowmappingomni
 	skeletalanimation
