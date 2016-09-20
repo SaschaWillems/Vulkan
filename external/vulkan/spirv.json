@@ -51,8 +51,8 @@
                 ]
             ],
             "MagicNumber": 119734787,
-            "Version": 65536,
-            "Revision": 6,
+            "Version": 65792,
+            "Revision": 3,
             "OpCodeMask": 65535,
             "WordCountShift": 16
         },
@@ -139,7 +139,11 @@
                     "OutputLineStrip": 28,
                     "OutputTriangleStrip": 29,
                     "VecTypeHint": 30,
-                    "ContractionOff": 31
+                    "ContractionOff": 31,
+                    "Initializer": 33,
+                    "Finalizer": 34,
+                    "SubgroupSize": 35,
+                    "SubgroupsPerWorkgroup": 36
                 }
             },
             {
@@ -413,7 +417,8 @@
                     "LinkageAttributes": 41,
                     "NoContraction": 42,
                     "InputAttachmentIndex": 43,
-                    "Alignment": 44
+                    "Alignment": 44,
+                    "MaxByteOffset": 45
                 }
             },
             {
@@ -479,7 +484,9 @@
                 "Values":
                 {
                     "Unroll": 0,
-                    "DontUnroll": 1
+                    "DontUnroll": 1,
+                    "DependencyInfinite": 2,
+                    "DependencyLength": 3
                 }
             },
             {
@@ -620,7 +627,10 @@
                     "GeometryStreams": 54,
                     "StorageImageReadWithoutFormat": 55,
                     "StorageImageWriteWithoutFormat": 56,
-                    "MultiViewport": 57
+                    "MultiViewport": 57,
+                    "SubgroupDispatch": 58,
+                    "NamedBarrier": 59,
+                    "PipeStorage": 60
                 }
             },
             {
@@ -921,7 +931,17 @@
                     "OpNoLine": 317,
                     "OpAtomicFlagTestAndSet": 318,
                     "OpAtomicFlagClear": 319,
-                    "OpImageSparseRead": 320
+                    "OpImageSparseRead": 320,
+                    "OpSizeOf": 321,
+                    "OpTypePipeStorage": 322,
+                    "OpConstantPipeStorage": 323,
+                    "OpCreatePipeFromPipeStorage": 324,
+                    "OpGetKernelLocalSizeForSubgroupCount": 325,
+                    "OpGetKernelMaxNumSubgroups": 326,
+                    "OpTypeNamedBarrier": 327,
+                    "OpNamedBarrierInitialize": 328,
+                    "OpMemoryNamedBarrier": 329,
+                    "OpModuleProcessed": 330
                 }
             }
         ]
