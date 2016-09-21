@@ -30,6 +30,7 @@ void main()
 {
 	outColor = inColor;
 	outUV = inUV * 32.0;
+	outNormal = inNormal;
 
 	vec4 pos = vec4(inPos.xyz, 1.0);
 
