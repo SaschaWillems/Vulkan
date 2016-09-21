@@ -139,7 +139,6 @@ namespace vk
 			attachment.format = createinfo.format;
 
 			VkImageAspectFlags aspectMask = VK_FLAGS_NONE;
-			VkImageLayout imageLayout;
 
 			// Select aspect mask and layout depending on usage
 
@@ -148,7 +147,6 @@ namespace vk
 			{
 				aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				imageLayout = (createinfo.usage & VK_IMAGE_USAGE_SAMPLED_BIT) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			}
 
 			// Depth (and/or stencil) attachment
@@ -163,7 +161,6 @@ namespace vk
 					aspectMask = aspectMask | VK_IMAGE_ASPECT_STENCIL_BIT;
 				}
 				attachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-				imageLayout = (createinfo.usage & VK_IMAGE_USAGE_SAMPLED_BIT) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			}
 
 			assert(aspectMask > 0);
@@ -218,11 +215,11 @@ namespace vk
 			// If not, final layout depends on attachment type
 			if (attachment.hasDepth() || attachment.hasStencil())
 			{
-				attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			}
 			else
 			{
-				attachment.description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				attachment.description.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
 
 			attachments.push_back(attachment);
