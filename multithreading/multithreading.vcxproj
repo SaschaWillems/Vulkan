@@ -23,6 +23,12 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\multithreading\phong.frag" />
+    <None Include="..\data\shaders\multithreading\phong.vert" />
+    <None Include="..\data\shaders\multithreading\starsphere.frag" />
+    <None Include="..\data\shaders\multithreading\starsphere.vert" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F5703C3C-F495-4D5C-BAA5-A90C4E20C7B7}</ProjectGuid>
     <RootNamespace>mesh</RootNamespace>
