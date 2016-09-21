@@ -571,7 +571,7 @@ public:
 			// Create device local target buffers
 			// Vertex buffer
 			vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				meshBuffer->vertices.size,
 				&meshBuffer->vertices.buf,
@@ -579,7 +579,7 @@ public:
 
 			// Index buffer
 			vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				meshBuffer->indices.size,
 				&meshBuffer->indices.buf,
