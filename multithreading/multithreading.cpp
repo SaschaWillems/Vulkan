@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <vector>
 #include <thread>
+#include <random>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -94,7 +95,6 @@ public:
 	};
 
 	struct ThreadData {
-		vkMeshLoader::MeshBuffer mesh;
 		VkCommandPool commandPool;
 		// One command buffer per render object
 		std::vector<VkCommandBuffer> commandBuffer;
@@ -138,7 +138,7 @@ public:
 
 		threadPool.setThreadCount(numThreads);
 
-		numObjectsPerThread = 256 / numThreads;
+		numObjectsPerThread = 512 / numThreads;
 	}
 
 	~VulkanExample()
@@ -160,7 +160,6 @@ public:
 		{
 			vkFreeCommandBuffers(device, thread.commandPool, thread.commandBuffer.size(), thread.commandBuffer.data());
 			vkDestroyCommandPool(device, thread.commandPool, nullptr);
-			vkMeshLoader::freeMeshBufferResources(device, &thread.mesh);
 		}
 
 		vkDestroyFence(device, renderFence, nullptr);
@@ -196,6 +195,9 @@ public:
 		uint32_t posX = 0;
 		uint32_t posZ = 0;
 
+		std::mt19937 rndGenerator((unsigned)time(NULL));
+		std::uniform_real_distribution<float> uniformDist(0.0f, 1.0f);
+
 		for (uint32_t i = 0; i < numThreads; i++)
 		{
 			ThreadData *thread = &threadData[i];
@@ -216,61 +218,14 @@ public:
 					thread->commandBuffer.size());
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &secondaryCmdBufAllocateInfo, thread->commandBuffer.data()));
 
-			// Unique vertex and index buffers per thread
-			createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				meshes.ufo.vertices.size,
-				nullptr,
-				&thread->mesh.vertices.buf,
-				&thread->mesh.vertices.mem);
-			createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				meshes.ufo.indices.size,
-				nullptr,
-				&thread->mesh.indices.buf,
-				&thread->mesh.indices.mem);
-
-			// Copy from mesh buffer
-			VkBufferCopy copyRegion = {};
-
-			// Vertex buffer
-			copyRegion.size = meshes.ufo.vertices.size;
-			vkCmdCopyBuffer(
-				setupCmdBuffer,
-				meshes.ufo.vertices.buf,
-				thread->mesh.vertices.buf,
-				1,
-				&copyRegion);
-			// Index buffer
-			copyRegion.size = meshes.ufo.indices.size;
-			vkCmdCopyBuffer(
-				setupCmdBuffer,
-				meshes.ufo.indices.buf,
-				thread->mesh.indices.buf,
-				1,
-				&copyRegion);
-
-			// todo : staging
-
-			thread->mesh.indexCount = meshes.ufo.indexCount;
-
 			thread->pushConstBlock.resize(numObjectsPerThread);
 			thread->objectData.resize(numObjectsPerThread);
 
-			float step = 360.0f / (float)(numThreads * numObjectsPerThread);
 			for (uint32_t j = 0; j < numObjectsPerThread; j++)
 			{
-				float radius = 8.0f + rnd(8.0f) - rnd(4.0f);
-
-				thread->objectData[j].pos.x = (posX - maxX / 2.0f) * 3.0f + rnd(1.5f) - rnd(1.5f);
-				thread->objectData[j].pos.z = (posZ - maxX / 2.0f) * 3.0f + rnd(1.5f) - rnd(1.5f);
-
-				posX += 1.0f;
-				if (posX >= maxX)
-				{
-					posX = 0.0f;
-					posZ += 1.0f;
-				}
+				float theta = 2.0f * float(M_PI) * uniformDist(rndGenerator);
+				float phi = acos(1.0f - 2.0f * uniformDist(rndGenerator));
+				thread->objectData[j].pos = glm::vec3(sin(phi) * cos(theta), 0.0f, cos(phi)) * 35.0f;
 
 				thread->objectData[j].rotation = glm::vec3(0.0f, rnd(360.0f), 0.0f);
 				thread->objectData[j].deltaT = rnd(1.0f);
@@ -281,10 +236,7 @@ public:
 				thread->pushConstBlock[j].color = glm::vec3(rnd(1.0f), rnd(1.0f), rnd(1.0f));
 			}
 		}
-		
-		// Submit buffer copies to the queue
-		flushSetupCommandBuffer();
-		// todo : fence?
+	
 	}
 
 	// Builds the secondary command buffer for each thread
@@ -347,9 +299,14 @@ public:
 			&thread->pushConstBlock[cmdBufferIndex]);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &thread->mesh.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(cmdBuffer, thread->mesh.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmdBuffer, thread->mesh.indexCount, 1, 0, 0, 0);
+		//vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &thread->mesh.vertices.buf, offsets);
+		//vkCmdBindIndexBuffer(cmdBuffer, thread->mesh.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+		//vkCmdDrawIndexed(cmdBuffer, thread->mesh.indexCount, 1, 0, 0, 0);
+
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &meshes.ufo.vertices.buf, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, meshes.ufo.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmdBuffer, meshes.ufo.indexCount, 1, 0, 0, 0);
+
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
