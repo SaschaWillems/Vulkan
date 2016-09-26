@@ -320,7 +320,7 @@ public:
 		frameBuffers.deferred->addAttachment(attachmentInfo);
 
 		// Create sampler to sample from the color attachments
-		VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+		VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 
 		// Create default renderpass for the framebuffer
 		VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass());
