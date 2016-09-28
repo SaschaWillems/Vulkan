@@ -49,6 +49,8 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	bool useSampleShading = false;
+
 	struct {
 		vkTools::VulkanTexture colorMap;
 	} textures;
@@ -74,7 +76,8 @@ public:
 	} uboVS;
 
 	struct {
-		VkPipeline solid;
+		VkPipeline MSAA;
+		VkPipeline MSAASampleShading;
 	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
@@ -94,7 +97,8 @@ public:
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(device, pipelines.MSAA, nullptr);
+		vkDestroyPipeline(device, pipelines.MSAASampleShading, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -353,6 +357,16 @@ public:
 		}
 	}
 
+	void reBuildCommandBuffers()
+	{
+		if (!checkCommandBuffers())
+		{
+			destroyCommandBuffers();
+			createCommandBuffers();
+		}
+		buildCommandBuffers();
+	}
+
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
@@ -386,7 +400,7 @@ public:
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, useSampleShading ? pipelines.MSAASampleShading : pipelines.MSAA);
 
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
@@ -571,11 +585,6 @@ public:
 		VkPipelineViewportStateCreateInfo viewportState =
 			vkTools::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 
-		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vkTools::initializers::pipelineMultisampleStateCreateInfo(
-				SAMPLE_COUNT,
-				0);
-
 		std::vector<VkDynamicState> dynamicStateEnables = {
 			VK_DYNAMIC_STATE_VIEWPORT,
 			VK_DYNAMIC_STATE_SCISSOR
@@ -586,18 +595,16 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Solid rendering pipeline
-		// Load shaders
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/mesh/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
 				renderPass,
 				0);
+
+		VkPipelineMultisampleStateCreateInfo multisampleState{};
+		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
@@ -610,7 +617,21 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		// MSAA rendering pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/mesh/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// Setup multi sampling
+		multisampleState.rasterizationSamples = SAMPLE_COUNT;		// Number of samples to use for rasterization
+		
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.MSAA));
+
+		// MSAA with sample shading pipeline
+		// Sample shading enables per-sample shading to avoid shader aliasing and smooth out e.g. high frequency texture maps
+		// Note: This will trade performance for are more stable image
+		multisampleState.sampleShadingEnable = VK_TRUE;				// Enable per-sample shading (instead of per-fragment)
+		multisampleState.minSampleShading = 0.25f;					// Minimum fraction for sample shading
+		
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.MSAASampleShading));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -688,6 +709,23 @@ public:
 	virtual void viewChanged()
 	{
 		updateUniformBuffers();
+	}
+
+	void toggleSampleShading()
+	{
+		useSampleShading = !useSampleShading;
+		reBuildCommandBuffers();
+	}
+
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case KEY_S:
+		case GAMEPAD_BUTTON_A:
+			toggleSampleShading();
+			break;
+		}
 	}
 };
 
