@@ -21,6 +21,7 @@ todos:
 #include <vector>
 #include <algorithm>
 #include <random>
+#include <chrono>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -31,6 +32,7 @@ todos:
 #include "vulkanexamplebase.h"
 #include "vulkandevice.hpp"
 #include "vulkanbuffer.hpp"
+#include "threadpool.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -40,6 +42,12 @@ struct Vertex {
 	float pos[3];
 	float uv[2];
 	float normal[3];
+};
+std::vector<vkMeshLoader::VertexLayout> vertexLayout =
+{
+	vkMeshLoader::VERTEX_LAYOUT_POSITION,
+	vkMeshLoader::VERTEX_LAYOUT_UV,
+	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
 };
 
 // Virtual texture page as a part of the partially resident texture
@@ -109,6 +117,7 @@ struct VirtualTexture
 	std::vector<VkSparseMemoryBind>	opaqueMemoryBinds;					// Sparse ópaque memory bindings for the mip tail (if present)
 	VkSparseImageMemoryBindInfo imageMemoryBindInfo;					// Sparse image memory bind info 
 	VkSparseImageOpaqueMemoryBindInfo opaqueMemoryBindInfo;				// Sparse image opaque memory bind info (mip tail)
+	uint32_t mipTailStart;												// First mip level in mip tail
 	
 	VirtualTexturePage* addPage(VkOffset3D offset, VkExtent3D extent, const VkDeviceSize size, const uint32_t mipLevel, uint32_t layer)
 	{
@@ -180,6 +189,9 @@ struct VirtualTexture
 };
 
 uint32_t memoryTypeIndex;
+int32_t lastFilledMip = 0;
+
+vkTools::ThreadPool threadPool;
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -199,6 +211,10 @@ public:
 	struct {
 		vkTools::VulkanTexture source;
 	} textures;
+
+	struct {
+		vkMeshLoader::MeshBuffer terrain;
+	} meshes;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -251,6 +267,14 @@ public:
 		{
 			vkTools::exitFatal("Device does not support sparse residency for 2D images!", "Feature not supported");
 		}
+		camera.type = Camera::CameraType::firstperson;
+		camera.movementSpeed = 5.0f;
+#ifndef __ANDROID__
+		camera.rotationSpeed = 0.25f;
+#endif
+		camera.position = { -6.0f, 0.75f, 6.0f };
+		camera.setRotation(glm::vec3(0.0f, 225.0f, 0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 	}
 
 	~VulkanExample()
@@ -295,10 +319,27 @@ public:
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 
 		// Get sparse image properties
-		std::vector<VkSparseImageFormatProperties> sparseProperties(32);
+		std::vector<VkSparseImageFormatProperties> sparseProperties;
 		// Sparse properties count for the desired format
 		uint32_t sparsePropertiesCount;
-		// todo: Temporary workaround, crashes in NV driver if last param is nullptr (to get just count)
+		vkGetPhysicalDeviceSparseImageFormatProperties(
+			physicalDevice,
+			format,
+			VK_IMAGE_TYPE_2D,
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_IMAGE_TILING_OPTIMAL,
+			&sparsePropertiesCount,
+			nullptr);
+		// Check if sparse is supported for this format
+		if (sparsePropertiesCount == 0)
+		{
+			std::cout << "Error: Requested format does not support sparse features!" << std::endl;
+			return;
+		}
+
+		// Get actual image format properties
+		sparseProperties.resize(sparsePropertiesCount);
 		vkGetPhysicalDeviceSparseImageFormatProperties(
 			physicalDevice,
 			format,
@@ -308,14 +349,6 @@ public:
 			VK_IMAGE_TILING_OPTIMAL,
 			&sparsePropertiesCount,
 			sparseProperties.data());
-		sparseProperties.resize(sparsePropertiesCount);
-
-		// Check if sparse is supported for this format
-		if (sparsePropertiesCount == 0)
-		{
-			std::cout << "Error: Requested format does not support sparse features!" << std::endl;
-			return;
-		}
 
 		std::cout << "Sparse image format properties: " << sparsePropertiesCount << std::endl;
 		for (auto props : sparseProperties)
@@ -343,6 +376,7 @@ public:
 
 		// Get memory requirements
 		VkMemoryRequirements sparseImageMemoryReqs;
+		// Sparse image memory requirement counts
 		vkGetImageMemoryRequirements(device, texture.image, &sparseImageMemoryReqs);
 
 		std::cout << "Image memory requirements:" << std::endl;
@@ -357,9 +391,9 @@ public:
 		};
 
 		// Get sparse memory requirements
+		// Count
 		uint32_t sparseMemoryReqsCount;
 		std::vector<VkSparseImageMemoryRequirements> sparseMemoryReqs(32);
-		// todo: Temporary workaround, crashes in NV driver if last param is nullptr (to get just count)
 		vkGetImageSparseMemoryRequirements(device, texture.image, &sparseMemoryReqsCount, sparseMemoryReqs.data());
 		if (sparseMemoryReqsCount == 0)
 		{
@@ -367,6 +401,8 @@ public:
 			return;
 		}
 		sparseMemoryReqs.resize(sparseMemoryReqsCount);
+		// Get actual requirements
+		vkGetImageSparseMemoryRequirements(device, texture.image, &sparseMemoryReqsCount, sparseMemoryReqs.data());
 
 		std::cout << "Sparse image memory requirements: " << sparseMemoryReqsCount << std::endl;
 		for (auto reqs : sparseMemoryReqs)
@@ -376,7 +412,11 @@ public:
 			std::cout << "\t Mip tail size: " << reqs.imageMipTailSize << std::endl;
 			std::cout << "\t Mip tail offset: " << reqs.imageMipTailOffset << std::endl;
 			std::cout << "\t Mip tail stride: " << reqs.imageMipTailStride << std::endl;
+			//todo:multiple reqs
+			texture.mipTailStart = reqs.imageMipTailFirstLod;
 		}
+		
+		lastFilledMip = texture.mipTailStart - 1;
 
 		// Get sparse image requirements for the color aspect
 		VkSparseImageMemoryRequirements sparseMemoryReq;
@@ -531,15 +571,16 @@ public:
 		sampler.magFilter = VK_FILTER_LINEAR;
 		sampler.minFilter = VK_FILTER_LINEAR;
 		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		sampler.mipLodBias = 0.0f;
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
 		sampler.maxLod = static_cast<float>(texture.mipLevels);
 		sampler.anisotropyEnable = vulkanDevice->features.samplerAnisotropy;
 		sampler.maxAnisotropy = vulkanDevice->features.samplerAnisotropy ? vulkanDevice->properties.limits.maxSamplerAnisotropy : 1.0f;
+		sampler.anisotropyEnable = false;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
 
@@ -577,7 +618,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
@@ -608,10 +649,13 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			//vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
+			//vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			//vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 
-			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.terrain.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.terrain.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.terrain.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -640,7 +684,8 @@ public:
 
 	void loadAssets()
 	{
-		textureLoader->loadTextureArray(getAssetPath() + "textures/terrain_texturearray_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.source, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		textureLoader->loadTexture(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.source, false, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		loadMesh(getAssetPath() + "models/terrain.dae", &meshes.terrain, vertexLayout, 1.0f);
 	}
 
 	void generateQuad()
@@ -648,10 +693,10 @@ public:
 		// Setup vertices for a single uv-mapped quad made from two triangles
 		std::vector<Vertex> vertices =
 		{
-			{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ {  1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
+			{ {  5.0f, 0.0f,  5.0f }, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ { -5.0f, 0.0f,  5.0f }, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ { -5.0f, 0.0f, -5.0f }, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {  5.0f, 0.0f, -5.0f }, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
 		};
 
 		// Setup indices
@@ -896,6 +941,10 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.model = camera.matrices.view;
+		//uboVS.model = glm::mat4();
+
 		uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
 
 		VK_CHECK_RESULT(uniformBufferVS.map());
@@ -910,7 +959,8 @@ public:
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		prepareSparseTexture(4096, 4096, 1, VK_FORMAT_R8G8B8A8_UNORM);
+		// Create a virtual texture with max. possible dimension (does not take up any VRAM yet)
+		prepareSparseTexture(8192, 8192, 1, VK_FORMAT_R8G8B8A8_UNORM);
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
@@ -959,20 +1009,19 @@ public:
 		vkQueueBindSparse(queue, 1, &texture.bindSparseInfo, VK_NULL_HANDLE);
 		//todo: use sparse bind semaphore
 		vkQueueWaitIdle(queue);
+		lastFilledMip = texture.mipTailStart - 1;
 	}
 
-	// Randomly fill pages
-	// todo: just for testing
-	void fillVirtualTexture()
+	// Fill a complete mip level
+	void fillVirtualTexture(uint32_t mipLevel)
 	{
 		vkDeviceWaitIdle(device);
 		std::default_random_engine rndEngine(std::random_device{}());
 		std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
-		// Fill random parts of the texture blitting from a source to the virtual texture
 		std::vector<VkImageBlit> imageBlits;
 		for (auto& page : texture.pages)
 		{
-			if ((rndDist(rndEngine) < 0.5f) && (page.imageMemoryBind.memory == VK_NULL_HANDLE))
+			if ((page.mipLevel == mipLevel) && /*(rndDist(rndEngine) < 0.5f) &&*/ (page.imageMemoryBind.memory == VK_NULL_HANDLE))
 			{
 				// Allocate page memory
 				page.allocate(device, memoryTypeIndex);
@@ -988,7 +1037,7 @@ public:
 						VkImageBlit blit{};
 						// Source
 						blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-						blit.srcSubresource.baseArrayLayer = 1;
+						blit.srcSubresource.baseArrayLayer = 0;
 						blit.srcSubresource.layerCount = 1;
 						blit.srcSubresource.mipLevel = 0;
 						blit.srcOffsets[0] = { 0, 0, 0 };
@@ -1020,6 +1069,8 @@ public:
 		// Issue blit commands
 		if (imageBlits.size() > 0)
 		{
+			auto tStart = std::chrono::high_resolution_clock::now();
+
 			VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 			vkCmdBlitImage(
@@ -1034,6 +1085,10 @@ public:
 			);
 
 			vulkanDevice->flushCommandBuffer(copyCmd, queue);
+
+			auto tEnd = std::chrono::high_resolution_clock::now();
+			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+			std::cout << "Image blits took " << tDiff << " ms" << std::endl;
 		}
 
 		vkQueueWaitIdle(queue);
@@ -1055,7 +1110,11 @@ public:
 			flushVirtualTexture();
 			break;
 		case KEY_N:
-			fillVirtualTexture();
+			if (lastFilledMip >= 0)
+			{
+				fillVirtualTexture(lastFilledMip);
+				lastFilledMip--;
+			}
 			break;
 		}
 	}
@@ -1070,7 +1129,7 @@ public:
 //		textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #else
 		//textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Resident pages: " + std::to_string(respages), 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Resident pages: " + std::to_string(respages) + " / " + std::to_string(texture.pages.size()), 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 };
