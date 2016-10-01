@@ -7,6 +7,9 @@ layout (binding = 1) uniform sampler2D samplerColor;
 
 layout (location = 0) in vec2 inUV;
 layout (location = 1) in float inLodBias;
+layout (location = 2) in vec3 inNormal;
+layout (location = 3) in vec3 inViewVec;
+layout (location = 4) in vec3 inLightVec;
 
 layout (location = 0) out vec4 outFragColor;
 
@@ -17,29 +20,26 @@ void main()
 	// Get residency code for current texel
 	int residencyCode = sparseTextureARB(samplerColor, inUV, color, inLodBias);
 
-//#define MIN_LOD
-#ifdef MIN_LOD
 	// Fetch sparse until we get a valid texel
-	// todo: does not work in SPIR-V with current drivers (will be fixed in a new release)
 	float minLod = 1.0;
 	while (!sparseTexelsResidentARB(residencyCode)) 
 	{
 		residencyCode = sparseTextureClampARB(samplerColor, inUV, minLod, color);
 		minLod += 1.0f;
 	} 
-#endif
+
 	// Check if texel is resident
 	bool texelResident = sparseTexelsResidentARB(residencyCode);
 
-	float lodClamp = 1.0f; 
-	if (texelResident)
-	{
-		color = texture(samplerColor, inUV, inLodBias);
-	}
-	else
+	if (!texelResident)
 	{
 		color = vec4(1.0, 0.0, 0.0, 0.0);
 	}
 
-	outFragColor = vec4(color.rgb, 1.0);	
+	vec3 N = normalize(inNormal);
+	vec3 L = normalize(inLightVec);
+	vec3 R = reflect(-L, N);
+	vec3 diffuse = max(dot(N, L), 0.25) * color.rgb;
+	outFragColor = vec4(diffuse, 1.0);	
+//	outFragColor = vec4(color.rgb, 1.0);	
 }
