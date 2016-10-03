@@ -44,6 +44,7 @@ namespace vk
 		{
 			uint32_t graphics;
 			uint32_t compute;
+			uint32_t transfer;
 		} queueFamilyIndices;
 
 		/**
@@ -148,12 +149,27 @@ namespace vk
 		*/
 		uint32_t getQueueFamiliyIndex(VkQueueFlagBits queueFlags)
 		{
-			// If a compute queue is requested, try to find a separate compute queue family from graphics first
+			// Dedicated queue for compute
+			// Try to find a queue family index that supports compute but not graphics
 			if (queueFlags & VK_QUEUE_COMPUTE_BIT)
 			{
 				for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
 				{
 					if ((queueFamilyProperties[i].queueFlags & queueFlags) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
+					{
+						return i;
+						break;
+					}
+				}
+			}
+
+			// Dedicated queue for transfer
+			// Try to find a queue family index that supports transfer but not graphics and compute
+			if (queueFlags & VK_QUEUE_TRANSFER_BIT)
+			{
+				for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
+				{
+					if ((queueFamilyProperties[i].queueFlags & queueFlags) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
 					{
 						return i;
 						break;
@@ -217,15 +233,13 @@ namespace vk
 				queueFamilyIndices.graphics = VK_NULL_HANDLE;
 			}
 
-			// Compute queue
+			// Dedicated compute queue
 			if (requestedQueueTypes & VK_QUEUE_COMPUTE_BIT)
 			{
 				queueFamilyIndices.compute = getQueueFamiliyIndex(VK_QUEUE_COMPUTE_BIT);
 				if (queueFamilyIndices.compute != queueFamilyIndices.graphics)
 				{
 					// If compute family index differs, we need an additional queue create info for the compute queue
-					//todo: possibly wrong for release due to scope
-					float queuePriority(0.0f);
 					VkDeviceQueueCreateInfo queueInfo{};
 					queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 					queueInfo.queueFamilyIndex = queueFamilyIndices.compute;
@@ -233,11 +247,32 @@ namespace vk
 					queueInfo.pQueuePriorities = &defaultQueuePriority;
 					queueCreateInfos.push_back(queueInfo);
 				}
-				// Else we use the same queue
 			}
 			else
 			{
-				queueFamilyIndices.compute = VK_NULL_HANDLE;
+				// Else we use the same queue
+				queueFamilyIndices.compute = queueFamilyIndices.graphics;
+			}
+
+			// Dedicated transfer queue
+			if (requestedQueueTypes & VK_QUEUE_TRANSFER_BIT)
+			{
+				queueFamilyIndices.transfer = getQueueFamiliyIndex(VK_QUEUE_TRANSFER_BIT);
+				if ((queueFamilyIndices.transfer != queueFamilyIndices.graphics) && (queueFamilyIndices.transfer != queueFamilyIndices.compute))
+				{
+					// If compute family index differs, we need an additional queue create info for the compute queue
+					VkDeviceQueueCreateInfo queueInfo{};
+					queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+					queueInfo.queueFamilyIndex = queueFamilyIndices.compute;
+					queueInfo.queueCount = 1;
+					queueInfo.pQueuePriorities = &defaultQueuePriority;
+					queueCreateInfos.push_back(queueInfo);
+				}
+			}
+			else
+			{
+				// Else we use the same queue
+				queueFamilyIndices.transfer = queueFamilyIndices.graphics;
 			}
 
 			// Create the logical device representation
