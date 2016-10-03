@@ -212,7 +212,7 @@ namespace vk
 
 			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
-			// Get queue family indices for graphics and compute
+			// Get queue family indices for the requested queue family types
 			// Note that the indices may overlap depending on the implementation
 
 			const float defaultQueuePriority(0.0f);
@@ -263,7 +263,7 @@ namespace vk
 					// If compute family index differs, we need an additional queue create info for the compute queue
 					VkDeviceQueueCreateInfo queueInfo{};
 					queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-					queueInfo.queueFamilyIndex = queueFamilyIndices.compute;
+					queueInfo.queueFamilyIndex = queueFamilyIndices.transfer;
 					queueInfo.queueCount = 1;
 					queueInfo.pQueuePriorities = &defaultQueuePriority;
 					queueCreateInfos.push_back(queueInfo);
