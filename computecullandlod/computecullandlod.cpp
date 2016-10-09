@@ -864,6 +864,7 @@ public:
 		switch (keyCode)
 		{
 		case KEY_F:
+		case GAMEPAD_BUTTON_A:
 			fixedFrustum = !fixedFrustum;
 			updateUniformBuffer(true);
 			break;
@@ -872,10 +873,15 @@ public:
 
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
-		textOverlay->addText("visible: " + std::to_string(indirectStats.drawCount), 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#if defined(__ANDROID__)
+		textOverlay->addText("\"Button A\" to freeze frustum", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#else
+		textOverlay->addText("\"f\" to freeze frustum", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#endif
+		textOverlay->addText("visible: " + std::to_string(indirectStats.drawCount), 5.0f, 110.0f, VulkanTextOverlay::alignLeft);
 		for (uint32_t i = 0; i < MAX_LOD_LEVEL + 1; i++)
 		{
-			textOverlay->addText("lod " + std::to_string(i) + ": " + std::to_string(indirectStats.lodCount[i]), 5.0f, 105.0f + (float)i * 20.0f, VulkanTextOverlay::alignLeft);
+			textOverlay->addText("lod " + std::to_string(i) + ": " + std::to_string(indirectStats.lodCount[i]), 5.0f, 125.0f + (float)i * 20.0f, VulkanTextOverlay::alignLeft);
 		}
 	}
 };
