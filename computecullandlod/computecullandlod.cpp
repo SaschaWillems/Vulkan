@@ -33,7 +33,7 @@
 #if defined(__ANDROID__)
 #define OBJECT_COUNT 32
 #else
-#define OBJECT_COUNT 96
+#define OBJECT_COUNT 64
 #endif
 
 #define MAX_LOD_LEVEL 5
@@ -43,7 +43,6 @@ std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 {
 	vkMeshLoader::VERTEX_LAYOUT_POSITION,
 	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
 	vkMeshLoader::VERTEX_LAYOUT_COLOR
 };
 
@@ -65,8 +64,6 @@ public:
 	// Per-instance data block
 	struct InstanceData {
 		glm::vec3 pos;
-		float texIndex;
-		glm::vec3 rot;
 		float scale;
 	};
 
@@ -258,21 +255,13 @@ public:
 				VK_FORMAT_R32G32B32_SFLOAT,
 				sizeof(float) * 3)
 			);
-		// Location 2 : Texture coordinates
+		// Location 2 : Color
 		vertices.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
-				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6)
-			);
-		// Location 3 : Color
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8)
+				sizeof(float) * 6)
 			);
 
 		// Instanced attributes
@@ -281,20 +270,10 @@ public:
 			vkTools::initializers::vertexInputAttributeDescription(
 				INSTANCE_BUFFER_BIND_ID, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, pos))
 			);
-		// Location 5: Rotation
+		// Location 5: Scale
 		vertices.attributeDescriptions.push_back(
 			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, rot))
-			);
-		// Location 6: Scale
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 6, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, scale))
-			);
-		// Location 7: Texture array layer index
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 7, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, texIndex))
+				INSTANCE_BUFFER_BIND_ID, 5, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, scale))
 			);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
@@ -561,7 +540,6 @@ public:
 					uint32_t index = x + y * OBJECT_COUNT + z * OBJECT_COUNT * OBJECT_COUNT;
 					instanceData[index].pos = glm::vec3((float)x, (float)y, (float)z) - glm::vec3((float)OBJECT_COUNT / 2.0f);
 					instanceData[index].scale = 2.0f;
-					instanceData[index].rot = glm::vec3(0.0f);
 				}
 			}
 		}

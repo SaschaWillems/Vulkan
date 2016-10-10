@@ -7,8 +7,8 @@ layout (constant_id = 0) const int MAX_LOD_LEVEL = 5;
 
 struct InstanceData 
 {
-	vec4 pos;
-	vec4 rot;
+	vec3 pos;
+	float scale;
 };
 
 // Binding 0: Instance input data for culling
