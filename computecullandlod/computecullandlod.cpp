@@ -33,7 +33,7 @@
 #if defined(__ANDROID__)
 #define OBJECT_COUNT 32
 #else
-#define OBJECT_COUNT 64
+#define OBJECT_COUNT 96
 #endif
 
 #define MAX_LOD_LEVEL 5
@@ -227,25 +227,15 @@ public:
 
 	void setupVertexDescriptions()
 	{
-		// Binding description
 		vertices.bindingDescriptions.resize(2);
 
-		// Mesh vertex buffer (description) at binding point 0
+		// Binding 0: Per vertex
 		vertices.bindingDescriptions[0] =
-			vkTools::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
-				// Input rate for the data passed to shader
-				// Step for each vertex rendered
-				VK_VERTEX_INPUT_RATE_VERTEX);
+			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vkMeshLoader::vertexSize(vertexLayout), VK_VERTEX_INPUT_RATE_VERTEX);
 
-		vertices.bindingDescriptions[1] =
-			vkTools::initializers::vertexInputBindingDescription(
-				INSTANCE_BUFFER_BIND_ID,
-				sizeof(InstanceData), 
-				// Input rate for the data passed to shader
-				// Step for each instance rendered
-				VK_VERTEX_INPUT_RATE_INSTANCE);
+		// Binding 1: Per instance
+		vertices.bindingDescriptions[1] = 
+			vkTools::initializers::vertexInputBindingDescription(INSTANCE_BUFFER_BIND_ID, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE);
 
 		// Attribute descriptions
 		// Describes memory layout and shader positions
@@ -320,7 +310,7 @@ public:
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffer, &cmdBufInfo));
 
-		// Add memory barrier to ensure that the (graphics) vertex shader has fetched attributes before compute starts to write to the buffer
+		// Add memory barrier to ensure that the indirect commands have been consumed before the compute shader updates them
 		VkBufferMemoryBarrier bufferBarrier = vkTools::initializers::bufferMemoryBarrier();
 		bufferBarrier.buffer = indirectCommandsBuffer.buffer;
 		bufferBarrier.size = indirectCommandsBuffer.descriptor.range;
@@ -331,7 +321,7 @@ public:
 
 		vkCmdPipelineBarrier(
 			compute.commandBuffer,
-			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 			VK_FLAGS_NONE,
 			0, nullptr,
@@ -344,10 +334,11 @@ public:
 		// Dispatch the compute job
 		// The compute shader will do the frustum culling and adjust the indirect draw calls depending on object visibility. 
 		// It also determines the lod to use depending on distance to the viewer.
-		vkCmdDispatch(compute.commandBuffer, indirectStats.drawCount / 16, 1, 1);
+		vkCmdDispatch(compute.commandBuffer, objectCount / 16, 1, 1);
 
-		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;							
-		bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+		// Add memory barrier to ensure that the compute shader has finished writing the indirect command buffer before it's consumed
+		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+		bufferBarrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
 		bufferBarrier.buffer = indirectCommandsBuffer.buffer;
 		bufferBarrier.size = indirectCommandsBuffer.descriptor.range;
 		bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
@@ -356,7 +347,7 @@ public:
 		vkCmdPipelineBarrier(
 			compute.commandBuffer,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
 			VK_FLAGS_NONE,
 			0, nullptr,
 			1, &bufferBarrier,
