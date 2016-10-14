@@ -115,6 +115,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "deferredmultisampling", "de
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "computecullandlod", "computecullandlod\computecullandlod.vcxproj", "{8418A364-3D1C-4938-A2CC-C1D1433039F2}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "subpasses", "subpasses\subpasses.vcxproj", "{DE1DEF4B-307E-45C2-90CC-8023327294E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -285,6 +287,10 @@ Global
 		{8418A364-3D1C-4938-A2CC-C1D1433039F2}.Debug|x64.Build.0 = Debug|x64
 		{8418A364-3D1C-4938-A2CC-C1D1433039F2}.Release|x64.ActiveCfg = Release|x64
 		{8418A364-3D1C-4938-A2CC-C1D1433039F2}.Release|x64.Build.0 = Release|x64
+		{DE1DEF4B-307E-45C2-90CC-8023327294E2}.Debug|x64.ActiveCfg = Debug|x64
+		{DE1DEF4B-307E-45C2-90CC-8023327294E2}.Debug|x64.Build.0 = Debug|x64
+		{DE1DEF4B-307E-45C2-90CC-8023327294E2}.Release|x64.ActiveCfg = Release|x64
+		{DE1DEF4B-307E-45C2-90CC-8023327294E2}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
