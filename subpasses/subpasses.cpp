@@ -121,8 +121,6 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		// Frame buffer
-
 		// Color attachments
 		vkDestroyImageView(device, attachments.position.view, nullptr);
 		vkDestroyImage(device, attachments.position.image, nullptr);
@@ -137,10 +135,13 @@ public:
 		vkFreeMemory(device, attachments.albedo.mem, nullptr);
 
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
-
+		vkDestroyPipeline(device, composition.pipeline, nullptr);
+	
 		vkDestroyPipelineLayout(device, pipelineLayouts.offscreen, nullptr);
+		vkDestroyPipelineLayout(device, composition.pipelineLayout, nullptr);
 
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, composition.descriptorSetLayout, nullptr);
 
 		// Meshes
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.scene);
@@ -616,6 +617,7 @@ public:
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
+		pipelineCreateInfo.subpass = 0;
 
 		std::array<VkPipelineColorBlendAttachmentState, 4> blendAttachmentStates = {
 			vkTools::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
@@ -742,16 +744,6 @@ public:
 		VkPipelineColorBlendStateCreateInfo colorBlendState =
 			vkTools::initializers::pipelineColorBlendStateCreateInfo(1,	&blendAttachmentState);
 
-		std::array<VkPipelineColorBlendAttachmentState, 4> blendAttachmentStates = {
-			vkTools::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-			vkTools::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-			vkTools::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-			vkTools::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-		};
-
-		colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());
-		colorBlendState.pAttachments = blendAttachmentStates.data();
-
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
 			vkTools::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 
@@ -802,6 +794,8 @@ public:
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
+		// Index of the subpass that this pipeline will be used in
+		pipelineCreateInfo.subpass = 1;
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &composition.pipeline));
 	}
