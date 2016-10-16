@@ -1091,19 +1091,19 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	case WM_SIZE:
 		if ((prepared) && (wParam != SIZE_MINIMIZED))
 		{
-			destWidth = LOWORD(lParam);
-			destHeight = HIWORD(lParam);
-			if ((wParam == SIZE_MAXIMIZED) || (wParam == SIZE_MINIMIZED))
+			if ((resizing) || ((wParam == SIZE_MAXIMIZED) || (wParam == SIZE_RESTORED)))
 			{
+				destWidth = LOWORD(lParam);
+				destHeight = HIWORD(lParam);
 				windowResize();
 			}
 		}
 		break;
+	case WM_ENTERSIZEMOVE:
+		resizing = true;
+		break;
 	case WM_EXITSIZEMOVE:
-		if ((prepared) && ((destWidth != width) || (destHeight != height)))
-		{
-			windowResize();
-		}
+		resizing = false;
 		break;
 	}
 }

@@ -68,6 +68,7 @@ private:
 	// Destination dimensions for resizing the window
 	uint32_t destWidth;
 	uint32_t destHeight;
+	bool resizing = false;
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 protected:
