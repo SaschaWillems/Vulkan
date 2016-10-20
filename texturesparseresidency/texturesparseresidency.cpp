@@ -32,7 +32,7 @@ todos:
 #include "vulkanexamplebase.h"
 #include "vulkandevice.hpp"
 #include "vulkanbuffer.hpp"
-#include "threadpool.hpp"
+#include "vulkanheightmap.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -40,14 +40,14 @@ todos:
 // Vertex layout for this example
 struct Vertex {
 	float pos[3];
-	float uv[2];
 	float normal[3];
+	float uv[2];
 };
 std::vector<vkMeshLoader::VertexLayout> vertexLayout =
 {
 	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
 	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
+	vkMeshLoader::VERTEX_LAYOUT_UV,
 };
 
 // Virtual texture page as a part of the partially resident texture
@@ -138,10 +138,12 @@ struct VirtualTexture
 	void updateSparseBindInfo()
 	{
 		// Update list of memory-backed sparse image memory binds
-		sparseImageMemoryBinds.clear();
+		sparseImageMemoryBinds.resize(pages.size());
+		uint32_t index = 0;
 		for (auto page : pages)
 		{
-			sparseImageMemoryBinds.push_back(page.imageMemoryBind);
+			sparseImageMemoryBinds[index] = page.imageMemoryBind;
+			index++;
 		}
 		// Update sparse bind info
 		bindSparseInfo = vkTools::initializers::bindSparseInfo();
@@ -162,16 +164,6 @@ struct VirtualTexture
 		opaqueMemoryBindInfo.pBinds = opaqueMemoryBinds.data();
 		bindSparseInfo.imageOpaqueBindCount = (opaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
 		bindSparseInfo.pImageOpaqueBinds = &opaqueMemoryBindInfo;
-
-		uint32_t memBackedPages(0);
-		for (auto page : pages)
-		{
-			if (page.imageMemoryBind.memory != VK_NULL_HANDLE)
-			{
-				memBackedPages++;
-			}
-		}
-		std::cout << "Bound " << memBackedPages << " memory backed virtual pages " << std::endl;
 	}
 
 	// Release all Vulkan resources
@@ -190,8 +182,6 @@ struct VirtualTexture
 
 uint32_t memoryTypeIndex;
 int32_t lastFilledMip = 0;
-
-vkTools::ThreadPool threadPool;
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -212,9 +202,7 @@ public:
 		vkTools::VulkanTexture source;
 	} textures;
 
-	struct {
-		vkMeshLoader::MeshBuffer terrain;
-	} meshes;
+	vkTools::HeightMap *heightMap = nullptr;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -222,8 +210,6 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	vk::Buffer vertexBuffer;
-	vk::Buffer indexBuffer;
 	uint32_t indexCount;
 
 	vk::Buffer uniformBufferVS;
@@ -268,19 +254,22 @@ public:
 			vkTools::exitFatal("Device does not support sparse residency for 2D images!", "Feature not supported");
 		}
 		camera.type = Camera::CameraType::firstperson;
-		camera.movementSpeed = 5.0f;
+		camera.movementSpeed = 50.0f;
 #ifndef __ANDROID__
 		camera.rotationSpeed = 0.25f;
 #endif
-		camera.position = { -6.0f, 0.75f, 6.0f };
-		camera.setRotation(glm::vec3(0.0f, 225.0f, 0.0f));
-		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
+		camera.position = { 84.5f, 40.5f, 225.0f };
+		camera.setRotation(glm::vec3(-8.5f, -200.0f, 0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 1024.0f);
 	}
 
 	~VulkanExample()
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
+
+		if (heightMap)
+			delete heightMap;
 
 		destroyTextureImage(texture);
 
@@ -291,8 +280,6 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vertexBuffer.destroy();
-		indexBuffer.destroy();
 		uniformBufferVS.destroy();
 	}
 
@@ -599,9 +586,12 @@ public:
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
 
 		// Fill image descriptor image info that can be used during the descriptor set setup
-		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		texture.descriptor.imageView = texture.view;
 		texture.descriptor.sampler = texture.sampler;
+
+		// Fill smallest (non-tail) mip map leve
+		fillVirtualTexture(lastFilledMip);
 	}
 
 	// Free all Vulkan resources used a texture object
@@ -649,13 +639,9 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
-			//vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
-			//vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-			//vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
-
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.terrain.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.terrain.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.terrain.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &heightMap->vertexBuffer.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], heightMap->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], heightMap->indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -685,40 +671,17 @@ public:
 	void loadAssets()
 	{
 		textureLoader->loadTexture(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.source, false, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-		loadMesh(getAssetPath() + "models/terrain.dae", &meshes.terrain, vertexLayout, 1.0f);
 	}
 
-	void generateQuad()
+	// Generate a terrain quad patch for feeding to the tessellation control shader
+	void generateTerrain()
 	{
-		// Setup vertices for a single uv-mapped quad made from two triangles
-		std::vector<Vertex> vertices =
-		{
-			{ {  5.0f, 0.0f,  5.0f }, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ { -5.0f, 0.0f,  5.0f }, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ { -5.0f, 0.0f, -5.0f }, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ {  5.0f, 0.0f, -5.0f }, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
-		};
-
-		// Setup indices
-		std::vector<uint32_t> indices = { 0,1,2, 2,3,0 };
-		indexCount = static_cast<uint32_t>(indices.size());
-
-		// Create buffers
-		// For the sake of simplicity we won't stage the vertex data to the gpu memory
-		// Vertex buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&vertexBuffer,
-			vertices.size() * sizeof(Vertex),
-			vertices.data()));
-		// Index buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&indexBuffer,
-			indices.size() * sizeof(uint32_t),
-			indices.data()));
+		heightMap = new vkTools::HeightMap(vulkanDevice, queue);
+#if defined(__ANDROID__)
+		heightMap->loadFromFile(getAssetPath() + "textures/terrain_heightmap_r16.ktx", 128, glm::vec3(2.0f, 48.0f, 2.0f), vkTools::HeightMap::topologyTriangles, androidApp->activity->assetManager);
+#else
+		heightMap->loadFromFile(getAssetPath() + "textures/terrain_heightmap_r16.ktx", 128, glm::vec3(2.0f, 48.0f, 2.0f), vkTools::HeightMap::topologyTriangles);
+#endif
 	}
 
 	void setupVertexDescriptions()
@@ -741,20 +704,20 @@ public:
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
 				offsetof(Vertex, pos));			
-		// Location 1 : Texture coordinates
+		// Location 1 : Vertex normal
 		vertices.attributeDescriptions[1] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				1,
-				VK_FORMAT_R32G32_SFLOAT,
-				offsetof(Vertex, uv));
-		// Location 1 : Vertex normal
+				VK_FORMAT_R32G32B32_SFLOAT,
+				offsetof(Vertex, normal));
+		// Location 1 : Texture coordinates
 		vertices.attributeDescriptions[2] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, normal));
+				VK_FORMAT_R32G32_SFLOAT,
+				offsetof(Vertex, uv));
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
 		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
@@ -852,7 +815,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
+				VK_CULL_MODE_BACK_BIT,
 				VK_FRONT_FACE_COUNTER_CLOCKWISE,
 				0);
 
@@ -956,7 +919,7 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
-		generateQuad();
+		generateTerrain();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		// Create a virtual texture with max. possible dimension (does not take up any VRAM yet)
@@ -1013,7 +976,7 @@ public:
 	}
 
 	// Fill a complete mip level
-	void fillVirtualTexture(uint32_t mipLevel)
+	void fillVirtualTexture(int32_t &mipLevel)
 	{
 		vkDeviceWaitIdle(device);
 		std::default_random_engine rndEngine(std::random_device{}());
@@ -1092,6 +1055,8 @@ public:
 		}
 
 		vkQueueWaitIdle(queue);
+
+		mipLevel--;
 	}
 
 	virtual void keyPressed(uint32_t keyCode)
@@ -1113,7 +1078,6 @@ public:
 			if (lastFilledMip >= 0)
 			{
 				fillVirtualTexture(lastFilledMip);
-				lastFilledMip--;
 			}
 			break;
 		}
@@ -1130,6 +1094,7 @@ public:
 #else
 		//textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("Resident pages: " + std::to_string(respages) + " / " + std::to_string(texture.pages.size()), 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"n\" to fill next mip level (" + std::to_string(lastFilledMip) + ")", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 };

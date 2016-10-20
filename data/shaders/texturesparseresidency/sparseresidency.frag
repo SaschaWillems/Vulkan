@@ -37,9 +37,11 @@ void main()
 	}
 
 	vec3 N = normalize(inNormal);
+
+	N = normalize((inNormal - 0.5) * 2.0);
+
 	vec3 L = normalize(inLightVec);
 	vec3 R = reflect(-L, N);
 	vec3 diffuse = max(dot(N, L), 0.25) * color.rgb;
 	outFragColor = vec4(diffuse, 1.0);	
-//	outFragColor = vec4(color.rgb, 1.0);	
 }
