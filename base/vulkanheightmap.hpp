@@ -67,9 +67,9 @@ namespace vkTools
 		}
 
 #if defined(__ANDROID__)
-		void loadFromFile(const std::string filename, uint32_t patchsize, float heightScale, Topology topology, AAssetManager* assetManager)
+		void loadFromFile(const std::string filename, uint32_t patchsize, glm::vec3 scale, Topology topology, AAssetManager* assetManager)
 #else
-		void loadFromFile(const std::string filename, uint32_t patchsize, float heightScale, Topology topology)
+		void loadFromFile(const std::string filename, uint32_t patchsize, glm::vec3 scale, Topology topology)
 #endif
 		{
 			assert(device);
@@ -92,7 +92,7 @@ namespace vkTools
 			heightdata = new uint16_t[dim * dim];
 			memcpy(heightdata, heightTex.data(), heightTex.size());
 			this->scale = dim / patchsize;
-			this->heightScale = heightScale;
+			this->heightScale = scale.y;
 
 			// Generate vertices
 
@@ -106,9 +106,9 @@ namespace vkTools
 				for (uint32_t y = 0; y < patchsize; y++)
 				{
 					uint32_t index = (x + y * patchsize);
-					vertices[index].pos[0] = x * wx + wx / 2.0f - (float)patchsize * wx / 2.0f;
+					vertices[index].pos[0] = (x * wx + wx / 2.0f - (float)patchsize * wx / 2.0f) * scale.x;
 					vertices[index].pos[1] = -getHeight(x, y);
-					vertices[index].pos[2] = y * wy + wy / 2.0f - (float)patchsize * wy / 2.0f;
+					vertices[index].pos[2] = (y * wy + wy / 2.0f - (float)patchsize * wy / 2.0f) * scale.z;
 					vertices[index].uv = glm::vec2((float)x / patchsize, (float)y / patchsize) * uvScale;
 				}
 			}
