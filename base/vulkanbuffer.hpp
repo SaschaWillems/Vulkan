@@ -89,6 +89,19 @@ namespace vk
 			descriptor.range = size;
 		}
 
+		/**
+		* Copies the specified data to the mapped buffer
+		* 
+		* @param data Pointer to the data to copy
+		* @param size Size of the data to copy in machine units
+		*
+		*/
+		void copyTo(void* data, VkDeviceSize size)
+		{
+			assert(mapped);
+			memcpy(mapped, data, size);
+		}
+
 		/** 
 		* Flush a memory range of the buffer to make it visible to the device
 		*
