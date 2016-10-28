@@ -89,6 +89,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Base", "Base", "{09B9A54B-F
 		base\vulkanframebuffer.hpp = base\vulkanframebuffer.hpp
 		base\vulkanheightmap.hpp = base\vulkanheightmap.hpp
 		base\vulkanMeshLoader.hpp = base\vulkanMeshLoader.hpp
+		base\vulkanscene.hpp = base\vulkanscene.hpp
 		base\vulkanswapchain.hpp = base\vulkanswapchain.hpp
 		base\vulkantextoverlay.hpp = base\vulkantextoverlay.hpp
 		base\vulkanTextureLoader.hpp = base\vulkanTextureLoader.hpp
@@ -117,6 +118,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "computecullandlod", "computecullandlod\computecullandlod.vcxproj", "{8418A364-3D1C-4938-A2CC-C1D1433039F2}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "subpasses", "subpasses\subpasses.vcxproj", "{DE1DEF4B-307E-45C2-90CC-8023327294E2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ssao", "ssao\ssao.vcxproj", "{43FCECF5-F5E1-45DB-972A-73942D459C0A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -292,6 +295,10 @@ Global
 		{DE1DEF4B-307E-45C2-90CC-8023327294E2}.Debug|x64.Build.0 = Debug|x64
 		{DE1DEF4B-307E-45C2-90CC-8023327294E2}.Release|x64.ActiveCfg = Release|x64
 		{DE1DEF4B-307E-45C2-90CC-8023327294E2}.Release|x64.Build.0 = Release|x64
+		{43FCECF5-F5E1-45DB-972A-73942D459C0A}.Debug|x64.ActiveCfg = Debug|x64
+		{43FCECF5-F5E1-45DB-972A-73942D459C0A}.Debug|x64.Build.0 = Debug|x64
+		{43FCECF5-F5E1-45DB-972A-73942D459C0A}.Release|x64.ActiveCfg = Release|x64
+		{43FCECF5-F5E1-45DB-972A-73942D459C0A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
