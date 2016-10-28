@@ -23,6 +23,7 @@
 #else
 #endif
 
+#include "glfw.hpp"
 #include <vulkan/vulkan.h>
 #include "vulkantools.h"
 
@@ -101,17 +102,13 @@ public:
 	* @note Targets other than XCB ar not yet supported
 	*/
 	void initSurface(
-#ifdef _WIN32
-		void* platformHandle, void* platformWindow
-#else
 #ifdef __ANDROID__
 		ANativeWindow* window
 #else
 #ifdef _DIRECT2DISPLAY
 	uint32_t width, uint32_t height
 #else
-	xcb_connection_t* connection, xcb_window_t window
-#endif
+                GLFWwindow* window
 #endif
 #endif
 	)
@@ -119,13 +116,6 @@ public:
 		VkResult err;
 
 		// Create the os-specific surface
-#ifdef _WIN32
-		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-		surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle;
-		surfaceCreateInfo.hwnd = (HWND)platformWindow;
-		err = vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#else
 #ifdef __ANDROID__
 		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
@@ -135,12 +125,7 @@ public:
 #if defined(_DIRECT2DISPLAY)
 		createDirect2DisplaySurface(width, height);
 #else
-		VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-		surfaceCreateInfo.connection = connection;
-		surfaceCreateInfo.window = window;
-		err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#endif
+                                err = glfwCreateWindowSurface(instance, window, nullptr, &surface);
 #endif
 #endif
 
