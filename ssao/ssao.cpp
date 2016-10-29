@@ -159,9 +159,9 @@ public:
 #ifndef __ANDROID__
 		camera.rotationSpeed = 0.25f;
 #endif
-		camera.position = { 1.9f, 2.6f, -9.25f };
-		camera.setRotation(glm::vec3(-15.5f, 10.75f, 0.0f));
-		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 50.0f);
+		camera.position = { 7.5f, -6.75f, 0.0f };
+		camera.setRotation(glm::vec3(5.0f, 90.0f, 0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 64.0f);
 	}
 
 	~VulkanExample()
@@ -238,8 +238,8 @@ public:
 		VkImageCreateInfo image = vkTools::initializers::imageCreateInfo();
 		image.imageType = VK_IMAGE_TYPE_2D;
 		image.format = format;
-		image.extent.width = frameBuffers.offscreen.width;
-		image.extent.height = frameBuffers.offscreen.height;
+		image.extent.width = width;
+		image.extent.height = height;
 		image.extent.depth = 1;
 		image.mipLevels = 1;
 		image.arrayLayers = 1;
@@ -274,7 +274,7 @@ public:
 	{
 		// Attachments
 		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
+		
 		frameBuffers.offscreen.setSize(width, height);
 		frameBuffers.ssao.setSize(width, height);
 		frameBuffers.ssaoBlur.setSize(width, height);
@@ -285,7 +285,7 @@ public:
 		assert(validDepthFormat);
 
 		// G-Buffer 
-		createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.position, layoutCmd);	// Position + Depth
+		createAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.position, layoutCmd);	// Position + Depth
 		createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.normal, layoutCmd);			// Normals
 		createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.albedo, layoutCmd);			// Albedo (color)
 		createAttachment(attDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &frameBuffers.offscreen.depth, layoutCmd);			// Depth
@@ -496,7 +496,6 @@ public:
 		}
 
 		// Shared sampler used for all color attachments
-		// todo: separate for nearest (G-Buffer) an linear (ssao, blur, etc.)
 		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
 		sampler.magFilter = VK_FILTER_NEAREST;
 		sampler.minFilter = VK_FILTER_NEAREST;
@@ -618,10 +617,10 @@ public:
 	void loadAssets()
 	{
 		vkMeshLoader::MeshCreateInfo meshCreateInfo;
-		meshCreateInfo.scale = glm::vec3(1.0f);
+		meshCreateInfo.scale = glm::vec3(0.5f);
 		meshCreateInfo.uvscale = glm::vec2(1.0f);
 		meshCreateInfo.center = glm::vec3(0.0f, 0.0f, 0.0f);
-		loadMesh(getAssetPath() + "models/treasure_smooth.dae", &meshes.scene, vertexLayout, &meshCreateInfo);
+		loadMesh(getAssetPath() + "models/sibenik/sibenik.dae", &meshes.scene, vertexLayout, &meshCreateInfo);
 	}
 
 	void reBuildCommandBuffers()
@@ -994,7 +993,7 @@ public:
 		// SSAO
 		std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 		std::random_device rndDev;
-		std::default_random_engine rndGen(rndDev());
+		std::default_random_engine rndGen;
 
 		// Sample kernel
 		std::vector<glm::vec4> ssaoKernel(SSAO_KERNEL_SIZE);
@@ -1023,7 +1022,7 @@ public:
 			ssaoNoise[i] = glm::vec4(rndDist(rndGen) * 2.0f - 1.0f, rndDist(rndGen) * 2.0f - 1.0f, 0.0f, 0.0f);
 		}
 		// Upload as texture
-		textureLoader->createTexture(ssaoNoise.data(), ssaoNoise.size() * sizeof(glm::vec4), VK_FORMAT_R32G32B32A32_SFLOAT, SSAO_NOISE_DIM, SSAO_NOISE_DIM, &textures.ssaoNoise, VK_FILTER_LINEAR);
+		textureLoader->createTexture(ssaoNoise.data(), ssaoNoise.size() * sizeof(glm::vec4), VK_FORMAT_R32G32B32A32_SFLOAT, SSAO_NOISE_DIM, SSAO_NOISE_DIM, &textures.ssaoNoise, VK_FILTER_NEAREST);
 	}
 
 	void updateUniformBufferMatrices()

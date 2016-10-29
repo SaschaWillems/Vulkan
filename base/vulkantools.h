@@ -189,7 +189,9 @@ namespace vkTools
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(
 			const VkDescriptorSetLayout* pSetLayouts,
-			uint32_t setLayoutCount	);
+			uint32_t setLayoutCount);
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(
+			uint32_t setLayoutCount = 1);
 
 		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo(
 			VkDescriptorPool descriptorPool,

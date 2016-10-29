@@ -13,7 +13,7 @@ layout (location = 1) out vec4 outNormal;
 layout (location = 2) out vec4 outAlbedo;
 
 const float NEAR_PLANE = 0.1f; //todo: specialization const
-const float FAR_PLANE = 50.0f; //todo: specialization const 
+const float FAR_PLANE = 64.0f; //todo: specialization const 
 
 float linearDepth(float depth)
 {

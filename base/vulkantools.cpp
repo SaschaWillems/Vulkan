@@ -665,6 +665,15 @@ VkPipelineLayoutCreateInfo vkTools::initializers::pipelineLayoutCreateInfo(
 	return pipelineLayoutCreateInfo;
 }
 
+VkPipelineLayoutCreateInfo vkTools::initializers::pipelineLayoutCreateInfo(
+	uint32_t setLayoutCount)
+{
+	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
+	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutCreateInfo.setLayoutCount = setLayoutCount;
+	return pipelineLayoutCreateInfo;
+}
+
 VkDescriptorSetAllocateInfo vkTools::initializers::descriptorSetAllocateInfo(
 	VkDescriptorPool descriptorPool,
 	const VkDescriptorSetLayout* pSetLayouts,

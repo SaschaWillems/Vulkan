@@ -23,12 +23,14 @@ layout (location = 0) out vec4 outFragColor;
 void main() 
 {
 	vec3 fragPos = texture(samplerposition, inUV).rgb;
-	vec3 normal = texture(samplerNormal, inUV).rgb;
+	vec3 normal = normalize(texture(samplerNormal, inUV).rgb * 2.0 - 1.0);
 	vec4 albedo = texture(samplerAlbedo, inUV);
 	 
 	float ssao = (uboParams.ssaoBlur == 1) ? texture(samplerSSAOBlur, inUV).r : texture(samplerSSAO, inUV).r;
 
-	outFragColor = vec4(vec3(0.0), 1.0);
+	vec3 lightPos = vec3(0.0);
+	vec3 L = normalize(lightPos - fragPos);
+	float NdotL = max(0.5, dot(normal, L));
 
 	if (uboParams.ssaoOnly == 1)
 	{
@@ -36,16 +38,18 @@ void main()
 	}
 	else
 	{
+		vec3 baseColor = albedo.rgb * NdotL;
+
 		if (uboParams.ssao == 1)
 		{
 			outFragColor.rgb = ssao.rrr;
 
 			if (uboParams.ssaoOnly != 1)
-				outFragColor.rgb *= albedo.rgb;
+				outFragColor.rgb *= baseColor;
 		}
 		else
 		{
-			outFragColor.rgb = albedo.rgb;
+			outFragColor.rgb = baseColor;
 		}
 	}
 }

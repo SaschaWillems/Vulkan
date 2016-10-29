@@ -23,18 +23,19 @@ layout (location = 0) out float outFragColor;
 
 // todo: specialization const
 const int kernelSize = 64;
-const float radius = 1.0;
+const float radius = 0.5;
 
 void main() 
 {
 	// Get G-Buffer values
 	vec3 fragPos = texture(samplerPositionDepth, inUV).rgb;
-	vec3 normal = normalize(texture(samplerNormal, inUV).rgb) * 2.0 - 1.0f;
+	vec3 normal = normalize(texture(samplerNormal, inUV).rgb * 2.0 - 1.0);
 
 	// Get a random vector using a noise lookup
 	ivec2 texDim = textureSize(samplerPositionDepth, 0); 
-	const vec2 noiseUV = vec2(float(texDim.x)/4.0f, float(texDim.y)/4.0f) * inUV;  
-	vec3 randomVec = texture(ssaoNoise, noiseUV).xyz * 2.0 - 1.0;  
+	ivec2 noiseDim = textureSize(ssaoNoise, 0);
+	const vec2 noiseUV = vec2(float(texDim.x)/float(noiseDim.x), float(texDim.y)/(noiseDim.y)) * inUV;  
+	vec3 randomVec = texture(ssaoNoise, noiseUV).xyz;
 	
 	// Create TBN matrix
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
