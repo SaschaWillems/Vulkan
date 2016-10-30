@@ -24,8 +24,13 @@
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-#define SSAO_KERNEL_SIZE 64
+#define SSAO_KERNEL_SIZE 32
+
+#if defined(__ANDROID__)
+#define SSAO_NOISE_DIM 8
+#else
 #define SSAO_NOISE_DIM 4
+#endif
 
 // Vertex layout for this example
 std::vector<vkMeshLoader::VertexLayout> vertexLayout =
@@ -215,7 +220,8 @@ public:
 		VkFormat format,  
 		VkImageUsageFlagBits usage,
 		FrameBufferAttachment *attachment,
-		VkCommandBuffer layoutCmd)
+		uint32_t width,
+		uint32_t height)
 	{
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
@@ -274,9 +280,17 @@ public:
 	{
 		// Attachments
 		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		
+
+#if defined(__ANDROID__)
+		const uint32_t ssaoWidth = width / 2;
+		const uint32_t ssaoHeight = height / 2;
+#else
+		const uint32_t ssaoWidth = width;
+		const uint32_t ssaoHeight = height;
+#endif
+
 		frameBuffers.offscreen.setSize(width, height);
-		frameBuffers.ssao.setSize(width, height);
+		frameBuffers.ssao.setSize(ssaoWidth, ssaoHeight);
 		frameBuffers.ssaoBlur.setSize(width, height);
 
 		// Find a suitable depth format
@@ -285,16 +299,16 @@ public:
 		assert(validDepthFormat);
 
 		// G-Buffer 
-		createAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.position, layoutCmd);	// Position + Depth
-		createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.normal, layoutCmd);			// Normals
-		createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.albedo, layoutCmd);			// Albedo (color)
-		createAttachment(attDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &frameBuffers.offscreen.depth, layoutCmd);			// Depth
+		createAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.position, width, height);	// Position + Depth
+		createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.normal, width, height);			// Normals
+		createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.offscreen.albedo, width, height);			// Albedo (color)
+		createAttachment(attDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &frameBuffers.offscreen.depth, width, height);			// Depth
 
 		// SSAO
-		createAttachment(VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.ssao.color, layoutCmd);						// Color
+		createAttachment(VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.ssao.color, ssaoWidth, ssaoHeight);				// Color
 
 		// SSAO blur
-		createAttachment(VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.ssaoBlur.color, layoutCmd);					// Color
+		createAttachment(VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &frameBuffers.ssaoBlur.color, width, height);					// Color
 
 		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
 
@@ -1120,7 +1134,7 @@ public:
 			toggleSSAO();
 			break;
 		case KEY_F3:
-		case GAMEPAD_BUTTON_B:
+		case GAMEPAD_BUTTON_X:
 			toggleSSAOBlur();
 			break;
 		case KEY_F4:
@@ -1134,7 +1148,7 @@ public:
 	{
 #if defined(__ANDROID__)
 		textOverlay->addText("\"Button A\" to toggle SSAO", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"Button B\" to toggle SSAO blur", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button X\" to toggle SSAO blur", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("\"Button Y\" to toggle SSAO display", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #else
 		textOverlay->addText("\"F2\" to toggle SSAO", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);

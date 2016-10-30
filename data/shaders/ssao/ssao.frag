@@ -22,7 +22,7 @@ layout (location = 0) in vec2 inUV;
 layout (location = 0) out float outFragColor;
 
 // todo: specialization const
-const int kernelSize = 64;
+const int kernelSize = 32;
 const float radius = 0.5;
 
 void main() 

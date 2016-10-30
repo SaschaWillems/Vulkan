@@ -95,6 +95,7 @@ set(EXAMPLES
 	shadowmappingomni
 	skeletalanimation
 	sphericalenvmapping
+	ssao
 	terraintessellation
 	tessellation
 	textoverlay

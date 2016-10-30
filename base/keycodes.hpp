@@ -35,6 +35,8 @@
 #define KEY_F2 0x2
 #define KEY_F2 0x11
 #define KEY_F2 0x12
+#define KEY_F3 0x13
+#define KEY_F4 0x14
 #define KEY_W 0x3
 #define KEY_A 0x4
 #define KEY_S 0x5
