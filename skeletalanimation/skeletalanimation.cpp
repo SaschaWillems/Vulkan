@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -351,9 +352,9 @@ public:
 	SkinnedMesh *skinnedMesh = nullptr;
 
 	struct {
-		vkTools::UniformData vsScene;
-		vkTools::UniformData floor;
-	} uniformData;
+		vk::Buffer mesh;
+		vk::Buffer floor;
+	} uniformBuffers;
 
 	struct {
 		glm::mat4 projection;
@@ -402,6 +403,7 @@ public:
 		enableTextOverlay = true;
 		title = "Vulkan Example - Skeletal animation";
 		cameraPos = { 0.0f, 0.0f, 12.0f };
+		paused = true;
 	}
 
 	~VulkanExample()
@@ -417,8 +419,8 @@ public:
 		textureLoader->destroyTexture(textures.colorMap);
 		textureLoader->destroyTexture(textures.floor);
 
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
-		vkTools::destroyUniformData(device, &uniformData.floor);
+		uniformBuffers.mesh.destroy();
+		uniformBuffers.floor.destroy();
 
 		// Destroy and free mesh resources 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.floor);
@@ -536,19 +538,19 @@ public:
 				vertexBuffer.push_back(vertex);
 			}
 		}
-		uint32_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+		VkDeviceSize vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 
 		// Generate index buffer from loaded mesh file
 		std::vector<uint32_t> indexBuffer;
 		for (uint32_t m = 0; m < skinnedMesh->meshLoader->m_Entries.size(); m++)
 		{
-			uint32_t indexBase = indexBuffer.size();
+			uint32_t indexBase = static_cast<uint32_t>(indexBuffer.size());
 			for (uint32_t i = 0; i < skinnedMesh->meshLoader->m_Entries[m].Indices.size(); i++)
 			{
 				indexBuffer.push_back(skinnedMesh->meshLoader->m_Entries[m].Indices[i] + indexBase);
 			}
 		}
-		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
+		VkDeviceSize indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 		skinnedMesh->meshBuffer.indexCount = indexBuffer.size();
 
 		bool useStaging = true;
@@ -645,21 +647,10 @@ public:
 		}
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/goblin_bc3.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.colorMap);
-
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/pattern_35_bc3.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.floor);
-	}
-
-	void loadMeshes()
-	{
+		textureLoader->loadTexture(getAssetPath() + "textures/goblin_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.colorMap);
+		textureLoader->loadTexture(getAssetPath() + "textures/trail_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.floor);
 		VulkanExampleBase::loadMesh(getAssetPath() + "models/plane_z.obj", &meshes.floor, vertexLayout, 512.0f);
 	}
 
@@ -798,7 +789,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsScene.descriptor),
+				&uniformBuffers.mesh.descriptor),
 			// Binding 1 : Color map 
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -823,7 +814,7 @@ public:
 				descriptorSets.floor,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.floor.descriptor));
+				&uniformBuffers.floor.descriptor));
 		// Binding 1 : Color map 
 		writeDescriptorSets.push_back(
 			vkTools::initializers::writeDescriptorSet(
@@ -917,31 +908,23 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Vertex shader uniform buffer block
-		createBuffer(
+		// Mesh uniform buffer block
+		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
+			&uniformBuffers.mesh,
+			sizeof(uboVS));
+		// Map persistant
+		VK_CHECK_RESULT(uniformBuffers.mesh.map());
 
-		// Map for host access
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&uniformData.vsScene.mapped));
-
-		// Floor
-		createBuffer(
+		// Floor uniform buffer block
+		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboFloor),
-			nullptr,
-			&uniformData.floor.buffer,
-			&uniformData.floor.memory,
-			&uniformData.floor.descriptor);
-
-		// Map for host access
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.floor.memory, 0, sizeof(uboFloor), 0, (void **)&uniformData.floor.mapped));
+			&uniformBuffers.floor,
+			sizeof(uboFloor));
+		// Map persistant
+		VK_CHECK_RESULT(uniformBuffers.floor.map());
 
 		updateUniformBuffers(true);
 	}
@@ -950,7 +933,7 @@ public:
 	{
 		if (viewChanged)
 		{
-			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 512.0f);
+			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1024.0f);
 
 			glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -980,11 +963,11 @@ public:
 			uboVS.bones[i] = glm::transpose(glm::make_mat4(&skinnedMesh->boneTransforms[i].a1));
 		}
 
-		memcpy(uniformData.vsScene.mapped, &uboVS, sizeof(uboVS));
+		uniformBuffers.mesh.copyTo(&uboVS, sizeof(uboVS));
 
 		// Update floor animation
-		uboFloor.uvOffset.t -= 0.5f * skinnedMesh->animationSpeed * frameTimer;
-		memcpy(uniformData.floor.mapped, &uboFloor, sizeof(uboFloor));
+		uboFloor.uvOffset.t -= 0.25f * skinnedMesh->animationSpeed * frameTimer;
+		uniformBuffers.floor.copyTo(&uboFloor, sizeof(uboFloor));
 	}
 
 	void draw()
@@ -1001,9 +984,8 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
+		loadAssets();
 		loadMesh();
-		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
@@ -1068,63 +1050,4 @@ public:
 	}
 };
 
-VulkanExample *vulkanExample;
-
-#if defined(_WIN32)
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleMessages(hWnd, uMsg, wParam, lParam);
-	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-}
-#elif defined(__linux__) && !defined(__ANDROID__)
-static void handleEvent(const xcb_generic_event_t *event)
-{
-	if (vulkanExample != NULL)
-	{
-		vulkanExample->handleEvent(event);
-	}
-}
-#endif
-
-// Main entry point
-#if defined(_WIN32)
-// Windows entry point
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#elif defined(__ANDROID__)
-// Android entry point
-void android_main(android_app* state)
-#elif defined(__linux__)
-// Linux entry point
-int main(const int argc, const char *argv[])
-#endif
-{
-#if defined(__ANDROID__)
-	// Removing this may cause the compiler to omit the main entry point 
-	// which would make the application crash at start
-	app_dummy();
-#endif
-	vulkanExample = new VulkanExample();
-#if defined(_WIN32)
-	vulkanExample->setupWindow(hInstance, WndProc);
-#elif defined(__ANDROID__)
-	// Attach vulkan example to global android application state
-	state->userData = vulkanExample;
-	state->onAppCmd = VulkanExample::handleAppCommand;
-	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
-#elif defined(__linux__)
-	vulkanExample->setupWindow();
-#endif
-#if !defined(__ANDROID__)
-	vulkanExample->initSwapchain();
-	vulkanExample->prepare();
-#endif
-	vulkanExample->renderLoop();
-	delete(vulkanExample);
-#if !defined(__ANDROID__)
-	return 0;
-#endif
-}
+VULKAN_EXAMPLE_MAIN()

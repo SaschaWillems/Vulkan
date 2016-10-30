@@ -1,7 +1,6 @@
 cd jni
 call ndk-build
 if %ERRORLEVEL% EQU 0 (
-	echo ndk-build has failed, build cancelled
 	cd..
 
 	mkdir "assets\shaders\base"
@@ -18,7 +17,7 @@ if %ERRORLEVEL% EQU 0 (
 	xcopy "..\..\data\models\plane_z.obj" "assets\models" /Y
 
 	mkdir "assets\textures"
-	xcopy "..\..\data\textures\pattern_35_bc3.ktx" "assets\textures" /Y
+	xcopy "..\..\data\textures\trail_bc3.ktx" "assets\textures" /Y
 	xcopy "..\..\data\textures\goblin_bc3.ktx" "assets\textures" /Y
 
 	mkdir "res\drawable"

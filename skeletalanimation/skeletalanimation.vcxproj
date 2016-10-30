@@ -21,6 +21,12 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\skeletalanimation\mesh.frag" />
+    <None Include="..\data\shaders\skeletalanimation\mesh.vert" />
+    <None Include="..\data\shaders\skeletalanimation\texture.frag" />
+    <None Include="..\data\shaders\skeletalanimation\texture.vert" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{469A1996-9BC5-4003-9564-C3816E3822E0}</ProjectGuid>
     <RootNamespace>skelatalanimation</RootNamespace>
@@ -54,6 +60,7 @@
       <Optimization>Disabled</Optimization>
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\libs\vulkan\vulkan-1.lib;..\libs\assimp\assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
