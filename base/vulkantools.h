@@ -284,6 +284,12 @@ namespace vkTools
 			uint32_t offset);
 
 		VkBindSparseInfo bindSparseInfo();
+
+		/** @brief Initialize a map entry for a shader specialization constant */
+		VkSpecializationMapEntry specializationMapEntry(uint32_t constantID, uint32_t offset, size_t size);
+
+		/** @biref Initialize a specialization constant info structure to pass to a shader stage */
+		VkSpecializationInfo specializationInfo(uint32_t mapEntryCount, const VkSpecializationMapEntry* mapEntries, size_t dataSize, const void* data);
 	}
 
 }

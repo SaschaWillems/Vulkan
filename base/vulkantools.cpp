@@ -918,3 +918,22 @@ VkBindSparseInfo vkTools::initializers::bindSparseInfo()
 	bindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
 	return VkBindSparseInfo();
 }
+
+VkSpecializationMapEntry vkTools::initializers::specializationMapEntry(uint32_t constantID, uint32_t offset, size_t size)
+{
+	VkSpecializationMapEntry specializationEntry{};
+	specializationEntry.constantID = constantID;
+	specializationEntry.offset = offset;
+	specializationEntry.size = size;
+	return specializationEntry;
+}
+
+VkSpecializationInfo vkTools::initializers::specializationInfo(uint32_t mapEntryCount, const VkSpecializationMapEntry* mapEntries, size_t dataSize, const void* data)
+{
+	VkSpecializationInfo specializationInfo{};
+	specializationInfo.mapEntryCount = mapEntryCount;
+	specializationInfo.pMapEntries = mapEntries;
+	specializationInfo.dataSize = dataSize;
+	specializationInfo.pData = data;
+	return specializationInfo;
+}
