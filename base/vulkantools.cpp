@@ -916,7 +916,7 @@ VkBindSparseInfo vkTools::initializers::bindSparseInfo()
 {
 	VkBindSparseInfo bindSparseInfo{};
 	bindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
-	return VkBindSparseInfo();
+	return bindSparseInfo;
 }
 
 VkSpecializationMapEntry vkTools::initializers::specializationMapEntry(uint32_t constantID, uint32_t offset, size_t size)
