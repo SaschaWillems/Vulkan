@@ -69,9 +69,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "bin/")
 
 set(EXAMPLES 
 	bloom
-	computeshader
+	computecullandlod
 	computeparticles
+	computeshader
+	debugmarker
 	deferred
+	deferredmultisampling
 	deferredshadows
 	displacement
 	distancefieldfonts
@@ -80,22 +83,23 @@ set(EXAMPLES
 	indirectdraw	
 	instancing
 	mesh
-	multithreading
 	multisampling
+	multithreading
 	occlusionquery
 	offscreen
 	parallaxmapping
 	particlefire
 	pipelines
 	pushconstants
-	raytracing
 	radialblur
+	raytracing
 	scenerendering
 	shadowmapping
 	shadowmappingomni
 	skeletalanimation
 	sphericalenvmapping
 	ssao
+	subpasses
 	terraintessellation
 	tessellation
 	textoverlay
@@ -104,6 +108,7 @@ set(EXAMPLES
 	texturearray
 	texturecubemap
 	texturemipmapgen
+	texturesparseresidency
 	triangle
 	vulkanscene
 )
