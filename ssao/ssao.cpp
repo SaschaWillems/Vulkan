@@ -25,6 +25,7 @@
 #define ENABLE_VALIDATION false
 
 #define SSAO_KERNEL_SIZE 32
+#define SSAO_RADIUS 0.5f
 
 #if defined(__ANDROID__)
 #define SSAO_NOISE_DIM 8
@@ -948,9 +949,22 @@ public:
 		// SSAO Pass
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/ssao/fullscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/ssao/ssao.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		pipelineCreateInfo.renderPass = frameBuffers.ssao.renderPass;
-		pipelineCreateInfo.layout = pipelineLayouts.ssao;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.ssao));
+		{
+			// Set constant parameters via specialization constants
+			std::array<VkSpecializationMapEntry, 2> specializationMapEntries;
+			specializationMapEntries[0] = vkTools::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));				// SSAO Kernel size
+			specializationMapEntries[1] = vkTools::initializers::specializationMapEntry(1, sizeof(uint32_t), sizeof(float));	// SSAO radius
+			struct {
+				uint32_t kernelSize = SSAO_KERNEL_SIZE;
+				float radius = SSAO_RADIUS;
+			} specializationData;
+			VkSpecializationInfo specializationInfo = vkTools::initializers::specializationInfo(2, specializationMapEntries.data(), sizeof(specializationData), &specializationData);
+			shaderStages[1].pSpecializationInfo = &specializationInfo;
+			pipelineCreateInfo.renderPass = frameBuffers.ssao.renderPass;
+			pipelineCreateInfo.layout = pipelineLayouts.ssao;
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.ssao));
+		}
+
 
 		// SSAO blur pass
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/ssao/fullscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
