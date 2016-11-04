@@ -19,6 +19,8 @@ Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a bu
 
 Note that you need [assimp](https://github.com/assimp/assimp) in order to compile the examples for Linux. Either compile and install from the repository, or install libassimp-dev. The examples require at least version 3.2.
 
+To use the Direct to Display swapchain extension (VK_KHR_display), please turn on the USE_D2D_WSI cmake option: "-DUSE_D2D_WSI=ON".
+
 ## <img src="./images/androidlogo.png" alt="" height="32px"> [Android](android/)
 
 Building on Android is done using the [Android NDK](http://developer.android.com/tools/sdk/ndk/index.html) and requires a device that supports Vulkan. Please see the [Android readme](./android/README.md) on how to build and deploy the examples.
