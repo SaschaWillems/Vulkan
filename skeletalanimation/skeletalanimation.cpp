@@ -403,7 +403,6 @@ public:
 		enableTextOverlay = true;
 		title = "Vulkan Example - Skeletal animation";
 		cameraPos = { 0.0f, 0.0f, 12.0f };
-		paused = true;
 	}
 
 	~VulkanExample()
