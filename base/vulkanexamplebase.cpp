@@ -25,6 +25,8 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	enabledExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #elif defined(__ANDROID__)
 	enabledExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#elif defined(_DIRECT2DISPLAY)
+	enabledExtensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
 #elif defined(__linux__)
 	enabledExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #endif
@@ -509,6 +511,43 @@ void VulkanExampleBase::renderLoop()
 			}
 		}
 	}
+#elif defined(_DIRECT2DISPLAY)
+	while (!quit)
+	{
+		auto tStart = std::chrono::high_resolution_clock::now();
+		if (viewUpdated)
+		{
+			viewUpdated = false;
+			viewChanged();
+		}
+		render();
+		frameCounter++;
+		auto tEnd = std::chrono::high_resolution_clock::now();
+		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+		frameTimer = tDiff / 1000.0f;
+		camera.update(frameTimer);
+		if (camera.moving())
+		{
+			viewUpdated = true;
+		}
+		// Convert to clamped timer value
+		if (!paused)
+		{
+			timer += timerSpeed * frameTimer;
+			if (timer > 1.0)
+			{
+				timer -= 1.0f;
+			}
+		}
+		fpsTimer += (float)tDiff;
+		if (fpsTimer > 1000.0f)
+		{
+			lastFPS = frameCounter;
+			updateTextOverlay();
+			fpsTimer = 0.0f;
+			frameCounter = 0;
+		}
+	}
 #elif defined(__linux__)
 	xcb_flush(connection);
 	while (!quit)
@@ -654,6 +693,8 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatur
 	// Vulkan library is loaded dynamically on Android
 	bool libLoaded = loadVulkanLibrary();
 	assert(libLoaded);
+#elif defined(_DIRECT2DISPLAY)
+
 #elif defined(__linux__)
 	initxcbConnection();
 #endif
@@ -733,7 +774,9 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyInstance(instance, nullptr);
 
-#if defined(__linux)
+#if defined(_DIRECT2DISPLAY)
+
+#elif defined(__linux)
 #if defined(__ANDROID__)
 	// todo : android cleanup (if required)
 #else
@@ -1212,6 +1255,7 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		break;
 	}
 }
+#elif defined(_DIRECT2DISPLAY)
 #elif defined(__linux__)
 // Set up a window using XCB and request event types
 xcb_window_t VulkanExampleBase::setupWindow()
@@ -1652,6 +1696,8 @@ void VulkanExampleBase::initSwapchain()
 	swapChain.initSurface(windowInstance, window);
 #elif defined(__ANDROID__)	
 	swapChain.initSurface(androidApp->window);
+#elif defined(_DIRECT2DISPLAY)
+	swapChain.initSurface(width, height);
 #elif defined(__linux__)
 	swapChain.initSurface(connection, window);
 #endif

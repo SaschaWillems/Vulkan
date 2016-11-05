@@ -1238,7 +1238,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif defined(__linux__) && !defined(__ANDROID__) && !defined(_DIRECT2DISPLAY)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -1274,7 +1274,7 @@ int main(const int argc, const char *argv[])
 	state->onAppCmd = VulkanExample::handleAppCommand;
 	state->onInputEvent = VulkanExample::handleAppInput;
 	vulkanExample->androidApp = state;
-#elif defined(__linux__)
+#elif defined(__linux__) && !defined(_DIRECT2DISPLAY)
 	vulkanExample->setupWindow();
 #endif
 #if !defined(__ANDROID__)

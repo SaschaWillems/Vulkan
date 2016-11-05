@@ -392,6 +392,23 @@ void android_main(android_app* state)																\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\
 }
+#elif defined(_DIRECT2DISPLAY)
+// Linux entry point with direct to display wsi
+// todo: extract command line arguments
+#define VULKAN_EXAMPLE_MAIN()																		\
+VulkanExample *vulkanExample;																		\
+static void handleEvent()                                											\
+{																									\
+}																									\
+int main(const int argc, const char *argv[])													    \
+{																									\
+	vulkanExample = new VulkanExample();															\
+	vulkanExample->initSwapchain();																	\
+	vulkanExample->prepare();																		\
+	vulkanExample->renderLoop();																	\
+	delete(vulkanExample);																			\
+	return 0;																						\
+}
 #elif defined(__linux__)
 // Linux entry point
 // todo: extract command line arguments
