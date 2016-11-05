@@ -598,23 +598,18 @@ public:
 			alphaMode = VK_DISPLAY_PLANE_ALPHA_GLOBAL_BIT_KHR;
 		}
 
-		VkDisplaySurfaceCreateInfoKHR surfaceInfo = 
-		{
-			.sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR,
-			.pNext = NULL,
-			.flags = 0,
-			.displayMode = displayMode,
-			.planeIndex = bestPlaneIndex,
-			.planeStackIndex = pPlaneProperties[bestPlaneIndex].currentStackIndex,
-			.transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
-			.globalAlpha = 1.0,
-			.alphaMode = alphaMode,
-			.imageExtent = 
-			{
-				width,
-				height,
-			}
-		};
+		VkDisplaySurfaceCreateInfoKHR surfaceInfo{};
+		surfaceInfo.sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR;
+		surfaceInfo.pNext = NULL;
+		surfaceInfo.flags = 0;
+		surfaceInfo.displayMode = displayMode;
+		surfaceInfo.planeIndex = bestPlaneIndex;
+		surfaceInfo.planeStackIndex = pPlaneProperties[bestPlaneIndex].currentStackIndex;
+		surfaceInfo.transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+		surfaceInfo.globalAlpha = 1.0;
+		surfaceInfo.alphaMode = alphaMode;
+		surfaceInfo.imageExtent.width = width;
+		surfaceInfo.imageExtent.height = height;
 
 		VkResult result = vkCreateDisplayPlaneSurfaceKHR(instance, &surfaceInfo, NULL, &surface);
 		if(result !=VK_SUCCESS)
