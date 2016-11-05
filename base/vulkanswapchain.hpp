@@ -488,6 +488,7 @@ public:
 		swapChain = VK_NULL_HANDLE;
 	}
 
+#if defined(_DIRECT2DISPLAY)
 	/**
 	* Create direct to display surface
 	*/	
@@ -622,4 +623,5 @@ public:
 		delete[] pDisplayProperties;
 		delete[] pPlaneProperties;
 	}
+#endif 
 };
