@@ -8,6 +8,8 @@
 
 #include "vulkanexamplebase.h"
 
+std::vector<char*> VulkanExampleBase::args;
+
 VkResult VulkanExampleBase::createInstance(bool enableValidation)
 {
 	this->enableValidation = enableValidation;
@@ -676,20 +678,19 @@ void VulkanExampleBase::submitFrame()
 
 VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatures enabledFeaturesFn)
 {
-	// Check for validation command line flag
-#if defined(_WIN32)
-	for (int32_t i = 0; i < __argc; i++)
+	// Parse command line arguments
+	for (auto arg : args)
 	{
-		if (__argv[i] == std::string("-validation"))
+		if (arg == std::string("-validation"))
 		{
 			enableValidation = true;
 		}
-		if (__argv[i] == std::string("-vsync"))
+		if (arg == std::string("-vsync"))
 		{
 			enableVSync = true;
 		}
 	}
-#elif defined(__ANDROID__)
+#if defined(__ANDROID__)
 	// Vulkan library is loaded dynamically on Android
 	bool libLoaded = loadVulkanLibrary();
 	assert(libLoaded);
@@ -894,11 +895,9 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	this->windowInstance = hinstance;
 
 	bool fullscreen = false;
-
-	// Check command line arguments
-	for (int32_t i = 0; i < __argc; i++)
+	for (auto arg : args)
 	{
-		if (__argv[i] == std::string("-fullscreen"))
+		if (arg == std::string("-fullscreen"))
 		{
 			fullscreen = true;
 		}

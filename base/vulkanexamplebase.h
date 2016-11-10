@@ -145,6 +145,8 @@ public:
 
 	float zoom = 0;
 
+	static std::vector<char*> args;
+
 	// Defines a frame rate independent timer value clamped from -1.0...1.0
 	// For use in animations, rotations, etc.
 	float timer = 0.0f;
@@ -368,6 +370,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)				
 }																									\
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)	\
 {																									\
+	for (size_t i = 0; i < __argc; i++) { VulkanExample::args.push_back(__argv[i]); };  			\
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->setupWindow(hInstance, WndProc);													\
 	vulkanExample->initSwapchain();																	\
@@ -402,7 +405,7 @@ static void handleEvent()                                											\
 }																									\
 int main(const int argc, const char *argv[])													    \
 {																									\
-	vulkanExample = new VulkanExample();															\
+	vulkanExample = new VulkanExample();															\	
 	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
 	vulkanExample->renderLoop();																	\
@@ -423,6 +426,7 @@ static void handleEvent(const xcb_generic_event_t *event)											\
 }																									\
 int main(const int argc, const char *argv[])													    \
 {																									\
+	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };  				\
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->setupWindow();					 												\
 	vulkanExample->initSwapchain();																	\
