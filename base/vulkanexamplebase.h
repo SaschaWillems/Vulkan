@@ -145,7 +145,7 @@ public:
 
 	float zoom = 0;
 
-	static std::vector<char*> args;
+	static std::vector<const char*> args;
 
 	// Defines a frame rate independent timer value clamped from -1.0...1.0
 	// For use in animations, rotations, etc.
@@ -405,7 +405,7 @@ static void handleEvent()                                											\
 }																									\
 int main(const int argc, const char *argv[])													    \
 {																									\
-	vulkanExample = new VulkanExample();															\	
+	vulkanExample = new VulkanExample();															\
 	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
 	vulkanExample->renderLoop();																	\

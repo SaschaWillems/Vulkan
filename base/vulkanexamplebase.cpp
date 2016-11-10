@@ -8,7 +8,7 @@
 
 #include "vulkanexamplebase.h"
 
-std::vector<char*> VulkanExampleBase::args;
+std::vector<const char*> VulkanExampleBase::args;
 
 VkResult VulkanExampleBase::createInstance(bool enableValidation)
 {
