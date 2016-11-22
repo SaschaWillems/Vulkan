@@ -1700,6 +1700,8 @@ void VulkanExampleBase::initSwapchain()
 #elif defined(__linux__)
 	swapChain.initSurface(connection, window);
 #endif
+	// Update internal color format
+	colorformat = swapChain.colorFormat;
 }
 
 void VulkanExampleBase::setupSwapChain()
