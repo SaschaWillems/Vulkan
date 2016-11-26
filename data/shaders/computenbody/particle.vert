@@ -3,7 +3,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout (location = 0) in vec3 inPos;
+layout (location = 0) in vec4 inPos;
 layout (location = 1) in vec4 inVel;
 
 layout (location = 0) out float outGradientPos;
@@ -12,6 +12,7 @@ layout (binding = 2) uniform UBO
 {
 	mat4 projection;
 	mat4 modelview;
+	vec2 screendim;
 } ubo;
 
 out gl_PerVertex
@@ -23,6 +24,14 @@ out gl_PerVertex
 void main () 
 {
 	gl_PointSize = 8.0;	
+
+	const float spriteSize = 0.005 * inPos.w; // Point size influenced by mass (stored in inPos.w);
+
+	vec4 eyePos = ubo.modelview * vec4(inPos.x, inPos.y, inPos.z, 1.0); 
+	vec4 projectedCorner = ubo.projection * vec4(0.5 * spriteSize, 0.5 * spriteSize, eyePos.z, eyePos.w);
+	gl_PointSize = ubo.screendim.x * projectedCorner.x / projectedCorner.w;
+	
+	gl_Position = ubo.projection * eyePos;
+
 	outGradientPos = inVel.w;
-	gl_Position = ubo.projection * ubo.modelview * vec4(inPos, 1.0);
 }

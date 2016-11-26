@@ -27,7 +27,7 @@
 // Lower particle count on Android for performance reasons
 #define PARTICLES_PER_ATTRACTOR 2 * 1024
 #else
-#define PARTICLES_PER_ATTRACTOR 8 * 1024
+#define PARTICLES_PER_ATTRACTOR 4 * 1024
 #endif
 
 class VulkanExample : public VulkanExampleBase
@@ -56,6 +56,7 @@ public:
 		struct {
 			glm::mat4 projection;
 			glm::mat4 view;
+			glm::vec2 screenDim;
 		} ubo;
 	} graphics;
 
@@ -371,7 +372,7 @@ public:
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
+				VK_FORMAT_R32G32B32A32_SFLOAT,
 				offsetof(Particle, pos));
 		// Location 1 : Velocity (used for gradient lookup)
 		vertices.attributeDescriptions[1] =
@@ -703,6 +704,7 @@ public:
 	{
 		graphics.ubo.projection = camera.matrices.perspective;
 		graphics.ubo.view = camera.matrices.view;
+		graphics.ubo.screenDim = glm::vec2((float)width, (float)height);
 		memcpy(graphics.uniformBuffer.mapped, &graphics.ubo, sizeof(graphics.ubo));
 	}
 
