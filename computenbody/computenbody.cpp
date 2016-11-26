@@ -627,9 +627,9 @@ public:
 		specializationMapEntries.push_back(vkTools::initializers::specializationMapEntry(3, offsetof(SpecializationData, soften), sizeof(float)));
 
 		specializationData.sharedDataSize = std::min((uint32_t)1024, vulkanDevice->properties.limits.maxComputeSharedMemorySize);
-		specializationData.gravity = 0.0025f;
-		specializationData.power = 0.85f;
-		specializationData.soften = 0.15f;
+		specializationData.gravity = 0.002f;
+		specializationData.power = 0.75f;
+		specializationData.soften = 0.05f;
 
 		VkSpecializationInfo specializationInfo = 
 			vkTools::initializers::specializationInfo(static_cast<uint32_t>(specializationMapEntries.size()), specializationMapEntries.data(), sizeof(specializationData), &specializationData);
