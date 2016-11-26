@@ -121,6 +121,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "subpasses", "subpasses\subp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ssao", "ssao\ssao.vcxproj", "{43FCECF5-F5E1-45DB-972A-73942D459C0A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "computenbody", "computenbody\computenbody.vcxproj", "{6B4BC372-5897-40FB-91D4-421C2817F656}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9E815C67-731B-4559-938E-23CD771F0860}"
+	ProjectSection(SolutionItems) = preProject
+		CMakeLists.txt = CMakeLists.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -299,6 +306,10 @@ Global
 		{43FCECF5-F5E1-45DB-972A-73942D459C0A}.Debug|x64.Build.0 = Debug|x64
 		{43FCECF5-F5E1-45DB-972A-73942D459C0A}.Release|x64.ActiveCfg = Release|x64
 		{43FCECF5-F5E1-45DB-972A-73942D459C0A}.Release|x64.Build.0 = Release|x64
+		{6B4BC372-5897-40FB-91D4-421C2817F656}.Debug|x64.ActiveCfg = Debug|x64
+		{6B4BC372-5897-40FB-91D4-421C2817F656}.Debug|x64.Build.0 = Debug|x64
+		{6B4BC372-5897-40FB-91D4-421C2817F656}.Release|x64.ActiveCfg = Release|x64
+		{6B4BC372-5897-40FB-91D4-421C2817F656}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -320,5 +331,6 @@ Global
 		{1FA0178C-F5E9-4B2E-A488-14F310F8DBD9} = {A8492D6D-5243-456E-8173-39B99F1FEA9C}
 		{0CB44B34-A81F-4002-9AC7-E0EEA55D8A60} = {460EE42F-4178-49EF-9AC0-415599B80303}
 		{8418A364-3D1C-4938-A2CC-C1D1433039F2} = {6B47BC47-0394-429E-9441-867EC23DFCD4}
+		{6B4BC372-5897-40FB-91D4-421C2817F656} = {6B47BC47-0394-429E-9441-867EC23DFCD4}
 	EndGlobalSection
 EndGlobal

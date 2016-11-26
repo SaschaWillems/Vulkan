@@ -1,0 +1,35 @@
+#version 450
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+struct Particle
+{
+	vec4 pos;
+	vec4 vel;
+};
+
+// Binding 0 : Position storage buffer
+layout(std140, binding = 0) buffer Pos 
+{
+   Particle particles[ ];
+};
+
+layout (local_size_x = 256) in;
+
+layout (binding = 1) uniform UBO 
+{
+	float deltaT;
+	float destX;
+	float destY;
+	int particleCount;
+} ubo;
+
+void main() 
+{
+	int index = int(gl_GlobalInvocationID);
+	vec4 position = particles[index].pos;
+	vec4 velocity = particles[index].vel;
+	position += ubo.deltaT * velocity;
+	particles[index].pos = position;
+}

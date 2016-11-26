@@ -97,6 +97,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 set(EXAMPLES 
 	bloom
 	computecullandlod
+	computenbody
 	computeparticles
 	computeshader
 	debugmarker
