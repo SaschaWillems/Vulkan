@@ -25,7 +25,7 @@
 #define ENABLE_VALIDATION false
 #if defined(__ANDROID__)
 // Lower particle count on Android for performance reasons
-#define PARTICLES_PER_ATTRACTOR 2 * 1024
+#define PARTICLES_PER_ATTRACTOR 3 * 1024
 #else
 #define PARTICLES_PER_ATTRACTOR 4 * 1024
 #endif

@@ -1,5 +1,6 @@
 call _build geometryshader %1
 call _build computeparticles %1
+call _build computenbody %1
 call _build computeshader %1
 call _build computecullandlod %1
 call _build parallaxmapping %1
