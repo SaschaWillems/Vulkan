@@ -93,6 +93,9 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
+		width = 1920;
+		height = 1080;
+
 		enableTextOverlay = true;
 		title = "Vulkan Example - Compute shader N-body system";
 
@@ -101,6 +104,9 @@ public:
 		camera.setRotation(glm::vec3(-26.0f, 75.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -14.0f));
 		camera.movementSpeed = 2.5f;
+		zoomSpeed = 5.0f;
+
+		paused = true;
 	}
 
 	~VulkanExample()
@@ -627,7 +633,8 @@ public:
 		specializationMapEntries.push_back(vkTools::initializers::specializationMapEntry(2, offsetof(SpecializationData, power), sizeof(float)));
 		specializationMapEntries.push_back(vkTools::initializers::specializationMapEntry(3, offsetof(SpecializationData, soften), sizeof(float)));
 
-		specializationData.sharedDataSize = std::min((uint32_t)1024, vulkanDevice->properties.limits.maxComputeSharedMemorySize);
+		specializationData.sharedDataSize = std::min((uint32_t)1024, (uint32_t)(vulkanDevice->properties.limits.maxComputeSharedMemorySize / sizeof(glm::vec4)));
+
 		specializationData.gravity = 0.002f;
 		specializationData.power = 0.75f;
 		specializationData.soften = 0.05f;
