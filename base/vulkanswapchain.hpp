@@ -81,7 +81,7 @@ public:
 	std::vector<VkImage> images;
 	std::vector<SwapChainBuffer> buffers;
 	// Index of the deteced graphics and presenting device queue
-	/** @brief Queue family index of the deteced graphics and presenting device queue */
+	/** @brief Queue family index of the detected graphics and presenting device queue */
 	uint32_t queueNodeIndex = UINT32_MAX;
 
 	// Creates an os specific surface
@@ -238,7 +238,7 @@ public:
 	}
 
 	/**
-	* Set instance, physical and logical device to use for the swpachain and get all required function pointers
+	* Set instance, physical and logical device to use for the swapchain and get all required function pointers
 	* 
 	* @param instance Vulkan instance to use
 	* @param physicalDevice Physical device used to query properties and formats relevant to the swapchain
@@ -373,7 +373,7 @@ public:
 		err = fpCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain);
 		assert(!err);
 
-		// If an existing sawp chain is re-created, destroy the old swap chain
+		// If an existing swap chain is re-created, destroy the old swap chain
 		// This also cleans up all the presentable images
 		if (oldSwapchain != VK_NULL_HANDLE) 
 		{ 
