@@ -50,7 +50,7 @@ namespace vk
 		/**
 		* Default constructor
 		*
-		* @param physicalDevice Phyiscal device that is to be used
+		* @param physicalDevice Physical device that is to be used
 		*/
 		VulkanDevice(VkPhysicalDevice physicalDevice)
 		{
@@ -62,7 +62,7 @@ namespace vk
 			vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 			// Features should be checked by the examples before using them
 			vkGetPhysicalDeviceFeatures(physicalDevice, &features);
-			// Memory properties are used regularly for creating all kinds of buffer
+			// Memory properties are used regularly for creating all kinds of buffers
 			vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 			// Queue family properties, used for setting up requested queues upon device creation
 			uint32_t queueFamilyCount;
@@ -147,7 +147,7 @@ namespace vk
 		*
 		* @throw Throws an exception if no queue family index could be found that supports the requested flags
 		*/
-		uint32_t getQueueFamiliyIndex(VkQueueFlagBits queueFlags)
+		uint32_t getQueueFamilyIndex(VkQueueFlagBits queueFlags)
 		{
 			// Dedicated queue for compute
 			// Try to find a queue family index that supports compute but not graphics
@@ -220,7 +220,7 @@ namespace vk
 			// Graphics queue
 			if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
 			{
-				queueFamilyIndices.graphics = getQueueFamiliyIndex(VK_QUEUE_GRAPHICS_BIT);
+				queueFamilyIndices.graphics = getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
 				VkDeviceQueueCreateInfo queueInfo{};
 				queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 				queueInfo.queueFamilyIndex = queueFamilyIndices.graphics;
@@ -236,7 +236,7 @@ namespace vk
 			// Dedicated compute queue
 			if (requestedQueueTypes & VK_QUEUE_COMPUTE_BIT)
 			{
-				queueFamilyIndices.compute = getQueueFamiliyIndex(VK_QUEUE_COMPUTE_BIT);
+				queueFamilyIndices.compute = getQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT);
 				if (queueFamilyIndices.compute != queueFamilyIndices.graphics)
 				{
 					// If compute family index differs, we need an additional queue create info for the compute queue
@@ -257,7 +257,7 @@ namespace vk
 			// Dedicated transfer queue
 			if (requestedQueueTypes & VK_QUEUE_TRANSFER_BIT)
 			{
-				queueFamilyIndices.transfer = getQueueFamiliyIndex(VK_QUEUE_TRANSFER_BIT);
+				queueFamilyIndices.transfer = getQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
 				if ((queueFamilyIndices.transfer != queueFamilyIndices.graphics) && (queueFamilyIndices.transfer != queueFamilyIndices.compute))
 				{
 					// If compute family index differs, we need an additional queue create info for the compute queue
