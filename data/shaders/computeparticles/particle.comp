@@ -16,7 +16,7 @@ layout(std140, binding = 0) buffer Pos
    Particle particles[ ];
 };
 
-layout (local_size_x = 16, local_size_y = 16) in;
+layout (local_size_x = 256) in;
 
 layout (binding = 1) uniform UBO 
 {

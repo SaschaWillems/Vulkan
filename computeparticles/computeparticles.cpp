@@ -204,7 +204,7 @@ public:
 		vkCmdBindDescriptorSets(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSet, 0, 0);
 
 		// Dispatch the compute job
-		vkCmdDispatch(compute.commandBuffer, PARTICLE_COUNT / 16, 1, 1);
+		vkCmdDispatch(compute.commandBuffer, PARTICLE_COUNT / 256, 1, 1);
 
 		// Add memory barrier to ensure that compute shader has finished writing to the buffer
 		// Without this the (rendering) vertex shader may display incomplete results (partial data from last frame) 
