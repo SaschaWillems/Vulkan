@@ -43,7 +43,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 32
+#define VK_HEADER_VERSION 35
 
 
 #define VK_NULL_HANDLE 0
@@ -226,6 +226,12 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV = 1000057001,
     VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV = 1000058000,
     VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT = 1000061000,
+    VK_STRUCTURE_TYPE_OBJECT_TABLE_CREATE_INFO_NVX = 1000086000,
+    VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_CREATE_INFO_NVX = 1000086001,
+    VK_STRUCTURE_TYPE_CMD_PROCESS_COMMANDS_INFO_NVX = 1000086002,
+    VK_STRUCTURE_TYPE_CMD_RESERVE_SPACE_FOR_COMMANDS_INFO_NVX = 1000086003,
+    VK_STRUCTURE_TYPE_DEVICE_GENERATED_COMMANDS_LIMITS_NVX = 1000086004,
+    VK_STRUCTURE_TYPE_DEVICE_GENERATED_COMMANDS_FEATURES_NVX = 1000086005,
     VK_STRUCTURE_TYPE_BEGIN_RANGE = VK_STRUCTURE_TYPE_APPLICATION_INFO,
     VK_STRUCTURE_TYPE_END_RANGE = VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO,
     VK_STRUCTURE_TYPE_RANGE_SIZE = (VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO - VK_STRUCTURE_TYPE_APPLICATION_INFO + 1),
@@ -918,6 +924,7 @@ typedef enum VkPipelineStageFlagBits {
     VK_PIPELINE_STAGE_HOST_BIT = 0x00004000,
     VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT = 0x00008000,
     VK_PIPELINE_STAGE_ALL_COMMANDS_BIT = 0x00010000,
+    VK_PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX = 0x00020000,
     VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 } VkPipelineStageFlagBits;
 typedef VkFlags VkPipelineStageFlags;
@@ -4153,6 +4160,232 @@ typedef struct VkValidationFlagsEXT {
 } VkValidationFlagsEXT;
 
 
+
+#define VK_NVX_device_generated_commands 1
+VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkObjectTableNVX)
+VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkIndirectCommandsLayoutNVX)
+
+#define VK_NVX_DEVICE_GENERATED_COMMANDS_SPEC_VERSION 1
+#define VK_NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME "VK_NVX_device_generated_commands"
+
+
+typedef enum VkIndirectCommandsTokenTypeNVX {
+    VK_INDIRECT_COMMANDS_TOKEN_PIPELINE_NVX = 0,
+    VK_INDIRECT_COMMANDS_TOKEN_DESCRIPTOR_SET_NVX = 1,
+    VK_INDIRECT_COMMANDS_TOKEN_INDEX_BUFFER_NVX = 2,
+    VK_INDIRECT_COMMANDS_TOKEN_VERTEX_BUFFER_NVX = 3,
+    VK_INDIRECT_COMMANDS_TOKEN_PUSH_CONSTANT_NVX = 4,
+    VK_INDIRECT_COMMANDS_TOKEN_DRAW_INDEXED_NVX = 5,
+    VK_INDIRECT_COMMANDS_TOKEN_DRAW_NVX = 6,
+    VK_INDIRECT_COMMANDS_TOKEN_DISPATCH_NVX = 7,
+    VK_INDIRECT_COMMANDS_TOKEN_TYPE_BEGIN_RANGE_NVX = VK_INDIRECT_COMMANDS_TOKEN_PIPELINE_NVX,
+    VK_INDIRECT_COMMANDS_TOKEN_TYPE_END_RANGE_NVX = VK_INDIRECT_COMMANDS_TOKEN_DISPATCH_NVX,
+    VK_INDIRECT_COMMANDS_TOKEN_TYPE_RANGE_SIZE_NVX = (VK_INDIRECT_COMMANDS_TOKEN_DISPATCH_NVX - VK_INDIRECT_COMMANDS_TOKEN_PIPELINE_NVX + 1),
+    VK_INDIRECT_COMMANDS_TOKEN_TYPE_MAX_ENUM_NVX = 0x7FFFFFFF
+} VkIndirectCommandsTokenTypeNVX;
+
+typedef enum VkObjectEntryTypeNVX {
+    VK_OBJECT_ENTRY_DESCRIPTOR_SET_NVX = 0,
+    VK_OBJECT_ENTRY_PIPELINE_NVX = 1,
+    VK_OBJECT_ENTRY_INDEX_BUFFER_NVX = 2,
+    VK_OBJECT_ENTRY_VERTEX_BUFFER_NVX = 3,
+    VK_OBJECT_ENTRY_PUSH_CONSTANT_NVX = 4,
+    VK_OBJECT_ENTRY_TYPE_BEGIN_RANGE_NVX = VK_OBJECT_ENTRY_DESCRIPTOR_SET_NVX,
+    VK_OBJECT_ENTRY_TYPE_END_RANGE_NVX = VK_OBJECT_ENTRY_PUSH_CONSTANT_NVX,
+    VK_OBJECT_ENTRY_TYPE_RANGE_SIZE_NVX = (VK_OBJECT_ENTRY_PUSH_CONSTANT_NVX - VK_OBJECT_ENTRY_DESCRIPTOR_SET_NVX + 1),
+    VK_OBJECT_ENTRY_TYPE_MAX_ENUM_NVX = 0x7FFFFFFF
+} VkObjectEntryTypeNVX;
+
+
+typedef enum VkIndirectCommandsLayoutUsageFlagBitsNVX {
+    VK_INDIRECT_COMMANDS_LAYOUT_USAGE_UNORDERED_SEQUENCES_BIT_NVX = 0x00000001,
+    VK_INDIRECT_COMMANDS_LAYOUT_USAGE_SPARSE_SEQUENCES_BIT_NVX = 0x00000002,
+    VK_INDIRECT_COMMANDS_LAYOUT_USAGE_EMPTY_EXECUTIONS_BIT_NVX = 0x00000004,
+    VK_INDIRECT_COMMANDS_LAYOUT_USAGE_INDEXED_SEQUENCES_BIT_NVX = 0x00000008,
+    VK_INDIRECT_COMMANDS_LAYOUT_USAGE_FLAG_BITS_MAX_ENUM_NVX = 0x7FFFFFFF
+} VkIndirectCommandsLayoutUsageFlagBitsNVX;
+typedef VkFlags VkIndirectCommandsLayoutUsageFlagsNVX;
+
+typedef enum VkObjectEntryUsageFlagBitsNVX {
+    VK_OBJECT_ENTRY_USAGE_GRAPHICS_BIT_NVX = 0x00000001,
+    VK_OBJECT_ENTRY_USAGE_COMPUTE_BIT_NVX = 0x00000002,
+    VK_OBJECT_ENTRY_USAGE_FLAG_BITS_MAX_ENUM_NVX = 0x7FFFFFFF
+} VkObjectEntryUsageFlagBitsNVX;
+typedef VkFlags VkObjectEntryUsageFlagsNVX;
+
+typedef struct VkDeviceGeneratedCommandsFeaturesNVX {
+    VkStructureType    sType;
+    const void*        pNext;
+    VkBool32           computeBindingPointSupport;
+} VkDeviceGeneratedCommandsFeaturesNVX;
+
+typedef struct VkDeviceGeneratedCommandsLimitsNVX {
+    VkStructureType    sType;
+    const void*        pNext;
+    uint32_t           maxIndirectCommandsLayoutTokenCount;
+    uint32_t           maxObjectEntryCounts;
+    uint32_t           minSequenceCountBufferOffsetAlignment;
+    uint32_t           minSequenceIndexBufferOffsetAlignment;
+    uint32_t           minCommandsTokenBufferOffsetAlignment;
+} VkDeviceGeneratedCommandsLimitsNVX;
+
+typedef struct VkIndirectCommandsTokenNVX {
+    VkIndirectCommandsTokenTypeNVX    tokenType;
+    VkBuffer                          buffer;
+    VkDeviceSize                      offset;
+} VkIndirectCommandsTokenNVX;
+
+typedef struct VkIndirectCommandsLayoutTokenNVX {
+    VkIndirectCommandsTokenTypeNVX    tokenType;
+    uint32_t                          bindingUnit;
+    uint32_t                          dynamicCount;
+    uint32_t                          divisor;
+} VkIndirectCommandsLayoutTokenNVX;
+
+typedef struct VkIndirectCommandsLayoutCreateInfoNVX {
+    VkStructureType                            sType;
+    const void*                                pNext;
+    VkPipelineBindPoint                        pipelineBindPoint;
+    VkIndirectCommandsLayoutUsageFlagsNVX      flags;
+    uint32_t                                   tokenCount;
+    const VkIndirectCommandsLayoutTokenNVX*    pTokens;
+} VkIndirectCommandsLayoutCreateInfoNVX;
+
+typedef struct VkCmdProcessCommandsInfoNVX {
+    VkStructureType                      sType;
+    const void*                          pNext;
+    VkObjectTableNVX                     objectTable;
+    VkIndirectCommandsLayoutNVX          indirectCommandsLayout;
+    uint32_t                             indirectCommandsTokenCount;
+    const VkIndirectCommandsTokenNVX*    pIndirectCommandsTokens;
+    uint32_t                             maxSequencesCount;
+    VkCommandBuffer                      targetCommandBuffer;
+    VkBuffer                             sequencesCountBuffer;
+    VkDeviceSize                         sequencesCountOffset;
+    VkBuffer                             sequencesIndexBuffer;
+    VkDeviceSize                         sequencesIndexOffset;
+} VkCmdProcessCommandsInfoNVX;
+
+typedef struct VkCmdReserveSpaceForCommandsInfoNVX {
+    VkStructureType                sType;
+    const void*                    pNext;
+    VkObjectTableNVX               objectTable;
+    VkIndirectCommandsLayoutNVX    indirectCommandsLayout;
+    uint32_t                       maxSequencesCount;
+} VkCmdReserveSpaceForCommandsInfoNVX;
+
+typedef struct VkObjectTableCreateInfoNVX {
+    VkStructureType                      sType;
+    const void*                          pNext;
+    uint32_t                             objectCount;
+    const VkObjectEntryTypeNVX*          pObjectEntryTypes;
+    const uint32_t*                      pObjectEntryCounts;
+    const VkObjectEntryUsageFlagsNVX*    pObjectEntryUsageFlags;
+    uint32_t                             maxUniformBuffersPerDescriptor;
+    uint32_t                             maxStorageBuffersPerDescriptor;
+    uint32_t                             maxStorageImagesPerDescriptor;
+    uint32_t                             maxSampledImagesPerDescriptor;
+    uint32_t                             maxPipelineLayouts;
+} VkObjectTableCreateInfoNVX;
+
+typedef struct VkObjectTableEntryNVX {
+    VkObjectEntryTypeNVX          type;
+    VkObjectEntryUsageFlagsNVX    flags;
+} VkObjectTableEntryNVX;
+
+typedef struct VkObjectTablePipelineEntryNVX {
+    VkObjectEntryTypeNVX          type;
+    VkObjectEntryUsageFlagsNVX    flags;
+    VkPipeline                    pipeline;
+} VkObjectTablePipelineEntryNVX;
+
+typedef struct VkObjectTableDescriptorSetEntryNVX {
+    VkObjectEntryTypeNVX          type;
+    VkObjectEntryUsageFlagsNVX    flags;
+    VkPipelineLayout              pipelineLayout;
+    VkDescriptorSet               descriptorSet;
+} VkObjectTableDescriptorSetEntryNVX;
+
+typedef struct VkObjectTableVertexBufferEntryNVX {
+    VkObjectEntryTypeNVX          type;
+    VkObjectEntryUsageFlagsNVX    flags;
+    VkBuffer                      buffer;
+} VkObjectTableVertexBufferEntryNVX;
+
+typedef struct VkObjectTableIndexBufferEntryNVX {
+    VkObjectEntryTypeNVX          type;
+    VkObjectEntryUsageFlagsNVX    flags;
+    VkBuffer                      buffer;
+} VkObjectTableIndexBufferEntryNVX;
+
+typedef struct VkObjectTablePushConstantEntryNVX {
+    VkObjectEntryTypeNVX          type;
+    VkObjectEntryUsageFlagsNVX    flags;
+    VkPipelineLayout              pipelineLayout;
+    VkShaderStageFlags            stageFlags;
+} VkObjectTablePushConstantEntryNVX;
+
+
+typedef void (VKAPI_PTR *PFN_vkCmdProcessCommandsNVX)(VkCommandBuffer commandBuffer, const VkCmdProcessCommandsInfoNVX* pProcessCommandsInfo);
+typedef void (VKAPI_PTR *PFN_vkCmdReserveSpaceForCommandsNVX)(VkCommandBuffer commandBuffer, const VkCmdReserveSpaceForCommandsInfoNVX* pReserveSpaceInfo);
+typedef VkResult (VKAPI_PTR *PFN_vkCreateIndirectCommandsLayoutNVX)(VkDevice device, const VkIndirectCommandsLayoutCreateInfoNVX* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkIndirectCommandsLayoutNVX* pIndirectCommandsLayout);
+typedef void (VKAPI_PTR *PFN_vkDestroyIndirectCommandsLayoutNVX)(VkDevice device, VkIndirectCommandsLayoutNVX indirectCommandsLayout, const VkAllocationCallbacks* pAllocator);
+typedef VkResult (VKAPI_PTR *PFN_vkCreateObjectTableNVX)(VkDevice device, const VkObjectTableCreateInfoNVX* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkObjectTableNVX* pObjectTable);
+typedef void (VKAPI_PTR *PFN_vkDestroyObjectTableNVX)(VkDevice device, VkObjectTableNVX objectTable, const VkAllocationCallbacks* pAllocator);
+typedef VkResult (VKAPI_PTR *PFN_vkRegisterObjectsNVX)(VkDevice device, VkObjectTableNVX objectTable, uint32_t objectCount, const VkObjectTableEntryNVX* const*    ppObjectTableEntries, const uint32_t* pObjectIndices);
+typedef VkResult (VKAPI_PTR *PFN_vkUnregisterObjectsNVX)(VkDevice device, VkObjectTableNVX objectTable, uint32_t objectCount, const VkObjectEntryTypeNVX* pObjectEntryTypes, const uint32_t* pObjectIndices);
+typedef void (VKAPI_PTR *PFN_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX)(VkPhysicalDevice physicalDevice, VkDeviceGeneratedCommandsFeaturesNVX* pFeatures, VkDeviceGeneratedCommandsLimitsNVX* pLimits);
+
+#ifndef VK_NO_PROTOTYPES
+VKAPI_ATTR void VKAPI_CALL vkCmdProcessCommandsNVX(
+    VkCommandBuffer                             commandBuffer,
+    const VkCmdProcessCommandsInfoNVX*          pProcessCommandsInfo);
+
+VKAPI_ATTR void VKAPI_CALL vkCmdReserveSpaceForCommandsNVX(
+    VkCommandBuffer                             commandBuffer,
+    const VkCmdReserveSpaceForCommandsInfoNVX*  pReserveSpaceInfo);
+
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateIndirectCommandsLayoutNVX(
+    VkDevice                                    device,
+    const VkIndirectCommandsLayoutCreateInfoNVX* pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkIndirectCommandsLayoutNVX*                pIndirectCommandsLayout);
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyIndirectCommandsLayoutNVX(
+    VkDevice                                    device,
+    VkIndirectCommandsLayoutNVX                 indirectCommandsLayout,
+    const VkAllocationCallbacks*                pAllocator);
+
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateObjectTableNVX(
+    VkDevice                                    device,
+    const VkObjectTableCreateInfoNVX*           pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkObjectTableNVX*                           pObjectTable);
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyObjectTableNVX(
+    VkDevice                                    device,
+    VkObjectTableNVX                            objectTable,
+    const VkAllocationCallbacks*                pAllocator);
+
+VKAPI_ATTR VkResult VKAPI_CALL vkRegisterObjectsNVX(
+    VkDevice                                    device,
+    VkObjectTableNVX                            objectTable,
+    uint32_t                                    objectCount,
+    const VkObjectTableEntryNVX* const*         ppObjectTableEntries,
+    const uint32_t*                             pObjectIndices);
+
+VKAPI_ATTR VkResult VKAPI_CALL vkUnregisterObjectsNVX(
+    VkDevice                                    device,
+    VkObjectTableNVX                            objectTable,
+    uint32_t                                    objectCount,
+    const VkObjectEntryTypeNVX*                 pObjectEntryTypes,
+    const uint32_t*                             pObjectIndices);
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX(
+    VkPhysicalDevice                            physicalDevice,
+    VkDeviceGeneratedCommandsFeaturesNVX*       pFeatures,
+    VkDeviceGeneratedCommandsLimitsNVX*         pLimits);
+#endif
 
 #ifdef __cplusplus
 }
