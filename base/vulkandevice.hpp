@@ -12,6 +12,7 @@
 
 #include <exception>
 #include <assert.h>
+#include <algorithm>
 #include "vulkan/vulkan.h"
 #include "vulkantools.h"
 #include "vulkanbuffer.hpp"
