@@ -23,8 +23,6 @@ todos:
 #include <random>
 #include <chrono>
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -114,7 +112,7 @@ struct VirtualTexture
 	VkBindSparseInfo bindSparseInfo;									// Sparse queue binding information
 	std::vector<VirtualTexturePage> pages;								// Contains all virtual pages of the texture
 	std::vector<VkSparseImageMemoryBind> sparseImageMemoryBinds;		// Sparse image memory bindings of all memory-backed virtual tables
-	std::vector<VkSparseMemoryBind>	opaqueMemoryBinds;					// Sparse ópaque memory bindings for the mip tail (if present)
+	std::vector<VkSparseMemoryBind>	opaqueMemoryBinds;					// Sparse ï¿½paque memory bindings for the mip tail (if present)
 	VkSparseImageMemoryBindInfo imageMemoryBindInfo;					// Sparse image memory bind info 
 	VkSparseImageOpaqueMemoryBindInfo opaqueMemoryBindInfo;				// Sparse image opaque memory bind info (mip tail)
 	uint32_t mipTailStart;												// First mip level in mip tail
