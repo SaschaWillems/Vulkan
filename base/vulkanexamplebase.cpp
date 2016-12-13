@@ -713,11 +713,6 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatur
 		setupConsole("VulkanExample");
 	}
 #endif
-
-#if !defined(__ANDROID__)
-	// Android Vulkan initialization is handled in APP_CMD_INIT_WINDOW event
-	initVulkan(enableValidation);
-#endif
 }
 
 VulkanExampleBase::~VulkanExampleBase()
@@ -787,7 +782,7 @@ VulkanExampleBase::~VulkanExampleBase()
 #endif
 }
 
-void VulkanExampleBase::initVulkan(bool enableValidation)
+void VulkanExampleBase::initVulkan()
 {
 	VkResult err;
 
@@ -1229,7 +1224,7 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		LOGD("APP_CMD_INIT_WINDOW");
 		if (vulkanExample->androidApp->window != NULL)
 		{
-			vulkanExample->initVulkan(false);
+			vulkanExample->initVulkan();
 			vulkanExample->initSwapchain();
 			vulkanExample->prepare();
 			assert(vulkanExample->prepared);

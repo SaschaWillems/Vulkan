@@ -50,8 +50,6 @@ typedef VkPhysicalDeviceFeatures (*PFN_GetEnabledFeatures)();
 class VulkanExampleBase
 {
 private:	
-	// Set to true when example is created with enabled validation layers
-	bool enableValidation = false;
 	// Set to true if v-sync will be forced for the swapchain
 	bool enableVSync = false;
 	// Device features enabled by the example
@@ -59,8 +57,6 @@ private:
 	VkPhysicalDeviceFeatures enabledFeatures = {};
 	// fps timer (one second interval)
 	float fpsTimer = 0.0f;
-	// Create application wide Vulkan instance
-	VkResult createInstance(bool enableValidation);
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
 	/** brief Indicates that the view (position, rotation) has changed and */
@@ -72,6 +68,8 @@ private:
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 protected:
+	// Is true when example is created validation layers enabled
+	bool enableValidation = false;
 	// Last frame time, measured using a high performance timer (if available)
 	float frameTimer = 1.0f;
 	// Frame counter to display fps
@@ -214,7 +212,7 @@ public:
 	~VulkanExampleBase();
 
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
-	void initVulkan(bool enableValidation);
+	void initVulkan();
 
 #if defined(_WIN32)
 	void setupConsole(std::string title);
@@ -228,6 +226,13 @@ public:
 	void initxcbConnection();
 	void handleEvent(const xcb_generic_event_t *event);
 #endif
+	/**
+	* Create the application wide Vulkan instance
+	*
+	* @note Virtual, can be overriden by derived example class for custom instance creation
+	*/
+	virtual VkResult createInstance(bool enableValidation);
+
 	// Pure virtual render function (override in derived class)
 	virtual void render() = 0;
 	// Called when view change occurs
@@ -372,6 +377,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 {																									\
 	for (size_t i = 0; i < __argc; i++) { VulkanExample::args.push_back(__argv[i]); };  			\
 	vulkanExample = new VulkanExample();															\
+	vulkanExample->initVulkan();																	\
 	vulkanExample->setupWindow(hInstance, WndProc);													\
 	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
@@ -406,6 +412,7 @@ static void handleEvent()                                											\
 int main(const int argc, const char *argv[])													    \
 {																									\
 	vulkanExample = new VulkanExample();															\
+	vulkanExample->initVulkan();																	\
 	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
 	vulkanExample->renderLoop();																	\
@@ -428,6 +435,7 @@ int main(const int argc, const char *argv[])													    \
 {																									\
 	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };  				\
 	vulkanExample = new VulkanExample();															\
+	vulkanExample->initVulkan();																	\
 	vulkanExample->setupWindow();					 												\
 	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
