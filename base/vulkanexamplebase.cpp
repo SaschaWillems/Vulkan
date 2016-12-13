@@ -683,7 +683,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatur
 	{
 		if (arg == std::string("-validation"))
 		{
-			enableValidation = true;
+			this->enableValidation = true;
 		}
 		if (arg == std::string("-vsync"))
 		{
@@ -708,7 +708,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatur
 #if defined(_WIN32)
 	// Enable console if validation is active
 	// Debug message callback will output to it
-	if (enableValidation)
+	if (this->enableValidation)
 	{
 		setupConsole("VulkanExample");
 	}
