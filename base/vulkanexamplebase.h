@@ -206,7 +206,7 @@ public:
 #endif
 
 	// Default ctor
-	VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatures enabledFeaturesFn = nullptr);
+	VulkanExampleBase(bool enableValidation);
 
 	// dtor
 	~VulkanExampleBase();
@@ -232,6 +232,13 @@ public:
 	* @note Virtual, can be overriden by derived example class for custom instance creation
 	*/
 	virtual VkResult createInstance(bool enableValidation);
+
+	/**
+	* Get physical device features to be enabled for this example
+	*
+	* @note Virtual, can be overriden by derived example class for custom instance creation
+	*/
+	virtual VkPhysicalDeviceFeatures getEnabledFeatures();
 
 	// Pure virtual render function (override in derived class)
 	virtual void render() = 0;

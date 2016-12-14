@@ -65,14 +65,15 @@ public:
 	} pipelines;
 
 	// Device features to be enabled for this example 
-	static VkPhysicalDeviceFeatures getEnabledFeatures()
+	virtual VkPhysicalDeviceFeatures getEnabledFeatures() 
 	{
-		VkPhysicalDeviceFeatures enabledFeatures = {};
+		VkPhysicalDeviceFeatures enabledFeatures{};
+		enabledFeatures.fillModeNonSolid = VK_TRUE;
 		enabledFeatures.wideLines = VK_TRUE;
 		return enabledFeatures;
 	}
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION, getEnabledFeatures)
+	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -10.5f;
 		rotation = glm::vec3(-25.0f, 15.0f, 0.0f);

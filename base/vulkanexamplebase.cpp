@@ -54,6 +54,11 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
 
+VkPhysicalDeviceFeatures VulkanExampleBase::getEnabledFeatures()
+{
+	return VkPhysicalDeviceFeatures{};
+}
+
 std::string VulkanExampleBase::getWindowTitle()
 {
 	std::string device(deviceProperties.deviceName);
@@ -676,7 +681,7 @@ void VulkanExampleBase::submitFrame()
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
 
-VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatures enabledFeaturesFn)
+VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
 	// Parse command line arguments
 	for (auto arg : args)
@@ -699,11 +704,6 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation, PFN_GetEnabledFeatur
 #elif defined(__linux__)
 	initxcbConnection();
 #endif
-
-	if (enabledFeaturesFn != nullptr)
-	{
-		this->enabledFeatures = enabledFeaturesFn();
-	}
 
 #if defined(_WIN32)
 	// Enable console if validation is active
@@ -830,7 +830,7 @@ void VulkanExampleBase::initVulkan()
 	// This is handled by a separate class that gets a logical device representation
 	// and encapsulates functions related to a device
 	vulkanDevice = new vk::VulkanDevice(physicalDevice);
-	VK_CHECK_RESULT(vulkanDevice->createLogicalDevice(enabledFeatures));
+	VK_CHECK_RESULT(vulkanDevice->createLogicalDevice(getEnabledFeatures()));
 	device = vulkanDevice->logicalDevice;
 
 	// todo: remove

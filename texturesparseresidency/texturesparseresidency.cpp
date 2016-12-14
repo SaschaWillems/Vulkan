@@ -233,15 +233,15 @@ public:
 	VkSemaphore bindSparseSemaphore = VK_NULL_HANDLE;
 
 	// Device features to be enabled for this example 
-	static VkPhysicalDeviceFeatures getEnabledFeatures()
+	virtual VkPhysicalDeviceFeatures getEnabledFeatures()
 	{
-		VkPhysicalDeviceFeatures enabledFeatures = {};
+		VkPhysicalDeviceFeatures enabledFeatures{};
 		enabledFeatures.shaderResourceResidency = VK_TRUE;		
 		enabledFeatures.shaderResourceMinLod = VK_TRUE;
 		return enabledFeatures;
 	}
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION, getEnabledFeatures)
+	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -1.3f; 
 		rotation = { 76.25f, 0.0f, 0.0f }; 
