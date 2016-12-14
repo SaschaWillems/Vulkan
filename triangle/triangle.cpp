@@ -1068,6 +1068,7 @@ int main(const int argc, const char *argv[])
 	vulkanExample->setupWindow();
 #endif
 #if !defined(__ANDROID__)
+	vulkanExample->initVulkan();
 	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
 #endif
