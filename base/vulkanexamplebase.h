@@ -44,17 +44,11 @@
 #include "vulkantextoverlay.hpp"
 #include "camera.hpp"
 
-// Function pointer for getting physical device fetures to be enabled
-typedef VkPhysicalDeviceFeatures (*PFN_GetEnabledFeatures)();
-
 class VulkanExampleBase
 {
 private:	
 	// Set to true if v-sync will be forced for the swapchain
 	bool enableVSync = false;
-	// Device features enabled by the example
-	// If not set, no additional features are enabled (may result in validation layer errors)
-	VkPhysicalDeviceFeatures enabledFeatures = {};
 	// fps timer (one second interval)
 	float fpsTimer = 0.0f;
 	// Get window title with example name, device, et.
@@ -81,10 +75,16 @@ protected:
 	VkPhysicalDevice physicalDevice;
 	// Stores physical device properties (for e.g. checking device limits)
 	VkPhysicalDeviceProperties deviceProperties;
-	// Stores phyiscal device features (for e.g. checking if a feature is available)
+	// Stores the features available on the selected physical device (for e.g. checking if a feature is available)
 	VkPhysicalDeviceFeatures deviceFeatures;
 	// Stores all available memory (type) properties for the physical device
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
+	/**
+	* Set of physical device features to be enabled for this example (must be set in the derived constructor)
+	*
+	* @note By default no phyiscal device features are enabled
+	*/
+	VkPhysicalDeviceFeatures enabledFeatures{};
 	/** @brief Logical device, application's view of the physical device (GPU) */
 	// todo: getter? should always point to VulkanDevice->device
 	VkDevice device;
@@ -232,13 +232,6 @@ public:
 	* @note Virtual, can be overriden by derived example class for custom instance creation
 	*/
 	virtual VkResult createInstance(bool enableValidation);
-
-	/**
-	* Get physical device features to be enabled for this example
-	*
-	* @note Virtual, can be overriden by derived example class for custom instance creation
-	*/
-	virtual VkPhysicalDeviceFeatures getEnabledFeatures();
 
 	// Pure virtual render function (override in derived class)
 	virtual void render() = 0;

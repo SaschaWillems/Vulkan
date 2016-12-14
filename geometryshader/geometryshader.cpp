@@ -76,6 +76,9 @@ public:
 		rotation = glm::vec3(0.0f, -25.0f, 0.0f);
 		enableTextOverlay = true;
 		title = "Vulkan Example - Geometry shader";
+		// Enable physical device features required for this example		
+		// Tell the driver that we are going to use geometry shaders
+		enabledFeatures.geometryShader = VK_TRUE;
 	}
 
 	~VulkanExample()

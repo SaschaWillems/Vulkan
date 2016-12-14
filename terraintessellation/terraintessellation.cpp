@@ -112,15 +112,6 @@ public:
 	// View frustum passed to tessellation control shader for culling
 	vkTools::Frustum frustum;
 
-	// Device features to be enabled for this example 
-	virtual VkPhysicalDeviceFeatures getEnabledFeatures()
-	{
-		VkPhysicalDeviceFeatures enabledFeatures{};
-		enabledFeatures.tessellationShader = VK_TRUE;
-		enabledFeatures.fillModeNonSolid = VK_TRUE;
-		return enabledFeatures;
-	}
-
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		enableTextOverlay = true;
@@ -129,13 +120,12 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-12.0f, 159.0f, 0.0f));
 		camera.setTranslation(glm::vec3(18.0f, 22.5f, 57.5f));
-
 		camera.movementSpeed = 7.5f;
-		// Support for tessellation shaders is optional, so check first
-		//if (!deviceFeatures.tessellationShader)
-		//{
-		//	vkTools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
-		//}
+		// Enable physical device features required for this example				
+		// Tell the driver that we are going to use geometry shaders
+		enabledFeatures.tessellationShader = VK_TRUE;
+		// Example also uses a wireframe pipeline, enable non-solid fill modes
+		enabledFeatures.fillModeNonSolid = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -896,6 +886,12 @@ public:
 
 	void prepare()
 	{
+		// Check if device supports tessellation shaders
+		if (!deviceFeatures.tessellationShader)
+		{
+			vkTools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
+		}
+
 		VulkanExampleBase::prepare();
 		loadMeshes();
 		loadTextures();

@@ -94,11 +94,11 @@ public:
 		cameraPos = glm::vec3(-3.0f, 2.3f, 0.0f);
 		title = "Vulkan Example - Tessellation shader (PN Triangles)";
 		enableTextOverlay = true;
-		// Support for tessellation shaders is optional, so check first
-		if (!deviceFeatures.tessellationShader)
-		{
-			vkTools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
-		}
+		// Enable physical device features required for this example				
+		// Tell the driver that we are going to use geometry shaders
+		enabledFeatures.tessellationShader = VK_TRUE;
+		// Example also uses a wireframe pipeline, enable non-solid fill modes
+		enabledFeatures.fillModeNonSolid = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -511,6 +511,12 @@ public:
 
 	void prepare()
 	{
+		// Check if device supports tessellation shaders
+		if (!deviceFeatures.tessellationShader)
+		{
+			vkTools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
+		}
+
 		VulkanExampleBase::prepare();
 		loadTextures();
 		loadMeshes();

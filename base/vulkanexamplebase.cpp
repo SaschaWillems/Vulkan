@@ -54,11 +54,6 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
 
-VkPhysicalDeviceFeatures VulkanExampleBase::getEnabledFeatures()
-{
-	return VkPhysicalDeviceFeatures{};
-}
-
 std::string VulkanExampleBase::getWindowTitle()
 {
 	std::string device(deviceProperties.deviceName);
@@ -830,7 +825,7 @@ void VulkanExampleBase::initVulkan()
 	// This is handled by a separate class that gets a logical device representation
 	// and encapsulates functions related to a device
 	vulkanDevice = new vk::VulkanDevice(physicalDevice);
-	VK_CHECK_RESULT(vulkanDevice->createLogicalDevice(getEnabledFeatures()));
+	VK_CHECK_RESULT(vulkanDevice->createLogicalDevice(enabledFeatures));
 	device = vulkanDevice->logicalDevice;
 
 	// todo: remove
