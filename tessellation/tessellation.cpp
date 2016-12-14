@@ -78,6 +78,15 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
+	// Device features to be enabled for this example 
+	virtual VkPhysicalDeviceFeatures getEnabledFeatures()
+	{
+		VkPhysicalDeviceFeatures enabledFeatures{};
+		enabledFeatures.tessellationShader = VK_TRUE;
+		enabledFeatures.fillModeNonSolid = VK_TRUE;
+		return enabledFeatures;
+	}
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -6.5f;
