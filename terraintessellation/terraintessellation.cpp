@@ -112,6 +112,15 @@ public:
 	// View frustum passed to tessellation control shader for culling
 	vkTools::Frustum frustum;
 
+	// Device features to be enabled for this example 
+	virtual VkPhysicalDeviceFeatures getEnabledFeatures()
+	{
+		VkPhysicalDeviceFeatures enabledFeatures{};
+		enabledFeatures.tessellationShader = VK_TRUE;
+		enabledFeatures.fillModeNonSolid = VK_TRUE;
+		return enabledFeatures;
+	}
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		enableTextOverlay = true;
