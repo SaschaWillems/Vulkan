@@ -116,7 +116,9 @@ namespace vkTools
 		VkImageAspectFlags aspectMask, 
 		VkImageLayout oldImageLayout, 
 		VkImageLayout newImageLayout,
-		VkImageSubresourceRange subresourceRange)
+		VkImageSubresourceRange subresourceRange,
+		VkPipelineStageFlags srcStageMask,
+		VkPipelineStageFlags dstStageMask)
 	{
 		// Create an image barrier object
 		VkImageMemoryBarrier imageMemoryBarrier = vkTools::initializers::imageMemoryBarrier();
@@ -216,15 +218,11 @@ namespace vkTools
 			break;
 		}
 
-		// Put barrier on top
-		VkPipelineStageFlags srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		VkPipelineStageFlags destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
 		// Put barrier inside setup command buffer
 		vkCmdPipelineBarrier(
 			cmdbuffer, 
-			srcStageFlags, 
-			destStageFlags, 
+			srcStageMask, 
+			dstStageMask, 
 			0, 
 			0, nullptr,
 			0, nullptr,
@@ -237,7 +235,9 @@ namespace vkTools
 		VkImage image,
 		VkImageAspectFlags aspectMask,
 		VkImageLayout oldImageLayout,
-		VkImageLayout newImageLayout)
+		VkImageLayout newImageLayout,
+		VkPipelineStageFlags srcStageMask,
+		VkPipelineStageFlags dstStageMask)
 	{
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = aspectMask;

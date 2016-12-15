@@ -65,14 +65,18 @@ namespace vkTools
 		VkImageAspectFlags aspectMask,
 		VkImageLayout oldImageLayout,
 		VkImageLayout newImageLayout,
-		VkImageSubresourceRange subresourceRange);
+		VkImageSubresourceRange subresourceRange,
+		VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 	// Uses a fixed sub resource layout with first mip level and layer
 	void setImageLayout(
 		VkCommandBuffer cmdbuffer, 
 		VkImage image, 
 		VkImageAspectFlags aspectMask, 
 		VkImageLayout oldImageLayout, 
-		VkImageLayout newImageLayout);
+		VkImageLayout newImageLayout,
+		VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
 	// Display error message and exit on fatal error
 	void exitFatal(std::string message, std::string caption);
