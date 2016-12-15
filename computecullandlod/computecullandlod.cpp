@@ -800,11 +800,11 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
 		// Wait on present and compute semaphores
-		std::vector<VkPipelineStageFlags> stageFlags = {
+		std::array<VkPipelineStageFlags,2> stageFlags = {
 			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 		};
-		std::vector<VkSemaphore> waitSemaphores = {
+		std::array<VkSemaphore,2> waitSemaphores = {
 			semaphores.presentComplete,						// Wait for presentation to finished
 			compute.semaphore								// Wait for compute to finish
 		};
