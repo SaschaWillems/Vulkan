@@ -122,6 +122,7 @@ set(EXAMPLES
 	radialblur
 	raytracing
 	scenerendering
+	screenshot
 	shadowmapping
 	shadowmappingomni
 	skeletalanimation
