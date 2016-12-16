@@ -370,6 +370,13 @@ public:
 		swapchainCI.clipped = VK_TRUE;
 		swapchainCI.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
+		// Set additional usage flag for blitting from the swapchain images if supported
+		VkFormatProperties formatProps;
+		vkGetPhysicalDeviceFormatProperties(physicalDevice, colorFormat, &formatProps);
+		if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) {
+			swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		}
+
 		err = fpCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain);
 		assert(!err);
 
