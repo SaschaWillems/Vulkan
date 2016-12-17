@@ -74,7 +74,9 @@ vkTools::setImageLayout(
   VK_IMAGE_ASPECT_COLOR_BIT,
   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-  subresourceRange);
+  subresourceRange,
+  VK_PIPELINE_STAGE_TRANSFER_BIT,
+  VK_PIPELINE_STAGE_HOST_BIT);
 ```
 
 ### Generating the mip-chain
@@ -124,7 +126,9 @@ Before we can blit to this mip level, we need to transition it's image layout to
     VK_IMAGE_ASPECT_COLOR_BIT,
     VK_IMAGE_LAYOUT_UNDEFINED,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    mipSubRange);
+    mipSubRange,
+    VK_PIPELINE_STAGE_TRANSFER_BIT,
+    VK_PIPELINE_STAGE_HOST_BIT);
 ``` 
 Note that we set the ```baseMipLevel``` member of the subresource range so the image memory barrier will only affect the one mip level we want to copy to.
 
@@ -152,7 +156,9 @@ After the blit is done we can use this mip level as a base for the next level, s
     VK_IMAGE_ASPECT_COLOR_BIT,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    mipSubRange);
+    mipSubRange,
+    VK_PIPELINE_STAGE_TRANSFER_BIT,
+    VK_PIPELINE_STAGE_HOST_BIT);
 }
 ```
 
@@ -167,7 +173,9 @@ Once the loop is done we need to transition all mip levels of the image to their
     VK_IMAGE_ASPECT_COLOR_BIT,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;,
-    subresourceRange);
+    subresourceRange,
+    VK_PIPELINE_STAGE_TRANSFER_BIT,
+    VK_PIPELINE_STAGE_HOST_BIT);
 ```  
 
 Submitting that command buffer will result in an image with a complete mip-chain and all mip levels being transitioned to the proper image layout for shader reads.
