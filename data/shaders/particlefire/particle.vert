@@ -11,10 +11,9 @@ layout (location = 4) in float inRotation;
 layout (location = 5) in int inType;
 
 layout (location = 0) out vec4 outColor;
-layout (location = 1) out float outPointSize;
-layout (location = 2) out float outAlpha;
-layout (location = 3) out flat int outType;
-layout (location = 4) out float outRotation;
+layout (location = 1) out float outAlpha;
+layout (location = 2) out flat int outType;
+layout (location = 3) out float outRotation;
 
 layout (binding = 0) uniform UBO 
 {
@@ -24,27 +23,27 @@ layout (binding = 0) uniform UBO
 	float pointSize;
 } ubo;
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+};
+
 void main () 
 {
-	gl_PointSize = ubo.pointSize;
 	outColor = inColor;
 	outAlpha = inAlpha;
 	outType = inType;
 	outRotation = inRotation;
 	  
-	vec4 eyePos = ubo.modelview * vec4(inPos.xyz, 1.0);
-	vec4 projVoxel = ubo.projection * vec4(ubo.pointSize, ubo.pointSize, eyePos.z, eyePos.w);
-	vec2 projSize = ubo.viewportDim * projVoxel.xy / projVoxel.w;
-
-	outPointSize = inSize * 0.25 * (projSize.x + projSize.y);
-	
-	gl_PointSize = outPointSize;
-		
 	gl_Position = ubo.projection * ubo.modelview * vec4(inPos.xyz, 1.0);	
 	
-	float pointDist = (gl_Position.w == 0.0) ? 0.00001 : gl_Position.w;
-	float viewportAR = ubo.viewportDim.x / ubo.viewportDim.y;
-	
-	gl_PointSize = (((inSize * 2048.0 * viewportAR) / pointDist) * viewportAR);	
+	// Base size of the point sprites
+	float spriteSize = 8.0 * inSize;
+
+	// Scale particle size depending on camera projection
+	vec4 eyePos = ubo.modelview * vec4(inPos.xyz, 1.0);
+	vec4 projectedCorner = ubo.projection * vec4(0.5 * spriteSize, 0.5 * spriteSize, eyePos.z, eyePos.w);
+	gl_PointSize = ubo.viewportDim.x * projectedCorner.x / projectedCorner.w;
 	
 }

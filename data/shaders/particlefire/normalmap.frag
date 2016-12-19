@@ -21,7 +21,7 @@ void main(void)
 	vec3 specularColor = vec3(0.85, 0.5, 0.0);
 
 	float invRadius = 1.0/lightRadius;
-	float ambient = 0.0;
+	float ambient = 0.25;
 
 	vec3 rgb, normal;
 

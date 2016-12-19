@@ -18,6 +18,12 @@ layout (binding = 0) uniform UBO
 	vec4 cameraPos;
 } ubo;
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+};
+
 layout (location = 0) out vec2 outUV;
 layout (location = 1) out vec3 outLightVec;
 layout (location = 2) out vec3 outLightVecB;
@@ -26,28 +32,28 @@ layout (location = 6) out vec3 outViewVec;
 
 void main(void) 
 {
-    vec3 vertexPosition = vec3(ubo.model *  vec4(inPos, 1.0));
-  	outLightDir = normalize(ubo.lightPos.xyz - vertexPosition);
+	vec3 vertexPosition = vec3(ubo.model *  vec4(inPos, 1.0));
+	outLightDir = normalize(ubo.lightPos.xyz - vertexPosition);
 
-    // Setup (t)angent-(b)inormal-(n)ormal matrix for converting
-    // object coordinates into tangent space
-    mat3 tbnMatrix;
-    tbnMatrix[0] =  mat3(ubo.normal) * inTangent;
-    tbnMatrix[1] =  mat3(ubo.normal) * inBiTangent;
-    tbnMatrix[2] =  mat3(ubo.normal) * inNormal;
+	// Setup (t)angent-(b)inormal-(n)ormal matrix for converting
+	// object coordinates into tangent space
+	mat3 tbnMatrix;
+	tbnMatrix[0] =  mat3(ubo.normal) * inTangent;
+	tbnMatrix[1] =  mat3(ubo.normal) * inBiTangent;
+	tbnMatrix[2] =  mat3(ubo.normal) * inNormal;
 
-    outLightVec.xyz = vec3(ubo.lightPos.xyz - vertexPosition.xyz) * tbnMatrix;
+	outLightVec.xyz = vec3(ubo.lightPos.xyz - vertexPosition.xyz) * tbnMatrix;
 
-    vec3 lightDist = ubo.lightPos.xyz - inPos.xyz;
-    outLightVecB.x = dot(inTangent.xyz, lightDist);
-    outLightVecB.y = dot(inBiTangent.xyz, lightDist);
-    outLightVecB.z = dot(inNormal, lightDist);
+	vec3 lightDist = ubo.lightPos.xyz - inPos.xyz;
+	outLightVecB.x = dot(inTangent.xyz, lightDist);
+	outLightVecB.y = dot(inBiTangent.xyz, lightDist);
+	outLightVecB.z = dot(inNormal, lightDist);
 
-    outViewVec.x = dot(inTangent, inPos.xyz);
-    outViewVec.y = dot(inBiTangent, inPos.xyz);
-    outViewVec.z = dot(inNormal, inPos.xyz);
+	outViewVec.x = dot(inTangent, inPos.xyz);
+	outViewVec.y = dot(inBiTangent, inPos.xyz);
+	outViewVec.z = dot(inNormal, inPos.xyz);
 
-    outUV = inUV;
+	outUV = inUV;
 	
-    gl_Position = ubo.projection * ubo.model * vec4(inPos, 1.0);
+	gl_Position = ubo.projection * ubo.model * vec4(inPos, 1.0);
 }
