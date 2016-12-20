@@ -80,6 +80,12 @@ public:
 		matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
 	}
 
+	void setPosition(glm::vec3 position)
+	{
+		this->position = position;
+		updateViewMatrix();
+	}
+
 	void setRotation(glm::vec3 rotation)
 	{
 		this->rotation = rotation;
