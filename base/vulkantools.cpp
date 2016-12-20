@@ -416,6 +416,13 @@ VkMemoryAllocateInfo vkTools::initializers::memoryAllocateInfo()
 	return memAllocInfo;
 }
 
+VkMappedMemoryRange vkTools::initializers::mappedMemoryRange()
+{
+	VkMappedMemoryRange mappedMemoryRange = {};
+	mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+	return mappedMemoryRange;
+}
+
 VkCommandBufferAllocateInfo vkTools::initializers::commandBufferAllocateInfo(VkCommandPool commandPool, VkCommandBufferLevel level, uint32_t bufferCount)
 {
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};

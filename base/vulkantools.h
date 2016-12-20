@@ -126,6 +126,8 @@ namespace vkTools
 	{
 		VkMemoryAllocateInfo memoryAllocateInfo();
 
+		VkMappedMemoryRange mappedMemoryRange();
+
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo(
 			VkCommandPool commandPool,
 			VkCommandBufferLevel level,
