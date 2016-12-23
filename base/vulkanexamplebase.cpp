@@ -408,7 +408,7 @@ void VulkanExampleBase::renderLoop()
 				std::string windowTitle = getWindowTitle();
 				SetWindowText(window, windowTitle.c_str());
 			}
-			lastFPS = roundf(1.0f / frameTimer);
+			lastFPS = static_cast<uint32_t>(1.0f / frameTimer);
 			updateTextOverlay();
 			fpsTimer = 0.0f;
 			frameCounter = 0;

@@ -411,7 +411,7 @@ public:
 		// We allocate this manually as the alignment of the offset differs between GPUs
 
 		// Calculate required alignment depending on device limits
-		uint32_t uboAlignment = vulkanDevice->properties.limits.minUniformBufferOffsetAlignment;
+		size_t uboAlignment = vulkanDevice->properties.limits.minUniformBufferOffsetAlignment;
 		dynamicAlignment = (sizeof(glm::mat4) / uboAlignment) * uboAlignment + ((sizeof(glm::mat4) % uboAlignment) > 0 ? uboAlignment : 0);
 
 		size_t bufferSize = OBJECT_INSTANCES * dynamicAlignment;
@@ -473,7 +473,7 @@ public:
 		}
 
 		// Dynamic ubo with per-object model matrices indexed by offsets in the command buffer
-		uint32_t dim = pow(OBJECT_INSTANCES, (1.0 / 3.0));
+		uint32_t dim = static_cast<uint32_t>(pow(OBJECT_INSTANCES, (1.0f / 3.0f)));
 		glm::vec3 offset(5.0f);
 
 		for (uint32_t x = 0; x < dim; x++)
