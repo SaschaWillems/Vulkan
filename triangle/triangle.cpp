@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <fstream>
 #include <vector>
 #include <exception>
 
@@ -819,6 +820,60 @@ public:
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 	}
 
+	// Vulkan loads it's shaders from an immediate binary representation called SPIR-V
+	// Shaders are compiled offline from e.g. GLSL using the reference glslang compiler
+	// This function loads such a shader from a binary file and returns a shader module structure
+	VkShaderModule loadSPIRVShader(std::string filename)
+	{
+		size_t shaderSize;
+		char* shaderCode;
+
+#if defined(__ANDROID__)
+		// Load shader from compressed asset
+		AAsset* asset = AAssetManager_open(assetManager, fileName, AASSET_MODE_STREAMING);
+		assert(asset);
+		size_t size = AAsset_getLength(asset);
+		assert(size > 0);
+
+		shaderCode = new char[size];
+		AAsset_read(asset, shaderCode, size);
+		AAsset_close(asset);
+#else
+		std::ifstream is(filename, std::ios::binary | std::ios::in | std::ios::ate);
+
+		if (is.is_open())
+		{
+			shaderSize = is.tellg();
+			is.seekg(0, std::ios::beg);
+			// Copy file contents into a buffer
+			shaderCode = new char[shaderSize];
+			is.read(shaderCode, shaderSize);
+			is.close();
+			assert(shaderSize > 0);
+		}
+#endif
+		if (shaderCode)
+		{
+			// Create a new shader module that will be used for pipeline creation
+			VkShaderModuleCreateInfo moduleCreateInfo{};
+			moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			moduleCreateInfo.codeSize = shaderSize;
+			moduleCreateInfo.pCode = (uint32_t*)shaderCode;
+
+			VkShaderModule shaderModule;
+			VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
+
+			delete[] shaderCode;
+
+			return shaderModule;
+		}
+		else
+		{
+			std::cerr << "Error: Could not open shader file \"" << filename << "\"" << std::endl;
+			return VK_NULL_HANDLE;
+		}
+	}
+
 	void preparePipelines()
 	{
 		// Create the graphics pipeline used in this example
@@ -834,7 +889,7 @@ public:
 		pipelineCreateInfo.renderPass = renderPass;
 
 		// Construct the differnent states making up the pipeline
-		
+
 		// Input assembly state describes how primitives are assembled
 		// This pipeline will assemble vertex data as a triangle lists (though we only use one triangle)
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
@@ -843,8 +898,8 @@ public:
 
 		// Rasterization state
 		VkPipelineRasterizationStateCreateInfo rasterizationState = {};
-		rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;	
-		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;						
+		rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 		rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizationState.depthClampEnable = VK_FALSE;
@@ -903,15 +958,33 @@ public:
 		multisampleState.pSampleMask = nullptr;
 
 		// Load shaders
-		// Vulkan loads it's shaders from an immediate binary representation called SPIR-V
-		// Shaders are compiled offline from e.g. GLSL using the reference glslang compiler
-		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
-		// Assign the pipeline states to the pipeline creation info structure
+		// Vertex shader
+		shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		// Set pipeline stage for this shader
+		shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+		// Load binary SPIR-V shader
+		shaderStages[0].module = loadSPIRVShader(getAssetPath() + "shaders/triangle.vert.spv");
+		// Main entry point for the shader
+		shaderStages[0].pName = "main";	
+		assert(shaderStages[0].module != VK_NULL_HANDLE);
+
+		// Fragment shader
+		shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		// Set pipeline stage for this shader
+		shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		// Load binary SPIR-V shader
+		shaderStages[1].module = loadSPIRVShader(getAssetPath() + "shaders/triangle.frag.spv");
+		// Main entry point for the shader
+		shaderStages[1].pName = "main";
+		assert(shaderStages[1].module != VK_NULL_HANDLE);
+
+		// Set pipeline shader stage info
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
+
+		// Assign the pipeline states to the pipeline creation info structure
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
