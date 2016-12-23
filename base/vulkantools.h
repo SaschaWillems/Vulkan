@@ -80,21 +80,16 @@ namespace vkTools
 
 	// Display error message and exit on fatal error
 	void exitFatal(std::string message, std::string caption);
-	// Load a text file (e.g. GLGL shader) into a std::string
-	std::string readTextFile(const char *fileName);
-	// Load a binary file into a buffer (e.g. SPIR-V)
-	char *readBinaryFile(const char *filename, size_t *psize);
 
-	// Load a SPIR-V shader
+	// @brief  Load a SPIR-V shader (binary) 
 #if defined(__ANDROID__)
 	VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
 #else
 	VkShaderModule loadShader(const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
 #endif
 
-	// Load a GLSL shader
-	// Note : Only for testing purposes, support for directly feeding GLSL shaders into Vulkan
-	// may be dropped at some point	
+	// Load a GLSL shader (text)
+	// Note: GLSL support requires vendor-specific extensions to be enabled and is not a core-feature of Vulkan
 	VkShaderModule loadShaderGLSL(const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
 
 	// Returns a pre-present image memory barrier

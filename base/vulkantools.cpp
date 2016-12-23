@@ -307,37 +307,35 @@ namespace vkTools
 #else
 	VkShaderModule loadShader(const char *fileName, VkDevice device, VkShaderStageFlagBits stage) 
 	{
-		size_t size;
+		std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
 
-		FILE *fp = fopen(fileName, "rb");
-		assert(fp);
+		if (is.is_open())
+		{
+			size_t size = is.tellg();
+			is.seekg(0, std::ios::beg);
+			char* shaderCode = new char[size];
+			is.read(shaderCode, size);
+			is.close();
 
-		fseek(fp, 0L, SEEK_END);
-		size = ftell(fp);
+			assert(size > 0);
 
-		fseek(fp, 0L, SEEK_SET);
+			VkShaderModule shaderModule;
+			VkShaderModuleCreateInfo moduleCreateInfo{};
+			moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			moduleCreateInfo.codeSize = size;
+			moduleCreateInfo.pCode = (uint32_t*)shaderCode;
 
-		//shaderCode = malloc(size);
-		char *shaderCode = new char[size];
-		size_t retval = fread(shaderCode, size, 1, fp);
-		assert(retval == 1);
-		assert(size > 0);
+			VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
 
-		fclose(fp);
+			delete[] shaderCode;
 
-		VkShaderModule shaderModule;
-		VkShaderModuleCreateInfo moduleCreateInfo;
-		moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		moduleCreateInfo.pNext = NULL;
-		moduleCreateInfo.codeSize = size;
-		moduleCreateInfo.pCode = (uint32_t*)shaderCode;
-		moduleCreateInfo.flags = 0;
-
-		VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
-
-		delete[] shaderCode;
-
-		return shaderModule;
+			return shaderModule;
+		}
+		else
+		{
+			std::cerr << "Error: Could not open shader file \"" << fileName << "\"" << std::endl;
+			return nullptr;
+		}
 	}
 #endif
 
