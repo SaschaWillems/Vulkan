@@ -44,6 +44,30 @@ struct Vertex {
 	float color[3];
 };
 
+// Wrapper functions for aligned memory allocation
+// There is currently no standard for this in C++ that works across all platforms and vendors, so we abstract this
+void* alignedAlloc(size_t size, size_t alignment)
+{
+	void *data = nullptr;
+#ifdef _MSC_VER 
+	data = _aligned_malloc(size, alignment);
+#else 
+	int res = posix_memalign(&data, alignment, size);
+	if (res != 0)
+		data = nullptr;
+#endif
+	return data;
+}
+
+void alignedFree(void* data)
+{
+#ifdef _MSC_VER 
+	_aligned_free(data);
+#else 
+	free(data);
+#endif
+}
+
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -99,8 +123,7 @@ public:
 	~VulkanExample()
 	{
 		if (uboDataDynamic.model) {
-			// todo: linux, android
-			_aligned_free(uboDataDynamic.model);
+			alignedFree(uboDataDynamic.model);
 		}
 
 		// Clean up used Vulkan resources 
@@ -393,8 +416,8 @@ public:
 
 		size_t bufferSize = OBJECT_INSTANCES * dynamicAlignment;
 
-		//todo: _algined_malloc only windows
-		uboDataDynamic.model = (glm::mat4*)_aligned_malloc(bufferSize, dynamicAlignment);
+		uboDataDynamic.model = (glm::mat4*)alignedAlloc(bufferSize, dynamicAlignment);
+		assert(uboDataDynamic.model);
 
 		std::cout << "minUniformBufferOffsetAlignment = " << uboAlignment << std::endl;
 		std::cout << "dynamicAlignment = " << dynamicAlignment << std::endl;
