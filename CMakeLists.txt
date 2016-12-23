@@ -106,6 +106,7 @@ set(EXAMPLES
 	deferredshadows
 	displacement
 	distancefieldfonts
+	dynamicuniformbuffer
 	gears
 	geometryshader
 	indirectdraw	

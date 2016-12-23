@@ -9,6 +9,7 @@ adb uninstall de.saschawillems.vulkanGeometryshader
 adb uninstall de.saschawillems.vulkanComputeparticles
 adb uninstall de.saschawillems.vulkanComputenbody
 adb uninstall de.saschawillems.vulkanComputeshader
+adb uninstall de.saschawillems.vulkanDynamicuniformbuffer
 adb uninstall de.saschawillems.vulkanParallaxmapping
 adb uninstall de.saschawillems.vulkanBloom
 adb uninstall de.saschawillems.vulkanGears

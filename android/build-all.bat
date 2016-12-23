@@ -3,6 +3,7 @@ call _build computeparticles %1
 call _build computenbody %1
 call _build computeshader %1
 call _build computecullandlod %1
+call _build dynamicuniformbuffer %1
 call _build parallaxmapping %1
 call _build bloom %1
 call _build gears %1
