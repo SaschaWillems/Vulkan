@@ -364,44 +364,6 @@ namespace vkTools
 
 		return shaderModule;
 	}
-
-	VkImageMemoryBarrier prePresentBarrier(VkImage presentImage)
-	{
-		VkImageMemoryBarrier imageMemoryBarrier = vkTools::initializers::imageMemoryBarrier();
-		imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		imageMemoryBarrier.dstAccessMask = 0;
-		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemoryBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		imageMemoryBarrier.image = presentImage;
-		return imageMemoryBarrier;
-	}
-
-	VkImageMemoryBarrier postPresentBarrier(VkImage presentImage)
-	{
-		VkImageMemoryBarrier imageMemoryBarrier = vkTools::initializers::imageMemoryBarrier();
-		imageMemoryBarrier.srcAccessMask = 0;
-		imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemoryBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		imageMemoryBarrier.image = presentImage;
-		return imageMemoryBarrier;
-	}
-
-	void destroyUniformData(VkDevice device, vkTools::UniformData *uniformData)
-	{
-		if (uniformData->mapped != nullptr)
-		{
-			vkUnmapMemory(device, uniformData->memory);
-		}
-		vkDestroyBuffer(device, uniformData->buffer, nullptr);
-		vkFreeMemory(device, uniformData->memory, nullptr);
-	}
 }
 
 VkMemoryAllocateInfo vkTools::initializers::memoryAllocateInfo()

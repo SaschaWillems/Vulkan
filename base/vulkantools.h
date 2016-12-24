@@ -81,7 +81,7 @@ namespace vkTools
 	// Display error message and exit on fatal error
 	void exitFatal(std::string message, std::string caption);
 
-	// @brief  Load a SPIR-V shader (binary) 
+	// Load a SPIR-V shader (binary) 
 #if defined(__ANDROID__)
 	VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
 #else
@@ -91,28 +91,6 @@ namespace vkTools
 	// Load a GLSL shader (text)
 	// Note: GLSL support requires vendor-specific extensions to be enabled and is not a core-feature of Vulkan
 	VkShaderModule loadShaderGLSL(const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
-
-	// Returns a pre-present image memory barrier
-	// Transforms the image's layout from color attachment to present khr
-	VkImageMemoryBarrier prePresentBarrier(VkImage presentImage);
-
-	// Returns a post-present image memory barrier
-	// Transforms the image's layout back from present khr to color attachment
-	VkImageMemoryBarrier postPresentBarrier(VkImage presentImage);
-
-	// Contains all vulkan objects
-	// required for a uniform data object
-	struct UniformData 
-	{
-		VkBuffer buffer;
-		VkDeviceMemory memory;
-		VkDescriptorBufferInfo descriptor;
-		uint32_t allocSize;
-		void* mapped = nullptr;
-	};
-
-	// Destroy (and free) Vulkan resources used by a uniform data structure
-	void destroyUniformData(VkDevice device, vkTools::UniformData *uniformData);
 
 	// Contains often used vulkan object initializers
 	// Save lot of VK_STRUCTURE_TYPE assignments
