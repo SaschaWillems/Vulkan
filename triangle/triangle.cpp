@@ -54,12 +54,12 @@ public:
 		uint32_t count;
 	} indices;
 
-	// Uniform block object
+	// Uniform buffer block object
 	struct {
 		VkDeviceMemory memory;		
 		VkBuffer buffer;			
 		VkDescriptorBufferInfo descriptor;
-	}  uniformDataVS;
+	}  uniformBufferVS;
 
 	// For simplicity we use the same uniform block layout as in the shader:
 	//
@@ -134,8 +134,8 @@ public:
 		vkDestroyBuffer(device, indices.buffer, nullptr);
 		vkFreeMemory(device, indices.memory, nullptr);
 
-		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
-		vkFreeMemory(device, uniformDataVS.memory, nullptr);
+		vkDestroyBuffer(device, uniformBufferVS.buffer, nullptr);
+		vkFreeMemory(device, uniformBufferVS.memory, nullptr);
 
 		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
 		vkDestroySemaphore(device, renderCompleteSemaphore, nullptr);
@@ -647,7 +647,7 @@ public:
 		writeDescriptorSet.dstSet = descriptorSet;
 		writeDescriptorSet.descriptorCount = 1;
 		writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		writeDescriptorSet.pBufferInfo = &uniformDataVS.descriptor;
+		writeDescriptorSet.pBufferInfo = &uniformBufferVS.descriptor;
 		// Binds this uniform buffer to binding point 0
 		writeDescriptorSet.dstBinding = 0;
 
@@ -1019,9 +1019,9 @@ public:
 		bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
 		// Create a new buffer
-		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &uniformDataVS.buffer));
+		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &uniformBufferVS.buffer));
 		// Get memory requirements including size, alignment and memory type 
-		vkGetBufferMemoryRequirements(device, uniformDataVS.buffer, &memReqs);
+		vkGetBufferMemoryRequirements(device, uniformBufferVS.buffer, &memReqs);
 		allocInfo.allocationSize = memReqs.size;
 		// Get the memory type index that supports host visibile memory access
 		// Most implementations offer multiple memory types and selecting the correct one to allocate memory from is crucial
@@ -1029,14 +1029,14 @@ public:
 		// Note: This may affect performance so you might not want to do this in a real world application that updates buffers on a regular base
 		allocInfo.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		// Allocate memory for the uniform buffer
-		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &(uniformDataVS.memory)));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &(uniformBufferVS.memory)));
 		// Bind memory to buffer
-		VK_CHECK_RESULT(vkBindBufferMemory(device, uniformDataVS.buffer, uniformDataVS.memory, 0));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, uniformBufferVS.buffer, uniformBufferVS.memory, 0));
 		
 		// Store information in the uniform's descriptor that is used by the descriptor set
-		uniformDataVS.descriptor.buffer = uniformDataVS.buffer;
-		uniformDataVS.descriptor.offset = 0;
-		uniformDataVS.descriptor.range = sizeof(uboVS);
+		uniformBufferVS.descriptor.buffer = uniformBufferVS.buffer;
+		uniformBufferVS.descriptor.offset = 0;
+		uniformBufferVS.descriptor.range = sizeof(uboVS);
 
 		updateUniformBuffers();
 	}
@@ -1055,11 +1055,11 @@ public:
 
 		// Map uniform buffer and update it
 		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformBufferVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
 		memcpy(pData, &uboVS, sizeof(uboVS));
 		// Unmap after data has been copied
 		// Note: Since we requested a host coherent memory type for the uniform buffer, the write is instantly visible to the GPU
-		vkUnmapMemory(device, uniformDataVS.memory);
+		vkUnmapMemory(device, uniformBufferVS.memory);
 	}
 
 	void prepare()
