@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -56,9 +57,9 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::UniformData vertexShader;
-		vkTools::UniformData fragmentShader;
-	} uniformData;
+		vk::Buffer vertexShader;
+		vk::Buffer fragmentShader;
+	} uniformBuffers;
 
 	struct {
 
@@ -115,8 +116,8 @@ public:
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
 
-		vkTools::destroyUniformData(device, &uniformData.vertexShader);
-		vkTools::destroyUniformData(device, &uniformData.fragmentShader);
+		uniformBuffers.vertexShader.destroy();
+		uniformBuffers.fragmentShader.destroy();
 
 		textureLoader->destroyTexture(textures.colorMap);
 		textureLoader->destroyTexture(textures.normalHeightMap);
@@ -332,19 +333,6 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		// Color map image descriptor
-		VkDescriptorImageInfo texDescriptorColorMap =
-			vkTools::initializers::descriptorImageInfo(
-				textures.colorMap.sampler,
-				textures.colorMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-
-		VkDescriptorImageInfo texDescriptorNormalHeightMap =
-			vkTools::initializers::descriptorImageInfo(
-				textures.normalHeightMap.sampler,
-				textures.normalHeightMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
 			// Binding 0 : Vertex shader uniform buffer
@@ -352,25 +340,25 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vertexShader.descriptor),
+				&uniformBuffers.vertexShader.descriptor),
 			// Binding 1 : Fragment shader image sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&texDescriptorColorMap),
+				&textures.colorMap.descriptor),
 			// Binding 2 : Combined normal and heightmap
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				2,
-				&texDescriptorNormalHeightMap),
+				&textures.normalHeightMap.descriptor),
 			// Binding 3 : Fragment shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				3,
-				&uniformData.fragmentShader.descriptor)
+				&uniformBuffers.fragmentShader.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -458,25 +446,23 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		// Vertex shader ubo
-		createBuffer(
+		// Vertex shader uniform buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.vertexShader),
-			nullptr,
-			&uniformData.vertexShader.buffer,
-			&uniformData.vertexShader.memory,
-			&uniformData.vertexShader.descriptor);
+			&uniformBuffers.vertexShader,
+			sizeof(ubos.vertexShader)));
 
-		// Fragment shader ubo
-		createBuffer(
+		// Fragment shader uniform buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.fragmentShader),
-			nullptr,
-			&uniformData.fragmentShader.buffer,
-			&uniformData.fragmentShader.memory,
-			&uniformData.fragmentShader.descriptor);
+			&uniformBuffers.fragmentShader,
+			sizeof(ubos.fragmentShader)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.vertexShader.map());
+		VK_CHECK_RESULT(uniformBuffers.fragmentShader.map());
 
 		updateUniformBuffers();
 	}
@@ -504,15 +490,10 @@ public:
 
 		ubos.vertexShader.cameraPos = glm::vec4(0.0, 0.0, zoom, 0.0);
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vertexShader.memory, 0, sizeof(ubos.vertexShader), 0, (void **)&pData));
-		memcpy(pData, &ubos.vertexShader, sizeof(ubos.vertexShader));
-		vkUnmapMemory(device, uniformData.vertexShader.memory);
+		memcpy(uniformBuffers.vertexShader.mapped, &ubos.vertexShader, sizeof(ubos.vertexShader));
 
 		// Fragment shader
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fragmentShader.memory, 0, sizeof(ubos.fragmentShader), 0, (void **)&pData));
-		memcpy(pData, &ubos.fragmentShader, sizeof(ubos.fragmentShader));
-		vkUnmapMemory(device, uniformData.fragmentShader.memory);
+		memcpy(uniformBuffers.fragmentShader.mapped, &ubos.fragmentShader, sizeof(ubos.fragmentShader));
 	}
 
 	void draw()

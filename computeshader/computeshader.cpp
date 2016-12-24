@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -68,7 +69,7 @@ public:
 		vkMeshLoader::MeshBuffer quad;
 	} meshes;
 
-	vkTools::UniformData uniformDataVS;
+	vk::Buffer uniformBufferVS;
 
 	struct {
 		glm::mat4 projection;
@@ -105,7 +106,7 @@ public:
 		vkDestroyCommandPool(device, compute.commandPool, nullptr);
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
-		vkTools::destroyUniformData(device, &uniformDataVS);
+		uniformBufferVS.destroy();
 		textureLoader->destroyTexture(textureColorMap);
 		textureLoader->destroyTexture(textureComputeTarget);
 	}
@@ -439,7 +440,7 @@ public:
 				graphics.descriptorSetPostCompute,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformDataVS.descriptor),
+				&uniformBufferVS.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(
 				graphics.descriptorSetPostCompute,
@@ -458,12 +459,6 @@ public:
 				1);
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &graphics.descriptorSetPreCompute));
-		
-		VkDescriptorImageInfo texDescriptorBaseImage =
-			vkTools::initializers::descriptorImageInfo(
-				textureColorMap.sampler,
-				textureColorMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
 
 		std::vector<VkWriteDescriptorSet> baseImageWriteDescriptorSets =
 		{
@@ -472,13 +467,13 @@ public:
 				graphics.descriptorSetPreCompute,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformDataVS.descriptor),
+				&uniformBufferVS.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(
 				graphics.descriptorSetPreCompute,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&texDescriptorBaseImage)
+				&textureColorMap.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, baseImageWriteDescriptorSets.size(), baseImageWriteDescriptorSets.data(), 0, NULL);
@@ -713,14 +708,14 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformDataVS.buffer,
-			&uniformDataVS.memory,
-			&uniformDataVS.descriptor);
+			&uniformBufferVS,
+			sizeof(uboVS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBufferVS.map());
 
 		updateUniformBuffers();
 	}
@@ -736,10 +731,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformDataVS.memory);
+		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void draw()

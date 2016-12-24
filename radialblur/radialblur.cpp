@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -57,9 +58,9 @@ public:
 	} vertices;
 
 	struct {
-		vkTools::UniformData scene;
-		vkTools::UniformData blurParams;
-	} uniformData;
+		vk::Buffer scene;
+		vk::Buffer blurParams;
+	} uniformBuffers;
 
 	struct UboVS {
 		glm::mat4 projection;
@@ -158,8 +159,8 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
 
 		// Uniform buffers
-		vkTools::destroyUniformData(device, &uniformData.scene);
-		vkTools::destroyUniformData(device, &uniformData.blurParams);
+		uniformBuffers.scene.destroy();
+		uniformBuffers.blurParams.destroy();
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offscreenPass.commandBuffer);
 		vkDestroySemaphore(device, offscreenPass.semaphore, nullptr);
@@ -589,7 +590,7 @@ public:
 				descriptorSets.scene,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.scene.descriptor),
+				&uniformBuffers.scene.descriptor),
 			// Binding 1: Color gradient sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.scene, 
@@ -610,7 +611,7 @@ public:
 				descriptorSets.radialBlur,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.blurParams.descriptor),
+				&uniformBuffers.blurParams.descriptor),
 			// Binding 0: Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.radialBlur, 
@@ -731,24 +732,23 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Phong and color pass vertex shader uniform buffer
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboScene),
-			&uboScene,
-			&uniformData.scene.buffer,
-			&uniformData.scene.memory,
-			&uniformData.scene.descriptor);
+			&uniformBuffers.scene,
+			sizeof(uboScene)));
 
-		// Fullscreen radialb blur parameters
-		createBuffer(
+		// Fullscreen radial blur parameters
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniformBuffers.blurParams,
 			sizeof(uboBlurParams),
-			&uboBlurParams,
-			&uniformData.blurParams.buffer,
-			&uniformData.blurParams.memory,
-			&uniformData.blurParams.descriptor);
+			&uboBlurParams));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.scene.map());
+		VK_CHECK_RESULT(uniformBuffers.blurParams.map());
 
 		updateUniformBuffersScene();
 	}
@@ -771,10 +771,7 @@ public:
 			uboScene.gradientPos += frameTimer * 0.1f;
 		}
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.scene.memory, 0, sizeof(uboScene), 0, (void **)&pData));
-		memcpy(pData, &uboScene, sizeof(uboScene));
-		vkUnmapMemory(device, uniformData.scene.memory);
+		memcpy(uniformBuffers.scene.mapped, &uboScene, sizeof(uboScene));
 	}
 
 	void draw()

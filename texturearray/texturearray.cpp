@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -48,9 +49,7 @@ public:
 		vkMeshLoader::MeshBuffer quad;
 	} meshes;
 
-	struct {
-		vkTools::UniformData vertexShader;
-	} uniformData;
+	vk::Buffer uniformBuffer;
 
 	struct UboInstanceData {
 		// Model matrix
@@ -70,10 +69,8 @@ public:
 		UboInstanceData *instance;		
 	} uboVS;
 
-	struct {
-		VkPipeline solid;
-	} pipelines;
 
+	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -98,14 +95,14 @@ public:
 		vkDestroySampler(device, textureArray.sampler, nullptr);
 		vkFreeMemory(device, textureArray.deviceMemory, nullptr);
 
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(device, pipeline, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
 
-		vkTools::destroyUniformData(device, &uniformData.vertexShader);
+		uniformBuffer.destroy();
 
 		delete[] uboVS.instance;
 	}
@@ -356,7 +353,7 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.quad.indexCount, layerCount, 0, 0, 0);
 
@@ -505,7 +502,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vertexShader.descriptor),
+				&uniformBuffer.descriptor),
 			// Binding 1 : Fragment shader cubemap sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -590,7 +587,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
 	void prepareUniformBuffers()
@@ -600,14 +597,11 @@ public:
 		uint32_t uboSize = sizeof(uboVS.matrices) + (layerCount * sizeof(UboInstanceData));
 
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			uboSize,
-			&uboVS,
-			&uniformData.vertexShader.buffer,
-			&uniformData.vertexShader.memory,
-			&uniformData.vertexShader.descriptor);
+			&uniformBuffer,
+			uboSize));
 
 		// Array indices and model matrices are fixed
 		float offset = -1.5f;
@@ -626,9 +620,12 @@ public:
 		uint8_t *pData;
 		uint32_t dataOffset = sizeof(uboVS.matrices);
 		uint32_t dataSize = layerCount * sizeof(UboInstanceData);
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vertexShader.memory, dataOffset, dataSize, 0, (void **)&pData));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformBuffer.memory, dataOffset, dataSize, 0, (void **)&pData));
 		memcpy(pData, uboVS.instance, dataSize);
-		vkUnmapMemory(device, uniformData.vertexShader.memory);
+		vkUnmapMemory(device, uniformBuffer.memory);
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffer.map());
 
 		updateUniformBufferMatrices();
 	}
@@ -647,10 +644,7 @@ public:
 		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Only update the matrices part of the uniform buffer
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vertexShader.memory, 0, sizeof(uboVS.matrices), 0, (void **)&pData));
-		memcpy(pData, &uboVS.matrices, sizeof(uboVS.matrices));
-		vkUnmapMemory(device, uniformData.vertexShader.memory);
+		memcpy(uniformBuffer.mapped, &uboVS.matrices, sizeof(uboVS.matrices));
 	}
 
 	void draw()

@@ -21,6 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -46,18 +47,18 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	struct {
+	struct Meshes {
 		vkMeshLoader::MeshBuffer skybox;
 		std::vector<vkMeshLoader::MeshBuffer> objects;
 		uint32_t objectIndex = 0;
 	} meshes;
 
 	struct {
-		vkTools::UniformData objectVS;
-		vkTools::UniformData skyboxVS;
-	} uniformData;
+		vk::Buffer object;
+		vk::Buffer skybox;
+	} uniformBuffers;
 
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		float lodBias = 0.0f;
@@ -108,8 +109,8 @@ public:
 		}
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.skybox);
 
-		vkTools::destroyUniformData(device, &uniformData.objectVS);
-		vkTools::destroyUniformData(device, &uniformData.skyboxVS);
+		uniformBuffers.object.destroy();
+		uniformBuffers.skybox.destroy();
 	}
 
 	void loadCubemap(std::string filename, VkFormat format, bool forceLinearTiling)
@@ -491,7 +492,7 @@ public:
 				descriptorSets.object, 
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
 				0, 
-				&uniformData.objectVS.descriptor),
+				&uniformBuffers.object.descriptor),
 			// Binding 1 : Fragment shader cubemap sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.object, 
@@ -511,7 +512,7 @@ public:
 				descriptorSets.skybox,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.skyboxVS.descriptor),
+				&uniformBuffers.skybox.descriptor),
 			// Binding 1 : Fragment shader cubemap sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.skybox,
@@ -610,25 +611,23 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// 3D objact 
-		createBuffer(
+		// Objact vertex shader uniform buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.objectVS.buffer,
-			&uniformData.objectVS.memory,
-			&uniformData.objectVS.descriptor);
+			&uniformBuffers.object,
+			sizeof(uboVS)));
 
-		// Skybox
-		createBuffer(
+		// Skybox vertex shader uniform buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.skyboxVS.buffer,
-			&uniformData.skyboxVS.memory,
-			&uniformData.skyboxVS.descriptor);
+			&uniformBuffers.skybox,
+			sizeof(uboVS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.object.map());
+		VK_CHECK_RESULT(uniformBuffers.skybox.map());
 
 		updateUniformBuffers();
 	}
@@ -646,10 +645,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.objectVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.objectVS.memory);
+		memcpy(uniformBuffers.object.mapped, &uboVS, sizeof(uboVS));
 
 		// Skybox
 		viewMatrix = glm::mat4();
@@ -661,9 +657,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.skyboxVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.skyboxVS.memory);
+		memcpy(uniformBuffers.skybox.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void draw()

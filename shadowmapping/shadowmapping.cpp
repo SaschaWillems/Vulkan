@@ -20,6 +20,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "vulkanMeshLoader.hpp"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -78,12 +79,11 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	vkTools::UniformData uniformDataVS;
-
 	struct {
-		vkTools::UniformData scene;
-		vkTools::UniformData offscreen;
-	} uniformData;
+		vk::Buffer scene;
+		vk::Buffer offscreen;
+		vk::Buffer debug;
+	} uniformBuffers;
 
 	struct {
 		glm::mat4 projection;
@@ -179,9 +179,9 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
 
 		// Uniform buffers
-		vkTools::destroyUniformData(device, &uniformDataVS);
-		vkTools::destroyUniformData(device, &uniformData.offscreen);
-		vkTools::destroyUniformData(device, &uniformData.scene);
+		uniformBuffers.offscreen.destroy();
+		uniformBuffers.scene.destroy();
+		uniformBuffers.debug.destroy();
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offscreenPass.commandBuffer);
 		vkDestroySemaphore(device, offscreenPass.semaphore, nullptr);
@@ -578,6 +578,8 @@ public:
 
 	void setupDescriptorSets()
 	{
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+
 		// Textured quad descriptor set
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
@@ -594,14 +596,13 @@ public:
 				offscreenPass.depth.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
+		writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformDataVS.descriptor),
+				&uniformBuffers.debug.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -615,16 +616,15 @@ public:
 		// Offscreen
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.offscreen));
 
-		std::vector<VkWriteDescriptorSet> offScreenWriteDescriptorSets =
-		{
+		writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.offscreen,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.offscreen.descriptor),
+				&uniformBuffers.offscreen.descriptor),
 		};
-		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// 3D scene
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
@@ -633,14 +633,13 @@ public:
 		texDescriptor.sampler = offscreenPass.depthSampler;
 		texDescriptor.imageView = offscreenPass.depth.view;
 
-		std::vector<VkWriteDescriptorSet> sceneDescriptorSets =
-		{
+		writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.scene,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.scene.descriptor),
+				&uniformBuffers.scene.descriptor),
 			// Binding 1 : Fragment shader shadow sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.scene,
@@ -648,7 +647,7 @@ public:
 				1,
 				&texDescriptor)
 		};
-		vkUpdateDescriptorSets(device, sceneDescriptorSets.size(), sceneDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 	}
 
@@ -759,34 +758,30 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Debug quad vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVSscene),
-			nullptr,
-			&uniformDataVS.buffer,
-			&uniformDataVS.memory,
-			&uniformDataVS.descriptor);
+			&uniformBuffers.debug,
+			sizeof(uboVSscene)));
 
 		// Offscreen vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboOffscreenVS),
-			nullptr,
-			&uniformData.offscreen.buffer,
-			&uniformData.offscreen.memory,
-			&uniformData.offscreen.descriptor);
+			&uniformBuffers.offscreen,
+			sizeof(uboOffscreenVS)));
 
 		// Scene vertex shader uniform buffer block 
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVSscene),
-			nullptr,
-			&uniformData.scene.buffer,
-			&uniformData.scene.memory,
-			&uniformData.scene.descriptor);
+			&uniformBuffers.scene,
+			sizeof(uboVSscene)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.debug.map());
+		VK_CHECK_RESULT(uniformBuffers.offscreen.map());
+		VK_CHECK_RESULT(uniformBuffers.scene.map());
 
 		updateLight();
 		updateUniformBufferOffscreen();
@@ -809,10 +804,7 @@ public:
 		uboVSquad.projection = glm::ortho(2.5f / AR, 0.0f, 0.0f, 2.5f, -1.0f, 1.0f);
 		uboVSquad.model = glm::mat4();
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVSquad), 0, (void **)&pData));
-		memcpy(pData, &uboVSquad, sizeof(uboVSquad));
-		vkUnmapMemory(device, uniformDataVS.memory);
+		memcpy(uniformBuffers.debug.mapped, &uboVSquad, sizeof(uboVSquad));
 
 		// 3D scene
 		uboVSscene.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, zNear, zFar);
@@ -835,9 +827,7 @@ public:
 	
 		uboVSscene.depthBiasMVP = uboOffscreenVS.depthMVP;
 
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.scene.memory, 0, sizeof(uboVSscene), 0, (void **)&pData));
-		memcpy(pData, &uboVSscene, sizeof(uboVSscene));
-		vkUnmapMemory(device, uniformData.scene.memory);
+		memcpy(uniformBuffers.scene.mapped, &uboVSscene, sizeof(uboVSscene));
 	}
 
 	void updateUniformBufferOffscreen()
@@ -849,10 +839,7 @@ public:
 
 		uboOffscreenVS.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.offscreen.memory, 0, sizeof(uboOffscreenVS), 0, (void **)&pData));
-		memcpy(pData, &uboOffscreenVS, sizeof(uboOffscreenVS));
-		vkUnmapMemory(device, uniformData.offscreen.memory);
+		memcpy(uniformBuffers.offscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
 	}
 
 	void draw()
@@ -954,11 +941,11 @@ public:
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
 #if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button X\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button A\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button X\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("Press \"s\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"l\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"s\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"l\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 

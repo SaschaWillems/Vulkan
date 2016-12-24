@@ -52,19 +52,21 @@ public:
 		vkMeshLoader::MeshBuffer object;
 	} meshes;
 
-	vkTools::UniformData uniformDataTC, uniformDataTE;
-
 	struct {
+		vk::Buffer tessControl, tessEval;
+	} uniformBuffers;
+
+	struct UBOTessControl {
 		float tessLevel = 64.0f;
-	} uboTC;
+	} uboTessControl;
 
-	struct {
+	struct UBOTessEval {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
 		float tessAlpha = 1.0f;
 		float tessStrength = 0.1f;
-	} uboTE;
+	} uboTessEval;
 
 	struct {
 		VkPipeline solid;
@@ -105,14 +107,10 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
+		uniformBuffers.tessControl.destroy();
+		uniformBuffers.tessEval.destroy();
+
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
-
-		vkDestroyBuffer(device, uniformDataTC.buffer, nullptr);
-		vkFreeMemory(device, uniformDataTC.memory, nullptr);
-
-		vkDestroyBuffer(device, uniformDataTE.buffer, nullptr);
-		vkFreeMemory(device, uniformDataTE.memory, nullptr);
-
 		textureLoader->destroyTexture(textures.colorHeightMap);
 	}
 
@@ -319,13 +317,13 @@ public:
 				descriptorSet, 
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
 				0, 
-				&uniformDataTC.descriptor),
+				&uniformBuffers.tessControl.descriptor),
 			// Binding 1 : Tessellation evaluation shader ubo
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet, 
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				1, 
-				&uniformDataTE.descriptor),
+				&uniformBuffers.tessEval.descriptor),
 			// Binding 2 : Color and displacement map (alpha channel)
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -430,24 +428,22 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Tessellation evaluation shader uniform buffer
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboTE),
-			nullptr,
-			&uniformDataTE.buffer,
-			&uniformDataTE.memory,
-			&uniformDataTE.descriptor);
+			&uniformBuffers.tessEval,
+			sizeof(uboTessEval)));
 
 		// Tessellation control shader uniform buffer
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboTC),
-			nullptr,
-			&uniformDataTC.buffer,
-			&uniformDataTC.memory,
-			&uniformDataTC.descriptor);
+			&uniformBuffers.tessControl,
+			sizeof(uboTessControl)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.tessControl.map());
+		VK_CHECK_RESULT(uniformBuffers.tessEval.map());
 
 		updateUniformBuffers();
 	}
@@ -456,37 +452,33 @@ public:
 	{
 		// Tessellation eval
 		glm::mat4 viewMatrix = glm::mat4();
-		uboTE.projection = glm::perspective(glm::radians(45.0f), (float)(width) / (float)height, 0.1f, 256.0f);
+		uboTessEval.projection = glm::perspective(glm::radians(45.0f), (float)(width) / (float)height, 0.1f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
 		float offset = 0.5f;
 		int uboIndex = 1;
-		uboTE.model = glm::mat4();
-		uboTE.model = viewMatrix * glm::translate(uboTE.model, glm::vec3(0, 0, 0));
-		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboTessEval.model = glm::mat4();
+		uboTessEval.model = viewMatrix * glm::translate(uboTessEval.model, glm::vec3(0, 0, 0));
+		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uboTE.lightPos.y = -0.5f - uboTE.tessStrength;
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataTE.memory, 0, sizeof(uboTE), 0, (void **)&pData));
-		memcpy(pData, &uboTE, sizeof(uboTE));
-		vkUnmapMemory(device, uniformDataTE.memory);
+		uboTessEval.lightPos.y = -0.5f - uboTessEval.tessStrength;
+
+		memcpy(uniformBuffers.tessEval.mapped, &uboTessEval, sizeof(uboTessEval));
 
 		// Tessellation control
-		float savedLevel = uboTC.tessLevel;
+		float savedLevel = uboTessControl.tessLevel;
 		if (!displacement)
 		{
-			uboTC.tessLevel = 1.0f;
+			uboTessControl.tessLevel = 1.0f;
 		}
 
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataTC.memory, 0, sizeof(uboTC), 0, (void **)&pData));
-		memcpy(pData, &uboTC, sizeof(uboTC));
-		vkUnmapMemory(device, uniformDataTC.memory);
+		memcpy(uniformBuffers.tessControl.mapped, &uboTessControl, sizeof(uboTessControl));
 
 		if (!displacement)
 		{
-			uboTC.tessLevel = savedLevel;
+			uboTessControl.tessLevel = savedLevel;
 		}
 	}
 
@@ -539,16 +531,16 @@ public:
 
 	void changeTessellationLevel(float delta)
 	{
-		uboTC.tessLevel += delta;
-		uboTC.tessLevel = fmax(1.0, fmin(uboTC.tessLevel, 32.0));
+		uboTessControl.tessLevel += delta;
+		uboTessControl.tessLevel = fmax(1.0, fmin(uboTessControl.tessLevel, 32.0));
 		updateUniformBuffers();
 		updateTextOverlay();
 	}
 
 	void changeTessellationStrength(float delta)
 	{
-		uboTE.tessStrength += delta;
-		uboTE.tessStrength = fmax(0.0f, fmin(uboTE.tessStrength, 1.0f));
+		uboTessEval.tessStrength += delta;
+		uboTessEval.tessStrength = fmax(0.0f, fmin(uboTessEval.tessStrength, 1.0f));
 		updateUniformBuffers();
 		updateTextOverlay();
 	}
@@ -592,15 +584,15 @@ public:
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
 		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboTE.tessStrength;
+		ss << std::setprecision(2) << std::fixed << uboTessEval.tessStrength;
 #if defined(__ANDROID__)
 		textOverlay->addText("Tessellation height: " + ss.str() + " (Buttons L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button A\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button X\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button A\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button X\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #else
 		textOverlay->addText("Tessellation height: " + ss.str() + " (numpad +/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"d\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"s\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"d\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"s\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 };

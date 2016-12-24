@@ -82,7 +82,7 @@ private:
 	uint32_t indexCount;
 
 	UBO ubo;
-	vkTools::UniformData uniformData;
+	vk::Buffer uniformBuffer;
 
 	int32_t newVertex(std::vector<Vertex> *vBuffer, float x, float y, float z, const glm::vec3& normal);
 	void newFace(std::vector<uint32_t> *iBuffer, int a, int b, int c);

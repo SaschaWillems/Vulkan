@@ -398,8 +398,8 @@ public:
 
 	// Shared ubo containing matrices used by all
 	// materials and meshes
-	vkTools::UniformData uniformBuffer;
-	struct {
+	vk::Buffer uniformBuffer;
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 model;
@@ -441,6 +441,7 @@ public:
 		uniformBuffer.descriptor.offset = 0;
 		uniformBuffer.descriptor.buffer = uniformBuffer.buffer;
 		uniformBuffer.descriptor.range = sizeof(uniformData);
+		uniformBuffer.device = vulkanDevice->logicalDevice;
 	}
 
 	// Default destructor
@@ -459,7 +460,7 @@ public:
 		vkDestroyPipeline(vulkanDevice->logicalDevice, pipelines.solid, nullptr);
 		vkDestroyPipeline(vulkanDevice->logicalDevice, pipelines.blending, nullptr);
 		vkDestroyPipeline(vulkanDevice->logicalDevice, pipelines.wireframe, nullptr);
-		vkTools::destroyUniformData(vulkanDevice->logicalDevice, &uniformBuffer);
+		uniformBuffer.destroy();
 	}
 
 	void load(std::string filename, VkCommandBuffer copyCmd)
@@ -567,6 +568,7 @@ public:
 		camera.setRotation(glm::vec3(5.0f, 90.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		title = "Vulkan Example - Scene rendering";
+		enabledFeatures.fillModeNonSolid = VK_TRUE;
 	}
 
 	~VulkanExample()

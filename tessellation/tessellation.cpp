@@ -22,6 +22,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -52,18 +53,20 @@ public:
 	struct {
 		vkMeshLoader::MeshBuffer object;
 	} meshes;
+
+	struct {
+		vk::Buffer tessControl, tessEval;
+	} uniformBuffers;
 	
-	vkTools::UniformData uniformDataTC, uniformDataTE;
-
-	struct {
+	struct UBOTessControl {
 		float tessLevel = 3.0f;
-	} uboTC;
+	} uboTessControl;
 
-	struct {
+	struct UBOTessEval {
 		glm::mat4 projection;
 		glm::mat4 model;
 		float tessAlpha = 1.0f;
-	} uboTE;
+	} uboTessEval;
 
 	struct {
 		VkPipeline solid;
@@ -77,15 +80,6 @@ public:
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
-
-	// Device features to be enabled for this example 
-	virtual VkPhysicalDeviceFeatures getEnabledFeatures()
-	{
-		VkPhysicalDeviceFeatures enabledFeatures{};
-		enabledFeatures.tessellationShader = VK_TRUE;
-		enabledFeatures.fillModeNonSolid = VK_TRUE;
-		return enabledFeatures;
-	}
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -115,11 +109,8 @@ public:
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
 
-		vkDestroyBuffer(device, uniformDataTC.buffer, nullptr);
-		vkFreeMemory(device, uniformDataTC.memory, nullptr);
-
-		vkDestroyBuffer(device, uniformDataTE.buffer, nullptr);
-		vkFreeMemory(device, uniformDataTE.memory, nullptr);
+		uniformBuffers.tessControl.destroy();
+		uniformBuffers.tessEval.destroy();
 
 		textureLoader->destroyTexture(textures.colorMap);
 	}
@@ -327,13 +318,13 @@ public:
 			descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformDataTC.descriptor),
+				&uniformBuffers.tessControl.descriptor),
 			// Binding 1 : Tessellation evaluation shader ubo
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				1,
-				&uniformDataTE.descriptor),
+				&uniformBuffers.tessEval.descriptor),
 			// Binding 2 : Color map 
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -450,24 +441,22 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Tessellation evaluation shader uniform buffer
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboTE),
-			&uboTE,
-			&uniformDataTE.buffer,
-			&uniformDataTE.memory,
-			&uniformDataTE.descriptor);
+			&uniformBuffers.tessEval,
+			sizeof(uboTessEval)));
 
 		// Tessellation control shader uniform buffer
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboTC),
-			&uboTC,
-			&uniformDataTC.buffer,
-			&uniformDataTC.memory,
-			&uniformDataTC.descriptor);
+			&uniformBuffers.tessControl,
+			sizeof(uboTessControl)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.tessControl.map());
+		VK_CHECK_RESULT(uniformBuffers.tessEval.map());
 
 		updateUniformBuffers();
 	}
@@ -476,26 +465,22 @@ public:
 	{
 		// Tessellation eval
 		glm::mat4 viewMatrix = glm::mat4();
-		uboTE.projection = glm::perspective(glm::radians(45.0f), (float)(width* ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.1f, 256.0f);
+		uboTessEval.projection = glm::perspective(glm::radians(45.0f), (float)(width* ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.1f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
-		uboTE.model = glm::mat4();
-		uboTE.model = viewMatrix * glm::translate(uboTE.model, cameraPos);
-		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboTE.model = glm::rotate(uboTE.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboTessEval.model = glm::mat4();
+		uboTessEval.model = viewMatrix * glm::translate(uboTessEval.model, cameraPos);
+		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uint8_t *pData;
 
-		// Tessellatione evaulation uniform block
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataTE.memory, 0, sizeof(uboTE), 0, (void **)&pData));
-		memcpy(pData, &uboTE, sizeof(uboTE));
-		vkUnmapMemory(device, uniformDataTE.memory);
+		// Tessellation evaulation uniform block
+		memcpy(uniformBuffers.tessEval.mapped, &uboTessEval, sizeof(uboTessEval));
 
 		// Tessellation control uniform block
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataTC.memory, 0, sizeof(uboTC), 0, (void **)&pData));
-		memcpy(pData, &uboTC, sizeof(uboTC));
-		vkUnmapMemory(device, uniformDataTC.memory);
+		memcpy(uniformBuffers.tessControl.mapped, &uboTessControl, sizeof(uboTessControl));
 	}
 
 	void draw()
@@ -570,7 +555,7 @@ public:
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
 		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboTC.tessLevel;
+		ss << std::setprecision(2) << std::fixed << uboTessControl.tessLevel;
 #if defined(__ANDROID__)
 		textOverlay->addText("Tessellation level: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("Press \"Button X\" to toggle splitscreen", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
@@ -582,9 +567,9 @@ public:
 
 	void changeTessellationLevel(float delta)
 	{
-		uboTC.tessLevel += delta;
+		uboTessControl.tessLevel += delta;
 		// Clamp
-		uboTC.tessLevel = fmax(1.0f, fmin(uboTC.tessLevel, 32.0f));
+		uboTessControl.tessLevel = fmax(1.0f, fmin(uboTessControl.tessLevel, 32.0f));
 		updateUniformBuffers();
 		updateTextOverlay();
 	}

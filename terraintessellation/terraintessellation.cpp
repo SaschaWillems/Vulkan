@@ -21,6 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 #include "frustum.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -58,9 +59,9 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::UniformData terrainTessellation;
-		vkTools::UniformData skysphereVertex;
-	} uniformData;
+		vk::Buffer terrainTessellation;
+		vk::Buffer skysphereVertex;
+	} uniformBuffers;
 
 	// Shared values for tessellation control and evaluation stages
 	struct {
@@ -145,11 +146,8 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.terrain);
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.skysphere);
 
-		vkDestroyBuffer(device, uniformData.terrainTessellation.buffer, nullptr);
-		vkFreeMemory(device, uniformData.terrainTessellation.memory, nullptr);
-
-		vkDestroyBuffer(device, uniformData.skysphereVertex.buffer, nullptr);
-		vkFreeMemory(device, uniformData.skysphereVertex.memory, nullptr);
+		uniformBuffers.skysphereVertex.destroy();
+		uniformBuffers.terrainTessellation.destroy();
 
 		textureLoader->destroyTexture(textures.heightMap);
 		textureLoader->destroyTexture(textures.skySphere);
@@ -664,7 +662,7 @@ public:
 				descriptorSets.terrain, 
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
 				0, 
-				&uniformData.terrainTessellation.descriptor),
+				&uniformBuffers.terrainTessellation.descriptor),
 			// Binding 1 : Displacement map
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.terrain,
@@ -691,7 +689,7 @@ public:
 				descriptorSets.skysphere,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.skysphereVertex.descriptor),
+				&uniformBuffers.skysphereVertex.descriptor),
 			// Binding 1 : Fragment shader color map
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.skysphere,
@@ -808,24 +806,22 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Shared tessellation shader stages uniform buffer
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboTess),
-			nullptr,
-			&uniformData.terrainTessellation.buffer,
-			&uniformData.terrainTessellation.memory,
-			&uniformData.terrainTessellation.descriptor);
+			&uniformBuffers.terrainTessellation,
+			sizeof(uboTess)));
 
 		// Skysphere vertex shader uniform buffer
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.skysphereVertex.buffer,
-			&uniformData.skysphereVertex.memory,
-			&uniformData.skysphereVertex.descriptor);
+			&uniformBuffers.skysphereVertex,
+			sizeof(uboVS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.terrainTessellation.map());
+		VK_CHECK_RESULT(uniformBuffers.skysphereVertex.map());
 
 		updateUniformBuffers();
 	}
@@ -849,10 +845,7 @@ public:
 			uboTess.tessellationFactor = 0.0f;
 		}
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.terrainTessellation.memory, 0, sizeof(uboTess), 0, (void **)&pData));
-		memcpy(pData, &uboTess, sizeof(uboTess));
-		vkUnmapMemory(device, uniformData.terrainTessellation.memory);
+		memcpy(uniformBuffers.terrainTessellation.mapped, &uboTess, sizeof(uboTess));
 
 		if (!tessellation)
 		{
@@ -861,10 +854,7 @@ public:
 
 		// Skysphere vertex shader
 		uboVS.mvp = camera.matrices.perspective * glm::mat4(glm::mat3(camera.matrices.view));
-
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.skysphereVertex.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.skysphereVertex.memory);
+		memcpy(uniformBuffers.skysphereVertex.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void draw()

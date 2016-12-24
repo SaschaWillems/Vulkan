@@ -24,6 +24,7 @@
 
 #include "vulkanexamplebase.h"
 #include "vulkandevice.hpp"
+#include "vulkanbuffer.hpp"
 
 #include "../external/stb/stb_font_consolas_24_latin1.inl"
 
@@ -713,11 +714,9 @@ public:
 		vkMeshLoader::MeshBuffer cube;
 	} meshes;
 
-	struct {
-		vkTools::UniformData vsScene;
-	} uniformData;
+	vk::Buffer uniformBuffer;
 
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -756,7 +755,7 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.cube);
 		textureLoader->destroyTexture(textures.background);
 		textureLoader->destroyTexture(textures.cube);
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
+		uniformBuffer.destroy();
 		delete(textOverlay);
 	}
 
@@ -999,7 +998,7 @@ public:
 				descriptorSets.background,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsScene.descriptor));
+				&uniformBuffer.descriptor));
 
 		// Binding 1 : Color map 
 		writeDescriptorSets.push_back(
@@ -1110,13 +1109,14 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniformBuffer,
+			sizeof(uboVS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffer.map());
 
 		updateUniformBuffers();
 	}
@@ -1133,10 +1133,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void prepareTextOverlay()

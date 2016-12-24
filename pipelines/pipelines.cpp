@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -45,10 +46,10 @@ public:
 		vkMeshLoader::MeshBuffer cube;
 	} meshes;
 
-	vkTools::UniformData uniformDataVS;
+	vk::Buffer uniformBuffer;
 
 	// Same uniform buffer layout as shader
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 modelView;
 		glm::vec4 lightPos = glm::vec4(0.0f, 2.0f, 1.0f, 0.0f);
@@ -67,6 +68,7 @@ public:
 	// Device features to be enabled for this example 
 	virtual VkPhysicalDeviceFeatures getEnabledFeatures() 
 	{
+		//todo...
 		VkPhysicalDeviceFeatures enabledFeatures{};
 		enabledFeatures.fillModeNonSolid = VK_TRUE;
 		enabledFeatures.wideLines = VK_TRUE;
@@ -79,6 +81,9 @@ public:
 		rotation = glm::vec3(-25.0f, 15.0f, 0.0f);
 		enableTextOverlay = true;
 		title = "Vulkan Example - Pipeline state objects";
+		// Enable features for wireframe rendering and line width setting
+		enabledFeatures.fillModeNonSolid = VK_TRUE;
+		enabledFeatures.wideLines = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -97,8 +102,7 @@ public:
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.cube);
 
-		vkDestroyBuffer(device, uniformDataVS.buffer, nullptr);
-		vkFreeMemory(device, uniformDataVS.memory, nullptr);
+		uniformBuffer.destroy();
 	}
 
 	void buildCommandBuffers()
@@ -281,7 +285,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformDataVS.descriptor)
+				&uniformBuffer.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -398,14 +402,14 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Create the vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformDataVS.buffer,
-			&uniformDataVS.memory,
-			&uniformDataVS.descriptor);
+			&uniformBuffer,
+			sizeof(uboVS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffer.map());
 
 		updateUniformBuffers();
 	}
@@ -421,10 +425,7 @@ public:
 		uboVS.modelView = glm::rotate(uboVS.modelView, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.modelView = glm::rotate(uboVS.modelView, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformDataVS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformDataVS.memory);
+		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void draw()

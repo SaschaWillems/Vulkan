@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -92,18 +93,18 @@ public:
 	} particles;
 
 	struct {
-		vkTools::UniformData fire;
-		vkTools::UniformData environment;
-	} uniformData;
+		vk::Buffer fire;
+		vk::Buffer environment;
+	} uniformBuffers;
 
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec2 viewportDim;
 		float pointSize = PARTICLE_SIZE;
 	} uboVS;
 
-	struct {
+	struct UBOEnv {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::mat4 normal;
@@ -153,8 +154,8 @@ public:
 		vkDestroyBuffer(device, particles.buffer, nullptr);
 		vkFreeMemory(device, particles.memory, nullptr);
 
-		vkDestroyBuffer(device, uniformData.fire.buffer, nullptr);
-		vkFreeMemory(device, uniformData.fire.memory, nullptr);
+		uniformBuffers.environment.destroy();
+		uniformBuffers.fire.destroy();
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.environment.buffers);
 
@@ -487,6 +488,8 @@ public:
 
 	void setupDescriptorSets()
 	{
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
 				descriptorPool,
@@ -507,14 +510,13 @@ public:
 				textures.particles.fire.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
+		writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
 			descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.fire.descriptor),
+				&uniformBuffers.fire.descriptor),
 			// Binding 1 : Smoke texture
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -545,29 +547,26 @@ public:
 				textures.floor.normalMap.view,
 				VK_IMAGE_LAYOUT_GENERAL);
 
-		writeDescriptorSets.clear();
-
-		// Binding 0 : Vertex shader uniform buffer
-		writeDescriptorSets.push_back(
+		writeDescriptorSets = {
+			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
 				meshes.environment.descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.environment.descriptor));
-		// Binding 1 : Color map
-		writeDescriptorSets.push_back(
+				&uniformBuffers.environment.descriptor),
+			// Binding 1 : Color map
 			vkTools::initializers::writeDescriptorSet(
 				meshes.environment.descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&texDescriptorColorMap));
-		// Binding 2 : Normal map
-		writeDescriptorSets.push_back(
+				&texDescriptorColorMap),
+			// Binding 2 : Normal map
 			vkTools::initializers::writeDescriptorSet(
 				meshes.environment.descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				2,
-				&texDescriptorNormalMap));
+				&texDescriptorNormalMap),
+		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
@@ -675,24 +674,22 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformData.fire.buffer,
-			&uniformData.fire.memory,
-			&uniformData.fire.descriptor);
+			&uniformBuffers.fire,
+			sizeof(uboVS)));
 
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboEnv),
-			&uboEnv,
-			&uniformData.environment.buffer,
-			&uniformData.environment.memory,
-			&uniformData.environment.descriptor);
+			&uniformBuffers.environment,
+			sizeof(uboEnv)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.fire.map());
+		VK_CHECK_RESULT(uniformBuffers.environment.map());
 
 		updateUniformBuffers();
 	}
@@ -703,10 +700,7 @@ public:
 		uboEnv.lightPos.x = sin(timer * 2 * M_PI) * 1.5f;
 		uboEnv.lightPos.y = 0.0f;
 		uboEnv.lightPos.z = cos(timer * 2 * M_PI) * 1.5f;
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData));
-		memcpy(pData, &uboEnv, sizeof(uboEnv));
-		vkUnmapMemory(device, uniformData.environment.memory);
+		memcpy(uniformBuffers.environment.mapped, &uboEnv, sizeof(uboEnv));
 	}
 
 	void updateUniformBuffers()
@@ -723,20 +717,14 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uboVS.viewportDim = glm::vec2((float)width, (float)height);
-
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fire.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.fire.memory);
+		memcpy(uniformBuffers.fire.mapped, &uboVS, sizeof(uboVS));
 
 		// Environment
 		uboEnv.projection = uboVS.projection;
 		uboEnv.model = uboVS.model;
 		uboEnv.normal = glm::inverseTranspose(uboEnv.model);
 		uboEnv.cameraPos = glm::vec4(0.0, 0.0, zoom, 0.0);
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.environment.memory, 0, sizeof(uboEnv), 0, (void **)&pData));
-		memcpy(pData, &uboEnv, sizeof(uboEnv));
-		vkUnmapMemory(device, uniformData.environment.memory);
+		memcpy(uniformBuffers.environment.mapped, &uboEnv, sizeof(uboEnv));
 	}
 
 	void draw()

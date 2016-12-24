@@ -27,9 +27,7 @@ void VulkanGear::newFace(std::vector<uint32_t> *iBuffer, int a, int b, int c)
 VulkanGear::~VulkanGear()
 {
 	// Clean up vulkan resources
-	vkDestroyBuffer(vulkanDevice->logicalDevice, uniformData.buffer, nullptr);
-	vkFreeMemory(vulkanDevice->logicalDevice, uniformData.memory, nullptr);
-
+	uniformBuffer.destroy();
 	vertexBuffer.destroy();
 	indexBuffer.destroy();
 }
@@ -290,10 +288,7 @@ void VulkanGear::updateUniformBuffer(glm::mat4 perspective, glm::vec3 rotation, 
 	ubo.lightPos.x = sin(glm::radians(timer)) * 8.0f;
 	ubo.lightPos.z = cos(glm::radians(timer)) * 8.0f;
 
-	uint8_t *pData;
-	VK_CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, uniformData.memory, 0, sizeof(ubo), 0, (void **)&pData));
-	memcpy(pData, &ubo, sizeof(ubo));
-	vkUnmapMemory(vulkanDevice->logicalDevice, uniformData.memory);
+	memcpy(uniformBuffer.mapped, &ubo, sizeof(ubo));
 }
 
 void VulkanGear::setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout descriptorSetLayout)
@@ -312,30 +307,18 @@ void VulkanGear::setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout
 			descriptorSet,
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			0,
-			&uniformData.descriptor);
+			&uniformBuffer.descriptor);
 
 	vkUpdateDescriptorSets(vulkanDevice->logicalDevice, 1, &writeDescriptorSet, 0, NULL);
 }
 
 void VulkanGear::prepareUniformBuffer()
 {
-	// Vertex shader uniform buffer block
-	VkMemoryAllocateInfo allocInfo = vkTools::initializers::memoryAllocateInfo();
-	VkMemoryRequirements memReqs;
-
-	VkBufferCreateInfo bufferInfo = vkTools::initializers::bufferCreateInfo(
+	VK_CHECK_RESULT(vulkanDevice->createBuffer(
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-		sizeof(ubo));
-
-	VK_CHECK_RESULT(vkCreateBuffer(vulkanDevice->logicalDevice, &bufferInfo, nullptr, &uniformData.buffer));
-	vkGetBufferMemoryRequirements(vulkanDevice->logicalDevice, uniformData.buffer, &memReqs);
-	allocInfo.allocationSize = memReqs.size;
-	allocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(vulkanDevice->logicalDevice, &allocInfo, nullptr, &uniformData.memory));
-	VK_CHECK_RESULT(vkBindBufferMemory(vulkanDevice->logicalDevice, uniformData.buffer, uniformData.memory, 0));
-
-	uniformData.descriptor.buffer = uniformData.buffer;
-	uniformData.descriptor.offset = 0;
-	uniformData.descriptor.range = sizeof(ubo);
-	uniformData.allocSize = allocInfo.allocationSize;
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&uniformBuffer,
+		sizeof(ubo)));
+	// Map persistent
+	VK_CHECK_RESULT(uniformBuffer.map());
 }

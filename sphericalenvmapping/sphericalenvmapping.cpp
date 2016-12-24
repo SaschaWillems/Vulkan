@@ -24,6 +24,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -54,11 +55,9 @@ public:
 		vkTools::VulkanTexture matCapArray;
 	} textures;
 
-	struct {
-		vkTools::UniformData vertexShader;
-	} uniformData;
+	vk::Buffer uniformBuffer;
 
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::mat4 normal;
@@ -66,10 +65,7 @@ public:
 		int32_t texIndex = 0;
 	} uboVS;
 
-	struct {
-		VkPipeline sem;
-	} pipelines;
-
+	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -88,14 +84,14 @@ public:
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.sem, nullptr);
+		vkDestroyPipeline(device, pipeline, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
 
-		vkTools::destroyUniformData(device, &uniformData.vertexShader);
+		uniformBuffer.destroy();
 
 		textureLoader->destroyTexture(textures.matCapArray);
 	}
@@ -144,7 +140,7 @@ public:
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.sem);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.object.vertices.buf, offsets);
@@ -271,13 +267,6 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		// Color map image descriptor
-		VkDescriptorImageInfo texDescriptorColorMap =
-			vkTools::initializers::descriptorImageInfo(
-				textures.matCapArray.sampler,
-				textures.matCapArray.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
 			// Binding 0 : Vertex shader uniform buffer
@@ -285,13 +274,13 @@ public:
 			descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vertexShader.descriptor),
+				&uniformBuffer.descriptor),
 			// Binding 1 : Fragment shader image sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&texDescriptorColorMap)
+				&textures.matCapArray.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -369,20 +358,20 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.sem));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformData.vertexShader.buffer,
-			&uniformData.vertexShader.memory,
-			&uniformData.vertexShader.descriptor);
+			&uniformBuffer,
+			sizeof(uboVS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffer.map());
 
 		updateUniformBuffers();
 	}
@@ -404,10 +393,7 @@ public:
 
 		uboVS.normal = glm::inverseTranspose(uboVS.view * uboVS.model);
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vertexShader.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vertexShader.memory);
+		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void draw()
@@ -467,9 +453,9 @@ public:
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
 #if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to toggle material cap", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button A\" to toggle material cap", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("Press \"space\" to toggle material cap", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Space\" to toggle material cap", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 

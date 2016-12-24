@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -59,12 +60,12 @@ public:
 	} vertices;
 
 	struct {
-		vkTools::UniformData vsScene;
-		vkTools::UniformData vsFullScreen;
-		vkTools::UniformData vsSkyBox;
-		vkTools::UniformData fsVertBlur;
-		vkTools::UniformData fsHorzBlur;
-	} uniformData;
+		vk::Buffer vsScene;
+		vk::Buffer vsFullScreen;
+		vk::Buffer vsSkyBox;
+		vk::Buffer fsVertBlur;
+		vk::Buffer fsHorzBlur;
+	} uniformBuffers;
 
 	struct UBO {
 		glm::mat4 projection;
@@ -174,11 +175,11 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
 
 		// Uniform buffers
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
-		vkTools::destroyUniformData(device, &uniformData.vsFullScreen);
-		vkTools::destroyUniformData(device, &uniformData.vsSkyBox);
-		vkTools::destroyUniformData(device, &uniformData.fsVertBlur);
-		vkTools::destroyUniformData(device, &uniformData.fsHorzBlur);
+		uniformBuffers.vsScene.destroy();
+		uniformBuffers.vsFullScreen.destroy();
+		uniformBuffers.vsSkyBox.destroy();
+		uniformBuffers.fsVertBlur.destroy();
+		uniformBuffers.fsHorzBlur.destroy();
 
 		textureLoader->destroyTexture(textures.cubemap);
 	}
@@ -689,11 +690,11 @@ public:
 		writeDescriptorSets =
 		{
 			// Binding 0: Vertex shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(descriptorSets.verticalBlur, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformData.vsScene.descriptor),
+			vkTools::initializers::writeDescriptorSet(descriptorSets.verticalBlur, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.vsScene.descriptor),
 			// Binding 1: Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(descriptorSets.verticalBlur, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &offscreenPass.framebuffers[0].descriptor),
 			// Binding 2: Fragment shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(descriptorSets.verticalBlur, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformData.fsVertBlur.descriptor)
+			vkTools::initializers::writeDescriptorSet(descriptorSets.verticalBlur, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffers.fsVertBlur.descriptor)
 		};
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
@@ -702,11 +703,11 @@ public:
 		writeDescriptorSets =
 		{
 			// Binding 0: Vertex shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(descriptorSets.horizontalBlur, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformData.vsScene.descriptor),
+			vkTools::initializers::writeDescriptorSet(descriptorSets.horizontalBlur, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.vsScene.descriptor),
 			// Binding 1: Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(descriptorSets.horizontalBlur, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	1, &offscreenPass.framebuffers[1].descriptor),
 			// Binding 2: Fragment shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(descriptorSets.horizontalBlur, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,	2, &uniformData.fsHorzBlur.descriptor)
+			vkTools::initializers::writeDescriptorSet(descriptorSets.horizontalBlur, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,	2, &uniformBuffers.fsHorzBlur.descriptor)
 		};
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
@@ -715,7 +716,7 @@ public:
 		writeDescriptorSets =
 		{
 			// Binding 0: Vertex shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformData.vsFullScreen.descriptor)
+			vkTools::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.vsFullScreen.descriptor)
 		};
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
@@ -724,7 +725,7 @@ public:
 		writeDescriptorSets = 
 		{
 			// Binding 0: Vertex shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(descriptorSets.skyBox, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformData.vsSkyBox.descriptor),
+			vkTools::initializers::writeDescriptorSet(descriptorSets.skyBox, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.vsSkyBox.descriptor),
 			// Binding 1: Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(descriptorSets.skyBox, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	1, &textures.cubemap.descriptor),
 		};
@@ -847,54 +848,46 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Phong and color pass vertex shader uniform buffer
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.scene),
-			&ubos.scene,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
+			&uniformBuffers.vsScene,
+			sizeof(ubos.scene)));
 
 		// Fullscreen quad display vertex shader uniform buffer
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.fullscreen),
-			&ubos.fullscreen,
-			&uniformData.vsFullScreen.buffer,
-			&uniformData.vsFullScreen.memory,
-			&uniformData.vsFullScreen.descriptor);
+			&uniformBuffers.vsFullScreen,
+			sizeof(ubos.fullscreen)));
 
 		// Fullscreen quad fragment shader uniform buffers
 		// Vertical blur
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.vertBlur),
-			&ubos.vertBlur,
-			&uniformData.fsVertBlur.buffer,
-			&uniformData.fsVertBlur.memory,
-			&uniformData.fsVertBlur.descriptor);
+			&uniformBuffers.fsVertBlur,
+			sizeof(ubos.vertBlur)));
 		// Horizontal blur
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.horzBlur),
-			&ubos.horzBlur,
-			&uniformData.fsHorzBlur.buffer,
-			&uniformData.fsHorzBlur.memory,
-			&uniformData.fsHorzBlur.descriptor);
+			&uniformBuffers.fsHorzBlur,
+			sizeof(ubos.horzBlur)));
 
 		// Skybox
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.skyBox),
-			&ubos.skyBox,
-			&uniformData.vsSkyBox.buffer,
-			&uniformData.vsSkyBox.memory,
-			&uniformData.vsSkyBox.descriptor);
+			&uniformBuffers.vsSkyBox,
+			sizeof(ubos.skyBox)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.vsScene.map());
+		VK_CHECK_RESULT(uniformBuffers.vsFullScreen.map());
+		VK_CHECK_RESULT(uniformBuffers.fsVertBlur.map());
+		VK_CHECK_RESULT(uniformBuffers.fsHorzBlur.map());
+		VK_CHECK_RESULT(uniformBuffers.vsSkyBox.map());
 
 		// Intialize uniform buffers
 		updateUniformBuffersScene();
@@ -917,10 +910,7 @@ public:
 		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, glm::radians(timer * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubos.fullscreen.model = glm::rotate(ubos.fullscreen.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsFullScreen.memory, 0, sizeof(ubos.fullscreen), 0, (void **)&pData));
-		memcpy(pData, &ubos.fullscreen, sizeof(ubos.fullscreen));
-		vkUnmapMemory(device, uniformData.vsFullScreen.memory);
+		memcpy(uniformBuffers.vsFullScreen.mapped, &ubos.fullscreen, sizeof(ubos.fullscreen));
 
 		// Skybox
 		ubos.skyBox.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
@@ -930,9 +920,7 @@ public:
 		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		ubos.skyBox.model = glm::rotate(ubos.skyBox.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsSkyBox.memory, 0, sizeof(ubos.skyBox), 0, (void **)&pData));
-		memcpy(pData, &ubos.skyBox, sizeof(ubos.skyBox));
-		vkUnmapMemory(device, uniformData.vsSkyBox.memory);
+		memcpy(uniformBuffers.vsSkyBox.mapped, &ubos.skyBox, sizeof(ubos.skyBox));
 	}
 
 	// Update uniform buffers for the fullscreen quad
@@ -942,22 +930,15 @@ public:
 		ubos.scene.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
 		ubos.scene.model = glm::mat4();
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(ubos.scene), 0, (void **)&pData));
-		memcpy(pData, &ubos.scene, sizeof(ubos.scene));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		memcpy(uniformBuffers.vsScene.mapped, &ubos.scene, sizeof(ubos.scene));
 
 		// Fragment shader
 		// Vertical
 		ubos.vertBlur.horizontal = 0;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fsVertBlur.memory, 0, sizeof(ubos.vertBlur), 0, (void **)&pData));
-		memcpy(pData, &ubos.vertBlur, sizeof(ubos.vertBlur));
-		vkUnmapMemory(device, uniformData.fsVertBlur.memory);
+		memcpy(uniformBuffers.fsVertBlur.mapped, &ubos.vertBlur, sizeof(ubos.vertBlur));
 		// Horizontal
 		ubos.horzBlur.horizontal = 1;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fsHorzBlur.memory, 0, sizeof(ubos.horzBlur), 0, (void **)&pData));
-		memcpy(pData, &ubos.horzBlur, sizeof(ubos.horzBlur));
-		vkUnmapMemory(device, uniformData.fsHorzBlur.memory);
+		memcpy(uniformBuffers.fsHorzBlur.mapped, &ubos.horzBlur, sizeof(ubos.horzBlur));
 	}
 
 	void draw()

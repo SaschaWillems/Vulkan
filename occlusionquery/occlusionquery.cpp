@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -48,12 +49,12 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::UniformData vsScene;
-		vkTools::UniformData teapot;
-		vkTools::UniformData sphere;
-	} uniformData;
+		vk::Buffer occluder;
+		vk::Buffer teapot;
+		vk::Buffer sphere;
+	} uniformBuffers;
 
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(10.0f, 10.0f, 10.0f, 1.0f);
@@ -116,9 +117,9 @@ public:
 		vkDestroyBuffer(device, queryResult.buffer, nullptr);
 		vkFreeMemory(device, queryResult.memory, nullptr);
 
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
-		vkTools::destroyUniformData(device, &uniformData.sphere);
-		vkTools::destroyUniformData(device, &uniformData.teapot);
+		uniformBuffers.occluder.destroy();
+		uniformBuffers.sphere.destroy();
+		uniformBuffers.teapot.destroy();
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.sphere);
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.plane);
@@ -425,7 +426,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsScene.descriptor)
+				&uniformBuffers.occluder.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -433,13 +434,13 @@ public:
 		// Teapot
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.teapot));
 		writeDescriptorSets[0].dstSet = descriptorSets.teapot;
-		writeDescriptorSets[0].pBufferInfo = &uniformData.teapot.descriptor;
+		writeDescriptorSets[0].pBufferInfo = &uniformBuffers.teapot.descriptor;
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Sphere
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.sphere));
 		writeDescriptorSets[0].dstSet = descriptorSets.sphere;
-		writeDescriptorSets[0].pBufferInfo = &uniformData.sphere.descriptor;
+		writeDescriptorSets[0].pBufferInfo = &uniformBuffers.sphere.descriptor;
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
@@ -542,31 +543,30 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniformBuffers.occluder,
+			sizeof(uboVS)));
 
 		// Teapot
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformData.teapot.buffer,
-			&uniformData.teapot.memory,
-			&uniformData.teapot.descriptor);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniformBuffers.teapot,
+			sizeof(uboVS)));
 
 		// Sphere
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformData.sphere.buffer,
-			&uniformData.sphere.memory,
-			&uniformData.sphere.descriptor);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniformBuffers.sphere,
+			sizeof(uboVS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.occluder.map());
+		VK_CHECK_RESULT(uniformBuffers.teapot.map());
+		VK_CHECK_RESULT(uniformBuffers.sphere.map());
 
 		updateUniformBuffers();
 	}
@@ -588,25 +588,19 @@ public:
 
 		// Occluder
 		uboVS.visible = 1.0f;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		memcpy(uniformBuffers.occluder.mapped, &uboVS, sizeof(uboVS));
 
 		// Teapot
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[0] > 0) ? 1.0f : 0.0f;
 		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, -10.0f));
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.teapot.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.teapot.memory);
+		memcpy(uniformBuffers.teapot.mapped, &uboVS, sizeof(uboVS));
 
 		// Sphere
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[1] > 0) ? 1.0f : 0.0f;
 		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 10.0f));
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.sphere.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.sphere.memory);
+		memcpy(uniformBuffers.sphere.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void prepare()

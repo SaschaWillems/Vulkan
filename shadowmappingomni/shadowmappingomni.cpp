@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -60,9 +61,9 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::UniformData scene;
-		vkTools::UniformData offscreen;
-	} uniformData;
+		vk::Buffer scene;
+		vk::Buffer offscreen;
+	} uniformBuffers;
 
 	struct {
 		glm::mat4 projection;
@@ -71,19 +72,14 @@ public:
 
 	glm::vec4 lightPos = glm::vec4(0.0f, -25.0f, 0.0f, 1.0); 
 
-	struct {
+	struct UBO {
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 model;
 		glm::vec4 lightPos;
-	} uboVSscene;
+	};
 
-	struct {
-		glm::mat4 projection;
-		glm::mat4 view;
-		glm::mat4 model;
-		glm::vec4 lightPos;
-	} uboOffscreenVS;
+	UBO uboVSscene, uboOffscreenVS;
 
 	struct {
 		VkPipeline scene;
@@ -177,8 +173,8 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.skybox);
 
 		// Uniform buffers
-		vkTools::destroyUniformData(device, &uniformData.offscreen);
-		vkTools::destroyUniformData(device, &uniformData.scene);
+		uniformBuffers.offscreen.destroy();
+		uniformBuffers.scene.destroy();
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offscreenPass.commandBuffer);
 		vkDestroySemaphore(device, offscreenPass.semaphore, nullptr);
@@ -763,7 +759,7 @@ public:
 			descriptorSets.scene,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.scene.descriptor),
+				&uniformBuffers.scene.descriptor),
 			// Binding 1 : Fragment shader shadow sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.scene,
@@ -783,7 +779,7 @@ public:
 				descriptorSets.offscreen,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.offscreen.descriptor),
+				&uniformBuffers.offscreen.descriptor),
 		};
 		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
 	}
@@ -935,25 +931,23 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Offscreen vertex shader uniform buffer block 
-		createBuffer(
+		// Offscreen vertex shader uniform buffer 
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboOffscreenVS),
-			&uboOffscreenVS,
-			&uniformData.offscreen.buffer,
-			&uniformData.offscreen.memory,
-			&uniformData.offscreen.descriptor);
+			&uniformBuffers.offscreen,
+			sizeof(uboOffscreenVS)));
 
-		// 3D scene
-		createBuffer(
+		// Scene vertex shader uniform buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVSscene),
-			&uboVSscene,
-			&uniformData.scene.buffer,
-			&uniformData.scene.memory,
-			&uniformData.scene.descriptor);
+			&uniformBuffers.scene,
+			sizeof(uboVSscene)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.offscreen.map());
+		VK_CHECK_RESULT(uniformBuffers.scene.map());
 
 		updateUniformBufferOffscreen();
 		updateUniformBuffers();
@@ -961,7 +955,6 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// 3D scene
 		uboVSscene.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, zNear, zFar);
 		uboVSscene.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, displayCubeMap ? 0.0f : zoom));
 
@@ -972,10 +965,7 @@ public:
 
 		uboVSscene.lightPos = lightPos;
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.scene.memory, 0, sizeof(uboVSscene), 0, (void **)&pData));
-		memcpy(pData, &uboVSscene, sizeof(uboVSscene));
-		vkUnmapMemory(device, uniformData.scene.memory);
+		memcpy(uniformBuffers.scene.mapped, &uboVSscene, sizeof(uboVSscene));
 	}
 
 	void updateUniformBufferOffscreen()
@@ -990,10 +980,7 @@ public:
 
 		uboOffscreenVS.lightPos = lightPos;
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.offscreen.memory, 0, sizeof(uboOffscreenVS), 0, (void **)&pData));
-		memcpy(pData, &uboOffscreenVS, sizeof(uboOffscreenVS));
-		vkUnmapMemory(device, uniformData.offscreen.memory);
+		memcpy(uniformBuffers.offscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
 	}
 
 	void draw()

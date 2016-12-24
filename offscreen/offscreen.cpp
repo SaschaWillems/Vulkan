@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -58,21 +59,17 @@ public:
 	} vertices;
 
 	struct {
-		vkTools::UniformData vsShared;
-		vkTools::UniformData vsMirror;
-		vkTools::UniformData vsOffScreen;
-		vkTools::UniformData vsDebugQuad;
-	} uniformData;
+		vk::Buffer vsShared;
+		vk::Buffer vsMirror;
+		vk::Buffer vsOffScreen;
+		vk::Buffer vsDebugQuad;
+	} uniformBuffers;
 
 	struct UBO {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	};
-
-	struct {
-		UBO vsShared;
-	} ubos;
+	} uboShared;
 
 	struct {
 		VkPipeline debug;
@@ -170,10 +167,10 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.plane);
 
 		// Uniform buffers
-		vkTools::destroyUniformData(device, &uniformData.vsShared);
-		vkTools::destroyUniformData(device, &uniformData.vsMirror);
-		vkTools::destroyUniformData(device, &uniformData.vsOffScreen);
-		vkTools::destroyUniformData(device, &uniformData.vsDebugQuad);
+		uniformBuffers.vsShared.destroy();
+		uniformBuffers.vsMirror.destroy();
+		uniformBuffers.vsOffScreen.destroy();
+		uniformBuffers.vsDebugQuad.destroy();
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offscreenPass.commandBuffer);
 		vkDestroySemaphore(device, offscreenPass.semaphore, nullptr);
@@ -644,7 +641,7 @@ public:
 				descriptorSets.mirror,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsMirror.descriptor),
+				&uniformBuffers.vsMirror.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.mirror,
@@ -671,7 +668,7 @@ public:
 				descriptorSets.debugQuad,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsDebugQuad.descriptor),
+				&uniformBuffers.vsDebugQuad.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.debugQuad,
@@ -695,7 +692,7 @@ public:
 				descriptorSets.model,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsShared.descriptor)
+				&uniformBuffers.vsShared.descriptor)
 		};
 		vkUpdateDescriptorSets(device, modelWriteDescriptorSets.size(), modelWriteDescriptorSets.data(), 0, NULL);
 
@@ -709,7 +706,7 @@ public:
 				descriptorSets.offscreen,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsOffScreen.descriptor)
+				&uniformBuffers.vsOffScreen.descriptor)
 		};
 		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
 	}
@@ -815,44 +812,38 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Mesh vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.vsShared),
-			nullptr,
-			&uniformData.vsShared.buffer,
-			&uniformData.vsShared.memory,
-			&uniformData.vsShared.descriptor);
+			&uniformBuffers.vsShared,
+			sizeof(uboShared)));
 
 		// Mirror plane vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.vsShared),
-			nullptr,
-			&uniformData.vsMirror.buffer,
-			&uniformData.vsMirror.memory,
-			&uniformData.vsMirror.descriptor);
+			&uniformBuffers.vsMirror,
+			sizeof(uboShared)));
 
 		// Offscreen vertex shader uniform buffer block 
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.vsShared),
-			nullptr,
-			&uniformData.vsOffScreen.buffer,
-			&uniformData.vsOffScreen.memory,
-			&uniformData.vsOffScreen.descriptor);
+			&uniformBuffers.vsOffScreen,
+			sizeof(uboShared)));
 
 		// Debug quad vertex shader uniform buffer block 
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(ubos.vsShared),
-			nullptr,
-			&uniformData.vsDebugQuad.buffer,
-			&uniformData.vsDebugQuad.memory,
-			&uniformData.vsDebugQuad.descriptor);
+			&uniformBuffers.vsDebugQuad,
+			sizeof(uboShared)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.vsShared.map());
+		VK_CHECK_RESULT(uniformBuffers.vsMirror.map());
+		VK_CHECK_RESULT(uniformBuffers.vsOffScreen.map());
+		VK_CHECK_RESULT(uniformBuffers.vsDebugQuad.map());
 
 		updateUniformBuffers();
 		updateUniformBufferOffscreen();
@@ -861,57 +852,47 @@ public:
 	void updateUniformBuffers()
 	{
 		// Mesh
-		ubos.vsShared.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboShared.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 
-		ubos.vsShared.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
-		ubos.vsShared.model = glm::rotate(ubos.vsShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		ubos.vsShared.model = glm::rotate(ubos.vsShared.model, glm::radians(rotation.y + meshRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubos.vsShared.model = glm::rotate(ubos.vsShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboShared.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.y + meshRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		ubos.vsShared.model = glm::translate(ubos.vsShared.model, meshPos);
+		uboShared.model = glm::translate(uboShared.model, meshPos);
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsShared.memory, 0, sizeof(ubos.vsShared), 0, (void **)&pData));
-		memcpy(pData, &ubos.vsShared, sizeof(ubos.vsShared));
-		vkUnmapMemory(device, uniformData.vsShared.memory);
+		memcpy(uniformBuffers.vsShared.mapped, &uboShared, sizeof(uboShared));
 
 		// Mirror
-		ubos.vsShared.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
-		ubos.vsShared.model = glm::rotate(ubos.vsShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		ubos.vsShared.model = glm::rotate(ubos.vsShared.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubos.vsShared.model = glm::rotate(ubos.vsShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboShared.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsMirror.memory, 0, sizeof(ubos.vsShared), 0, (void **)&pData));
-		memcpy(pData, &ubos.vsShared, sizeof(ubos.vsShared));
-		vkUnmapMemory(device, uniformData.vsMirror.memory);
+		memcpy(uniformBuffers.vsMirror.mapped, &uboShared, sizeof(uboShared));
 
 		// Debug quad
-		ubos.vsShared.projection = glm::ortho(4.0f, 0.0f, 0.0f, 4.0f*(float)height / (float)width, -1.0f, 1.0f);
-		ubos.vsShared.model = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
+		uboShared.projection = glm::ortho(4.0f, 0.0f, 0.0f, 4.0f*(float)height / (float)width, -1.0f, 1.0f);
+		uboShared.model = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
 
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsDebugQuad.memory, 0, sizeof(ubos.vsShared), 0, (void **)&pData));
-		memcpy(pData, &ubos.vsShared, sizeof(ubos.vsShared));
-		vkUnmapMemory(device, uniformData.vsDebugQuad.memory);
+		memcpy(uniformBuffers.vsDebugQuad.mapped, &uboShared, sizeof(uboShared));
 	}
 
 	void updateUniformBufferOffscreen()
 	{
-		ubos.vsShared.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboShared.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
 
-		ubos.vsShared.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
-		ubos.vsShared.model = glm::rotate(ubos.vsShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		ubos.vsShared.model = glm::rotate(ubos.vsShared.model, glm::radians(rotation.y + meshRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubos.vsShared.model = glm::rotate(ubos.vsShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboShared.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.y + meshRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		ubos.vsShared.model = glm::scale(ubos.vsShared.model, glm::vec3(1.0f, -1.0f, 1.0f));
-		ubos.vsShared.model = glm::translate(ubos.vsShared.model, meshPos);
+		uboShared.model = glm::scale(uboShared.model, glm::vec3(1.0f, -1.0f, 1.0f));
+		uboShared.model = glm::translate(uboShared.model, meshPos);
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsOffScreen.memory, 0, sizeof(ubos.vsShared), 0, (void **)&pData));
-		memcpy(pData, &ubos.vsShared, sizeof(ubos.vsShared));
-		vkUnmapMemory(device, uniformData.vsOffScreen.memory);
+		memcpy(uniformBuffers.vsOffScreen.mapped, &uboShared, sizeof(uboShared));
 	}
 
 	void draw()

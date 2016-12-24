@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -184,11 +185,9 @@ public:
 
 	Scene scene, sceneGlow;
 
-	struct {
-		vkTools::UniformData vsScene;
-	} uniformData;
+	vk::Buffer uniformBuffer;
 
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0f, 5.0f, 15.0f, 1.0f);
@@ -228,7 +227,7 @@ public:
 	} offscreenPass;
 
 	// Random tag data
-	struct {
+	struct DemoTag {
 		const char name[17] = "debug marker tag";
 	} demoTag;
 
@@ -241,6 +240,9 @@ public:
 		cameraPos = { 0.1f, 1.1f, 0.0f };
 		enableTextOverlay = true;
 		title = "Vulkan Example - VK_EXT_debug_marker";
+		// Enable required device features
+		enabledFeatures.fillModeNonSolid = VK_TRUE;
+		enabledFeatures.wideLines = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -265,7 +267,7 @@ public:
 		vkDestroyBuffer(device, sceneGlow.indices.buf, nullptr);
 		vkFreeMemory(device, sceneGlow.indices.mem, nullptr);
 
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
+		uniformBuffer.destroy();
 
 		// Offscreen
 		// Color attachment
@@ -900,7 +902,7 @@ public:
 				descriptorSets.scene,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsScene.descriptor),
+				&uniformBuffer.descriptor),
 			// Binding 1 : Color map 
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.scene,
@@ -1037,19 +1039,20 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			&uboVS,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
+			&uniformBuffer,
+			sizeof(uboVS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffer.map());
+
 
 		// Name uniform buffer for debugging
-		DebugMarker::setObjectName(device, (uint64_t)uniformData.vsScene.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene uniform buffer block");
+		DebugMarker::setObjectName(device, (uint64_t)uniformBuffer.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene uniform buffer block");
 		// Add some random tag
-		DebugMarker::setObjectTag(device, (uint64_t)uniformData.vsScene.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, 0, sizeof(demoTag), &demoTag);
+		DebugMarker::setObjectTag(device, (uint64_t)uniformBuffer.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, 0, sizeof(demoTag), &demoTag);
 
 		updateUniformBuffers();
 	}
@@ -1064,10 +1067,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void draw()

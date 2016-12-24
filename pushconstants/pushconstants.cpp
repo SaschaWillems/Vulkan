@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -45,11 +46,9 @@ public:
 		vkMeshLoader::MeshBuffer scene;
 	} meshes;
 
-	struct {
-		vkTools::UniformData vertexShader;
-	} uniformData;
+	vk::Buffer uniformBuffer;
 	
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0, 0.0, -2.0, 1.0);
@@ -78,16 +77,6 @@ public:
 		rotation = { -32.5, 45.0, 0.0 };
 		enableTextOverlay = true;
 		title = "Vulkan Example - Push constants";
-
-		// todo : this crashes on certain Android devices, so commented out for now
-#if !defined(__ANDROID__)		
-		// Check requested push constant size against hardware limit
-		// Specs require 128 bytes, so if the device complies our 
-		// push constant buffer should always fit into memory
-		VkPhysicalDeviceProperties deviceProps;
-		vkGetPhysicalDeviceProperties(physicalDevice, &deviceProps);
-		assert(sizeof(pushConstants) <= deviceProps.limits.maxPushConstantsSize);
-#endif
 	}
 
 	~VulkanExample()
@@ -101,7 +90,7 @@ public:
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.scene);
 
-		vkTools::destroyUniformData(device, &uniformData.vertexShader);
+		uniformBuffer.destroy();
 	}
 
 	void reBuildCommandBuffers()
@@ -317,7 +306,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vertexShader.descriptor);
+				&uniformBuffer.descriptor);
 
 		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, NULL);
 	}
@@ -401,14 +390,14 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.vertexShader.buffer,
-			&uniformData.vertexShader.memory,
-			&uniformData.vertexShader.descriptor);
+			&uniformBuffer,
+			sizeof(uboVS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffer.map());
 
 		updateUniformBuffers();
 	}
@@ -427,10 +416,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vertexShader.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vertexShader.memory);
+		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void draw()
@@ -450,6 +436,11 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+
+		// Check requested push constant size against hardware limit
+		// Specs require 128 bytes, so if the device complies our push constant buffer should always fit into memory		
+		assert(sizeof(pushConstants) <= vulkanDevice->properties.limits.maxPushConstantsSize);
+
 		loadMeshes();
 		setupVertexDescriptions();
 		prepareUniformBuffers();

@@ -57,9 +57,9 @@ public:
 	} uboGS;
 
 	struct {
-		vkTools::UniformData VS;
-		vkTools::UniformData GS;
-	} uniformData;
+		vk::Buffer VS;
+		vk::Buffer GS;
+	} uniformBuffers;
 
 	struct {
 		VkPipeline solid;
@@ -93,8 +93,8 @@ public:
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
 
-		vkTools::destroyUniformData(device, &uniformData.VS);
-		vkTools::destroyUniformData(device, &uniformData.GS);
+		uniformBuffers.GS.destroy();
+		uniformBuffers.VS.destroy();
 	}
 
 	void reBuildCommandBuffers()
@@ -281,13 +281,13 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.VS.descriptor),
+				&uniformBuffers.VS.descriptor),
 			// Binding 1 : Geometry shader ubo
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				1,
-				&uniformData.GS.descriptor)
+				&uniformBuffers.GS.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -384,24 +384,22 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.VS.buffer,
-			&uniformData.VS.memory,
-			&uniformData.VS.descriptor);
+			&uniformBuffers.VS,
+			sizeof(uboVS)));
 
 		// Geometry shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboGS),
-			nullptr,
-			&uniformData.GS.buffer,
-			&uniformData.GS.memory,
-			&uniformData.GS.descriptor);
+			&uniformBuffers.GS,
+			sizeof(uboGS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.VS.map());
+		VK_CHECK_RESULT(uniformBuffers.GS.map());
 
 		updateUniformBuffers();
 	}
@@ -411,23 +409,16 @@ public:
 		// Vertex shader
 		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-
 		uboVS.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.VS.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.VS.memory);
+		memcpy(uniformBuffers.VS.mapped, &uboVS, sizeof(uboVS));
 
 		// Geometry shader
 		uboGS.model = uboVS.model;
 		uboGS.projection = uboVS.projection;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.GS.memory, 0, sizeof(uboGS), 0, (void **)&pData));
-		memcpy(pData, &uboGS, sizeof(uboGS));
-		vkUnmapMemory(device, uniformData.GS.memory);
+		memcpy(uniformBuffers.GS.mapped, &uboGS, sizeof(uboGS));
 	}
 
 	void draw()

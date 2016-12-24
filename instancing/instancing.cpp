@@ -21,6 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define INSTANCE_BUFFER_BIND_ID 1
@@ -76,13 +77,10 @@ public:
 	} uboVS;
 
 	struct {
-		vkTools::UniformData vsScene;
-	} uniformData;
+		vk::Buffer scene;
+	} uniformBuffers;
 
-	struct {
-		VkPipeline solid;
-	} pipelines;
-
+	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -98,14 +96,14 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 		vkDestroyBuffer(device, instanceBuffer.buffer, nullptr);
 		vkFreeMemory(device, instanceBuffer.memory, nullptr);
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
 		textureLoader->destroyTexture(textures.colorMap);
+		uniformBuffers.scene.destroy();
 	}
 
 	void buildCommandBuffers()
@@ -139,7 +137,7 @@ public:
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 			VkDeviceSize offsets[1] = { 0 };
 			// Binding point 0 : Mesh vertex buffer
@@ -332,12 +330,6 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		VkDescriptorImageInfo texDescriptor =
-			vkTools::initializers::descriptorImageInfo(
-				textures.colorMap.sampler,
-				textures.colorMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
 			// Binding 0 : Vertex shader uniform buffer
@@ -345,13 +337,13 @@ public:
 			descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsScene.descriptor),
+				&uniformBuffers.scene.descriptor),
 			// Binding 1 : Color map 
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&texDescriptor)
+				&textures.colorMap.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -430,7 +422,7 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
 	float rnd(float range)
@@ -509,17 +501,14 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
+			&uniformBuffers.scene,
+			sizeof(uboVS)));
 
-		// Map for host access
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&uniformData.vsScene.mapped));
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.scene.map());
 
 		updateUniformBuffer(true);
 	}
@@ -540,7 +529,7 @@ public:
 			uboVS.time += frameTimer * 0.05f;
 		}
 
-		memcpy(uniformData.vsScene.mapped, &uboVS, sizeof(uboVS));
+		memcpy(uniformBuffers.scene.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void draw()

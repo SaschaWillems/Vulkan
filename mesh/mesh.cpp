@@ -63,8 +63,8 @@ public:
 	} mesh;
 
 	struct {
-		vkTools::UniformData vsScene;
-	} uniformData;
+		vk::Buffer scene;
+	} uniformBuffers;
 
 	struct {
 		glm::mat4 projection;
@@ -90,6 +90,11 @@ public:
 		cameraPos = { 0.1f, 1.1f, 0.0f };
 		enableTextOverlay = true;
 		title = "Vulkan Example - Mesh rendering";
+		// Enable physical device features required for this example				
+		// Tell the driver that we are going to use geometry shaders
+		enabledFeatures.tessellationShader = VK_TRUE;
+		// Example also uses a wireframe pipeline, enable non-solid fill modes
+		enabledFeatures.fillModeNonSolid = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -97,6 +102,7 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -109,7 +115,7 @@ public:
 
 		textureLoader->destroyTexture(textures.colorMap);
 
-		vkTools::destroyUniformData(device, &uniformData.vsScene);
+		uniformBuffers.scene.destroy();
 	}
 
 	void reBuildCommandBuffers()
@@ -442,7 +448,7 @@ public:
 			descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsScene.descriptor),
+				&uniformBuffers.scene.descriptor),
 			// Binding 1 : Color map 
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -540,14 +546,14 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.vsScene.buffer,
-			&uniformData.vsScene.memory,
-			&uniformData.vsScene.descriptor);
+			&uniformBuffers.scene,
+			sizeof(uboVS)));
+		
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.scene.map());
 
 		updateUniformBuffers();
 	}
@@ -562,10 +568,7 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsScene.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsScene.memory);
+		memcpy(uniformBuffers.scene.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void draw()

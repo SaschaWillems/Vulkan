@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -87,10 +88,10 @@ public:
 	} uboFragmentLights;
 
 	struct {
-		vkTools::UniformData vsFullScreen;
-		vkTools::UniformData vsOffscreen;
-		vkTools::UniformData fsLights;
-	} uniformData;
+		vk::Buffer vsFullScreen;
+		vk::Buffer vsOffscreen;
+		vk::Buffer fsLights;
+	} uniformBuffers;
 
 	struct {
 		VkPipeline deferred;
@@ -194,9 +195,9 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
 
 		// Uniform buffers
-		vkTools::destroyUniformData(device, &uniformData.vsOffscreen);
-		vkTools::destroyUniformData(device, &uniformData.vsFullScreen);
-		vkTools::destroyUniformData(device, &uniformData.fsLights);
+		uniformBuffers.vsOffscreen.destroy();
+		uniformBuffers.vsFullScreen.destroy();
+		uniformBuffers.fsLights.destroy();
 
 		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
 
@@ -794,7 +795,7 @@ public:
 			descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsFullScreen.descriptor),
+				&uniformBuffers.vsFullScreen.descriptor),
 			// Binding 1 : Position texture target
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -818,7 +819,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				4,
-				&uniformData.fsLights.descriptor),
+				&uniformBuffers.fsLights.descriptor),
 		};
 
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
@@ -834,7 +835,7 @@ public:
 				descriptorSets.model,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsOffscreen.descriptor),
+				&uniformBuffers.vsOffscreen.descriptor),
 			// Binding 1: Color map
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.model,
@@ -859,7 +860,7 @@ public:
 				descriptorSets.floor,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vsOffscreen.descriptor),
+				&uniformBuffers.vsOffscreen.descriptor),
 			// Binding 1: Color map
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.floor,
@@ -984,34 +985,30 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Fullscreen vertex shader
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.vsFullScreen.buffer,
-			&uniformData.vsFullScreen.memory,
-			&uniformData.vsFullScreen.descriptor);
+			&uniformBuffers.vsFullScreen,
+			sizeof(uboVS)));
 
 		// Deferred vertex shader
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboOffscreenVS),
-			nullptr,
-			&uniformData.vsOffscreen.buffer,
-			&uniformData.vsOffscreen.memory,
-			&uniformData.vsOffscreen.descriptor);
+			&uniformBuffers.vsOffscreen,
+			sizeof(uboOffscreenVS)));
 
 		// Deferred fragment shader
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboFragmentLights),
-			nullptr,
-			&uniformData.fsLights.buffer,
-			&uniformData.fsLights.memory,
-			&uniformData.fsLights.descriptor);
+			&uniformBuffers.fsLights,
+			sizeof(uboFragmentLights)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.vsFullScreen.map());
+		VK_CHECK_RESULT(uniformBuffers.vsOffscreen.map());
+		VK_CHECK_RESULT(uniformBuffers.fsLights.map());
 
 		// Init some values
 		uboOffscreenVS.instancePos[0] = glm::vec4(0.0f);
@@ -1036,10 +1033,7 @@ public:
 		}
 		uboVS.model = glm::mat4();
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsFullScreen.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vsFullScreen.memory);
+		memcpy(uniformBuffers.vsFullScreen.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void updateUniformBufferDeferredMatrices()
@@ -1057,10 +1051,7 @@ public:
 		uboOffscreenVS.view = camera.matrices.view;
 		uboOffscreenVS.model = glm::mat4();
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vsOffscreen.memory, 0, sizeof(uboOffscreenVS), 0, (void **)&pData));
-		memcpy(pData, &uboOffscreenVS, sizeof(uboOffscreenVS));
-		vkUnmapMemory(device, uniformData.vsOffscreen.memory);
+		memcpy(uniformBuffers.vsOffscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
 	}
 
 	// Update fragment shader light position uniform block
@@ -1109,10 +1100,7 @@ public:
 		// Current view position
 		uboFragmentLights.viewPos = glm::vec4(camera.position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fsLights.memory, 0, sizeof(uboFragmentLights), 0, (void **)&pData));
-		memcpy(pData, &uboFragmentLights, sizeof(uboFragmentLights));
-		vkUnmapMemory(device, uniformData.fsLights.memory);
+		memcpy(uniformBuffers.fsLights.mapped, &uboFragmentLights, sizeof(uboFragmentLights));
 	}
 
 	void draw()
@@ -1198,7 +1186,7 @@ public:
 	{
 		switch (keyCode)
 		{
-		case KEY_F1:
+		case KEY_F2:
 		case GAMEPAD_BUTTON_A:
 			toggleDebugDisplay();
 			updateTextOverlay();
@@ -1209,9 +1197,9 @@ public:
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
 #if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to toggle debug display", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button A\" to toggle debug display", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("Press \"F1\" to toggle debug display", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"F2\" to toggle debug display", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #endif
 		// Render targets
 		if (debugDisplay)

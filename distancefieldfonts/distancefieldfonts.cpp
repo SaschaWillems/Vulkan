@@ -23,6 +23,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -83,16 +84,16 @@ public:
 	} indices;
 
 	struct {
-		vkTools::UniformData vs;
-		vkTools::UniformData fs;
-	} uniformData;
+		vk::Buffer vs;
+		vk::Buffer fs;
+	} uniformBuffers;
 
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 	} uboVS;
 
-	struct {
+	struct UBOFS {
 		glm::vec4 outlineColor = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 		float outlineWidth = 0.6f;
 		float outline = true;
@@ -138,8 +139,8 @@ public:
 		vkDestroyBuffer(device, indices.buf, nullptr);
 		vkFreeMemory(device, indices.mem, nullptr);
 
-		vkDestroyBuffer(device, uniformData.vs.buffer, nullptr);
-		vkFreeMemory(device, uniformData.vs.memory, nullptr);
+		uniformBuffers.vs.destroy();
+		uniformBuffers.fs.destroy();
 	}
 
 	// Basic parser fpr AngelCode bitmap font format files
@@ -467,7 +468,7 @@ public:
 			descriptorSets.sdf,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
 				0, 
-				&uniformData.vs.descriptor),
+				&uniformBuffers.vs.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.sdf,
@@ -479,7 +480,7 @@ public:
 				descriptorSets.sdf,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				2,
-				&uniformData.fs.descriptor)
+				&uniformBuffers.fs.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -498,7 +499,7 @@ public:
 				descriptorSets.bitmap,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformData.vs.descriptor),
+				&uniformBuffers.vs.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSets.bitmap,
@@ -603,25 +604,22 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboVS),
-			nullptr,
-			&uniformData.vs.buffer,
-			&uniformData.vs.memory,
-			&uniformData.vs.descriptor);
+			&uniformBuffers.vs,
+			sizeof(uboVS)));
 
-		// Fragment sahder uniform buffer block
-		// Contains font rendering parameters
-		createBuffer(
+		// Fragment sahder uniform buffer block (Contains font rendering parameters)
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uboFS),
-			nullptr,
-			&uniformData.fs.buffer,
-			&uniformData.fs.memory,
-			&uniformData.fs.descriptor);
+			&uniformBuffers.fs,
+			sizeof(uboFS)));
+
+		// Map persistent
+		VK_CHECK_RESULT(uniformBuffers.vs.map());
+		VK_CHECK_RESULT(uniformBuffers.fs.map());
 
 		updateUniformBuffers();
 		updateFontSettings();
@@ -640,19 +638,13 @@ public:
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.vs.memory, 0, sizeof(uboVS), 0, (void **)&pData));
-		memcpy(pData, &uboVS, sizeof(uboVS));
-		vkUnmapMemory(device, uniformData.vs.memory);
+		memcpy(uniformBuffers.vs.mapped, &uboVS, sizeof(uboVS));
 	}
 
 	void updateFontSettings()
 	{
 		// Fragment shader
-		uint8_t *pData;
-		VK_CHECK_RESULT(vkMapMemory(device, uniformData.fs.memory, 0, sizeof(uboFS), 0, (void **)&pData));
-		memcpy(pData, &uboFS, sizeof(uboFS));
-		vkUnmapMemory(device, uniformData.fs.memory);
+		memcpy(uniformBuffers.fs.mapped, &uboFS, sizeof(uboFS));
 	}
 
 	void draw()
@@ -731,11 +723,11 @@ public:
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
 #if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to toggle outline", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button A\" to toggle splitscreen", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button A\" to toggle outline", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button X\" to toggle splitscreen", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("Press \"o\" to toggle outline", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"s\" to toggle splitscreen", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"o\" to toggle outline", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"s\" to toggle splitscreen", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 };
