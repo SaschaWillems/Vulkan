@@ -106,47 +106,6 @@ void VulkanExampleBase::destroyCommandBuffers()
 	vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.size()), drawCmdBuffers.data());
 }
 
-void VulkanExampleBase::createSetupCommandBuffer()
-{
-	if (setupCmdBuffer != VK_NULL_HANDLE)
-	{
-		vkFreeCommandBuffers(device, cmdPool, 1, &setupCmdBuffer);
-		setupCmdBuffer = VK_NULL_HANDLE; // todo : check if still necessary
-	}
-
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-		vkTools::initializers::commandBufferAllocateInfo(
-			cmdPool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			1);
-
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &setupCmdBuffer));
-
-	VkCommandBufferBeginInfo cmdBufInfo = {};
-	cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-	VK_CHECK_RESULT(vkBeginCommandBuffer(setupCmdBuffer, &cmdBufInfo));
-}
-
-void VulkanExampleBase::flushSetupCommandBuffer()
-{
-	if (setupCmdBuffer == VK_NULL_HANDLE)
-		return;
-
-	VK_CHECK_RESULT(vkEndCommandBuffer(setupCmdBuffer));
-
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &setupCmdBuffer;
-
-	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
-
-	vkFreeCommandBuffers(device, cmdPool, 1, &setupCmdBuffer);
-	setupCmdBuffer = VK_NULL_HANDLE; 
-}
-
 VkCommandBuffer VulkanExampleBase::createCommandBuffer(VkCommandBufferLevel level, bool begin)
 {
 	VkCommandBuffer cmdBuffer;
@@ -206,16 +165,12 @@ void VulkanExampleBase::prepare()
 		vkDebug::DebugMarker::setup(device);
 	}
 	createCommandPool();
-	createSetupCommandBuffer();
 	setupSwapChain();
 	createCommandBuffers();
 	setupDepthStencil();
 	setupRenderPass();
 	createPipelineCache();
 	setupFrameBuffer();
-	flushSetupCommandBuffer();
-	// Recreate setup command buffer for derived class
-	createSetupCommandBuffer();
 	// Create a simple texture loader class
 	textureLoader = new vkTools::VulkanTextureLoader(vulkanDevice, queue, cmdPool);
 #if defined(__ANDROID__)
@@ -717,11 +672,6 @@ VulkanExampleBase::~VulkanExampleBase()
 	if (descriptorPool != VK_NULL_HANDLE)
 	{
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-	}
-	if (setupCmdBuffer != VK_NULL_HANDLE)
-	{
-		vkFreeCommandBuffers(device, cmdPool, 1, &setupCmdBuffer);
-
 	}
 	destroyCommandBuffers();
 	vkDestroyRenderPass(device, renderPass, nullptr);
@@ -1632,7 +1582,6 @@ void VulkanExampleBase::windowResize()
 	// Recreate swap chain
 	width = destWidth;
 	height = destHeight;
-	createSetupCommandBuffer();
 	setupSwapChain();
 
 	// Recreate the frame buffers
@@ -1647,8 +1596,6 @@ void VulkanExampleBase::windowResize()
 		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
 	}
 	setupFrameBuffer();
-
-	flushSetupCommandBuffer();
 
 	// Command buffers need to be recreated as they may store
 	// references to the recreated frame buffer

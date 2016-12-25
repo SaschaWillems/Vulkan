@@ -99,8 +99,6 @@ protected:
 	VkFormat depthFormat;
 	// Command buffer pool
 	VkCommandPool cmdPool;
-	// Command buffer used for setup
-	VkCommandBuffer setupCmdBuffer = VK_NULL_HANDLE;
 	/** @brief Pipeline stages used to wait at for graphics queue submissions */
 	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	// Contains command buffers and semaphores to be presented to the queue
@@ -273,10 +271,6 @@ public:
 	// Destroy all command buffers and set their handles to VK_NULL_HANDLE
 	// May be necessary during runtime if options are toggled 
 	void destroyCommandBuffers();
-	// Create command buffer for setup commands
-	void createSetupCommandBuffer();
-	// Finalize setup command bufferm submit it to the queue and remove it
-	void flushSetupCommandBuffer();
 
 	// Command buffer creation
 	// Creates and returns a new command buffer
