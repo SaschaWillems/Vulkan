@@ -10,41 +10,6 @@
 
 namespace vkTools
 {
-
-	VkBool32 checkGlobalExtensionPresent(const char* extensionName)
-	{
-		uint32_t extensionCount = 0;
-		std::vector<VkExtensionProperties> extensions;
-		vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
-		extensions.resize(extensionCount);
-		vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensions.data());
-		for (auto& ext : extensions)
-		{
-			if (!strcmp(extensionName, ext.extensionName))
-			{
-				return true;
-			}
-		}
-		return false;
-	}
-
-	VkBool32 checkDeviceExtensionPresent(VkPhysicalDevice physicalDevice, const char* extensionName)
-	{
-		uint32_t extensionCount = 0;
-		std::vector<VkExtensionProperties> extensions;
-		vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount, NULL);
-		extensions.resize(extensionCount);
-		vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount, extensions.data());
-		for (auto& ext : extensions)
-		{
-			if (!strcmp(extensionName, ext.extensionName))
-			{
-				return true;
-			}
-		}
-		return false;
-	}
-
 	std::string errorString(VkResult errorCode)
 	{
 		switch (errorCode)

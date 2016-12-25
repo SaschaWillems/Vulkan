@@ -1,5 +1,5 @@
 /*
-* Assorted commonly used Vulkan helper functions
+* Contain struct initializers and assorted Vulkan helper functions
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
@@ -47,10 +47,6 @@
 
 namespace vkTools
 {
-	// Check if extension is globally available
-	VkBool32 checkGlobalExtensionPresent(const char* extensionName);
-	// Check if extension is present on the given device
-	VkBool32 checkDeviceExtensionPresent(VkPhysicalDevice physicalDevice, const char* extensionName);
 	// Return string representation of a vulkan error string
 	std::string errorString(VkResult errorCode);
 
@@ -93,7 +89,7 @@ namespace vkTools
 	VkShaderModule loadShaderGLSL(const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
 
 	// Contains often used vulkan object initializers
-	// Save lot of VK_STRUCTURE_TYPE assignments
+	// Saves lot of VK_STRUCTURE_TYPE assignments
 	// Some initializers are parameterized for convenience
 	namespace initializers
 	{
