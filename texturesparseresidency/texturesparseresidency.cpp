@@ -232,15 +232,6 @@ public:
 	//todo: comment
 	VkSemaphore bindSparseSemaphore = VK_NULL_HANDLE;
 
-	// Device features to be enabled for this example 
-	virtual VkPhysicalDeviceFeatures getEnabledFeatures()
-	{
-		VkPhysicalDeviceFeatures enabledFeatures{};
-		enabledFeatures.shaderResourceResidency = VK_TRUE;		
-		enabledFeatures.shaderResourceMinLod = VK_TRUE;
-		return enabledFeatures;
-	}
-
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -1.3f; 
@@ -248,11 +239,6 @@ public:
 		title = "Vulkan Example - Sparse texture residency";
 		enableTextOverlay = true;
 		std::cout.imbue(std::locale(""));
-		// Check if the GPU supports sparse residency for 2D images
-		if (!vulkanDevice->features.sparseResidencyImage2D)
-		{
-			vkTools::exitFatal("Device does not support sparse residency for 2D images!", "Feature not supported");
-		}
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 50.0f;
 #ifndef __ANDROID__
@@ -261,6 +247,9 @@ public:
 		camera.position = { 84.5f, 40.5f, 225.0f };
 		camera.setRotation(glm::vec3(-8.5f, -200.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 1024.0f);
+		// Device features to be enabled for this example 
+		enabledFeatures.shaderResourceResidency = VK_TRUE;
+		enabledFeatures.shaderResourceMinLod = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -918,6 +907,11 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		// Check if the GPU supports sparse residency for 2D images
+		if (!vulkanDevice->features.sparseResidencyImage2D)
+		{
+			vkTools::exitFatal("Device does not support sparse residency for 2D images!", "Feature not supported");
+		}
 		loadAssets();
 		generateTerrain();
 		setupVertexDescriptions();
