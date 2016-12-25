@@ -77,13 +77,6 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	// Device features to be enabled for this example 
-	virtual VkPhysicalDeviceFeatures getEnabledFeatures()
-	{
-		VkPhysicalDeviceFeatures enabledFeatures{};
-		return enabledFeatures;
-	}
-
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -1.25f;

@@ -189,8 +189,6 @@ public:
 		
 		threadData.resize(numThreads);
 
-		createSetupCommandBuffer();
-
 		float maxX = std::floor(std::sqrt(numThreads * numObjectsPerThread));
 		uint32_t posX = 0;
 		uint32_t posZ = 0;

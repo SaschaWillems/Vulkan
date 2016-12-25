@@ -65,16 +65,6 @@ public:
 		VkPipeline toon;
 	} pipelines;
 
-	// Device features to be enabled for this example 
-	virtual VkPhysicalDeviceFeatures getEnabledFeatures() 
-	{
-		//todo...
-		VkPhysicalDeviceFeatures enabledFeatures{};
-		enabledFeatures.fillModeNonSolid = VK_TRUE;
-		enabledFeatures.wideLines = VK_TRUE;
-		return enabledFeatures;
-	}
-
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -10.5f;
