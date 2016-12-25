@@ -6,6 +6,10 @@
 
 Use a single uniform buffer object as a dynamic uniform buffer to draw multiple objects with different matrices from one big uniform buffer object.
 
+## Requirements
+
+The max. number of dynamic uniform buffers supported by the device should be checked with the [maxDescriptorSetUniformBuffersDynamic](http://vulkan.gpuinfo.org/listreports.php?limit=maxDescriptorSetUniformBuffersDynamic) device limit if you need more than the 8 dynamic uniform buffers required by the Vulkan specification.
+
 ## Description
 
 This example demonstrates the use of dynamic uniform buffers (```VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC```) for offsetting into one or more uniform block objects when binding the descriptor set using [vkCmdBindDescriptorSets](https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdBindDescriptorSets.html]).
