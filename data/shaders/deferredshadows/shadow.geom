@@ -16,6 +16,11 @@ layout (binding = 0) uniform UBO
 
 layout (location = 0) in int inInstanceIndex[];
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+};
+
 void main() 
 {
 	vec4 instancedPos = ubo.instancePos[inInstanceIndex[0]]; 

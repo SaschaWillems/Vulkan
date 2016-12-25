@@ -169,17 +169,6 @@ public:
 	// Semaphore used to synchronize between offscreen and final scene rendering
 	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
 
-	// Device features to be enabled for this example 
-	virtual VkPhysicalDeviceFeatures getEnabledFeatures()
-	{
-		VkPhysicalDeviceFeatures enabledFeatures{};
-		enabledFeatures.geometryShader = VK_TRUE;
-		enabledFeatures.shaderClipDistance = VK_TRUE;
-		enabledFeatures.shaderCullDistance = VK_TRUE;
-		enabledFeatures.shaderTessellationAndGeometryPointSize = VK_TRUE;
-		return enabledFeatures;
-	}
-
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		enableTextOverlay = true;
@@ -196,6 +185,8 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, zNear, zFar);
 		timerSpeed *= 0.25f;
 		paused = true;
+		// Device features to be enabled for this example 
+		enabledFeatures.geometryShader = VK_TRUE;
 	}
 
 	~VulkanExample()
