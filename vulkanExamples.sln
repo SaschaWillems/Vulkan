@@ -132,6 +132,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "screenshot", "screenshot\sc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dynamicuniformbuffer", "dynamicuniformbuffer\dynamicuniformbuffer.vcxproj", "{3DB2A9C4-50BC-4390-A94F-F7F724238101}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "specializationconstants", "specializationconstants\specializationconstants.vcxproj", "{00F600D2-DF0E-4F07-B722-633F7C4B2F65}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -322,6 +324,10 @@ Global
 		{3DB2A9C4-50BC-4390-A94F-F7F724238101}.Debug|x64.Build.0 = Debug|x64
 		{3DB2A9C4-50BC-4390-A94F-F7F724238101}.Release|x64.ActiveCfg = Release|x64
 		{3DB2A9C4-50BC-4390-A94F-F7F724238101}.Release|x64.Build.0 = Release|x64
+		{00F600D2-DF0E-4F07-B722-633F7C4B2F65}.Debug|x64.ActiveCfg = Debug|x64
+		{00F600D2-DF0E-4F07-B722-633F7C4B2F65}.Debug|x64.Build.0 = Debug|x64
+		{00F600D2-DF0E-4F07-B722-633F7C4B2F65}.Release|x64.ActiveCfg = Release|x64
+		{00F600D2-DF0E-4F07-B722-633F7C4B2F65}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
