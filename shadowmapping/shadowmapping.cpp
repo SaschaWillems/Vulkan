@@ -191,24 +191,24 @@ public:
 	// This is necessary as the offscreen frame buffer attachments use formats different to those from the example render pass
 	void prepareOffscreenRenderpass()
 	{
-		VkAttachmentDescription attchmentDescription{};
-		attchmentDescription.format = DEPTH_FORMAT;
-		attchmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-		attchmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;						// Clear depth at beginning of the render pass
-		attchmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;					// We will read from depth, so it's important to store the depth attachment results
-		attchmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attchmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attchmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;					// We don't care about initial layout of the attachment
-		attchmentDescription.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;	// Attachment will be transitioned to shader read at render pass end
+		VkAttachmentDescription attachmentDescription{};
+		attachmentDescription.format = DEPTH_FORMAT;
+		attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+		attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;							// Clear depth at beginning of the render pass
+		attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;						// We will read from depth, so it's important to store the depth attachment results
+		attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;					// We don't care about initial layout of the attachment
+		attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;// Attachment will be transitioned to shader read at render pass end
 
 		VkAttachmentReference depthReference = {};
 		depthReference.attachment = 0;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;		// Attachment will be used as depth/stencil during render pass
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;			// Attachment will be used as depth/stencil during render pass
 
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 0;												// No color attachments
-		subpass.pDepthStencilAttachment = &depthReference;								// Reference to our depth attachment
+		subpass.colorAttachmentCount = 0;													// No color attachments
+		subpass.pDepthStencilAttachment = &depthReference;									// Reference to our depth attachment
 
 		// Use subpass dependencies for layout transitions
 		std::array<VkSubpassDependency, 2> dependencies;
@@ -231,7 +231,7 @@ public:
 
 		VkRenderPassCreateInfo renderPassCreateInfo = vkTools::initializers::renderPassCreateInfo();
 		renderPassCreateInfo.attachmentCount = 1;
-		renderPassCreateInfo.pAttachments = &attchmentDescription;
+		renderPassCreateInfo.pAttachments = &attachmentDescription;
 		renderPassCreateInfo.subpassCount = 1;
 		renderPassCreateInfo.pSubpasses = &subpass;
 		renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
@@ -594,7 +594,7 @@ public:
 			vkTools::initializers::descriptorImageInfo(
 				offscreenPass.depthSampler,
 				offscreenPass.depth.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
 		writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
