@@ -137,10 +137,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -8.0f;
-		rotation = { 0.0f, 0.0f, 0.0f };
-		enableTextOverlay = true;
 		title = "Vulkan Example - Deferred shading (2016 by Sascha Willems)";
+		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 5.0f;
 #ifndef __ANDROID__
@@ -215,8 +213,7 @@ public:
 	void createAttachment(
 		VkFormat format,  
 		VkImageUsageFlagBits usage,
-		FrameBufferAttachment *attachment,
-		VkCommandBuffer layoutCmd)
+		FrameBufferAttachment *attachment)
 	{
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
@@ -271,13 +268,9 @@ public:
 		VK_CHECK_RESULT(vkCreateImageView(device, &imageView, nullptr, &attachment->view));
 	}
 
-	// Prepare a new framebuffer for offscreen rendering
-	// The contents of this framebuffer are then
-	// blitted to our render target
+	// Prepare a new framebuffer and attachments for offscreen rendering (G-Buffer)
 	void prepareOffscreenFramebuffer()
 	{
-		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 		offScreenFrameBuf.width = FB_DIM;
 		offScreenFrameBuf.height = FB_DIM;
 
@@ -287,22 +280,19 @@ public:
 		createAttachment(
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&offScreenFrameBuf.position,
-			layoutCmd);
+			&offScreenFrameBuf.position);
 
 		// (World space) Normals
 		createAttachment(
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&offScreenFrameBuf.normal,
-			layoutCmd);
+			&offScreenFrameBuf.normal);
 
 		// Albedo (color)
 		createAttachment(
 			VK_FORMAT_R8G8B8A8_UNORM,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&offScreenFrameBuf.albedo,
-			layoutCmd);
+			&offScreenFrameBuf.albedo);
 
 		// Depth attachment
 
@@ -314,14 +304,9 @@ public:
 		createAttachment(
 			attDepthFormat,
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-			&offScreenFrameBuf.depth,
-			layoutCmd);
+			&offScreenFrameBuf.depth);
 
-		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
-
-		// Set up separate renderpass with references
-		// to the color and depth attachments
-
+		// Set up separate renderpass with references to the color and depth attachments
 		std::array<VkAttachmentDescription, 4> attachmentDescs = {};
 
 		// Init attachment properties
@@ -775,24 +760,24 @@ public:
 			vkTools::initializers::descriptorImageInfo(
 				colorSampler,
 				offScreenFrameBuf.position.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VkDescriptorImageInfo texDescriptorNormal =
 			vkTools::initializers::descriptorImageInfo(
 				colorSampler,
 				offScreenFrameBuf.normal.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VkDescriptorImageInfo texDescriptorAlbedo =
 			vkTools::initializers::descriptorImageInfo(
 				colorSampler,
 				offScreenFrameBuf.albedo.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
-			descriptorSet,
+				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformBuffers.vsFullScreen.descriptor),
@@ -851,7 +836,7 @@ public:
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
-		// Backbround
+		// Background
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.floor));
 		writeDescriptorSets =
 		{
@@ -1038,15 +1023,6 @@ public:
 
 	void updateUniformBufferDeferredMatrices()
 	{
-		uboOffscreenVS.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
-		uboOffscreenVS.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-
-		uboOffscreenVS.model = glm::mat4();
-		uboOffscreenVS.model = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.25f, 0.0f) + cameraPos);
-		uboOffscreenVS.model = glm::rotate(uboOffscreenVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboOffscreenVS.model = glm::rotate(uboOffscreenVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboOffscreenVS.model = glm::rotate(uboOffscreenVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
 		uboOffscreenVS.projection = camera.matrices.perspective;
 		uboOffscreenVS.view = camera.matrices.view;
 		uboOffscreenVS.model = glm::mat4();
