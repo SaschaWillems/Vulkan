@@ -39,3 +39,4 @@ call _build deferredshadows %1
 call _build indirectdraw %1
 call _build texturemipmapgen %1
 call _build texture3d %1
+call _build specializationconstants %1

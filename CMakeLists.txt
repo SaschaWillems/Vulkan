@@ -127,6 +127,7 @@ set(EXAMPLES
 	shadowmapping
 	shadowmappingomni
 	skeletalanimation
+	specializationconstants
 	sphericalenvmapping
 	ssao
 	subpasses

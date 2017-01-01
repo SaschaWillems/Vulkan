@@ -45,6 +45,7 @@ adb uninstall de.saschawillems.vulkanDeferredshadows
 adb uninstall de.saschawillems.vulkanIndirectdraw
 adb uninstall de.saschawillems.vulkanTexturemipmapgen
 adb uninstall de.saschawillems.vulkanTexture3d
+adb uninstall de.saschawillems.vulkanSpecializationconstants
 goto finish
 
 :exit
