@@ -1,6 +1,8 @@
 /*
 * Vulkan Example - Shader specialization constants
 *
+* For details see https://www.khronos.org/registry/vulkan/specs/misc/GL_KHR_vulkan_glsl.txt
+*
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -71,11 +73,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -2.1f;
-		rotation = glm::vec3(-41.25f, -90.0f, 0.0f);
-		enableTextOverlay = true;
 		title = "Vulkan Example - Specialization constants";
-
+		enableTextOverlay = true;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, ((float)width / 3.0f) / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-40.0f, -90.0f, 0.0f));
@@ -137,20 +136,20 @@ public:
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.cube.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
 			// Left
-			viewport.width = (float)width / 3.0;
+			viewport.width = (float)width / 3.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
 			
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
 
 			// Center
-			viewport.x = (float)width / 3.0;
+			viewport.x = (float)width / 3.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toon);
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
 
 			// Right
-			viewport.x = (float)width / 3.0 + (float)width / 3.0;
+			viewport.x = (float)width / 3.0f + (float)width / 3.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.textured);
 			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
@@ -163,7 +162,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/color_teapot_spheres.X", &meshes.cube, vertexLayout, 0.1f);
+		loadMesh(getAssetPath() + "models/color_teapot_spheres.dae", &meshes.cube, vertexLayout, 0.1f);
 		textureLoader->loadTexture(getAssetPath() + "textures/metalplate_nomips_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, &textures.colormap);
 	}
 
@@ -171,48 +170,42 @@ public:
 	{
 		// Binding description
 		vertices.bindingDescriptions.resize(1);
-		vertices.bindingDescriptions[0] =
-			vkTools::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
-				VK_VERTEX_INPUT_RATE_VERTEX);
+		vertices.bindingDescriptions = {
+			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vkMeshLoader::vertexSize(vertexLayout), VK_VERTEX_INPUT_RATE_VERTEX),
+		};
 
 		// Attribute descriptions
-		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.resize(4);
-		// Location 0 : Position
-		vertices.attributeDescriptions[0] =
+		vertices.attributeDescriptions = {
+			// Location 0 : Position
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				0);
-		// Location 1 : Color
-		vertices.attributeDescriptions[1] =
+				0),
+			// Location 1 : Color
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				1,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3);
-		// Location 3 : Texture coordinates
-		vertices.attributeDescriptions[2] =
+				sizeof(float) * 3),
+			// Location 3 : Texture coordinates
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
 				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6);
-		// Location 2 : Normal
-		vertices.attributeDescriptions[3] =
+				sizeof(float) * 6),
+			// Location 2 : Normal
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				3,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8);
+				sizeof(float) * 8),
+		};
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -226,7 +219,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				1);
 
@@ -243,7 +236,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
@@ -270,7 +263,7 @@ public:
 			vkTools::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.colormap.descriptor),
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -320,7 +313,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
@@ -346,18 +339,27 @@ public:
 
 		// Host data to take specialization constants from
 		struct SpecializationData {
+			// Sets the lighting model used in the fragment "uber" shader
 			uint32_t lightingModel;
+			// Parameter for the toon shading part of the fragment shader
+			float toonDesaturationFactor = 0.5f;
 		} specializationData;
 
 		// Each shader constant of a shader stage corresponds to one map entry
-		std::array<VkSpecializationMapEntry, 1> specializationMapEntries;
+		std::array<VkSpecializationMapEntry, 2> specializationMapEntries;
 		// Shader bindings based on specialization constants are marked by the new "constant_id" layout qualifier:
 		//	layout (constant_id = 0) const int LIGHTING_MODEL = 0;
+		//	layout (constant_id = 1) const float PARAM_TOON_DESATURATION = 0.0f;
 
 		// Map entry for the lighting model to be used by the fragment shader
 		specializationMapEntries[0].constantID = 0;
 		specializationMapEntries[0].size = sizeof(specializationData.lightingModel);
 		specializationMapEntries[0].offset = 0;
+
+		// Map entry for the toon shader parameter
+		specializationMapEntries[1].constantID = 1;
+		specializationMapEntries[1].size = sizeof(specializationData.toonDesaturationFactor);
+		specializationMapEntries[1].offset = offsetof(SpecializationData, toonDesaturationFactor);
 
 		// Prepare specialization info block for the shader stage
 		VkSpecializationInfo specializationInfo{};
@@ -404,15 +406,6 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)(width / 3.0f) / (float)height, 0.1f, 256.0f);
-
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
-
-		uboVS.modelView = viewMatrix * glm::translate(glm::mat4(), cameraPos);
-		uboVS.modelView = glm::rotate(uboVS.modelView, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.modelView = glm::rotate(uboVS.modelView, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.modelView = glm::rotate(uboVS.modelView, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.modelView = camera.matrices.view;
 

@@ -17,6 +17,8 @@ layout (location = 0) out vec4 outFragColor;
 // We use this constant to control the flow of the shader depending on the 
 // lighting model selected at pipeline creation time
 layout (constant_id = 0) const int LIGHTING_MODEL = 0;
+// Parameter for the toon shading part of the shader
+layout (constant_id = 1) const float PARAM_TOON_DESATURATION = 0.0f;
 
 void main() 
 {
@@ -50,6 +52,8 @@ void main()
 				color = inColor * 0.4;
 			else
 				color = inColor * 0.2;
+			// Desaturate a bit
+			color = vec3(mix(color, vec3(dot(vec3(0.2126,0.7152,0.0722), color)), PARAM_TOON_DESATURATION));	
 			outFragColor.rgb = color;
 			break;
 		}
