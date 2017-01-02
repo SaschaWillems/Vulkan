@@ -49,7 +49,7 @@ struct Vertex {
 void* alignedAlloc(size_t size, size_t alignment)
 {
 	void *data = nullptr;
-#ifdef _MSC_VER 
+#if defined(_MSC_VER) || defined(__MINGW32__)
 	data = _aligned_malloc(size, alignment);
 #else 
 	int res = posix_memalign(&data, alignment, size);
@@ -61,7 +61,7 @@ void* alignedAlloc(size_t size, size_t alignment)
 
 void alignedFree(void* data)
 {
-#ifdef _MSC_VER 
+#if	defined(_MSC_VER) || defined(__MINGW32__)
 	_aligned_free(data);
 #else 
 	free(data);
