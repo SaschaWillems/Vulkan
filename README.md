@@ -9,6 +9,9 @@ Assorted C++ examples for [Vulkan(tm)](https://www.khronos.org/vulkan/), the new
 The repository contains everything required to compile and build the examples on Windows, Linux and Android using a C++ compiler that supports C++11. All required dependencies are included.
 
 ## <img src="./images/windowslogo.png" alt="" height="32px"> Windows
+
+[![Build status](https://ci.appveyor.com/api/projects/status/abylymfyil0mhpx8?svg=true)](https://ci.appveyor.com/project/SaschaWillems/vulkan)
+
 A Visual Studio solution file for compiling all examples is included with the repository, examples will compile with VS2015 out of the box.
 
 If you're using a different IDE or compiler you can use the provided CMakeLists.txt for use with [CMake](https://cmake.org) to generate a build configuration for your toolchain.
