@@ -1,0 +1,19 @@
+version: '{build}'
+branches:
+  only:
+  - master
+skip_tags: true
+image: Visual Studio 2015
+platform: x64
+build:
+  project: vulkanExamples.sln
+  parallel: true
+  verbosity: minimal
+notifications:
+- provider: Email
+  to:
+  - webmaster@saschawillems.de
+  subject: Vulkan examples build {{buildVersion}} - {{status}}
+  on_build_success: false
+  on_build_failure: true
+  on_build_status_changed: true
