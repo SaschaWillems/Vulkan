@@ -1,0 +1,19 @@
+language: cpp
+sudo: required
+os: linux
+dist: xenial
+compiler:
+  - clang
+  - gcc
+before_script:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libassimp-dev libx11-xcb-dev libxrandr-dev
+script:
+  - cmake
+  - make
+notifications:
+  email:
+    recipients:
+      - webmaster@saschawillems.dev
+    on_success: change
+    on_failure: always
