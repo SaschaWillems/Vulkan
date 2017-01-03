@@ -9,7 +9,7 @@ before_script:
   - sudo apt-get -qq update
   - sudo apt-get install -y libassimp-dev libx11-xcb-dev libxrandr-dev
 script:
-  - cmake
+  - cmake .
   - make
 notifications:
   email:
