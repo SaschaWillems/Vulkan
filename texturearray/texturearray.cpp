@@ -489,11 +489,11 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		// Image descriptor for the texture array
-		VkDescriptorImageInfo texArrayDescriptor =
+		VkDescriptorImageInfo textureDescriptor =
 			vkTools::initializers::descriptorImageInfo(
 				textureArray.sampler,
 				textureArray.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				textureArray.imageLayout);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
@@ -508,7 +508,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&texArrayDescriptor)
+				&textureDescriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);

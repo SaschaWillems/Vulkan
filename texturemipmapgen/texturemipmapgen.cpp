@@ -547,12 +547,16 @@ public:
 			&uniformBufferVS.descriptor));
 
 		// Binding 1: Sampled image
-		VkDescriptorImageInfo texDescriptor = vkTools::initializers::descriptorImageInfo(VK_NULL_HANDLE, texture.view, VK_IMAGE_LAYOUT_GENERAL);
+		VkDescriptorImageInfo textureDescriptor = 
+			vkTools::initializers::descriptorImageInfo(
+				VK_NULL_HANDLE,				 
+				texture.view, 
+				texture.imageLayout);
 		writeDescriptorSets.push_back(vkTools::initializers::writeDescriptorSet(
 			descriptorSet,
 			VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 			1,
-			&texDescriptor));
+			&textureDescriptor));
 
 		// Binding 2: Sampler array
 		std::vector<VkDescriptorImageInfo> samplerDescriptors;

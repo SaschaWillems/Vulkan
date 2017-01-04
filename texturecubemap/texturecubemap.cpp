@@ -470,11 +470,11 @@ public:
 	void setupDescriptorSets()
 	{
 		// Image descriptor for the cube map texture
-		VkDescriptorImageInfo cubeMapDescriptor =
+		VkDescriptorImageInfo textureDescriptor =
 			vkTools::initializers::descriptorImageInfo(
 				cubeMap.sampler,
 				cubeMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				cubeMap.imageLayout);
 
 		VkDescriptorSetAllocateInfo allocInfo =
 			vkTools::initializers::descriptorSetAllocateInfo(
@@ -498,7 +498,7 @@ public:
 				descriptorSets.object, 
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 				1, 
-				&cubeMapDescriptor)
+				&textureDescriptor)
 		};
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
@@ -518,7 +518,7 @@ public:
 				descriptorSets.skybox,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&cubeMapDescriptor)
+				&textureDescriptor)
 		};
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}

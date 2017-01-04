@@ -45,7 +45,6 @@ public:
 		VkImageLayout imageLayout;
 		VkDeviceMemory deviceMemory;
 		VkImageView view;
-		VkDescriptorImageInfo descriptor;
 		uint32_t width, height;
 		uint32_t mipLevels;
 	} texture;
@@ -474,7 +473,6 @@ public:
 		// are abstracted by image views containing additional
 		// information and sub resource ranges
 		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
-		view.image = VK_NULL_HANDLE;
 		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		view.format = format;
 		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
@@ -487,13 +485,9 @@ public:
 		// Linear tiling usually won't support mip maps
 		// Only set mip map count if optimal tiling is used
 		view.subresourceRange.levelCount = (useStaging) ? texture.mipLevels : 1;
+		// The view will be based on the texture's image
 		view.image = texture.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
-
-		// Fill image descriptor image info that can be used during the descriptor set setup
-		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		texture.descriptor.imageView = texture.view;
-		texture.descriptor.sampler = texture.sampler;
 	}
 
 	// Free all Vulkan resources used a texture object
@@ -700,6 +694,12 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
+		// Setup a descriptor image info for the current texture to be used as a combined image sampler
+		VkDescriptorImageInfo textureDescriptor;
+		textureDescriptor.imageView = texture.view;				// The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
+		textureDescriptor.sampler = texture.sampler;			//	The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
+		textureDescriptor.imageLayout = texture.imageLayout;	//	The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
+
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
 			// Binding 0 : Vertex shader uniform buffer
@@ -709,11 +709,12 @@ public:
 				0, 
 				&uniformBufferVS.descriptor),
 			// Binding 1 : Fragment shader texture sampler
+			//	Fragment shader: layout (binding = 1) uniform sampler2D samplerColor;
 			vkTools::initializers::writeDescriptorSet(
-				descriptorSet, 
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-				1, 
-				&texture.descriptor)
+				descriptorSet, 				
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,			// The descriptor set will use a combined image sampler (sampler and image could be split)
+				1,													// Shader binding point 1
+				&textureDescriptor)								// Pointer to the descriptor image for our texture
 		};
 
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
