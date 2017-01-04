@@ -33,6 +33,14 @@ namespace vkTools
 		uint32_t mipLevels;
 		uint32_t layerCount;
 		VkDescriptorImageInfo descriptor;
+
+		/** @brief Update image descriptor from current sampler, view and image layout */
+		void updateDescriptor()
+		{
+			descriptor.sampler = sampler;
+			descriptor.imageView = view;
+			descriptor.imageLayout = imageLayout;
+		}
 	};
 
 	/**
@@ -92,10 +100,17 @@ namespace vkTools
 		* @param texture Pointer to the texture object to load the image into 
 		* @param (Optional) forceLinear Force linear tiling (not advised, defaults to false)
 		* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
+		* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		*
 		* @note Only supports .ktx and .dds
 		*/
-		void loadTexture(std::string filename, VkFormat format, VulkanTexture *texture, bool forceLinear = false, VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT)
+		void loadTexture(
+			std::string filename, 
+			VkFormat format, 
+			VulkanTexture *texture, 
+			bool forceLinear = false, 
+			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
 #if defined(__ANDROID__)
 			assert(assetManager != nullptr);
@@ -246,7 +261,7 @@ namespace vkTools
 					);
 
 				// Change texture image layout to shader read after all mip levels have been copied
-				texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				texture->imageLayout = imageLayout;
 				setImageLayout(
 					cmdBuffer,
 					texture->image,
@@ -344,7 +359,7 @@ namespace vkTools
 				// and can be directly used as textures
 				texture->image = mappableImage;
 				texture->deviceMemory = mappableMemory;
-				texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				texture->imageLayout = imageLayout;
 
 				// Setup image memory barrier
 				setImageLayout(
@@ -395,7 +410,6 @@ namespace vkTools
 			VkImageViewCreateInfo view = {};
 			view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			view.pNext = NULL;
-			view.image = VK_NULL_HANDLE;
 			view.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			view.format = format;
 			view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
@@ -406,10 +420,8 @@ namespace vkTools
 			view.image = texture->image;
 			VK_CHECK_RESULT(vkCreateImageView(vulkanDevice->logicalDevice, &view, nullptr, &texture->view));
 
-			// Fill descriptor image info that can be used for setting up descriptor sets
-			texture->descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			texture->descriptor.imageView = texture->view;
-			texture->descriptor.sampler = texture->sampler;
+			// Update descriptor image info member that can be used for setting up descriptor sets
+			texture->updateDescriptor();
 		}
 
 		/**
@@ -418,10 +430,17 @@ namespace vkTools
 		* @param filename File to load
 		* @param format Vulkan format of the image data stored in the file
 		* @param texture Pointer to the texture object to load the image into
+		* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
+		* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		*
 		* @note Only supports .ktx and .dds
 		*/
-		void loadCubemap(std::string filename, VkFormat format, VulkanTexture *texture, VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT)
+		void loadCubemap(
+			std::string filename, 
+			VkFormat format, 
+			VulkanTexture *texture, 
+			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
 #if defined(__ANDROID__)
 			assert(assetManager != nullptr);
@@ -566,7 +585,7 @@ namespace vkTools
 				bufferCopyRegions.data());
 
 			// Change texture image layout to shader read after all faces have been copied
-			texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			texture->imageLayout = imageLayout;
 			vkTools::setImageLayout(
 				cmdBuffer,
 				texture->image,
@@ -623,10 +642,8 @@ namespace vkTools
 			vkFreeMemory(vulkanDevice->logicalDevice, stagingMemory, nullptr);
 			vkDestroyBuffer(vulkanDevice->logicalDevice, stagingBuffer, nullptr);
 
-			// Fill descriptor image info that can be used for setting up descriptor sets
-			texture->descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			texture->descriptor.imageView = texture->view;
-			texture->descriptor.sampler = texture->sampler;
+			// Update descriptor image info member that can be used for setting up descriptor sets
+			texture->updateDescriptor();
 		}
 
 		/**
@@ -635,10 +652,17 @@ namespace vkTools
 		* @param filename File to load
 		* @param format Vulkan format of the image data stored in the file
 		* @param texture Pointer to the texture object to load the image into
+		* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
+		* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		*
 		* @note Only supports .ktx and .dds
 		*/
-		void loadTextureArray(std::string filename, VkFormat format, VulkanTexture *texture, VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT)
+		void loadTextureArray(
+			std::string filename, 
+			VkFormat format, 
+			VulkanTexture *texture, 
+			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
 #if defined(__ANDROID__)
 			assert(assetManager != nullptr);
@@ -781,7 +805,7 @@ namespace vkTools
 				bufferCopyRegions.data());
 
 			// Change texture image layout to shader read after all faces have been copied
-			texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			texture->imageLayout = imageLayout;
 			vkTools::setImageLayout(
 				cmdBuffer,
 				texture->image,
@@ -838,10 +862,8 @@ namespace vkTools
 			vkFreeMemory(vulkanDevice->logicalDevice, stagingMemory, nullptr);
 			vkDestroyBuffer(vulkanDevice->logicalDevice, stagingBuffer, nullptr);
 
-			// Fill descriptor image info that can be used for setting up descriptor sets
-			texture->descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			texture->descriptor.imageView = texture->view;
-			texture->descriptor.sampler = texture->sampler;
+			// Update descriptor image info member that can be used for setting up descriptor sets
+			texture->updateDescriptor();
 		}
 
 		/**
@@ -855,8 +877,18 @@ namespace vkTools
 		* @param texture Pointer to the texture object to load the image into
 		* @param (Optional) filter Texture filtering for the sampler (defaults to VK_FILTER_LINEAR)
 		* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
+		* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		*/
-		void createTexture(void* buffer, VkDeviceSize bufferSize, VkFormat format, uint32_t width, uint32_t height, VulkanTexture *texture, VkFilter filter = VK_FILTER_LINEAR, VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT)
+		void createTexture(
+			void* buffer, 
+			VkDeviceSize bufferSize, 
+			VkFormat format, 
+			uint32_t width, 
+			uint32_t height, 
+			VulkanTexture *texture, 
+			VkFilter filter = VK_FILTER_LINEAR, 
+			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
 			assert(buffer);
 
@@ -963,7 +995,7 @@ namespace vkTools
 			);
 
 			// Change texture image layout to shader read after all mip levels have been copied
-			texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			texture->imageLayout = imageLayout;
 			setImageLayout(
 				cmdBuffer,
 				texture->image,
@@ -1013,7 +1045,6 @@ namespace vkTools
 			VkImageViewCreateInfo view = {};
 			view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			view.pNext = NULL;
-			view.image = VK_NULL_HANDLE;
 			view.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			view.format = format;
 			view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
@@ -1022,10 +1053,8 @@ namespace vkTools
 			view.image = texture->image;
 			VK_CHECK_RESULT(vkCreateImageView(vulkanDevice->logicalDevice, &view, nullptr, &texture->view));
 
-			// Fill descriptor image info that can be used for setting up descriptor sets
-			texture->descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			texture->descriptor.imageView = texture->view;
-			texture->descriptor.sampler = texture->sampler;
+			// Update descriptor image info member that can be used for setting up descriptor sets
+			texture->updateDescriptor();
 		}
 
 		/**
