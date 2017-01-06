@@ -37,6 +37,7 @@
 #include "vulkantools.h"
 #include "vulkandebug.h"
 
+#include "VulkanInitializers.hpp"
 #include "vulkandevice.hpp"
 #include "vulkanswapchain.hpp"
 #include "vulkanTextureLoader.hpp"
