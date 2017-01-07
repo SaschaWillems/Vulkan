@@ -5,12 +5,13 @@
 
 layout (binding = 1) uniform sampler2D samplerColor;
 
-layout (binding = 2) uniform UBO 
+layout (binding = 0) uniform UBO 
 {
 	float blurScale;
 	float blurStrength;
-	int horizontal;
 } ubo;
+
+layout (constant_id = 0) const int blurdirection = 0;
 
 layout (location = 0) in vec2 inUV;
 
@@ -29,13 +30,15 @@ void main()
 	vec3 result = texture(samplerColor, inUV).rgb * weight[0]; // current fragment's contribution
 	for(int i = 1; i < 5; ++i)
 	{
-		if (ubo.horizontal == 1)
+		if (blurdirection == 1)
 		{
+			// H
 			result += texture(samplerColor, inUV + vec2(tex_offset.x * i, 0.0)).rgb * weight[i] * ubo.blurStrength;
 			result += texture(samplerColor, inUV - vec2(tex_offset.x * i, 0.0)).rgb * weight[i] * ubo.blurStrength;
 		}
 		else
 		{
+			// V
 			result += texture(samplerColor, inUV + vec2(0.0, tex_offset.y * i)).rgb * weight[i] * ubo.blurStrength;
 			result += texture(samplerColor, inUV - vec2(0.0, tex_offset.y * i)).rgb * weight[i] * ubo.blurStrength;
 		}
