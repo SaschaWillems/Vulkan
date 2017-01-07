@@ -89,6 +89,16 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\bloom\colorpass.frag" />
+    <None Include="..\data\shaders\bloom\colorpass.vert" />
+    <None Include="..\data\shaders\bloom\gaussblur.frag" />
+    <None Include="..\data\shaders\bloom\gaussblur.vert" />
+    <None Include="..\data\shaders\bloom\phongpass.frag" />
+    <None Include="..\data\shaders\bloom\phongpass.vert" />
+    <None Include="..\data\shaders\bloom\skybox.frag" />
+    <None Include="..\data\shaders\bloom\skybox.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
