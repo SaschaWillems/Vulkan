@@ -90,6 +90,13 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\computeshader\edgedetect.comp" />
+    <None Include="..\data\shaders\computeshader\emboss.comp" />
+    <None Include="..\data\shaders\computeshader\sharpen.comp" />
+    <None Include="..\data\shaders\computeshader\texture.frag" />
+    <None Include="..\data\shaders\computeshader\texture.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -552,98 +552,72 @@ public:
 		VkDeviceSize indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 		skinnedMesh->meshBuffer.indexCount = indexBuffer.size();
 
-		bool useStaging = true;
+		struct {
+			VkBuffer buffer;
+			VkDeviceMemory memory;
+		} vertexStaging, indexStaging;
 
-		if (useStaging)
-		{
-			struct {
-				VkBuffer buffer;
-				VkDeviceMemory memory;
-			} vertexStaging, indexStaging;
+		// Create staging buffers
+		// Vertex data
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			vertexBufferSize,
+			&vertexStaging.buffer,
+			&vertexStaging.memory,
+			vertexBuffer.data()));
+		// Index data
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			indexBufferSize,
+			&indexStaging.buffer,
+			&indexStaging.memory,
+			indexBuffer.data()));
 
-			// Create staging buffers
-			// Vertex data
-			createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-				vertexBufferSize,
-				vertexBuffer.data(),
-				&vertexStaging.buffer,
-				&vertexStaging.memory);
-			// Index data
-			createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-				indexBufferSize,
-				indexBuffer.data(),
-				&indexStaging.buffer,
-				&indexStaging.memory);
+		// Create device local buffers
+		// Vertex buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			vertexBufferSize,
+			&skinnedMesh->meshBuffer.vertices.buf,
+			&skinnedMesh->meshBuffer.vertices.mem));
+		// Index buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			indexBufferSize,
+			&skinnedMesh->meshBuffer.indices.buf,
+			&skinnedMesh->meshBuffer.indices.mem));
 
-			// Create device local buffers
-			// Vertex buffer
-			createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				vertexBufferSize,
-				nullptr,
-				&skinnedMesh->meshBuffer.vertices.buf,
-				&skinnedMesh->meshBuffer.vertices.mem);
-			// Index buffer
-			createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				indexBufferSize,
-				nullptr,
-				&skinnedMesh->meshBuffer.indices.buf,
-				&skinnedMesh->meshBuffer.indices.mem);
+		// Copy from staging buffers
+		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-			// Copy from staging buffers
-			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkBufferCopy copyRegion = {};
 
-			VkBufferCopy copyRegion = {};
+		copyRegion.size = vertexBufferSize;
+		vkCmdCopyBuffer(
+			copyCmd,
+			vertexStaging.buffer,
+			skinnedMesh->meshBuffer.vertices.buf,
+			1,
+			&copyRegion);
 
-			copyRegion.size = vertexBufferSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				vertexStaging.buffer,
-				skinnedMesh->meshBuffer.vertices.buf,
-				1,
-				&copyRegion);
+		copyRegion.size = indexBufferSize;
+		vkCmdCopyBuffer(
+			copyCmd,
+			indexStaging.buffer,
+			skinnedMesh->meshBuffer.indices.buf,
+			1,
+			&copyRegion);
 
-			copyRegion.size = indexBufferSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				indexStaging.buffer,
-				skinnedMesh->meshBuffer.indices.buf,
-				1,
-				&copyRegion);
+		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 
-			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
-
-			vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
-			vkFreeMemory(device, vertexStaging.memory, nullptr);
-			vkDestroyBuffer(device, indexStaging.buffer, nullptr);
-			vkFreeMemory(device, indexStaging.memory, nullptr);
-		} 
-		else
-		{
-			// Vertex buffer
-			createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-				vertexBufferSize,
-				vertexBuffer.data(),
-				&skinnedMesh->meshBuffer.vertices.buf,
-				&skinnedMesh->meshBuffer.vertices.mem);
-			// Index buffer
-			createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-				indexBufferSize,
-				indexBuffer.data(),
-				&skinnedMesh->meshBuffer.indices.buf,
-				&skinnedMesh->meshBuffer.indices.mem);
-		}
+		vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
+		vkFreeMemory(device, vertexStaging.memory, nullptr);
+		vkDestroyBuffer(device, indexStaging.buffer, nullptr);
+		vkFreeMemory(device, indexStaging.memory, nullptr);
 	}
 
 	void loadAssets()

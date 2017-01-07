@@ -42,4 +42,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\computeshader\edgedetect.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\computeshader\emboss.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\computeshader\sharpen.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\computeshader\texture.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\computeshader\texture.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
 </Project>

@@ -519,12 +519,13 @@ public:
 		vertexBuffer.push_back({ { 0.0f, 0.0f, 0.0f },{ 0.0f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
 		vertexBuffer.push_back({ { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
 
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			vertexBuffer.size() * sizeof(Vertex),
-			vertexBuffer.data(),
 			&meshes.quad.vertices.buf,
-			&meshes.quad.vertices.mem);
+			&meshes.quad.vertices.mem,
+			vertexBuffer.data()));
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
@@ -538,12 +539,13 @@ public:
 		}
 		meshes.quad.indexCount = static_cast<uint32_t>(indexBuffer.size());
 
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			indexBuffer.size() * sizeof(uint32_t),
-			indexBuffer.data(),
 			&meshes.quad.indices.buf,
-			&meshes.quad.indices.mem);
+			&meshes.quad.indices.mem,
+			indexBuffer.data()));
 	}
 
 	void setupVertexDescriptions()

@@ -460,21 +460,20 @@ public:
 			VkBuffer buffer;
 		} stagingBuffer;
 
-		VulkanExampleBase::createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			instanceBuffer.size,
-			instanceData.data(),
 			&stagingBuffer.buffer,
-			&stagingBuffer.memory);
+			&stagingBuffer.memory,
+			instanceData.data()));
 
-		VulkanExampleBase::createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			instanceBuffer.size,
-			nullptr,
 			&instanceBuffer.buffer,
-			&instanceBuffer.memory);
+			&instanceBuffer.memory));
 
 		// Copy to staging buffer
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);

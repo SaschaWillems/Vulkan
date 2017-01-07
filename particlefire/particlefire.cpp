@@ -278,12 +278,13 @@ public:
 
 		particles.size = particleBuffer.size() * sizeof(Particle);
 
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			particles.size,
-			particleBuffer.data(),
 			&particles.buffer,
-			&particles.memory);
+			&particles.memory,
+			particleBuffer.data()));
 
 		// Map the memory and store the pointer for reuse
 		VK_CHECK_RESULT(vkMapMemory(device, particles.memory, 0, particles.size, 0, &particles.mappedMemory));

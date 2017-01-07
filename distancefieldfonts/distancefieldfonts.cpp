@@ -70,18 +70,14 @@ public:
 	} textures;
 
 	struct {
-		VkBuffer buf;
-		VkDeviceMemory mem;
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	struct {
-		int count;
-		VkBuffer buf;
-		VkDeviceMemory mem;
-	} indices;
+	vk::Buffer vertexBuffer;
+	vk::Buffer indexBuffer;
+	uint32_t indexCount;
 
 	struct {
 		vk::Buffer vs;
@@ -129,15 +125,13 @@ public:
 		textureLoader->destroyTexture(textures.fontBitmap);
 
 		vkDestroyPipeline(device, pipelines.sdf, nullptr);
+		vkDestroyPipeline(device, pipelines.bitmap, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkDestroyBuffer(device, vertices.buf, nullptr);
-		vkFreeMemory(device, vertices.mem, nullptr);
-
-		vkDestroyBuffer(device, indices.buf, nullptr);
-		vkFreeMemory(device, indices.mem, nullptr);
+		vertexBuffer.destroy();
+		indexBuffer.destroy();
 
 		uniformBuffers.vs.destroy();
 		uniformBuffers.fs.destroy();
@@ -260,9 +254,9 @@ public:
 			// Signed distance field font
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.sdf, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.sdf);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], indices.count, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 
 			// Linear filtered bitmap font
 			if (splitScreen)
@@ -271,9 +265,7 @@ public:
 				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.bitmap, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.bitmap);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buf, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], indices.count, 1, 0, 0, 0);
+				vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -285,8 +277,8 @@ public:
 	// Creates a vertex buffer containing quads for the passed text
 	void generateText(std:: string text)
 	{
-		std::vector<Vertex> vertexBuffer;
-		std::vector<uint32_t> indexBuffer;
+		std::vector<Vertex> vertices;
+		std::vector<uint32_t> indices;
 		uint32_t indexOffset = 0;
 
 		float w = textures.fontSDF.width;
@@ -315,43 +307,45 @@ public:
 			float xo = charInfo->xoffset / 36.0f;
 			float yo = charInfo->yoffset / 36.0f;
 
-			vertexBuffer.push_back({ { posx + dimx + xo,  posy + dimy, 0.0f }, { ue, te } });
-			vertexBuffer.push_back({ { posx + xo,         posy + dimy, 0.0f }, { us, te } });
-			vertexBuffer.push_back({ { posx + xo,         posy,        0.0f }, { us, ts } });
-			vertexBuffer.push_back({ { posx + dimx + xo,  posy,        0.0f }, { ue, ts } });
+			vertices.push_back({ { posx + dimx + xo,  posy + dimy, 0.0f }, { ue, te } });
+			vertices.push_back({ { posx + xo,         posy + dimy, 0.0f }, { us, te } });
+			vertices.push_back({ { posx + xo,         posy,        0.0f }, { us, ts } });
+			vertices.push_back({ { posx + dimx + xo,  posy,        0.0f }, { ue, ts } });
 
-			std::array<uint32_t, 6> indices = { 0,1,2, 2,3,0 };
-			for (auto& index : indices)
+			std::array<uint32_t, 6> letterIndices = { 0,1,2, 2,3,0 };
+			for (auto& index : letterIndices)
 			{
-				indexBuffer.push_back(indexOffset + index);
+				indices.push_back(indexOffset + index);
 			}
 			indexOffset += 4;
 
 			float advance = ((float)(charInfo->xadvance) / 36.0f);
 			posx += advance;
 		}
-		indices.count = indexBuffer.size();
+		indexCount = indices.size();
 
 		// Center
-		for (auto& v : vertexBuffer)
+		for (auto& v : vertices)
 		{
 			v.pos[0] -= posx / 2.0f;
 			v.pos[1] -= 0.5f;
 		}
 
-		createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			vertexBuffer.size() * sizeof(Vertex),
-			vertexBuffer.data(),
-			&vertices.buf,
-			&vertices.mem);
+		// Generate device local buffers for the text vertices and indices and upload the data
 
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&vertexBuffer,
+			vertices.size() * sizeof(Vertex),
+			vertices.data()));
+
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			indexBuffer.size() * sizeof(uint32_t),
-			indexBuffer.data(),
-			&indices.buf,
-			&indices.mem);
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&indexBuffer,
+			indices.size() * sizeof(uint32_t),
+			indices.data()));
 	}
 
 	void setupVertexDescriptions()

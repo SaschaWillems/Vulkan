@@ -234,39 +234,37 @@ public:
 
 			// Create staging buffers
 			// Vertex data
-			createBuffer(
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				vertexBufferSize,
-				vertexBuffer.data(),
 				&vertexStaging.buffer,
-				&vertexStaging.memory);
+				&vertexStaging.memory,
+				vertexBuffer.data()));
 			// Index data
-			createBuffer(
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				indexBufferSize,
-				indexBuffer.data(),
 				&indexStaging.buffer,
-				&indexStaging.memory);
+				&indexStaging.memory,
+				indexBuffer.data()));
 
 			// Create device local buffers
 			// Vertex buffer
-			createBuffer(
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				vertexBufferSize,
-				nullptr,
 				&mesh.vertices.buf,
-				&mesh.vertices.mem);
+				&mesh.vertices.mem));
 			// Index buffer
-			createBuffer(
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				indexBufferSize,
-				nullptr,
 				&mesh.indices.buf,
-				&mesh.indices.mem);
+				&mesh.indices.mem));
 
 			// Copy from staging buffers
 			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -299,21 +297,21 @@ public:
 		else
 		{
 			// Vertex buffer
-			createBuffer(
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				vertexBufferSize,
-				vertexBuffer.data(),
 				&mesh.vertices.buf,
-				&mesh.vertices.mem);
+				&mesh.vertices.mem,
+				vertexBuffer.data()));
 			// Index buffer
-			createBuffer(
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				indexBufferSize,
-				indexBuffer.data(),
 				&mesh.indices.buf,
-				&mesh.indices.mem);
+				&mesh.indices.mem,
+				indexBuffer.data()));
 		}
 
 		delete(meshLoader);

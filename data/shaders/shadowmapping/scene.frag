@@ -11,6 +11,8 @@ layout (location = 2) in vec3 inViewVec;
 layout (location = 3) in vec3 inLightVec;
 layout (location = 4) in vec4 inShadowCoord;
 
+layout (constant_id = 0) const int enablePCF = 0;
+
 layout (location = 0) out vec4 outFragColor;
 
 #define ambient 0.1
@@ -55,7 +57,7 @@ float filterPCF(vec4 sc)
 
 void main() 
 {	
-	float shadow = filterPCF(inShadowCoord / inShadowCoord.w);
+	float shadow = (enablePCF == 1) ? filterPCF(inShadowCoord / inShadowCoord.w) : textureProj(inShadowCoord / inShadowCoord.w, vec2(0.0));
 
 	vec3 N = normalize(inNormal);
 	vec3 L = normalize(inLightVec);
