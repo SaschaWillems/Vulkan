@@ -89,6 +89,14 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\shadowmapping\offscreen.frag" />
+    <None Include="..\data\shaders\shadowmapping\offscreen.vert" />
+    <None Include="..\data\shaders\shadowmapping\quad.frag" />
+    <None Include="..\data\shaders\shadowmapping\quad.vert" />
+    <None Include="..\data\shaders\shadowmapping\scene.frag" />
+    <None Include="..\data\shaders\shadowmapping\scene.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

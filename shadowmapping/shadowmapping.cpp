@@ -53,6 +53,7 @@ class VulkanExample : public VulkanExampleBase
 public:
 	bool displayShadowMap = false;
 	bool lightPOV = false;
+	bool filterPCF = true;
 
 	// Keep depth range as small as possible
 	// for better shadow map precision
@@ -105,7 +106,8 @@ public:
 	struct {
 		VkPipeline quad;
 		VkPipeline offscreen;
-		VkPipeline scene;
+		VkPipeline sceneShadow;
+		VkPipeline sceneShadowPCF;
 	} pipelines;
 
 	struct {
@@ -167,7 +169,8 @@ public:
 
 		vkDestroyPipeline(device, pipelines.quad, nullptr);
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
-		vkDestroyPipeline(device, pipelines.scene, nullptr);
+		vkDestroyPipeline(device, pipelines.sceneShadow, nullptr);
+		vkDestroyPipeline(device, pipelines.sceneShadowPCF, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayouts.quad, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayouts.offscreen, nullptr);
@@ -419,7 +422,7 @@ public:
 
 			// 3D scene
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.quad, 0, 1, &descriptorSets.scene, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.scene);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, (filterPCF) ? pipelines.sceneShadowPCF : pipelines.sceneShadow);
 
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
@@ -456,23 +459,25 @@ public:
 		};
 #undef QUAD_COLOR_NORMAL
 
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			vertexBuffer.size() * sizeof(Vertex),
-			vertexBuffer.data(),
 			&meshes.quad.vertices.buf,
-			&meshes.quad.vertices.mem);
+			&meshes.quad.vertices.mem,
+			vertexBuffer.data()));
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
 		meshes.quad.indexCount = indexBuffer.size();
 
-		createBuffer(
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			indexBuffer.size() * sizeof(uint32_t),
-			indexBuffer.data(),
 			&meshes.quad.indices.buf,
-			&meshes.quad.indices.mem);
+			&meshes.quad.indices.mem,
+			indexBuffer.data()));
 	}
 
 	void setupVertexDescriptions()
@@ -662,7 +667,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vkTools::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
+				VK_CULL_MODE_BACK_BIT,
 				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
@@ -726,11 +731,19 @@ public:
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.quad));
 
-		// 3D scene
+		// Scene rendering with shadows applied
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapping/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapping/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.scene));
+		// Use specialization constants to select between horizontal and vertical blur
+		uint32_t enablePCF = 0;
+		VkSpecializationMapEntry specializationMapEntry = vkTools::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
+		VkSpecializationInfo specializationInfo = vkTools::initializers::specializationInfo(1, &specializationMapEntry, sizeof(uint32_t), &enablePCF);
+		shaderStages[1].pSpecializationInfo = &specializationInfo;
+		// No filtering
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.sceneShadow));
+		// PCF filtering
+		enablePCF = 1;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.sceneShadowPCF));
 
 		// Offscreen pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapping/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -923,6 +936,12 @@ public:
 		viewChanged();
 	}
 
+	void toogleFilterPCF()
+	{
+		filterPCF = !filterPCF;
+		buildCommandBuffers();
+	}
+
 	virtual void keyPressed(uint32_t keyCode)
 	{
 		switch (keyCode)
@@ -935,6 +954,10 @@ public:
 		case GAMEPAD_BUTTON_X:
 			toogleLightPOV();
 			break;
+		case KEY_F:
+		case GAMEPAD_BUTTON_Y:
+			toogleFilterPCF();
+			break;
 		}
 	}
 
@@ -943,9 +966,11 @@ public:
 #if defined(__ANDROID__)
 		textOverlay->addText("\"Button A\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("\"Button X\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"Button Y\" to toggle PCF filtering", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #else
 		textOverlay->addText("\"s\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("\"l\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("\"f\" to toggle PCF filtering", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 

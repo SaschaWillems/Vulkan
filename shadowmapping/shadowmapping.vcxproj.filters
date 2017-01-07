@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{e5ea34e5-d8c9-496c-a922-cc90b6777601}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\base\vulkandebug.cpp">
@@ -38,5 +41,25 @@
     <ClInclude Include="..\base\vulkantools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\shadowmapping\offscreen.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\shadowmapping\offscreen.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\shadowmapping\quad.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\shadowmapping\quad.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\shadowmapping\scene.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\shadowmapping\scene.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
