@@ -289,39 +289,6 @@ public:
 	// Load a SPIR-V shader
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 	
-	// Create a buffer, fill it with data (if != NULL) and bind buffer memory
-	VkBool32 createBuffer(
-		VkBufferUsageFlags usageFlags,
-		VkMemoryPropertyFlags memoryPropertyFlags,
-		VkDeviceSize size,
-		void *data,
-		VkBuffer *buffer,
-		VkDeviceMemory *memory);
-	// This version always uses HOST_VISIBLE memory
-	VkBool32 createBuffer(
-		VkBufferUsageFlags usage,
-		VkDeviceSize size,
-		void *data,
-		VkBuffer *buffer,
-		VkDeviceMemory *memory);
-	// Overload that assigns buffer info to descriptor
-	VkBool32 createBuffer(
-		VkBufferUsageFlags usage,
-		VkDeviceSize size,
-		void *data,
-		VkBuffer *buffer,
-		VkDeviceMemory *memory,
-		VkDescriptorBufferInfo *descriptor);
-	// Overload to pass memory property flags
-	VkBool32 createBuffer(
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags memoryPropertyFlags,
-		VkDeviceSize size,
-		void *data,
-		VkBuffer *buffer,
-		VkDeviceMemory *memory,
-		VkDescriptorBufferInfo *descriptor);
-
 	// Load a mesh (using ASSIMP) and create vulkan vertex and index buffers with given vertex layout
 	void loadMesh(
 		std::string fiename, 

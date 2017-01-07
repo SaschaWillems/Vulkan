@@ -212,67 +212,6 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	return shaderStage;
 }
 
-VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory)
-{
-	VkMemoryRequirements memReqs;
-	VkMemoryAllocateInfo memAlloc = vkTools::initializers::memoryAllocateInfo();
-	VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo(usageFlags, size);
-
-	VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, buffer));
-
-	vkGetBufferMemoryRequirements(device, *buffer, &memReqs);
-	memAlloc.allocationSize = memReqs.size;
-	memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
-	VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, memory));
-	if (data != nullptr)
-	{
-		void *mapped;
-		VK_CHECK_RESULT(vkMapMemory(device, *memory, 0, size, 0, &mapped));
-		memcpy(mapped, data, size);
-		vkUnmapMemory(device, *memory);
-	}
-	VK_CHECK_RESULT(vkBindBufferMemory(device, *buffer, *memory, 0));
-
-	return true;
-}
-
-VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer *buffer, VkDeviceMemory *memory)
-{
-	return createBuffer(usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, size, data, buffer, memory);
-}
-
-VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
-{
-	VkBool32 res = createBuffer(usage, size, data, buffer, memory);
-	if (res)
-	{
-		descriptor->offset = 0;
-		descriptor->buffer = *buffer;
-		descriptor->range = size;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-VkBool32 VulkanExampleBase::createBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, void * data, VkBuffer * buffer, VkDeviceMemory * memory, VkDescriptorBufferInfo * descriptor)
-{
-	VkBool32 res = createBuffer(usage, memoryPropertyFlags, size, data, buffer, memory);
-	if (res)
-	{
-		descriptor->offset = 0;
-		descriptor->buffer = *buffer;
-		descriptor->range = size;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 void VulkanExampleBase::loadMesh(std::string filename, vkMeshLoader::MeshBuffer * meshBuffer, std::vector<vkMeshLoader::VertexLayout> vertexLayout, float scale)
 {
 	vkMeshLoader::MeshCreateInfo meshCreateInfo;
