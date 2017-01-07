@@ -89,6 +89,14 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\deferred\debug.frag" />
+    <None Include="..\data\shaders\deferred\debug.vert" />
+    <None Include="..\data\shaders\deferred\deferred.frag" />
+    <None Include="..\data\shaders\deferred\deferred.vert" />
+    <None Include="..\data\shaders\deferred\mrt.frag" />
+    <None Include="..\data\shaders\deferred\mrt.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

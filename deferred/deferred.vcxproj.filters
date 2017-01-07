@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{ebe308dc-b904-4532-ac58-da84d73e2cd7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\base\vulkandebug.cpp">
@@ -38,5 +41,25 @@
     <ClInclude Include="..\base\vulkantools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\deferred\debug.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferred\debug.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferred\deferred.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferred\deferred.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferred\mrt.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\deferred\mrt.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
