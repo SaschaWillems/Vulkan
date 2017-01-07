@@ -24,6 +24,7 @@ namespace vkTools
 	*/
 	struct VulkanTexture
 	{
+		VkDevice device;
 		VkSampler sampler;
 		VkImage image;
 		VkImageLayout imageLayout;
@@ -40,6 +41,18 @@ namespace vkTools
 			descriptor.sampler = sampler;
 			descriptor.imageView = view;
 			descriptor.imageLayout = imageLayout;
+		}
+
+		/** @brief Release all Vulkan resources held by this texture */
+		void destroy()
+		{
+			vkDestroyImageView(device, view, nullptr);
+			vkDestroyImage(device, image, nullptr);
+			if (sampler)
+			{
+				vkDestroySampler(device, sampler, nullptr);
+			}
+			vkFreeMemory(device, deviceMemory, nullptr);
 		}
 	};
 
@@ -134,6 +147,7 @@ namespace vkTools
 #endif		
 			assert(!tex2D.empty());
 
+			texture->device = vulkanDevice->logicalDevice;
 			texture->width = static_cast<uint32_t>(tex2D[0].dimensions().x);
 			texture->height = static_cast<uint32_t>(tex2D[0].dimensions().y);
 			texture->mipLevels = static_cast<uint32_t>(tex2D.levels());
@@ -464,6 +478,7 @@ namespace vkTools
 #endif	
 			assert(!texCube.empty());
 
+			texture->device = vulkanDevice->logicalDevice;
 			texture->width = static_cast<uint32_t>(texCube.dimensions().x);
 			texture->height = static_cast<uint32_t>(texCube.dimensions().y);
 			texture->mipLevels = static_cast<uint32_t>(texCube.levels());
@@ -687,6 +702,7 @@ namespace vkTools
 
 			assert(!tex2DArray.empty());
 
+			texture->device = vulkanDevice->logicalDevice;
 			texture->width = static_cast<uint32_t>(tex2DArray.dimensions().x);
 			texture->height = static_cast<uint32_t>(tex2DArray.dimensions().y);
 			texture->layerCount = static_cast<uint32_t>(tex2DArray.layers());
@@ -892,6 +908,7 @@ namespace vkTools
 		{
 			assert(buffer);
 
+			texture->device = vulkanDevice->logicalDevice;
 			texture->width = width;
 			texture->height = height;
 			texture->mipLevels = 1;
