@@ -127,6 +127,8 @@ public:
 		enabledFeatures.tessellationShader = VK_TRUE;
 		// Example also uses a wireframe pipeline, enable non-solid fill modes
 		enabledFeatures.fillModeNonSolid = VK_TRUE;
+		// Pipeline statistics
+		enabledFeatures.pipelineStatisticsQuery = VK_TRUE;
 	}
 
 	~VulkanExample()
