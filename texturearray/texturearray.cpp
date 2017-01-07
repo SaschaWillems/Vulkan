@@ -45,11 +45,11 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	struct {
-		vkMeshLoader::MeshBuffer quad;
-	} meshes;
+	vk::Buffer vertexBuffer;
+	vk::Buffer indexBuffer;
+	uint32_t indexCount;
 
-	vk::Buffer uniformBuffer;
+	vk::Buffer uniformBufferVS;
 
 	struct UboInstanceData {
 		// Model matrix
@@ -100,9 +100,10 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
+		vertexBuffer.destroy();
+		indexBuffer.destroy();
 
-		uniformBuffer.destroy();
+		uniformBufferVS.destroy();
 
 		delete[] uboVS.instance;
 	}
@@ -349,13 +350,13 @@ public:
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.quad.indexCount, layerCount, 0, 0, 0);
+			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, layerCount, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -363,36 +364,37 @@ public:
 		}
 	}
 
-	// Setup vertices for a single uv-mapped quad
 	void generateQuad()
 	{
-#define dim 2.5f
-		std::vector<Vertex> vertexBuffer =
+		// Setup vertices for a single uv-mapped quad made from two triangles
+		std::vector<Vertex> vertices =
 		{
-			{ {  dim,  dim, 0.0f }, { 1.0f, 1.0f } },
-			{ { -dim,  dim, 0.0f }, { 0.0f, 1.0f } },
-			{ { -dim, -dim, 0.0f }, { 0.0f, 0.0f } },
-			{ {  dim, -dim, 0.0f }, { 1.0f, 0.0f } }
+			{ {  2.5f,  2.5f, 0.0f }, { 1.0f, 1.0f } },
+			{ { -2.5f,  2.5f, 0.0f }, { 0.0f, 1.0f } },
+			{ { -2.5f, -2.5f, 0.0f }, { 0.0f, 0.0f } },
+			{ {  2.5f, -2.5f, 0.0f }, { 1.0f, 0.0f } }
 		};
-#undef dim
-
-		createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			vertexBuffer.size() * sizeof(Vertex),
-			vertexBuffer.data(),
-			&meshes.quad.vertices.buf,
-			&meshes.quad.vertices.mem);
 
 		// Setup indices
-		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-		meshes.quad.indexCount = indexBuffer.size();
+		std::vector<uint32_t> indices = { 0,1,2, 2,3,0 };
+		indexCount = static_cast<uint32_t>(indices.size());
 
-		createBuffer(
+		// Create buffers
+		// For the sake of simplicity we won't stage the vertex data to the gpu memory
+		// Vertex buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&vertexBuffer,
+			vertices.size() * sizeof(Vertex),
+			vertices.data()));
+		// Index buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			indexBuffer.size() * sizeof(uint32_t),
-			indexBuffer.data(),
-			&meshes.quad.indices.buf,
-			&meshes.quad.indices.mem);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&indexBuffer,
+			indices.size() * sizeof(uint32_t),
+			indices.data()));
 	}
 
 	void setupVertexDescriptions()
@@ -502,7 +504,7 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformBuffer.descriptor),
+				&uniformBufferVS.descriptor),
 			// Binding 1 : Fragment shader cubemap sampler
 			vkTools::initializers::writeDescriptorSet(
 				descriptorSet,
@@ -600,7 +602,7 @@ public:
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffer,
+			&uniformBufferVS,
 			uboSize));
 
 		// Array indices and model matrices are fixed
@@ -620,12 +622,12 @@ public:
 		uint8_t *pData;
 		uint32_t dataOffset = sizeof(uboVS.matrices);
 		uint32_t dataSize = layerCount * sizeof(UboInstanceData);
-		VK_CHECK_RESULT(vkMapMemory(device, uniformBuffer.memory, dataOffset, dataSize, 0, (void **)&pData));
+		VK_CHECK_RESULT(vkMapMemory(device, uniformBufferVS.memory, dataOffset, dataSize, 0, (void **)&pData));
 		memcpy(pData, uboVS.instance, dataSize);
-		vkUnmapMemory(device, uniformBuffer.memory);
+		vkUnmapMemory(device, uniformBufferVS.memory);
 
 		// Map persistent
-		VK_CHECK_RESULT(uniformBuffer.map());
+		VK_CHECK_RESULT(uniformBufferVS.map());
 
 		updateUniformBufferMatrices();
 	}
@@ -644,7 +646,7 @@ public:
 		uboVS.matrices.view = glm::rotate(uboVS.matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Only update the matrices part of the uniform buffer
-		memcpy(uniformBuffer.mapped, &uboVS.matrices, sizeof(uboVS.matrices));
+		memcpy(uniformBufferVS.mapped, &uboVS.matrices, sizeof(uboVS.matrices));
 	}
 
 	void draw()
