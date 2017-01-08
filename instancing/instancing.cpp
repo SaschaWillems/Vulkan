@@ -26,7 +26,7 @@
 #define VERTEX_BUFFER_BIND_ID 0
 #define INSTANCE_BUFFER_BIND_ID 1
 #define ENABLE_VALIDATION false
-#define INSTANCE_COUNT 2048
+#define INSTANCE_COUNT 8192
 
 // Vertex layout for this example
 std::vector<vkMeshLoader::VertexLayout> vertexLayout =
@@ -41,17 +41,13 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	struct {
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
-
-	struct {
-		vkMeshLoader::MeshBuffer example;
+		vkMeshLoader::MeshBuffer rock;
+		vkMeshLoader::MeshBuffer planet;
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture colorMap;
+		vkTools::VulkanTexture rocks;
+		vkTools::VulkanTexture planet;
 	} textures;
 
 	// Per-instance data block
@@ -61,48 +57,62 @@ public:
 		float scale;
 		uint32_t texIndex;
 	};
-
 	// Contains the instanced data
-	struct {
+	struct InstanceBuffer {
 		VkBuffer buffer = VK_NULL_HANDLE;
 		VkDeviceMemory memory = VK_NULL_HANDLE;
 		size_t size = 0;
 		VkDescriptorBufferInfo descriptor;
 	} instanceBuffer;
 
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 view;
-		float time = 0.0f;
+		glm::vec4 lightPos = glm::vec4(0.0f, -5.0f, 0.0f, 1.0f);
+		float locSpeed = 0.0f;
+		float globSpeed = 0.0f;
 	} uboVS;
 
 	struct {
 		vk::Buffer scene;
 	} uniformBuffers;
 
-	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
+	struct {
+		VkPipeline instancedRocks;
+		VkPipeline planet;
+	} pipelines;
+
 	VkDescriptorSetLayout descriptorSetLayout;
+	struct {
+		VkDescriptorSet instancedRocks;
+		VkDescriptorSet planet;
+	} descriptorSets;
+
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -12.0f;
-		rotationSpeed = 0.25f;
-		enableTextOverlay = true;
 		title = "Vulkan Example - Instanced mesh rendering";
+		enableTextOverlay = true;
 		srand(time(NULL));
+		zoom = -18.5f;
+		rotation = { -17.2f, -4.7f, 0.0f };
+		cameraPos = { 5.5f, -1.85f, 0.0f };
+		rotationSpeed = 0.25f;
 	}
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipeline, nullptr);
+		vkDestroyPipeline(device, pipelines.instancedRocks, nullptr);
+		vkDestroyPipeline(device, pipelines.planet, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 		vkDestroyBuffer(device, instanceBuffer.buffer, nullptr);
 		vkFreeMemory(device, instanceBuffer.memory, nullptr);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
-		textureLoader->destroyTexture(textures.colorMap);
+		vkMeshLoader::freeMeshBufferResources(device, &meshes.rock);
+		vkMeshLoader::freeMeshBufferResources(device, &meshes.planet);
+		textures.rocks.destroy();
+		textures.planet.destroy();
 		uniformBuffers.scene.destroy();
 	}
 
@@ -136,19 +146,27 @@ public:
 			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
 			VkDeviceSize offsets[1] = { 0 };
+
+			// Planet
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.planet, 0, NULL);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.planet);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.planet.vertices.buf, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.planet.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.planet.indexCount, 1, 0, 0, 0);
+
+			// Instanced rocks
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.instancedRocks, 0, NULL);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.instancedRocks);
 			// Binding point 0 : Mesh vertex buffer
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.rock.vertices.buf, offsets);
 			// Binding point 1 : Instance data buffer
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], INSTANCE_BUFFER_BIND_ID, 1, &instanceBuffer.buffer, offsets);
 
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.rock.indices.buf, 0, VK_INDEX_TYPE_UINT32);
 
 			// Render instances
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.example.indexCount, INSTANCE_COUNT, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.rock.indexCount, INSTANCE_COUNT, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -156,119 +174,12 @@ public:
 		}
 	}
 
-	void loadMeshes()
+	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/rock01.dae", &meshes.example, vertexLayout, 0.1f);
-	}
-
-	void loadTextures()
-	{
-		textureLoader->loadTextureArray(
-			getAssetPath() + "textures/texturearray_rocks_bc3.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.colorMap);
-	}
-
-	void setupVertexDescriptions()
-	{
-		// Binding description
-		vertices.bindingDescriptions.resize(2);
-
-		// Mesh vertex buffer (description) at binding point 0
-		vertices.bindingDescriptions[0] =
-			vkTools::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
-				// Input rate for the data passed to shader
-				// Step for each vertex rendered
-				VK_VERTEX_INPUT_RATE_VERTEX);
-
-		vertices.bindingDescriptions[1] =
-			vkTools::initializers::vertexInputBindingDescription(
-				INSTANCE_BUFFER_BIND_ID,
-				sizeof(InstanceData), 
-				// Input rate for the data passed to shader
-				// Step for each instance rendered
-				VK_VERTEX_INPUT_RATE_INSTANCE);
-
-		// Attribute descriptions
-		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.clear();
-
-		// Per-Vertex attributes
-		// Location 0 : Position
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				0)
-			);
-		// Location 1 : Normal
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3)
-			);
-		// Location 2 : Texture coordinates
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6)
-			);
-		// Location 3 : Color
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8)
-			);
-
-		// Instanced attributes
-		// Location 4 : Position
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID,
-				5,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3)
-			);
-		// Location 5 : Rotation
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID,
-				4,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				0)
-			);
-		// Location 6 : Scale
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID,
-				6,
-				VK_FORMAT_R32_SFLOAT,
-				sizeof(float) * 6)
-			);
-		// Location 7 : Texture array layer index
-		vertices.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID,
-				7,
-				VK_FORMAT_R32_SINT,
-				sizeof(float) * 7)
-			);
-
-
-		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
-		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
-		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
+		loadMesh(getAssetPath() + "models/rock01.dae", &meshes.rock, vertexLayout, 0.1f);
+		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.planet, vertexLayout, 0.2f);
+		textureLoader->loadTextureArray(getAssetPath() + "textures/texturearray_rocks_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.rocks);
+		textureLoader->loadTexture(getAssetPath() + "textures/lavaplanet_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.planet);
 	}
 
 	void setupDescriptorPool()
@@ -276,8 +187,8 @@ public:
 		// Example uses one ubo 
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
+			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2),
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -322,31 +233,27 @@ public:
 
 	void setupDescriptorSet()
 	{
-		VkDescriptorSetAllocateInfo allocInfo =
-			vkTools::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
+		VkDescriptorSetAllocateInfo descripotrSetAllocInfo;
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets;			
 
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+		descripotrSetAllocInfo = vkTools::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);;
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
-			// Binding 0 : Vertex shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(
-			descriptorSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&uniformBuffers.scene.descriptor),
-			// Binding 1 : Color map 
-			vkTools::initializers::writeDescriptorSet(
-				descriptorSet,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&textures.colorMap.descriptor)
+		// Instanced rocks
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descripotrSetAllocInfo, &descriptorSets.instancedRocks));
+		writeDescriptorSets = {			
+			vkTools::initializers::writeDescriptorSet(descriptorSets.instancedRocks, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,	0, &uniformBuffers.scene.descriptor),	// Binding 0 : Vertex shader uniform buffer			
+			vkTools::initializers::writeDescriptorSet(descriptorSets.instancedRocks, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.rocks.descriptor)	// Binding 1 : Color map 
 		};
-
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+
+		// Planet
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descripotrSetAllocInfo, &descriptorSets.planet));
+		writeDescriptorSets = {
+			vkTools::initializers::writeDescriptorSet(descriptorSets.planet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,	0, &uniformBuffers.scene.descriptor),			// Binding 0 : Vertex shader uniform buffer			
+			vkTools::initializers::writeDescriptorSet(descriptorSets.planet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.planet.descriptor)			// Binding 1 : Color map 
+		};
+		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+
 	}
 
 	void preparePipelines()
@@ -398,12 +305,8 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Instacing pipeline
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/instancing/instancing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/instancing/instancing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -411,7 +314,6 @@ public:
 				renderPass,
 				0);
 
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -422,7 +324,60 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
+		// This example uses two different input states, one for the instanced part and one for non-instanced rendering
+		VkPipelineVertexInputStateCreateInfo inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+
+		// Vertex input bindings
+		// The instancing pipeline uses a vertex input state with two bindings
+		bindingDescriptions = {
+			// Binding point 0: Mesh vertex layout description at per-vertex rate
+			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vkMeshLoader::vertexSize(vertexLayout), VK_VERTEX_INPUT_RATE_VERTEX),
+			// Binding point 1: Instanced data at per-instance rate
+			vkTools::initializers::vertexInputBindingDescription(INSTANCE_BUFFER_BIND_ID, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
+		};
+
+		// Vertex attribute bindings
+		// Note that the shader declaration for per-vertex and per-instance attributes is the same, the different input rates are only stored in the bindings:
+		// instanced.vert:
+		//	layout (location = 0) in vec3 inPos;			Per-Vertex
+		//	...
+		//	layout (location = 4) in vec3 instancePos;	Per-Instance
+		attributeDescriptions = {
+			// Per-vertex attributees
+			// These are advanced for each vertex fetched by the vertex shader
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position			
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normal			
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),		// Location 2: Texture coordinates			
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),	// Location 3: Color
+			// Per-Instance attributes
+			// These are fetched for each instance rendered
+			vkTools::initializers::vertexInputAttributeDescription(INSTANCE_BUFFER_BIND_ID, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 4: Position
+			vkTools::initializers::vertexInputAttributeDescription(INSTANCE_BUFFER_BIND_ID, 4, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 5: Rotation
+			vkTools::initializers::vertexInputAttributeDescription(INSTANCE_BUFFER_BIND_ID, 6, VK_FORMAT_R32_SFLOAT,sizeof(float) * 6),			// Location 6: Scale
+			vkTools::initializers::vertexInputAttributeDescription(INSTANCE_BUFFER_BIND_ID, 7, VK_FORMAT_R32_SINT, sizeof(float) * 7),			// Location 7: Texture array layer index
+		};
+		inputState.pVertexBindingDescriptions = bindingDescriptions.data();
+		inputState.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+		pipelineCreateInfo.pVertexInputState = &inputState;
+
+		// Instancing pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/instancing/instancing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/instancing/instancing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// Use all input bindings and attribute descriptions
+		inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
+		inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.instancedRocks));
+
+		// Planet rendering pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/instancing/planet.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/instancing/planet.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// Only use the non-instanced input bindings and attribute descriptions
+		inputState.vertexBindingDescriptionCount = 1;
+		inputState.vertexAttributeDescriptionCount = 4;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.planet));
 	}
 
 	float rnd(float range)
@@ -436,17 +391,33 @@ public:
 		instanceData.resize(INSTANCE_COUNT);
 
 		std::mt19937 rndGenerator(time(NULL));
-		std::uniform_real_distribution<double> uniformDist(0.0, 1.0);
+		std::uniform_real_distribution<float> uniformDist(0.0, 1.0);
 
-		for (auto i = 0; i < INSTANCE_COUNT; i++)
-		{
+		// Distribute rocks randomly on two different rings
+		for (auto i = 0; i < INSTANCE_COUNT / 2; i++)
+		{		
+			glm::vec2 ring0 { 7.0f, 11.0f };
+			glm::vec2 ring1 { 14.0f, 18.0f };
+
+			float rho, theta;
+
+			// Inner ring
+			rho = sqrt((pow(ring0[1], 2.0f) - pow(ring0[0], 2.0f)) * uniformDist(rndGenerator) + pow(ring0[0], 2.0f));
+			theta = 2.0 * M_PI * uniformDist(rndGenerator);
+			instanceData[i].pos = glm::vec3(rho*cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho*sin(theta));
 			instanceData[i].rot = glm::vec3(M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator));
-			float theta = 2 * M_PI * uniformDist(rndGenerator);
-			float phi = acos(1 - 2 * uniformDist(rndGenerator));
-			glm::vec3 pos;
-			instanceData[i].pos = glm::vec3(sin(phi) * cos(theta), sin(theta) * uniformDist(rndGenerator) / 1500.0f, cos(phi)) * 7.5f;
-			instanceData[i].scale = 1.0f + uniformDist(rndGenerator) * 2.0f;
-			instanceData[i].texIndex = rnd(textures.colorMap.layerCount);
+			instanceData[i].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
+			instanceData[i].texIndex = rnd(textures.rocks.layerCount);
+			instanceData[i].scale *= 0.75f;
+
+			// Outer ring
+			rho = sqrt((pow(ring1[1], 2.0f) - pow(ring1[0], 2.0f)) * uniformDist(rndGenerator) + pow(ring1[0], 2.0f));
+			theta = 2.0 * M_PI * uniformDist(rndGenerator);
+			instanceData[i + INSTANCE_COUNT / 2].pos = glm::vec3(rho*cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho*sin(theta));
+			instanceData[i + INSTANCE_COUNT / 2].rot = glm::vec3(M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator));
+			instanceData[i + INSTANCE_COUNT / 2].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
+			instanceData[i + INSTANCE_COUNT / 2].texIndex = rnd(textures.rocks.layerCount);
+			instanceData[i + INSTANCE_COUNT / 2].scale *= 0.75f;
 		}
 
 		instanceBuffer.size = instanceData.size() * sizeof(InstanceData);
@@ -516,7 +487,7 @@ public:
 	{
 		if (viewChanged)
 		{
-			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
+			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
 			uboVS.view = glm::translate(glm::mat4(), cameraPos + glm::vec3(0.0f, 0.0f, zoom));
 			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -525,7 +496,8 @@ public:
 
 		if (!paused)
 		{
-			uboVS.time += frameTimer * 0.05f;
+			uboVS.locSpeed += frameTimer * 0.35f;
+			uboVS.globSpeed += frameTimer * 0.01f;
 		}
 
 		memcpy(uniformBuffers.scene.mapped, &uboVS, sizeof(uboVS));
@@ -548,10 +520,8 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
-		loadMeshes();
+		loadAssets();
 		prepareInstanceData();
-		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();

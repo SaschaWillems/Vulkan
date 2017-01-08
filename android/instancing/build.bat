@@ -1,21 +1,21 @@
 cd jni
 call ndk-build
 if %ERRORLEVEL% EQU 0 (
-	echo ndk-build has failed, build cancelled
 	cd..
 
 	mkdir "assets\shaders\base"
 	xcopy "..\..\data\shaders\base\*.spv" "assets\shaders\base" /Y
 	
-
 	mkdir "assets\shaders\instancing"
 	xcopy "..\..\data\shaders\instancing\*.spv" "assets\shaders\instancing" /Y
 
 	mkdir "assets\textures"
 	xcopy "..\..\data\textures\texturearray_rocks_bc3.ktx" "assets\textures" /Y 
+	xcopy "..\..\data\textures\lavaplanet_bc3.ktx" "assets\textures" /Y 
 	
 	mkdir "assets\models"
 	xcopy "..\..\data\models\rock01.dae" "assets\models" /Y 
+	xcopy "..\..\data\models\sphere.obj" "assets\models" /Y 	
 	
 	mkdir "res\drawable"
 	xcopy "..\..\android\images\icon.png" "res\drawable" /Y

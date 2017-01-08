@@ -21,6 +21,12 @@
     <ClInclude Include="..\base\vulkanexamplebase.h" />
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\instancing\instancing.frag" />
+    <None Include="..\data\shaders\instancing\instancing.vert" />
+    <None Include="..\data\shaders\instancing\planet.frag" />
+    <None Include="..\data\shaders\instancing\planet.vert" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CF2E27EC-5A81-412A-A3E2-E6EB5C8B66E3}</ProjectGuid>
     <RootNamespace>instancing</RootNamespace>
