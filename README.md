@@ -124,7 +124,7 @@ Also shows how to use multiple descriptor sets simultaneously with the new GLSL 
 ## [Mesh instancing](instancing/)
 <img src="./screenshots/instancing.jpg" height="96px" align="right">
 
-Shows the use of instancing for rendering many copies of the same mesh using different attributes and textures. A secondary vertex buffer containing instanced data, stored in device local memory, is used to pass instance data to the shader via vertex attributes with a per-instance step rate. The instance data also contains a texture layer index for having different textures for the instanced meshes.
+Uses instancing for rendering multiple instances of the same mesh using different attributes. A secondary vertex buffer containing instanced data (in device local memory) is used to pass instanced data to the shader via vertex attributes, including a texture layer index for using different textures per-instance. Also shows how to mix instanced and non-instanced object rendering.
 <br><br>
 
 ## [Indirect drawing](indirectdraw/)
