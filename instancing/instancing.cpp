@@ -81,6 +81,7 @@ public:
 	struct {
 		VkPipeline instancedRocks;
 		VkPipeline planet;
+		VkPipeline starfield;
 	} pipelines;
 
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -88,7 +89,6 @@ public:
 		VkDescriptorSet instancedRocks;
 		VkDescriptorSet planet;
 	} descriptorSets;
-
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -105,6 +105,7 @@ public:
 	{
 		vkDestroyPipeline(device, pipelines.instancedRocks, nullptr);
 		vkDestroyPipeline(device, pipelines.planet, nullptr);
+		vkDestroyPipeline(device, pipelines.starfield, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 		vkDestroyBuffer(device, instanceBuffer.buffer, nullptr);
@@ -147,6 +148,11 @@ public:
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			VkDeviceSize offsets[1] = { 0 };
+
+			// Star field
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.planet, 0, NULL);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starfield);
+			vkCmdDraw(drawCmdBuffers[i], 4, 1, 0, 0);
 
 			// Planet
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.planet, 0, NULL);
@@ -378,6 +384,16 @@ public:
 		inputState.vertexBindingDescriptionCount = 1;
 		inputState.vertexAttributeDescriptionCount = 4;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.planet));
+
+		// Star field pipeline
+		rasterizationState.cullMode = VK_CULL_MODE_NONE;
+		depthStencilState.depthWriteEnable = VK_FALSE;
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/instancing/starfield.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/instancing/starfield.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// Vertices are generated in the vertex shader
+		inputState.vertexBindingDescriptionCount = 0;
+		inputState.vertexAttributeDescriptionCount = 0;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.starfield));
 	}
 
 	float rnd(float range)
