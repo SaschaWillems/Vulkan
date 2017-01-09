@@ -55,10 +55,10 @@
     <None Include="..\data\shaders\instancing\planet.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\data\shaders\instancing\starsphere.frag">
+    <None Include="..\data\shaders\instancing\starfield.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\data\shaders\instancing\starsphere.vert">
+    <None Include="..\data\shaders\instancing\starfield.vert">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
