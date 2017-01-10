@@ -232,17 +232,12 @@ void VulkanExampleBase::loadMesh(std::string filename, vkMeshLoader::MeshBuffer 
 	mesh->LoadMesh(filename);
 	assert(mesh->m_Entries.size() > 0);
 
-	VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
-
 	mesh->createBuffers(
 		meshBuffer,
 		vertexLayout,
 		meshCreateInfo,
 		true,
-		copyCmd,
 		queue);
-
-	vkFreeCommandBuffers(device, cmdPool, 1, &copyCmd);
 
 	meshBuffer->dim = mesh->dim.size;
 

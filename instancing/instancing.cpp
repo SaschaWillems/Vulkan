@@ -110,8 +110,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 		vkDestroyBuffer(device, instanceBuffer.buffer, nullptr);
 		vkFreeMemory(device, instanceBuffer.memory, nullptr);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.rock);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.planet);
+		meshes.rock.destroy();
+		meshes.planet.destroy();
 		textures.rocks.destroy();
 		textures.planet.destroy();
 		uniformBuffers.scene.destroy();

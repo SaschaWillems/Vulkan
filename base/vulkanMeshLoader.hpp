@@ -70,11 +70,23 @@ namespace vkMeshLoader
 	/** @brief Mesh representation storing all data required to generate buffers */
 	struct MeshBuffer 
 	{
+		VkDevice device = VK_NULL_HANDLE;
 		std::vector<MeshDescriptor> meshDescriptors;
 		MeshBufferInfo vertices;
 		MeshBufferInfo indices;
 		uint32_t indexCount;
 		glm::vec3 dim;
+		/** @brief Release all Vulkan resources held by this texture */
+		void destroy()
+		{
+			vkDestroyBuffer(device, vertices.buf, nullptr);
+			vkFreeMemory(device, vertices.mem, nullptr);
+			if (indices.buf != VK_NULL_HANDLE)
+			{
+				vkDestroyBuffer(device, indices.buf, nullptr);
+				vkFreeMemory(device, indices.mem, nullptr);
+			}
+		}
 	};
 
 	/** @brief Holds parameters for mesh creation */
@@ -110,7 +122,6 @@ namespace vkMeshLoader
 		return vSize;
 	}
 
-	// Note: Always assumes float formats
 	/**
 	* Generate vertex attribute descriptions for a layout at the given binding point
 	*
@@ -435,7 +446,6 @@ public:
 		std::vector<vkMeshLoader::VertexLayout> layout,
 		vkMeshLoader::MeshCreateInfo *createInfo,
 		bool useStaging,
-		VkCommandBuffer copyCmd,
 		VkQueue copyQueue)
 	{
 		glm::vec3 scale;
@@ -540,9 +550,10 @@ public:
 		}
 		meshBuffer->indices.size = indexBuffer.size() * sizeof(uint32_t);
 		meshBuffer->indexCount = static_cast<uint32_t>(indexBuffer.size());
+		meshBuffer->device = vulkanDevice->logicalDevice;
 
 		// Use staging buffer to move vertex and index buffer to device local memory
-		if (useStaging && copyQueue != VK_NULL_HANDLE && copyCmd != VK_NULL_HANDLE)
+		if (useStaging && copyQueue != VK_NULL_HANDLE)
 		{
 			// Create staging buffers
 			struct {
@@ -586,8 +597,7 @@ public:
 				&meshBuffer->indices.mem);
 
 			// Copy from staging buffers
-			VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
-			VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
+			VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 			VkBufferCopy copyRegion = {};
 
@@ -607,15 +617,7 @@ public:
 				1,
 				&copyRegion);
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
-
-			VkSubmitInfo submitInfo = {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &copyCmd;
-
-			VK_CHECK_RESULT(vkQueueSubmit(copyQueue, 1, &submitInfo, VK_NULL_HANDLE));
-			VK_CHECK_RESULT(vkQueueWaitIdle(copyQueue));
+			vulkanDevice->flushCommandBuffer(copyCmd, copyQueue);
 
 			vkDestroyBuffer(vulkanDevice->logicalDevice, vertexStaging.buffer, nullptr);
 			vkFreeMemory(vulkanDevice->logicalDevice, vertexStaging.memory, nullptr);
