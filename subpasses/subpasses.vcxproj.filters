@@ -55,5 +55,11 @@
     <None Include="..\data\shaders\subpasses\gbuffer.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="..\data\shaders\subpasses\transparent.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\subpasses\transparent.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

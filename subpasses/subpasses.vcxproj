@@ -94,6 +94,8 @@
     <None Include="..\data\shaders\subpasses\composition.vert" />
     <None Include="..\data\shaders\subpasses\gbuffer.frag" />
     <None Include="..\data\shaders\subpasses\gbuffer.vert" />
+    <None Include="..\data\shaders\subpasses\transparent.frag" />
+    <None Include="..\data\shaders\subpasses\transparent.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
