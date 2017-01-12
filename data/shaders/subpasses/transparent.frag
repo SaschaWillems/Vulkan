@@ -23,7 +23,7 @@ void main ()
 {
 	// Sample depth from deferred depth buffer and discard if obscured
 	float depth = subpassLoad(samplerPositionDepth).a;
-	if (linearDepth(gl_FragCoord.z) > depth)
+	if ((depth != 0.0) && (linearDepth(gl_FragCoord.z) > depth))
 	{
 		discard;
 	};
