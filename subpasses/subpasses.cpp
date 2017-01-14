@@ -741,19 +741,19 @@ public:
 		// Image descriptors for the offscreen color attachments
 		VkDescriptorImageInfo texDescriptorPosition =
 			vkTools::initializers::descriptorImageInfo(
-				nullptr,
+				VK_NULL_HANDLE,
 				attachments.position.view,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		VkDescriptorImageInfo texDescriptorNormal =
 			vkTools::initializers::descriptorImageInfo(
-				nullptr,
+				VK_NULL_HANDLE,
 				attachments.normal.view,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		VkDescriptorImageInfo texDescriptorAlbedo =
 			vkTools::initializers::descriptorImageInfo(
-				nullptr,
+				VK_NULL_HANDLE,
 				attachments.albedo.view,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
