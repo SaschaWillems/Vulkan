@@ -51,6 +51,7 @@ PFN_vkFreeMemory vkFreeMemory;
 PFN_vkCreateRenderPass vkCreateRenderPass;
 PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass;
 PFN_vkCmdEndRenderPass vkCmdEndRenderPass;
+PFN_vkCmdNextSubpass vkCmdNextSubpass;
 PFN_vkCmdExecuteCommands vkCmdExecuteCommands;
 PFN_vkCreateImage vkCreateImage;
 PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements;
@@ -173,6 +174,7 @@ void loadVulkanFunctions(VkInstance instance)
 	vkCreateRenderPass = reinterpret_cast<PFN_vkCreateRenderPass>(vkGetInstanceProcAddr(instance, "vkCreateRenderPass"));
 	vkCmdBeginRenderPass = reinterpret_cast<PFN_vkCmdBeginRenderPass>(vkGetInstanceProcAddr(instance, "vkCmdBeginRenderPass"));
 	vkCmdEndRenderPass = reinterpret_cast<PFN_vkCmdEndRenderPass>(vkGetInstanceProcAddr(instance, "vkCmdEndRenderPass"));
+	vkCmdNextSubpass = reinterpret_cast<PFN_vkCmdNextSubpass>(vkGetInstanceProcAddr(instance, "vkCmdNextSubpass"));
 	vkCmdExecuteCommands = reinterpret_cast<PFN_vkCmdExecuteCommands>(vkGetInstanceProcAddr(instance, "vkCmdExecuteCommands"));
 
 	vkCreateImage = reinterpret_cast<PFN_vkCreateImage>(vkGetInstanceProcAddr(instance, "vkCreateImage"));
