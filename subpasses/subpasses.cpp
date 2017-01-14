@@ -24,7 +24,7 @@
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-#define NUM_LIGHTS 32
+#define NUM_LIGHTS 64
 
 // Vertex layout for this example
 std::vector<vkMeshLoader::VertexLayout> vertexLayout =
@@ -42,6 +42,10 @@ public:
 		vkMeshLoader::MeshBuffer scene;
 		vkMeshLoader::MeshBuffer transparent;
 	} meshes;
+
+	struct {
+		vkTools::VulkanTexture glass;
+	} textures;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -149,6 +153,7 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.composition, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.transparent, nullptr);
 
+		textures.glass.destroy();
 		meshes.scene.destroy();
 		meshes.transparent.destroy();
 		uniformBuffers.GBuffer.destroy();
@@ -480,8 +485,9 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/samplescene.dae", &meshes.scene, vertexLayout, 0.25f);
-		loadMesh(getAssetPath() + "models/cube.dae", &meshes.transparent, vertexLayout, 3.25f);
+		loadMesh(getAssetPath() + "models/samplebuilding.dae", &meshes.scene, vertexLayout, 1.0f);
+		loadMesh(getAssetPath() + "models/samplebuilding_glass.dae", &meshes.transparent, vertexLayout, 1.0f);
+		textureLoader->loadTexture(getAssetPath() + "textures/colored_glass_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.glass);		
 	}
 
 	void setupVertexDescriptions()
@@ -856,6 +862,7 @@ public:
 		setLayoutBindings = {
 			vkTools::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			vkTools::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+			vkTools::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
 		};
 
 		descriptorLayout = vkTools::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
@@ -872,6 +879,7 @@ public:
 		writeDescriptorSets = {
 			vkTools::initializers::writeDescriptorSet(descriptorSets.transparent, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.GBuffer.descriptor),
 			vkTools::initializers::writeDescriptorSet(descriptorSets.transparent, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &texDescriptorPosition),
+			vkTools::initializers::writeDescriptorSet(descriptorSets.transparent, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textures.glass.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
@@ -879,11 +887,7 @@ public:
 
 		// Enable blending
 		blendAttachmentState.blendEnable = VK_TRUE;
-		blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
-		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-
-		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
 		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;

@@ -4,6 +4,7 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (input_attachment_index = 1, binding = 1) uniform subpassInput samplerPositionDepth;
+layout (binding = 2) uniform sampler2D samplerTexture;
 
 layout (location = 0) in vec3 inColor;
 layout (location = 1) in vec2 inUV;
@@ -28,6 +29,5 @@ void main ()
 		discard;
 	};
 
-	outColor.rgb = vec3(0.0, 0.25, 0.86);
-	outColor.a = 0.5;
+	outColor = texture(samplerTexture, inUV);
 }

@@ -14,7 +14,7 @@ layout (location = 1) out vec4 outPosition;
 layout (location = 2) out vec4 outNormal;
 layout (location = 3) out vec4 outAlbedo;
 
-layout (constant_id = 0) const int NUM_LIGHTS = 32;
+layout (constant_id = 0) const int NUM_LIGHTS = 64;
 
 struct Light {
 	vec4 position;
@@ -67,9 +67,9 @@ void main()
 		// Specular map values are stored in alpha of albedo mrt
 		vec3 R = reflect(-L, N);
 		float NdotR = max(0.0, dot(R, V));
-		vec3 spec = ubo.lights[i].color * albedo.a * pow(NdotR, 32.0) * atten;
+		//vec3 spec = ubo.lights[i].color * albedo.a * pow(NdotR, 32.0) * atten;
 
-		fragcolor += diff + spec;	
+		fragcolor += diff;// + spec;	
 	}    	
    
 	outFragcolor = vec4(fragcolor, 1.0);
