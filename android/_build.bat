@@ -9,7 +9,11 @@ if NOT EXIST %1 (
 		call _setup.bat
 		del _setup.bat
 	)
-	call build %2
+	IF EXIST build.py (
+		python build.py %2
+	) else (
+		call build %2
+	)
 	IF EXIST vulkan%1.apk (
 		if "%2" == "-deploy" (
             echo deploying to device
