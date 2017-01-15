@@ -830,7 +830,7 @@ public:
 
 #if defined(__ANDROID__)
 		// Load shader from compressed asset
-		AAsset* asset = AAssetManager_open(assetManager, fileName, AASSET_MODE_STREAMING);
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 		assert(asset);
 		size_t size = AAsset_getLength(asset);
 		assert(size > 0);
