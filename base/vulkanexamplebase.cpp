@@ -173,9 +173,6 @@ void VulkanExampleBase::prepare()
 	setupFrameBuffer();
 	// Create a simple texture loader class
 	textureLoader = new vkTools::VulkanTextureLoader(vulkanDevice, queue, cmdPool);
-#if defined(__ANDROID__)
-	textureLoader->assetManager = androidApp->activity->assetManager;
-#endif
 	if (enableTextOverlay)
 	{
 		// Load the text rendering shaders
@@ -1101,7 +1098,7 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		break;
 	case APP_CMD_INIT_WINDOW:
 		LOGD("APP_CMD_INIT_WINDOW");
-		if (vulkanExample->androidApp->window != NULL)
+		if (androidApp->window != NULL)
 		{
 			vulkanExample->initVulkan();
 			vulkanExample->initSwapchain();

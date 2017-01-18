@@ -67,10 +67,6 @@ namespace vkTools
 		VkCommandBuffer cmdBuffer;
 		VkCommandPool cmdPool;
 	public:
-#if defined(__ANDROID__)
-		AAssetManager* assetManager = nullptr;
-#endif
-
 		/**
 		* Default constructor
 		*
@@ -126,11 +122,9 @@ namespace vkTools
 			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
 #if defined(__ANDROID__)
-			assert(assetManager != nullptr);
-
 			// Textures are stored inside the apk on Android (compressed)
 			// So they need to be loaded via the asset manager
-			AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 			assert(asset);
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
@@ -457,11 +451,9 @@ namespace vkTools
 			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
 #if defined(__ANDROID__)
-			assert(assetManager != nullptr);
-
 			// Textures are stored inside the apk on Android (compressed)
 			// So they need to be loaded via the asset manager
-			AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 			assert(asset);
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
@@ -680,11 +672,9 @@ namespace vkTools
 			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
 #if defined(__ANDROID__)
-			assert(assetManager != nullptr);
-
 			// Textures are stored inside the apk on Android (compressed)
 			// So they need to be loaded via the asset manager
-			AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 			assert(asset);
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);

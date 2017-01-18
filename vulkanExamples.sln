@@ -90,6 +90,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Base", "Base", "{09B9A54B-F
 		base\vulkanheightmap.hpp = base\vulkanheightmap.hpp
 		base\VulkanInitializers.hpp = base\VulkanInitializers.hpp
 		base\vulkanMeshLoader.hpp = base\vulkanMeshLoader.hpp
+		base\VulkanModelLoader.hpp = base\VulkanModelLoader.hpp
 		base\vulkanscene.hpp = base\vulkanscene.hpp
 		base\vulkanswapchain.hpp = base\vulkanswapchain.hpp
 		base\vulkantextoverlay.hpp = base\vulkantextoverlay.hpp

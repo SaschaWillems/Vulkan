@@ -23,6 +23,7 @@
 #if defined(__ANDROID__)
 
 #include <android/log.h>
+#include <android_native_app_glue.h>
 #include <memory>
 
 // Missing from the NDK
@@ -34,6 +35,9 @@ namespace std
 		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 	}
 }
+
+// Global reference to android application object
+extern android_app* androidApp;
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vulkanExample", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vulkanExample", __VA_ARGS__))

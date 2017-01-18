@@ -87,10 +87,6 @@ namespace vks
 		uint32_t indexCount = 0;
 		uint32_t vertexCount = 0;
 
-#if defined(__ANDROID__)
-		AAssetManager* assetManager = nullptr;
-#endif
-
 		/** @brief Stores vertex and index base and counts for each part of a model */
 		struct ModelPart {
 			uint32_t vertexBase;
@@ -121,7 +117,7 @@ namespace vks
 			}
 		}
 
-		boolean loadFromFile(
+		bool loadFromFile(
 			vk::VulkanDevice *device,
 			const std::string& filename,
 			vks::VertexLayout layout,
@@ -139,7 +135,7 @@ namespace vks
 			// Meshes are stored inside the apk on Android (compressed)
 			// So they need to be loaded via the asset manager
 
-			AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 			assert(asset);
 			size_t size = AAsset_getLength(asset);
 

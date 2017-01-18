@@ -188,7 +188,6 @@ public:
 	HWND window;
 	HINSTANCE windowInstance;
 #elif defined(__ANDROID__)
-	android_app* androidApp;
 	// true if application has focused, false if moved to background
 	bool focused = false;
 #elif defined(__linux__)
@@ -359,7 +358,7 @@ void android_main(android_app* state)																\
 	state->userData = vulkanExample;																\
 	state->onAppCmd = VulkanExample::handleAppCommand;												\
 	state->onInputEvent = VulkanExample::handleAppInput;											\
-	vulkanExample->androidApp = state;																\
+	androidApp = state;																				\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\
 }
