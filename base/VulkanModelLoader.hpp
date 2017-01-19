@@ -80,6 +80,30 @@ namespace vks
 		}
 	};
 
+	/** @brief Used to parametrize model loading */
+	struct ModelCreateInfo {
+		glm::vec3 center;
+		glm::vec3 scale;
+		glm::vec2 uvscale;
+
+		ModelCreateInfo() {};
+
+		ModelCreateInfo(glm::vec3 scale, glm::vec3 uvscale, glm::vec3 center)
+		{
+			this->center = center;
+			this->scale = scale;
+			this->uvscale = uvscale;
+		}
+
+		ModelCreateInfo(float scale, float uvscale, float center)
+		{
+			this->center = glm::vec3(center);
+			this->scale = glm::vec3(scale);
+			this->uvscale = glm::vec3(uvscale);
+		}
+
+	};
+
 	struct Model {
 		VkDevice device;
 		vk::Buffer vertices;
@@ -117,13 +141,17 @@ namespace vks
 			}
 		}
 
-		bool loadFromFile(
-			vk::VulkanDevice *device,
-			const std::string& filename,
-			vks::VertexLayout layout,
-			vkMeshLoader::MeshCreateInfo *createInfo,
-			VkQueue copyQueue,
-			const int flags = defaultFlags)
+		/**
+		* Loads a 3D model from a file into Vulkan buffers
+		*
+		* @param device Pointer to the Vulkan device used to generated the vertex and index buffers on
+		* @param filename File to load (must be a model format supported by ASSIMP)
+		* @param layout Vertex layout components (position, normals, tangents, etc.)
+		* @param createInfo MeshCreateInfo structure for load time settings like scale, center, etc.
+		* @param copyQueue Queue used for the memory staging copy commands (must support transfer)
+		* @param (Optional) flags ASSIMP model loading flags
+		*/
+		bool loadFromFile(vk::VulkanDevice *device, const std::string& filename, vks::VertexLayout layout, vks::ModelCreateInfo *createInfo, VkQueue copyQueue, const int flags = defaultFlags)
 		{
 			this->device = device->logicalDevice;
 
@@ -338,5 +366,21 @@ namespace vks
 				return false;
 			}
 		};
+
+		/**
+		* Loads a 3D model from a file into Vulkan buffers
+		*
+		* @param device Pointer to the Vulkan device used to generated the vertex and index buffers on
+		* @param filename File to load (must be a model format supported by ASSIMP)
+		* @param layout Vertex layout components (position, normals, tangents, etc.)
+		* @param scale Load time scene scale
+		* @param copyQueue Queue used for the memory staging copy commands (must support transfer)
+		* @param (Optional) flags ASSIMP model loading flags
+		*/
+		bool loadFromFile(vk::VulkanDevice *device, const std::string& filename, vks::VertexLayout layout, float scale, VkQueue copyQueue, const int flags = defaultFlags)
+		{
+			vks::ModelCreateInfo modelCreateInfo(1.0f, 1.0f, 0.0f);
+			return loadFromFile(device, filename, layout, &modelCreateInfo, copyQueue, flags);
+		}
 	};
 };
