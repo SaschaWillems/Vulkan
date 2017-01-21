@@ -1,53 +1,66 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Mathematics (glm.g-truc.net)
-///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-///
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-///
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
-/// 
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
 /// @ref core
 /// @file glm/detail/precision.hpp
-/// @date 2013-04-01 / 2013-04-01
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
+
+#include "setup.hpp"
 
 namespace glm
 {
 	enum precision
 	{
-		highp,
-		mediump,
-		lowp,
-		simd,
-		defaultp = highp
+		packed_highp,
+		packed_mediump,
+		packed_lowp,
+
+#		if GLM_HAS_ALIGNED_TYPE
+			aligned_highp,
+			aligned_mediump,
+			aligned_lowp,
+			aligned = aligned_highp,
+#		endif
+
+		highp = packed_highp,
+		mediump = packed_mediump,
+		lowp = packed_lowp,
+		packed = packed_highp,
+
+#		if GLM_HAS_ALIGNED_TYPE && defined(GLM_FORCE_ALIGNED)
+			defaultp = aligned_highp
+#		else
+			defaultp = highp
+#		endif
 	};
 
-	template <typename T, precision P, template <typename, precision> class genType>
-	struct type
+	template<length_t L, typename T, precision P = defaultp> struct vec;
+	template<length_t C, length_t R, typename T, precision P = defaultp> struct mat;
+
+namespace detail
+{
+	template<glm::precision P>
+	struct is_aligned
 	{
-		static bool const is_vec = false;
-		static bool const is_mat = false;
-		static bool const is_quat = false;
+		static const bool value = false;
 	};
+
+#	if GLM_HAS_ALIGNED_TYPE
+		template<>
+		struct is_aligned<glm::aligned_lowp>
+		{
+			static const bool value = true;
+		};
+
+		template<>
+		struct is_aligned<glm::aligned_mediump>
+		{
+			static const bool value = true;
+		};
+
+		template<>
+		struct is_aligned<glm::aligned_highp>
+		{
+			static const bool value = true;
+		};
+#	endif
+}//namespace detail
 }//namespace glm

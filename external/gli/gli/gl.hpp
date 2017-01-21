@@ -1,30 +1,5 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Image (gli.g-truc.net)
-///
-/// Copyright (c) 2008 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-///
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-///
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
-/// @ref core
+/// @brief Include to translate GLI enums to OpenGL enums
 /// @file gli/gl.hpp
-/// @date 2013-11-09 / 2013-11-09
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
 
@@ -34,11 +9,18 @@
 
 namespace gli
 {
+	/// Translation class to convert GLI enums into OpenGL values
 	class gl
 	{
 	public:
-		enum internalFormat
+		enum internal_format
 		{
+			INTERNAL_RGB_UNORM= 0x1907,			//GL_RGB
+			INTERNAL_BGR_UNORM = 0x80E0,		//GL_BGR
+			INTERNAL_RGBA_UNORM = 0x1908,		//GL_RGBA
+			INTERNAL_BGRA_UNORM = 0x80E1,		//GL_BGRA
+			INTERNAL_BGRA8_UNORM = 0x93A1,		//GL_BGRA8_EXT
+
 			// unorm formats
 			INTERNAL_R8_UNORM = 0x8229,			//GL_R8
 			INTERNAL_RG8_UNORM = 0x822B,		//GL_RG8
@@ -51,6 +33,7 @@ namespace gli
 			INTERNAL_RGBA16_UNORM = 0x805B,		//GL_RGBA16
 
 			INTERNAL_RGB10A2_UNORM = 0x8059,	//GL_RGB10_A2
+			INTERNAL_RGB10A2_SNORM_EXT = 0xFFFC,
 
 			// snorm formats
 			INTERNAL_R8_SNORM = 0x8F94,			//GL_R8_SNORM
@@ -80,6 +63,7 @@ namespace gli
 			INTERNAL_RGBA32U = 0x8D70,			//GL_RGBA32UI
 
 			INTERNAL_RGB10A2U = 0x906F,			//GL_RGB10_A2UI
+			INTERNAL_RGB10A2I_EXT = 0xFFFB,
 
 			// signed integer formats
 			INTERNAL_R8I = 0x8231,				//GL_R8I
@@ -108,6 +92,11 @@ namespace gli
 			INTERNAL_RGB32F = 0x8815,			//GL_RGB32F
 			INTERNAL_RGBA32F = 0x8814,			//GL_RGBA32F
 
+			INTERNAL_R64F_EXT = 0xFFFA,			//GL_R64F
+			INTERNAL_RG64F_EXT = 0xFFF9,		//GL_RG64F
+			INTERNAL_RGB64F_EXT = 0xFFF8,		//GL_RGB64F
+			INTERNAL_RGBA64F_EXT = 0xFFF7,		//GL_RGBA64F
+
 			// sRGB formats
 			INTERNAL_SR8 = 0x8FBD,				//GL_SR8_EXT
 			INTERNAL_SRG8 = 0x8FBE,				//GL_SRG8_EXT
@@ -122,6 +111,8 @@ namespace gli
 			INTERNAL_RGB5A1 = 0x8057,			//GL_RGB5_A1
 			INTERNAL_RGBA4 = 0x8056,			//GL_RGBA4
 
+			INTERNAL_RG4_EXT = 0xFFFE,
+
 			// Luminance Alpha formats
 			INTERNAL_LA4 = 0x8043,				//GL_LUMINANCE4_ALPHA4
 			INTERNAL_L8 = 0x8040,				//GL_LUMINANCE8
@@ -134,10 +125,12 @@ namespace gli
 			// Depth formats
 			INTERNAL_D16 = 0x81A5,				//GL_DEPTH_COMPONENT16
 			INTERNAL_D24 = 0x81A6,				//GL_DEPTH_COMPONENT24
+			INTERNAL_D16S8_EXT = 0xFFF6,
 			INTERNAL_D24S8 = 0x88F0,			//GL_DEPTH24_STENCIL8
 			INTERNAL_D32 = 0x81A7,				//GL_DEPTH_COMPONENT32
 			INTERNAL_D32F = 0x8CAC,				//GL_DEPTH_COMPONENT32F
 			INTERNAL_D32FS8X24 = 0x8CAD,		//GL_DEPTH32F_STENCIL8
+			INTERNAL_S8_EXT = 0x8D48,			//GL_STENCIL_INDEX8
 
 			// Compressed formats
 			INTERNAL_RGB_DXT1 = 0x83F0,						//GL_COMPRESSED_RGB_S3TC_DXT1_EXT
@@ -187,7 +180,7 @@ namespace gli
 
 			// sRGB formats
 			INTERNAL_SRGB_DXT1 = 0x8C4C,					//GL_COMPRESSED_SRGB_S3TC_DXT1_EXT
-			INTERNAL_SRGB_ALPHA_DXT1 = 0x8C4C,				//GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT
+			INTERNAL_SRGB_ALPHA_DXT1 = 0x8C4D,				//GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT
 			INTERNAL_SRGB_ALPHA_DXT3 = 0x8C4E,				//GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT
 			INTERNAL_SRGB_ALPHA_DXT5 = 0x8C4F,				//GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT
 			INTERNAL_SRGB_BP_UNORM = 0x8E8D,				//GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM
@@ -213,10 +206,36 @@ namespace gli
 			INTERNAL_SRGB8_ALPHA8_ASTC_10x8 = 0x93DA,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR
 			INTERNAL_SRGB8_ALPHA8_ASTC_10x10 = 0x93DB,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR
 			INTERNAL_SRGB8_ALPHA8_ASTC_12x10 = 0x93DC,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR
-			INTERNAL_SRGB8_ALPHA8_ASTC_12x12 = 0x93DD		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR
+			INTERNAL_SRGB8_ALPHA8_ASTC_12x12 = 0x93DD,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR
+			
+			INTERNAL_ALPHA8 = 0x803C,
+			INTERNAL_ALPHA16 = 0x803E,
+			INTERNAL_LUMINANCE8 = 0x8040,
+			INTERNAL_LUMINANCE16 = 0x8042,
+			INTERNAL_LUMINANCE8_ALPHA8 = 0x8045,
+			INTERNAL_LUMINANCE16_ALPHA16 = 0x8048,
+			
+			INTERNAL_R8_USCALED_GTC = 0xF000,
+			INTERNAL_R8_SSCALED_GTC,
+			INTERNAL_RG8_USCALED_GTC,
+			INTERNAL_RG8_SSCALED_GTC,
+			INTERNAL_RGB8_USCALED_GTC,
+			INTERNAL_RGB8_SSCALED_GTC,
+			INTERNAL_RGBA8_USCALED_GTC,
+			INTERNAL_RGBA8_SSCALED_GTC,
+			INTERNAL_RGB10A2_USCALED_GTC,
+			INTERNAL_RGB10A2_SSCALED_GTC,
+			INTERNAL_R16_USCALED_GTC,
+			INTERNAL_R16_SSCALED_GTC,
+			INTERNAL_RG16_USCALED_GTC,
+			INTERNAL_RG16_SSCALED_GTC,
+			INTERNAL_RGB16_USCALED_GTC,
+			INTERNAL_RGB16_SSCALED_GTC,
+			INTERNAL_RGBA16_USCALED_GTC,
+			INTERNAL_RGBA16_SSCALED_GTC,
 		};
 
-		enum externalFormat
+		enum external_format
 		{
 			EXTERNAL_NONE = 0,					//GL_NONE
 			EXTERNAL_RED = 0x1903,				//GL_RED
@@ -233,13 +252,17 @@ namespace gli
 			EXTERNAL_BGRA_INTEGER = 0x8D9B,		//GL_BGRA_INTEGER
 			EXTERNAL_DEPTH = 0x1902,			//GL_DEPTH_COMPONENT
 			EXTERNAL_DEPTH_STENCIL = 0x84F9,	//GL_DEPTH_STENCIL
+			EXTERNAL_STENCIL = 0x1901,			//GL_STENCIL_INDEX
 
 			EXTERNAL_LUMINANCE = 0x1909,				//GL_LUMINANCE
 			EXTERNAL_ALPHA = 0x1906,					//GL_ALPHA
 			EXTERNAL_LUMINANCE_ALPHA = 0x190A,			//GL_LUMINANCE_ALPHA
+
+			EXTERNAL_SRGB_EXT = 0x8C40,					//SRGB_EXT
+			EXTERNAL_SRGB_ALPHA_EXT = 0x8C42			//SRGB_ALPHA_EXT
 		};
 
-		enum typeFormat
+		enum type_format
 		{
 			TYPE_NONE = 0,						//GL_NONE
 			TYPE_I8 = 0x1400,					//GL_BYTE
@@ -248,10 +271,14 @@ namespace gli
 			TYPE_U16 = 0x1403,					//GL_UNSIGNED_SHORT
 			TYPE_I32 = 0x1404,					//GL_INT
 			TYPE_U32 = 0x1405,					//GL_UNSIGNED_INT
+			TYPE_I64 = 0x140E,					//GL_INT64_ARB
+			TYPE_U64 = 0x140F,					//GL_UNSIGNED_INT64_ARB
 			TYPE_F16 = 0x140B,					//GL_HALF_FLOAT
+			TYPE_F16_OES = 0x8D61,				//GL_HALF_FLOAT_OES
 			TYPE_F32 = 0x1406,					//GL_FLOAT
-			TYPE_UINT32_RGB9_E5 = 0x8C3E,		//GL_UNSIGNED_INT_5_9_9_9_REV
-			TYPE_UINT32_RG11B10F = 0x8C3B,		//GL_UNSIGNED_INT_10F_11F_11F_REV
+			TYPE_F64 = 0x140A,					//GL_DOUBLE
+			TYPE_UINT32_RGB9_E5_REV = 0x8C3E,	//GL_UNSIGNED_INT_5_9_9_9_REV
+			TYPE_UINT32_RG11B10F_REV = 0x8C3B,	//GL_UNSIGNED_INT_10F_11F_11F_REV
 			TYPE_UINT8_RG3B2 = 0x8032,			//GL_UNSIGNED_BYTE_3_3_2
 			TYPE_UINT8_RG3B2_REV = 0x8362,		//GL_UNSIGNED_BYTE_2_3_3_REV
 			TYPE_UINT16_RGB5A1 = 0x8034,		//GL_UNSIGNED_SHORT_5_5_5_1
@@ -260,8 +287,13 @@ namespace gli
 			TYPE_UINT16_R5G6B5_REV = 0x8364,	//GL_UNSIGNED_SHORT_5_6_5_REV
 			TYPE_UINT16_RGBA4 = 0x8033,			//GL_UNSIGNED_SHORT_4_4_4_4
 			TYPE_UINT16_RGBA4_REV = 0x8365,		//GL_UNSIGNED_SHORT_4_4_4_4_REV
+			TYPE_UINT32_RGBA8 = 0x8035,			//GL_UNSIGNED_SHORT_8_8_8_8
+			TYPE_UINT32_RGBA8_REV = 0x8367,		//GL_UNSIGNED_SHORT_8_8_8_8_REV
 			TYPE_UINT32_RGB10A2 = 0x8036,		//GL_UNSIGNED_INT_10_10_10_2
-			TYPE_UINT32_RGB10A2_REV = 0x8368	//GL_UNSIGNED_INT_2_10_10_10_REV
+			TYPE_UINT32_RGB10A2_REV = 0x8368,	//GL_UNSIGNED_INT_2_10_10_10_REV
+
+			TYPE_UINT8_RG4_REV_GTC = 0xFFFD,
+			TYPE_UINT16_A1RGB5_GTC = 0xFFFC
 		};
 
 		enum target
@@ -271,6 +303,8 @@ namespace gli
 			TARGET_2D			= 0x0DE1,
 			TARGET_2D_ARRAY		= 0x8C1A,
 			TARGET_3D			= 0x806F,
+			TARGET_RECT			= 0x84F5,
+			TARGET_RECT_ARRAY	= 0x84F5, // Not supported by OpenGL
 			TARGET_CUBE			= 0x8513,
 			TARGET_CUBE_ARRAY	= 0x9009
 		};
@@ -285,22 +319,54 @@ namespace gli
 			SWIZZLE_ONE = 0x0001,		//GL_ONE
 		};
 
-		struct format
+		enum profile
 		{
-			internalFormat Internal;
-			externalFormat External;
-			typeFormat Type;
-			swizzle Swizzle[4];
+			PROFILE_ES20,
+			PROFILE_ES30,
+			PROFILE_GL32,
+			PROFILE_GL33,
+			PROFILE_KTX
 		};
 
-		gl();
+		typedef glm::vec<4, int> swizzles;
 
-		target const & translate(gli::target Target) const;
-		format const & translate(gli::format Format) const;
-		gli::format find(internalFormat internalFormat, externalFormat externalFormat, typeFormat type);
+		struct format
+		{
+			internal_format Internal;
+			external_format External;
+			type_format Type;
+			swizzles Swizzles;
+		};
+
+		gl(profile Profile);
+
+		/// Convert GLI targets into OpenGL texture targets
+		target const& translate(gli::target Target) const;
+
+		/// Convert GLI formats into OpenGL texture formats
+		format translate(gli::format Format, gli::swizzles const& Swizzle) const;
+
+		/// Convert an OpenGL format into a GLI format
+		gli::format find(internal_format InternalFormat, external_format ExternalFormat, type_format Type);
 
 	private:
-		std::array<format, FORMAT_COUNT> Translation;
+		struct format_desc
+		{
+			internal_format Internal;
+			external_format External;
+			type_format Type;
+			unsigned int Properties;
+		};
+
+		bool has_swizzle(profile Profile) const
+		{
+			return Profile == PROFILE_ES30 || Profile == PROFILE_GL33;
+		}
+
+		gl::swizzles compute_swizzle(format_desc const& FormatDesc, gli::swizzles const& Swizzle) const;
+
+		std::array<format_desc, FORMAT_COUNT> FormatDesc;
+		profile Profile;
 	};
 }//namespace gli
 

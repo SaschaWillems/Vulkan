@@ -1,62 +1,128 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Mathematics (glm.g-truc.net)
-///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-/// 
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-/// 
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
-/// 
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
 /// @ref core
 /// @file glm/detail/type_vec.hpp
-/// @date 2010-01-26 / 2014-10-05
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
 
 #include "precision.hpp"
 #include "type_int.hpp"
 
-namespace glm
+namespace glm{
+namespace detail
 {
-	template <typename T, precision P> struct tvec1;
-	template <typename T, precision P> struct tvec2;
-	template <typename T, precision P> struct tvec3;
-	template <typename T, precision P> struct tvec4;
+	template<typename T, std::size_t size, bool aligned>
+	struct storage
+	{
+		typedef struct type {
+			uint8 data[size];
+		} type;
+	};
 
-	typedef tvec1<float, highp>		highp_vec1_t;
-	typedef tvec1<float, mediump>	mediump_vec1_t;
-	typedef tvec1<float, lowp>		lowp_vec1_t;
-	typedef tvec1<double, highp>	highp_dvec1_t;
-	typedef tvec1<double, mediump>	mediump_dvec1_t;
-	typedef tvec1<double, lowp>		lowp_dvec1_t;
-	typedef tvec1<int, highp>		highp_ivec1_t;
-	typedef tvec1<int, mediump>		mediump_ivec1_t;
-	typedef tvec1<int, lowp>		lowp_ivec1_t;
-	typedef tvec1<uint, highp>		highp_uvec1_t;
-	typedef tvec1<uint, mediump>	mediump_uvec1_t;
-	typedef tvec1<uint, lowp>		lowp_uvec1_t;
-	typedef tvec1<bool, highp>		highp_bvec1_t;
-	typedef tvec1<bool, mediump>	mediump_bvec1_t;
-	typedef tvec1<bool, lowp>		lowp_bvec1_t;
+	#define GLM_ALIGNED_STORAGE_TYPE_STRUCT(x) \
+		template<typename T> \
+		struct storage<T, x, true> { \
+			GLM_ALIGNED_STRUCT(x) type { \
+				uint8 data[x]; \
+			}; \
+		};
+
+	GLM_ALIGNED_STORAGE_TYPE_STRUCT(1)
+	GLM_ALIGNED_STORAGE_TYPE_STRUCT(2)
+	GLM_ALIGNED_STORAGE_TYPE_STRUCT(4)
+	GLM_ALIGNED_STORAGE_TYPE_STRUCT(8)
+	GLM_ALIGNED_STORAGE_TYPE_STRUCT(16)
+	GLM_ALIGNED_STORAGE_TYPE_STRUCT(32)
+	GLM_ALIGNED_STORAGE_TYPE_STRUCT(64)
+		
+#	if GLM_ARCH & GLM_ARCH_SSE2_BIT
+		template<>
+		struct storage<float, 16, true>
+		{
+			typedef glm_vec4 type;
+		};
+
+		template<>
+		struct storage<int, 16, true>
+		{
+			typedef glm_ivec4 type;
+		};
+
+		template<>
+		struct storage<unsigned int, 16, true>
+		{
+			typedef glm_uvec4 type;
+		};
+/*
+#	else
+		typedef union __declspec(align(16)) glm_128
+		{
+			unsigned __int8 data[16];
+		} glm_128;
+
+		template<>
+		struct storage<float, 16, true>
+		{
+			typedef glm_128 type;
+		};
+
+		template<>
+		struct storage<int, 16, true>
+		{
+			typedef glm_128 type;
+		};
+
+		template<>
+		struct storage<unsigned int, 16, true>
+		{
+			typedef glm_128 type;
+		};
+*/
+#	endif
+
+#	if (GLM_ARCH & GLM_ARCH_AVX_BIT)
+		template<>
+		struct storage<double, 32, true>
+		{
+			typedef glm_dvec4 type;
+		};
+#	endif
+
+#	if (GLM_ARCH & GLM_ARCH_AVX2_BIT)
+		template<>
+		struct storage<int64, 32, true>
+		{
+			typedef glm_i64vec4 type;
+		};
+
+		template<>
+		struct storage<uint64, 32, true>
+		{
+			typedef glm_u64vec4 type;
+		};
+#	endif
+}//namespace detail
+
+#if GLM_HAS_TEMPLATE_ALIASES
+	template <typename T, precision P = defaultp> using tvec1 = vec<1, T, P>;
+	template <typename T, precision P = defaultp> using tvec2 = vec<2, T, P>;
+	template <typename T, precision P = defaultp> using tvec3 = vec<3, T, P>;
+	template <typename T, precision P = defaultp> using tvec4 = vec<4, T, P>;
+#endif//GLM_HAS_TEMPLATE_ALIASES
+
+	typedef vec<1, float, highp>	highp_vec1_t;
+	typedef vec<1, float, mediump>	mediump_vec1_t;
+	typedef vec<1, float, lowp>		lowp_vec1_t;
+	typedef vec<1, double, highp>	highp_dvec1_t;
+	typedef vec<1, double, mediump>	mediump_dvec1_t;
+	typedef vec<1, double, lowp>	lowp_dvec1_t;
+	typedef vec<1, int, highp>		highp_ivec1_t;
+	typedef vec<1, int, mediump>	mediump_ivec1_t;
+	typedef vec<1, int, lowp>		lowp_ivec1_t;
+	typedef vec<1, uint, highp>		highp_uvec1_t;
+	typedef vec<1, uint, mediump>	mediump_uvec1_t;
+	typedef vec<1, uint, lowp>		lowp_uvec1_t;
+	typedef vec<1, bool, highp>		highp_bvec1_t;
+	typedef vec<1, bool, mediump>	mediump_bvec1_t;
+	typedef vec<1, bool, lowp>		lowp_bvec1_t;
 
 	/// @addtogroup core_precision
 	/// @{
@@ -66,105 +132,105 @@ namespace glm
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<float, highp>		highp_vec2;
+	typedef vec<2, float, highp>		highp_vec2;
 
 	/// 2 components vector of medium single-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<float, mediump>	mediump_vec2;
+	typedef vec<2, float, mediump>	mediump_vec2;
 
 	/// 2 components vector of low single-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<float, lowp>		lowp_vec2;
+	typedef vec<2, float, lowp>		lowp_vec2;
 
 	/// 2 components vector of high double-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<double, highp>	highp_dvec2;
+	typedef vec<2, double, highp>	highp_dvec2;
 
 	/// 2 components vector of medium double-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<double, mediump>	mediump_dvec2;
+	typedef vec<2, double, mediump>	mediump_dvec2;
 
 	/// 2 components vector of low double-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<double, lowp>		lowp_dvec2;
+	typedef vec<2, double, lowp>		lowp_dvec2;
 
 	/// 2 components vector of high precision signed integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<int, highp>		highp_ivec2;
+	typedef vec<2, int, highp>		highp_ivec2;
 
 	/// 2 components vector of medium precision signed integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<int, mediump>		mediump_ivec2;
+	typedef vec<2, int, mediump>		mediump_ivec2;
 
 	/// 2 components vector of low precision signed integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<int, lowp>		lowp_ivec2;
+	typedef vec<2, int, lowp>		lowp_ivec2;
 
 	/// 2 components vector of high precision unsigned integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<uint, highp>		highp_uvec2;
+	typedef vec<2, uint, highp>		highp_uvec2;
 
 	/// 2 components vector of medium precision unsigned integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<uint, mediump>	mediump_uvec2;
+	typedef vec<2, uint, mediump>	mediump_uvec2;
 
 	/// 2 components vector of low precision unsigned integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<uint, lowp>		lowp_uvec2;
+	typedef vec<2, uint, lowp>		lowp_uvec2;
 
 	/// 2 components vector of high precision bool numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<bool, highp>		highp_bvec2;
+	typedef vec<2, bool, highp>		highp_bvec2;
 
 	/// 2 components vector of medium precision bool numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<bool, mediump>	mediump_bvec2;
+	typedef vec<2, bool, mediump>	mediump_bvec2;
 
 	/// 2 components vector of low precision bool numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec2<bool, lowp>		lowp_bvec2;
+	typedef vec<2, bool, lowp>		lowp_bvec2;
 
 	/// @}
 
@@ -176,102 +242,102 @@ namespace glm
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<float, highp>		highp_vec3;
+	typedef vec<3, float, highp>		highp_vec3;
 
 	/// 3 components vector of medium single-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<float, mediump>	mediump_vec3;
+	typedef vec<3, float, mediump>	mediump_vec3;
 
 	/// 3 components vector of low single-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<float, lowp>		lowp_vec3;
+	typedef vec<3, float, lowp>		lowp_vec3;
 
 	/// 3 components vector of high double-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<double, highp>	highp_dvec3;
+	typedef vec<3, double, highp>	highp_dvec3;
 
 	/// 3 components vector of medium double-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<double, mediump>	mediump_dvec3;
+	typedef vec<3, double, mediump>	mediump_dvec3;
 
 	/// 3 components vector of low double-precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<double, lowp>		lowp_dvec3;
+	typedef vec<3, double, lowp>		lowp_dvec3;
 
 	/// 3 components vector of high precision signed integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<int, highp>		highp_ivec3;
+	typedef vec<3, int, highp>		highp_ivec3;
 
 	/// 3 components vector of medium precision signed integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<int, mediump>		mediump_ivec3;
+	typedef vec<3, int, mediump>		mediump_ivec3;
 
 	/// 3 components vector of low precision signed integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<int, lowp>		lowp_ivec3;
+	typedef vec<3, int, lowp>		lowp_ivec3;
 
 	/// 3 components vector of high precision unsigned integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<uint, highp>		highp_uvec3;
+	typedef vec<3, uint, highp>		highp_uvec3;
 
 	/// 3 components vector of medium precision unsigned integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<uint, mediump>	mediump_uvec3;
+	typedef vec<3, uint, mediump>	mediump_uvec3;
 
 	/// 3 components vector of low precision unsigned integer numbers.
 	/// There is no guarantee on the actual precision.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<uint, lowp>		lowp_uvec3;
+	typedef vec<3, uint, lowp>		lowp_uvec3;
 
 	/// 3 components vector of high precision bool numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<bool, highp>		highp_bvec3;
+	typedef vec<3, bool, highp>		highp_bvec3;
 
 	/// 3 components vector of medium precision bool numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<bool, mediump>	mediump_bvec3;
+	typedef vec<3, bool, mediump>	mediump_bvec3;
 
 	/// 3 components vector of low precision bool numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec3<bool, lowp>		lowp_bvec3;
+	typedef vec<3, bool, lowp>		lowp_bvec3;
 
 	/// @}
 
@@ -282,91 +348,91 @@ namespace glm
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<float, highp>		highp_vec4;
+	typedef vec<4, float, highp>		highp_vec4;
 
 	/// 4 components vector of medium single-precision floating-point numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<float, mediump>	mediump_vec4;
+	typedef vec<4, float, mediump>	mediump_vec4;
 
 	/// 4 components vector of low single-precision floating-point numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<float, lowp>		lowp_vec4;
+	typedef vec<4, float, lowp>		lowp_vec4;
 
 	/// 4 components vector of high double-precision floating-point numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<double, highp>	highp_dvec4;
+	typedef vec<4, double, highp>	highp_dvec4;
 
 	/// 4 components vector of medium double-precision floating-point numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<double, mediump>	mediump_dvec4;
+	typedef vec<4, double, mediump>	mediump_dvec4;
 
 	/// 4 components vector of low double-precision floating-point numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<double, lowp>		lowp_dvec4;
+	typedef vec<4, double, lowp>		lowp_dvec4;
 
 	/// 4 components vector of high precision signed integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<int, highp>		highp_ivec4;
+	typedef vec<4, int, highp>		highp_ivec4;
 
 	/// 4 components vector of medium precision signed integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<int, mediump>		mediump_ivec4;
+	typedef vec<4, int, mediump>		mediump_ivec4;
 
 	/// 4 components vector of low precision signed integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<int, lowp>		lowp_ivec4;
+	typedef vec<4, int, lowp>		lowp_ivec4;
 
 	/// 4 components vector of high precision unsigned integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<uint, highp>		highp_uvec4;
+	typedef vec<4, uint, highp>		highp_uvec4;
 
 	/// 4 components vector of medium precision unsigned integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<uint, mediump>	mediump_uvec4;
+	typedef vec<4, uint, mediump>	mediump_uvec4;
 
 	/// 4 components vector of low precision unsigned integer numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<uint, lowp>		lowp_uvec4;
+	typedef vec<4, uint, lowp>		lowp_uvec4;
 
 	/// 4 components vector of high precision bool numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<bool, highp>		highp_bvec4;
+	typedef vec<4, bool, highp>		highp_bvec4;
 
 	/// 4 components vector of medium precision bool numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<bool, mediump>	mediump_bvec4;
+	typedef vec<4, bool, mediump>	mediump_bvec4;
 
 	/// 4 components vector of low precision bool numbers.
 	///
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef tvec4<bool, lowp>		lowp_bvec4;
+	typedef vec<4, bool, lowp>		lowp_bvec4;
 
 	/// @}
 

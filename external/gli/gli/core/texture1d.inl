@@ -1,91 +1,56 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Image (gli.g-truc.net)
-///
-/// Copyright (c) 2008 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-/// 
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-/// 
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
-/// @ref core
-/// @file gli/core/texture1d.inl
-/// @date 2013-01-12 / 2013-01-12
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
-
 #include "../levels.hpp"
 
 namespace gli
 {
-	inline texture1D::texture1D()
+	inline texture1d::texture1d()
 	{}
 
-	inline texture1D::texture1D
+	inline texture1d::texture1d(format_type Format, extent_type const& Extent, swizzles_type const& Swizzles)
+		: texture(TARGET_1D, Format, texture::extent_type(Extent.x, 1, 1), 1, 1, gli::levels(Extent), Swizzles)
+	{}
+
+	inline texture1d::texture1d(format_type Format, extent_type const& Extent, size_type Levels, swizzles_type const& Swizzles)
+		: texture(TARGET_1D, Format, texture::extent_type(Extent.x, 1, 1), 1, 1, Levels, Swizzles)
+	{}
+
+	inline texture1d::texture1d(texture const& Texture)
+		: texture(Texture, TARGET_1D, Texture.format())
+	{}
+
+	inline texture1d::texture1d
 	(
-		format_type Format,
-		dim_type const & Dimensions,
-		size_type Levels
-	)
-		: texture(gli::TARGET_1D, Format, texture::dim_type(Dimensions.x, 1, 1), 1, 1, Levels)
-	{}
-
-	inline texture1D::texture1D
-	(
-		format_type Format,
-		dim_type const & Dimensions
-	)
-		: texture(gli::TARGET_1D, Format, texture::dim_type(Dimensions.x, 1, 1), 1, 1, gli::levels(Dimensions))
-	{}
-
-	inline texture1D::texture1D(texture const & Texture)
-		: texture(Texture, gli::TARGET_1D, Texture.format())
-	{}
-
-	inline texture1D::texture1D
-	(
-		texture const & Texture,
+		texture const& Texture,
 		format_type Format,
 		size_type BaseLayer, size_type MaxLayer,
 		size_type BaseFace, size_type MaxFace,
-		size_type BaseLevel, size_type MaxLevel
+		size_type BaseLevel, size_type MaxLevel,
+		swizzles_type const& Swizzles
 	)
 		: texture(
-			Texture, gli::TARGET_1D,
+			Texture, TARGET_1D,
 			Format,
 			BaseLayer, MaxLayer,
 			BaseFace, MaxFace,
-			BaseLevel, MaxLevel)
+			BaseLevel, MaxLevel,
+		Swizzles)
 	{}
  
-	inline texture1D::texture1D
+	inline texture1d::texture1d
 	(
-		texture1D const & Texture,
+		texture1d const& Texture,
 		size_type BaseLevel, size_type MaxLevel
 	)
 		: texture(
-			Texture, gli::TARGET_1D,
+			Texture, TARGET_1D,
 			Texture.format(),
 			Texture.base_layer(), Texture.max_layer(),
 			Texture.base_face(), Texture.max_face(),
 			Texture.base_level() + BaseLevel, Texture.base_level() + MaxLevel)
 	{}
 
-	inline image texture1D::operator[](texture1D::size_type Level) const
+	inline image texture1d::operator[](texture1d::size_type Level) const
 	{
-		assert(Level < this->levels());
+		GLI_ASSERT(Level < this->levels());
 
 		return image(
 			this->Storage,
@@ -95,11 +60,20 @@ namespace gli
 			this->base_level() + Level);
 	}
 
-	inline texture1D::dim_type texture1D::dimensions() const
+	inline texture1d::extent_type texture1d::extent(size_type Level) const
 	{
-		assert(!this->empty());
+		return extent_type(this->texture::extent(Level));
+	}
 
-		return texture1D::dim_type(
-			this->Storage->block_count(this->base_level()) * block_dimensions(this->format()));
+	template <typename gen_type>
+	inline gen_type texture1d::load(extent_type const& TexelCoord, size_type Level) const
+	{
+		return this->texture::load<gen_type>(texture::extent_type(TexelCoord.x, 0, 0), 0, 0, Level);
+	}
+
+	template <typename gen_type>
+	inline void texture1d::store(extent_type const& TexelCoord, size_type Level, gen_type const& Texel)
+	{
+		this->texture::store<gen_type>(texture::extent_type(TexelCoord.x, 0, 0), 0, 0, Level, Texel);
 	}
 }//namespace gli

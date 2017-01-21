@@ -1,30 +1,5 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Image (gli.g-truc.net)
-///
-/// Copyright (c) 2008 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-///
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-///
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
-/// @ref core
+/// @brief Include to use cube map textures.
 /// @file gli/texture_cube.hpp
-/// @date 2011-04-06 / 2013-01-11
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
 
@@ -32,51 +7,61 @@
 
 namespace gli
 {
-	/// textureCube
-	class textureCube : public texture
+	/// Cube map texture
+	class texture_cube : public texture
 	{
 	public:
-		typedef dim2_t dim_type;
-		typedef vec3 texcoord_type;
+		typedef extent2d extent_type;
 
 	public:
 		/// Create an empty texture cube
-		textureCube();
+		texture_cube();
 
-		/// Create a textureCube and allocate a new storage
-		explicit textureCube(
+		/// Create a texture_cube and allocate a new storage_linear
+		texture_cube(
 			format_type Format,
-			dim_type const & Dimensions,
-			size_type Levels);
+			extent_type const & Extent,
+			size_type Levels,
+			swizzles_type const& Swizzles = swizzles_type(SWIZZLE_RED, SWIZZLE_GREEN, SWIZZLE_BLUE, SWIZZLE_ALPHA));
 
-		/// Create a textureCube and allocate a new storage with a complete mipmap chain
-		explicit textureCube(
+		/// Create a texture_cube and allocate a new storage_linear with a complete mipmap chain
+		texture_cube(
 			format_type Format,
-			dim_type const & Dimensions);
+			extent_type const & Extent,
+			swizzles_type const& Swizzles = swizzles_type(SWIZZLE_RED, SWIZZLE_GREEN, SWIZZLE_BLUE, SWIZZLE_ALPHA));
 
-		/// Create a textureCube view with an existing storage
-		explicit textureCube(
-			texture const & Texture);
+		/// Create a texture_cube view with an existing storage_linear
+		explicit texture_cube(
+			texture const& Texture);
 
-		/// Create a textureCube view with an existing storage
-		explicit textureCube(
-			texture const & Texture,
+		/// Create a texture_cube view with an existing storage_linear
+		texture_cube(
+			texture const& Texture,
 			format_type Format,
 			size_type BaseLayer, size_type MaxLayer,
 			size_type BaseFace, size_type MaxFace,
-			size_type BaseLevel, size_type MaxLevel);
+			size_type BaseLevel, size_type MaxLevel,
+			swizzles_type const& Swizzles = swizzles_type(SWIZZLE_RED, SWIZZLE_GREEN, SWIZZLE_BLUE, SWIZZLE_ALPHA));
 
-		/// Create a textureCube view, reference a subset of an existing textureCube instance
-		explicit textureCube(
-			textureCube const & Texture,
+		/// Create a texture_cube view, reference a subset of an existing texture_cube instance
+		texture_cube(
+			texture_cube const& Texture,
 			size_type BaseFace, size_type MaxFace,
 			size_type BaseLevel, size_type MaxLevel);
 
 		/// Create a view of the texture identified by Face in the texture cube
-		texture2D operator[](size_type Face) const;
+		texture2d operator[](size_type Face) const;
 
 		/// Return the dimensions of a texture instance: width and height where both should be equal.
-		dim_type dimensions() const;
+		extent_type extent(size_type Level = 0) const;
+
+		/// Fetch a texel from a texture. The texture format must be uncompressed.
+		template <typename gen_type>
+		gen_type load(extent_type const& TexelCoord, size_type Face, size_type Level) const;
+
+		/// Write a texel to a texture. The texture format must be uncompressed.
+		template <typename gen_type>
+		void store(extent_type const& TexelCoord, size_type Face, size_type Level, gen_type const& Texel);
 	};
 }//namespace gli
 

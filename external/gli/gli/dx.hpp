@@ -1,38 +1,15 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Image (gli.g-truc.net)
-///
-/// Copyright (c) 2008 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-///
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-///
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
-/// @ref core
-/// @file gli/gl.hpp
-/// @date 2013-11-09 / 2013-11-09
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
+/// @brief Include to translate GLI enums to DirectX enums
+/// @file gli/dx.hpp
 
 #pragma once
 
 #include "format.hpp"
+#include "target.hpp"
 #include <array>
 
 namespace gli
 {
+	/// Translation class to convert GLI enums into DirectX enums
 	class dx
 	{
 	public:
@@ -43,7 +20,7 @@ namespace gli
 			(((std::uint32_t)(std::uint8_t)(ch1) <<  8) & 0x0000FF00) | \
 			((std::uint32_t)(std::uint8_t)(ch0)        & 0x000000FF) )
 
-		enum D3DFORMAT
+		enum d3dfmt
 		{
 			D3DFMT_UNKNOWN				=  0,
 
@@ -94,6 +71,11 @@ namespace gli
 			D3DFMT_ATI2					= GLI_MAKEFOURCC('A', 'T', 'I', '2'),
 			D3DFMT_AT2N					= GLI_MAKEFOURCC('A', 'T', '2', 'N'),
 
+			D3DFMT_BC4U					= GLI_MAKEFOURCC('B', 'C', '4', 'U'),
+			D3DFMT_BC4S					= GLI_MAKEFOURCC('B', 'C', '4', 'S'),
+			D3DFMT_BC5U					= GLI_MAKEFOURCC('B', 'C', '5', 'U'),
+			D3DFMT_BC5S					= GLI_MAKEFOURCC('B', 'C', '5', 'S'),
+
 			D3DFMT_ETC					= GLI_MAKEFOURCC('E', 'T', 'C', ' '),
 			D3DFMT_ETC1					= GLI_MAKEFOURCC('E', 'T', 'C', '1'),
 			D3DFMT_ATC					= GLI_MAKEFOURCC('A', 'T', 'C', ' '),
@@ -116,11 +98,11 @@ namespace gli
 
 			D3DFMT_L16					= 81,
 
-			D3DFMT_VERTEXDATA			=100,
-			D3DFMT_INDEX16				=101,
-			D3DFMT_INDEX32				=102,
+			D3DFMT_VERTEXDATA			= 100,
+			D3DFMT_INDEX16				= 101,
+			D3DFMT_INDEX32				= 102,
 
-			D3DFMT_Q16W16V16U16			=110,
+			D3DFMT_Q16W16V16U16			= 110,
 
 			D3DFMT_MULTI2_ARGB8			= GLI_MAKEFOURCC('M','E','T','1'),
 
@@ -136,10 +118,12 @@ namespace gli
 
 			D3DFMT_DX10					= GLI_MAKEFOURCC('D', 'X', '1', '0'),
 
+			D3DFMT_GLI1					= GLI_MAKEFOURCC('G', 'L', 'I', '1'),
+
 			D3DFMT_FORCE_DWORD			= 0x7fffffff
 		};
-
-		enum dxgiFormat
+		
+		enum dxgi_format_dds
 		{
 			DXGI_FORMAT_UNKNOWN							= 0,
 			DXGI_FORMAT_R32G32B32A32_TYPELESS			= 1,
@@ -302,11 +286,165 @@ namespace gli
 			DXGI_FORMAT_ASTC_12X10_UNORM_SRGB			= 183,
 			DXGI_FORMAT_ASTC_12X12_TYPELESS				= 185,
 			DXGI_FORMAT_ASTC_12X12_UNORM				= 186,
-			DXGI_FORMAT_ASTC_12X12_UNORM_SRGB			= 187, DXGI_FORMAT_LAST = DXGI_FORMAT_ASTC_12X12_UNORM_SRGB,
+			DXGI_FORMAT_ASTC_12X12_UNORM_SRGB			= 187,
+
 			DXGI_FORMAT_FORCE_UINT						= 0xffffffffUL
 		};
 
-		enum DDPF
+		enum dxgi_format_gli
+		{
+			DXGI_FORMAT_R64_UINT_GLI = 1,
+			DXGI_FORMAT_R64_SINT_GLI,
+			DXGI_FORMAT_R64_FLOAT_GLI,
+			DXGI_FORMAT_R64G64_UINT_GLI,
+			DXGI_FORMAT_R64G64_SINT_GLI,
+			DXGI_FORMAT_R64G64_FLOAT_GLI,
+			DXGI_FORMAT_R64G64B64_UINT_GLI,
+			DXGI_FORMAT_R64G64B64_SINT_GLI,
+			DXGI_FORMAT_R64G64B64_FLOAT_GLI,
+			DXGI_FORMAT_R64G64B64A64_UINT_GLI,
+			DXGI_FORMAT_R64G64B64A64_SINT_GLI,
+			DXGI_FORMAT_R64G64B64A64_FLOAT_GLI,
+			
+			DXGI_FORMAT_RG4_UNORM_GLI,
+			DXGI_FORMAT_RGBA4_UNORM_GLI,
+			DXGI_FORMAT_R5G6B5_UNORM_GLI,
+			DXGI_FORMAT_R5G5B5A1_UNORM_GLI,
+			DXGI_FORMAT_A1B5G5R5_UNORM_GLI,
+			
+			DXGI_FORMAT_R8_SRGB_GLI,
+			DXGI_FORMAT_R8_USCALED_GLI,
+			DXGI_FORMAT_R8_SSCALED_GLI,
+			
+			DXGI_FORMAT_R8G8_SRGB_GLI,
+			DXGI_FORMAT_R8G8_USCALED_GLI,
+			DXGI_FORMAT_R8G8_SSCALED_GLI,
+			
+			DXGI_FORMAT_R8G8B8_UNORM_GLI,
+			DXGI_FORMAT_R8G8B8_SNORM_GLI,
+			DXGI_FORMAT_R8G8B8_USCALED_GLI,
+			DXGI_FORMAT_R8G8B8_SSCALED_GLI,
+			DXGI_FORMAT_R8G8B8_UINT_GLI,
+			DXGI_FORMAT_R8G8B8_SINT_GLI,
+			DXGI_FORMAT_R8G8B8_SRGB_GLI,
+			
+			DXGI_FORMAT_B8G8R8_UNORM_GLI,
+			DXGI_FORMAT_B8G8R8_SNORM_GLI,
+			DXGI_FORMAT_B8G8R8_USCALED_GLI,
+			DXGI_FORMAT_B8G8R8_SSCALED_GLI,
+			DXGI_FORMAT_B8G8R8_UINT_GLI,
+			DXGI_FORMAT_B8G8R8_SINT_GLI,
+			DXGI_FORMAT_B8G8R8_SRGB_GLI,
+			
+			DXGI_FORMAT_R8G8B8A8_USCALED_GLI,
+			DXGI_FORMAT_R8G8B8A8_SSCALED_GLI,
+			
+			DXGI_FORMAT_B8G8R8A8_SNORM_GLI,
+			DXGI_FORMAT_B8G8R8A8_USCALED_GLI,
+			DXGI_FORMAT_B8G8R8A8_SSCALED_GLI,
+			DXGI_FORMAT_B8G8R8A8_UINT_GLI,
+			DXGI_FORMAT_B8G8R8A8_SINT_GLI,
+			
+			DXGI_FORMAT_R8G8B8A8_PACK_UNORM_GLI,
+			DXGI_FORMAT_R8G8B8A8_PACK_SNORM_GLI,
+			DXGI_FORMAT_R8G8B8A8_PACK_USCALED_GLI,
+			DXGI_FORMAT_R8G8B8A8_PACK_SSCALED_GLI,
+			DXGI_FORMAT_R8G8B8A8_PACK_UINT_GLI,
+			DXGI_FORMAT_R8G8B8A8_PACK_SINT_GLI,
+			DXGI_FORMAT_R8G8B8A8_PACK_SRGB_GLI,
+			
+			DXGI_FORMAT_R10G10B10A2_SNORM_GLI,
+			DXGI_FORMAT_R10G10B10A2_USCALED_GLI,
+			DXGI_FORMAT_R10G10B10A2_SSCALED_GLI,
+			DXGI_FORMAT_R10G10B10A2_SINT_GLI,
+			
+			DXGI_FORMAT_B10G10R10A2_UNORM_GLI,
+			DXGI_FORMAT_B10G10R10A2_SNORM_GLI,
+			DXGI_FORMAT_B10G10R10A2_USCALED_GLI,
+			DXGI_FORMAT_B10G10R10A2_SSCALED_GLI,
+			DXGI_FORMAT_B10G10R10A2_UINT_GLI,
+			DXGI_FORMAT_B10G10R10A2_SINT_GLI,
+			
+			DXGI_FORMAT_R16_USCALED_GLI,
+			DXGI_FORMAT_R16_SSCALED_GLI,
+			DXGI_FORMAT_R16G16_USCALED_GLI,
+			DXGI_FORMAT_R16G16_SSCALED_GLI,
+			
+			DXGI_FORMAT_R16G16B16_UNORM_GLI,
+			DXGI_FORMAT_R16G16B16_SNORM_GLI,
+			DXGI_FORMAT_R16G16B16_USCALED_GLI,
+			DXGI_FORMAT_R16G16B16_SSCALED_GLI,
+			DXGI_FORMAT_R16G16B16_UINT_GLI,
+			DXGI_FORMAT_R16G16B16_SINT_GLI,
+			DXGI_FORMAT_R16G16B16_FLOAT_GLI,
+			
+			DXGI_FORMAT_R16G16B16A16_USCALED_GLI,
+			DXGI_FORMAT_R16G16B16A16_SSCALED_GLI,
+			
+			DXGI_FORMAT_S8_UINT_GLI,
+			DXGI_FORMAT_D16_UNORM_S8_UINT_GLI,
+			DXGI_FORMAT_D24_UNORM_GLI,
+			
+			DXGI_FORMAT_L8_UNORM_GLI,
+			DXGI_FORMAT_A8_UNORM_GLI,
+			DXGI_FORMAT_LA8_UNORM_GLI,
+			DXGI_FORMAT_L16_UNORM_GLI,
+			DXGI_FORMAT_A16_UNORM_GLI,
+			DXGI_FORMAT_LA16_UNORM_GLI,
+			
+			DXGI_FORMAT_R3G3B2_UNORM_GLI,
+			
+			DXGI_FORMAT_BC1_RGB_UNORM_GLI,
+			DXGI_FORMAT_BC1_RGB_SRGB_GLI,
+			DXGI_FORMAT_RGB_ETC2_UNORM_GLI,
+			DXGI_FORMAT_RGB_ETC2_SRGB_GLI,
+			DXGI_FORMAT_RGBA_ETC2_A1_UNORM_GLI,
+			DXGI_FORMAT_RGBA_ETC2_A1_SRGB_GLI,
+			DXGI_FORMAT_RGBA_ETC2_UNORM_GLI,
+			DXGI_FORMAT_RGBA_ETC2_SRGB_GLI,
+			DXGI_FORMAT_R11_EAC_UNORM_GLI,
+			DXGI_FORMAT_R11_EAC_SNORM_GLI,
+			DXGI_FORMAT_RG11_EAC_UNORM_GLI,
+			DXGI_FORMAT_RG11_EAC_SNORM_GLI,
+			
+			DXGI_FORMAT_RGB_PVRTC1_8X8_UNORM_GLI,
+			DXGI_FORMAT_RGB_PVRTC1_8X8_SRGB_GLI,
+			DXGI_FORMAT_RGB_PVRTC1_16X8_UNORM_GLI,
+			DXGI_FORMAT_RGB_PVRTC1_16X8_SRGB_GLI,
+			DXGI_FORMAT_RGBA_PVRTC1_8X8_UNORM_GLI,
+			DXGI_FORMAT_RGBA_PVRTC1_8X8_SRGB_GLI,
+			DXGI_FORMAT_RGBA_PVRTC1_16X8_UNORM_GLI,
+			DXGI_FORMAT_RGBA_PVRTC1_16X8_SRGB_GLI,
+			DXGI_FORMAT_RGBA_PVRTC2_8X8_UNORM_GLI,
+			DXGI_FORMAT_RGBA_PVRTC2_8X8_SRGB_GLI,
+			DXGI_FORMAT_RGBA_PVRTC2_16X8_UNORM_GLI,
+			DXGI_FORMAT_RGBA_PVRTC2_16X8_SRGB_GLI,
+			
+			DXGI_FORMAT_RGB_ETC_UNORM_GLI,
+			DXGI_FORMAT_RGB_ATC_UNORM_GLI,
+			DXGI_FORMAT_RGBA_ATCA_UNORM_GLI,
+			DXGI_FORMAT_RGBA_ATCI_UNORM_GLI,
+		};
+		
+		union dxgiFormat
+		{
+			dxgiFormat()
+				: DDS(DXGI_FORMAT_UNKNOWN)
+			{}
+			
+			dxgiFormat(dxgi_format_dds DDS)
+				: DDS(DDS)
+			{}
+
+			dxgiFormat(dxgi_format_gli GLI)
+				: GLI(GLI)
+			{}
+			
+			dxgi_format_dds DDS;
+			dxgi_format_gli GLI;
+		};
+		
+		enum ddpf
 		{
 			DDPF_ALPHAPIXELS = 0x1,
 			DDPF_ALPHA = 0x2,
@@ -315,7 +453,6 @@ namespace gli
 			DDPF_YUV = 0x200,
 			DDPF_LUMINANCE = 0x20000,
 			DDPF_LUMINANCE_ALPHA = DDPF_LUMINANCE | DDPF_ALPHA,
-			DDPF_FOURCC_ALPHAPIXELS = DDPF_FOURCC | DDPF_ALPHAPIXELS,
 			DDPF_RGBAPIXELS = DDPF_RGB | DDPF_ALPHAPIXELS,
 			DDPF_RGBA = DDPF_RGB | DDPF_ALPHA,
 			DDPF_LUMINANCE_ALPHAPIXELS = DDPF_LUMINANCE | DDPF_ALPHAPIXELS,
@@ -324,8 +461,8 @@ namespace gli
 
 		struct format
 		{
-			DDPF DDPixelFormat;
-			D3DFORMAT D3DFormat;
+			ddpf DDPixelFormat;
+			d3dfmt D3DFormat;
 			dxgiFormat DXGIFormat;
 			glm::u32vec4 Mask;
 		};
@@ -333,13 +470,21 @@ namespace gli
 	public:
 		dx();
 
-		format const & translate(gli::format const & Format) const;
-		gli::format find(D3DFORMAT FourCC);
-		gli::format find(dxgiFormat Format);
+		/// Convert GLI formats into Direct3D formats
+		format const& translate(gli::format Format) const;
+
+		/// Convert a Direct3D 9 format into a GLI format
+		gli::format find(d3dfmt FourCC) const;
+
+		/// Convert a Direct3D 10 format into a GLI format
+		gli::format find(d3dfmt FourCC, dxgiFormat Format) const;
 
 	private:
 		std::array<format, FORMAT_COUNT> Translation;
 	};
+
+	/// Evaluate whether a target and format combinaison is only supported by the DDS container through GLI DDS extension.
+	bool is_dds_ext(target Target, format Format);
 }//namespace gli
 
 #include "./core/dx.inl"

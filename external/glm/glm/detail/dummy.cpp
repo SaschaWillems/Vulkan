@@ -1,38 +1,10 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Mathematics (glm.g-truc.net)
-///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-/// 
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-/// 
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
-/// 
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
 /// @ref core
 /// @file glm/core/dummy.cpp
-/// @date 2011-01-19 / 2011-06-15
-/// @author Christophe Riccio
 ///
 /// GLM is a header only library. There is nothing to compile. 
 /// dummy.cpp exist only a wordaround for CMake file.
-///////////////////////////////////////////////////////////////////////////////////
 
+/*
 #define GLM_MESSAGES
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
@@ -149,6 +121,8 @@ struct intersection
 	glm::vec4 position;
 	glm::vec3 normal;
 };
+*/
+
 
 /*
 // Sample 4
@@ -191,29 +165,30 @@ glm::vec3 lighting
 }
 */
 
-
-template <typename T, glm::precision P, template<typename, glm::precision> class vecType>
-T normalizeDotA(vecType<T, P> const & x, vecType<T, P> const & y)
+/*
+template<typename T, glm::precision P, template<typename, glm::precision> class vecType>
+T normalizeDotA(vecType<L, T, P> const & x, vecType<L, T, P> const & y)
 {
 	return glm::dot(x, y) * glm::inversesqrt(glm::dot(x, x) * glm::dot(y, y));
 }
 
 #define GLM_TEMPLATE_GENTYPE typename T, glm::precision P, template<typename, glm::precision> class
 
-template <GLM_TEMPLATE_GENTYPE vecType>
-T normalizeDotB(vecType<T, P> const & x, vecType<T, P> const & y)
+template<GLM_TEMPLATE_GENTYPE vecType>
+T normalizeDotB(vecType<L, T, P> const & x, vecType<L, T, P> const & y)
 {
 	return glm::dot(x, y) * glm::inversesqrt(glm::dot(x, x) * glm::dot(y, y));
 }
 
-template <typename vecType>
+template<typename vecType>
 typename vecType::value_type normalizeDotC(vecType const & a, vecType const & b)
 {
 	return glm::dot(a, b) * glm::inversesqrt(glm::dot(a, a) * glm::dot(b, b));
 }
-
+*/
 int main()
 {
+/*
 	glm::vec1 o(1);
 	glm::vec2 a(1);
 	glm::vec3 b(1);
@@ -227,6 +202,6 @@ int main()
 	float a0 = normalizeDotA(a, a);
 	float b0 = normalizeDotB(b, b);
 	float c0 = normalizeDotC(c, c);
-
+*/
 	return 0;
 }

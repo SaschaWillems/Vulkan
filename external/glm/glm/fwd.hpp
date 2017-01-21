@@ -1,34 +1,5 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Mathematics (glm.g-truc.net)
-///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-///
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-///
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
-/// 
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
 /// @ref core
 /// @file glm/fwd.hpp
-/// @date 2013-03-30 / 2013-03-31
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
 
@@ -41,7 +12,7 @@
 // GLM_GTC_quaternion
 namespace glm
 {
-	template <typename T, precision P> struct tquat;
+	template<typename T, precision P> struct tquat;
 
 	/// Quaternion of low single-precision floating-point numbers.
 	///
@@ -329,53 +300,53 @@ namespace glm
 	
 	/// Low precision 8 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i8, lowp> lowp_i8vec1;
+	typedef vec<1, i8, lowp> lowp_i8vec1;
 	
 	/// Low precision 8 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i8, lowp> lowp_i8vec2;
+	typedef vec<2, i8, lowp> lowp_i8vec2;
 	
 	/// Low precision 8 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i8, lowp> lowp_i8vec3;
+	typedef vec<3, i8, lowp> lowp_i8vec3;
 	
 	/// Low precision 8 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i8, lowp> lowp_i8vec4;
+	typedef vec<4, i8, lowp> lowp_i8vec4;
 	
 
 	/// Medium precision 8 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i8, mediump> mediump_i8vec1;
+	typedef vec<1, i8, mediump> mediump_i8vec1;
 	
 	/// Medium precision 8 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i8, mediump> mediump_i8vec2;
+	typedef vec<2, i8, mediump> mediump_i8vec2;
 	
 	/// Medium precision 8 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i8, mediump> mediump_i8vec3;
+	typedef vec<3, i8, mediump> mediump_i8vec3;
 	
 	/// Medium precision 8 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i8, mediump> mediump_i8vec4;
+	typedef vec<4, i8, mediump> mediump_i8vec4;
 	
 	
 	/// High precision 8 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i8, highp> highp_i8vec1;
+	typedef vec<1, i8, highp> highp_i8vec1;
 	
 	/// High precision 8 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i8, highp> highp_i8vec2;
+	typedef vec<2, i8, highp> highp_i8vec2;
 	
 	/// High precision 8 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i8, highp> highp_i8vec3;
+	typedef vec<3, i8, highp> highp_i8vec3;
 	
 	/// High precision 8 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i8, highp> highp_i8vec4;
+	typedef vec<4, i8, highp> highp_i8vec4;
 	
 #if(defined(GLM_PRECISION_LOWP_INT))
 	typedef lowp_i8vec1				i8vec1;
@@ -408,53 +379,53 @@ namespace glm
 	
 	/// Low precision 16 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i16, lowp>		lowp_i16vec1;
+	typedef vec<1, i16, lowp>		lowp_i16vec1;
 	
 	/// Low precision 16 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i16, lowp>		lowp_i16vec2;
+	typedef vec<2, i16, lowp>		lowp_i16vec2;
 	
 	/// Low precision 16 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i16, lowp>		lowp_i16vec3;
+	typedef vec<3, i16, lowp>		lowp_i16vec3;
 	
 	/// Low precision 16 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i16, lowp>		lowp_i16vec4;
+	typedef vec<4, i16, lowp>		lowp_i16vec4;
 	
 	
 	/// Medium precision 16 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i16, mediump>		mediump_i16vec1;
+	typedef vec<1, i16, mediump>		mediump_i16vec1;
 	
 	/// Medium precision 16 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i16, mediump>		mediump_i16vec2;
+	typedef vec<2, i16, mediump>		mediump_i16vec2;
 	
 	/// Medium precision 16 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i16, mediump>		mediump_i16vec3;
+	typedef vec<3, i16, mediump>		mediump_i16vec3;
 	
 	/// Medium precision 16 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i16, mediump>		mediump_i16vec4;
+	typedef vec<4, i16, mediump>		mediump_i16vec4;
 	
 	
 	/// High precision 16 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i16, highp>		highp_i16vec1;
+	typedef vec<1, i16, highp>		highp_i16vec1;
 	
 	/// High precision 16 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i16, highp>		highp_i16vec2;
+	typedef vec<2, i16, highp>		highp_i16vec2;
 	
 	/// High precision 16 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i16, highp>		highp_i16vec3;
+	typedef vec<3, i16, highp>		highp_i16vec3;
 	
 	/// High precision 16 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i16, highp>		highp_i16vec4;
+	typedef vec<4, i16, highp>		highp_i16vec4;
 	
 	
 #if(defined(GLM_PRECISION_LOWP_INT))
@@ -488,53 +459,53 @@ namespace glm
 
 	/// Low precision 32 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i32, lowp>		lowp_i32vec1;
+	typedef vec<1, i32, lowp>		lowp_i32vec1;
 	
 	/// Low precision 32 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i32, lowp>		lowp_i32vec2;
+	typedef vec<2, i32, lowp>		lowp_i32vec2;
 	
 	/// Low precision 32 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i32, lowp>		lowp_i32vec3;
+	typedef vec<3, i32, lowp>		lowp_i32vec3;
 	
 	/// Low precision 32 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i32, lowp>		lowp_i32vec4;
+	typedef vec<4, i32, lowp>		lowp_i32vec4;
 	
 	
 	/// Medium precision 32 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i32, mediump>		mediump_i32vec1;
+	typedef vec<1, i32, mediump>		mediump_i32vec1;
 	
 	/// Medium precision 32 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i32, mediump>		mediump_i32vec2;
+	typedef vec<2, i32, mediump>		mediump_i32vec2;
 	
 	/// Medium precision 32 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i32, mediump>		mediump_i32vec3;
+	typedef vec<3, i32, mediump>		mediump_i32vec3;
 	
 	/// Medium precision 32 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i32, mediump>		mediump_i32vec4;
+	typedef vec<4, i32, mediump>		mediump_i32vec4;
 	
 	
 	/// High precision 32 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i32, highp>		highp_i32vec1;
+	typedef vec<1, i32, highp>		highp_i32vec1;
 	
 	/// High precision 32 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i32, highp>		highp_i32vec2;
+	typedef vec<2, i32, highp>		highp_i32vec2;
 	
 	/// High precision 32 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i32, highp>		highp_i32vec3;
+	typedef vec<3, i32, highp>		highp_i32vec3;
 	
 	/// High precision 32 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i32, highp>		highp_i32vec4;
+	typedef vec<4, i32, highp>		highp_i32vec4;
 	
 #if(defined(GLM_PRECISION_LOWP_INT))
 	typedef lowp_i32vec1			i32vec1;
@@ -567,53 +538,53 @@ namespace glm
 
 	/// Low precision 32 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i32, lowp>		lowp_i32vec1;
+	typedef vec<1, i32, lowp>		lowp_i32vec1;
 	
 	/// Low precision 32 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i32, lowp>		lowp_i32vec2;
+	typedef vec<2, i32, lowp>		lowp_i32vec2;
 	
 	/// Low precision 32 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i32, lowp>		lowp_i32vec3;
+	typedef vec<3, i32, lowp>		lowp_i32vec3;
 	
 	/// Low precision 32 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i32, lowp>		lowp_i32vec4;
+	typedef vec<4, i32, lowp>		lowp_i32vec4;
 	
 	
 	/// Medium precision 32 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i32, mediump>		mediump_i32vec1;
+	typedef vec<1, i32, mediump>		mediump_i32vec1;
 	
 	/// Medium precision 32 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i32, mediump>		mediump_i32vec2;
+	typedef vec<2, i32, mediump>		mediump_i32vec2;
 	
 	/// Medium precision 32 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i32, mediump>		mediump_i32vec3;
+	typedef vec<3, i32, mediump>		mediump_i32vec3;
 	
 	/// Medium precision 32 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i32, mediump>		mediump_i32vec4;
+	typedef vec<4, i32, mediump>		mediump_i32vec4;
 	
 	
 	/// High precision 32 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i32, highp>		highp_i32vec1;
+	typedef vec<1, i32, highp>		highp_i32vec1;
 	
 	/// High precision 32 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i32, highp>		highp_i32vec2;
+	typedef vec<2, i32, highp>		highp_i32vec2;
 	
 	/// High precision 32 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i32, highp>		highp_i32vec3;
+	typedef vec<3, i32, highp>		highp_i32vec3;
 	
 	/// High precision 32 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i32, highp>		highp_i32vec4;
+	typedef vec<4, i32, highp>		highp_i32vec4;
 	
 #if(defined(GLM_PRECISION_LOWP_INT))
 	typedef lowp_i32vec1			i32vec1;
@@ -647,53 +618,53 @@ namespace glm
 	
 	/// Low precision 64 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i64, lowp>		lowp_i64vec1;
+	typedef vec<1, i64, lowp>		lowp_i64vec1;
 	
 	/// Low precision 64 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i64, lowp>		lowp_i64vec2;
+	typedef vec<2, i64, lowp>		lowp_i64vec2;
 	
 	/// Low precision 64 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i64, lowp>		lowp_i64vec3;
+	typedef vec<3, i64, lowp>		lowp_i64vec3;
 	
 	/// Low precision 64 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i64, lowp>		lowp_i64vec4;
+	typedef vec<4, i64, lowp>		lowp_i64vec4;
 	
 	
 	/// Medium precision 64 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i64, mediump>		mediump_i64vec1;
+	typedef vec<1, i64, mediump>		mediump_i64vec1;
 	
 	/// Medium precision 64 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i64, mediump>		mediump_i64vec2;
+	typedef vec<2, i64, mediump>		mediump_i64vec2;
 	
 	/// Medium precision 64 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i64, mediump>		mediump_i64vec3;
+	typedef vec<3, i64, mediump>		mediump_i64vec3;
 	
 	/// Medium precision 64 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i64, mediump>		mediump_i64vec4;
+	typedef vec<4, i64, mediump>		mediump_i64vec4;
 	
 	
 	/// High precision 64 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i64, highp>		highp_i64vec1;
+	typedef vec<1, i64, highp>		highp_i64vec1;
 	
 	/// High precision 64 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i64, highp>		highp_i64vec2;
+	typedef vec<2, i64, highp>		highp_i64vec2;
 	
 	/// High precision 64 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i64, highp>		highp_i64vec3;
+	typedef vec<3, i64, highp>		highp_i64vec3;
 	
 	/// High precision 64 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i64, highp>		highp_i64vec4;
+	typedef vec<4, i64, highp>		highp_i64vec4;
 	
 #if(defined(GLM_PRECISION_LOWP_INT))
 	typedef lowp_i64vec1			i64vec1;
@@ -938,53 +909,53 @@ namespace glm
 
 	/// Low precision 8 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u8, lowp> lowp_u8vec1;
+	typedef vec<1, u8, lowp> lowp_u8vec1;
 	
 	/// Low precision 8 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u8, lowp> lowp_u8vec2;
+	typedef vec<2, u8, lowp> lowp_u8vec2;
 	
 	/// Low precision 8 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u8, lowp> lowp_u8vec3;
+	typedef vec<3, u8, lowp> lowp_u8vec3;
 	
 	/// Low precision 8 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u8, lowp> lowp_u8vec4;
+	typedef vec<4, u8, lowp> lowp_u8vec4;
 	
 
 	/// Medium precision 8 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u8, mediump> mediump_u8vec1;
+	typedef vec<1, u8, mediump> mediump_u8vec1;
 
 	/// Medium precision 8 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u8, mediump> mediump_u8vec2;
+	typedef vec<2, u8, mediump> mediump_u8vec2;
 
 	/// Medium precision 8 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u8, mediump> mediump_u8vec3;
+	typedef vec<3, u8, mediump> mediump_u8vec3;
 
 	/// Medium precision 8 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u8, mediump> mediump_u8vec4;
+	typedef vec<4, u8, mediump> mediump_u8vec4;
 
 
 	/// High precision 8 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u8, highp> highp_u8vec1;
+	typedef vec<1, u8, highp> highp_u8vec1;
 
 	/// High precision 8 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u8, highp> highp_u8vec2;
+	typedef vec<2, u8, highp> highp_u8vec2;
 
 	/// High precision 8 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u8, highp> highp_u8vec3;
+	typedef vec<3, u8, highp> highp_u8vec3;
 
 	/// High precision 8 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u8, highp> highp_u8vec4;
+	typedef vec<4, u8, highp> highp_u8vec4;
 
 #if(defined(GLM_PRECISION_LOWP_INT))
 	typedef lowp_u8vec1				u8vec1;
@@ -1017,53 +988,53 @@ namespace glm
 
 	/// Low precision 16 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u16, lowp>		lowp_u16vec1;
+	typedef vec<1, u16, lowp>		lowp_u16vec1;
 
 	/// Low precision 16 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u16, lowp>		lowp_u16vec2;
+	typedef vec<2, u16, lowp>		lowp_u16vec2;
 
 	/// Low precision 16 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u16, lowp>		lowp_u16vec3;
+	typedef vec<3, u16, lowp>		lowp_u16vec3;
 
 	/// Low precision 16 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u16, lowp>		lowp_u16vec4;
+	typedef vec<4, u16, lowp>		lowp_u16vec4;
 
 
 	/// Medium precision 16 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u16, mediump>		mediump_u16vec1;
+	typedef vec<1, u16, mediump>		mediump_u16vec1;
 
 	/// Medium precision 16 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u16, mediump>		mediump_u16vec2;
+	typedef vec<2, u16, mediump>		mediump_u16vec2;
 
 	/// Medium precision 16 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u16, mediump>		mediump_u16vec3;
+	typedef vec<3, u16, mediump>		mediump_u16vec3;
 
 	/// Medium precision 16 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u16, mediump>		mediump_u16vec4;
+	typedef vec<4, u16, mediump>		mediump_u16vec4;
 
 
 	/// High precision 16 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u16, highp>		highp_u16vec1;
+	typedef vec<1, u16, highp>		highp_u16vec1;
 
 	/// High precision 16 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u16, highp>		highp_u16vec2;
+	typedef vec<2, u16, highp>		highp_u16vec2;
 
 	/// High precision 16 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u16, highp>		highp_u16vec3;
+	typedef vec<3, u16, highp>		highp_u16vec3;
 
 	/// High precision 16 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u16, highp>		highp_u16vec4;
+	typedef vec<4, u16, highp>		highp_u16vec4;
 
 
 #if(defined(GLM_PRECISION_LOWP_INT))
@@ -1097,53 +1068,53 @@ namespace glm
 
 	/// Low precision 32 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u32, lowp>		lowp_u32vec1;
+	typedef vec<1, u32, lowp>		lowp_u32vec1;
 
 	/// Low precision 32 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u32, lowp>		lowp_u32vec2;
+	typedef vec<2, u32, lowp>		lowp_u32vec2;
 
 	/// Low precision 32 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u32, lowp>		lowp_u32vec3;
+	typedef vec<3, u32, lowp>		lowp_u32vec3;
 
 	/// Low precision 32 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u32, lowp>		lowp_u32vec4;
+	typedef vec<4, u32, lowp>		lowp_u32vec4;
 
 
 	/// Medium precision 32 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u32, mediump>		mediump_u32vec1;
+	typedef vec<1, u32, mediump>		mediump_u32vec1;
 
 	/// Medium precision 32 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u32, mediump>		mediump_u32vec2;
+	typedef vec<2, u32, mediump>		mediump_u32vec2;
 
 	/// Medium precision 32 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u32, mediump>		mediump_u32vec3;
+	typedef vec<3, u32, mediump>		mediump_u32vec3;
 
 	/// Medium precision 32 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u32, mediump>		mediump_u32vec4;
+	typedef vec<4, u32, mediump>		mediump_u32vec4;
 
 
 	/// High precision 32 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u32, highp>		highp_u32vec1;
+	typedef vec<1, u32, highp>		highp_u32vec1;
 
 	/// High precision 32 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u32, highp>		highp_u32vec2;
+	typedef vec<2, u32, highp>		highp_u32vec2;
 
 	/// High precision 32 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u32, highp>		highp_u32vec3;
+	typedef vec<3, u32, highp>		highp_u32vec3;
 
 	/// High precision 32 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u32, highp>		highp_u32vec4;
+	typedef vec<4, u32, highp>		highp_u32vec4;
 
 #if(defined(GLM_PRECISION_LOWP_INT))
 	typedef lowp_u32vec1			u32vec1;
@@ -1176,53 +1147,53 @@ namespace glm
 
 	/// Low precision 32 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u32, lowp>		lowp_u32vec1;
+	typedef vec<1, u32, lowp>		lowp_u32vec1;
 
 	/// Low precision 32 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u32, lowp>		lowp_u32vec2;
+	typedef vec<2, u32, lowp>		lowp_u32vec2;
 
 	/// Low precision 32 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u32, lowp>		lowp_u32vec3;
+	typedef vec<3, u32, lowp>		lowp_u32vec3;
 
 	/// Low precision 32 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u32, lowp>		lowp_u32vec4;
+	typedef vec<4, u32, lowp>		lowp_u32vec4;
 
 
 	/// Medium precision 32 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u32, mediump>		mediump_u32vec1;
+	typedef vec<1, u32, mediump>		mediump_u32vec1;
 
 	/// Medium precision 32 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u32, mediump>		mediump_u32vec2;
+	typedef vec<2, u32, mediump>		mediump_u32vec2;
 
 	/// Medium precision 32 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u32, mediump>		mediump_u32vec3;
+	typedef vec<3, u32, mediump>		mediump_u32vec3;
 
 	/// Medium precision 32 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u32, mediump>		mediump_u32vec4;
+	typedef vec<4, u32, mediump>		mediump_u32vec4;
 
 
 	/// High precision 32 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u32, highp>		highp_u32vec1;
+	typedef vec<1, u32, highp>		highp_u32vec1;
 
 	/// High precision 32 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u32, highp>		highp_u32vec2;
+	typedef vec<2, u32, highp>		highp_u32vec2;
 
 	/// High precision 32 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u32, highp>		highp_u32vec3;
+	typedef vec<3, u32, highp>		highp_u32vec3;
 
 	/// High precision 32 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u32, highp>		highp_u32vec4;
+	typedef vec<4, u32, highp>		highp_u32vec4;
 
 #if(defined(GLM_PRECISION_LOWP_INT))
 	typedef lowp_u32vec1			u32vec1;
@@ -1256,53 +1227,53 @@ namespace glm
 	
 	/// Low precision 64 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u64, lowp>		lowp_u64vec1;
+	typedef vec<1, u64, lowp>		lowp_u64vec1;
 
 	/// Low precision 64 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u64, lowp>		lowp_u64vec2;
+	typedef vec<2, u64, lowp>		lowp_u64vec2;
 
 	/// Low precision 64 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u64, lowp>		lowp_u64vec3;
+	typedef vec<3, u64, lowp>		lowp_u64vec3;
 
 	/// Low precision 64 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u64, lowp>		lowp_u64vec4;
+	typedef vec<4, u64, lowp>		lowp_u64vec4;
 
 
 	/// Medium precision 64 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u64, mediump>		mediump_u64vec1;
+	typedef vec<1, u64, mediump>		mediump_u64vec1;
 
 	/// Medium precision 64 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u64, mediump>		mediump_u64vec2;
+	typedef vec<2, u64, mediump>		mediump_u64vec2;
 
 	/// Medium precision 64 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u64, mediump>		mediump_u64vec3;
+	typedef vec<3, u64, mediump>		mediump_u64vec3;
 
 	/// Medium precision 64 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u64, mediump>		mediump_u64vec4;
+	typedef vec<4, u64, mediump>		mediump_u64vec4;
 
 
 	/// High precision 64 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u64, highp>		highp_u64vec1;
+	typedef vec<1, u64, highp>		highp_u64vec1;
 
 	/// High precision 64 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u64, highp>		highp_u64vec2;
+	typedef vec<2, u64, highp>		highp_u64vec2;
 
 	/// High precision 64 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u64, highp>		highp_u64vec3;
+	typedef vec<3, u64, highp>		highp_u64vec3;
 
 	/// High precision 64 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u64, highp>		highp_u64vec4;
+	typedef vec<4, u64, highp>		highp_u64vec4;
 
 #if(defined(GLM_PRECISION_LOWP_UINT))
 	typedef lowp_u64vec1			u64vec1;
@@ -1541,199 +1512,199 @@ namespace glm
 
 	/// Low single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<float, lowp> lowp_vec1;
+	typedef vec<1, float, lowp> lowp_vec1;
 
 	/// Low single-precision floating-point vector of 2 components.
 	/// @see core_precision
-	typedef tvec2<float, lowp> lowp_vec2;
+	typedef vec<2, float, lowp> lowp_vec2;
 
 	/// Low single-precision floating-point vector of 3 components.
 	/// @see core_precision
-	typedef tvec3<float, lowp> lowp_vec3;
+	typedef vec<3, float, lowp> lowp_vec3;
 
 	/// Low single-precision floating-point vector of 4 components.
 	/// @see core_precision
-	typedef tvec4<float, lowp> lowp_vec4;
+	typedef vec<4, float, lowp> lowp_vec4;
 
 	/// Low single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<float, lowp> lowp_fvec1;
+	typedef vec<1, float, lowp> lowp_fvec1;
 
 	/// Low single-precision floating-point vector of 2 components.
 	/// @see gtc_type_precision
-	typedef tvec2<float, lowp> lowp_fvec2;
+	typedef vec<2, float, lowp> lowp_fvec2;
 
 	/// Low single-precision floating-point vector of 3 components.
 	/// @see gtc_type_precision
-	typedef tvec3<float, lowp> lowp_fvec3;
+	typedef vec<3, float, lowp> lowp_fvec3;
 
 	/// Low single-precision floating-point vector of 4 components.
 	/// @see gtc_type_precision
-	typedef tvec4<float, lowp> lowp_fvec4;
+	typedef vec<4, float, lowp> lowp_fvec4;
 
 
 	/// Medium single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<float, mediump> mediump_vec1;
+	typedef vec<1, float, mediump> mediump_vec1;
 
 	/// Medium Single-precision floating-point vector of 2 components.
 	/// @see core_precision
-	typedef tvec2<float, mediump> mediump_vec2;
+	typedef vec<2, float, mediump> mediump_vec2;
 
 	/// Medium Single-precision floating-point vector of 3 components.
 	/// @see core_precision
-	typedef tvec3<float, mediump> mediump_vec3;
+	typedef vec<3, float, mediump> mediump_vec3;
 
 	/// Medium Single-precision floating-point vector of 4 components.
 	/// @see core_precision
-	typedef tvec4<float, mediump> mediump_vec4;
+	typedef vec<4, float, mediump> mediump_vec4;
 
 	/// Medium single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<float, mediump> mediump_fvec1;
+	typedef vec<1, float, mediump> mediump_fvec1;
 
 	/// Medium Single-precision floating-point vector of 2 components.
 	/// @see gtc_type_precision
-	typedef tvec2<float, mediump> mediump_fvec2;
+	typedef vec<2, float, mediump> mediump_fvec2;
 
 	/// Medium Single-precision floating-point vector of 3 components.
 	/// @see gtc_type_precision
-	typedef tvec3<float, mediump> mediump_fvec3;
+	typedef vec<3, float, mediump> mediump_fvec3;
 
 	/// Medium Single-precision floating-point vector of 4 components.
 	/// @see gtc_type_precision
-	typedef tvec4<float, mediump> mediump_fvec4;
+	typedef vec<4, float, mediump> mediump_fvec4;
 
 
 	/// High single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<float, highp> highp_vec1;
+	typedef vec<1, float, highp> highp_vec1;
 
 	/// High Single-precision floating-point vector of 2 components.
 	/// @see core_precision
-	typedef tvec2<float, highp> highp_vec2;
+	typedef vec<2, float, highp> highp_vec2;
 
 	/// High Single-precision floating-point vector of 3 components.
 	/// @see core_precision
-	typedef tvec3<float, highp> highp_vec3;
+	typedef vec<3, float, highp> highp_vec3;
 
 	/// High Single-precision floating-point vector of 4 components.
 	/// @see core_precision
-	typedef tvec4<float, highp> highp_vec4;
+	typedef vec<4, float, highp> highp_vec4;
 
 	/// High single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<float, highp> highp_fvec1;
+	typedef vec<1, float, highp> highp_fvec1;
 
 	/// High Single-precision floating-point vector of 2 components.
 	/// @see core_precision
-	typedef tvec2<float, highp> highp_fvec2;
+	typedef vec<2, float, highp> highp_fvec2;
 
 	/// High Single-precision floating-point vector of 3 components.
 	/// @see core_precision
-	typedef tvec3<float, highp> highp_fvec3;
+	typedef vec<3, float, highp> highp_fvec3;
 
 	/// High Single-precision floating-point vector of 4 components.
 	/// @see core_precision
-	typedef tvec4<float, highp> highp_fvec4;
+	typedef vec<4, float, highp> highp_fvec4;
 
 
 	/// Low single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<f32, lowp> lowp_f32vec1;
+	typedef vec<1, f32, lowp> lowp_f32vec1;
 
 	/// Low single-precision floating-point vector of 2 components.
 	/// @see core_precision
-	typedef tvec2<f32, lowp> lowp_f32vec2;
+	typedef vec<2, f32, lowp> lowp_f32vec2;
 
 	/// Low single-precision floating-point vector of 3 components.
 	/// @see core_precision
-	typedef tvec3<f32, lowp> lowp_f32vec3;
+	typedef vec<3, f32, lowp> lowp_f32vec3;
 
 	/// Low single-precision floating-point vector of 4 components.
 	/// @see core_precision
-	typedef tvec4<f32, lowp> lowp_f32vec4;
+	typedef vec<4, f32, lowp> lowp_f32vec4;
 
 	/// Medium single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<f32, mediump> mediump_f32vec1;
+	typedef vec<1, f32, mediump> mediump_f32vec1;
 
 	/// Medium single-precision floating-point vector of 2 components.
 	/// @see core_precision
-	typedef tvec2<f32, mediump> mediump_f32vec2;
+	typedef vec<2, f32, mediump> mediump_f32vec2;
 
 	/// Medium single-precision floating-point vector of 3 components.
 	/// @see core_precision
-	typedef tvec3<f32, mediump> mediump_f32vec3;
+	typedef vec<3, f32, mediump> mediump_f32vec3;
 
 	/// Medium single-precision floating-point vector of 4 components.
 	/// @see core_precision
-	typedef tvec4<f32, mediump> mediump_f32vec4;
+	typedef vec<4, f32, mediump> mediump_f32vec4;
 
 	/// High single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<f32, highp> highp_f32vec1;
+	typedef vec<1, f32, highp> highp_f32vec1;
 
 	/// High single-precision floating-point vector of 2 components.
 	/// @see gtc_type_precision
-	typedef tvec2<f32, highp> highp_f32vec2;
+	typedef vec<2, f32, highp> highp_f32vec2;
 
 	/// High single-precision floating-point vector of 3 components.
 	/// @see gtc_type_precision
-	typedef tvec3<f32, highp> highp_f32vec3;
+	typedef vec<3, f32, highp> highp_f32vec3;
 
 	/// High single-precision floating-point vector of 4 components.
 	/// @see gtc_type_precision
-	typedef tvec4<f32, highp> highp_f32vec4;
+	typedef vec<4, f32, highp> highp_f32vec4;
 
 
 	/// Low double-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<f64, lowp> lowp_f64vec1;
+	typedef vec<1, f64, lowp> lowp_f64vec1;
 
 	/// Low double-precision floating-point vector of 2 components.
 	/// @see gtc_type_precision
-	typedef tvec2<f64, lowp> lowp_f64vec2;
+	typedef vec<2, f64, lowp> lowp_f64vec2;
 
 	/// Low double-precision floating-point vector of 3 components.
 	/// @see gtc_type_precision
-	typedef tvec3<f64, lowp> lowp_f64vec3;
+	typedef vec<3, f64, lowp> lowp_f64vec3;
 
 	/// Low double-precision floating-point vector of 4 components.
 	/// @see gtc_type_precision
-	typedef tvec4<f64, lowp> lowp_f64vec4;
+	typedef vec<4, f64, lowp> lowp_f64vec4;
 
 	/// Medium double-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<f64, mediump> mediump_f64vec1;
+	typedef vec<1, f64, mediump> mediump_f64vec1;
 
 	/// Medium double-precision floating-point vector of 2 components.
 	/// @see gtc_type_precision
-	typedef tvec2<f64, mediump> mediump_f64vec2;
+	typedef vec<2, f64, mediump> mediump_f64vec2;
 
 	/// Medium double-precision floating-point vector of 3 components.
 	/// @see gtc_type_precision
-	typedef tvec3<f64, mediump> mediump_f64vec3;
+	typedef vec<3, f64, mediump> mediump_f64vec3;
 
 	/// Medium double-precision floating-point vector of 4 components.
 	/// @see gtc_type_precision
-	typedef tvec4<f64, mediump> mediump_f64vec4;
+	typedef vec<4, f64, mediump> mediump_f64vec4;
 
 	/// High double-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<f64, highp> highp_f64vec1;
+	typedef vec<1, f64, highp> highp_f64vec1;
 
 	/// High double-precision floating-point vector of 2 components.
 	/// @see gtc_type_precision
-	typedef tvec2<f64, highp> highp_f64vec2;
+	typedef vec<2, f64, highp> highp_f64vec2;
 
 	/// High double-precision floating-point vector of 3 components.
 	/// @see gtc_type_precision
-	typedef tvec3<f64, highp> highp_f64vec3;
+	typedef vec<3, f64, highp> highp_f64vec3;
 
 	/// High double-precision floating-point vector of 4 components.
 	/// @see gtc_type_precision
-	typedef tvec4<f64, highp> highp_f64vec4;
+	typedef vec<4, f64, highp> highp_f64vec4;
 
 
 	//////////////////////
@@ -1745,39 +1716,39 @@ namespace glm
 
 	/// Low single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, lowp> lowp_fmat2x2;
+	typedef mat<2, 2, f32, lowp> lowp_fmat2x2;
 
 	/// Low single-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f32, lowp> lowp_fmat2x3;
+	typedef mat<2, 3, f32, lowp> lowp_fmat2x3;
 
 	/// Low single-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f32, lowp> lowp_fmat2x4;
+	typedef mat<2, 4, f32, lowp> lowp_fmat2x4;
 
 	/// Low single-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f32, lowp> lowp_fmat3x2;
+	typedef mat<3, 2, f32, lowp> lowp_fmat3x2;
 
 	/// Low single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, lowp> lowp_fmat3x3;
+	typedef mat<3, 3, f32, lowp> lowp_fmat3x3;
 
 	/// Low single-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f32, lowp> lowp_fmat3x4;
+	typedef mat<3, 4, f32, lowp> lowp_fmat3x4;
 
 	/// Low single-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f32, lowp> lowp_fmat4x2;
+	typedef mat<4, 2, f32, lowp> lowp_fmat4x2;
 
 	/// Low single-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f32, lowp> lowp_fmat4x3;
+	typedef mat<4, 3, f32, lowp> lowp_fmat4x3;
 
 	/// Low single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, lowp> lowp_fmat4x4;
+	typedef mat<4, 4, f32, lowp> lowp_fmat4x4;
 
 	/// Low single-precision floating-point 1x1 matrix.
 	/// @see gtc_type_precision
@@ -1802,39 +1773,39 @@ namespace glm
 
 	/// Medium single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, mediump> mediump_fmat2x2;
+	typedef mat<2, 2, f32, mediump> mediump_fmat2x2;
 
 	/// Medium single-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f32, mediump> mediump_fmat2x3;
+	typedef mat<2, 3, f32, mediump> mediump_fmat2x3;
 
 	/// Medium single-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f32, mediump> mediump_fmat2x4;
+	typedef mat<2, 4, f32, mediump> mediump_fmat2x4;
 
 	/// Medium single-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f32, mediump> mediump_fmat3x2;
+	typedef mat<3, 2, f32, mediump> mediump_fmat3x2;
 
 	/// Medium single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, mediump> mediump_fmat3x3;
+	typedef mat<3, 3, f32, mediump> mediump_fmat3x3;
 
 	/// Medium single-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f32, mediump> mediump_fmat3x4;
+	typedef mat<3, 4, f32, mediump> mediump_fmat3x4;
 
 	/// Medium single-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f32, mediump> mediump_fmat4x2;
+	typedef mat<4, 2, f32, mediump> mediump_fmat4x2;
 
 	/// Medium single-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f32, mediump> mediump_fmat4x3;
+	typedef mat<4, 3, f32, mediump> mediump_fmat4x3;
 
 	/// Medium single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, mediump> mediump_fmat4x4;
+	typedef mat<4, 4, f32, mediump> mediump_fmat4x4;
 
 	/// Medium single-precision floating-point 1x1 matrix.
 	/// @see gtc_type_precision
@@ -1859,39 +1830,39 @@ namespace glm
 
 	/// High single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, highp> highp_fmat2x2;
+	typedef mat<2, 2, f32, highp> highp_fmat2x2;
 
 	/// High single-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f32, highp> highp_fmat2x3;
+	typedef mat<2, 3, f32, highp> highp_fmat2x3;
 
 	/// High single-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f32, highp> highp_fmat2x4;
+	typedef mat<2, 4, f32, highp> highp_fmat2x4;
 
 	/// High single-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f32, highp> highp_fmat3x2;
+	typedef mat<3, 2, f32, highp> highp_fmat3x2;
 
 	/// High single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, highp> highp_fmat3x3;
+	typedef mat<3, 3, f32, highp> highp_fmat3x3;
 
 	/// High single-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f32, highp> highp_fmat3x4;
+	typedef mat<3, 4, f32, highp> highp_fmat3x4;
 
 	/// High single-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f32, highp> highp_fmat4x2;
+	typedef mat<4, 2, f32, highp> highp_fmat4x2;
 
 	/// High single-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f32, highp> highp_fmat4x3;
+	typedef mat<4, 3, f32, highp> highp_fmat4x3;
 
 	/// High single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, highp> highp_fmat4x4;
+	typedef mat<4, 4, f32, highp> highp_fmat4x4;
 
 	/// High single-precision floating-point 1x1 matrix.
 	/// @see gtc_type_precision
@@ -1916,39 +1887,39 @@ namespace glm
 
 	/// Low single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, lowp> lowp_f32mat2x2;
+	typedef mat<2, 2, f32, lowp> lowp_f32mat2x2;
 
 	/// Low single-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f32, lowp> lowp_f32mat2x3;
+	typedef mat<2, 3, f32, lowp> lowp_f32mat2x3;
 
 	/// Low single-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f32, lowp> lowp_f32mat2x4;
+	typedef mat<2, 4, f32, lowp> lowp_f32mat2x4;
 
 	/// Low single-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f32, lowp> lowp_f32mat3x2;
+	typedef mat<3, 2, f32, lowp> lowp_f32mat3x2;
 
 	/// Low single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, lowp> lowp_f32mat3x3;
+	typedef mat<3, 3, f32, lowp> lowp_f32mat3x3;
 
 	/// Low single-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f32, lowp> lowp_f32mat3x4;
+	typedef mat<3, 4, f32, lowp> lowp_f32mat3x4;
 
 	/// Low single-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f32, lowp> lowp_f32mat4x2;
+	typedef mat<4, 2, f32, lowp> lowp_f32mat4x2;
 
 	/// Low single-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f32, lowp> lowp_f32mat4x3;
+	typedef mat<4, 3, f32, lowp> lowp_f32mat4x3;
 
 	/// Low single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, lowp> lowp_f32mat4x4;
+	typedef mat<4, 4, f32, lowp> lowp_f32mat4x4;
 
 	/// Low single-precision floating-point 1x1 matrix.
 	/// @see gtc_type_precision
@@ -1973,39 +1944,39 @@ namespace glm
 
 	/// Low single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, mediump> mediump_f32mat2x2;
+	typedef mat<2, 2, f32, mediump> mediump_f32mat2x2;
 
 	/// Medium single-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f32, mediump> mediump_f32mat2x3;
+	typedef mat<2, 3, f32, mediump> mediump_f32mat2x3;
 
 	/// Medium single-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f32, mediump> mediump_f32mat2x4;
+	typedef mat<2, 4, f32, mediump> mediump_f32mat2x4;
 
 	/// Medium single-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f32, mediump> mediump_f32mat3x2;
+	typedef mat<3, 2, f32, mediump> mediump_f32mat3x2;
 
 	/// Medium single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, mediump> mediump_f32mat3x3;
+	typedef mat<3, 3, f32, mediump> mediump_f32mat3x3;
 
 	/// Medium single-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f32, mediump> mediump_f32mat3x4;
+	typedef mat<3, 4, f32, mediump> mediump_f32mat3x4;
 
 	/// Medium single-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f32, mediump> mediump_f32mat4x2;
+	typedef mat<4, 2, f32, mediump> mediump_f32mat4x2;
 
 	/// Medium single-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f32, mediump> mediump_f32mat4x3;
+	typedef mat<4, 3, f32, mediump> mediump_f32mat4x3;
 
 	/// Medium single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, mediump> mediump_f32mat4x4;
+	typedef mat<4, 4, f32, mediump> mediump_f32mat4x4;
 
 	/// Medium single-precision floating-point 1x1 matrix.
 	/// @see gtc_type_precision
@@ -2030,39 +2001,39 @@ namespace glm
 
 	/// High single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, highp> highp_f32mat2x2;
+	typedef mat<2, 2, f32, highp> highp_f32mat2x2;
 
 	/// High single-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f32, highp> highp_f32mat2x3;
+	typedef mat<2, 3, f32, highp> highp_f32mat2x3;
 
 	/// High single-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f32, highp> highp_f32mat2x4;
+	typedef mat<2, 4, f32, highp> highp_f32mat2x4;
 
 	/// High single-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f32, highp> highp_f32mat3x2;
+	typedef mat<3, 2, f32, highp> highp_f32mat3x2;
 
 	/// High single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, highp> highp_f32mat3x3;
+	typedef mat<3, 3, f32, highp> highp_f32mat3x3;
 
 	/// High single-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f32, highp> highp_f32mat3x4;
+	typedef mat<3, 4, f32, highp> highp_f32mat3x4;
 
 	/// High single-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f32, highp> highp_f32mat4x2;
+	typedef mat<4, 2, f32, highp> highp_f32mat4x2;
 
 	/// High single-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f32, highp> highp_f32mat4x3;
+	typedef mat<4, 3, f32, highp> highp_f32mat4x3;
 
 	/// High single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, highp> highp_f32mat4x4;
+	typedef mat<4, 4, f32, highp> highp_f32mat4x4;
 
 	/// High single-precision floating-point 1x1 matrix.
 	/// @see gtc_type_precision
@@ -2087,39 +2058,39 @@ namespace glm
 
 	/// Low double-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f64, lowp> lowp_f64mat2x2;
+	typedef mat<2, 2, f64, lowp> lowp_f64mat2x2;
 
 	/// Low double-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f64, lowp> lowp_f64mat2x3;
+	typedef mat<2, 3, f64, lowp> lowp_f64mat2x3;
 
 	/// Low double-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f64, lowp> lowp_f64mat2x4;
+	typedef mat<2, 4, f64, lowp> lowp_f64mat2x4;
 
 	/// Low double-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f64, lowp> lowp_f64mat3x2;
+	typedef mat<3, 2, f64, lowp> lowp_f64mat3x2;
 
 	/// Low double-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f64, lowp> lowp_f64mat3x3;
+	typedef mat<3, 3, f64, lowp> lowp_f64mat3x3;
 
 	/// Low double-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f64, lowp> lowp_f64mat3x4;
+	typedef mat<3, 4, f64, lowp> lowp_f64mat3x4;
 
 	/// Low double-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f64, lowp> lowp_f64mat4x2;
+	typedef mat<4, 2, f64, lowp> lowp_f64mat4x2;
 
 	/// Low double-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f64, lowp> lowp_f64mat4x3;
+	typedef mat<4, 3, f64, lowp> lowp_f64mat4x3;
 	
 	/// Low double-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f64, lowp> lowp_f64mat4x4;
+	typedef mat<4, 4, f64, lowp> lowp_f64mat4x4;
 
 	/// Low double-precision floating-point 1x1 matrix.
 	/// @see gtc_type_precision
@@ -2144,39 +2115,39 @@ namespace glm
 
 	/// Medium double-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f64, mediump> mediump_f64mat2x2;
+	typedef mat<2, 2, f64, mediump> mediump_f64mat2x2;
 
 	/// Medium double-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f64, mediump> mediump_f64mat2x3;
+	typedef mat<2, 3, f64, mediump> mediump_f64mat2x3;
 
 	/// Medium double-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f64, mediump> mediump_f64mat2x4;
+	typedef mat<2, 4, f64, mediump> mediump_f64mat2x4;
 
 	/// Medium double-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f64, mediump> mediump_f64mat3x2;
+	typedef mat<3, 2, f64, mediump> mediump_f64mat3x2;
 
 	/// Medium double-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f64, mediump> mediump_f64mat3x3;
+	typedef mat<3, 3, f64, mediump> mediump_f64mat3x3;
 
 	/// Medium double-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f64, mediump> mediump_f64mat3x4;
+	typedef mat<3, 4, f64, mediump> mediump_f64mat3x4;
 
 	/// Medium double-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f64, mediump> mediump_f64mat4x2;
+	typedef mat<4, 2, f64, mediump> mediump_f64mat4x2;
 
 	/// Medium double-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f64, mediump> mediump_f64mat4x3;
+	typedef mat<4, 3, f64, mediump> mediump_f64mat4x3;
 
 	/// Medium double-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f64, mediump> mediump_f64mat4x4;
+	typedef mat<4, 4, f64, mediump> mediump_f64mat4x4;
 
 	/// Medium double-precision floating-point 1x1 matrix.
 	/// @see gtc_type_precision
@@ -2200,39 +2171,39 @@ namespace glm
 
 	/// High double-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f64, highp> highp_f64mat2x2;
+	typedef mat<2, 2, f64, highp> highp_f64mat2x2;
 
 	/// High double-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f64, highp> highp_f64mat2x3;
+	typedef mat<2, 3, f64, highp> highp_f64mat2x3;
 
 	/// High double-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f64, highp> highp_f64mat2x4;
+	typedef mat<2, 4, f64, highp> highp_f64mat2x4;
 
 	/// High double-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f64, highp> highp_f64mat3x2;
+	typedef mat<3, 2, f64, highp> highp_f64mat3x2;
 
 	/// High double-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f64, highp> highp_f64mat3x3;
+	typedef mat<3, 3, f64, highp> highp_f64mat3x3;
 
 	/// High double-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f64, highp> highp_f64mat3x4;
+	typedef mat<3, 4, f64, highp> highp_f64mat3x4;
 
 	/// High double-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f64, highp> highp_f64mat4x2;
+	typedef mat<4, 2, f64, highp> highp_f64mat4x2;
 
 	/// High double-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f64, highp> highp_f64mat4x3;
+	typedef mat<4, 3, f64, highp> highp_f64mat4x3;
 
 	/// High double-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f64, highp> highp_f64mat4x4;
+	typedef mat<4, 4, f64, highp> highp_f64mat4x4;
 
 	/// High double-precision floating-point 1x1 matrix.
 	/// @see gtc_type_precision

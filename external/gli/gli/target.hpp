@@ -1,35 +1,11 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Image (gli.g-truc.net)
-///
-/// Copyright (c) 2008 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-/// 
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-/// 
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
-/// @ref core
+/// @brief Include to use the target enum and query properties of targets.
 /// @file gli/target.hpp
-/// @date 2015-08-21 / 2015-08-21
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
 
 namespace gli
 {
+	/// Texture target: type/shape of the texture storage_linear
 	enum target
 	{
 		TARGET_1D = 0, TARGET_FIRST = TARGET_1D,
@@ -37,6 +13,8 @@ namespace gli
 		TARGET_2D,
 		TARGET_2D_ARRAY,
 		TARGET_3D,
+		TARGET_RECT,
+		TARGET_RECT_ARRAY,
 		TARGET_CUBE,
 		TARGET_CUBE_ARRAY, TARGET_LAST = TARGET_CUBE_ARRAY
 	};
@@ -63,5 +41,11 @@ namespace gli
 	inline bool is_target_cube(target Target)
 	{
 		return Target == TARGET_CUBE || Target == TARGET_CUBE_ARRAY;
+	}
+	
+	/// Check whether a target is a rectangle target
+	inline bool is_target_rect(target Target)
+	{
+		return Target == TARGET_RECT || Target == TARGET_RECT_ARRAY;
 	}
 }//namespace gli

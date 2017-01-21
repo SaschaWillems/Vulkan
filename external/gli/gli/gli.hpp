@@ -1,42 +1,40 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Image (gli.g-truc.net)
-///
-/// Copyright (c) 2008 - 2015 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-///
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-///
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
-/// @ref core
+/// @brief Include to include everything in GLI which is not recommendated due to compilation time cost.
 /// @file gli/gli.hpp
-/// @date 2008-12-19 / 2015-08-08
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
-
-/*! @mainpage OpenGL Image
- *
- */
+/// @mainpage OpenGL Image (GLI)
+///
+/// [OpenGL Image](http://gli.g-truc.net/) (*GLI*) is a header only C++ image library for graphics software.
+/// (*GLI*) provides classes and functions to load image files ([KTX](https://www.khronos.org/opengles/sdk/tools/KTX/) and [DDS](https://msdn.microsoft.com/en-us/library/windows/desktop/bb943990%28v=vs.85%29.aspx)),
+/// facilitate graphics APIs texture creation, compare textures, access texture texels, sample textures, convert textures, generate mipmaps, etc.
+///
+/// This library works perfectly with [OpenGL](https://www.opengl.org) or [Vulkan](https://www.khronos.org/vulkan) but it also ensures interoperability with other third party libraries and SDK.
+/// It is a good candidate for software rendering (raytracing / rasterisation), image processing, image based software testing or any development context that requires a simple and convenient image library.
+///
+/// *GLI* is written in C++11. It is a platform independent library with no dependence and it supports the following compilers:
+/// - [Apple Clang 4.0](https://developer.apple.com/library/mac/documentation/CompilerTools/Conceptual/LLVMCompilerOverview/index.html) and higher
+/// - [GCC](http://gcc.gnu.org/) 4.6 and higher
+/// - [Intel C++ Composer](https://software.intel.com/en-us/intel-compilers) XE 2013 and higher
+/// - [LLVM](http://llvm.org/) 3.2 and higher
+/// - [Visual C++](http://www.visualstudio.com/) 2010 and higher
+/// - Any conform C++11 compiler
+///
+/// For more information about *GLI*, please have a look at the [API reference documentation](http://gli.g-truc.net/0.8.0/api/index.html).
+/// The source code and the documentation are licensed under the [Happy Bunny License (Modified MIT) or the MIT License](copying.md).
+///
+/// Thanks for contributing to the project by [submitting issues](https://github.com/g-truc/gli/issues) for bug reports and feature requests. Any feedback is welcome at [gli@g-truc.net](mailto://gli@g-truc.net).
 
 #pragma once
 
-#define GLI_VERSION					70
+#define GLI_VERSION					82
 #define GLI_VERSION_MAJOR			0
-#define GLI_VERSION_MINOR			7
-#define GLI_VERSION_PATCH			0
-#define GLI_VERSION_REVISION		0
+#define GLI_VERSION_MINOR			8
+#define GLI_VERSION_PATCH			2
+#define GLI_VERSION_REVISION		1
+
+/// Namespace where all the classes and functions provided by GLI are exposed
+namespace gli
+{
+
+}//namespace gli
 
 #include "format.hpp"
 #include "target.hpp"
@@ -52,9 +50,21 @@
 #include "texture_cube.hpp"
 #include "texture_cube_array.hpp"
 
-#include "copy.hpp"
+#include "sampler1d.hpp"
+#include "sampler1d_array.hpp"
+#include "sampler2d.hpp"
+#include "sampler2d_array.hpp"
+#include "sampler3d.hpp"
+#include "sampler_cube.hpp"
+#include "sampler_cube_array.hpp"
+
+#include "duplicate.hpp"
+#include "convert.hpp"
 #include "view.hpp"
 #include "comparison.hpp"
+
+#include "reduce.hpp"
+#include "transform.hpp"
 
 #include "load.hpp"
 #include "save.hpp"
@@ -63,7 +73,3 @@
 #include "dx.hpp"
 
 #include "./core/flip.hpp"
-#include "./core/fetch.hpp"
-
-
-
