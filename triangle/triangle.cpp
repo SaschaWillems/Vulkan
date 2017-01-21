@@ -6,7 +6,7 @@
 *	Contrary to the other examples, this one won't make use of helper functions or initializers
 *	Except in a few cases (swap chain setup e.g.)
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -27,7 +27,6 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 
-#define VERTEX_BUFFER_BIND_ID 0
 // Set to "true" to enable Vulkan's validation layers (see vulkandebug.cpp for details)
 #define ENABLE_VALIDATION false
 // Set to "true" to use staging buffers for uploading vertex and index data to device local memory
@@ -37,13 +36,16 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	// Vertex layout used in this example
+	struct Vertex {
+		float position[3];
+		float color[3];
+	};
+
 	// Vertex buffer and attributes
 	struct {
 		VkDeviceMemory memory;															// Handle to the device memory for this buffer
 		VkBuffer buffer;																// Handle to the Vulkan buffer object that the memory is bound to
-		VkPipelineVertexInputStateCreateInfo inputState;
-		VkVertexInputBindingDescription inputBinding;
-		std::vector<VkVertexInputAttributeDescription> inputAttributes;
 	} vertices;
 
 	// Index buffer
@@ -310,7 +312,7 @@ public:
 
 			// Bind triangle vertex buffer (contains position and colors)
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertices.buffer, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &vertices.buffer, offsets);
 
 			// Bind triangle index buffer
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -365,12 +367,6 @@ public:
 		// A note on memory management in Vulkan in general:
 		//	This is a very complex topic and while it's fine for an example application to to small individual memory allocations that is not
 		//	what should be done a real-world application, where you should allocate large chunkgs of memory at once isntead.
-
-		struct Vertex 
-		{
-			float position[3];
-			float color[3];
-		};
 
 		// Setup vertices
 		std::vector<Vertex> vertexBuffer = 
@@ -536,36 +532,6 @@ public:
 			vkUnmapMemory(device, indices.memory);
 			VK_CHECK_RESULT(vkBindBufferMemory(device, indices.buffer, indices.memory, 0));
 		}
-
-		// Vertex input binding
-		vertices.inputBinding.binding = VERTEX_BUFFER_BIND_ID;				
-		vertices.inputBinding.stride = sizeof(Vertex);
-		vertices.inputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		// Inpute attribute binding describe shader attribute locations and memory layouts
-		// These match the following shader layout (see triangle.vert):
-		//	layout (location = 0) in vec3 inPos;
-		//	layout (location = 1) in vec3 inColor;
-		vertices.inputAttributes.resize(2);
-		// Attribute location 0: Position
-		vertices.inputAttributes[0].binding = VERTEX_BUFFER_BIND_ID;
-		vertices.inputAttributes[0].location = 0;
-		vertices.inputAttributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		vertices.inputAttributes[0].offset = offsetof(Vertex, position);
-		// Attribute location 1: Color
-		vertices.inputAttributes[1].binding = VERTEX_BUFFER_BIND_ID;
-		vertices.inputAttributes[1].location = 1;
-		vertices.inputAttributes[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		vertices.inputAttributes[1].offset = offsetof(Vertex, color);
-
-		// Assign to the vertex input state used for pipeline creation
-		vertices.inputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertices.inputState.pNext = nullptr;
-		vertices.inputState.flags = VK_FLAGS_NONE;
-		vertices.inputState.vertexBindingDescriptionCount = 1;
-		vertices.inputState.pVertexBindingDescriptions = &vertices.inputBinding;
-		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.inputAttributes.size());
-		vertices.inputState.pVertexAttributeDescriptions = vertices.inputAttributes.data();
 	}
 
 	void setupDescriptorPool()
@@ -957,7 +923,43 @@ public:
 		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 		multisampleState.pSampleMask = nullptr;
 
-		// Load shaders
+		// Vertex input descriptions 
+		// Specifies the vertex input parameters for a pipeline
+
+		// Vertex input binding
+		// This example uses a single vertex input binding at binding point 0 (see vkCmdBindVertexBuffers)
+		VkVertexInputBindingDescription vertexInputBinding = {};
+		vertexInputBinding.binding = 0;
+		vertexInputBinding.stride = sizeof(Vertex);
+		vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		// Inpute attribute bindings describe shader attribute locations and memory layouts
+		std::array<VkVertexInputAttributeDescription,2> vertexInputAttributs;
+		// These match the following shader layout (see triangle.vert):
+		//	layout (location = 0) in vec3 inPos;
+		//	layout (location = 1) in vec3 inColor;
+		// Attribute location 0: Position
+		vertexInputAttributs[0].binding = 0;
+		vertexInputAttributs[0].location = 0;
+		// Position attribute is three 32 bit signed (SFLOAT) floats (R32 G32 B32)
+		vertexInputAttributs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		vertexInputAttributs[0].offset = offsetof(Vertex, position);
+		// Attribute location 1: Color
+		vertexInputAttributs[1].binding = 0;
+		vertexInputAttributs[1].location = 1;
+		// Color attribute is three 32 bit signed (SFLOAT) floats (R32 G32 B32)
+		vertexInputAttributs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		vertexInputAttributs[1].offset = offsetof(Vertex, color);
+
+		// Vertex input state used for pipeline creation
+		VkPipelineVertexInputStateCreateInfo vertexInputState = {};
+		vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertexInputState.vertexBindingDescriptionCount = 1;
+		vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
+		vertexInputState.vertexAttributeDescriptionCount = 2;
+		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributs.data();
+
+		// Shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 		// Vertex shader
@@ -985,7 +987,7 @@ public:
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		// Assign the pipeline states to the pipeline creation info structure
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
+		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
