@@ -121,17 +121,17 @@ public:
 		AAsset_read(asset, textureData, size);
 		AAsset_close(asset);
 
-		gli::texture2D tex2D(gli::load((const char*)textureData, size));
+		gli::texture2d tex2D(gli::load((const char*)textureData, size));
 #else
-		gli::texture2D tex2D(gli::load(fileName));
+		gli::texture2d tex2D(gli::load(fileName));
 #endif
 
 		assert(!tex2D.empty());
 
 		VkFormatProperties formatProperties;
 
-		texture.width = static_cast<uint32_t>(tex2D[0].dimensions().x);
-		texture.height = static_cast<uint32_t>(tex2D[0].dimensions().y);
+		texture.width = static_cast<uint32_t>(tex2D[0].extent().x);
+		texture.height = static_cast<uint32_t>(tex2D[0].extent().y);
 
 		// calculate num of mip maps
 		// numLevels = 1 + floor(log2(max(w, h, d)))

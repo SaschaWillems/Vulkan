@@ -122,15 +122,15 @@ public:
 		AAsset_read(asset, textureData, size);
 		AAsset_close(asset);
 
-		gli::texture2DArray tex2DArray(gli::load((const char*)textureData, size));
+		gli::texture2d_array tex2DArray(gli::load((const char*)textureData, size));
 #else
-		gli::texture2DArray tex2DArray(gli::load(filename));
+		gli::texture2d_array tex2DArray(gli::load(filename));
 #endif
 
 		assert(!tex2DArray.empty());
 
-		textureArray.width = tex2DArray.dimensions().x;
-		textureArray.height = tex2DArray.dimensions().y;
+		textureArray.width = tex2DArray.extent().x;
+		textureArray.height = tex2DArray.extent().y;
 		layerCount = tex2DArray.layers();
 
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
@@ -168,11 +168,11 @@ public:
 		std::vector<VkBufferImageCopy> bufferCopyRegions;
 		uint32_t offset = 0;
 
-		// Check if all array layers have the same dimesions
+		// Check if all array layers have the same dimensions
 		bool sameDims = true;
 		for (uint32_t layer = 0; layer < layerCount; layer++)
 		{
-			if (tex2DArray[layer].dimensions().x != textureArray.width || tex2DArray[layer].dimensions().y != textureArray.height)
+			if (tex2DArray[layer].extent().x != textureArray.width || tex2DArray[layer].extent().y != textureArray.height)
 			{
 				sameDims = false;
 				break;
@@ -187,8 +187,8 @@ public:
 			bufferCopyRegion.imageSubresource.mipLevel = 0;
 			bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 			bufferCopyRegion.imageSubresource.layerCount = layerCount;
-			bufferCopyRegion.imageExtent.width = tex2DArray[0].dimensions().x;
-			bufferCopyRegion.imageExtent.height = tex2DArray[0].dimensions().y;
+			bufferCopyRegion.imageExtent.width = tex2DArray[0].extent().x;
+			bufferCopyRegion.imageExtent.height = tex2DArray[0].extent().y;
 			bufferCopyRegion.imageExtent.depth = 1;
 			bufferCopyRegion.bufferOffset = offset;
 
@@ -204,8 +204,8 @@ public:
 				bufferCopyRegion.imageSubresource.mipLevel = 0;
 				bufferCopyRegion.imageSubresource.baseArrayLayer = layer;
 				bufferCopyRegion.imageSubresource.layerCount = 1;
-				bufferCopyRegion.imageExtent.width = tex2DArray[layer].dimensions().x;
-				bufferCopyRegion.imageExtent.height = tex2DArray[layer].dimensions().y;
+				bufferCopyRegion.imageExtent.width = tex2DArray[layer].extent().x;
+				bufferCopyRegion.imageExtent.height = tex2DArray[layer].extent().y;
 				bufferCopyRegion.imageExtent.depth = 1;
 				bufferCopyRegion.bufferOffset = offset;
 

@@ -127,15 +127,15 @@ public:
 		AAsset_read(asset, textureData, size);
 		AAsset_close(asset);
 
-		gli::textureCube texCube(gli::load((const char*)textureData, size));
+		gli::texture_cube texCube(gli::load((const char*)textureData, size));
 #else
-		gli::textureCube texCube(gli::load(filename));
+		gli::texture_cube texCube(gli::load(filename));
 #endif
 
 		assert(!texCube.empty());
 
-		cubeMap.width = texCube.dimensions().x;
-		cubeMap.height = texCube.dimensions().y;
+		cubeMap.width = texCube.extent().x;
+		cubeMap.height = texCube.extent().y;
 		cubeMap.mipLevels = texCube.levels();
 
 		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
@@ -209,8 +209,8 @@ public:
 				bufferCopyRegion.imageSubresource.mipLevel = level;
 				bufferCopyRegion.imageSubresource.baseArrayLayer = face;
 				bufferCopyRegion.imageSubresource.layerCount = 1;
-				bufferCopyRegion.imageExtent.width = texCube[face][level].dimensions().x;
-				bufferCopyRegion.imageExtent.height = texCube[face][level].dimensions().y;
+				bufferCopyRegion.imageExtent.width = texCube[face][level].extent().x;
+				bufferCopyRegion.imageExtent.height = texCube[face][level].extent().y;
 				bufferCopyRegion.imageExtent.depth = 1;
 				bufferCopyRegion.bufferOffset = offset;
 

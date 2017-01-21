@@ -183,17 +183,17 @@ public:
 		AAsset_read(asset, textureData, size);
 		AAsset_close(asset);
 
-		gli::texture2D tex2D(gli::load((const char*)textureData, size));
+		gli::texture2d tex2D(gli::load((const char*)textureData, size));
 #else
-		gli::texture2D tex2D(gli::load(fileName));
+		gli::texture2d tex2D(gli::load(fileName));
 #endif
 
 		assert(!tex2D.empty());
 
 		VkFormatProperties formatProperties;
 
-		texture.width = static_cast<uint32_t>(tex2D[0].dimensions().x);
-		texture.height = static_cast<uint32_t>(tex2D[0].dimensions().y);
+		texture.width = static_cast<uint32_t>(tex2D[0].extent().x);
+		texture.height = static_cast<uint32_t>(tex2D[0].extent().y);
 		texture.mipLevels = static_cast<uint32_t>(tex2D.levels());
 
 		// Get device properites for the requested texture format
@@ -257,8 +257,8 @@ public:
 				bufferCopyRegion.imageSubresource.mipLevel = i;
 				bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 				bufferCopyRegion.imageSubresource.layerCount = 1;
-				bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2D[i].dimensions().x);
-				bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2D[i].dimensions().y);
+				bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2D[i].extent().x);
+				bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2D[i].extent().y);
 				bufferCopyRegion.imageExtent.depth = 1;
 				bufferCopyRegion.bufferOffset = offset;
 

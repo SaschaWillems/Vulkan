@@ -355,12 +355,12 @@ public:
 			void *textureData = malloc(size);
 			AAsset_read(asset, textureData, size);
 			AAsset_close(asset);
-			gli::texture2D heightTex(gli::load((const char*)textureData, size));
+			gli::texture2d heightTex(gli::load((const char*)textureData, size));
 			free(textureData);
 #else
-			gli::texture2D heightTex(gli::load(filename));
+			gli::texture2d heightTex(gli::load(filename));
 #endif
-			dim = static_cast<uint32_t>(heightTex.dimensions().x);
+			dim = static_cast<uint32_t>(heightTex.extent().x);
 			heightdata = new uint16_t[dim * dim];
 			memcpy(heightdata, heightTex.data(), heightTex.size());
 			this->scale = dim / patchsize;
