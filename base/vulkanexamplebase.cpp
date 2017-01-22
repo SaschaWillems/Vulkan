@@ -12,7 +12,7 @@ std::vector<const char*> VulkanExampleBase::args;
 
 VkResult VulkanExampleBase::createInstance(bool enableValidation)
 {
-	this->enableValidation = enableValidation;
+	this->settings.validation = enableValidation;
 
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -39,14 +39,14 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceCreateInfo.pApplicationInfo = &appInfo;
 	if (enabledExtensions.size() > 0)
 	{
-		if (enableValidation)
+		if (settings.validation)
 		{
 			enabledExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 		}
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
 	}
-	if (enableValidation)
+	if (settings.validation)
 	{
 		instanceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount;
 		instanceCreateInfo.ppEnabledLayerNames = vkDebug::validationLayerNames;
@@ -564,16 +564,22 @@ void VulkanExampleBase::submitFrame()
 
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
+	settings.validation = enableValidation;
+
 	// Parse command line arguments
 	for (size_t i = 0; i < args.size(); i++)
 	{
 		if (args[i] == std::string("-validation"))
 		{
-			this->enableValidation = true;
+			settings.validation = true;
 		}
 		if (args[i] == std::string("-vsync"))
 		{
-			enableVSync = true;
+			settings.vsync = true;
+		}
+		if (args[i] == std::string("-fullscreen"))
+		{
+			settings.fullscreen = true;
 		}
 		if ((args[i] == std::string("-w")) || (args[i] == std::string("-width")))
 		{
@@ -601,7 +607,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 #if defined(_WIN32)
 	// Enable console if validation is active
 	// Debug message callback will output to it
-	if (this->enableValidation)
+	if (this->settings.validation)
 	{
 		setupConsole("Vulkan validation output");
 	}
@@ -651,7 +657,7 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	delete vulkanDevice;
 
-	if (enableValidation)
+	if (settings.validation)
 	{
 		vkDebug::freeDebugCallback(instance);
 	}
@@ -675,7 +681,7 @@ void VulkanExampleBase::initVulkan()
 	VkResult err;
 
 	// Vulkan instance
-	err = createInstance(enableValidation);
+	err = createInstance(settings.validation);
 	if (err)
 	{
 		vkTools::exitFatal("Could not create Vulkan instance : \n" + vkTools::errorString(err), "Fatal error");
@@ -686,7 +692,7 @@ void VulkanExampleBase::initVulkan()
 #endif
 
 	// If requested, we enable the default validation layers for debugging
-	if (enableValidation)
+	if (settings.validation)
 	{
 		// The report flags determine what type of messages for the layers will be displayed
 		// For validating (debugging) an appplication the error and warning bits should suffice
@@ -777,15 +783,6 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 {
 	this->windowInstance = hinstance;
 
-	bool fullscreen = false;
-	for (auto arg : args)
-	{
-		if (arg == std::string("-fullscreen"))
-		{
-			fullscreen = true;
-		}
-	}
-
 	WNDCLASSEX wndClass;
 
 	wndClass.cbSize = sizeof(WNDCLASSEX);
@@ -811,7 +808,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	int screenWidth = GetSystemMetrics(SM_CXSCREEN);
 	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-	if (fullscreen)
+	if (settings.fullscreen)
 	{
 		DEVMODE dmScreenSettings;
 		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
@@ -827,11 +824,11 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 			{
 				if (MessageBox(NULL, "Fullscreen Mode not supported!\n Switch to window mode?", "Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
 				{
-					fullscreen = FALSE;
+					settings.fullscreen = false;
 				}
 				else
 				{
-					return FALSE;
+					return false;
 				}
 			}
 		}
@@ -841,7 +838,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	DWORD dwExStyle;
 	DWORD dwStyle;
 
-	if (fullscreen)
+	if (settings.fullscreen)
 	{
 		dwExStyle = WS_EX_APPWINDOW;
 		dwStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
@@ -855,8 +852,8 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	RECT windowRect;
 	windowRect.left = 0L;
 	windowRect.top = 0L;
-	windowRect.right = fullscreen ? (long)screenWidth : (long)width;
-	windowRect.bottom = fullscreen ? (long)screenHeight : (long)height;
+	windowRect.right = settings.fullscreen ? (long)screenWidth : (long)width;
+	windowRect.bottom = settings.fullscreen ? (long)screenHeight : (long)height;
 
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
@@ -874,7 +871,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		hinstance,
 		NULL);
 
-	if (!fullscreen)
+	if (!settings.fullscreen)
 	{
 		// Center on screen
 		uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRect.right) / 2;
@@ -1584,5 +1581,5 @@ void VulkanExampleBase::initSwapchain()
 
 void VulkanExampleBase::setupSwapChain()
 {
-	swapChain.create(&width, &height, enableVSync);
+	swapChain.create(&width, &height, settings.vsync);
 }

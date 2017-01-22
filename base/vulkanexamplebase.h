@@ -48,8 +48,6 @@
 class VulkanExampleBase
 {
 private:	
-	// Set to true if v-sync will be forced for the swapchain
-	bool enableVSync = false;
 	// fps timer (one second interval)
 	float fpsTimer = 0.0f;
 	// Get window title with example name, device, et.
@@ -63,8 +61,6 @@ private:
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 protected:
-	// Is true when example is created validation layers enabled
-	bool enableValidation = false;
 	// Last frame time, measured using a high performance timer (if available)
 	float frameTimer = 1.0f;
 	// Frame counter to display fps
@@ -137,6 +133,16 @@ public:
 	bool prepared = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
+
+	/** @brief Example settings that can be changed e.g. by command line arguments */
+	struct Settings {
+		/** @brief Activates validation layers (and message output) when set to true */
+		bool validation = false;
+		/** @brief Set to true if fullscreen mode has been requested via command line */
+		bool fullscreen = false;
+		/** @brief Set to true if v-sync will be forced for the swapchain */
+		bool vsync = false;
+	} settings;
 
 	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
 
