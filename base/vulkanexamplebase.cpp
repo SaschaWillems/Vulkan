@@ -565,15 +565,27 @@ void VulkanExampleBase::submitFrame()
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
 	// Parse command line arguments
-	for (auto arg : args)
+	for (size_t i = 0; i < args.size(); i++)
 	{
-		if (arg == std::string("-validation"))
+		if (args[i] == std::string("-validation"))
 		{
 			this->enableValidation = true;
 		}
-		if (arg == std::string("-vsync"))
+		if (args[i] == std::string("-vsync"))
 		{
 			enableVSync = true;
+		}
+		if ((args[i] == std::string("-w")) || (args[i] == std::string("-width")))
+		{
+			char* endptr;
+			uint32_t w = strtol(args[i + 1], &endptr, 10);
+			if (endptr != args[i + 1]) { width = w; };
+		}
+		if ((args[i] == std::string("-h")) || (args[i] == std::string("-height")))
+		{
+			char* endptr;
+			uint32_t h = strtol(args[i + 1], &endptr, 10);
+			if (endptr != args[i + 1]) { height = h; };
 		}
 	}
 #if defined(__ANDROID__)
@@ -591,7 +603,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	// Debug message callback will output to it
 	if (this->enableValidation)
 	{
-		setupConsole("VulkanExample");
+		setupConsole("Vulkan validation output");
 	}
 #endif
 }

@@ -68,8 +68,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		width = 1280;
-		height = 720;
 		zoom = -30.0;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;

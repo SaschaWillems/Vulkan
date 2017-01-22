@@ -114,8 +114,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		width = 1280;
-		height = 720;
 		zoom = -2.5f;
 		title = "Vulkan Example - Basic indexed triangle";
 		// Values not set here are initialized in the base class constructor

@@ -93,8 +93,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		width = 1280;
-		height = 720;
 		zoom = -3.75f;
 		rotationSpeed = 0.5f;
 		rotation = glm::vec3(15.0f, 0.f, 0.0f);
