@@ -36,6 +36,17 @@
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 
 // Macro to check and display Vulkan return results
+#if defined(__ANDROID__)
+#define VK_CHECK_RESULT(f)																				\
+{																										\
+	VkResult res = (f);																					\
+	if (res != VK_SUCCESS)																				\
+	{																									\
+		LOGE("Fatal : VkResult is \" %s \" in %s at line %d", vkTools::errorString(res).c_str(), __FILE__, __LINE__); \
+		assert(res == VK_SUCCESS);																		\
+	}																									\
+}
+#else
 #define VK_CHECK_RESULT(f)																				\
 {																										\
 	VkResult res = (f);																					\
@@ -44,7 +55,8 @@
 		std::cout << "Fatal : VkResult is \"" << vkTools::errorString(res) << "\" in " << __FILE__ << " at line " << __LINE__ << std::endl; \
 		assert(res == VK_SUCCESS);																		\
 	}																									\
-}																										\
+}
+#endif
 
 namespace vkTools
 {
