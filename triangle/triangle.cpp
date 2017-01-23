@@ -796,11 +796,11 @@ public:
 		// Load shader from compressed asset
 		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 		assert(asset);
-		size_t size = AAsset_getLength(asset);
-		assert(size > 0);
+		shaderSize = AAsset_getLength(asset);
+		assert(shaderSize > 0);
 
-		shaderCode = new char[size];
-		AAsset_read(asset, shaderCode, size);
+		shaderCode = new char[shaderSize];
+		AAsset_read(asset, shaderCode, shaderSize);
 		AAsset_close(asset);
 #else
 		std::ifstream is(filename, std::ios::binary | std::ios::in | std::ios::ate);
@@ -1136,7 +1136,7 @@ int main(const int argc, const char *argv[])
 	state->userData = vulkanExample;
 	state->onAppCmd = VulkanExample::handleAppCommand;
 	state->onInputEvent = VulkanExample::handleAppInput;
-	vulkanExample->androidApp = state;
+	androidApp = state;
 #elif defined(__linux__) && !defined(_DIRECT2DISPLAY)
 	vulkanExample->setupWindow();
 #endif
