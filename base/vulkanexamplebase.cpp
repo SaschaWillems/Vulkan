@@ -1136,6 +1136,13 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 }
 #elif defined(_DIRECT2DISPLAY)
 #elif defined(__linux__)
+
+static inline xcb_intern_atom_reply_t* intern_atom_helper(xcb_connection_t *conn, bool only_if_exists, const char *str)
+{
+	xcb_intern_atom_cookie_t cookie = xcb_intern_atom(conn, only_if_exists, strlen(str), str);
+	return xcb_intern_atom_reply(conn, cookie, NULL);
+}
+
 // Set up a window using XCB and request event types
 xcb_window_t VulkanExampleBase::setupWindow()
 {
@@ -1154,6 +1161,12 @@ xcb_window_t VulkanExampleBase::setupWindow()
 		XCB_EVENT_MASK_BUTTON_PRESS |
 		XCB_EVENT_MASK_BUTTON_RELEASE;
 
+	if (settings.fullscreen)
+	{
+		width = destWidth = screen->width_in_pixels;
+		height = destHeight = screen->height_in_pixels;
+	}
+
 	xcb_create_window(connection,
 		XCB_COPY_FROM_PARENT,
 		window, screen->root,
@@ -1163,11 +1176,8 @@ xcb_window_t VulkanExampleBase::setupWindow()
 		value_mask, value_list);
 
 	/* Magic code that will send notification when window is destroyed */
-	xcb_intern_atom_cookie_t cookie = xcb_intern_atom(connection, 1, 12, "WM_PROTOCOLS");
-	xcb_intern_atom_reply_t* reply = xcb_intern_atom_reply(connection, cookie, 0);
-
-	xcb_intern_atom_cookie_t cookie2 = xcb_intern_atom(connection, 0, 16, "WM_DELETE_WINDOW");
-	atom_wm_delete_window = xcb_intern_atom_reply(connection, cookie2, 0);
+	xcb_intern_atom_reply_t* reply = intern_atom_helper(connection, true, "WM_PROTOCOLS");
+	atom_wm_delete_window = intern_atom_helper(connection, false, "WM_DELETE_WINDOW");
 
 	xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
 		window, (*reply).atom, 4, 32, 1,
@@ -1179,6 +1189,19 @@ xcb_window_t VulkanExampleBase::setupWindow()
 		title.size(), windowTitle.c_str());
 
 	free(reply);
+
+	if (settings.fullscreen)
+	{
+		xcb_intern_atom_reply_t *atom_wm_state = intern_atom_helper(connection, false, "_NET_WM_STATE");
+		xcb_intern_atom_reply_t *atom_wm_fullscreen = intern_atom_helper(connection, false, "_NET_WM_STATE_FULLSCREEN");
+		xcb_change_property(connection,
+				XCB_PROP_MODE_REPLACE,
+				window, atom_wm_state->atom,
+				XCB_ATOM_ATOM, 32, 1,
+				&(atom_wm_fullscreen->atom));
+		free(atom_wm_fullscreen);
+		free(atom_wm_state);
+	}	
 
 	xcb_map_window(connection, window);
 
