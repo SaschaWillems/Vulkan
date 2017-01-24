@@ -506,7 +506,7 @@ public:
 		// Flush to make changes visible to the host 
 		VkMappedMemoryRange memoryRange = vkTools::initializers::mappedMemoryRange();
 		memoryRange.memory = uniformBuffers.dynamic.memory;
-		memoryRange.size = sizeof(uboDataDynamic);
+		memoryRange.size = uniformBuffers.dynamic.size;
 		vkFlushMappedMemoryRanges(device, 1, &memoryRange);
 	}
 
