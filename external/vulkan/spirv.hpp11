@@ -47,11 +47,11 @@ namespace spv {
 typedef unsigned int Id;
 
 #define SPV_VERSION 0x10100
-#define SPV_REVISION 3
+#define SPV_REVISION 4
 
 static const unsigned int MagicNumber = 0x07230203;
 static const unsigned int Version = 0x00010100;
-static const unsigned int Revision = 3;
+static const unsigned int Revision = 4;
 static const unsigned int OpCodeMask = 0xffff;
 static const unsigned int WordCountShift = 16;
 
@@ -424,6 +424,14 @@ enum class BuiltIn : unsigned {
     SubgroupLocalInvocationId = 41,
     VertexIndex = 42,
     InstanceIndex = 43,
+    SubgroupEqMaskKHR = 4416,
+    SubgroupGeMaskKHR = 4417,
+    SubgroupGtMaskKHR = 4418,
+    SubgroupLeMaskKHR = 4419,
+    SubgroupLtMaskKHR = 4420,
+    BaseVertex = 4424,
+    BaseInstance = 4425,
+    DrawIndex = 4426,
     Max = 0x7fffffff,
 };
 
@@ -606,6 +614,8 @@ enum class Capability : unsigned {
     SubgroupDispatch = 58,
     NamedBarrier = 59,
     PipeStorage = 60,
+    SubgroupBallotKHR = 4423,
+    DrawParameters = 4427,
     Max = 0x7fffffff,
 };
 
@@ -914,6 +924,8 @@ enum class Op : unsigned {
     OpNamedBarrierInitialize = 328,
     OpMemoryNamedBarrier = 329,
     OpModuleProcessed = 330,
+    OpSubgroupBallotKHR = 4421,
+    OpSubgroupFirstInvocationKHR = 4422,
     Max = 0x7fffffff,
 };
 
