@@ -127,7 +127,7 @@ public:
 		// Color target
 		VkImageCreateInfo info = vkTools::initializers::imageCreateInfo();
 		info.imageType = VK_IMAGE_TYPE_2D;
-		info.format = colorformat;
+		info.format = swapChain.colorFormat;
 		info.extent.width = width;
 		info.extent.height = height;
 		info.extent.depth = 1;
@@ -162,7 +162,7 @@ public:
 		VkImageViewCreateInfo viewInfo = vkTools::initializers::imageViewCreateInfo();
 		viewInfo.image = multisampleTarget.color.image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = colorformat;
+		viewInfo.format = swapChain.colorFormat;
 		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
 		viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
 		viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
@@ -228,7 +228,7 @@ public:
 		std::array<VkAttachmentDescription, 4> attachments = {};
 
 		// Multisampled attachment that we render to
-		attachments[0].format = colorformat;
+		attachments[0].format = swapChain.colorFormat;
 		attachments[0].samples = SAMPLE_COUNT;
 		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		// No longer required after resolve, this may save some bandwidth on certain GPUs
@@ -240,7 +240,7 @@ public:
 
 		// This is the frame buffer attachment to where the multisampled image
 		// will be resolved to and which will be presented to the swapchain
-		attachments[1].format = colorformat;
+		attachments[1].format = swapChain.colorFormat;
 		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;

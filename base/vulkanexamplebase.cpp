@@ -183,7 +183,7 @@ void VulkanExampleBase::prepare()
 			vulkanDevice,
 			queue,
 			frameBuffers,
-			colorformat,
+			swapChain.colorFormat,
 			depthFormat,
 			&width,
 			&height,
@@ -1466,7 +1466,7 @@ void VulkanExampleBase::setupRenderPass()
 {
 	std::array<VkAttachmentDescription, 2> attachments = {};
 	// Color attachment
-	attachments[0].format = colorformat;
+	attachments[0].format = swapChain.colorFormat;
 	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
 	attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;

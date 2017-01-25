@@ -1147,7 +1147,7 @@ public:
 			vulkanDevice,
 			queue,
 			frameBuffers,
-			colorformat,
+			swapChain.colorFormat,
 			depthFormat,
 			&width,
 			&height,

@@ -89,10 +89,7 @@ protected:
 	vk::VulkanDevice *vulkanDevice;
 	// Handle to the device graphics queue that command buffers are submitted to
 	VkQueue queue;
-	// Color buffer format
-	VkFormat colorformat = VK_FORMAT_B8G8R8A8_UNORM;
-	// Depth buffer format
-	// Depth format is selected during Vulkan initialization
+	// Depth buffer format (selected during Vulkan initialization)
 	VkFormat depthFormat;
 	// Command buffer pool
 	VkCommandPool cmdPool;

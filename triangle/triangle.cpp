@@ -703,7 +703,7 @@ public:
 		std::array<VkAttachmentDescription, 2> attachments = {};
 
 		// Color attachment
-		attachments[0].format = colorformat;
+		attachments[0].format = swapChain.colorFormat;									// Use the color format selected by the swapchain
 		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;									// We don't use multi sampling in this example
 		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;							// Clear this attachment at the start of the render pass
 		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;							// Keep it's contents after the render pass is finished (for displaying it)
@@ -713,7 +713,7 @@ public:
 		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;					// Layout to which the attachment is transitioned when the render pass is finished
 																						// As we want to present the color buffer to the swapchain, we transition to PRESENT_KHR	
 		// Depth attachment
-		attachments[1].format = depthFormat;								
+		attachments[1].format = depthFormat;											// A proper depth format is selected in the example base
 		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;						
 		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;							// Clear depth at start of first subpass
 		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;						// We don't need depth after render pass has finished (DONT_CARE may result in better performance)
