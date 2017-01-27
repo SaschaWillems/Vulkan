@@ -564,6 +564,21 @@ void VulkanExampleBase::submitFrame()
 
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
+#if !defined(__ANDROID__)
+	// Check for a valid asset path
+	struct stat info;
+	if (stat(getAssetPath().c_str(), &info) != 0)
+	{
+#if defined(_WIN32)
+		std::string msg = "Could not locate asset path in \"" + getAssetPath() + "\" !";
+		MessageBox(NULL, msg.c_str(), "Fatal error", MB_OK | MB_ICONERROR);
+#else
+		std::cerr << "Error: Could not find asset path in " << getAssetPath() << std::endl;
+#endif
+		exit(-1);
+	}
+#endif
+
 	settings.validation = enableValidation;
 
 	// Parse command line arguments
@@ -594,6 +609,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			if (endptr != args[i + 1]) { height = h; };
 		}
 	}
+	
 #if defined(__ANDROID__)
 	// Vulkan library is loaded dynamically on Android
 	bool libLoaded = loadVulkanLibrary();
