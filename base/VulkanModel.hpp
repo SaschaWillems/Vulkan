@@ -34,21 +34,22 @@
 
 namespace vks
 {
+	/** @brief Vertex layout components */
+	typedef enum Component {
+		VERTEX_COMPONENT_POSITION = 0x0,
+		VERTEX_COMPONENT_NORMAL = 0x1,
+		VERTEX_COMPONENT_COLOR = 0x2,
+		VERTEX_COMPONENT_UV = 0x3,
+		VERTEX_COMPONENT_TANGENT = 0x4,
+		VERTEX_COMPONENT_BITANGENT = 0x5,
+		VERTEX_COMPONENT_DUMMY_FLOAT = 0x6,
+		VERTEX_COMPONENT_DUMMY_VEC4 = 0x7
+	} Component;
+
 	/** @brief Stores vertex layout components for model loading and Vulkan vertex input and atribute bindings  */
 	struct VertexLayout {
 	public:
-
-		typedef enum Component {
-			COMPONENT_POSITION = 0x0,
-			COMPONENT_NORMAL = 0x1,
-			COMPONENT_COLOR = 0x2,
-			COMPONENT_UV = 0x3,
-			COMPONENT_TANGENT = 0x4,
-			COMPONENT_BITANGENT = 0x5,
-			COMPONENT_DUMMY_FLOAT = 0x6,
-			COMPONENT_DUMMY_VEC4 = 0x7
-		} Component;
-
+		/** @brief Components used to generate vertices from */
 		std::vector<Component> components;
 
 		VertexLayout(std::vector<Component> components)
@@ -63,16 +64,17 @@ namespace vks
 			{
 				switch (component)
 				{
-				case Component::COMPONENT_UV:
+				case VERTEX_COMPONENT_UV:
 					res += 2 * sizeof(float);
 					break;
-				case Component::COMPONENT_DUMMY_FLOAT:
+				case VERTEX_COMPONENT_DUMMY_FLOAT:
 					res += sizeof(float);
 					break;
-				case Component::COMPONENT_DUMMY_VEC4:
+				case VERTEX_COMPONENT_DUMMY_VEC4:
 					res += 4 * sizeof(float);
 					break;
 				default:
+					// All components except the ones listed above are made up of 3 floats
 					res += 3 * sizeof(float);
 				}
 			}
@@ -228,40 +230,40 @@ namespace vks
 						for (auto& component : layout.components)
 						{
 							switch (component) {
-							case vks::VertexLayout::Component::COMPONENT_POSITION:
+							case VERTEX_COMPONENT_POSITION:
 								vertexBuffer.push_back(pPos->x * scale.x + center.x);
 								vertexBuffer.push_back(-pPos->y * scale.y + center.y);
 								vertexBuffer.push_back(pPos->z * scale.z + center.z);
 								break;
-							case vks::VertexLayout::Component::COMPONENT_NORMAL:
+							case VERTEX_COMPONENT_NORMAL:
 								vertexBuffer.push_back(pNormal->x);
 								vertexBuffer.push_back(-pNormal->y);
 								vertexBuffer.push_back(pNormal->z);
 								break;
-							case vks::VertexLayout::Component::COMPONENT_UV:
+							case VERTEX_COMPONENT_UV:
 								vertexBuffer.push_back(pTexCoord->x * uvscale.s);
 								vertexBuffer.push_back(pTexCoord->y * uvscale.t);
 								break;
-							case vks::VertexLayout::Component::COMPONENT_COLOR:
+							case VERTEX_COMPONENT_COLOR:
 								vertexBuffer.push_back(pColor.r);
 								vertexBuffer.push_back(pColor.g);
 								vertexBuffer.push_back(pColor.b);
 								break;
-							case vks::VertexLayout::Component::COMPONENT_TANGENT:
+							case VERTEX_COMPONENT_TANGENT:
 								vertexBuffer.push_back(pTangent->x);
 								vertexBuffer.push_back(pTangent->y);
 								vertexBuffer.push_back(pTangent->z);
 								break;
-							case vks::VertexLayout::Component::COMPONENT_BITANGENT:
+							case VERTEX_COMPONENT_BITANGENT:
 								vertexBuffer.push_back(pBiTangent->x);
 								vertexBuffer.push_back(pBiTangent->y);
 								vertexBuffer.push_back(pBiTangent->z);
 								break;
-								// Dummy components for padding
-							case vks::VertexLayout::Component::COMPONENT_DUMMY_FLOAT:
+							// Dummy components for padding
+							case VERTEX_COMPONENT_DUMMY_FLOAT:
 								vertexBuffer.push_back(0.0f);
 								break;
-							case vks::VertexLayout::Component::COMPONENT_DUMMY_VEC4:
+							case VERTEX_COMPONENT_DUMMY_VEC4:
 								vertexBuffer.push_back(0.0f);
 								vertexBuffer.push_back(0.0f);
 								vertexBuffer.push_back(0.0f);
@@ -379,7 +381,7 @@ namespace vks
 		*/
 		bool loadFromFile(vk::VulkanDevice *device, const std::string& filename, vks::VertexLayout layout, float scale, VkQueue copyQueue, const int flags = defaultFlags)
 		{
-			vks::ModelCreateInfo modelCreateInfo(1.0f, 1.0f, 0.0f);
+			vks::ModelCreateInfo modelCreateInfo(scale, 1.0f, 0.0f);
 			return loadFromFile(device, filename, layout, &modelCreateInfo, copyQueue, flags);
 		}
 	};
