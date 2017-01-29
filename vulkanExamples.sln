@@ -90,10 +90,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Base", "Base", "{09B9A54B-F
 		base\vulkanheightmap.hpp = base\vulkanheightmap.hpp
 		base\VulkanInitializers.hpp = base\VulkanInitializers.hpp
 		base\vulkanMeshLoader.hpp = base\vulkanMeshLoader.hpp
-		base\VulkanModelLoader.hpp = base\VulkanModelLoader.hpp
+		base\VulkanModel.hpp = base\VulkanModel.hpp
 		base\vulkanscene.hpp = base\vulkanscene.hpp
 		base\vulkanswapchain.hpp = base\vulkanswapchain.hpp
 		base\vulkantextoverlay.hpp = base\vulkantextoverlay.hpp
+		base\VulkanTexture.hpp = base\VulkanTexture.hpp
 		base\vulkanTextureLoader.hpp = base\vulkanTextureLoader.hpp
 		base\vulkantools.cpp = base\vulkantools.cpp
 		base\vulkantools.h = base\vulkantools.h
@@ -136,6 +137,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dynamicuniformbuffer", "dynamicuniformbuffer\dynamicuniformbuffer.vcxproj", "{3DB2A9C4-50BC-4390-A94F-F7F724238101}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "specializationconstants", "specializationconstants\specializationconstants.vcxproj", "{00F600D2-DF0E-4F07-B722-633F7C4B2F65}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hdr", "hdr\hdr.vcxproj", "{582913B3-9B37-48CA-AEBD-69023DA9F7C8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -331,6 +334,10 @@ Global
 		{00F600D2-DF0E-4F07-B722-633F7C4B2F65}.Debug|x64.Build.0 = Debug|x64
 		{00F600D2-DF0E-4F07-B722-633F7C4B2F65}.Release|x64.ActiveCfg = Release|x64
 		{00F600D2-DF0E-4F07-B722-633F7C4B2F65}.Release|x64.Build.0 = Release|x64
+		{582913B3-9B37-48CA-AEBD-69023DA9F7C8}.Debug|x64.ActiveCfg = Debug|x64
+		{582913B3-9B37-48CA-AEBD-69023DA9F7C8}.Debug|x64.Build.0 = Debug|x64
+		{582913B3-9B37-48CA-AEBD-69023DA9F7C8}.Release|x64.ActiveCfg = Release|x64
+		{582913B3-9B37-48CA-AEBD-69023DA9F7C8}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
