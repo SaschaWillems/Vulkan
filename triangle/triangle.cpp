@@ -1095,7 +1095,6 @@ public:
 
 #if defined(_WIN32)
 // Windows entry point
-#define VULKAN_EXAMPLE_MAIN()
 VulkanExample *vulkanExample;
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -1121,7 +1120,6 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 #elif defined(__ANDROID__)
 // Android entry point
 // A note on app_dummy(): This is required as the compiler may otherwise remove the main entry point of the application
-#define VULKAN_EXAMPLE_MAIN()
 VulkanExample *vulkanExample;
 void android_main(android_app* state)
 {
@@ -1138,7 +1136,6 @@ void android_main(android_app* state)
 
 // Linux entry point with direct to display wsi
 // Direct to Displays (D2D) is used on embedded platforms
-#define VULKAN_EXAMPLE_MAIN()
 VulkanExample *vulkanExample;
 static void handleEvent()
 {
@@ -1157,7 +1154,6 @@ int main(const int argc, const char *argv[])
 #elif defined(__linux__)
 
 // Linux entry point
-#define VULKAN_EXAMPLE_MAIN()
 VulkanExample *vulkanExample;
 static void handleEvent(const xcb_generic_event_t *event)
 {
