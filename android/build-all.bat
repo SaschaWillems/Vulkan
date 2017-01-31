@@ -41,3 +41,4 @@ call _build texturemipmapgen %1
 call _build texture3d %1
 call _build specializationconstants %1
 call _build subpasses %1
+call _build hdr %1

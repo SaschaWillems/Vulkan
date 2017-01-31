@@ -1038,6 +1038,7 @@ public:
 		switch (keyCode)
 		{
 		case KEY_B:
+		case GAMEPAD_BUTTON_Y:
 			toggleBloom();
 			break;
 		case KEY_S:
