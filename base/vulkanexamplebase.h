@@ -18,6 +18,8 @@
 #include <android/asset_manager.h>
 #include <android_native_app_glue.h>
 #include "vulkanandroid.h"
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+#include <wayland-client.h>
 #elif defined(__linux__)
 #include <xcb/xcb.h>
 #endif
@@ -194,6 +196,23 @@ public:
 #elif defined(__ANDROID__)
 	// true if application has focused, false if moved to background
 	bool focused = false;
+
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+	wl_display *display = nullptr;
+	wl_registry *registry = nullptr;
+	wl_compositor *compositor = nullptr;
+	wl_shell *shell = nullptr;
+	wl_seat *seat = nullptr;
+	wl_pointer *pointer = nullptr;
+	wl_keyboard *keyboard = nullptr;
+	wl_surface *surface = nullptr;
+	wl_shell_surface *shell_surface = nullptr;
+	bool quit = false;
+	struct {
+		bool left = false;
+		bool right = false;
+		bool middle = false;
+	} mouseButtons;
 #elif defined(__linux__)
 	struct {
 		bool left = false;
@@ -223,6 +242,48 @@ public:
 #elif defined(__ANDROID__)
 	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
 	static void handleAppCommand(android_app* app, int32_t cmd);
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+	wl_shell_surface *setupWindow();
+	void initWaylandConnection();
+	static void registryGlobalCb(void *data, struct wl_registry *registry,
+			uint32_t name, const char *interface, uint32_t version);
+	void registryGlobal(struct wl_registry *registry, uint32_t name,
+			const char *interface, uint32_t version);
+	static void registryGlobalRemoveCb(void *data, struct wl_registry *registry,
+			uint32_t name);
+	static void seatCapabilitiesCb(void *data, wl_seat *seat, uint32_t caps);
+	void seatCapabilities(wl_seat *seat, uint32_t caps);
+	static void pointerEnterCb(void *data, struct wl_pointer *pointer,
+			uint32_t serial, struct wl_surface *surface, wl_fixed_t sx,
+			wl_fixed_t sy);
+	static void pointerLeaveCb(void *data, struct wl_pointer *pointer,
+			uint32_t serial, struct wl_surface *surface);
+	static void pointerMotionCb(void *data, struct wl_pointer *pointer,
+			uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
+	void pointerMotion(struct wl_pointer *pointer,
+			uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
+	static void pointerButtonCb(void *data, struct wl_pointer *wl_pointer,
+			uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
+	void pointerButton(struct wl_pointer *wl_pointer,
+			uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
+	static void pointerAxisCb(void *data, struct wl_pointer *wl_pointer,
+			uint32_t time, uint32_t axis, wl_fixed_t value);
+	void pointerAxis(struct wl_pointer *wl_pointer,
+			uint32_t time, uint32_t axis, wl_fixed_t value);
+	static void keyboardKeymapCb(void *data, struct wl_keyboard *keyboard,
+			uint32_t format, int fd, uint32_t size);
+	static void keyboardEnterCb(void *data, struct wl_keyboard *keyboard,
+			uint32_t serial, struct wl_surface *surface, struct wl_array *keys);
+	static void keyboardLeaveCb(void *data, struct wl_keyboard *keyboard,
+			uint32_t serial, struct wl_surface *surface);
+	static void keyboardKeyCb(void *data, struct wl_keyboard *keyboard,
+			uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
+	void keyboardKey(struct wl_keyboard *keyboard,
+			uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
+	static void keyboardModifiersCb(void *data, struct wl_keyboard *keyboard,
+			uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched,
+			uint32_t mods_locked, uint32_t group);
+
 #elif defined(__linux__)
 	xcb_window_t setupWindow();
 	void initxcbConnection();
@@ -378,6 +439,21 @@ int main(const int argc, const char *argv[])													    \
 	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };  				\
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->initVulkan();																	\
+	vulkanExample->initSwapchain();																	\
+	vulkanExample->prepare();																		\
+	vulkanExample->renderLoop();																	\
+	delete(vulkanExample);																			\
+	return 0;																						\
+}
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+#define VULKAN_EXAMPLE_MAIN()																		\
+VulkanExample *vulkanExample;																		\
+int main(const int argc, const char *argv[])													    \
+{																									\
+	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };  				\
+	vulkanExample = new VulkanExample();															\
+	vulkanExample->initVulkan();																	\
+	vulkanExample->setupWindow();					 												\
 	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
 	vulkanExample->renderLoop();																	\

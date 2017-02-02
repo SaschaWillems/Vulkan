@@ -110,7 +110,11 @@ public:
 #ifdef _DIRECT2DISPLAY
 	uint32_t width, uint32_t height
 #else
+#ifdef VK_USE_PLATFORM_WAYLAND_KHR
+	wl_display *display, wl_surface *window
+#else
 	xcb_connection_t* connection, xcb_window_t window
+#endif
 #endif
 #endif
 #endif
@@ -135,11 +139,19 @@ public:
 #if defined(_DIRECT2DISPLAY)
 		createDirect2DisplaySurface(width, height);
 #else
+#ifdef VK_USE_PLATFORM_WAYLAND_KHR
+		VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
+		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+		surfaceCreateInfo.display = display;
+		surfaceCreateInfo.surface = window;
+		err = vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#else
 		VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.connection = connection;
 		surfaceCreateInfo.window = window;
 		err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#endif
 #endif
 #endif
 #endif
