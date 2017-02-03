@@ -51,6 +51,13 @@
 #define KEY_N 0xE
 #define KEY_O 0xF
 #define KEY_T 0x10
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+#include <linux/input.h>
+
+// todo: hack for bloom example
+#define KEY_KPADD KEY_KPPLUS
+#define KEY_KPSUB KEY_KPMINUS
+
 #elif defined(__linux__)
 #define KEY_ESCAPE 0x9
 #define KEY_F1 0x43
