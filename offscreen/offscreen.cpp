@@ -124,6 +124,7 @@ public:
 		timerSpeed *= 0.25f;
 		enableTextOverlay = true;
 		title = "Vulkan Example - Offscreen rendering";
+		enabledFeatures.shaderClipDistance = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -805,6 +806,7 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.shaded));
 		// Offscreen
 		// Flip culling
+		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		pipelineCreateInfo.renderPass = offscreenPass.renderPass;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.shadedOffscreen));
 
