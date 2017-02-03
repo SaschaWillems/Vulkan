@@ -24,7 +24,10 @@ Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a bu
 
 Note that you need [assimp](https://github.com/assimp/assimp) in order to compile the examples for Linux. Either compile and install from the repository, or install libassimp-dev. The examples require at least version 3.2.
 
-To use the Direct to Display swapchain extension (VK_KHR_display), please turn on the USE_D2D_WSI cmake option: "-DUSE_D2D_WSI=ON".
+##### [Window system integration](https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/html/vkspec.html#wsi)
+- **XCB**: Default WSI (if no cmake option is specified)
+- **Wayland**: Use cmake option ```USE_WAYLAND_WSI``` (```-DUSE_WAYLAND_WSI=ON```)
+- **DirectToDisplay**: Use cmake option ```USE_D2D_WSI``` (```-DUSE_D2D_WSI=ON```)
 
 ## <img src="./images/androidlogo.png" alt="" height="32px"> [Android](android/)
 
