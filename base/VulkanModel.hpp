@@ -153,7 +153,7 @@ namespace vks
 		* @param copyQueue Queue used for the memory staging copy commands (must support transfer)
 		* @param (Optional) flags ASSIMP model loading flags
 		*/
-		bool loadFromFile(vk::VulkanDevice *device, const std::string& filename, vks::VertexLayout layout, vks::ModelCreateInfo *createInfo, VkQueue copyQueue, const int flags = defaultFlags)
+		bool loadFromFile(const std::string& filename, vks::VertexLayout layout, vks::ModelCreateInfo *createInfo, vk::VulkanDevice *device, VkQueue copyQueue, const int flags = defaultFlags)
 		{
 			this->device = device->logicalDevice;
 
@@ -379,10 +379,10 @@ namespace vks
 		* @param copyQueue Queue used for the memory staging copy commands (must support transfer)
 		* @param (Optional) flags ASSIMP model loading flags
 		*/
-		bool loadFromFile(vk::VulkanDevice *device, const std::string& filename, vks::VertexLayout layout, float scale, VkQueue copyQueue, const int flags = defaultFlags)
+		bool loadFromFile(const std::string& filename, vks::VertexLayout layout, float scale, vk::VulkanDevice *device, VkQueue copyQueue, const int flags = defaultFlags)
 		{
 			vks::ModelCreateInfo modelCreateInfo(scale, 1.0f, 0.0f);
-			return loadFromFile(device, filename, layout, &modelCreateInfo, copyQueue, flags);
+			return loadFromFile(filename, layout, &modelCreateInfo, device, copyQueue, flags);
 		}
 	};
 };

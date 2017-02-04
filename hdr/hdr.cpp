@@ -600,11 +600,11 @@ public:
 	void loadAssets()
 	{
 		// Models
-		models.skybox.loadFromFile(vulkanDevice, getAssetPath() + "models/cube.obj", vertexLayout, 0.05f, queue);
+		models.skybox.loadFromFile(getAssetPath() + "models/cube.obj", vertexLayout, 0.05f, vulkanDevice, queue);
 		std::vector<std::string> filenames = {"sphere.obj", "teapot.dae", "torusknot.obj"};
 		for (auto file : filenames) {
 			vks::Model model;
-			model.loadFromFile(vulkanDevice, getAssetPath() + "models/" + file, vertexLayout, 0.05f, queue);
+			model.loadFromFile(getAssetPath() + "models/" + file, vertexLayout, 0.05f, vulkanDevice, queue);
 			models.objects.push_back(model);
 		}
 
