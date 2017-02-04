@@ -124,6 +124,7 @@ set(EXAMPLES
 	dynamicuniformbuffer
 	gears
 	geometryshader
+	hdr
 	indirectdraw	
 	instancing
 	mesh
