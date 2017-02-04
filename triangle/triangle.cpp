@@ -932,7 +932,7 @@ public:
 		vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		// Inpute attribute bindings describe shader attribute locations and memory layouts
-		std::array<VkVertexInputAttributeDescription,2> vertexInputAttributs;
+		std::array<VkVertexInputAttributeDescription, 2> vertexInputAttributs;
 		// These match the following shader layout (see triangle.vert):
 		//	layout (location = 0) in vec3 inPos;
 		//	layout (location = 1) in vec3 inColor;
@@ -967,7 +967,7 @@ public:
 		// Load binary SPIR-V shader
 		shaderStages[0].module = loadSPIRVShader(getAssetPath() + "shaders/triangle.vert.spv");
 		// Main entry point for the shader
-		shaderStages[0].pName = "main";	
+		shaderStages[0].pName = "main";
 		assert(shaderStages[0].module != VK_NULL_HANDLE);
 
 		// Fragment shader
@@ -997,6 +997,10 @@ public:
 
 		// Create rendering pipeline using the specified states
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
+
+		// Shader modules are no longer needed once the graphics pipeline has been created
+		vkDestroyShaderModule(device, shaderStages[0].module, nullptr);
+		vkDestroyShaderModule(device, shaderStages[1].module, nullptr);
 	}
 
 	void prepareUniformBuffers()
