@@ -25,21 +25,13 @@
 #include "vulkanexamplebase.h"
 #include "vulkandevice.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanModel.hpp"
+#include "VulkanTexture.hpp"
 
 #include "../external/stb/stb_font_consolas_24_latin1.inl"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-};
-
 
 // Defines for the STB font used
 // STB font files can be found at http://nothings.org/stb/font/
@@ -698,20 +690,28 @@ class VulkanExample : public VulkanExampleBase
 public:
 	TextOverlay *textOverlay = nullptr;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+	});
+
 	struct {
-		vkTools::VulkanTexture background;
-		vkTools::VulkanTexture cube;
+		vks::Texture2D background;
+		vks::Texture2D cube;
 	} textures;
+
+	struct {
+		vks::Model cube;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
-
-	struct {
-		vkMeshLoader::MeshBuffer cube;
-	} meshes;
 
 	vk::Buffer uniformBuffer;
 
@@ -751,9 +751,9 @@ public:
 		vkDestroyPipeline(device, pipelines.background, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.cube);
-		textureLoader->destroyTexture(textures.background);
-		textureLoader->destroyTexture(textures.cube);
+		models.cube.destroy();
+		textures.background.destroy();
+		textures.cube.destroy();
 		uniformBuffer.destroy();
 		delete(textOverlay);
 	}
@@ -792,8 +792,8 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.background, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.cube.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.cube.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.cube.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.cube.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			// Background
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.background);
@@ -803,7 +803,7 @@ public:
 			// Cube
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.cube, 0, NULL);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.cube.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -865,15 +865,11 @@ public:
 		textOverlay->endTextUpdate();
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(getAssetPath() + "textures/skysphere_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.background);
-		textureLoader->loadTexture(getAssetPath() + "textures/round_window_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.cube);
-	}
-
-	void loadMeshes()
-	{
-		loadMesh(getAssetPath() + "models/cube.dae", &meshes.cube, vertexLayout, 1.0f);
+		textures.background.loadFromFile(getAssetPath() + "textures/skysphere_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.cube.loadFromFile(getAssetPath() + "textures/round_window_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		models.cube.loadFromFile(getAssetPath() + "models/cube.dae", vertexLayout, 1.0f, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()
@@ -883,7 +879,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions
@@ -1175,8 +1171,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
-		loadMeshes();
+		loadAssets();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
