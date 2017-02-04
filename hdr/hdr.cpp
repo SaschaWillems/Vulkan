@@ -1023,7 +1023,7 @@ public:
 		reBuildCommandBuffers();
 	}
 
-	void changeExpoure(float delta)
+	void changeExposure(float delta)
 	{
 		uboParams.exposure += delta;
 		if (uboParams.exposure < 0.0f) {
@@ -1051,11 +1051,11 @@ public:
 			break;
 		case KEY_KPADD:
 		case GAMEPAD_BUTTON_R1:
-			changeExpoure(0.05f);
+			changeExposure(0.05f);
 			break;
 		case KEY_KPSUB:
 		case GAMEPAD_BUTTON_L1:
-			changeExpoure(-0.05f);
+			changeExposure(-0.05f);
 			break;
 		}
 	}
@@ -1065,9 +1065,9 @@ public:
 		std::stringstream ss;
 		ss << std::setprecision(2) << std::fixed << uboParams.exposure;
 #if defined(__ANDROID__)
-		textOverlay->addText("Expsoure: " + ss.str() + " (L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Exposure: " + ss.str() + " (L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("Expsoure: " + ss.str() + " (+/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Exposure: " + ss.str() + " (+/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 };
