@@ -153,6 +153,11 @@ This example renders thousands of instanced objects with different geometries us
 
 Shows how to generate and render such an indirect draw command buffer that is staged to the device. Indirect draw buffers are the base for generating and updating draw commands on the GPU using shaders.
 
+### [High dynamic range](hdr/)
+<img src="./screenshots/hdr.jpg" height="72px" align="right">
+
+Demonstrates high dynamic range rendering using floating point texture and framebuffer formats, extending the internal image precision range from the usual 8 Bits used in LDR to 16/32 bits. Also adds HDR bloom on top of the scene using a separable blur filter and manual exposure via tone mapping.
+
 ### [Occlusion queries](occlusionquery/)
 <img src="./screenshots/occlusion_queries.png" height="72px" align="right">
 
