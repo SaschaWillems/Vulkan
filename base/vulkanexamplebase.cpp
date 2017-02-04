@@ -771,7 +771,7 @@ void VulkanExampleBase::initVulkan()
 	{
 		// The report flags determine what type of messages for the layers will be displayed
 		// For validating (debugging) an appplication the error and warning bits should suffice
-		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT; // | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
 		// Additional flags include performance info, loader and layer debug messages, etc.
 		vkDebug::setupDebugging(instance, debugReportFlags, VK_NULL_HANDLE);
 	}
@@ -1974,6 +1974,9 @@ void VulkanExampleBase::windowResize()
 	}
 	prepared = false;
 
+	// Ensure all operations on the device have been finished before destroying resources
+	vkDeviceWaitIdle(device);
+
 	// Recreate swap chain
 	width = destWidth;
 	height = destHeight;
@@ -1998,7 +2001,6 @@ void VulkanExampleBase::windowResize()
 	createCommandBuffers();
 	buildCommandBuffers();
 
-	vkQueueWaitIdle(queue);
 	vkDeviceWaitIdle(device);
 
 	if (enableTextOverlay)
