@@ -60,8 +60,11 @@
 
 namespace vkTools
 {
-	// Return string representation of a vulkan error string
+	/** @brief Returns an error code as a string */
 	std::string errorString(VkResult errorCode);
+
+	/** @brief Returns the device type as a string */
+	std::string physicalDeviceTypeString(VkPhysicalDeviceType type);
 
 	// Selected a suitable supported depth format starting with 32 bit down to 16 bit
 	// Returns false if none of the depth formats in the list is supported by the device
