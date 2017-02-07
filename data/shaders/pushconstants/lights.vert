@@ -25,6 +25,11 @@ layout (location = 2) out vec3 outColor;
 
 layout (location = 3) out vec4 outLightVec[lightCount];
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+};
+
 void main() 
 {
 	outNormal = inNormal;
