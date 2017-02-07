@@ -147,6 +147,7 @@ public:
 		vkDestroyPipeline(device, compute.pipeline, nullptr);
 		vkDestroyFence(device, compute.fence, nullptr);
 		vkDestroyCommandPool(device, compute.commandPool, nullptr);
+		vkDestroySemaphore(device, compute.semaphore, nullptr);
 	}
 
 	void reBuildCommandBuffers()

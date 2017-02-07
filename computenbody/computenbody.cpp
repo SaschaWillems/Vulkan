@@ -106,6 +106,7 @@ public:
 	~VulkanExample()
 	{
 		// Graphics
+		graphics.uniformBuffer.destroy();
 		vkDestroyPipeline(device, graphics.pipeline, nullptr);
 		vkDestroyPipelineLayout(device, graphics.pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, graphics.descriptorSetLayout, nullptr);
