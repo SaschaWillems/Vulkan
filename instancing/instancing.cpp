@@ -21,6 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -46,8 +47,8 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture rocks;
-		vkTools::VulkanTexture planet;
+		vks::Texture2DArray rocks;
+		vks::Texture2D planet;
 	} textures;
 
 	// Per-instance data block
@@ -184,8 +185,8 @@ public:
 	{
 		loadMesh(getAssetPath() + "models/rock01.dae", &meshes.rock, vertexLayout, 0.1f);
 		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.planet, vertexLayout, 0.2f);
-		textureLoader->loadTextureArray(getAssetPath() + "textures/texturearray_rocks_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.rocks);
-		textureLoader->loadTexture(getAssetPath() + "textures/lavaplanet_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.planet);
+		textures.rocks.loadFromFile(getAssetPath() + "textures/texturearray_rocks_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.planet.loadFromFile(getAssetPath() + "textures/lavaplanet_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
 	void setupDescriptorPool()

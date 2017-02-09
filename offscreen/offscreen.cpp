@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -43,7 +44,7 @@ public:
 	bool debugDisplay = false;
 
 	struct {
-		vkTools::VulkanTexture colorMap;
+		vks::Texture2D colorMap;
 	} textures;
 	
 	struct {
@@ -133,7 +134,7 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		// Textures
-		textureLoader->destroyTexture(textures.colorMap);
+		textures.colorMap.destroy();
 
 		// Frame buffer
 
@@ -480,7 +481,7 @@ public:
 	{
 		loadMesh(getAssetPath() + "models/plane.obj", &meshes.plane, vertexLayout, 0.5f);
 		loadMesh(getAssetPath() + "models/chinesedragon.dae", &meshes.example, vertexLayout, 0.3f);
-		textureLoader->loadTexture(getAssetPath() + "textures/darkmetal_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.colorMap);
+		textures.colorMap.loadFromFile(getAssetPath() + "textures/darkmetal_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
 	void generateQuad()

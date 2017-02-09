@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -36,8 +37,8 @@ public:
 	uint32_t numParticles;
 
 	struct {
-		vkTools::VulkanTexture particle;
-		vkTools::VulkanTexture gradient;
+		vks::Texture2D particle;
+		vks::Texture2D gradient;
 	} textures;
 
 	struct {
@@ -121,14 +122,14 @@ public:
 		vkDestroyFence(device, compute.fence, nullptr);
 		vkDestroyCommandPool(device, compute.commandPool, nullptr);
 
-		textureLoader->destroyTexture(textures.particle);
-		textureLoader->destroyTexture(textures.gradient);
+		textures.particle.destroy();
+		textures.gradient.destroy();
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(getAssetPath() + "textures/particle01_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, &textures.particle, false);
-		textureLoader->loadTexture(getAssetPath() + "textures/particle_gradient_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, &textures.gradient, false);
+		textures.particle.loadFromFile(getAssetPath() + "textures/particle01_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		textures.gradient.loadFromFile(getAssetPath() + "textures/particle_gradient_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void buildCommandBuffers()
@@ -735,7 +736,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
+		loadAssets();
 		prepareStorageBuffers();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();

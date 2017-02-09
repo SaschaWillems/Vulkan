@@ -22,6 +22,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -41,7 +42,7 @@ public:
 	bool splitScreen = true;
 
 	struct {
-		vkTools::VulkanTexture colorMap;
+		vks::Texture2D colorMap;
 	} textures;
 
 	struct {
@@ -111,8 +112,7 @@ public:
 
 		uniformBuffers.tessControl.destroy();
 		uniformBuffers.tessEval.destroy();
-
-		textureLoader->destroyTexture(textures.colorMap);
+		textures.colorMap.destroy();
 	}
 
 	void reBuildCommandBuffers()
@@ -183,17 +183,10 @@ public:
 		}
 	}
 
-	void loadMeshes()
+	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/lowpoly/deer.dae", &meshes.object, vertexLayout, 1.0f);
-	}
-
-	void loadTextures()
-	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/deer.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.colorMap);
+		textures.colorMap.loadFromFile(getAssetPath() + "textures/deer.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()
@@ -503,8 +496,7 @@ public:
 		}
 
 		VulkanExampleBase::prepare();
-		loadTextures();
-		loadMeshes();
+		loadAssets();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();

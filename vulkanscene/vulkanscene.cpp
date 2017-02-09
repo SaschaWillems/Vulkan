@@ -24,6 +24,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -76,7 +77,7 @@ public:
 
 	struct
 	{
-		vkTools::VulkanTexture skybox;
+		vks::TextureCubeMap skybox;
 	} textures;
 
 	struct {
@@ -119,15 +120,12 @@ public:
 			mesh.indexBuffer.destroy();
 		}
 
-		textureLoader->destroyTexture(textures.skybox);
+		textures.skybox.destroy();
 	}
 
 	void loadTextures()
 	{
-		textureLoader->loadCubemap(
-			getAssetPath() + "textures/cubemap_vulkan.ktx", 
-			VK_FORMAT_R8G8B8A8_UNORM, 
-			&textures.skybox);
+		textures.skybox.loadFromFile(getAssetPath() + "textures/cubemap_vulkan.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void buildCommandBuffers()

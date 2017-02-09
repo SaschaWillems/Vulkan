@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -44,7 +45,7 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture glass;
+		vks::Texture2D glass;
 	} textures;
 
 	struct {
@@ -487,7 +488,7 @@ public:
 	{
 		loadMesh(getAssetPath() + "models/samplebuilding.dae", &meshes.scene, vertexLayout, 1.0f);
 		loadMesh(getAssetPath() + "models/samplebuilding_glass.dae", &meshes.transparent, vertexLayout, 1.0f);
-		textureLoader->loadTexture(getAssetPath() + "textures/colored_glass_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.glass);		
+		textures.glass.loadFromFile(getAssetPath() + "textures/colored_glass_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()

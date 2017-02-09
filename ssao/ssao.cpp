@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -46,7 +47,7 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	struct {
-		vkTools::VulkanTexture ssaoNoise;
+		vks::Texture2D ssaoNoise;
 	} textures;
 
 	struct {
@@ -213,7 +214,7 @@ public:
 		// Misc
 		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
 		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
-		textureLoader->destroyTexture(textures.ssaoNoise);
+		textures.ssaoNoise.destroy();
 	}
 
 	// Create a frame buffer attachment
@@ -1050,7 +1051,7 @@ public:
 			ssaoNoise[i] = glm::vec4(rndDist(rndGen) * 2.0f - 1.0f, rndDist(rndGen) * 2.0f - 1.0f, 0.0f, 0.0f);
 		}
 		// Upload as texture
-		textureLoader->createTexture(ssaoNoise.data(), ssaoNoise.size() * sizeof(glm::vec4), VK_FORMAT_R32G32B32A32_SFLOAT, SSAO_NOISE_DIM, SSAO_NOISE_DIM, &textures.ssaoNoise, VK_FILTER_NEAREST);
+		textures.ssaoNoise.fromBuffer(ssaoNoise.data(), ssaoNoise.size() * sizeof(glm::vec4), VK_FORMAT_R32G32B32A32_SFLOAT, SSAO_NOISE_DIM, SSAO_NOISE_DIM, vulkanDevice, queue, VK_FILTER_NEAREST);
 	}
 
 	void updateUniformBufferMatrices()

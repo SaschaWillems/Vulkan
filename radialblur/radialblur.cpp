@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -48,7 +49,7 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture gradient;
+		vks::Texture2D gradient;
 	} textures;
 
 	struct {
@@ -165,7 +166,7 @@ public:
 		vkFreeCommandBuffers(device, cmdPool, 1, &offscreenPass.commandBuffer);
 		vkDestroySemaphore(device, offscreenPass.semaphore, nullptr);
 
-		textureLoader->destroyTexture(textures.gradient);
+		textures.gradient.destroy();
 	}
 
 	// Setup the offscreen framebuffer for rendering the blurred scene
@@ -456,7 +457,7 @@ public:
 	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/glowsphere.dae", &meshes.example, vertexLayout, 0.05f);
-		textureLoader->loadTexture(getAssetPath() + "textures/particle_gradient_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, &textures.gradient, false);
+		textures.gradient.loadFromFile(getAssetPath() + "textures/particle_gradient_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()

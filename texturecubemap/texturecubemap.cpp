@@ -21,6 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -39,7 +40,7 @@ class VulkanExample : public VulkanExampleBase
 public:
 	bool displaySkybox = true;
 
-	vkTools::VulkanTexture cubeMap;
+	vks::Texture cubeMap;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;

@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -99,7 +100,7 @@ public:
 
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	vkTools::VulkanTexture shadowCubeMap;
+	vks::Texture shadowCubeMap;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {

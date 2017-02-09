@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -37,7 +38,7 @@ public:
 	// Number of array layers in texture array
 	// Also used as instance count
 	uint32_t layerCount;
-	vkTools::VulkanTexture textureArray;
+	vks::Texture textureArray;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;

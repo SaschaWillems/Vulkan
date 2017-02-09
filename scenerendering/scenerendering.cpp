@@ -35,6 +35,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkandevice.hpp"
 #include "vulkanbuffer.hpp"
 
@@ -68,7 +69,7 @@ struct SceneMaterial
 	// Material properties
 	SceneMaterialProperites properties;
 	// The example only uses a diffuse channel
-	vkTools::VulkanTexture diffuse;
+	vks::Texture2D diffuse;
 	// The material's descriptor contains the material descriptors
 	VkDescriptorSet descriptorSet;
 	// Pointer to the pipeline used by this material
@@ -111,8 +112,6 @@ private:
 
 	VkDescriptorSet descriptorSetScene;
 
-	vkTools::VulkanTextureLoader *textureLoader;
-
 	const aiScene* aScene;
 
 	// Get materials from the assimp scene and map to our scene structures
@@ -152,13 +151,13 @@ private:
 				std::cout << "  Diffuse: \"" << texturefile.C_Str() << "\"" << std::endl;
 				std::string fileName = std::string(texturefile.C_Str());
 				std::replace(fileName.begin(), fileName.end(), '\\', '/');
-				textureLoader->loadTexture(assetPath + fileName, VK_FORMAT_BC3_UNORM_BLOCK, &materials[i].diffuse);
+				materials[i].diffuse.loadFromFile(assetPath + fileName, VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 			}
 			else
 			{
 				std::cout << "  Material has no diffuse, using dummy texture!" << std::endl;
 				// todo : separate pipeline and layout
-				textureLoader->loadTexture(assetPath + "dummy.ktx", VK_FORMAT_BC2_UNORM_BLOCK, &materials[i].diffuse);
+				materials[i].diffuse.loadFromFile(assetPath + "dummy.ktx", VK_FORMAT_BC2_UNORM_BLOCK, vulkanDevice, queue);
 			}
 
 			// For scenes with multiple textures per material we would need to check for additional texture types, e.g.:
@@ -421,11 +420,10 @@ public:
 	uint32_t scenePartIndex = 0;
 
 	// Default constructor
-	Scene(vk::VulkanDevice *vulkanDevice, VkQueue queue, vkTools::VulkanTextureLoader *textureloader)
+	Scene(vk::VulkanDevice *vulkanDevice, VkQueue queue)
 	{
 		this->vulkanDevice = vulkanDevice;
 		this->queue = queue;
-		this->textureLoader = textureloader;
 
 		// Prepare uniform buffer for global matrices
 		VkMemoryRequirements memReqs;
@@ -451,7 +449,7 @@ public:
 		indexBuffer.destroy();
 		for (auto material : materials)
 		{
-			textureLoader->destroyTexture(material.diffuse);
+			material.diffuse.destroy();
 		}
 		vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayouts.material, nullptr);
@@ -797,7 +795,7 @@ public:
 	void loadScene()
 	{
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
-		scene = new Scene(vulkanDevice, queue, textureLoader);
+		scene = new Scene(vulkanDevice, queue);
 
 #if defined(__ANDROID__)
 		scene->assetManager = androidApp->activity->assetManager;

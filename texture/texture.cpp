@@ -36,9 +36,7 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	// Contains all Vulkan objects that are required to store and use a texture
-	// Note that this repository contains a texture loader (vulkantextureloader.h)
-	// that encapsulates texture loading functionality in a class that is used
-	// in subsequent demos
+	// Note that this repository contains a texture class (VulkanTexture.hpp) that encapsulates texture loading functionality in a class that is used in subsequent demos
 	struct Texture {
 		VkSampler sampler;
 		VkImage image;

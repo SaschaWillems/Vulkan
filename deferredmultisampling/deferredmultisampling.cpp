@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -45,12 +46,12 @@ public:
 
 	struct {
 		struct {
-			vkTools::VulkanTexture colorMap;
-			vkTools::VulkanTexture normalMap;
+			vks::Texture2D colorMap;
+			vks::Texture2D normalMap;
 		} model;
 		struct {
-			vkTools::VulkanTexture colorMap;
-			vkTools::VulkanTexture normalMap;
+			vks::Texture2D colorMap;
+			vks::Texture2D normalMap;
 		} floor;
 	} textures;
 
@@ -206,10 +207,10 @@ public:
 
 		vkDestroyRenderPass(device, offScreenFrameBuf.renderPass, nullptr);
 
-		textureLoader->destroyTexture(textures.model.colorMap);
-		textureLoader->destroyTexture(textures.model.normalMap);
-		textureLoader->destroyTexture(textures.floor.colorMap);
-		textureLoader->destroyTexture(textures.floor.normalMap);
+		textures.model.colorMap.destroy();
+		textures.model.normalMap.destroy();
+		textures.floor.colorMap.destroy();
+		textures.floor.normalMap.destroy();
 
 		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 	}
@@ -565,11 +566,11 @@ public:
 
 	void loadAssets()
 	{
-		textureLoader->loadTexture(getAssetPath() + "models/armor/colormap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.model.colorMap);
-		textureLoader->loadTexture(getAssetPath() + "models/armor/normalmap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.model.normalMap);
+		textures.model.colorMap.loadFromFile(getAssetPath() + "models/armor/colormap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.model.normalMap.loadFromFile(getAssetPath() + "models/armor/normalmap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 
-		textureLoader->loadTexture(getAssetPath() + "textures/pattern_57_diffuse_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.floor.colorMap);
-		textureLoader->loadTexture(getAssetPath() + "textures/pattern_57_normal_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.floor.normalMap);
+		textures.floor.colorMap.loadFromFile(getAssetPath() + "textures/pattern_57_diffuse_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/pattern_57_normal_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 
 		loadMesh(getAssetPath() + "models/armor/armor.dae", &meshes.model, vertexLayout, 1.0f);		
 

@@ -34,6 +34,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -76,8 +77,8 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture plants;
-		vkTools::VulkanTexture ground;
+		vks::Texture2DArray plants;
+		vks::Texture2D ground;
 	} textures;
 
 	// Per-instance data block
@@ -141,8 +142,8 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.plants);
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.ground);
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.skysphere);
-		textureLoader->destroyTexture(textures.plants);
-		textureLoader->destroyTexture(textures.ground);
+		textures.plants.destroy();
+		textures.ground.destroy();
 		instanceBuffer.destroy();
 		indirectCommandsBuffer.destroy();
 		uniformData.scene.destroy();
@@ -239,8 +240,8 @@ public:
 		loadMesh(getAssetPath() + "models/plane_circle.dae", &meshes.ground, vertexLayout, PLANT_RADIUS + 1.0f);
 		loadMesh(getAssetPath() + "models/skysphere.dae", &meshes.skysphere, vertexLayout, 512.0f / 10.0f);
 
-		textureLoader->loadTextureArray(getAssetPath() + "textures/texturearray_plants_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.plants);
-		textureLoader->loadTexture(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.ground);
+		textures.plants.loadFromFile(getAssetPath() + "textures/texturearray_plants_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.ground.loadFromFile(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()

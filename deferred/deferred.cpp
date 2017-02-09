@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -48,12 +49,12 @@ public:
 
 	struct {
 		struct {
-			vkTools::VulkanTexture colorMap;
-			vkTools::VulkanTexture normalMap;
+			vks::Texture2D colorMap;
+			vks::Texture2D normalMap;
 		} model;
 		struct {
-			vkTools::VulkanTexture colorMap;
-			vkTools::VulkanTexture normalMap;
+			vks::Texture2D colorMap;
+			vks::Texture2D normalMap;
 		} floor;
 	} textures;
 
@@ -201,10 +202,10 @@ public:
 
 		vkDestroyRenderPass(device, offScreenFrameBuf.renderPass, nullptr);
 
-		textureLoader->destroyTexture(textures.model.colorMap);
-		textureLoader->destroyTexture(textures.model.normalMap);
-		textureLoader->destroyTexture(textures.floor.colorMap);
-		textureLoader->destroyTexture(textures.floor.normalMap);
+		textures.model.colorMap.destroy();
+		textures.model.normalMap.destroy();
+		textures.floor.colorMap.destroy();
+		textures.floor.normalMap.destroy();
 
 		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 	}
@@ -473,13 +474,21 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(getAssetPath() + "models/armor/colormap.ktx", VK_FORMAT_BC3_UNORM_BLOCK,	&textures.model.colorMap);
-		textureLoader->loadTexture(getAssetPath() + "models/armor/normalmap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.model.normalMap);
+		loadMesh(getAssetPath() + "models/armor/armor.dae", &meshes.model, vertexLayout, 1.0f);
 
-		textureLoader->loadTexture(getAssetPath() + "textures/pattern_35_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.floor.colorMap);
-		textureLoader->loadTexture(getAssetPath() + "textures/pattern_35_normalmap_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.floor.normalMap);
+		vkMeshLoader::MeshCreateInfo meshCreateInfo;
+		meshCreateInfo.scale = glm::vec3(2.0f);
+		meshCreateInfo.uvscale = glm::vec2(4.0f);
+		meshCreateInfo.center = glm::vec3(0.0f, 2.35f, 0.0f);
+		loadMesh(getAssetPath() + "models/plane.obj", &meshes.floor, vertexLayout, &meshCreateInfo);
+
+		textures.model.colorMap.loadFromFile(getAssetPath() + "models/armor/colormap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.model.normalMap.loadFromFile(getAssetPath() + "models/armor/normalmap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+
+		textures.floor.colorMap.loadFromFile(getAssetPath() + "textures/pattern_35_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/pattern_35_normalmap_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
 	void reBuildCommandBuffers()
@@ -551,17 +560,6 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void loadMeshes()
-	{
-		loadMesh(getAssetPath() + "models/armor/armor.dae", &meshes.model, vertexLayout, 1.0f);
-
-		vkMeshLoader::MeshCreateInfo meshCreateInfo;
-		meshCreateInfo.scale = glm::vec3(2.0f);
-		meshCreateInfo.uvscale = glm::vec2(4.0f);
-		meshCreateInfo.center = glm::vec3(0.0f, 2.35f, 0.0f);
-		loadMesh(getAssetPath() + "models/plane.obj", &meshes.floor, vertexLayout, &meshCreateInfo);
 	}
 
 	void generateQuads()
@@ -1130,9 +1128,8 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
+		loadAssets();
 		generateQuads();
-		loadMeshes();
 		setupVertexDescriptions();
 		prepareOffscreenFramebuffer();
 		prepareUniformBuffers();

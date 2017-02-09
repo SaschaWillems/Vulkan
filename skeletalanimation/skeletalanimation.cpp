@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -339,8 +340,8 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	struct {
-		vkTools::VulkanTexture colorMap;
-		vkTools::VulkanTexture floor;
+		vks::Texture2D colorMap;
+		vks::Texture2D floor;
 	} textures;
 
 	struct {
@@ -415,8 +416,8 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		textureLoader->destroyTexture(textures.colorMap);
-		textureLoader->destroyTexture(textures.floor);
+		textures.colorMap.destroy();
+		textures.floor.destroy();
 
 		uniformBuffers.mesh.destroy();
 		uniformBuffers.floor.destroy();
@@ -622,8 +623,8 @@ public:
 
 	void loadAssets()
 	{
-		textureLoader->loadTexture(getAssetPath() + "textures/goblin_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.colorMap);
-		textureLoader->loadTexture(getAssetPath() + "textures/trail_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.floor);
+		textures.colorMap.loadFromFile(getAssetPath() + "textures/goblin_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.floor.loadFromFile(getAssetPath() + "textures/trail_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		VulkanExampleBase::loadMesh(getAssetPath() + "models/plane_z.obj", &meshes.floor, vertexLayout, 512.0f);
 	}
 

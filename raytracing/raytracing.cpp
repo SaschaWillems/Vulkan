@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -32,7 +33,7 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	vkTools::VulkanTexture textureComputeTarget;
+	vks::Texture textureComputeTarget;
 
 	// Resources for the graphics part of the example
 	struct {
@@ -122,11 +123,11 @@ public:
 		compute.storageBuffers.spheres.destroy();
 		compute.storageBuffers.planes.destroy();
 
-		textureLoader->destroyTexture(textureComputeTarget);
+		textureComputeTarget.destroy();
 	}
 
 	// Prepare a texture target that is used to store compute shader calculations
-	void prepareTextureTarget(vkTools::VulkanTexture *tex, uint32_t width, uint32_t height, VkFormat format)
+	void prepareTextureTarget(vks::Texture *tex, uint32_t width, uint32_t height, VkFormat format)
 	{
 		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;
@@ -202,6 +203,7 @@ public:
 		tex->descriptor.imageLayout = tex->imageLayout;
 		tex->descriptor.imageView = tex->view;
 		tex->descriptor.sampler = tex->sampler;
+		tex->device = vulkanDevice;
 	}
 
 	void buildCommandBuffers()

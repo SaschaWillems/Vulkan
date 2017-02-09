@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -53,7 +54,7 @@ public:
 	bool useSampleShading = false;
 
 	struct {
-		vkTools::VulkanTexture colorMap;
+		vks::Texture2D colorMap;
 	} textures;
 
 	struct {
@@ -112,7 +113,7 @@ public:
 		vkDestroyImageView(device, multisampleTarget.depth.view, nullptr);
 		vkFreeMemory(device, multisampleTarget.depth.memory, nullptr);
 
-		textureLoader->destroyTexture(textures.colorMap);
+		textures.colorMap.destroy();
 
 		uniformBuffer.destroy();
 	}
@@ -415,7 +416,7 @@ public:
 	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/voyager/voyager.dae", &meshes.example, vertexLayout, 1.0f);
-		textureLoader->loadTexture(getAssetPath() + "models/voyager/voyager.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.colorMap);
+		textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()

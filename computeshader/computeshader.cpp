@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -33,8 +34,8 @@ struct Vertex {
 class VulkanExample : public VulkanExampleBase
 {
 private:
-	vkTools::VulkanTexture textureColorMap;
-	vkTools::VulkanTexture textureComputeTarget;
+	vks::Texture2D textureColorMap;
+	vks::Texture2D textureComputeTarget;
 public:
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -109,12 +110,12 @@ public:
 		indexBuffer.destroy();
 		uniformBufferVS.destroy();
 
-		textureLoader->destroyTexture(textureColorMap);
-		textureLoader->destroyTexture(textureComputeTarget);
+		textureColorMap.destroy();
+		textureComputeTarget.destroy();
 	}
 
 	// Prepare a texture target that is used to store compute shader calculations
-	void prepareTextureTarget(vkTools::VulkanTexture *tex, uint32_t width, uint32_t height, VkFormat format)
+	void prepareTextureTarget(vks::Texture *tex, uint32_t width, uint32_t height, VkFormat format)
 	{
 		VkFormatProperties formatProperties;
 
@@ -193,15 +194,16 @@ public:
 		tex->descriptor.imageLayout = tex->imageLayout;
 		tex->descriptor.imageView = tex->view;
 		tex->descriptor.sampler = tex->sampler;
+		tex->device = vulkanDevice;
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/het_kanonschot_rgba8.ktx", 
-			VK_FORMAT_R8G8B8A8_UNORM, 
-			&textureColorMap,
-			false,
+		textureColorMap.loadFromFile(
+			getAssetPath() + "textures/het_kanonschot_rgba8.ktx",
+			VK_FORMAT_R8G8B8A8_UNORM,
+			vulkanDevice,
+			queue,
 			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
 			VK_IMAGE_LAYOUT_GENERAL);
 	}
@@ -764,7 +766,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
+		loadAssets();
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();

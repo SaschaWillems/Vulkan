@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -59,16 +60,16 @@ class VulkanExample : public VulkanExampleBase
 public:
 	struct {
 		struct {
-			vkTools::VulkanTexture smoke;
-			vkTools::VulkanTexture fire;
+			vks::Texture2D smoke;
+			vks::Texture2D fire;
 			// We use a custom sampler to change some sampler
 			// attributes required for rotation the uv coordinates
 			// inside the shader for alpha blended textures
 			VkSampler sampler;
 		} particles;
 		struct {
-			vkTools::VulkanTexture colorMap;
-			vkTools::VulkanTexture normalMap;
+			vks::Texture2D colorMap;
+			vks::Texture2D normalMap;
 		} floor;
 	} textures;
 
@@ -139,10 +140,10 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		textureLoader->destroyTexture(textures.particles.smoke);
-		textureLoader->destroyTexture(textures.particles.fire);
-		textureLoader->destroyTexture(textures.floor.colorMap);
-		textureLoader->destroyTexture(textures.floor.normalMap);
+		textures.particles.smoke.destroy();
+		textures.particles.fire.destroy();
+		textures.floor.colorMap.destroy();
+		textures.floor.normalMap.destroy();
 
 		vkDestroyPipeline(device, pipelines.particles, nullptr);
 		vkDestroyPipeline(device, pipelines.environment, nullptr);
@@ -323,24 +324,12 @@ public:
 	void loadTextures()
 	{
 		// Particles
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/particle_smoke.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.particles.smoke);
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/particle_fire.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.particles.fire);
+		textures.particles.smoke.loadFromFile(getAssetPath() + "textures/particle_smoke.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.particles.fire.loadFromFile(getAssetPath() + "textures/particle_fire.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 
 		// Floor
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/fireplace_colormap_bc3.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.floor.colorMap);
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/fireplace_normalmap_bc3.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.floor.normalMap);
+		textures.floor.colorMap.loadFromFile(getAssetPath() + "textures/fireplace_colormap_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/fireplace_normalmap_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 
 		// Create a custom sampler to be used with the particle textures
 		// Create sampler

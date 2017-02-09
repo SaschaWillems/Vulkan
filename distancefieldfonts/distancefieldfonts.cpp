@@ -23,6 +23,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -65,8 +66,8 @@ public:
 	bool splitScreen = true;
 
 	struct {
-		vkTools::VulkanTexture fontSDF;
-		vkTools::VulkanTexture fontBitmap;
+		vks::Texture2D fontSDF;
+		vks::Texture2D fontBitmap;
 	} textures;
 
 	struct {
@@ -121,8 +122,8 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		// Clean up texture resources
-		textureLoader->destroyTexture(textures.fontSDF);
-		textureLoader->destroyTexture(textures.fontBitmap);
+		textures.fontSDF.destroy();
+		textures.fontBitmap.destroy();
 
 		vkDestroyPipeline(device, pipelines.sdf, nullptr);
 		vkDestroyPipeline(device, pipelines.bitmap, nullptr);
@@ -196,16 +197,10 @@ public:
 
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/font_sdf_rgba.ktx",
-			VK_FORMAT_R8G8B8A8_UNORM,
-			&textures.fontSDF);
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/font_bitmap_rgba.ktx",
-			VK_FORMAT_R8G8B8A8_UNORM,
-			&textures.fontBitmap);
+		textures.fontSDF.loadFromFile(getAssetPath() + "textures/font_sdf_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		textures.fontBitmap.loadFromFile(getAssetPath() + "textures/font_bitmap_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void reBuildCommandBuffers()
@@ -659,7 +654,7 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		parsebmFont();
-		loadTextures();
+		loadAssets();
 		generateText("Vulkan");
 		setupVertexDescriptions();
 		prepareUniformBuffers();

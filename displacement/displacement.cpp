@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanMeshLoader.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -36,7 +37,7 @@ class VulkanExample : public VulkanExampleBase
 {
 private:
 	struct {
-		vkTools::VulkanTexture colorHeightMap;
+		vks::Texture2D colorHeightMap;
 	} textures;
 public:
 	bool splitScreen = true;
@@ -104,15 +105,13 @@ public:
 		uniformBuffers.tessEval.destroy();
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
-		textureLoader->destroyTexture(textures.colorHeightMap);
+		textures.colorHeightMap.destroy();
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/pattern_36_bc3.ktx", 
-			VK_FORMAT_BC3_UNORM_BLOCK, 
-			&textures.colorHeightMap);
+		loadMesh(getAssetPath() + "models/plane.obj", &meshes.object, vertexLayout, 0.25f);
+		textures.colorHeightMap.loadFromFile(getAssetPath() + "textures/pattern_36_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
 	void reBuildCommandBuffers()
@@ -180,11 +179,6 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void loadMeshes()
-	{
-		loadMesh(getAssetPath() + "models/plane.obj", &meshes.object, vertexLayout, 0.25f);
 	}
 
 	void setupVertexDescriptions()
@@ -498,8 +492,7 @@ public:
 		}
 
 		VulkanExampleBase::prepare();
-		loadMeshes();
-		loadTextures();
+		loadAssets();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();

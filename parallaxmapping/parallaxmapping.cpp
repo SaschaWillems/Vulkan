@@ -20,6 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -41,9 +42,9 @@ public:
 	bool splitScreen = false;
 
 	struct {
-		vkTools::VulkanTexture colorMap;
+		vks::Texture2D colorMap;
 		// Normals and height are combined in one texture (height = alpha channel)
-		vkTools::VulkanTexture normalHeightMap;
+		vks::Texture2D normalHeightMap;
 	} textures;
 
 	struct {
@@ -119,20 +120,15 @@ public:
 		uniformBuffers.vertexShader.destroy();
 		uniformBuffers.fragmentShader.destroy();
 
-		textureLoader->destroyTexture(textures.colorMap);
-		textureLoader->destroyTexture(textures.normalHeightMap);
+		textures.colorMap.destroy();
+		textures.normalHeightMap.destroy();
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/rocks_color_bc3.dds",
-			VK_FORMAT_BC3_UNORM_BLOCK, 
-			&textures.colorMap);
-		textureLoader->loadTexture(
-			getAssetPath() + "textures/rocks_normal_height_rgba.dds", 
-			VK_FORMAT_R8G8B8A8_UNORM, 
-			&textures.normalHeightMap);
+		loadMesh(getAssetPath() + "models/plane_z.obj", &meshes.quad, vertexLayout, 0.1f);
+		textures.colorMap.loadFromFile(getAssetPath() + "textures/rocks_color_bc3.dds", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.normalHeightMap.loadFromFile(getAssetPath() + "textures/rocks_normal_height_rgba.dds", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void reBuildCommandBuffers()
@@ -201,11 +197,6 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void loadMeshes()
-	{
-		loadMesh(getAssetPath() + "models/plane_z.obj", &meshes.quad, vertexLayout, 0.1f);
 	}
 
 	void setupVertexDescriptions()
@@ -513,8 +504,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
-		loadMeshes();
+		loadAssets();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();

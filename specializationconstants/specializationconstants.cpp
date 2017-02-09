@@ -21,6 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -49,7 +50,7 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture colormap;
+		vks::Texture2D colormap;
 	} textures;
 
 	vk::Buffer uniformBuffer;
@@ -92,7 +93,7 @@ public:
 
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.cube);
 
-		textureLoader->destroyTexture(textures.colormap);
+		textures.colormap.destroy();
 
 		uniformBuffer.destroy();
 	}
@@ -163,7 +164,7 @@ public:
 	void loadAssets()
 	{
 		loadMesh(getAssetPath() + "models/color_teapot_spheres.dae", &meshes.cube, vertexLayout, 0.1f);
-		textureLoader->loadTexture(getAssetPath() + "textures/metalplate_nomips_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, &textures.colormap);
+		textures.colormap.loadFromFile(getAssetPath() + "textures/metalplate_nomips_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()

@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -37,7 +38,7 @@ public:
 	bool wireframe = false;
 
 	struct {
-		vkTools::VulkanTexture colorMap;
+		vks::Texture2D colorMap;
 	} textures;
 
 	struct {
@@ -113,8 +114,7 @@ public:
 		vkDestroyBuffer(device, mesh.indices.buf, nullptr);
 		vkFreeMemory(device, mesh.indices.mem, nullptr);
 
-		textureLoader->destroyTexture(textures.colorMap);
-
+		textures.colorMap.destroy();
 		uniformBuffers.scene.destroy();
 	}
 
@@ -317,12 +317,9 @@ public:
 		delete(meshLoader);
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(
-			getAssetPath() + "models/voyager/voyager.ktx",
-			VK_FORMAT_BC3_UNORM_BLOCK,
-			&textures.colorMap);
+		textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()
@@ -586,7 +583,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
+		loadAssets();
 		loadMesh();
 		setupVertexDescriptions();
 		prepareUniformBuffers();

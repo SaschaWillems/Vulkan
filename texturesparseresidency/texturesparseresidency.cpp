@@ -30,6 +30,7 @@ todos:
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkandevice.hpp"
 #include "vulkanbuffer.hpp"
 #include "vulkanheightmap.hpp"
@@ -199,7 +200,7 @@ public:
 	} texture;
 
 	struct {
-		vkTools::VulkanTexture source;
+		vks::Texture2D source;
 	} textures;
 
 	vkTools::HeightMap *heightMap = nullptr;
@@ -659,7 +660,7 @@ public:
 
 	void loadAssets()
 	{
-		textureLoader->loadTexture(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.source, false, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		textures.source.loadFromFile(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 	}
 
 	// Generate a terrain quad patch for feeding to the tessellation control shader

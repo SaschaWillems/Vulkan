@@ -21,6 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 #include "frustum.hpp"
 
@@ -39,9 +40,9 @@ class VulkanExample : public VulkanExampleBase
 {
 private:
 	struct {
-		vkTools::VulkanTexture heightMap;
-		vkTools::VulkanTexture skySphere;
-		vkTools::VulkanTexture terrainArray;
+		vks::Texture2D heightMap;
+		vks::Texture2D skySphere;
+		vks::Texture2DArray terrainArray;
 	} textures;
 public:
 	bool wireframe = false;
@@ -151,9 +152,9 @@ public:
 		uniformBuffers.skysphereVertex.destroy();
 		uniformBuffers.terrainTessellation.destroy();
 
-		textureLoader->destroyTexture(textures.heightMap);
-		textureLoader->destroyTexture(textures.skySphere);
-		textureLoader->destroyTexture(textures.terrainArray);
+		textures.heightMap.destroy();
+		textures.skySphere.destroy();
+		textures.terrainArray.destroy();
 
 		vkDestroyQueryPool(device, queryPool, nullptr);
 
@@ -208,13 +209,15 @@ public:
 			VK_QUERY_RESULT_64_BIT);
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
-		textureLoader->loadTexture(getAssetPath() + "textures/skysphere_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.skySphere);
+		loadMesh(getAssetPath() + "models/geosphere.obj", &meshes.skysphere, vertexLayout, 1.0f);
+
+		textures.skySphere.loadFromFile(getAssetPath() + "textures/skysphere_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		// Height data is stored in a one-channel texture
-		textureLoader->loadTexture(getAssetPath() + "textures/terrain_heightmap_r16.ktx", VK_FORMAT_R16_UNORM, &textures.heightMap);
+		textures.heightMap.loadFromFile(getAssetPath() + "textures/terrain_heightmap_r16.ktx", VK_FORMAT_R16_UNORM, vulkanDevice, queue);
 		// Terrain textures are stored in a texture array with layers corresponding to terrain height
-		textureLoader->loadTextureArray(getAssetPath() + "textures/terrain_texturearray_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, &textures.terrainArray);
+		textures.terrainArray.loadFromFile(getAssetPath() + "textures/terrain_texturearray_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 
 		VkSamplerCreateInfo samplerInfo = vkTools::initializers::samplerCreateInfo();
 
@@ -326,11 +329,6 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void loadMeshes()
-	{
-		loadMesh(getAssetPath() + "models/geosphere.obj", &meshes.skysphere, vertexLayout, 1.0f);
 	}
 
 	// Encapsulate height map data for easy sampling
@@ -883,8 +881,7 @@ public:
 		}
 
 		VulkanExampleBase::prepare();
-		loadMeshes();
-		loadTextures();
+		loadAssets();
 		generateTerrain();
 		setupQueryResultBuffer();
 		setupVertexDescriptions();

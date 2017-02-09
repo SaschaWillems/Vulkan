@@ -24,6 +24,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -52,7 +53,7 @@ public:
 	} meshes;
 
 	struct {
-		vkTools::VulkanTexture matCapArray;
+		vks::Texture2DArray matCapArray;
 	} textures;
 
 	vk::Buffer uniformBuffer;
@@ -92,8 +93,7 @@ public:
 		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
 
 		uniformBuffer.destroy();
-
-		textureLoader->destroyTexture(textures.matCapArray);
+		textures.matCapArray.destroy();
 	}
 
 	void loadTextures()
@@ -101,10 +101,7 @@ public:
 		// Several mat caps are stored in a single texture array
 		// so they can easily be switched inside the shader 
 		// just by updating the index in a uniform buffer
-		textureLoader->loadTextureArray(
-			getAssetPath() + "textures/matcap_array_rgba.ktx",
-			VK_FORMAT_R8G8B8A8_UNORM,
-			&textures.matCapArray);
+		textures.matCapArray.loadFromFile(getAssetPath() + "textures/matcap_array_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void buildCommandBuffers()

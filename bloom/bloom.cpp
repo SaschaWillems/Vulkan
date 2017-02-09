@@ -19,6 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
+#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -43,7 +44,7 @@ public:
 	bool bloom = true;
 
 	struct {
-		vkTools::VulkanTexture cubemap;
+		vks::TextureCubeMap cubemap;
 	} textures;
 
 	struct {
@@ -183,7 +184,7 @@ public:
 		uniformBuffers.skyBox.destroy();
 		uniformBuffers.blurParams.destroy();
 
-		textureLoader->destroyTexture(textures.cubemap);
+		textures.cubemap.destroy();
 	}
 
 	// Setup the offscreen framebuffer for rendering the mirrored scene
@@ -524,7 +525,7 @@ public:
 		loadMesh(getAssetPath() + "models/retroufo.dae", &meshes.ufo, vertexLayout, 0.05f);
 		loadMesh(getAssetPath() + "models/retroufo_glow.dae", &meshes.ufoGlow, vertexLayout, 0.05f);
 		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skyBox, vertexLayout, 1.0f);
-		textureLoader->loadCubemap(getAssetPath() + "textures/cubemap_space.ktx", VK_FORMAT_R8G8B8A8_UNORM, &textures.cubemap);
+		textures.cubemap.loadFromFile(getAssetPath() + "textures/cubemap_space.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()
