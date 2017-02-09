@@ -173,8 +173,7 @@ void VulkanExampleBase::prepare()
 	setupRenderPass();
 	createPipelineCache();
 	setupFrameBuffer();
-	// Create a simple texture loader class
-	textureLoader = new vkTools::VulkanTextureLoader(vulkanDevice, queue, cmdPool);
+
 	if (enableTextOverlay)
 	{
 		// Load the text rendering shaders
@@ -701,11 +700,6 @@ VulkanExampleBase::~VulkanExampleBase()
 	vkFreeMemory(device, depthStencil.mem, nullptr);
 
 	vkDestroyPipelineCache(device, pipelineCache, nullptr);
-
-	if (textureLoader)
-	{
-		delete textureLoader;
-	}
 
 	vkDestroyCommandPool(device, cmdPool, nullptr);
 

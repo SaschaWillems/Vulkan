@@ -30,6 +30,7 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <string>
 #include <array>
@@ -43,7 +44,6 @@
 #include "VulkanInitializers.hpp"
 #include "vulkandevice.hpp"
 #include "vulkanswapchain.hpp"
-#include "vulkanTextureLoader.hpp"
 #include "vulkanMeshLoader.hpp"
 #include "vulkantextoverlay.hpp"
 #include "camera.hpp"
@@ -128,7 +128,7 @@ protected:
 		VkSemaphore textOverlayComplete;
 	} semaphores;
 	// Simple texture loader
-	vkTools::VulkanTextureLoader *textureLoader = nullptr;
+	//vkTools::VulkanTextureLoader *textureLoader = nullptr;
 	// Returns the base asset path (for shaders, models, textures) depending on the os
 	const std::string getAssetPath();
 public: 

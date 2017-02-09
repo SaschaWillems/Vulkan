@@ -95,7 +95,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Base", "Base", "{09B9A54B-F
 		base\vulkanswapchain.hpp = base\vulkanswapchain.hpp
 		base\vulkantextoverlay.hpp = base\vulkantextoverlay.hpp
 		base\VulkanTexture.hpp = base\VulkanTexture.hpp
-		base\vulkanTextureLoader.hpp = base\vulkanTextureLoader.hpp
 		base\vulkantools.cpp = base\vulkantools.cpp
 		base\vulkantools.h = base\vulkantools.h
 	EndProjectSection
