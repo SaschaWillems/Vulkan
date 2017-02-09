@@ -50,6 +50,9 @@ namespace vk
 			uint32_t transfer;
 		} queueFamilyIndices;
 
+		/**  @brief Typecast to VkDevice */
+		operator VkDevice() { return logicalDevice; };
+
 		/**
 		* Default constructor
 		*
@@ -222,7 +225,7 @@ namespace vk
 		*
 		* @return VkResult of the device creation call
 		*/
-		VkResult createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)
+		VkResult createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)
 		{			
 			// Desired queues need to be requested upon logical device creation
 			// Due to differing queue family configurations of Vulkan implementations this can be a bit tricky, especially if the application
@@ -294,7 +297,7 @@ namespace vk
 			}
 
 			// Create the logical device representation
-			std::vector<const char*> deviceExtensions;
+			std::vector<const char*> deviceExtensions(enabledExtensions);
 			if (useSwapChain)
 			{
 				// If the device will be used for presenting to a display via a swapchain we need to request the swapchain extension
