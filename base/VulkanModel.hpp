@@ -107,7 +107,7 @@ namespace vks
 	};
 
 	struct Model {
-		VkDevice device;
+		VkDevice device = nullptr;
 		vk::Buffer vertices;
 		vk::Buffer indices;
 		uint32_t indexCount = 0;
@@ -133,7 +133,8 @@ namespace vks
 
 		/** @brief Release all Vulkan resources of this model */
 		void destroy()
-		{
+		{		
+			assert(device);
 			vkDestroyBuffer(device, vertices.buffer, nullptr);
 			vkFreeMemory(device, vertices.memory, nullptr);
 			if (indices.buffer != VK_NULL_HANDLE)
