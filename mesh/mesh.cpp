@@ -16,6 +16,12 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <assimp/Importer.hpp> 
+#include <assimp/scene.h>     
+#include <assimp/postprocess.h>
+#include <assimp/cimport.h>
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
@@ -181,45 +187,80 @@ public:
 	// The other example will use the VulkanMesh loader which has some additional functionality for loading meshes
 	void loadMesh()
 	{
-		VulkanMeshLoader *meshLoader = new VulkanMeshLoader(vulkanDevice);
-#if defined(__ANDROID__)
-		meshLoader->assetManager = androidApp->activity->assetManager;
-#endif
-		meshLoader->LoadMesh(getAssetPath() + "models/voyager/voyager.dae");
+		std::string filename = getAssetPath() + "models/voyager/voyager.dae";
 
-		// Generate vertex buffer
+		// Load the model from file using ASSIMP
+
+		const aiScene* scene;
+		Assimp::Importer Importer;		
+
+		// Flags for loading the mesh
+		static const int assimpFlags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices;
+
+#if defined(__ANDROID__)
+		// Meshes are stored inside the apk on Android (compressed)
+		// So they need to be loaded via the asset manager
+
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+		assert(asset);
+		size_t size = AAsset_getLength(asset);
+
+		assert(size > 0);
+
+		void *meshData = malloc(size);
+		AAsset_read(asset, meshData, size);
+		AAsset_close(asset);
+
+		scene = Importer.ReadFileFromMemory(meshData, size, assimpFlags);
+
+		free(meshData);
+#else
+		scene = Importer.ReadFile(filename.c_str(), assimpFlags);
+#endif
+
+		// Generate vertex buffer from ASSIMP scene data
 		float scale = 1.0f;
 		std::vector<Vertex> vertexBuffer;
-		// Iterate through all meshes in the file
-		// and extract the vertex information used in this demo
-		for (uint32_t m = 0; m < meshLoader->m_Entries.size(); m++)
+
+		// Iterate through all meshes in the file and extract the vertex components
+		for (uint32_t m = 0; m < scene->mNumMeshes; m++)
 		{
-			for (uint32_t i = 0; i < meshLoader->m_Entries[m].Vertices.size(); i++)
+			for (uint32_t v = 0; v < scene->mMeshes[m]->mNumVertices; v++)
 			{
 				Vertex vertex;
 
-				vertex.pos = meshLoader->m_Entries[m].Vertices[i].m_pos * scale;
-				vertex.normal = meshLoader->m_Entries[m].Vertices[i].m_normal;
-				vertex.uv = meshLoader->m_Entries[m].Vertices[i].m_tex;
-				vertex.color = meshLoader->m_Entries[m].Vertices[i].m_color;
+				// Use glm make_* functions to convert ASSIMP vectors to glm vectors
+				vertex.pos = glm::make_vec3(&scene->mMeshes[m]->mVertices[v].x) * scale;
+				vertex.normal = glm::make_vec3(&scene->mMeshes[m]->mNormals[v].x);
+				// Texture coordinates and colors may have multiple channels, we only use the first [0] one
+				vertex.uv = glm::make_vec2(&scene->mMeshes[m]->mTextureCoords[0][v].x);
+				// Mesh may not have vertex colors
+				vertex.color = (scene->mMeshes[m]->HasVertexColors(0)) ? glm::make_vec3(&scene->mMeshes[m]->mColors[0][v].r) : glm::vec3(1.0f);
+
+				// Vulkan uses a right-handed NDC (contrary to OpenGL), so simply flip Y-Axis
+				vertex.pos.y *= -1.0f;
 
 				vertexBuffer.push_back(vertex);
 			}
 		}
-		uint32_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+		size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 
-		// Generate index buffer from loaded mesh file
+		// Generate index buffer from ASSIMP scene data
 		std::vector<uint32_t> indexBuffer;
-		for (uint32_t m = 0; m < meshLoader->m_Entries.size(); m++)
+		for (uint32_t m = 0; m < scene->mNumMeshes; m++)
 		{
-			uint32_t indexBase = indexBuffer.size();
-			for (uint32_t i = 0; i < meshLoader->m_Entries[m].Indices.size(); i++)
+			uint32_t indexBase = static_cast<uint32_t>(indexBuffer.size());
+			for (uint32_t f = 0; f < scene->mMeshes[m]->mNumFaces; f++)
 			{
-				indexBuffer.push_back(meshLoader->m_Entries[m].Indices[i] + indexBase);
+				// We assume that all faces are triangulated
+				for (uint32_t i = 0; i < 3; i++)
+				{
+					indexBuffer.push_back(scene->mMeshes[m]->mFaces[f].mIndices[i] + indexBase);
+				}
 			}
 		}
-		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
-		mesh.indices.count = indexBuffer.size();
+		size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
+		mesh.indices.count = static_cast<uint32_t>(indexBuffer.size());
 
 		// Static mesh should always be device local
 
@@ -313,8 +354,6 @@ public:
 				&mesh.indices.mem,
 				indexBuffer.data()));
 		}
-
-		delete(meshLoader);
 	}
 
 	void loadAssets()
@@ -341,33 +380,33 @@ public:
 				VERTEX_BUFFER_BIND_ID,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				0);
+				offsetof(Vertex, pos));
 		// Location 1 : Normal
 		vertices.attributeDescriptions[1] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				1,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3);
+				offsetof(Vertex, normal));
 		// Location 2 : Texture coordinates
 		vertices.attributeDescriptions[2] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
 				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6);
+				offsetof(Vertex, uv));
 		// Location 3 : Color
 		vertices.attributeDescriptions[3] =
 			vkTools::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				3,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8);
+				offsetof(Vertex, color));
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -382,7 +421,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vkTools::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				1);
 
@@ -408,7 +447,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vkTools::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
@@ -452,7 +491,7 @@ public:
 				&texDescriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -501,7 +540,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vkTools::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		// Solid rendering pipeline
@@ -525,7 +564,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
