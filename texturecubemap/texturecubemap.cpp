@@ -21,19 +21,12 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV
-};
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -48,11 +41,18 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+	});
+
 	struct Meshes {
-		vkMeshLoader::MeshBuffer skybox;
-		std::vector<vkMeshLoader::MeshBuffer> objects;
+		vks::Model skybox;
+		std::vector<vks::Model> objects;
 		uint32_t objectIndex = 0;
-	} meshes;
+	} models;
 
 	struct {
 		vk::Buffer object;
@@ -104,11 +104,10 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		for (size_t i = 0; i < meshes.objects.size(); i++)
-		{
-			vkMeshLoader::freeMeshBufferResources(device, &meshes.objects[i]);
+		for (auto& model : models.objects) {
+			model.destroy();
 		}
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.skybox);
+		models.skybox.destroy();
 
 		uniformBuffers.object.destroy();
 		uniformBuffers.skybox.destroy();
@@ -348,18 +347,18 @@ public:
 			if (displaySkybox)
 			{
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.skybox, 0, NULL);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skybox.vertices.buf, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skybox.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.skybox.vertices.buffer, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.skybox.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skybox);
-				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skybox.indexCount, 1, 0, 0, 0);
+				vkCmdDrawIndexed(drawCmdBuffers[i], models.skybox.indexCount, 1, 0, 0, 0);
 			}
 
 			// 3D object
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.object, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.objects[meshes.objectIndex].vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.objects[meshes.objectIndex].indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.objects[models.objectIndex].vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.objects[models.objectIndex].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.reflect);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.objects[meshes.objectIndex].indexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.objects[models.objectIndex].indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -370,12 +369,14 @@ public:
 	void loadMeshes()
 	{
 		// Skybox
-		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skybox, vertexLayout, 0.05f);
+		models.skybox.loadFromFile(getAssetPath() + "models/cube.obj", vertexLayout, 0.05f, vulkanDevice, queue);
 		// Objects
-		meshes.objects.resize(3);
-		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.objects[0], vertexLayout, 0.05f);
-		loadMesh(getAssetPath() + "models/teapot.dae", &meshes.objects[1], vertexLayout, 0.05f);
-		loadMesh(getAssetPath() + "models/torusknot.obj", &meshes.objects[2], vertexLayout, 0.05f);
+		std::vector<std::string> filenames = { "sphere.obj", "teapot.dae", "torusknot.obj" };
+		for (auto file : filenames) {
+			vks::Model model;
+			model.loadFromFile(getAssetPath() + "models/" + file, vertexLayout, 0.05f, vulkanDevice, queue);
+			models.objects.push_back(model);
+		}
 	}
 
 	void setupVertexDescriptions()
@@ -385,7 +386,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions
@@ -710,10 +711,10 @@ public:
 
 	void toggleObject()
 	{
-		meshes.objectIndex++;
-		if (meshes.objectIndex >= static_cast<uint32_t>(meshes.objects.size()))
+		models.objectIndex++;
+		if (models.objectIndex >= static_cast<uint32_t>(models.objects.size()))
 		{
-			meshes.objectIndex = 0;
+			models.objectIndex = 0;
 		}
 		reBuildCommandBuffers();
 	}

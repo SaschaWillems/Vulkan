@@ -20,6 +20,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -28,15 +29,6 @@
 // Offscreen frame buffer properties
 #define FB_DIM 512
 #define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
-
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL
-};
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -47,11 +39,19 @@ public:
 		vks::Texture2D colorMap;
 	} textures;
 	
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+		vks::VERTEX_COMPONENT_NORMAL,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer example;
-		vkMeshLoader::MeshBuffer quad;
-		vkMeshLoader::MeshBuffer plane;
-	} meshes;
+		vks::Model example;
+		vks::Model quad;
+		vks::Model plane;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -163,10 +163,10 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.shaded, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textured, nullptr);
 
-		// Meshes
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.plane);
+		// Models
+		models.example.destroy();
+		models.quad.destroy();
+		models.plane.destroy();
 
 		// Uniform buffers
 		uniformBuffers.vsShared.destroy();
@@ -390,9 +390,9 @@ public:
 		// Mirrored scene
 		vkCmdBindDescriptorSets(offscreenPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.shaded, 0, 1, &descriptorSets.offscreen, 0, NULL);
 		vkCmdBindPipeline(offscreenPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shadedOffscreen);
-		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offscreenPass.commandBuffer, meshes.example.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &models.example.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, models.example.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(offscreenPass.commandBuffer, models.example.indexCount, 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(offscreenPass.commandBuffer);
 
@@ -447,9 +447,9 @@ public:
 			{
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.textured, 0, 1, &descriptorSets.debugQuad, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.quad.indexCount, 1, 0, 0, 0);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.quad.vertices.buffer, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.quad.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(drawCmdBuffers[i], models.quad.indexCount, 1, 0, 0, 0);
 			}
 
 			// Scene
@@ -459,17 +459,17 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.textured, 0, 1, &descriptorSets.mirror, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.mirror);
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plane.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.plane.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.plane.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.plane.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.plane.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.plane.indexCount, 1, 0, 0, 0);
 
 			// Model
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.shaded, 0, 1, &descriptorSets.model, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shaded);
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.example.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.example.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.example.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.example.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -479,8 +479,8 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/plane.obj", &meshes.plane, vertexLayout, 0.5f);
-		loadMesh(getAssetPath() + "models/chinesedragon.dae", &meshes.example, vertexLayout, 0.3f);
+		models.plane.loadFromFile(getAssetPath() + "models/plane.obj", vertexLayout, 0.5f, vulkanDevice, queue);
+		models.example.loadFromFile(getAssetPath() + "models/chinesedragon.dae", vertexLayout, 0.3f, vulkanDevice, queue);
 		textures.colorMap.loadFromFile(getAssetPath() + "textures/darkmetal_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
@@ -508,21 +508,23 @@ public:
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			vertexBuffer.size() * sizeof(Vertex),
-			&meshes.quad.vertices.buf,
-			&meshes.quad.vertices.mem,
+			&models.quad.vertices.buffer,
+			&models.quad.vertices.memory,
 			vertexBuffer.data()));
 
 		// Setup indices
 		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-		meshes.quad.indexCount = indexBuffer.size();
+		models.quad.indexCount = indexBuffer.size();
 
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			indexBuffer.size() * sizeof(uint32_t),
-			&meshes.quad.indices.buf,
-			&meshes.quad.indices.mem,
+			&models.quad.indices.buffer,
+			&models.quad.indices.memory,
 			indexBuffer.data()));
+
+		models.quad.device = device;
 	}
 
 	void setupVertexDescriptions()
@@ -532,7 +534,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

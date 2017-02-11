@@ -23,18 +23,11 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV
-};
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -51,9 +44,16 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer object;
-	} meshes;
+		vks::Model object;
+	} models;
 
 	struct {
 		vk::Buffer tessControl, tessEval;
@@ -108,8 +108,7 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.object);
-
+		models.object.destroy();
 		uniformBuffers.tessControl.destroy();
 		uniformBuffers.tessEval.destroy();
 		textures.colorMap.destroy();
@@ -162,20 +161,20 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.object.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.object.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.object.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.object.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			if (splitScreen)
 			{
 				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineLeft);
-				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
+				vkCmdDrawIndexed(drawCmdBuffers[i], models.object.indexCount, 1, 0, 0, 0);
 				viewport.x = float(width) / 2;
 			}
 
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineRight);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.object.indexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.object.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -185,7 +184,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/lowpoly/deer.dae", &meshes.object, vertexLayout, 1.0f);
+		models.object.loadFromFile(getAssetPath() + "models/lowpoly/deer.dae", vertexLayout, 1.0f, vulkanDevice, queue);
 		textures.colorMap.loadFromFile(getAssetPath() + "textures/deer.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
@@ -196,7 +195,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions
@@ -466,8 +465,6 @@ public:
 		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		uint8_t *pData;
 
 		// Tessellation evaulation uniform block
 		memcpy(uniformBuffers.tessEval.mapped, &uboTessEval, sizeof(uboTessEval));

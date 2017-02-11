@@ -20,33 +20,26 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "vulkanbuffer.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-// Vertex layout used in this example
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	struct {
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_COLOR,
+	});
 
 	struct {
-		vkMeshLoader::MeshBuffer teapot;
-		vkMeshLoader::MeshBuffer plane;
-		vkMeshLoader::MeshBuffer sphere;
-	} meshes;
+		vks::Model teapot;
+		vks::Model plane;
+		vks::Model sphere;
+	} models;
 
 	struct {
 		vk::Buffer occluder;
@@ -60,6 +53,12 @@ public:
 		glm::vec4 lightPos = glm::vec4(10.0f, 10.0f, 10.0f, 1.0f);
 		float visible;
 	} uboVS;
+
+	struct {
+		VkPipelineVertexInputStateCreateInfo inputState;
+		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+	} vertices;
 
 	struct {
 		VkPipeline solid;
@@ -119,9 +118,9 @@ public:
 		uniformBuffers.sphere.destroy();
 		uniformBuffers.teapot.destroy();
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.sphere);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.plane);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.teapot);
+		models.sphere.destroy();
+		models.plane.destroy();
+		models.teapot.destroy();
 	}
 
 	// Create a buffer for storing the query result
@@ -226,17 +225,17 @@ public:
 
 			// Occluder first
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plane.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.plane.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.plane.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.plane.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.plane.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.plane.indexCount, 1, 0, 0, 0);
 
 			// Teapot
 			vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, VK_FLAGS_NONE);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.teapot, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.teapot.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.teapot.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.teapot.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.teapot.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.teapot.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.teapot.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 0);
 
@@ -244,9 +243,9 @@ public:
 			vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 1, VK_FLAGS_NONE);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.sphere, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.sphere.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.sphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.sphere.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.sphere.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.sphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.sphere.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 1);
 
@@ -277,22 +276,22 @@ public:
 
 			// Teapot
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.teapot, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.teapot.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.teapot.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.teapot.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.teapot.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.teapot.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.teapot.indexCount, 1, 0, 0, 0);
 
 			// Sphere
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.sphere, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.sphere.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.sphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.sphere.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.sphere.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.sphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.sphere.indexCount, 1, 0, 0, 0);
 
 			// Occluder
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.occluder);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plane.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.plane.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.plane.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.plane.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.plane.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.plane.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -314,11 +313,11 @@ public:
 		VulkanExampleBase::submitFrame();
 	}
 
-	void loadMeshes()
+	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/plane_z.3ds", &meshes.plane, vertexLayout, 0.4f);
-		loadMesh(getAssetPath() + "models/teapot.3ds", &meshes.teapot, vertexLayout, 0.3f);
-		loadMesh(getAssetPath() + "models/sphere.3ds", &meshes.sphere, vertexLayout, 0.3f);
+		models.plane.loadFromFile(getAssetPath() + "models/plane_z.3ds", vertexLayout, 0.4f, vulkanDevice, queue);
+		models.teapot.loadFromFile(getAssetPath() + "models/teapot.3ds", vertexLayout, 0.3f, vulkanDevice, queue);
+		models.sphere.loadFromFile(getAssetPath() + "models/sphere.3ds", vertexLayout, 0.3f, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()
@@ -328,7 +327,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions
@@ -604,7 +603,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadMeshes();
+		loadAssets();
 		setupQueryResultBuffer();
 		setupVertexDescriptions();
 		prepareUniformBuffers();

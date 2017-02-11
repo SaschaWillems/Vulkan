@@ -21,35 +21,35 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define INSTANCE_BUFFER_BIND_ID 1
 #define ENABLE_VALIDATION false
 #define INSTANCE_COUNT 8192
 
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
 	struct {
-		vkMeshLoader::MeshBuffer rock;
-		vkMeshLoader::MeshBuffer planet;
-	} meshes;
-
-	struct {
 		vks::Texture2DArray rocks;
 		vks::Texture2D planet;
 	} textures;
+
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+	});
+
+	struct {
+		vks::Model rock;
+		vks::Model planet;
+	} models;
 
 	// Per-instance data block
 	struct InstanceData {
@@ -111,8 +111,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 		vkDestroyBuffer(device, instanceBuffer.buffer, nullptr);
 		vkFreeMemory(device, instanceBuffer.memory, nullptr);
-		meshes.rock.destroy();
-		meshes.planet.destroy();
+		models.rock.destroy();
+		models.planet.destroy();
 		textures.rocks.destroy();
 		textures.planet.destroy();
 		uniformBuffers.scene.destroy();
@@ -158,22 +158,22 @@ public:
 			// Planet
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.planet, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.planet);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.planet.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.planet.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.planet.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.planet.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.planet.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.planet.indexCount, 1, 0, 0, 0);
 
 			// Instanced rocks
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.instancedRocks, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.instancedRocks);
 			// Binding point 0 : Mesh vertex buffer
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.rock.vertices.buf, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.rock.vertices.buffer, offsets);
 			// Binding point 1 : Instance data buffer
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], INSTANCE_BUFFER_BIND_ID, 1, &instanceBuffer.buffer, offsets);
 
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.rock.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.rock.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			// Render instances
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.rock.indexCount, INSTANCE_COUNT, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.rock.indexCount, INSTANCE_COUNT, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -183,8 +183,8 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/rock01.dae", &meshes.rock, vertexLayout, 0.1f);
-		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.planet, vertexLayout, 0.2f);
+		models.rock.loadFromFile(getAssetPath() + "models/rock01.dae", vertexLayout, 0.1f, vulkanDevice, queue);
+		models.planet.loadFromFile(getAssetPath() + "models/sphere.obj", vertexLayout, 0.2f, vulkanDevice, queue);
 		textures.rocks.loadFromFile(getAssetPath() + "textures/texturearray_rocks_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		textures.planet.loadFromFile(getAssetPath() + "textures/lavaplanet_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
@@ -340,7 +340,7 @@ public:
 		// The instancing pipeline uses a vertex input state with two bindings
 		bindingDescriptions = {
 			// Binding point 0: Mesh vertex layout description at per-vertex rate
-			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vkMeshLoader::vertexSize(vertexLayout), VK_VERTEX_INPUT_RATE_VERTEX),
+			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
 			// Binding point 1: Instanced data at per-instance rate
 			vkTools::initializers::vertexInputBindingDescription(INSTANCE_BUFFER_BIND_ID, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
 		};

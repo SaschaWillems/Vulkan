@@ -210,38 +210,6 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	return shaderStage;
 }
 
-void VulkanExampleBase::loadMesh(std::string filename, vkMeshLoader::MeshBuffer * meshBuffer, std::vector<vkMeshLoader::VertexLayout> vertexLayout, float scale)
-{
-	vkMeshLoader::MeshCreateInfo meshCreateInfo;
-	meshCreateInfo.scale = glm::vec3(scale);
-	meshCreateInfo.center = glm::vec3(0.0f);
-	meshCreateInfo.uvscale = glm::vec2(1.0f);
-	loadMesh(filename, meshBuffer, vertexLayout, &meshCreateInfo);
-}
-
-void VulkanExampleBase::loadMesh(std::string filename, vkMeshLoader::MeshBuffer * meshBuffer, std::vector<vkMeshLoader::VertexLayout> vertexLayout, vkMeshLoader::MeshCreateInfo *meshCreateInfo)
-{
-	VulkanMeshLoader *mesh = new VulkanMeshLoader(vulkanDevice);
-
-#if defined(__ANDROID__)
-	mesh->assetManager = androidApp->activity->assetManager;
-#endif
-
-	mesh->LoadMesh(filename);
-	assert(mesh->m_Entries.size() > 0);
-
-	mesh->createBuffers(
-		meshBuffer,
-		vertexLayout,
-		meshCreateInfo,
-		true,
-		queue);
-
-	meshBuffer->dim = mesh->dim.size;
-
-	delete(mesh);
-}
-
 void VulkanExampleBase::renderLoop()
 {
 	destWidth = width;

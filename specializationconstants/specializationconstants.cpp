@@ -22,19 +22,11 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR
-};
 
 class VulkanExample: public VulkanExampleBase 
 {
@@ -45,9 +37,17 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer cube;
-	} meshes;
+		vks::Model cube;
+	} models;
 
 	struct {
 		vks::Texture2D colormap;
@@ -91,10 +91,8 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.cube);
-
+		models.cube.destroy();
 		textures.colormap.destroy();
-
 		uniformBuffer.destroy();
 	}
 
@@ -133,27 +131,27 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.cube.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.cube.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.cube.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.cube.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			// Left
 			viewport.width = (float)width / 3.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
 			
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.cube.indexCount, 1, 0, 0, 0);
 
 			// Center
 			viewport.x = (float)width / 3.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toon);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.cube.indexCount, 1, 0, 0, 0);
 
 			// Right
 			viewport.x = (float)width / 3.0f + (float)width / 3.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.textured);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.cube.indexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.cube.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -163,7 +161,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/color_teapot_spheres.dae", &meshes.cube, vertexLayout, 0.1f);
+		models.cube.loadFromFile(getAssetPath() + "models/color_teapot_spheres.dae", vertexLayout, 0.1f, vulkanDevice, queue);
 		textures.colormap.loadFromFile(getAssetPath() + "textures/metalplate_nomips_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
@@ -172,7 +170,7 @@ public:
 		// Binding description
 		vertices.bindingDescriptions.resize(1);
 		vertices.bindingDescriptions = {
-			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vkMeshLoader::vertexSize(vertexLayout), VK_VERTEX_INPUT_RATE_VERTEX),
+			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
 		};
 
 		// Attribute descriptions

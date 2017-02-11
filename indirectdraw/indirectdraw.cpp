@@ -34,8 +34,9 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define INSTANCE_BUFFER_BIND_ID 1
@@ -52,34 +53,33 @@
 #define PLANT_RADIUS 25.0f
 #endif
 
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	struct {
+		vks::Texture2DArray plants;
+		vks::Texture2D ground;
+	} textures;
+
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+	});
+
+	struct {
+		vks::Model plants;
+		vks::Model ground;
+		vks::Model skysphere;
+	} models;
+
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
-
-	struct {
-		vkMeshLoader::MeshBuffer plants;
-		vkMeshLoader::MeshBuffer ground;
-		vkMeshLoader::MeshBuffer skysphere;
-	} meshes;
-
-	struct {
-		vks::Texture2DArray plants;
-		vks::Texture2D ground;
-	} textures;
 
 	// Per-instance data block
 	struct InstanceData {
@@ -139,9 +139,9 @@ public:
 		vkDestroyPipeline(device, pipelines.skysphere, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.plants);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.ground);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.skysphere);
+		models.plants.destroy();
+		models.ground.destroy();
+		models.skysphere.destroy();
 		textures.plants.destroy();
 		textures.ground.destroy();
 		instanceBuffer.destroy();
@@ -195,11 +195,11 @@ public:
 			// Plants
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.plants);
 			// Binding point 0 : Mesh vertex buffer
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.plants.vertices.buf, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.plants.vertices.buffer, offsets);
 			// Binding point 1 : Instance data buffer
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], INSTANCE_BUFFER_BIND_ID, 1, &instanceBuffer.buffer, offsets);
 			
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.plants.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.plants.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			// If the multi draw feature is supported:
 			// One draw call for an arbitrary number of ojects
@@ -219,14 +219,14 @@ public:
 
 			// Ground
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ground);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.ground.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.ground.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.ground.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.ground.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.ground.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.ground.indexCount, 1, 0, 0, 0);
 			// Skysphere
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skysphere);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skysphere.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skysphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skysphere.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.skysphere.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.skysphere.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -236,9 +236,9 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/plants.dae", &meshes.plants, vertexLayout, 0.0025f);
-		loadMesh(getAssetPath() + "models/plane_circle.dae", &meshes.ground, vertexLayout, PLANT_RADIUS + 1.0f);
-		loadMesh(getAssetPath() + "models/skysphere.dae", &meshes.skysphere, vertexLayout, 512.0f / 10.0f);
+		models.plants.loadFromFile(getAssetPath() + "models/plants.dae", vertexLayout, 0.0025f, vulkanDevice, queue);
+		models.ground.loadFromFile(getAssetPath() + "models/plane_circle.dae", vertexLayout, PLANT_RADIUS + 1.0f, vulkanDevice, queue);
+		models.skysphere.loadFromFile(getAssetPath() + "models/skysphere.dae", vertexLayout, 512.0f / 10.0f, vulkanDevice, queue);
 
 		textures.plants.loadFromFile(getAssetPath() + "textures/texturearray_plants_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		textures.ground.loadFromFile(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
@@ -253,7 +253,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				// Input rate for the data passed to shader
 				// Step for each vertex rendered
 				VK_VERTEX_INPUT_RATE_VERTEX);
@@ -515,13 +515,13 @@ public:
 
 		// Create on indirect command for each mesh in the scene
 		uint32_t m = 0;
-		for (auto& meshDescriptor : meshes.plants.meshDescriptors)
+		for (auto& modelPart : models.plants.parts)
 		{
 			VkDrawIndexedIndirectCommand indirectCmd{};
 			indirectCmd.instanceCount = OBJECT_INSTANCE_COUNT;
 			indirectCmd.firstInstance = m * OBJECT_INSTANCE_COUNT;
-			indirectCmd.firstIndex = meshDescriptor.indexBase;
-			indirectCmd.indexCount = meshDescriptor.indexCount;
+			indirectCmd.firstIndex = modelPart.indexBase;
+			indirectCmd.indexCount = modelPart.indexCount;
 			
 			indirectCommands.push_back(indirectCmd);
 

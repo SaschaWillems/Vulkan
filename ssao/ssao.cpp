@@ -21,6 +21,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -34,15 +35,6 @@
 #define SSAO_NOISE_DIM 4
 #endif
 
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -50,9 +42,17 @@ public:
 		vks::Texture2D ssaoNoise;
 	} textures;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+		vks::VERTEX_COMPONENT_NORMAL,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer scene;
-	} meshes;
+		vks::Model scene;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -204,7 +204,7 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.composition, nullptr);
 
 		// Meshes
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.scene);
+		models.scene.destroy();
 
 		// Uniform buffers
 		uniformBuffers.sceneMatrices.destroy();
@@ -574,9 +574,9 @@ public:
 		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
 
 		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.gBuffer, 0, 1, &descriptorSets.floor, 0, NULL);
-		vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(offScreenCmdBuffer, meshes.scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offScreenCmdBuffer, meshes.scene.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(offScreenCmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &models.scene.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(offScreenCmdBuffer, models.scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(offScreenCmdBuffer, models.scene.indexCount, 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(offScreenCmdBuffer);
 
@@ -632,11 +632,11 @@ public:
 
 	void loadAssets()
 	{
-		vkMeshLoader::MeshCreateInfo meshCreateInfo;
-		meshCreateInfo.scale = glm::vec3(0.5f);
-		meshCreateInfo.uvscale = glm::vec2(1.0f);
-		meshCreateInfo.center = glm::vec3(0.0f, 0.0f, 0.0f);
-		loadMesh(getAssetPath() + "models/sibenik/sibenik.dae", &meshes.scene, vertexLayout, &meshCreateInfo);
+		vks::ModelCreateInfo modelCreateInfo;
+		modelCreateInfo.scale = glm::vec3(0.5f);
+		modelCreateInfo.uvscale = glm::vec2(1.0f);
+		modelCreateInfo.center = glm::vec3(0.0f, 0.0f, 0.0f);
+		models.scene.loadFromFile(getAssetPath() + "models/sibenik/sibenik.dae", vertexLayout, &modelCreateInfo, vulkanDevice, queue);
 	}
 
 	void reBuildCommandBuffers()
@@ -701,7 +701,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

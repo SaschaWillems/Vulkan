@@ -20,9 +20,10 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
-#include "vulkanframebuffer.hpp"
 #include "vulkanbuffer.hpp"
+#include "vulkanframebuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -45,17 +46,6 @@
 
 // Must match the LIGHT_COUNT define in the shadow and deferred shaders
 #define LIGHT_COUNT 3
-
-// Vertex layout for this example
-// todo: create class for vertex layout
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_TANGENT
-};
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -84,11 +74,20 @@ public:
 		} background;
 	} textures;
 	
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_TANGENT,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer model;
-		vkMeshLoader::MeshBuffer background;
-		vkMeshLoader::MeshBuffer quad;
-	} meshes;
+		vks::Model model;
+		vks::Model background;
+		vks::Model quad;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -212,9 +211,9 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		// Meshes
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.model);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.background);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
+		models.model.destroy();
+		models.background.destroy();
+		models.quad.destroy();
 
 		// Uniform buffers
 		uniformBuffers.vsOffscreen.destroy();
@@ -325,15 +324,15 @@ public:
 
 		// Background
 		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, shadow ? &descriptorSets.shadow : &descriptorSets.background, 0, NULL);
-		vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.background.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(cmdBuffer, meshes.background.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmdBuffer, meshes.background.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &models.background.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, models.background.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmdBuffer, models.background.indexCount, 1, 0, 0, 0);
 
 		// Objects
 		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, shadow ? &descriptorSets.shadow : &descriptorSets.model, 0, NULL);
-		vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.model.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(cmdBuffer, meshes.model.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmdBuffer, meshes.model.indexCount, 3, 0, 0, 0);
+		vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &models.model.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, models.model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmdBuffer, models.model.indexCount, 3, 0, 0, 0);
 	}
 
 	// Build a secondary command buffer for rendering the scene values to the offscreen frame buffer attachments
@@ -420,13 +419,13 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/armor/armor.dae", &meshes.model, vertexLayout, 1.0f);
+		models.model.loadFromFile(getAssetPath() + "models/armor/armor.dae", vertexLayout, 1.0f, vulkanDevice, queue);
 
-		vkMeshLoader::MeshCreateInfo meshCreateInfo;
-		meshCreateInfo.scale = glm::vec3(15.0f);
-		meshCreateInfo.uvscale = glm::vec2(1.0f, 1.5f);
-		meshCreateInfo.center = glm::vec3(0.0f, 2.3f, 0.0f);
-		loadMesh(getAssetPath() + "models/openbox.dae", &meshes.background, vertexLayout, &meshCreateInfo);
+		vks::ModelCreateInfo modelCreateInfo;
+		modelCreateInfo.scale = glm::vec3(15.0f);
+		modelCreateInfo.uvscale = glm::vec2(1.0f, 1.5f);
+		modelCreateInfo.center = glm::vec3(0.0f, 2.3f, 0.0f);
+		models.background.loadFromFile(getAssetPath() + "models/openbox.dae", vertexLayout, &modelCreateInfo, vulkanDevice, queue);
 
 		textures.model.colorMap.loadFromFile(getAssetPath() + "models/armor/colormap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		textures.model.normalMap.loadFromFile(getAssetPath() + "models/armor/normalmap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
@@ -481,8 +480,8 @@ public:
 
 			// Final composition as full screen quad
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.deferred);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.quad.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.quad.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(drawCmdBuffers[i], 6, 1, 0, 0, 0);
 
 			if (debugDisplay)
@@ -520,8 +519,8 @@ public:
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			vertexBuffer.size() * sizeof(Vertex),
-			&meshes.quad.vertices.buf,
-			&meshes.quad.vertices.mem,
+			&models.quad.vertices.buffer,
+			&models.quad.vertices.memory,
 			vertexBuffer.data()));
 
 		// Setup indices
@@ -534,15 +533,17 @@ public:
 				indexBuffer.push_back(i * 4 + index);
 			}
 		}
-		meshes.quad.indexCount = static_cast<uint32_t>(indexBuffer.size());
+		models.quad.indexCount = static_cast<uint32_t>(indexBuffer.size());
 
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			indexBuffer.size() * sizeof(uint32_t),
-			&meshes.quad.indices.buf,
-			&meshes.quad.indices.mem,
+			&models.quad.indices.buffer,
+			&models.quad.indices.memory,
 			indexBuffer.data()));
+
+		models.quad.device = device;
 	}
 
 	void setupVertexDescriptions()
@@ -552,15 +553,46 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions
-		vertices.attributeDescriptions.clear();
-		vkMeshLoader::getVertexInputAttributeDescriptions(
-			vertexLayout, 
-			vertices.attributeDescriptions, 
-			VERTEX_BUFFER_BIND_ID);
+		vertices.attributeDescriptions.resize(5);
+		// Location 0: Position
+		vertices.attributeDescriptions[0] =
+			vkTools::initializers::vertexInputAttributeDescription(
+				VERTEX_BUFFER_BIND_ID,
+				0,
+				VK_FORMAT_R32G32B32_SFLOAT,
+				0);
+		// Location 1: Texture coordinates
+		vertices.attributeDescriptions[1] =
+			vkTools::initializers::vertexInputAttributeDescription(
+				VERTEX_BUFFER_BIND_ID,
+				1,
+				VK_FORMAT_R32G32_SFLOAT,
+				sizeof(float) * 3);
+		// Location 2: Color
+		vertices.attributeDescriptions[2] =
+			vkTools::initializers::vertexInputAttributeDescription(
+				VERTEX_BUFFER_BIND_ID,
+				2,
+				VK_FORMAT_R32G32B32_SFLOAT,
+				sizeof(float) * 5);
+		// Location 3: Normal
+		vertices.attributeDescriptions[3] =
+			vkTools::initializers::vertexInputAttributeDescription(
+				VERTEX_BUFFER_BIND_ID,
+				3,
+				VK_FORMAT_R32G32B32_SFLOAT,
+				sizeof(float) * 8);
+		// Location 4: Tangent
+		vertices.attributeDescriptions[4] =
+			vkTools::initializers::vertexInputAttributeDescription(
+				VERTEX_BUFFER_BIND_ID,
+				4,
+				VK_FORMAT_R32G32B32_SFLOAT,
+				sizeof(float) * 11);
 
 		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
 		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
@@ -1030,8 +1062,6 @@ public:
 			uboShadowGS.mvp[i] = shadowProj * shadowView * shadowModel;
 			uboFragmentLights.lights[i].viewMatrix = uboShadowGS.mvp[i];
 		}
-
-		uint8_t *pData;
 
 		memcpy(uboShadowGS.instancePos, uboOffscreenVS.instancePos, sizeof(uboOffscreenVS.instancePos));
 

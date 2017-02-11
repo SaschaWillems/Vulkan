@@ -21,32 +21,32 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
 #define NUM_LIGHTS 64
 
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
 	struct {
-		vkMeshLoader::MeshBuffer scene;
-		vkMeshLoader::MeshBuffer transparent;
-	} meshes;
-
-	struct {
 		vks::Texture2D glass;
 	} textures;
+
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_COLOR,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+	});
+
+	struct {
+		vks::Model scene;
+		vks::Model transparent;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -155,8 +155,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.transparent, nullptr);
 
 		textures.glass.destroy();
-		meshes.scene.destroy();
-		meshes.transparent.destroy();
+		models.scene.destroy();
+		models.transparent.destroy();
 		uniformBuffers.GBuffer.destroy();
 		uniformBuffers.lights.destroy();
 	}
@@ -455,9 +455,9 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.scene, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.scene.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.scene.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.scene.indexCount, 1, 0, 0, 0);
 
 			// Second sub pass
 			// This subpass will use the G-Buffer components that have been filled in the first subpass as input attachment for the final compositing
@@ -474,9 +474,9 @@ public:
 
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.transparent);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.transparent, 0, 1, &descriptorSets.transparent, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.transparent.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.transparent.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.transparent.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.transparent.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.transparent.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.transparent.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -486,8 +486,8 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/samplebuilding.dae", &meshes.scene, vertexLayout, 1.0f);
-		loadMesh(getAssetPath() + "models/samplebuilding_glass.dae", &meshes.transparent, vertexLayout, 1.0f);
+		models.scene.loadFromFile(getAssetPath() + "models/samplebuilding.dae", vertexLayout, 1.0f, vulkanDevice, queue);
+		models.transparent.loadFromFile(getAssetPath() + "models/samplebuilding_glass.dae", vertexLayout, 1.0f, vulkanDevice, queue);
 		textures.glass.loadFromFile(getAssetPath() + "textures/colored_glass_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
@@ -497,7 +497,7 @@ public:
 		vertices.bindingDescriptions = {
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX),
 		};
 

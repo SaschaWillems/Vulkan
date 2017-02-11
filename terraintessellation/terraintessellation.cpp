@@ -21,43 +21,43 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 #include "frustum.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV
-};
-
 class VulkanExample : public VulkanExampleBase
 {
-private:
+public:
+	bool wireframe = false;
+	bool tessellation = true;
+
 	struct {
 		vks::Texture2D heightMap;
 		vks::Texture2D skySphere;
 		vks::Texture2DArray terrainArray;
 	} textures;
-public:
-	bool wireframe = false;
-	bool tessellation = true;
+
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+	});
+
+	struct {
+		vks::Model terrain;
+		vks::Model skysphere;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
-
-	struct {
-		vkMeshLoader::MeshBuffer terrain;
-		vkMeshLoader::MeshBuffer skysphere;
-	} meshes;
 
 	struct {
 		vk::Buffer terrainTessellation;
@@ -146,8 +146,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.terrain, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.skysphere, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.terrain);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.skysphere);
+		models.terrain.destroy();
+		models.skysphere.destroy();
 
 		uniformBuffers.skysphereVertex.destroy();
 		uniformBuffers.terrainTessellation.destroy();
@@ -211,7 +211,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/geosphere.obj", &meshes.skysphere, vertexLayout, 1.0f);
+		models.skysphere.loadFromFile(getAssetPath() + "models/geosphere.obj", vertexLayout, 1.0f, vulkanDevice, queue);
 
 		textures.skySphere.loadFromFile(getAssetPath() + "textures/skysphere_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		// Height data is stored in a one-channel texture
@@ -309,9 +309,9 @@ public:
 			// Skysphere
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skysphere);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.skysphere, 0, 1, &descriptorSets.skysphere, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skysphere.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skysphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skysphere.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.skysphere.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.skysphere.indexCount, 1, 0, 0, 0);
 
 			// Terrrain
 			// Begin pipeline statistics query			
@@ -319,9 +319,9 @@ public:
 			// Render
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.terrain);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.terrain, 0, 1, &descriptorSets.terrain, 0, NULL);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.terrain.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.terrain.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.terrain.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.terrain.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.terrain.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.terrain.indexCount, 1, 0, 0, 0);
 			// End pipeline statistics query
 			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 0);
 
@@ -456,7 +456,7 @@ public:
 				indices[index + 3] = indices[index] + 1;
 			}
 		}
-		meshes.terrain.indexCount = (PATCH_SIZE - 1) * (PATCH_SIZE - 1) * 4;
+		models.terrain.indexCount = (PATCH_SIZE - 1) * (PATCH_SIZE - 1) * 4;
 
 		uint32_t vertexBufferSize = (PATCH_SIZE * PATCH_SIZE * 4) * sizeof(Vertex);
 		uint32_t indexBufferSize = (w * w * 4) * sizeof(uint32_t);
@@ -488,15 +488,15 @@ public:
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			vertexBufferSize,
-			&meshes.terrain.vertices.buf,
-			&meshes.terrain.vertices.mem));
+			&models.terrain.vertices.buffer,
+			&models.terrain.vertices.memory));
 
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			indexBufferSize,
-			&meshes.terrain.indices.buf,
-			&meshes.terrain.indices.mem));
+			&models.terrain.indices.buffer,
+			&models.terrain.indices.memory));
 
 		// Copy from staging buffers
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -507,7 +507,7 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			vertexStaging.buffer,
-			meshes.terrain.vertices.buf,
+			models.terrain.vertices.buffer,
 			1,
 			&copyRegion);
 
@@ -515,11 +515,13 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			indexStaging.buffer,
-			meshes.terrain.indices.buf,
+			models.terrain.indices.buffer,
 			1,
 			&copyRegion);
 
 		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+
+		models.terrain.device = device;
 
 		vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
 		vkFreeMemory(device, vertexStaging.memory, nullptr);
@@ -537,7 +539,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

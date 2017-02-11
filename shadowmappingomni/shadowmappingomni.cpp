@@ -19,8 +19,9 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -32,15 +33,6 @@
 // Offscreen frame buffer properties
 #define FB_DIM TEX_DIM
 #define FB_COLOR_FORMAT VK_FORMAT_R32_SFLOAT 
-
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout = 
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL
-};
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -56,10 +48,18 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+		vks::VERTEX_COMPONENT_NORMAL,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer skybox;
-		vkMeshLoader::MeshBuffer scene;
-	} meshes;
+		vks::Model skybox;
+		vks::Model scene;
+	} models;
 
 	struct {
 		vk::Buffer scene;
@@ -170,8 +170,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		// Meshes
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.scene);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.skybox);
+		models.scene.destroy();
+		models.skybox.destroy();
 
 		// Uniform buffers
 		uniformBuffers.offscreen.destroy();
@@ -435,9 +435,9 @@ public:
 		vkCmdBindDescriptorSets(offscreenPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, meshes.scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offscreenPass.commandBuffer, meshes.scene.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &models.scene.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, models.scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(offscreenPass.commandBuffer, models.scene.indexCount, 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(offscreenPass.commandBuffer);
 		// Make sure color writes to the framebuffer are finished before using it as transfer source
@@ -598,16 +598,16 @@ public:
 			if (displayCubeMap)
 			{
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.cubeMap);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skybox.vertices.buf, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skybox.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skybox.indexCount, 1, 0, 0, 0);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.skybox.vertices.buffer, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.skybox.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(drawCmdBuffers[i], models.skybox.indexCount, 1, 0, 0, 0);
 			}
 			else
 			{
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.scene);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.scene.vertices.buf, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.scene.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.scene.indexCount, 1, 0, 0, 0);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.scene.vertices.buffer, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(drawCmdBuffers[i], models.scene.indexCount, 1, 0, 0, 0);
 			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -618,8 +618,8 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skybox, vertexLayout, 2.0f);
-		loadMesh(getAssetPath() + "models/shadowscene_fire.dae", &meshes.scene, vertexLayout, 2.0f);
+		models.skybox.loadFromFile(getAssetPath() + "models/cube.obj", vertexLayout, 2.0f, vulkanDevice, queue);
+		models.scene.loadFromFile(getAssetPath() + "models/shadowscene_fire.dae", vertexLayout, 2.0f, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()
@@ -629,7 +629,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

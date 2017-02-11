@@ -23,6 +23,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "vulkanbuffer.hpp"
+#include "VulkanModel.hpp"
 #include "frustum.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -38,14 +39,6 @@
 
 #define MAX_LOD_LEVEL 5
 
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -57,9 +50,16 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_COLOR,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer lodObject;
-	} meshes;
+		vks::Model lodObject;
+	} models;
 
 	// Per-instance data block
 	struct InstanceData {
@@ -136,7 +136,7 @@ public:
 		vkDestroyPipeline(device, pipelines.plants, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.lodObject);
+		models.lodObject.destroy();
 		instanceBuffer.destroy();
 		indirectCommandsBuffer.destroy();
 		uniformData.scene.destroy();
@@ -195,10 +195,10 @@ public:
 
 			// Mesh containing the LODs
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.plants);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.lodObject.vertices.buf, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.lodObject.vertices.buffer, offsets);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], INSTANCE_BUFFER_BIND_ID, 1, &instanceBuffer.buffer, offsets);
 			
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.lodObject.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.lodObject.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			if (vulkanDevice->features.multiDrawIndirect)
 			{
@@ -221,7 +221,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/suzanne_lods.dae", &meshes.lodObject, vertexLayout, 0.1f);
+		models.lodObject.loadFromFile(getAssetPath() + "models/suzanne_lods.dae", vertexLayout, 0.1f, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()
@@ -230,7 +230,7 @@ public:
 
 		// Binding 0: Per vertex
 		vertices.bindingDescriptions[0] =
-			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vkMeshLoader::vertexSize(vertexLayout), VK_VERTEX_INPUT_RATE_VERTEX);
+			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Binding 1: Per instance
 		vertices.bindingDescriptions[1] = 
@@ -573,12 +573,12 @@ public:
 		};
 		std::vector<LOD> LODLevels;
 		uint32_t n = 0;
-		for (auto meshDescriptor : meshes.lodObject.meshDescriptors)
+		for (auto modelPart : models.lodObject.parts)
 		{
 			LOD lod;
-			lod.firstIndex = meshDescriptor.indexBase;			// First index for this LOD
-			lod.indexCount = meshDescriptor.indexCount;			// Index count for this LOD
-			lod.distance = 5.0f + n * 5.0f;						// Starting distance (to viewer) for this LOD
+			lod.firstIndex = modelPart.indexBase;			// First index for this LOD
+			lod.indexCount = modelPart.indexCount;			// Index count for this LOD
+			lod.distance = 5.0f + n * 5.0f;					// Starting distance (to viewer) for this LOD
 			n++;
 			LODLevels.push_back(lod);
 		}
@@ -721,7 +721,7 @@ public:
 		specializationEntry.offset = 0;
 		specializationEntry.size = sizeof(uint32_t);
 
-		uint32_t specializationData = static_cast<uint32_t>(meshes.lodObject.meshDescriptors.size()) - 1;
+		uint32_t specializationData = static_cast<uint32_t>(models.lodObject.parts.size()) - 1;
 
 		VkSpecializationInfo specializationInfo;
 		specializationInfo.mapEntryCount = 1;

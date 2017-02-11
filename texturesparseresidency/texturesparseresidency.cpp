@@ -44,12 +44,6 @@ struct Vertex {
 	float normal[3];
 	float uv[2];
 };
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-};
 
 // Virtual texture page as a part of the partially resident texture
 // Contains memory bindings, offsets and status information

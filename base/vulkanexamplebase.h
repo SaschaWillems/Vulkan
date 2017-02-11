@@ -44,7 +44,6 @@
 #include "VulkanInitializers.hpp"
 #include "vulkandevice.hpp"
 #include "vulkanswapchain.hpp"
-#include "vulkanMeshLoader.hpp"
 #include "vulkantextoverlay.hpp"
 #include "camera.hpp"
 
@@ -355,19 +354,6 @@ public:
 	// Load a SPIR-V shader
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 	
-	// Load a mesh (using ASSIMP) and create vulkan vertex and index buffers with given vertex layout
-	void loadMesh(
-		std::string fiename, 
-		vkMeshLoader::MeshBuffer *meshBuffer, 
-		std::vector<vkMeshLoader::VertexLayout> vertexLayout, 
-		float scale);
-	void loadMesh(
-		std::string filename, 
-		vkMeshLoader::MeshBuffer *meshBuffer, 
-		std::vector<vkMeshLoader::VertexLayout> 
-		vertexLayout, 
-		vkMeshLoader::MeshCreateInfo *meshCreateInfo);
-
 	// Start the main render loop
 	void renderLoop();
 

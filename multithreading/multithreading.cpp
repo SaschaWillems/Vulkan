@@ -25,31 +25,31 @@
 #include "threadpool.hpp"
 #include "frustum.hpp"
 
+#include "VulkanModel.hpp"
+
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-
-// Vertex layout used in this example
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-};
 
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_COLOR,
+	});
+
+	struct {
+		vks::Model ufo;
+		vks::Model skysphere;
+	} models;
+
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
-
-	struct {
-		vkMeshLoader::MeshBuffer ufo;
-		vkMeshLoader::MeshBuffer skysphere;
-	} meshes;
 
 	// Shared matrices used for thread push constant blocks
 	struct {
@@ -153,8 +153,8 @@ public:
 		vkFreeCommandBuffers(device, cmdPool, 1, &primaryCommandBuffer);
 		vkFreeCommandBuffers(device, cmdPool, 1, &secondaryCommandBuffer);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.ufo);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.skysphere);
+		models.ufo.destroy();
+		models.skysphere.destroy();
 
 		for (auto& thread : threadData)
 		{
@@ -297,9 +297,9 @@ public:
 			&thread->pushConstBlock[cmdBufferIndex]);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &meshes.ufo.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(cmdBuffer, meshes.ufo.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmdBuffer, meshes.ufo.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &models.ufo.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, models.ufo.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmdBuffer, models.ufo.indexCount, 1, 0, 0, 0);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
@@ -337,9 +337,9 @@ public:
 			&mvp);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(secondaryCommandBuffer, 0, 1, &meshes.skysphere.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(secondaryCommandBuffer, meshes.skysphere.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(secondaryCommandBuffer, meshes.skysphere.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(secondaryCommandBuffer, 0, 1, &models.skysphere.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(secondaryCommandBuffer, models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(secondaryCommandBuffer, models.skysphere.indexCount, 1, 0, 0, 0);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffer));
 	}
@@ -420,9 +420,9 @@ public:
 
 	void loadMeshes()
 	{
-		loadMesh(getAssetPath() + "models/retroufo_red_lowpoly.dae", &meshes.ufo, vertexLayout, 0.12f);
-		loadMesh(getAssetPath() + "models/sphere.obj", &meshes.skysphere, vertexLayout, 1.0f);
-		objectSphereDim = std::max(std::max(meshes.ufo.dim.x, meshes.ufo.dim.y), meshes.ufo.dim.z);
+		models.ufo.loadFromFile(getAssetPath() + "models/retroufo_red_lowpoly.dae", vertexLayout, 0.12f, vulkanDevice, queue);
+		models.skysphere.loadFromFile(getAssetPath() + "models/sphere.obj", vertexLayout, 1.0f, vulkanDevice, queue);
+		objectSphereDim = std::max(std::max(models.ufo.dim.size.x, models.ufo.dim.size.y), models.ufo.dim.size.z);
 	}
 
 	void setupVertexDescriptions()
@@ -432,7 +432,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

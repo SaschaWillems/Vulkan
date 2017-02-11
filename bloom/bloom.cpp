@@ -20,6 +20,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -28,15 +29,6 @@
 // Offscreen frame buffer properties
 #define FB_DIM 256
 #define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
-
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL
-};
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -47,11 +39,19 @@ public:
 		vks::TextureCubeMap cubemap;
 	} textures;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+		vks::VERTEX_COMPONENT_NORMAL,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer ufo;
-		vkMeshLoader::MeshBuffer ufoGlow;
-		vkMeshLoader::MeshBuffer skyBox;
-	} meshes;
+		vks::Model ufo;
+		vks::Model ufoGlow;
+		vks::Model skyBox;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -174,10 +174,10 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.blur, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
 
-		// Meshes
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.ufo);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.ufoGlow);
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.skyBox);
+		// Models
+		models.ufo.destroy();
+		models.ufoGlow.destroy();
+		models.skyBox.destroy();
 
 		// Uniform buffers
 		uniformBuffers.scene.destroy();
@@ -416,9 +416,9 @@ public:
 		vkCmdBindPipeline(offscreenPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.glowPass);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.ufoGlow.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, meshes.ufoGlow.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offscreenPass.commandBuffer, meshes.ufoGlow.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &models.ufoGlow.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, models.ufoGlow.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(offscreenPass.commandBuffer, models.ufoGlow.indexCount, 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(offscreenPass.commandBuffer);
 
@@ -487,17 +487,17 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.skyBox, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skyBox);
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.skyBox.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.skyBox.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.skyBox.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.skyBox.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.skyBox.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.skyBox.indexCount, 1, 0, 0, 0);
 
 			// 3D scene
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.scene, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phongPass);
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.ufo.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.ufo.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.ufo.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.ufo.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.ufo.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.ufo.indexCount, 1, 0, 0, 0);
 
 			// Render vertical blurred scene applying a horizontal blur
 			// Render the (vertically blurred) contents of the second framebuffer and apply a horizontal blur
@@ -522,9 +522,9 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/retroufo.dae", &meshes.ufo, vertexLayout, 0.05f);
-		loadMesh(getAssetPath() + "models/retroufo_glow.dae", &meshes.ufoGlow, vertexLayout, 0.05f);
-		loadMesh(getAssetPath() + "models/cube.obj", &meshes.skyBox, vertexLayout, 1.0f);
+		models.ufo.loadFromFile(getAssetPath() + "models/retroufo.dae", vertexLayout, 0.05f, vulkanDevice, queue);
+		models.ufoGlow.loadFromFile(getAssetPath() + "models/retroufo_glow.dae", vertexLayout, 0.05f, vulkanDevice, queue);
+		models.skyBox.loadFromFile(getAssetPath() + "models/cube.obj", vertexLayout, 1.0f, vulkanDevice, queue);
 		textures.cubemap.loadFromFile(getAssetPath() + "textures/cubemap_space.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
@@ -536,7 +536,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

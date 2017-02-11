@@ -19,8 +19,9 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -39,15 +40,6 @@ struct {
 	} depth;
 } multisampleTarget;
 
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -57,15 +49,23 @@ public:
 		vks::Texture2D colorMap;
 	} textures;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+	});
+
+	struct {
+		vks::Model example;
+	} models;
+
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
-
-	struct {
-		vkMeshLoader::MeshBuffer example;
-	} meshes;
 
 	vk::Buffer uniformBuffer;
 
@@ -103,7 +103,7 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
+		models.example.destroy();
 
 		// Destroy MSAA target
 		vkDestroyImage(device, multisampleTarget.color.image, nullptr);
@@ -403,9 +403,9 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, useSampleShading ? pipelines.MSAASampleShading : pipelines.MSAA);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.example.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.example.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.example.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.example.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -415,7 +415,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/voyager/voyager.dae", &meshes.example, vertexLayout, 1.0f);
+		models.example.loadFromFile(getAssetPath() + "models/voyager/voyager.dae", vertexLayout, 1.0f, vulkanDevice, queue);
 		textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
@@ -426,7 +426,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

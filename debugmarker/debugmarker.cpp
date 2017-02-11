@@ -20,6 +20,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "vulkanbuffer.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -147,44 +148,35 @@ namespace DebugMarker
 	}
 };
 
-// Vertex layout used in this example
-struct Vertex {
-	glm::vec3 pos;
-	glm::vec3 normal;
-	glm::vec2 uv;
-	glm::vec3 color;
-};
+// Vertex layout for the models
+vks::VertexLayout vertexLayout = vks::VertexLayout({
+	vks::VERTEX_COMPONENT_POSITION,
+	vks::VERTEX_COMPONENT_NORMAL,
+	vks::VERTEX_COMPONENT_UV,
+	vks::VERTEX_COMPONENT_COLOR,
+});
 
 struct Scene {
-	struct {
-		VkBuffer buf;
-		VkDeviceMemory mem;
-	} vertices;
-	struct {
-		VkBuffer buf;
-		VkDeviceMemory mem;
-	} indices;
 
-	// Store mesh offsets for vertex and indexbuffers
-	struct Mesh
-	{
-		uint32_t indexStart;
-		uint32_t indexCount;
-		std::string name;
-	};
-	std::vector<Mesh> meshes;
+	vks::Model model;
+	std::vector<std::string> modelPartNames;
 
 	void draw(VkCommandBuffer cmdBuffer)
 	{
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &vertices.buf, offsets);
-		vkCmdBindIndexBuffer(cmdBuffer, indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		for (auto mesh : meshes)
+		vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &model.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		for (auto i = 0; i < model.parts.size(); i++)
 		{
 			// Add debug marker for mesh name
-			DebugMarker::insert(cmdBuffer, "Draw \"" + mesh.name + "\"", glm::vec4(0.0f));
-			vkCmdDrawIndexed(cmdBuffer, mesh.indexCount, 1, mesh.indexStart, 0, 0);
+			DebugMarker::insert(cmdBuffer, "Draw \"" + modelPartNames[i] + "\"", glm::vec4(0.0f));
+			vkCmdDrawIndexed(cmdBuffer, model.parts[i].indexCount, 1, model.parts[i].indexBase, 0, 0);
 		}
+	}
+
+	void loadFromFile(std::string filename, vk::VulkanDevice* vulkanDevice, VkQueue queue)
+	{
+		model.loadFromFile(filename, vertexLayout, 1.0f, vulkanDevice, queue);
 	}
 };
 
@@ -193,12 +185,6 @@ class VulkanExample : public VulkanExampleBase
 public:
 	bool wireframe = true;
 	bool glow = true;
-
-	struct {
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
 
 	Scene scene, sceneGlow;
 
@@ -275,14 +261,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		// Destroy and free mesh resources 
-		vkDestroyBuffer(device, scene.vertices.buf, nullptr);
-		vkFreeMemory(device, scene.vertices.mem, nullptr);
-		vkDestroyBuffer(device, scene.indices.buf, nullptr);
-		vkFreeMemory(device, scene.indices.mem, nullptr);
-		vkDestroyBuffer(device, sceneGlow.vertices.buf, nullptr);
-		vkFreeMemory(device, sceneGlow.vertices.mem, nullptr);
-		vkDestroyBuffer(device, sceneGlow.indices.buf, nullptr);
-		vkFreeMemory(device, sceneGlow.indices.mem, nullptr);
+		scene.model.destroy();
+		sceneGlow.model.destroy();
 
 		uniformBuffer.destroy();
 
@@ -532,172 +512,27 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(offscreenPass.commandBuffer));
 	}
 
-	// Load a model file as separate meshes into a scene
-	void loadModel(std::string filename, Scene *scene)
-	{
-		VulkanMeshLoader *meshLoader = new VulkanMeshLoader(vulkanDevice);
-#if defined(__ANDROID__)
-		meshLoader->assetManager = androidApp->activity->assetManager;
-#endif
-		meshLoader->LoadMesh(filename);
-
-		scene->meshes.resize(meshLoader->m_Entries.size());
-
-		// Generate vertex buffer
-		float scale = 1.0f;
-		std::vector<Vertex> vertexBuffer;
-		// Iterate through all meshes in the file
-		// and extract the vertex information used in this demo
-		for (uint32_t m = 0; m < meshLoader->m_Entries.size(); m++)
-		{
-			for (uint32_t i = 0; i < meshLoader->m_Entries[m].Vertices.size(); i++)
-			{
-				Vertex vertex;
-
-				vertex.pos = meshLoader->m_Entries[m].Vertices[i].m_pos * scale;
-				vertex.normal = meshLoader->m_Entries[m].Vertices[i].m_normal;
-				vertex.uv = meshLoader->m_Entries[m].Vertices[i].m_tex;
-				vertex.color = meshLoader->m_Entries[m].Vertices[i].m_color;
-
-				vertexBuffer.push_back(vertex);
-			}
-		}
-		uint32_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
-
-		// Generate index buffer from loaded mesh file
-		std::vector<uint32_t> indexBuffer;
-		for (uint32_t m = 0; m < meshLoader->m_Entries.size(); m++)
-		{
-			uint32_t indexBase = indexBuffer.size();
-			for (uint32_t i = 0; i < meshLoader->m_Entries[m].Indices.size(); i++)
-			{
-				indexBuffer.push_back(meshLoader->m_Entries[m].Indices[i] + indexBase);
-			}
-			scene->meshes[m].indexStart = indexBase;
-			scene->meshes[m].indexCount = meshLoader->m_Entries[m].Indices.size();
-		}
-		uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
-
-		// Static mesh should always be device local
-
-		bool useStaging = true;
-
-		if (useStaging)
-		{
-			struct {
-				VkBuffer buffer;
-				VkDeviceMemory memory;
-			} vertexStaging, indexStaging;
-
-			// Create staging buffers
-			// Vertex data
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				vertexBufferSize,				
-				&vertexStaging.buffer,
-				&vertexStaging.memory,
-				vertexBuffer.data()));
-			// Index data
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				indexBufferSize,
-				&indexStaging.buffer,
-				&indexStaging.memory,
-				indexBuffer.data()));
-
-			// Create device local buffers
-			// Vertex buffer
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				vertexBufferSize,
-				&scene->vertices.buf,
-				&scene->vertices.mem));
-			// Index buffer
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				indexBufferSize,
-				&scene->indices.buf,
-				&scene->indices.mem));
-
-			// Copy from staging buffers
-			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-			VkBufferCopy copyRegion = {};
-
-			copyRegion.size = vertexBufferSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				vertexStaging.buffer,
-				scene->vertices.buf,
-				1,
-				&copyRegion);
-
-			copyRegion.size = indexBufferSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				indexStaging.buffer,
-				scene->indices.buf,
-				1,
-				&copyRegion);
-
-			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
-
-			vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
-			vkFreeMemory(device, vertexStaging.memory, nullptr);
-			vkDestroyBuffer(device, indexStaging.buffer, nullptr);
-			vkFreeMemory(device, indexStaging.memory, nullptr);
-		}
-		else
-		{
-			// Vertex buffer
-			vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				vertexBufferSize,				
-				&scene->vertices.buf,
-				&scene->vertices.mem,
-				vertexBuffer.data());
-			// Index buffer
-			vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				indexBufferSize,
-				&scene->indices.buf,
-				&scene->indices.mem,
-				indexBuffer.data());
-		}
-
-		delete(meshLoader);
-	}
-
 	void loadScene()
 	{
-		loadModel(getAssetPath() + "models/treasure_smooth.dae", &scene);
-		loadModel(getAssetPath() + "models/treasure_glow.dae", &sceneGlow);
+		scene.loadFromFile(getAssetPath() + "models/treasure_smooth.dae", vulkanDevice, queue);
+		sceneGlow.loadFromFile(getAssetPath() + "models/treasure_glow.dae", vulkanDevice, queue);
 
 		// Name the meshes
-		// ASSIMP does not load mesh names from the COLLADA file used in this example
-		// so we need to set them manually
+		// ASSIMP does not load mesh names from the COLLADA file used in this example so we need to set them manually
 		// These names are used in command buffer creation for setting debug markers
-		// Scene
-		std::vector<std::string> names = { "hill", "rocks", "cave", "tree", "mushroom stems", "blue mushroom caps", "red mushroom caps", "grass blades", "chest box", "chest fittings" };
-		for (size_t i = 0; i < names.size(); i++)
-		{
-			scene.meshes[i].name = names[i];
-			sceneGlow.meshes[i].name = names[i];
+		std::vector<std::string> names = { "hill", "crystals", "rocks", "cave", "tree", "mushroom stems", "blue mushroom caps", "red mushroom caps", "grass blades", "chest box", "chest fittings" };
+		for (size_t i = 0; i < names.size(); i++) {
+			scene.modelPartNames.push_back(names[i]);
+			sceneGlow.modelPartNames.push_back(names[i]);
 		}
 
 		// Name the buffers for debugging
 		// Scene
-		DebugMarker::setObjectName(device, (uint64_t)scene.vertices.buf, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene vertex buffer");
-		DebugMarker::setObjectName(device, (uint64_t)scene.indices.buf, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene index buffer");
+		DebugMarker::setObjectName(device, (uint64_t)scene.model.vertices.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene vertex buffer");
+		DebugMarker::setObjectName(device, (uint64_t)scene.model.indices.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene index buffer");
 		// Glow
-		DebugMarker::setObjectName(device, (uint64_t)sceneGlow.vertices.buf, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Glow vertex buffer");
-		DebugMarker::setObjectName(device, (uint64_t)sceneGlow.indices.buf, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Glow index buffer");
+		DebugMarker::setObjectName(device, (uint64_t)sceneGlow.model.vertices.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Glow vertex buffer");
+		DebugMarker::setObjectName(device, (uint64_t)sceneGlow.model.indices.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Glow index buffer");
 	}
 
 	void reBuildCommandBuffers()
@@ -797,55 +632,7 @@ public:
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
-	
-	void setupVertexDescriptions()
-	{
-		// Binding description
-		vertices.bindingDescriptions.resize(1);
-		vertices.bindingDescriptions[0] =
-			vkTools::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				sizeof(Vertex),
-				VK_VERTEX_INPUT_RATE_VERTEX);
 
-		// Attribute descriptions
-		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.resize(4);
-		// Location 0 : Position
-		vertices.attributeDescriptions[0] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				0);
-		// Location 1 : Normal
-		vertices.attributeDescriptions[1] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3);
-		// Location 2 : Texture coordinates
-		vertices.attributeDescriptions[2] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6);
-		// Location 3 : Color
-		vertices.attributeDescriptions[3] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8);
-
-		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
-		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
-		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
-	}
 
 	void setupDescriptorPool()
 	{
@@ -978,12 +765,7 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Phong lighting pipeline
-		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/debugmarker/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -991,7 +773,6 @@ public:
 				renderPass,
 				0);
 
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -1002,6 +783,32 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
+		// Shared vertex inputs
+
+		// Binding description
+		VkVertexInputBindingDescription vertexInputBinding =
+			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX);
+
+		// Attribute descriptions
+		// Describes memory layout and shader positions
+		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),						// Location 0: Position		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),		// Location 1: Normal		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),			// Location 2: Texture coordinates		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),		// Location 3: Color		
+		};
+
+		VkPipelineVertexInputStateCreateInfo vertexInputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+		vertexInputState.vertexBindingDescriptionCount = 1;
+		vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
+		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+		pipelineCreateInfo.pVertexInputState = &vertexInputState;
+
+		// Toon shading pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/debugmarker/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.toonshading));
 
 		// Color only pipeline
@@ -1122,7 +929,6 @@ public:
 		DebugMarker::setup(device, physicalDevice);
 		loadScene();
 		prepareOffscreen();
-		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();

@@ -25,16 +25,11 @@
 #include "vulkanexamplebase.h"
 #include "vulkandevice.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL
-};
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -51,9 +46,16 @@ public:
 	std::vector<std::string> samplerNames{ "No mip maps" , "With mip maps (bilinear)" , "With mip maps (anisotropic)" };
 	std::vector<VkSampler> samplers;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_NORMAL,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer tunnel;
-	} meshes;
+		vks::Model tunnel;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -105,7 +107,7 @@ public:
 		{
 			vkDestroySampler(device, sampler, nullptr);
 		}
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.tunnel);
+		models.tunnel.destroy();
 	}
 
 	void loadTexture(std::string fileName, VkFormat format, bool forceLinearTiling)
@@ -399,10 +401,10 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.tunnel.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.tunnel.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.tunnel.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.tunnel.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.tunnel.indexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.tunnel.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -426,7 +428,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/tunnel_cylinder.dae", &meshes.tunnel, vertexLayout, 1.0f);
+		models.tunnel.loadFromFile(getAssetPath() + "models/tunnel_cylinder.dae", vertexLayout, 1.0f, vulkanDevice, queue);
 		loadTexture(getAssetPath() + "textures/metalplate_nomips_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, false);
 	}
 
@@ -437,7 +439,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID, 
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

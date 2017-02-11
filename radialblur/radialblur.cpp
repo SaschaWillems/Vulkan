@@ -19,8 +19,9 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -29,15 +30,6 @@
 #define FB_DIM 512
 #define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
 
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -45,12 +37,20 @@ public:
 	bool displayTexture = false;
 
 	struct {
-		vkMeshLoader::MeshBuffer example;
-	} meshes;
-
-	struct {
 		vks::Texture2D gradient;
 	} textures;
+
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+		vks::VERTEX_COMPONENT_NORMAL,
+	});
+
+	struct {
+		vks::Model example;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -156,10 +156,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.radialBlur, nullptr);
 
-		// Meshes
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.example);
+		models.example.destroy();
 
-		// Uniform buffers
 		uniformBuffers.scene.destroy();
 		uniformBuffers.blurParams.destroy();
 
@@ -379,9 +377,9 @@ public:
 		vkCmdBindPipeline(offscreenPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.colorPass);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
-		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offscreenPass.commandBuffer, meshes.example.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(offscreenPass.commandBuffer, VERTEX_BUFFER_BIND_ID, 1, &models.example.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(offscreenPass.commandBuffer, models.example.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(offscreenPass.commandBuffer, models.example.indexCount, 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(offscreenPass.commandBuffer);
 
@@ -436,9 +434,9 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.scene, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phongPass);
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.example.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.example.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.example.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.example.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.example.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.example.indexCount, 1, 0, 0, 0);
 
 			// Fullscreen triangle (clipped to a quad) with radial blur
 			if (blur)
@@ -456,7 +454,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/glowsphere.dae", &meshes.example, vertexLayout, 0.05f);
+		models.example.loadFromFile(getAssetPath() + "models/glowsphere.dae", vertexLayout, 0.05f, vulkanDevice, queue);
 		textures.gradient.loadFromFile(getAssetPath() + "textures/particle_gradient_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
@@ -467,7 +465,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

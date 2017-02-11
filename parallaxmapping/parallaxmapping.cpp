@@ -20,21 +20,12 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_TANGENT,
-	vkMeshLoader::VERTEX_LAYOUT_BITANGENT
-};
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -53,9 +44,18 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_TANGENT,
+		vks::VERTEX_COMPONENT_BITANGENT,
+	});
+
 	struct {
-		vkMeshLoader::MeshBuffer quad;
-	} meshes;
+		vks::Model quad;
+	} models;
 
 	struct {
 		vk::Buffer vertexShader;
@@ -115,8 +115,8 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.quad);
-
+		models.quad.destroy();
+			
 		uniformBuffers.vertexShader.destroy();
 		uniformBuffers.fragmentShader.destroy();
 
@@ -126,7 +126,7 @@ public:
 
 	void loadAssets()
 	{
-		loadMesh(getAssetPath() + "models/plane_z.obj", &meshes.quad, vertexLayout, 0.1f);
+		models.quad.loadFromFile(getAssetPath() + "models/plane_z.obj", vertexLayout, 0.1f, vulkanDevice, queue);
 		textures.colorMap.loadFromFile(getAssetPath() + "textures/rocks_color_bc3.dds", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		textures.normalHeightMap.loadFromFile(getAssetPath() + "textures/rocks_normal_height_rgba.dds", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
@@ -176,13 +176,13 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.quad.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.quad.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.quad.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.quad.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			// Parallax enabled
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.parallaxMapping);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.quad.indexCount, 1, 0, 0, 1);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.quad.indexCount, 1, 0, 0, 1);
 
 			// Normal mapping
 			if (splitScreen)
@@ -190,7 +190,7 @@ public:
 				viewport.x = (float)width / 2.0f;
 				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.normalMapping);
-				vkCmdDrawIndexed(drawCmdBuffers[i], meshes.quad.indexCount, 1, 0, 0, 1);
+				vkCmdDrawIndexed(drawCmdBuffers[i], models.quad.indexCount, 1, 0, 0, 1);
 			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -206,7 +206,7 @@ public:
 		vertices.bindingDescriptions[0] =
 			vkTools::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID,
-				vkMeshLoader::vertexSize(vertexLayout),
+				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions

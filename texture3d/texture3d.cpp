@@ -24,6 +24,7 @@
 #include "vulkanexamplebase.h"
 #include "vulkandevice.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -161,8 +162,8 @@ public:
 	bool regenerateNoise = true;
 
 	struct {
-		vkMeshLoader::MeshBuffer cube;
-	} meshes;
+		vks::Model cube;
+	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -197,7 +198,7 @@ public:
 		rotation = { 0.0f, 15.0f, 0.0f };
 		title = "Vulkan Example - 3D textures";
 		enableTextOverlay = true;
-		srand(std::time(0));
+		srand((unsigned int)time(NULL));
 	}
 
 	~VulkanExample()
@@ -233,7 +234,7 @@ public:
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, texture.format, &formatProperties);
 		// Check if format supports transfer
-		if (!formatProperties.optimalTilingFeatures & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+		if (!formatProperties.optimalTilingFeatures && VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 		{
 			std::cout << "Error: Device does not support flag TRANSFER_DST for selected texture format!" << std::endl;
 			return;
@@ -332,7 +333,7 @@ public:
 #pragma omp parallel for
 		for (int32_t z = 0; z < texture.depth; z++)
 		{
-			for (int32_t y = 0; y < texture.height; y++)
+			for (uint32_t y = 0; y < texture.height; y++)
 			{
 				for (int32_t x = 0; x < texture.width; x++)
 				{
