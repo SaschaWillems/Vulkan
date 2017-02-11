@@ -18,10 +18,16 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <assimp/Importer.hpp> 
+#include <assimp/scene.h>     
+#include <assimp/postprocess.h>
+#include <assimp/cimport.h>
+
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -37,15 +43,15 @@ struct Vertex {
 	uint32_t boneIDs[4];
 };
 
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_COLOR,
-	vkMeshLoader::VERTEX_LAYOUT_DUMMY_VEC4,
-	vkMeshLoader::VERTEX_LAYOUT_DUMMY_VEC4
-};
+// Vertex layout for the models
+vks::VertexLayout vertexLayout = vks::VertexLayout({
+	vks::VERTEX_COMPONENT_POSITION,
+	vks::VERTEX_COMPONENT_NORMAL,
+	vks::VERTEX_COMPONENT_UV,
+	vks::VERTEX_COMPONENT_COLOR,
+	vks::VERTEX_COMPONENT_DUMMY_VEC4,
+	vks::VERTEX_COMPONENT_DUMMY_VEC4,
+});
 
 // Maximum number of bones per mesh
 // Must not be higher than same const in skinning shader
@@ -112,20 +118,21 @@ public:
 	aiAnimation* pAnimation;
 
 	// Vulkan buffers
-	vkMeshLoader::MeshBuffer meshBuffer;
-	// Reference to assimp mesh
-	// Required for animation
-	VulkanMeshLoader *meshLoader;
+	vks::Model vertexBuffer;
+
+	// Store reference to the ASSIMP scene for accessing properties of it during animation
+	Assimp::Importer Importer;
+	const aiScene* scene;
 
 	// Set active animation by index
 	void setAnimation(uint32_t animationIndex)
 	{
-		assert(animationIndex < meshLoader->pScene->mNumAnimations);
-		pAnimation = meshLoader->pScene->mAnimations[animationIndex];
+		assert(animationIndex < scene->mNumAnimations);
+		pAnimation = scene->mAnimations[animationIndex];
 	}
 
 	// Load bone information from ASSIMP mesh
-	void loadBones(uint32_t meshIndex, const aiMesh* pMesh, std::vector<VertexBoneData>& Bones)
+	void loadBones(const aiMesh* pMesh, uint32_t vertexOffset, std::vector<VertexBoneData>& Bones)
 	{
 		for (uint32_t i = 0; i < pMesh->mNumBones; i++)
 		{
@@ -152,7 +159,7 @@ public:
 
 			for (uint32_t j = 0; j < pMesh->mBones[i]->mNumWeights; j++)
 			{
-				uint32_t vertexID = meshLoader->m_Entries[meshIndex].vertexBase + pMesh->mBones[i]->mWeights[j].mVertexId;
+				uint32_t vertexID = vertexOffset + pMesh->mBones[i]->mWeights[j].mVertexId;
 				Bones[vertexID].add(index, pMesh->mBones[i]->mWeights[j].mWeight);
 			}
 		}
@@ -162,17 +169,23 @@ public:
 	// Recursive bone transformation for given animation time
 	void update(float time)
 	{
-		float TicksPerSecond = (float)(meshLoader->pScene->mAnimations[0]->mTicksPerSecond != 0 ? meshLoader->pScene->mAnimations[0]->mTicksPerSecond : 25.0f);
+		float TicksPerSecond = (float)(scene->mAnimations[0]->mTicksPerSecond != 0 ? scene->mAnimations[0]->mTicksPerSecond : 25.0f);
 		float TimeInTicks = time * TicksPerSecond;
-		float AnimationTime = fmod(TimeInTicks, (float)meshLoader->pScene->mAnimations[0]->mDuration);
+		float AnimationTime = fmod(TimeInTicks, (float)scene->mAnimations[0]->mDuration);
 
 		aiMatrix4x4 identity = aiMatrix4x4();
-		readNodeHierarchy(AnimationTime, meshLoader->pScene->mRootNode, identity);
+		readNodeHierarchy(AnimationTime, scene->mRootNode, identity);
 
 		for (uint32_t i = 0; i < boneTransforms.size(); i++)
 		{
 			boneTransforms[i] = boneInfo[i].finalTransformation;
 		}
+	}
+
+	~SkinnedMesh()
+	{
+		vertexBuffer.vertices.destroy();
+		vertexBuffer.indices.destroy();
 	}
 
 private:
@@ -344,12 +357,6 @@ public:
 		vks::Texture2D floor;
 	} textures;
 
-	struct {
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
-
 	SkinnedMesh *skinnedMesh = nullptr;
 
 	struct {
@@ -381,8 +388,8 @@ public:
 	} pipelines;
 
 	struct {
-		vkMeshLoader::MeshBuffer floor;
-	} meshes;
+		vks::Model floor;
+	} models;
 
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
@@ -422,10 +429,7 @@ public:
 		uniformBuffers.mesh.destroy();
 		uniformBuffers.floor.destroy();
 
-		// Destroy and free mesh resources 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.floor);
-		vkMeshLoader::freeMeshBufferResources(device, &skinnedMesh->meshBuffer);
-		delete(skinnedMesh->meshLoader);
+		models.floor.destroy();
 		delete(skinnedMesh);
 	}
 
@@ -466,17 +470,17 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skinning);
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &skinnedMesh->meshBuffer.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], skinnedMesh->meshBuffer.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], skinnedMesh->meshBuffer.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &skinnedMesh->vertexBuffer.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], skinnedMesh->vertexBuffer.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], skinnedMesh->vertexBuffer.indexCount, 1, 0, 0, 0);
 
 			// Floor
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.floor, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.texture);
 
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &meshes.floor.vertices.buf, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], meshes.floor.indices.buf, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], meshes.floor.indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.floor.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.floor.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.floor.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -485,73 +489,92 @@ public:
 	}
 
 	// Load a mesh based on data read via assimp 
-	// The other example will use the VulkanMesh loader which has some additional functionality for loading meshes
 	void loadMesh()
 	{
 		skinnedMesh = new SkinnedMesh();
-		skinnedMesh->meshLoader = new VulkanMeshLoader(vulkanDevice);
+
+		std::string filename = getAssetPath() + "models/goblin.dae";
+
 #if defined(__ANDROID__)
-		skinnedMesh->meshLoader->assetManager = androidApp->activity->assetManager;
+		// Meshes are stored inside the apk on Android (compressed)
+		// So they need to be loaded via the asset manager
+
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+		assert(asset);
+		size_t size = AAsset_getLength(asset);
+
+		assert(size > 0);
+
+		void *meshData = malloc(size);
+		AAsset_read(asset, meshData, size);
+		AAsset_close(asset);
+
+		skinnedMesh->scene = skinnedMesh->Importer.ReadFileFromMemory(meshData, size, 0);
+
+		free(meshData);
+#else
+		skinnedMesh->scene = skinnedMesh->Importer.ReadFile(filename.c_str(), 0);
 #endif
-		skinnedMesh->meshLoader->LoadMesh(getAssetPath() + "models/goblin.dae", 0);
 		skinnedMesh->setAnimation(0);
 
 		// Setup bones
 		// One vertex bone info structure per vertex
-		skinnedMesh->bones.resize(skinnedMesh->meshLoader->numVertices);
+		uint32_t vertexCount(0);		
+		for (uint32_t m = 0; m < skinnedMesh->scene->mNumMeshes; m++) {
+			vertexCount += skinnedMesh->scene->mMeshes[m]->mNumVertices;
+		};
+		skinnedMesh->bones.resize(vertexCount);
 		// Store global inverse transform matrix of root node 
-		skinnedMesh->globalInverseTransform = skinnedMesh->meshLoader->pScene->mRootNode->mTransformation;
+		skinnedMesh->globalInverseTransform = skinnedMesh->scene->mRootNode->mTransformation;
 		skinnedMesh->globalInverseTransform.Inverse();
 		// Load bones (weights and IDs)
-		for (uint32_t m = 0; m < skinnedMesh->meshLoader->m_Entries.size(); m++)
-		{
-			aiMesh *paiMesh = skinnedMesh->meshLoader->pScene->mMeshes[m];
-			if (paiMesh->mNumBones > 0)
-			{
-				skinnedMesh->loadBones(m, paiMesh, skinnedMesh->bones);
+		uint32_t vertexBase(0);
+		for (uint32_t m = 0; m < skinnedMesh->scene->mNumMeshes; m++) {
+			aiMesh *paiMesh = skinnedMesh->scene->mMeshes[m];
+			if (paiMesh->mNumBones > 0) {
+				skinnedMesh->loadBones(paiMesh, vertexBase, skinnedMesh->bones);
 			}
+			vertexBase += skinnedMesh->scene->mMeshes[m]->mNumVertices;
 		}
 
 		// Generate vertex buffer
 		std::vector<Vertex> vertexBuffer;
-		// Iterate through all meshes in the file
-		// and extract the vertex information used in this demo
-		for (uint32_t m = 0; m < skinnedMesh->meshLoader->m_Entries.size(); m++)
-		{
-			for (uint32_t i = 0; i < skinnedMesh->meshLoader->m_Entries[m].Vertices.size(); i++)
-			{
+		// Iterate through all meshes in the file and extract the vertex information used in this demo
+		vertexBase = 0;
+		for (uint32_t m = 0; m < skinnedMesh->scene->mNumMeshes; m++) {
+			for (uint32_t v = 0; v < skinnedMesh->scene->mMeshes[m]->mNumVertices; v++) {
 				Vertex vertex;
 
-				vertex.pos = skinnedMesh->meshLoader->m_Entries[m].Vertices[i].m_pos;
-				vertex.pos.y = -vertex.pos.y;
-				vertex.normal = skinnedMesh->meshLoader->m_Entries[m].Vertices[i].m_normal;
-				vertex.uv = skinnedMesh->meshLoader->m_Entries[m].Vertices[i].m_tex;
-				vertex.color = skinnedMesh->meshLoader->m_Entries[m].Vertices[i].m_color;
+				vertex.pos = glm::make_vec3(&skinnedMesh->scene->mMeshes[m]->mVertices[v].x);
+				vertex.normal = glm::make_vec3(&skinnedMesh->scene->mMeshes[m]->mNormals[v].x);
+				vertex.uv = glm::make_vec2(&skinnedMesh->scene->mMeshes[m]->mTextureCoords[0][v].x);
+				vertex.color = (skinnedMesh->scene->mMeshes[m]->HasVertexColors(0)) ? glm::make_vec3(&skinnedMesh->scene->mMeshes[m]->mColors[0][v].r) : glm::vec3(1.0f);
 
 				// Fetch bone weights and IDs
-				for (uint32_t j = 0; j < MAX_BONES_PER_VERTEX; j++)
-				{
-					vertex.boneWeights[j] = skinnedMesh->bones[skinnedMesh->meshLoader->m_Entries[m].vertexBase + i].weights[j];
-					vertex.boneIDs[j] = skinnedMesh->bones[skinnedMesh->meshLoader->m_Entries[m].vertexBase + i].IDs[j];
+				for (uint32_t j = 0; j < MAX_BONES_PER_VERTEX; j++) {
+					vertex.boneWeights[j] = skinnedMesh->bones[vertexBase + v].weights[j];
+					vertex.boneIDs[j] = skinnedMesh->bones[vertexBase + v].IDs[j];
 				}
 
 				vertexBuffer.push_back(vertex);
 			}
+			vertexBase += skinnedMesh->scene->mMeshes[m]->mNumVertices;
 		}
 		VkDeviceSize vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 
 		// Generate index buffer from loaded mesh file
 		std::vector<uint32_t> indexBuffer;
-		for (uint32_t m = 0; m < skinnedMesh->meshLoader->m_Entries.size(); m++)
-		{
+		for (uint32_t m = 0; m < skinnedMesh->scene->mNumMeshes; m++) {
 			uint32_t indexBase = static_cast<uint32_t>(indexBuffer.size());
-			for (uint32_t i = 0; i < skinnedMesh->meshLoader->m_Entries[m].Indices.size(); i++)
-			{
-				indexBuffer.push_back(skinnedMesh->meshLoader->m_Entries[m].Indices[i] + indexBase);
+			for (uint32_t f = 0; f < skinnedMesh->scene->mMeshes[m]->mNumFaces; f++) {
+				for (uint32_t i = 0; i < 3; i++)
+				{
+					indexBuffer.push_back(skinnedMesh->scene->mMeshes[m]->mFaces[f].mIndices[i] + indexBase);
+				}
 			}
 		}
 		VkDeviceSize indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
-		skinnedMesh->meshBuffer.indexCount = indexBuffer.size();
+		skinnedMesh->vertexBuffer.indexCount = static_cast<uint32_t>(indexBuffer.size());
 
 		struct {
 			VkBuffer buffer;
@@ -581,16 +604,14 @@ public:
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			vertexBufferSize,
-			&skinnedMesh->meshBuffer.vertices.buf,
-			&skinnedMesh->meshBuffer.vertices.mem));
+			&skinnedMesh->vertexBuffer.vertices,
+			vertexBufferSize));
 		// Index buffer
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			indexBufferSize,
-			&skinnedMesh->meshBuffer.indices.buf,
-			&skinnedMesh->meshBuffer.indices.mem));
+			&skinnedMesh->vertexBuffer.indices,
+			indexBufferSize));
 
 		// Copy from staging buffers
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -601,7 +622,7 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			vertexStaging.buffer,
-			skinnedMesh->meshBuffer.vertices.buf,
+			skinnedMesh->vertexBuffer.vertices.buffer,
 			1,
 			&copyRegion);
 
@@ -609,7 +630,7 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			indexStaging.buffer,
-			skinnedMesh->meshBuffer.indices.buf,
+			skinnedMesh->vertexBuffer.indices.buffer,
 			1,
 			&copyRegion);
 
@@ -625,70 +646,7 @@ public:
 	{
 		textures.colorMap.loadFromFile(getAssetPath() + "textures/goblin_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		textures.floor.loadFromFile(getAssetPath() + "textures/trail_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-		VulkanExampleBase::loadMesh(getAssetPath() + "models/plane_z.obj", &meshes.floor, vertexLayout, 512.0f);
-	}
-
-	void setupVertexDescriptions()
-	{
-		// Binding description
-		vertices.bindingDescriptions.resize(1);
-		vertices.bindingDescriptions[0] =
-			vkTools::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				sizeof(Vertex),
-				VK_VERTEX_INPUT_RATE_VERTEX);
-
-		// Attribute descriptions
-		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.resize(6);
-		// Location 0 : Position
-		vertices.attributeDescriptions[0] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				0);
-		// Location 1 : Normal
-		vertices.attributeDescriptions[1] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3);
-		// Location 2 : Texture coordinates
-		vertices.attributeDescriptions[2] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6);
-		// Location 3 : Color
-		vertices.attributeDescriptions[3] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8);
-		// Location 4 : Bone weights
-		vertices.attributeDescriptions[4] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				4,
-				VK_FORMAT_R32G32B32A32_SFLOAT,
-				sizeof(float) * 11);
-		// Location 5 : Bone IDs
-		vertices.attributeDescriptions[5] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				5,
-				VK_FORMAT_R32G32B32A32_SINT,
-				sizeof(float) * 15);
-
-		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
-		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
-		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
+		models.floor.loadFromFile(getAssetPath() + "models/plane_z.obj", vertexLayout, 512.0f, vulkanDevice, queue);
 	}
 
 	void setupDescriptorPool()
@@ -852,16 +810,12 @@ public:
 		// Skinned rendering pipeline
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/skeletalanimation/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/skeletalanimation/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
 				renderPass,
 				0);
 
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -869,11 +823,40 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
+		// Shared vertex inputs
+
+		// Binding description
+		VkVertexInputBindingDescription vertexInputBinding =
+			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX);
+
+		// Attribute descriptions
+		// Describes memory layout and shader positions
+		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),						// Location 0: Position		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),		// Location 1: Normal		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),			// Location 2: Texture coordinates		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),		// Location 3: Color		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 4, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float) * 11),	// Location 4: Bone weights		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 5, VK_FORMAT_R32G32B32A32_SINT, sizeof(float) * 15),		// Location 5: Bone IDs
+		};
+
+		VkPipelineVertexInputStateCreateInfo vertexInputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+		vertexInputState.vertexBindingDescriptionCount = 1;
+		vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
+		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+		pipelineCreateInfo.pVertexInputState = &vertexInputState;
+
+		// Skinned mesh rendering pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/skeletalanimation/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/skeletalanimation/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skinning));
 
+		// Environment rendering pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture));
@@ -960,7 +943,6 @@ public:
 		VulkanExampleBase::prepare();
 		loadAssets();
 		loadMesh();
-		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
