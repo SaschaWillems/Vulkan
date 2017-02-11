@@ -25,6 +25,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -33,35 +34,30 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 
-	struct DemoMesh
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_COLOR,
+	});
+
+	struct DemoModel
 	{
-		vk::Buffer vertexBuffer;
-		vk::Buffer indexBuffer;
-		uint32_t indexCount;
+		vks::Model model;
 		VkPipeline *pipeline;
 
 		void draw(VkCommandBuffer cmdBuffer)
 		{
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *pipeline);
-			vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
-			vkCmdBindIndexBuffer(cmdBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(cmdBuffer, indexCount, 1, 0, 0, 0);
+			vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &model.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(cmdBuffer, model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(cmdBuffer, model.indexCount, 1, 0, 0, 0);
 		}
 	};
 
-	struct DemoMeshes
-	{
-		std::vector<std::string> names{ "logos", "background", "models", "skybox" };
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-		DemoMesh logos;
-		DemoMesh background;
-		DemoMesh models;
-		DemoMesh skybox;
-	} demoMeshes;
-	std::vector<DemoMesh> meshes;
+	std::vector<DemoModel> demoModels;
 
 	struct {
 		vk::Buffer meshVS;
@@ -114,17 +110,29 @@ public:
 
 		uniformData.meshVS.destroy();
 
-		for (auto mesh : meshes)
-		{
-			mesh.vertexBuffer.destroy();
-			mesh.indexBuffer.destroy();
+		for (auto& model : demoModels) {
+			model.model.destroy();
 		}
 
 		textures.skybox.destroy();
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
+		// Models
+		std::vector<std::string> modelFiles = { "vulkanscenelogos.dae", "vulkanscenebackground.dae", "vulkanscenemodels.dae", "cube.obj" };
+		std::vector<VkPipeline*> modelPipelines = { &pipelines.logos, &pipelines.models, &pipelines.models, &pipelines.skybox };
+		for (auto i = 0; i < modelFiles.size(); i++) {
+			DemoModel model;
+			model.pipeline = modelPipelines[i];
+			vks::ModelCreateInfo modelCreateInfo(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(0.0f));
+			if (modelFiles[i] != "cube.obj") {
+				modelCreateInfo.center.y += 1.15f;
+			}
+			model.model.loadFromFile(getAssetPath() + "models/" + modelFiles[i], vertexLayout, &modelCreateInfo, vulkanDevice, queue);
+			demoModels.push_back(model);
+		}
+		// Textures
 		textures.skybox.loadFromFile(getAssetPath() + "textures/cubemap_vulkan.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
@@ -162,172 +170,14 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
-			for (auto mesh : meshes)
-			{
-				mesh.draw(drawCmdBuffers[i]);
+			for (auto model : demoModels) {
+				model.draw(drawCmdBuffers[i]);
 			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	void prepareVertices()
-	{
-		struct Vertex 
-		{
-			float pos[3];
-			float normal[3];
-			float uv[2];
-			float color[3];
-		};
-
-		std::vector<std::string> meshFiles = { "vulkanscenelogos.dae", "vulkanscenebackground.dae", "vulkanscenemodels.dae", "cube.obj" };
-		std::vector<VkPipeline*> meshPipelines = { &pipelines.logos, &pipelines.models, &pipelines.models, &pipelines.skybox};
-
-		// todo : Use mesh function for loading
-		float scale = 1.0f;
-		for (auto i = 0; i < meshFiles.size(); i++)
-		{
-			VulkanMeshLoader scene(vulkanDevice);
-
-#if defined(__ANDROID__)
-			scene.assetManager = androidApp->activity->assetManager;
-#endif
-			scene.LoadMesh(getAssetPath() + "models/" + meshFiles[i]);
-
-			// Generate vertex buffer (pos, normal, uv, color)
-			std::vector<Vertex> vertexBuffer;
-			glm::vec3 offset(0.0f);
-			// Offset on Y (except skypbox)
-			if (meshFiles[i] != "cube.obj")
-			{
-				offset.y += 1.15f;
-			}
-			for (size_t m = 0; m < scene.m_Entries.size(); m++)
-			{
-				for (size_t v = 0; v < scene.m_Entries[m].Vertices.size(); v++) 
-				{
-					glm::vec3 pos = (scene.m_Entries[m].Vertices[v].m_pos + offset) * scale;
-					glm::vec3 normal = scene.m_Entries[m].Vertices[v].m_normal;
-					glm::vec2 uv = scene.m_Entries[m].Vertices[v].m_tex;
-					glm::vec3 col = scene.m_Entries[m].Vertices[v].m_color;
-					Vertex vert = 
-					{
-						{ pos.x, pos.y, pos.z },
-						{ normal.x, -normal.y, normal.z },
-						{ uv.s, uv.t },
-						{ col.r, col.g, col.b }
-					};
-
-					vertexBuffer.push_back(vert);
-				}
-			}
-
-			std::vector<uint32_t> indexBuffer;
-			for (size_t m = 0; m < scene.m_Entries.size(); m++)
-			{
-				int indexBase = indexBuffer.size();
-				for (size_t i = 0; i < scene.m_Entries[m].Indices.size(); i++) {
-					indexBuffer.push_back(scene.m_Entries[m].Indices[i] + indexBase);
-				}
-			}
-
-			DemoMesh mesh;
-
-			mesh.indexCount = static_cast<uint32_t>(indexBuffer.size());
-			mesh.pipeline = meshPipelines[i];
-
-			uint32_t vertexBufferSize = static_cast<uint32_t>(vertexBuffer.size()) * sizeof(Vertex);
-			uint32_t indexBufferSize = static_cast<uint32_t>(indexBuffer.size()) * sizeof(uint32_t);
-
-			vk::Buffer vertexStaging, indexStaging;
-
-			// Create staging buffers
-			// Vertex data
-			vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				&vertexStaging,
-				vertexBufferSize,
-				vertexBuffer.data());
-			// Index data
-			vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				&indexStaging,
-				indexBufferSize,
-				indexBuffer.data());
-
-			// Create device local buffers
-			// Vertex buffer
-			vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				&mesh.vertexBuffer,
-				vertexBufferSize);
-			// Index buffer
-			vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				&mesh.indexBuffer,
-				indexBufferSize);
-
-			// Copy from staging buffers
-			vulkanDevice->copyBuffer(&vertexStaging, &mesh.vertexBuffer, queue);
-			vulkanDevice->copyBuffer(&indexStaging, &mesh.indexBuffer, queue);
-
-			vertexStaging.destroy();
-			indexStaging.destroy();
-
-			meshes.push_back(mesh);
-		}
-
-		// Binding description
-		demoMeshes.bindingDescriptions.resize(1);
-		demoMeshes.bindingDescriptions[0] =
-			vkTools::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				sizeof(Vertex),
-				VK_VERTEX_INPUT_RATE_VERTEX);
-
-		// Attribute descriptions
-		// Location 0 : Position
-		demoMeshes.attributeDescriptions.resize(4);
-		demoMeshes.attributeDescriptions[0] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, pos));
-		// Location 1 : Normal
-		demoMeshes.attributeDescriptions[1] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, normal));
-		// Location 2 : Texture coordinates
-		demoMeshes.attributeDescriptions[2] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32G32_SFLOAT,
-				offsetof(Vertex, uv));
-		// Location 3 : Color
-		demoMeshes.attributeDescriptions[3] =
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, color));
-
-		demoMeshes.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		demoMeshes.inputState.vertexBindingDescriptionCount = demoMeshes.bindingDescriptions.size();
-		demoMeshes.inputState.pVertexBindingDescriptions = demoMeshes.bindingDescriptions.data();
-		demoMeshes.inputState.vertexAttributeDescriptionCount = demoMeshes.attributeDescriptions.size();
-		demoMeshes.inputState.pVertexAttributeDescriptions = demoMeshes.attributeDescriptions.data();
 	}
 
 	void setupDescriptorPool()
@@ -467,8 +317,6 @@ public:
 		// Pipeline for the meshes (armadillo, bunny, etc.)
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
@@ -476,7 +324,6 @@ public:
 				renderPass,
 				0);
 
-		pipelineCreateInfo.pVertexInputState = &demoMeshes.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -487,6 +334,29 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
+		VkVertexInputBindingDescription vertexInputBinding =
+			vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX);
+
+		// Attribute descriptions
+		// Describes memory layout and shader positions
+		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),						// Location 0: Position		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),		// Location 1: Normal		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 5),			// Location 2: Texture coordinates		
+			vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),		// Location 3: Color		
+		};
+
+		VkPipelineVertexInputStateCreateInfo vertexInputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+		vertexInputState.vertexBindingDescriptionCount = 1;
+		vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
+		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+		pipelineCreateInfo.pVertexInputState = &vertexInputState;
+
+		// Default mesh rendering pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.models));
 
 		// Pipeline for the logos
@@ -494,7 +364,7 @@ public:
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/vulkanscene/logo.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.logos));
 
-		// Pipeline for the sky sphere (todo)
+		// Pipeline for the sky sphere
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT; // Inverted culling
 		depthStencilState.depthWriteEnable = VK_FALSE; // No depth writes
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/vulkanscene/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -552,8 +422,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
-		prepareVertices();
+		loadAssets();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
