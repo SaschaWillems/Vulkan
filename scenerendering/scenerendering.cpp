@@ -6,19 +6,19 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
 * Summary:
-* Renders a scene made of multiple meshes with different materials and textures.
+* Renders a scene made of multiple parts with different materials and textures.
 *
-* The example loads a scene made up of multiple meshes into one vertex and index buffer to only
+* The example loads a scene made up of multiple parts into one vertex and index buffer to only
 * have one (big) memory allocation. In Vulkan it's advised to keep number of memory allocations
 * down and try to allocate large blocks of memory at once instead of having many small allocations.
 *
-* Every mesh has a separate material and multiple descriptor sets (set = x layout qualifier in GLSL)
-* are used to bind a uniform buffer with global matrices and the mesh' material's sampler at once.
+* Every part has a separate material and multiple descriptor sets (set = x layout qualifier in GLSL)
+* are used to bind a uniform buffer with global matrices and the part's material's sampler at once.
 *
 * To demonstrate another way of passing data the example also uses push constants for passing
 * material properties.
 *
-* Note that this example is just one way of rendering a scene made up of multiple meshes iin Vulkan.
+* Note that this example is just one way of rendering a scene made up of multiple parts in Vulkan.
 */
 
 #include <stdio.h>
@@ -32,6 +32,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <assimp/Importer.hpp> 
+#include <assimp/scene.h>     
+#include <assimp/postprocess.h>
+#include <assimp/cimport.h>
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
@@ -77,7 +82,7 @@ struct SceneMaterial
 };
 
 // Stores per-mesh Vulkan resources
-struct SceneMesh
+struct ScenePart
 {
 	// Index of first index in the scene buffer
 	uint32_t indexBase;
@@ -393,7 +398,7 @@ public:
 	std::string assetPath = "";
 
 	std::vector<SceneMaterial> materials;
-	std::vector<SceneMesh> meshes;
+	std::vector<ScenePart> meshes;
 
 	// Shared ubo containing matrices used by all
 	// materials and meshes
