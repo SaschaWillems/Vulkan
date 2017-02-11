@@ -1,5 +1,5 @@
 /*
-* Vulkan Example -  Mesh rendering and loading using ASSIMP
+* Vulkan Example - Model loading and rendering
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
@@ -30,14 +30,6 @@
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
-// Vertex layout used in this example
-struct Vertex {
-	glm::vec3 pos;
-	glm::vec3 normal;
-	glm::vec2 uv;
-	glm::vec3 color;
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -53,21 +45,36 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	// Contains all buffers and information
-	// necessary to represent a mesh for rendering purposes
-	// This is for demonstration and learning purposes,
-	// the other examples use a mesh loader class for easy access
-	struct Mesh {
+	// Vertex layout used in this example
+	// This must fit input locations of the vertex shader used to render the model
+	struct Vertex {
+		glm::vec3 pos;
+		glm::vec3 normal;
+		glm::vec2 uv;
+		glm::vec3 color;
+	};
+
+	// Contains all Vulkan resources required to represent vertex and index buffers for a model
+	// This is for demonstration and learning purposes, the other examples use a model loader class for easy access
+	struct Model {
 		struct {
-			VkBuffer buf;
-			VkDeviceMemory mem;
+			VkBuffer buffer;
+			VkDeviceMemory memory;
 		} vertices;
 		struct {
 			int count;
-			VkBuffer buf;
-			VkDeviceMemory mem;
+			VkBuffer buffer;
+			VkDeviceMemory memory;
 		} indices;
-	} mesh;
+		// Destroys all Vulkan resources created for this model
+		void destroy(VkDevice device)
+		{
+			vkDestroyBuffer(device, vertices.buffer, nullptr);
+			vkFreeMemory(device, vertices.memory, nullptr);
+			vkDestroyBuffer(device, indices.buffer, nullptr);
+			vkFreeMemory(device, indices.memory, nullptr);
+		};
+	} model;
 
 	struct {
 		vk::Buffer scene;
@@ -96,11 +103,8 @@ public:
 		rotation = { -0.5f, -112.75f, 0.0f };
 		cameraPos = { 0.1f, 1.1f, 0.0f };
 		enableTextOverlay = true;
-		title = "Vulkan Example - Mesh rendering";
+		title = "Vulkan Example - Model rendering";
 		// Enable physical device features required for this example				
-		// Tell the driver that we are going to use geometry shaders
-		enabledFeatures.tessellationShader = VK_TRUE;
-		// Example also uses a wireframe pipeline, enable non-solid fill modes
 		enabledFeatures.fillModeNonSolid = VK_TRUE;
 	}
 
@@ -114,11 +118,7 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		// Destroy and free mesh resources 
-		vkDestroyBuffer(device, mesh.vertices.buf, nullptr);
-		vkFreeMemory(device, mesh.vertices.mem, nullptr);
-		vkDestroyBuffer(device, mesh.indices.buf, nullptr);
-		vkFreeMemory(device, mesh.indices.mem, nullptr);
+		model.destroy(device);
 
 		textures.colorMap.destroy();
 		uniformBuffers.scene.destroy();
@@ -171,11 +171,11 @@ public:
 
 			VkDeviceSize offsets[1] = { 0 };
 			// Bind mesh vertex buffer
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &mesh.vertices.buf, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &model.vertices.buffer, offsets);
 			// Bind mesh index buffer
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], mesh.indices.buf, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 			// Render mesh vertex buffer using it's indices
-			vkCmdDrawIndexed(drawCmdBuffers[i], mesh.indices.count, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], model.indices.count, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -183,12 +183,9 @@ public:
 		}
 	}
 
-	// Load a mesh based on data read via assimp 
-	// The other example will use the VulkanMesh loader which has some additional functionality for loading meshes
-	void loadMesh()
+	// Load a model from file using the ASSIMP model loader and generate all resources required to render the model
+	void loadModel(std::string filename)
 	{
-		std::string filename = getAssetPath() + "models/voyager/voyager.dae";
-
 		// Load the model from file using ASSIMP
 
 		const aiScene* scene;
@@ -260,7 +257,7 @@ public:
 			}
 		}
 		size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
-		mesh.indices.count = static_cast<uint32_t>(indexBuffer.size());
+		model.indices.count = static_cast<uint32_t>(indexBuffer.size());
 
 		// Static mesh should always be device local
 
@@ -297,15 +294,15 @@ public:
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				vertexBufferSize,
-				&mesh.vertices.buf,
-				&mesh.vertices.mem));
+				&model.vertices.buffer,
+				&model.vertices.memory));
 			// Index buffer
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				indexBufferSize,
-				&mesh.indices.buf,
-				&mesh.indices.mem));
+				&model.indices.buffer,
+				&model.indices.memory));
 
 			// Copy from staging buffers
 			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -316,7 +313,7 @@ public:
 			vkCmdCopyBuffer(
 				copyCmd,
 				vertexStaging.buffer,
-				mesh.vertices.buf,
+				model.vertices.buffer,
 				1,
 				&copyRegion);
 
@@ -324,7 +321,7 @@ public:
 			vkCmdCopyBuffer(
 				copyCmd,
 				indexStaging.buffer,
-				mesh.indices.buf,
+				model.indices.buffer,
 				1,
 				&copyRegion);
 
@@ -342,22 +339,23 @@ public:
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				vertexBufferSize,
-				&mesh.vertices.buf,
-				&mesh.vertices.mem,
+				&model.vertices.buffer,
+				&model.vertices.memory,
 				vertexBuffer.data()));
 			// Index buffer
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				indexBufferSize,
-				&mesh.indices.buf,
-				&mesh.indices.mem,
+				&model.indices.buffer,
+				&model.indices.memory,
 				indexBuffer.data()));
 		}
 	}
 
 	void loadAssets()
 	{
+		loadModel(getAssetPath() + "models/voyager/voyager.dae");
 		textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 	}
 
@@ -623,7 +621,6 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
-		loadMesh();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
