@@ -20,8 +20,9 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "vulkanbuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -45,16 +46,6 @@ struct Particle {
 	float rotationSpeed;
 };
 
-// Vertex layout for this example
-std::vector<vkMeshLoader::VertexLayout> vertexLayout =
-{
-	vkMeshLoader::VERTEX_LAYOUT_POSITION,
-	vkMeshLoader::VERTEX_LAYOUT_UV,
-	vkMeshLoader::VERTEX_LAYOUT_NORMAL,
-	vkMeshLoader::VERTEX_LAYOUT_TANGENT,
-	vkMeshLoader::VERTEX_LAYOUT_BITANGENT
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -62,9 +53,7 @@ public:
 		struct {
 			vks::Texture2D smoke;
 			vks::Texture2D fire;
-			// We use a custom sampler to change some sampler
-			// attributes required for rotation the uv coordinates
-			// inside the shader for alpha blended textures
+			// Use a custom sampler to change sampler attributes required for rotating the uvs in the shader for alpha blended textures
 			VkSampler sampler;
 		} particles;
 		struct {
@@ -73,9 +62,18 @@ public:
 		} floor;
 	} textures;
 
+	// Vertex layout for the models
+	vks::VertexLayout vertexLayout = vks::VertexLayout({
+		vks::VERTEX_COMPONENT_POSITION,
+		vks::VERTEX_COMPONENT_UV,
+		vks::VERTEX_COMPONENT_NORMAL,
+		vks::VERTEX_COMPONENT_TANGENT,
+		vks::VERTEX_COMPONENT_BITANGENT,
+	});
+
 	struct {
-		vkMeshLoader::Mesh environment;
-	} meshes;
+		vks::Model environment;
+	} models;
 
 	glm::vec3 emitterPos = glm::vec3(0.0f, -FLAME_RADIUS + 2.0f, 0.0f);
 	glm::vec3 minVel = glm::vec3(-3.0f, 0.5f, -3.0f);
@@ -88,9 +86,6 @@ public:
 		void *mappedMemory;
 		// Size of the particle buffer in bytes
 		size_t size;
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} particles;
 
 	struct {
@@ -119,8 +114,12 @@ public:
 	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
+
+	struct {
+		VkDescriptorSet particles;
+		VkDescriptorSet environment;
+	} descriptorSets;
 
 	std::vector<Particle> particleBuffer;
 
@@ -158,7 +157,7 @@ public:
 		uniformBuffers.environment.destroy();
 		uniformBuffers.fire.destroy();
 
-		vkMeshLoader::freeMeshBufferResources(device, &meshes.environment.buffers);
+		models.environment.destroy();
 
 		vkDestroySampler(device, textures.particles.sampler, nullptr);
 	}
@@ -196,13 +195,18 @@ public:
 			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0,0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			// Environment
-			meshes.environment.drawIndexed(drawCmdBuffers[i]);
-
-			// Particle system
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.particles);
 			VkDeviceSize offsets[1] = { 0 };
+
+			// Environment
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.environment, 0, NULL);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.environment);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.environment.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.environment.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(drawCmdBuffers[i], models.environment.indexCount, 1, 0, 0, 0);
+
+			// Particle system (no index buffer)
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.particles, 0, NULL);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.particles);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &particles.buffer, offsets);
 			vkCmdDraw(drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
 
@@ -214,7 +218,7 @@ public:
 
 	float rnd(float range)
 	{
-		return range * (rand() / double(RAND_MAX));
+		return range * (rand() / float(RAND_MAX));
 	}
 
 	void initParticle(Particle *particle, glm::vec3 emitterPos)
@@ -224,12 +228,12 @@ public:
 		particle->size = 1.0f + rnd(0.5f);
 		particle->color = glm::vec4(1.0f);
 		particle->type = PARTICLE_TYPE_FLAME;
-		particle->rotation = rnd(2.0f * M_PI);
+		particle->rotation = rnd(2.0f * float(M_PI));
 		particle->rotationSpeed = rnd(2.0f) - rnd(2.0f);
 
 		// Get random sphere point
-		float theta = rnd(2 * M_PI);
-		float phi = rnd(M_PI) - M_PI / 2;
+		float theta = rnd(2.0f * float(M_PI));
+		float phi = rnd(float(M_PI)) - float(M_PI) / 2.0f;
 		float r = rnd(FLAME_RADIUS);
 
 		particle->pos.x = r * cos(theta) * cos(phi);
@@ -321,7 +325,7 @@ public:
 		memcpy(particles.mappedMemory, particleBuffer.data(), size);
 	}
 
-	void loadTextures()
+	void loadAssets()
 	{
 		// Particles
 		textures.particles.smoke.loadFromFile(getAssetPath() + "textures/particle_smoke.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
@@ -345,81 +349,15 @@ public:
 		samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
 		samplerCreateInfo.minLod = 0.0f;
 		// Both particle textures have the same number of mip maps
-		samplerCreateInfo.maxLod = textures.particles.fire.mipLevels;
+		samplerCreateInfo.maxLod = float(textures.particles.fire.mipLevels);
 		// Enable anisotropic filtering
 		samplerCreateInfo.maxAnisotropy = 8;
 		samplerCreateInfo.anisotropyEnable = VK_TRUE;
 		// Use a different border color (than the normal texture loader) for additive blending
 		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		VK_CHECK_RESULT(vkCreateSampler(device, &samplerCreateInfo, nullptr, &textures.particles.sampler));
-	}
 
-	void loadMeshes()
-	{
-		loadMesh(getAssetPath() + "models/fireplace.obj", &meshes.environment.buffers, vertexLayout, 10.0f);
-		meshes.environment.setupVertexInputState(vertexLayout);
-	}
-
-	void setupVertexDescriptions()
-	{
-		// Binding description
-		particles.bindingDescriptions.resize(1);
-		particles.bindingDescriptions[0] =
-			vkTools::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				sizeof(Particle),
-				VK_VERTEX_INPUT_RATE_VERTEX);
-
-		// Attribute descriptions
-		// Describes memory layout and shader positions
-		// Location 0 : Position
-		particles.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32A32_SFLOAT,
-				0));
-		// Location 1 : Color
-		particles.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32A32_SFLOAT,
-				sizeof(float) * 4));
-		// Location 2 : Alpha
-		particles.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32_SFLOAT,
-				sizeof(float) * 8));
-		// Location 3 : Size
-		particles.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
-				VK_FORMAT_R32_SFLOAT,
-				sizeof(float) * 9));
-		// Location 4 : Rotation
-		particles.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				4,
-				VK_FORMAT_R32_SFLOAT,
-				sizeof(float) * 10));
-		// Location 5 : Type
-		particles.attributeDescriptions.push_back(
-			vkTools::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				5,
-				VK_FORMAT_R32_SINT,
-				sizeof(float) * 11));
-
-		particles.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
-		particles.inputState.vertexBindingDescriptionCount = particles.bindingDescriptions.size();
-		particles.inputState.pVertexBindingDescriptions = particles.bindingDescriptions.data();
-		particles.inputState.vertexAttributeDescriptionCount = particles.attributeDescriptions.size();
-		particles.inputState.pVertexAttributeDescriptions = particles.attributeDescriptions.data();
+		models.environment.loadFromFile(getAssetPath() + "models/fireplace.obj", vertexLayout, 10.0f, vulkanDevice, queue);
 	}
 
 	void setupDescriptorPool()
@@ -486,7 +424,7 @@ public:
 				&descriptorSetLayout,
 				1);
 
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.particles));
 
 		// Image descriptor for the color map texture
 		VkDescriptorImageInfo texDescriptorSmoke =
@@ -501,21 +439,21 @@ public:
 				VK_IMAGE_LAYOUT_GENERAL);
 
 		writeDescriptorSets = {
-			// Binding 0 : Vertex shader uniform buffer
+			// Binding 0: Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
-			descriptorSet,
+				descriptorSets.particles,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformBuffers.fire.descriptor),
-			// Binding 1 : Smoke texture
+			// Binding 1: Smoke texture
 			vkTools::initializers::writeDescriptorSet(
-				descriptorSet,
+				descriptorSets.particles,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
 				&texDescriptorSmoke),
-			// Binding 1 : Fire texture array
+			// Binding 1: Fire texture array
 			vkTools::initializers::writeDescriptorSet(
-				descriptorSet,
+				descriptorSets.particles,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				2,
 				&texDescriptorFire)
@@ -524,38 +462,27 @@ public:
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Environment
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &meshes.environment.descriptorSet));
-
-		VkDescriptorImageInfo texDescriptorColorMap =
-			vkTools::initializers::descriptorImageInfo(
-				textures.floor.colorMap.sampler,
-				textures.floor.colorMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
-		VkDescriptorImageInfo texDescriptorNormalMap =
-			vkTools::initializers::descriptorImageInfo(
-				textures.floor.normalMap.sampler,
-				textures.floor.normalMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.environment));
 
 		writeDescriptorSets = {
-			// Binding 0 : Vertex shader uniform buffer
+			// Binding 0: Vertex shader uniform buffer
 			vkTools::initializers::writeDescriptorSet(
-				meshes.environment.descriptorSet,
+				descriptorSets.environment,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformBuffers.environment.descriptor),
-			// Binding 1 : Color map
+			// Binding 1: Color map
 			vkTools::initializers::writeDescriptorSet(
-				meshes.environment.descriptorSet,
+				descriptorSets.environment,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
-				&texDescriptorColorMap),
-			// Binding 2 : Normal map
+				&textures.floor.colorMap.descriptor),
+			// Binding 2: Normal map
 			vkTools::initializers::writeDescriptorSet(
-				meshes.environment.descriptorSet,
+				descriptorSets.environment,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				2,
-				&texDescriptorNormalMap),
+				&textures.floor.normalMap.descriptor),
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -613,16 +540,12 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/particlefire/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/particlefire/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vkTools::initializers::pipelineCreateInfo(
 				pipelineLayout,
 				renderPass,
 				0);
 
-		pipelineCreateInfo.pVertexInputState = &particles.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -633,31 +556,81 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		depthStencilState.depthWriteEnable = VK_FALSE;
+		// Particle rendering pipeline
+		{
+			// Shaders
+			shaderStages[0] = loadShader(getAssetPath() + "shaders/particlefire/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+			shaderStages[1] = loadShader(getAssetPath() + "shaders/particlefire/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		// Premulitplied alpha
-		blendAttachmentState.blendEnable = VK_TRUE;
-		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-		blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+			// Vertex input state
+			VkVertexInputBindingDescription vertexInputBinding =
+				vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, sizeof(Particle), VK_VERTEX_INPUT_RATE_VERTEX);
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.particles));
+			std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32A32_SFLOAT,	offsetof(Particle, pos)),	// Location 0: Position
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32A32_SFLOAT,	offsetof(Particle, color)),	// Location 1: Color
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32_SFLOAT, offsetof(Particle, alpha)),			// Location 2: Alpha			
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32_SFLOAT, offsetof(Particle, size)),			// Location 3: Size
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 4, VK_FORMAT_R32_SFLOAT, offsetof(Particle, rotation)),		// Location 4: Rotation
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 5, VK_FORMAT_R32_SINT, offsetof(Particle, type)),				// Location 5: Particle type
+			};
+
+			VkPipelineVertexInputStateCreateInfo vertexInputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+			vertexInputState.vertexBindingDescriptionCount = 1;
+			vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
+			vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+			vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+			pipelineCreateInfo.pVertexInputState = &vertexInputState;
+
+			// Dont' write to depth buffer
+			depthStencilState.depthWriteEnable = VK_FALSE;
+
+			// Premulitplied alpha
+			blendAttachmentState.blendEnable = VK_TRUE;
+			blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+			blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+			blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+			blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+			blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+			blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+			blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.particles));
+		}
 
 		// Environment rendering pipeline (normal mapped)
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/particlefire/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		pipelineCreateInfo.pVertexInputState = &meshes.environment.vertexInputState;
-		blendAttachmentState.blendEnable = VK_FALSE;
-		depthStencilState.depthWriteEnable = VK_TRUE;
-		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.environment));
+		{
+			// Shaders
+			shaderStages[0] = loadShader(getAssetPath() + "shaders/particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+			shaderStages[1] = loadShader(getAssetPath() + "shaders/particlefire/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		meshes.environment.pipeline = pipelines.environment;
-		meshes.environment.pipelineLayout = pipelineLayout;
+			// Vertex input state
+			VkVertexInputBindingDescription vertexInputBinding =
+				vkTools::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX);
+
+			std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),							// Location 0: Position
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3),				// Location 1: UV
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 5),			// Location 2: Normal	
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),			// Location 3: Tangent
+				vkTools::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 4, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 11),			// Location 4: Bitangen
+			};
+
+			VkPipelineVertexInputStateCreateInfo vertexInputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+			vertexInputState.vertexBindingDescriptionCount = 1;
+			vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
+			vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+			vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+			pipelineCreateInfo.pVertexInputState = &vertexInputState;
+
+			blendAttachmentState.blendEnable = VK_FALSE;
+			depthStencilState.depthWriteEnable = VK_TRUE;
+			inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.environment));
+		}
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -687,9 +660,9 @@ public:
 	void updateUniformBufferLight()
 	{
 		// Environment
-		uboEnv.lightPos.x = sin(timer * 2 * M_PI) * 1.5f;
+		uboEnv.lightPos.x = sin(timer * 2.0f * float(M_PI)) * 1.5f;
 		uboEnv.lightPos.y = 0.0f;
-		uboEnv.lightPos.z = cos(timer * 2 * M_PI) * 1.5f;
+		uboEnv.lightPos.z = cos(timer * 2.0f * float(M_PI)) * 1.5f;
 		memcpy(uniformBuffers.environment.mapped, &uboEnv, sizeof(uboEnv));
 	}
 
@@ -734,12 +707,10 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
+		loadAssets();
 		prepareParticles();
-		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
-		loadMeshes();
 		preparePipelines();
 		setupDescriptorPool();
 		setupDescriptorSets();
