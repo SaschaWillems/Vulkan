@@ -21,38 +21,41 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
-namespace vkDebug
+namespace vks
 {
-	// Default validation layers
-	extern int validationLayerCount;
-	extern const char *validationLayerNames[];
+	namespace debug
+	{
+		// Default validation layers
+		extern int validationLayerCount;
+		extern const char *validationLayerNames[];
 
-	// Default debug callback
-	VkBool32 messageCallback(
-		VkDebugReportFlagsEXT flags,
-		VkDebugReportObjectTypeEXT objType,
-		uint64_t srcObject,
-		size_t location,
-		int32_t msgCode,
-		const char* pLayerPrefix,
-		const char* pMsg,
-		void* pUserData);
+		// Default debug callback
+		VkBool32 messageCallback(
+			VkDebugReportFlagsEXT flags,
+			VkDebugReportObjectTypeEXT objType,
+			uint64_t srcObject,
+			size_t location,
+			int32_t msgCode,
+			const char* pLayerPrefix,
+			const char* pMsg,
+			void* pUserData);
 
-	// Load debug function pointers and set debug callback
-	// if callBack is NULL, default message callback will be used
-	void setupDebugging(
-		VkInstance instance, 
-		VkDebugReportFlagsEXT flags, 
-		VkDebugReportCallbackEXT callBack);
-	// Clear debug callback
-	void freeDebugCallback(VkInstance instance);
+		// Load debug function pointers and set debug callback
+		// if callBack is NULL, default message callback will be used
+		void setupDebugging(
+			VkInstance instance,
+			VkDebugReportFlagsEXT flags,
+			VkDebugReportCallbackEXT callBack);
+		// Clear debug callback
+		void freeDebugCallback(VkInstance instance);
+	}
 
 	// Setup and functions for the VK_EXT_debug_marker_extension
 	// Extension spec can be found at https://github.com/KhronosGroup/Vulkan-Docs/blob/1.0-VK_EXT_debug_marker/doc/specs/vulkan/appendices/VK_EXT_debug_marker.txt
 	// Note that the extension will only be present if run from an offline debugging application
 	// The actual check for extension presence and enabling it on the device is done in the example base class
 	// See VulkanExampleBase::createInstance and VulkanExampleBase::createDevice (base/vulkanexamplebase.cpp)
-	namespace DebugMarker
+	namespace debugmarker
 	{
 		// Set to true if function pointer for the debug marker are available
 		extern bool active;
@@ -95,5 +98,4 @@ namespace vkDebug
 		void setFenceName(VkDevice device, VkFence fence, const char * name);
 		void setEventName(VkDevice device, VkEvent _event, const char * name);
 	};
-
 }

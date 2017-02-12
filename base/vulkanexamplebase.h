@@ -39,7 +39,7 @@
 
 #include "keycodes.hpp"
 #include "vulkantools.h"
-#include "vulkandebug.h"
+#include "VulkanDebug.h"
 
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"

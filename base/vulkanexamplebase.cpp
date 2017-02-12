@@ -50,8 +50,8 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	}
 	if (settings.validation)
 	{
-		instanceCreateInfo.enabledLayerCount = vkDebug::validationLayerCount;
-		instanceCreateInfo.ppEnabledLayerNames = vkDebug::validationLayerNames;
+		instanceCreateInfo.enabledLayerCount = vks::debug::validationLayerCount;
+		instanceCreateInfo.ppEnabledLayerNames = vks::debug::validationLayerNames;
 	}
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
@@ -164,7 +164,7 @@ void VulkanExampleBase::prepare()
 {
 	if (vulkanDevice->enableDebugMarkers)
 	{
-		vkDebug::DebugMarker::setup(device);
+		vks::debugmarker::setup(device);
 	}
 	createCommandPool();
 	setupSwapChain();
@@ -684,7 +684,7 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	if (settings.validation)
 	{
-		vkDebug::freeDebugCallback(instance);
+		vks::debug::freeDebugCallback(instance);
 	}
 
 	vkDestroyInstance(instance, nullptr);
@@ -735,7 +735,7 @@ void VulkanExampleBase::initVulkan()
 		// For validating (debugging) an appplication the error and warning bits should suffice
 		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
 		// Additional flags include performance info, loader and layer debug messages, etc.
-		vkDebug::setupDebugging(instance, debugReportFlags, VK_NULL_HANDLE);
+		vks::debug::setupDebugging(instance, debugReportFlags, VK_NULL_HANDLE);
 	}
 
 	// Physical device

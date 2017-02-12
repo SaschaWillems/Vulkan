@@ -18,7 +18,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkantools.h"
-#include "vulkandebug.h"
+#include "VulkanDebug.h"
 #include "VulkanBuffer.hpp"
 #include "VulkanDevice.hpp"
 
@@ -643,9 +643,9 @@ public:
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffers[i], &cmdBufInfo));
 
-			if (vkDebug::DebugMarker::active)
+			if (vks::debugmarker::active)
 			{
-				vkDebug::DebugMarker::beginRegion(cmdBuffers[i], "Text overlay", glm::vec4(1.0f, 0.94f, 0.3f, 1.0f));
+				vks::debugmarker::beginRegion(cmdBuffers[i], "Text overlay", glm::vec4(1.0f, 0.94f, 0.3f, 1.0f));
 			}
 
 			vkCmdBeginRenderPass(cmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -669,9 +669,9 @@ public:
 
 			vkCmdEndRenderPass(cmdBuffers[i]);
 
-			if (vkDebug::DebugMarker::active)
+			if (vks::debugmarker::active)
 			{
-				vkDebug::DebugMarker::endRegion(cmdBuffers[i]);
+				vks::debugmarker::endRegion(cmdBuffers[i]);
 			}
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffers[i]));
