@@ -248,7 +248,7 @@ public:
 		}
 
 		// Create optimal tiled target image
-		VkImageCreateInfo imageCreateInfo = vkTools::initializers::imageCreateInfo();
+		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
 		imageCreateInfo.format = texture.format;
 		imageCreateInfo.mipLevels = texture.mipLevels;
@@ -266,7 +266,7 @@ public:
 		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image));
 
 		// Device local memory to back up image
-		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
+		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs = {};
 		vkGetImageMemoryRequirements(device, texture.image, &memReqs);
 		memAllocInfo.allocationSize = memReqs.size;
@@ -275,7 +275,7 @@ public:
 		VK_CHECK_RESULT(vkBindImageMemory(device, texture.image, texture.deviceMemory, 0));
 
 		// Create sampler
-		VkSamplerCreateInfo sampler = vkTools::initializers::samplerCreateInfo();
+		VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
 		sampler.magFilter = VK_FILTER_LINEAR;
 		sampler.minFilter = VK_FILTER_LINEAR;
 		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
@@ -292,7 +292,7 @@ public:
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
 
 		// Create image view
-		VkImageViewCreateInfo view = vkTools::initializers::imageViewCreateInfo();
+		VkImageViewCreateInfo view = vks::initializers::imageViewCreateInfo();
 		view.image = texture.image;
 		view.viewType = VK_IMAGE_VIEW_TYPE_3D;
 		view.format = texture.format;
@@ -363,14 +363,14 @@ public:
 		VkDeviceMemory stagingMemory;
 
 		// Buffer object
-		VkBufferCreateInfo bufferCreateInfo = vkTools::initializers::bufferCreateInfo();
+		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
 		bufferCreateInfo.size = texMemSize;
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;			
 		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
 
 		// Allocate host visible memory for data upload
-		VkMemoryAllocateInfo memAllocInfo = vkTools::initializers::memoryAllocateInfo();
+		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs = {};
 		vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
 		memAllocInfo.allocationSize = memReqs.size;
@@ -459,13 +459,13 @@ public:
 
 	void buildCommandBuffers()
 	{
-		VkCommandBufferBeginInfo cmdBufInfo = vkTools::initializers::commandBufferBeginInfo();
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
 		clearValues[0].color = defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
-		VkRenderPassBeginInfo renderPassBeginInfo = vkTools::initializers::renderPassBeginInfo();
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
@@ -483,10 +483,10 @@ public:
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vkTools::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vkTools::initializers::rect2D(width, height, 0, 0);
+			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -555,7 +555,7 @@ public:
 		// Binding description
 		vertices.inputBinding.resize(1);
 		vertices.inputBinding[0] =
-			vkTools::initializers::vertexInputBindingDescription(
+			vks::initializers::vertexInputBindingDescription(
 				VERTEX_BUFFER_BIND_ID, 
 				sizeof(Vertex), 
 				VK_VERTEX_INPUT_RATE_VERTEX);
@@ -565,27 +565,27 @@ public:
 		vertices.inputAttributes.resize(3);
 		// Location 0 : Position
 		vertices.inputAttributes[0] =
-			vkTools::initializers::vertexInputAttributeDescription(
+			vks::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
 				offsetof(Vertex, pos));			
 		// Location 1 : Texture coordinates
 		vertices.inputAttributes[1] =
-			vkTools::initializers::vertexInputAttributeDescription(
+			vks::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				1,
 				VK_FORMAT_R32G32_SFLOAT,
 				offsetof(Vertex, uv));
 		// Location 1 : Vertex normal
 		vertices.inputAttributes[2] =
-			vkTools::initializers::vertexInputAttributeDescription(
+			vks::initializers::vertexInputAttributeDescription(
 				VERTEX_BUFFER_BIND_ID,
 				2,
 				VK_FORMAT_R32G32B32_SFLOAT,
 				offsetof(Vertex, normal));
 
-		vertices.inputState = vkTools::initializers::pipelineVertexInputStateCreateInfo();
+		vertices.inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.inputBinding.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.inputBinding.data();
 		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.inputAttributes.size());
@@ -597,12 +597,12 @@ public:
 		// Example uses one ubo and one image sampler
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vkTools::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = 
-			vkTools::initializers::descriptorPoolCreateInfo(
+			vks::initializers::descriptorPoolCreateInfo(
 				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
@@ -615,26 +615,26 @@ public:
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = 
 		{
 			// Binding 0 : Vertex shader uniform buffer
-			vkTools::initializers::descriptorSetLayoutBinding(
+			vks::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
 				VK_SHADER_STAGE_VERTEX_BIT, 
 				0),
 			// Binding 1 : Fragment shader image sampler
-			vkTools::initializers::descriptorSetLayoutBinding(
+			vks::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 				VK_SHADER_STAGE_FRAGMENT_BIT, 
 				1)
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = 
-			vkTools::initializers::descriptorSetLayoutCreateInfo(
+			vks::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
 				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vkTools::initializers::pipelineLayoutCreateInfo(
+			vks::initializers::pipelineLayoutCreateInfo(
 				&descriptorSetLayout,
 				1);
 
@@ -644,7 +644,7 @@ public:
 	void setupDescriptorSet()
 	{
 		VkDescriptorSetAllocateInfo allocInfo = 
-			vkTools::initializers::descriptorSetAllocateInfo(
+			vks::initializers::descriptorSetAllocateInfo(
 				descriptorPool,
 				&descriptorSetLayout,
 				1);
@@ -654,13 +654,13 @@ public:
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
 			// Binding 0 : Vertex shader uniform buffer
-			vkTools::initializers::writeDescriptorSet(
+			vks::initializers::writeDescriptorSet(
 				descriptorSet, 
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
 				0, 
 				&uniformBufferVS.descriptor),
 			// Binding 1 : Fragment shader texture sampler
-			vkTools::initializers::writeDescriptorSet(
+			vks::initializers::writeDescriptorSet(
 				descriptorSet, 
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 				1, 
@@ -673,39 +673,39 @@ public:
 	void preparePipelines()
 	{
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vkTools::initializers::pipelineInputAssemblyStateCreateInfo(
+			vks::initializers::pipelineInputAssemblyStateCreateInfo(
 				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 				0,
 				VK_FALSE);
 
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vkTools::initializers::pipelineRasterizationStateCreateInfo(
+			vks::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
 				VK_CULL_MODE_NONE,
 				VK_FRONT_FACE_COUNTER_CLOCKWISE,
 				0);
 
 		VkPipelineColorBlendAttachmentState blendAttachmentState =
-			vkTools::initializers::pipelineColorBlendAttachmentState(
+			vks::initializers::pipelineColorBlendAttachmentState(
 				0xf,
 				VK_FALSE);
 
 		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vkTools::initializers::pipelineColorBlendStateCreateInfo(
+			vks::initializers::pipelineColorBlendStateCreateInfo(
 				1, 
 				&blendAttachmentState);
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vkTools::initializers::pipelineDepthStencilStateCreateInfo(
+			vks::initializers::pipelineDepthStencilStateCreateInfo(
 				VK_TRUE,
 				VK_TRUE,
 				VK_COMPARE_OP_LESS_OR_EQUAL);
 
 		VkPipelineViewportStateCreateInfo viewportState =
-			vkTools::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 
 		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vkTools::initializers::pipelineMultisampleStateCreateInfo(
+			vks::initializers::pipelineMultisampleStateCreateInfo(
 				VK_SAMPLE_COUNT_1_BIT,
 				0);
 
@@ -714,7 +714,7 @@ public:
 			VK_DYNAMIC_STATE_SCISSOR
 		};
 		VkPipelineDynamicStateCreateInfo dynamicState =
-			vkTools::initializers::pipelineDynamicStateCreateInfo(
+			vks::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
 				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
@@ -726,7 +726,7 @@ public:
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/texture3d/texture3d.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vkTools::initializers::pipelineCreateInfo(
+			vks::initializers::pipelineCreateInfo(
 				pipelineLayout,
 				renderPass,
 				0);

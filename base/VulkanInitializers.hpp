@@ -12,7 +12,7 @@
 
 #include "vulkan/vulkan.h"
 
-namespace vkTools
+namespace vks
 {
 	namespace initializers
 	{

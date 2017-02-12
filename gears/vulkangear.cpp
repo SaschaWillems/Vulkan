@@ -294,7 +294,7 @@ void VulkanGear::updateUniformBuffer(glm::mat4 perspective, glm::vec3 rotation, 
 void VulkanGear::setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout descriptorSetLayout)
 {
 	VkDescriptorSetAllocateInfo allocInfo =
-		vkTools::initializers::descriptorSetAllocateInfo(
+		vks::initializers::descriptorSetAllocateInfo(
 			pool,
 			&descriptorSetLayout,
 			1);
@@ -303,7 +303,7 @@ void VulkanGear::setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout
 
 	// Binding 0 : Vertex shader uniform buffer
 	VkWriteDescriptorSet writeDescriptorSet =
-		vkTools::initializers::writeDescriptorSet(
+		vks::initializers::writeDescriptorSet(
 			descriptorSet,
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			0,

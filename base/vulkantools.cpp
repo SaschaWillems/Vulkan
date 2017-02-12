@@ -100,7 +100,7 @@ namespace vkTools
 		VkPipelineStageFlags dstStageMask)
 	{
 		// Create an image barrier object
-		VkImageMemoryBarrier imageMemoryBarrier = vkTools::initializers::imageMemoryBarrier();
+		VkImageMemoryBarrier imageMemoryBarrier = vks::initializers::imageMemoryBarrier();
 		imageMemoryBarrier.oldLayout = oldImageLayout;
 		imageMemoryBarrier.newLayout = newImageLayout;
 		imageMemoryBarrier.image = image;
