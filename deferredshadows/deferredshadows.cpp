@@ -21,7 +21,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanBuffer.hpp"
-#include "VulkanFramebuffer.hpp"
+#include "VulkanFrameBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
