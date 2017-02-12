@@ -116,7 +116,7 @@ public:
 	} compute;
 
 	// View frustum for culling invisible objects
-	vkTools::Frustum frustum;
+	vks::Frustum frustum;
 
 	uint32_t objectCount = 0;
 

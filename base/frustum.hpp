@@ -10,7 +10,7 @@
 #include <math.h>
 #include <glm/glm.hpp>
 
-namespace vkTools
+namespace vks
 {
 	class Frustum
 	{

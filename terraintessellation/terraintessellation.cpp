@@ -112,7 +112,7 @@ public:
 	uint64_t pipelineStats[2] = { 0 };
 
 	// View frustum passed to tessellation control shader for culling
-	vkTools::Frustum frustum;
+	vks::Frustum frustum;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{

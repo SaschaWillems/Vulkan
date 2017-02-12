@@ -116,7 +116,7 @@ public:
 	float objectSphereDim;
 
 	// View frustum for culling invisible objects
-	vkTools::Frustum frustum;
+	vks::Frustum frustum;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
