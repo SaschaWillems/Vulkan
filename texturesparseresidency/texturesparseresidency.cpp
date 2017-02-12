@@ -197,7 +197,7 @@ public:
 		vks::Texture2D source;
 	} textures;
 
-	vks::utils::HeightMap *heightMap = nullptr;
+	vks::HeightMap *heightMap = nullptr;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -660,11 +660,11 @@ public:
 	// Generate a terrain quad patch for feeding to the tessellation control shader
 	void generateTerrain()
 	{
-		heightMap = new vks::utils::HeightMap(vulkanDevice, queue);
+		heightMap = new vks::HeightMap(vulkanDevice, queue);
 #if defined(__ANDROID__)
-		heightMap->loadFromFile(getAssetPath() + "textures/terrain_heightmap_r16.ktx", 128, glm::vec3(2.0f, 48.0f, 2.0f), vks::utils::HeightMap::topologyTriangles, androidApp->activity->assetManager);
+		heightMap->loadFromFile(getAssetPath() + "textures/terrain_heightmap_r16.ktx", 128, glm::vec3(2.0f, 48.0f, 2.0f), vks::HeightMap::topologyTriangles, androidApp->activity->assetManager);
 #else
-		heightMap->loadFromFile(getAssetPath() + "textures/terrain_heightmap_r16.ktx", 128, glm::vec3(2.0f, 48.0f, 2.0f), vks::utils::HeightMap::topologyTriangles);
+		heightMap->loadFromFile(getAssetPath() + "textures/terrain_heightmap_r16.ktx", 128, glm::vec3(2.0f, 48.0f, 2.0f), vks::HeightMap::topologyTriangles);
 #endif
 	}
 
