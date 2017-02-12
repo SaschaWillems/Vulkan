@@ -812,7 +812,7 @@ void VulkanExampleBase::initVulkan()
 	// Vulkan device creation
 	// This is handled by a separate class that gets a logical device representation
 	// and encapsulates functions related to a device
-	vulkanDevice = new vk::VulkanDevice(physicalDevice);
+	vulkanDevice = new vks::VulkanDevice(physicalDevice);
 	VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, enabledExtensions);
 	if (res != VK_SUCCESS) {
 		vkTools::exitFatal("Could not create Vulkan device: \n" + vkTools::errorString(res), "Fatal error");

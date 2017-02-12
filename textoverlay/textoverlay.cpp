@@ -23,7 +23,7 @@
 #include <vulkan/vulkan.h>
 
 #include "vulkanexamplebase.h"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkanbuffer.hpp"
 #include "VulkanModel.hpp"
 #include "VulkanTexture.hpp"
@@ -48,7 +48,7 @@
 class TextOverlay
 {
 private:
-	vk::VulkanDevice *vulkanDevice;
+	vks::VulkanDevice *vulkanDevice;
 
 	VkQueue queue;
 	VkFormat colorFormat;
@@ -87,7 +87,7 @@ public:
 	bool visible = true;
 
 	TextOverlay(
-		vk::VulkanDevice *vulkanDevice,
+		vks::VulkanDevice *vulkanDevice,
 		VkQueue queue,
 		std::vector<VkFramebuffer> &framebuffers,
 		VkFormat colorformat,

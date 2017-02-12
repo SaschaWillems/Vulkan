@@ -12,7 +12,7 @@
 #include <iterator>
 #include <vector>
 #include "vulkan/vulkan.h"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkantools.h"
 
 namespace vk
@@ -89,7 +89,7 @@ namespace vk
 	struct Framebuffer
 	{
 	private:
-		vk::VulkanDevice *vulkanDevice;
+		vks::VulkanDevice *vulkanDevice;
 	public:
 		uint32_t width, height;
 		VkFramebuffer framebuffer;
@@ -102,7 +102,7 @@ namespace vk
 		*
 		* @param vulkanDevice Pointer to a valid VulkanDevice
 		*/
-		Framebuffer(vk::VulkanDevice *vulkanDevice)
+		Framebuffer(vks::VulkanDevice *vulkanDevice)
 		{
 			assert(vulkanDevice);
 			this->vulkanDevice = vulkanDevice;

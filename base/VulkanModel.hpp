@@ -25,7 +25,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkanbuffer.hpp"
 
 #if defined(__ANDROID__)
@@ -154,7 +154,7 @@ namespace vks
 		* @param copyQueue Queue used for the memory staging copy commands (must support transfer)
 		* @param (Optional) flags ASSIMP model loading flags
 		*/
-		bool loadFromFile(const std::string& filename, vks::VertexLayout layout, vks::ModelCreateInfo *createInfo, vk::VulkanDevice *device, VkQueue copyQueue, const int flags = defaultFlags)
+		bool loadFromFile(const std::string& filename, vks::VertexLayout layout, vks::ModelCreateInfo *createInfo, vks::VulkanDevice *device, VkQueue copyQueue, const int flags = defaultFlags)
 		{
 			this->device = device->logicalDevice;
 
@@ -380,7 +380,7 @@ namespace vks
 		* @param copyQueue Queue used for the memory staging copy commands (must support transfer)
 		* @param (Optional) flags ASSIMP model loading flags
 		*/
-		bool loadFromFile(const std::string& filename, vks::VertexLayout layout, float scale, vk::VulkanDevice *device, VkQueue copyQueue, const int flags = defaultFlags)
+		bool loadFromFile(const std::string& filename, vks::VertexLayout layout, float scale, vks::VulkanDevice *device, VkQueue copyQueue, const int flags = defaultFlags)
 		{
 			vks::ModelCreateInfo modelCreateInfo(scale, 1.0f, 0.0f);
 			return loadFromFile(filename, layout, &modelCreateInfo, device, copyQueue, flags);

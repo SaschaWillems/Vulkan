@@ -17,7 +17,7 @@
 #include "vulkantools.h"
 #include "vulkanbuffer.hpp"
 
-namespace vk
+namespace vks
 {	
 	struct VulkanDevice
 	{

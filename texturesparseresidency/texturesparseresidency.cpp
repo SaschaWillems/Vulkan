@@ -31,7 +31,7 @@ todos:
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkanbuffer.hpp"
 #include "vulkanheightmap.hpp"
 

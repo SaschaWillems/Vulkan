@@ -23,7 +23,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkanbuffer.hpp"
 #include "VulkanModel.hpp"
 

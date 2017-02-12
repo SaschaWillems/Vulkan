@@ -41,7 +41,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkanbuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -96,7 +96,7 @@ struct ScenePart
 class Scene
 {
 private:
-	vk::VulkanDevice *vulkanDevice;
+	vks::VulkanDevice *vulkanDevice;
 	VkQueue queue;
 
 	VkDescriptorPool descriptorPool;
@@ -425,7 +425,7 @@ public:
 	uint32_t scenePartIndex = 0;
 
 	// Default constructor
-	Scene(vk::VulkanDevice *vulkanDevice, VkQueue queue)
+	Scene(vks::VulkanDevice *vulkanDevice, VkQueue queue)
 	{
 		this->vulkanDevice = vulkanDevice;
 		this->queue = queue;

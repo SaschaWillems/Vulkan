@@ -18,7 +18,7 @@
 #include <gli/gli.hpp>
 
 #include "vulkantools.h"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkanbuffer.hpp"
 
 #if defined(__ANDROID__)
@@ -30,7 +30,7 @@ namespace vks
 	/** @brief Vulkan texture base class */
 	class Texture {
 	public:
-		vk::VulkanDevice *device;
+		vks::VulkanDevice *device;
 		VkImage image;
 		VkImageLayout imageLayout;
 		VkDeviceMemory deviceMemory;
@@ -82,7 +82,7 @@ namespace vks
 		void loadFromFile(
 			std::string filename, 
 			VkFormat format,
-			vk::VulkanDevice *device,
+			vks::VulkanDevice *device,
 			VkQueue copyQueue,
 			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
 			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
@@ -385,7 +385,7 @@ namespace vks
 			VkFormat format,
 			uint32_t width,
 			uint32_t height,
-			vk::VulkanDevice *device,
+			vks::VulkanDevice *device,
 			VkQueue copyQueue,
 			VkFilter filter = VK_FILTER_LINEAR,
 			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -561,7 +561,7 @@ namespace vks
 		void loadFromFile(
 			std::string filename,
 			VkFormat format,
-			vk::VulkanDevice *device,
+			vks::VulkanDevice *device,
 			VkQueue copyQueue,
 			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
 			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -770,7 +770,7 @@ namespace vks
 		void loadFromFile(
 			std::string filename,
 			VkFormat format,
-			vk::VulkanDevice *device,
+			vks::VulkanDevice *device,
 			VkQueue copyQueue,
 			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
 			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)

@@ -22,7 +22,7 @@
 #include "vulkan/vulkan.h"
 
 #include "vulkantools.h"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkanbuffer.hpp"
 
 struct Vertex
@@ -70,7 +70,7 @@ private:
 		glm::vec3 lightPos;
 	};
 
-	vk::VulkanDevice *vulkanDevice;
+	vks::VulkanDevice *vulkanDevice;
 
 	glm::vec3 color;
 	glm::vec3 pos;
@@ -96,7 +96,7 @@ public:
 
 	void setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout descriptorSetLayout);
 
-	VulkanGear(vk::VulkanDevice *vulkanDevice) : vulkanDevice(vulkanDevice) {};
+	VulkanGear(vks::VulkanDevice *vulkanDevice) : vulkanDevice(vulkanDevice) {};
 	~VulkanGear();
 
 	void generate(GearInfo *gearinfo, VkQueue queue);

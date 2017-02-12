@@ -11,7 +11,7 @@
 #include <gli/gli.hpp>
 
 #include "vulkan/vulkan.h"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkanbuffer.hpp"
 
 namespace vkTools 
@@ -23,7 +23,7 @@ namespace vkTools
 		uint32_t dim;
 		uint32_t scale;
 
-		vk::VulkanDevice *device = nullptr;
+		vks::VulkanDevice *device = nullptr;
 		VkQueue copyQueue = VK_NULL_HANDLE;
 	public:
 		enum Topology { topologyTriangles, topologyQuads };
@@ -44,7 +44,7 @@ namespace vkTools
 		size_t indexBufferSize = 0;
 		uint32_t indexCount = 0;
 
-		HeightMap(vk::VulkanDevice *device, VkQueue copyQueue)
+		HeightMap(vks::VulkanDevice *device, VkQueue copyQueue)
 		{
 			this->device = device;
 			this->copyQueue = copyQueue;

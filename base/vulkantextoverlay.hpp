@@ -20,7 +20,7 @@
 #include "vulkantools.h"
 #include "vulkandebug.h"
 #include "vulkanbuffer.hpp"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 
 #include "../external/stb/stb_font_consolas_24_latin1.inl"
 
@@ -42,7 +42,7 @@
 class VulkanTextOverlay
 {
 private:
-	vk::VulkanDevice *vulkanDevice;
+	vks::VulkanDevice *vulkanDevice;
 
 	VkQueue queue;
 	VkFormat colorFormat;
@@ -89,7 +89,7 @@ public:
 	* @param vulkanDevice Pointer to a valid VulkanDevice
 	*/
 	VulkanTextOverlay(
-		vk::VulkanDevice *vulkanDevice,
+		vks::VulkanDevice *vulkanDevice,
 		VkQueue queue,
 		std::vector<VkFramebuffer> &framebuffers,
 		VkFormat colorformat,

@@ -42,7 +42,7 @@
 #include "vulkandebug.h"
 
 #include "VulkanInitializers.hpp"
-#include "vulkandevice.hpp"
+#include "VulkanDevice.hpp"
 #include "vulkanswapchain.hpp"
 #include "vulkantextoverlay.hpp"
 #include "camera.hpp"
@@ -90,7 +90,7 @@ protected:
 	// todo: getter? should always point to VulkanDevice->device
 	VkDevice device;
 	/** @brief Encapsulated physical and logical vulkan device */
-	vk::VulkanDevice *vulkanDevice;
+	vks::VulkanDevice *vulkanDevice;
 	// Handle to the device graphics queue that command buffers are submitted to
 	VkQueue queue;
 	// Depth buffer format (selected during Vulkan initialization)

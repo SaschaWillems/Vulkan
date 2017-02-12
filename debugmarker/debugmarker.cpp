@@ -174,7 +174,7 @@ struct Scene {
 		}
 	}
 
-	void loadFromFile(std::string filename, vk::VulkanDevice* vulkanDevice, VkQueue queue)
+	void loadFromFile(std::string filename, vks::VulkanDevice* vulkanDevice, VkQueue queue)
 	{
 		model.loadFromFile(filename, vertexLayout, 1.0f, vulkanDevice, queue);
 	}
