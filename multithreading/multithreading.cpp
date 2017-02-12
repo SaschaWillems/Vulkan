@@ -105,7 +105,7 @@ public:
 	};
 	std::vector<ThreadData> threadData;
 
-	vkTools::ThreadPool threadPool;
+	vks::ThreadPool threadPool;
 
 	// Fence to wait for all command buffers to finish before
 	// presenting to the swap chain
