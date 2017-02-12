@@ -262,7 +262,7 @@ public:
 		VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass());
 
 		VkCommandBuffer cmdBuf = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			cmdBuf,
 			frameBuffers.shadow->attachments[0].image,
 			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
@@ -303,7 +303,7 @@ public:
 		// Depth attachment
 		// Find a suitable depth format
 		VkFormat attDepthFormat;
-		VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &attDepthFormat);
+		VkBool32 validDepthFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &attDepthFormat);
 		assert(validDepthFormat);
 
 		attachmentInfo.format = attDepthFormat;

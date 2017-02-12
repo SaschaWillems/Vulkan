@@ -224,7 +224,7 @@ public:
 		subresourceRange.baseMipLevel = 0;
 		subresourceRange.levelCount = 1;
 		subresourceRange.layerCount = 6;
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			layoutCmd,
 			shadowCubeMap.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -312,7 +312,7 @@ public:
 
 		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			layoutCmd,
 			offscreenPass.color.image, 
 			VK_IMAGE_ASPECT_COLOR_BIT, 
@@ -344,7 +344,7 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.depth.mem));
 		VK_CHECK_RESULT(vkBindImageMemory(device, offscreenPass.depth.image, offscreenPass.depth.mem, 0));
 
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			layoutCmd,
 			offscreenPass.depth.image, 
 			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
@@ -441,7 +441,7 @@ public:
 
 		vkCmdEndRenderPass(offscreenPass.commandBuffer);
 		// Make sure color writes to the framebuffer are finished before using it as transfer source
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			offscreenPass.commandBuffer,
 			offscreenPass.color.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -478,7 +478,7 @@ public:
 			&copyRegion);
 
 		// Transform framebuffer color attachment back 
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			offscreenPass.commandBuffer,
 			offscreenPass.color.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -517,7 +517,7 @@ public:
 		subresourceRange.layerCount = 6;
 
 		// Change image layout for all cubemap faces to transfer destination
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			offscreenPass.commandBuffer,
 			shadowCubeMap.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -531,7 +531,7 @@ public:
 		}
 
 		// Change image layout for all cubemap faces to shader read after they have been copied
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			offscreenPass.commandBuffer,
 			shadowCubeMap.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -794,7 +794,7 @@ public:
 		VkAttachmentDescription osAttachments[2] = {};
 
 		// Find a suitable depth format
-		VkBool32 validDepthFormat = vkTools::getSupportedDepthFormat(physicalDevice, &fbDepthFormat);
+		VkBool32 validDepthFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &fbDepthFormat);
 		assert(validDepthFormat);
 
 		osAttachments[0].format = FB_COLOR_FORMAT;

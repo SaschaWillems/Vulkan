@@ -250,7 +250,7 @@ public:
 		subresourceRange.levelCount = 1;
 		subresourceRange.layerCount = layerCount;
 
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			textureArray.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -270,7 +270,7 @@ public:
 
 		// Change texture image layout to shader read after all faces have been copied
 		textureArray.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			textureArray.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,

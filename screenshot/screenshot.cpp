@@ -392,7 +392,7 @@ public:
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 		// Transition destination image to transfer destination layout
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			dstImage,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -402,7 +402,7 @@ public:
 			VK_PIPELINE_STAGE_TRANSFER_BIT);
 
 		// Transition swapchain image from present to transfer source layout
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			srcImage,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -434,7 +434,7 @@ public:
 			VK_FILTER_NEAREST);
 
 		// Transition destination image to general layout, which is the required layout for mapping the image memory later on
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			dstImage,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -444,7 +444,7 @@ public:
 			VK_PIPELINE_STAGE_TRANSFER_BIT);
 
 		// Transition back the swap chain image after the blit is done
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			srcImage,
 			VK_IMAGE_ASPECT_COLOR_BIT,

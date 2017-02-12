@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <algorithm>
 #include "vulkan/vulkan.h"
-#include "vulkantools.h"
+#include "VulkanTools.h"
 #include "VulkanBuffer.hpp"
 
 namespace vks

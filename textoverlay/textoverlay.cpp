@@ -240,7 +240,7 @@ public:
 		VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
 
 		// Prepare for transfer
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -265,7 +265,7 @@ public:
 			);
 
 		// Prepare for shader read
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			image,
 			VK_IMAGE_ASPECT_COLOR_BIT,

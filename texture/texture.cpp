@@ -112,7 +112,7 @@ public:
 		imageMemoryBarrier.subresourceRange = subresourceRange;
 
 		// Only sets masks for layouts used in this example
-		// For a more complete version that can be used with other layouts see vkTools::setImageLayout
+		// For a more complete version that can be used with other layouts see vks::tools::setImageLayout
 
 		// Source layouts (old)
 		switch (oldImageLayout)

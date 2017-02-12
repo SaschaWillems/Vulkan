@@ -93,8 +93,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Base", "Base", "{09B9A54B-F
 		base\vulkanswapchain.hpp = base\vulkanswapchain.hpp
 		base\vulkantextoverlay.hpp = base\vulkantextoverlay.hpp
 		base\VulkanTexture.hpp = base\VulkanTexture.hpp
-		base\vulkantools.cpp = base\vulkantools.cpp
-		base\vulkantools.h = base\vulkantools.h
+		base\VulkanTools.h = base\VulkanTools.h
+		base\VulkanTools.hpp = base\VulkanTools.hpp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "indirectdraw", "indirectdraw\indirectdraw.vcxproj", "{2BBDD10F-2C9D-4BEA-8C7B-1C510A2CE08B}"

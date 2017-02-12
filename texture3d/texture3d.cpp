@@ -397,7 +397,7 @@ public:
 
 		// Optimal image will be used as destination for the copy, so we must transfer from our
 		// initial undefined image layout to the transfer destination layout
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			texture.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -427,7 +427,7 @@ public:
 
 		// Change texture image layout to shader read after all mip levels have been copied
 		texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			texture.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,

@@ -24,7 +24,7 @@
 #endif
 
 #include <vulkan/vulkan.h>
-#include "vulkantools.h"
+#include "VulkanTools.h"
 
 #ifdef __ANDROID__
 #include "vulkanandroid.h"
@@ -211,13 +211,13 @@ public:
 		// Exit if either a graphics or a presenting queue hasn't been found
 		if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX) 
 		{
-			vkTools::exitFatal("Could not find a graphics and/or presenting queue!", "Fatal error");
+			vks::tools::exitFatal("Could not find a graphics and/or presenting queue!", "Fatal error");
 		}
 
 		// todo : Add support for separate graphics and presenting queue
 		if (graphicsQueueNodeIndex != presentQueueNodeIndex) 
 		{
-			vkTools::exitFatal("Separate graphics and presenting queues are not supported yet!", "Fatal error");
+			vks::tools::exitFatal("Separate graphics and presenting queues are not supported yet!", "Fatal error");
 		}
 
 		queueNodeIndex = graphicsQueueNodeIndex;
@@ -576,7 +576,7 @@ public:
 
 		if(!foundMode)
 		{
-			vkTools::exitFatal("Can't find a display and a display mode!", "Fatal error");
+			vks::tools::exitFatal("Can't find a display and a display mode!", "Fatal error");
 			return;
 		}
 
@@ -613,7 +613,7 @@ public:
 
 		if(bestPlaneIndex == UINT32_MAX)
 		{
-			vkTools::exitFatal("Can't find a plane for displaying!", "Fatal error");
+			vks::tools::exitFatal("Can't find a plane for displaying!", "Fatal error");
 			return;
 		}
 
@@ -651,7 +651,7 @@ public:
 		VkResult result = vkCreateDisplayPlaneSurfaceKHR(instance, &surfaceInfo, NULL, &surface);
 		if(result !=VK_SUCCESS)
 		{
-			vkTools::exitFatal("Failed to create surface!", "Fatal error");
+			vks::tools::exitFatal("Failed to create surface!", "Fatal error");
 		}
 
 		delete[] pDisplays;

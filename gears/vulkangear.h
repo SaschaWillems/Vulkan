@@ -21,7 +21,7 @@
 
 #include "vulkan/vulkan.h"
 
-#include "vulkantools.h"
+#include "VulkanTools.h"
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
 

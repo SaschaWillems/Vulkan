@@ -156,7 +156,7 @@ public:
 		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 		tex->imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			layoutCmd, tex->image, 
 			VK_IMAGE_ASPECT_COLOR_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, 

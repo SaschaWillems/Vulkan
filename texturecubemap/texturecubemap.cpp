@@ -229,7 +229,7 @@ public:
 		subresourceRange.levelCount = cubeMap.mipLevels;
 		subresourceRange.layerCount = 6;
 
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			cubeMap.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -249,7 +249,7 @@ public:
 
 		// Change texture image layout to shader read after all faces have been copied
 		cubeMap.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			cubeMap.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,

@@ -201,7 +201,7 @@ public:
 		subresourceRange.layerCount = 1;
 
 		// Optimal image will be used as destination for the copy, so we must transfer from our initial undefined image layout to the transfer destination layout
-		vkTools::setImageLayout(copyCmd, texture.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
+		vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
 
 		// Copy the first mip of the chain, remaining mips will be generated
 		VkBufferImageCopy bufferCopyRegion = {};
@@ -217,7 +217,7 @@ public:
 
 		// Transition first mip level to transfer source for read during blit
 		texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			copyCmd,
 			texture.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -265,7 +265,7 @@ public:
 			mipSubRange.layerCount = 1;
 
 			// Transiton current mip level to transfer dest
-			vkTools::setImageLayout(
+			vks::tools::setImageLayout(
 				blitCmd,
 				texture.image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
@@ -287,7 +287,7 @@ public:
 				VK_FILTER_LINEAR);
 
 			// Transiton current mip level to transfer source for read in next iteration
-			vkTools::setImageLayout(
+			vks::tools::setImageLayout(
 				blitCmd,
 				texture.image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
@@ -300,7 +300,7 @@ public:
 
 		// After the loop, all mip layers are in TRANSFER_SRC layout, so transition all to SHADER_READ
 		subresourceRange.levelCount = texture.mipLevels;
-		vkTools::setImageLayout(
+		vks::tools::setImageLayout(
 			blitCmd,
 			texture.image,
 			VK_IMAGE_ASPECT_COLOR_BIT,

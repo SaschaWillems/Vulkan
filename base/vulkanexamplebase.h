@@ -38,7 +38,7 @@
 #include "vulkan/vulkan.h"
 
 #include "keycodes.hpp"
-#include "vulkantools.h"
+#include "VulkanTools.h"
 #include "VulkanDebug.h"
 
 #include "VulkanInitializers.hpp"
@@ -127,7 +127,7 @@ protected:
 		VkSemaphore textOverlayComplete;
 	} semaphores;
 	// Simple texture loader
-	//vkTools::VulkanTextureLoader *textureLoader = nullptr;
+	//vks::tools::VulkanTextureLoader *textureLoader = nullptr;
 	// Returns the base asset path (for shaders, models, textures) depending on the os
 	const std::string getAssetPath();
 public: 
