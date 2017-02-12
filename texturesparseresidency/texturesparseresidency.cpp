@@ -33,7 +33,7 @@ todos:
 #include "VulkanTexture.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
-#include "vulkanheightmap.hpp"
+#include "VulkanHeightmap.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
