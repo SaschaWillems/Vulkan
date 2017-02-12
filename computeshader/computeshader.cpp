@@ -20,7 +20,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -66,11 +66,11 @@ public:
 		uint32_t queueFamilyIndex;					// Family index of the graphics queue, used for barriers
 	} compute;
 
-	vk::Buffer vertexBuffer;
-	vk::Buffer indexBuffer;
+	vks::Buffer vertexBuffer;
+	vks::Buffer indexBuffer;
 	uint32_t indexCount;
 
-	vk::Buffer uniformBufferVS;
+	vks::Buffer uniformBufferVS;
 
 	struct {
 		glm::mat4 projection;

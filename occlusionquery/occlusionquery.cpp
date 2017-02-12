@@ -19,7 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -42,9 +42,9 @@ public:
 	} models;
 
 	struct {
-		vk::Buffer occluder;
-		vk::Buffer teapot;
-		vk::Buffer sphere;
+		vks::Buffer occluder;
+		vks::Buffer teapot;
+		vks::Buffer sphere;
 	} uniformBuffers;
 
 	struct UBOVS {

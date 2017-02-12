@@ -21,7 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
@@ -75,7 +75,7 @@ public:
 	} uboVS;
 
 	struct {
-		vk::Buffer scene;
+		vks::Buffer scene;
 	} uniformBuffers;
 
 	VkPipelineLayout pipelineLayout;

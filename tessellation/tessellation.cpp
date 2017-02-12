@@ -24,7 +24,7 @@
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -56,7 +56,7 @@ public:
 	} models;
 
 	struct {
-		vk::Buffer tessControl, tessEval;
+		vks::Buffer tessControl, tessEval;
 	} uniformBuffers;
 	
 	struct UBOTessControl {

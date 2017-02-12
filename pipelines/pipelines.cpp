@@ -20,7 +20,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanModel.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -46,7 +46,7 @@ public:
 		vks::Model cube;
 	} models;
 
-	vk::Buffer uniformBuffer;
+	vks::Buffer uniformBuffer;
 
 	// Same uniform buffer layout as shader
 	struct UBOVS {

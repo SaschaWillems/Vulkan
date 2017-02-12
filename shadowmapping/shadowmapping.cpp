@@ -19,7 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -80,9 +80,9 @@ public:
 	} vertices;
 
 	struct {
-		vk::Buffer scene;
-		vk::Buffer offscreen;
-		vk::Buffer debug;
+		vks::Buffer scene;
+		vks::Buffer offscreen;
+		vks::Buffer debug;
 	} uniformBuffers;
 
 	struct {

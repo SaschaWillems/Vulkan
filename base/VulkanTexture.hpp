@@ -19,7 +19,7 @@
 
 #include "vulkantools.h"
 #include "VulkanDevice.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 #if defined(__ANDROID__)
 #include <android/asset_manager.h>

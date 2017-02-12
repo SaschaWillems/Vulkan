@@ -19,7 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
@@ -62,8 +62,8 @@ public:
 	} models;
 
 	struct {
-		vk::Buffer scene;
-		vk::Buffer offscreen;
+		vks::Buffer scene;
+		vks::Buffer offscreen;
 	} uniformBuffers;
 
 	struct {

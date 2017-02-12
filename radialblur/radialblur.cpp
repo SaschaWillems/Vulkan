@@ -19,7 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
@@ -59,8 +59,8 @@ public:
 	} vertices;
 
 	struct {
-		vk::Buffer scene;
-		vk::Buffer blurParams;
+		vks::Buffer scene;
+		vks::Buffer blurParams;
 	} uniformBuffers;
 
 	struct UboVS {

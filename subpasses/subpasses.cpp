@@ -72,8 +72,8 @@ public:
 	} uboLights;
 
 	struct {
-		vk::Buffer GBuffer;
-		vk::Buffer lights;
+		vks::Buffer GBuffer;
+		vks::Buffer lights;
 	} uniformBuffers;
 
 	struct {

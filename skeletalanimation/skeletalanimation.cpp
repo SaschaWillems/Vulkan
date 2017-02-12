@@ -25,7 +25,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
@@ -360,8 +360,8 @@ public:
 	SkinnedMesh *skinnedMesh = nullptr;
 
 	struct {
-		vk::Buffer mesh;
-		vk::Buffer floor;
+		vks::Buffer mesh;
+		vks::Buffer floor;
 	} uniformBuffers;
 
 	struct {

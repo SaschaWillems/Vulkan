@@ -23,7 +23,7 @@
 
 #include "vulkantools.h"
 #include "VulkanDevice.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 struct Vertex
 {
@@ -77,12 +77,12 @@ private:
 	float rotSpeed;
 	float rotOffset;
 
-	vk::Buffer vertexBuffer;
-	vk::Buffer indexBuffer;
+	vks::Buffer vertexBuffer;
+	vks::Buffer indexBuffer;
 	uint32_t indexCount;
 
 	UBO ubo;
-	vk::Buffer uniformBuffer;
+	vks::Buffer uniformBuffer;
 
 	int32_t newVertex(std::vector<Vertex> *vBuffer, float x, float y, float z, const glm::vec3& normal);
 	void newFace(std::vector<uint32_t> *iBuffer, int a, int b, int c);

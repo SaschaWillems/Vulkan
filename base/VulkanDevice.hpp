@@ -15,7 +15,7 @@
 #include <algorithm>
 #include "vulkan/vulkan.h"
 #include "vulkantools.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 namespace vks
 {	
@@ -388,7 +388,7 @@ namespace vks
 		*
 		* @return VK_SUCCESS if buffer handle and memory have been created and (optionally passed) data has been copied
 		*/
-		VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vk::Buffer *buffer, VkDeviceSize size, void *data = nullptr)
+		VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vks::Buffer *buffer, VkDeviceSize size, void *data = nullptr)
 		{
 			buffer->device = logicalDevice;
 
@@ -435,7 +435,7 @@ namespace vks
 		*
 		* @note Source and destionation pointers must have the approriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
 		*/
-		void copyBuffer(vk::Buffer *src, vk::Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr)
+		void copyBuffer(vks::Buffer *src, vks::Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr)
 		{
 			assert(dst->size <= src->size);
 			assert(src->buffer && src->buffer);

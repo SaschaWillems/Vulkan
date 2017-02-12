@@ -47,10 +47,10 @@ public:
 	// Resources for the compute part of the example
 	struct {
 		struct {
-			vk::Buffer spheres;						// (Shader) storage buffer object with scene spheres
-			vk::Buffer planes;						// (Shader) storage buffer object with scene planes
+			vks::Buffer spheres;						// (Shader) storage buffer object with scene spheres
+			vks::Buffer planes;						// (Shader) storage buffer object with scene planes
 		} storageBuffers;
-		vk::Buffer uniformBuffer;					// Uniform buffer object containing scene data
+		vks::Buffer uniformBuffer;					// Uniform buffer object containing scene data
 		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
 		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
 		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
@@ -326,7 +326,7 @@ public:
 		VkDeviceSize storageBufferSize = spheres.size() * sizeof(Sphere);
 
 		// Stage
-		vk::Buffer stagingBuffer;
+		vks::Buffer stagingBuffer;
 
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,

@@ -12,7 +12,7 @@
 
 #include "vulkan/vulkan.h"
 #include "VulkanDevice.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 namespace vkTools 
 {
@@ -31,8 +31,8 @@ namespace vkTools
 		float heightScale = 1.0f;
 		float uvScale = 1.0f;
 
-		vk::Buffer vertexBuffer;
-		vk::Buffer indexBuffer;
+		vks::Buffer vertexBuffer;
+		vks::Buffer indexBuffer;
 
 		struct Vertex {
 			glm::vec3 pos;
@@ -192,7 +192,7 @@ namespace vkTools
 
 			// Generate Vulkan buffers
 
-			vk::Buffer vertexStaging, indexStaging;
+			vks::Buffer vertexStaging, indexStaging;
 
 			// Create staging buffers
 			device->createBuffer(

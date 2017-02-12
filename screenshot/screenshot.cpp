@@ -44,7 +44,7 @@ public:
 		vks::Model object;
 	} models;
 
-	vk::Buffer uniformBuffer;
+	vks::Buffer uniformBuffer;
 
 	struct {
 		glm::mat4 projection;

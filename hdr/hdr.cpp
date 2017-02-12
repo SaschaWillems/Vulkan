@@ -21,7 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
 #include "VulkanTexture.hpp"
 
@@ -51,8 +51,8 @@ public:
 	} models;
 
 	struct {
-		vk::Buffer matrices;
-		vk::Buffer params;
+		vks::Buffer matrices;
+		vks::Buffer params;
 	} uniformBuffers;
 
 	struct UBOVS {

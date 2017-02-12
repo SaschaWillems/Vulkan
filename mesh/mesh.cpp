@@ -77,7 +77,7 @@ public:
 	} model;
 
 	struct {
-		vk::Buffer scene;
+		vks::Buffer scene;
 	} uniformBuffers;
 
 	struct {

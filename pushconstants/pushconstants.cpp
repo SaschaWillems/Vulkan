@@ -19,7 +19,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -46,7 +46,7 @@ public:
 		vks::Model scene;
 	} models;
 
-	vk::Buffer uniformBuffer;
+	vks::Buffer uniformBuffer;
 	
 	struct UBOVS {
 		glm::mat4 projection;

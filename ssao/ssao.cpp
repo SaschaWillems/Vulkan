@@ -104,9 +104,9 @@ public:
 	} descriptorSetLayouts;
 
 	struct {
-		vk::Buffer sceneMatrices;
-		vk::Buffer ssaoKernel;
-		vk::Buffer ssaoParams;
+		vks::Buffer sceneMatrices;
+		vks::Buffer ssaoKernel;
+		vks::Buffer ssaoParams;
 	} uniformBuffers;
 
 	// Framebuffer for offscreen rendering

@@ -26,7 +26,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "VulkanDevice.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 #if defined(__ANDROID__)
 #include <android/asset_manager.h>
@@ -108,8 +108,8 @@ namespace vks
 
 	struct Model {
 		VkDevice device = nullptr;
-		vk::Buffer vertices;
-		vk::Buffer indices;
+		vks::Buffer vertices;
+		vks::Buffer indices;
 		uint32_t indexCount = 0;
 		uint32_t vertexCount = 0;
 
@@ -306,7 +306,7 @@ namespace vks
 
 				// Use staging buffer to move vertex and index buffer to device local memory
 				// Create staging buffers
-				vk::Buffer vertexStaging, indexStaging;
+				vks::Buffer vertexStaging, indexStaging;
 
 				// Vertex buffer
 				VK_CHECK_RESULT(device->createBuffer(

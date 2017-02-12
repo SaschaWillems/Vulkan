@@ -24,7 +24,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
@@ -56,7 +56,7 @@ public:
 		vks::Texture2DArray matCapArray;
 	} textures;
 
-	vk::Buffer uniformBuffer;
+	vks::Buffer uniformBuffer;
 
 	struct UBOVS {
 		glm::mat4 projection;

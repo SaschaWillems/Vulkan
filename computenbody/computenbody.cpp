@@ -49,7 +49,7 @@ public:
 
 	// Resources for the graphics part of the example
 	struct {
-		vk::Buffer uniformBuffer;					// Contains scene matrices
+		vks::Buffer uniformBuffer;					// Contains scene matrices
 		VkDescriptorSetLayout descriptorSetLayout;	// Particle system rendering shader binding layout
 		VkDescriptorSet descriptorSet;				// Particle system rendering shader bindings
 		VkPipelineLayout pipelineLayout;			// Layout of the graphics pipeline
@@ -63,8 +63,8 @@ public:
 
 	// Resources for the compute part of the example
 	struct {
-		vk::Buffer storageBuffer;					// (Shader) storage buffer object containing the particles
-		vk::Buffer uniformBuffer;					// Uniform buffer object containing particle system parameters
+		vks::Buffer storageBuffer;					// (Shader) storage buffer object containing the particles
+		vks::Buffer uniformBuffer;					// Uniform buffer object containing particle system parameters
 		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
 		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
 		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
@@ -333,7 +333,7 @@ public:
 		// Staging
 		// SSBO won't be changed on the host after upload so copy to device local memory 
 
-		vk::Buffer stagingBuffer;
+		vks::Buffer stagingBuffer;
 
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,

@@ -60,7 +60,7 @@ public:
 	std::vector<DemoModel> demoModels;
 
 	struct {
-		vk::Buffer meshVS;
+		vks::Buffer meshVS;
 	} uniformData;
 
 	struct {

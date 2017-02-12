@@ -22,7 +22,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
 #include "frustum.hpp"
 
@@ -68,10 +68,10 @@ public:
 	};
 
 	// Contains the instanced data
-	vk::Buffer instanceBuffer;
+	vks::Buffer instanceBuffer;
 	// Contains the indirect drawing commands
-	vk::Buffer indirectCommandsBuffer;
-	vk::Buffer indirectDrawCountBuffer;
+	vks::Buffer indirectCommandsBuffer;
+	vks::Buffer indirectDrawCountBuffer;
 
 	// Indirect draw statistics (updated via compute)
 	struct {
@@ -90,7 +90,7 @@ public:
 	} uboScene;
 
 	struct {
-		vk::Buffer scene;
+		vks::Buffer scene;
 	} uniformData;
 
 	struct {
@@ -103,7 +103,7 @@ public:
 
 	// Resources for the compute part of the example
 	struct {
-		vk::Buffer lodLevelsBuffers;				// Contains index start and counts for the different lod levels
+		vks::Buffer lodLevelsBuffers;				// Contains index start and counts for the different lod levels
 		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
 		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
 		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
@@ -484,7 +484,7 @@ public:
 	{
 		objectCount = OBJECT_COUNT * OBJECT_COUNT * OBJECT_COUNT;
 
-		vk::Buffer stagingBuffer;
+		vks::Buffer stagingBuffer;
 
 		std::vector<InstanceData> instanceData(objectCount);
 		indirectCommands.resize(objectCount);

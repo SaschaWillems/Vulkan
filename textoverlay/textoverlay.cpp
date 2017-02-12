@@ -24,7 +24,7 @@
 
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
 #include "VulkanTexture.hpp"
 
@@ -713,7 +713,7 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	vk::Buffer uniformBuffer;
+	vks::Buffer uniformBuffer;
 
 	struct UBOVS {
 		glm::mat4 projection;

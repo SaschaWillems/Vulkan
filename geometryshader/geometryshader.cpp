@@ -57,8 +57,8 @@ public:
 	} uboGS;
 
 	struct {
-		vk::Buffer VS;
-		vk::Buffer GS;
+		vks::Buffer VS;
+		vks::Buffer GS;
 	} uniformBuffers;
 
 	struct {

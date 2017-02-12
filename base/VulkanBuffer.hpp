@@ -15,7 +15,7 @@
 #include "vulkan/vulkan.h"
 #include "vulkantools.h"
 
-namespace vk
+namespace vks
 {	
 	/**
 	* @brief Encapsulates access to a Vulkan buffer backed up by device memory

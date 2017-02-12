@@ -23,7 +23,7 @@
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -53,7 +53,7 @@ public:
 		vks::Texture2D colormap;
 	} textures;
 
-	vk::Buffer uniformBuffer;
+	vks::Buffer uniformBuffer;
 
 	// Same uniform buffer layout as shader
 	struct UBOVS {

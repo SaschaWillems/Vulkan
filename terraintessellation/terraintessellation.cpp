@@ -21,7 +21,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 #include "frustum.hpp"
@@ -60,8 +60,8 @@ public:
 	} vertices;
 
 	struct {
-		vk::Buffer terrainTessellation;
-		vk::Buffer skysphereVertex;
+		vks::Buffer terrainTessellation;
+		vks::Buffer skysphereVertex;
 	} uniformBuffers;
 
 	// Shared values for tessellation control and evaluation stages

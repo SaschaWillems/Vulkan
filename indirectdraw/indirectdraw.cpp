@@ -34,7 +34,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
@@ -90,9 +90,9 @@ public:
 	};
 
 	// Contains the instanced data
-	vk::Buffer instanceBuffer;
+	vks::Buffer instanceBuffer;
 	// Contains the indirect drawing commands
-	vk::Buffer indirectCommandsBuffer;
+	vks::Buffer indirectCommandsBuffer;
 	uint32_t indirectDrawCount;
 
 	struct {
@@ -101,7 +101,7 @@ public:
 	} uboVS;
 
 	struct {
-		vk::Buffer scene;
+		vks::Buffer scene;
 	} uniformData;
 
 	struct {
@@ -536,7 +536,7 @@ public:
 			objectCount += indirectCmd.instanceCount;
 		}
 
-		vk::Buffer stagingBuffer;
+		vks::Buffer stagingBuffer;
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -574,7 +574,7 @@ public:
 			instanceData[i].texIndex = i / OBJECT_INSTANCE_COUNT;
 		}
 
-		vk::Buffer stagingBuffer;
+		vks::Buffer stagingBuffer;
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

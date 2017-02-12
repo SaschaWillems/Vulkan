@@ -24,7 +24,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -63,7 +63,7 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	vk::Buffer uniformBufferVS;
+	vks::Buffer uniformBufferVS;
 
 	struct uboVS {
 		glm::mat4 projection;

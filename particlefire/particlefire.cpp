@@ -20,7 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
@@ -89,8 +89,8 @@ public:
 	} particles;
 
 	struct {
-		vk::Buffer fire;
-		vk::Buffer environment;
+		vks::Buffer fire;
+		vks::Buffer environment;
 	} uniformBuffers;
 
 	struct UBOVS {

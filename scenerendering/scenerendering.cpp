@@ -42,7 +42,7 @@
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
 #include "VulkanDevice.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -112,8 +112,8 @@ private:
 	// We will be using one single index and vertex buffer
 	// containing vertices and indices for all meshes in the scene
 	// This allows us to keep memory allocations down
-	vk::Buffer vertexBuffer;
-	vk::Buffer indexBuffer;
+	vks::Buffer vertexBuffer;
+	vks::Buffer indexBuffer;
 
 	VkDescriptorSet descriptorSetScene;
 
@@ -322,7 +322,7 @@ private:
 		size_t vertexDataSize = vertices.size() * sizeof(Vertex);
 		size_t indexDataSize = indices.size() * sizeof(uint32_t);
 		
-		vk::Buffer vertexStaging, indexStaging;
+		vks::Buffer vertexStaging, indexStaging;
 
 		// Vertex buffer
 		// Staging buffer
@@ -402,7 +402,7 @@ public:
 
 	// Shared ubo containing matrices used by all
 	// materials and meshes
-	vk::Buffer uniformBuffer;
+	vks::Buffer uniformBuffer;
 	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 view;

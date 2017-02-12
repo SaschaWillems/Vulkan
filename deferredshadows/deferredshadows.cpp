@@ -20,7 +20,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanFramebuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
@@ -125,10 +125,10 @@ public:
 	} uboFragmentLights;
 
 	struct {
-		vk::Buffer vsFullScreen;
-		vk::Buffer vsOffscreen;
-		vk::Buffer fsLights;
-		vk::Buffer uboShadowGS;
+		vks::Buffer vsFullScreen;
+		vks::Buffer vsOffscreen;
+		vks::Buffer fsLights;
+		vks::Buffer uboShadowGS;
 	} uniformBuffers;
 
 	struct {

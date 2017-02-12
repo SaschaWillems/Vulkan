@@ -32,7 +32,7 @@ todos:
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
 #include "VulkanDevice.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "vulkanheightmap.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
@@ -207,7 +207,7 @@ public:
 
 	uint32_t indexCount;
 
-	vk::Buffer uniformBufferVS;
+	vks::Buffer uniformBufferVS;
 
 	struct UboVS {
 		glm::mat4 projection;

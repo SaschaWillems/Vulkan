@@ -19,7 +19,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkantools.h"
 #include "vulkandebug.h"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 #include "VulkanDevice.hpp"
 
 #include "../external/stb/stb_font_consolas_24_latin1.inl"
@@ -54,7 +54,7 @@ private:
 	VkSampler sampler;
 	VkImage image;
 	VkImageView view;
-	vk::Buffer vertexBuffer;
+	vks::Buffer vertexBuffer;
 	VkDeviceMemory imageMemory;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -203,7 +203,7 @@ public:
 		VK_CHECK_RESULT(vkBindImageMemory(vulkanDevice->logicalDevice, image, imageMemory, 0));
 
 		// Staging
-		vk::Buffer stagingBuffer;
+		vks::Buffer stagingBuffer;
 
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,

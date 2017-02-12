@@ -32,7 +32,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -77,13 +77,13 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	vk::Buffer vertexBuffer;
-	vk::Buffer indexBuffer;
+	vks::Buffer vertexBuffer;
+	vks::Buffer indexBuffer;
 	uint32_t indexCount;
 
 	struct {
-		vk::Buffer view;
-		vk::Buffer dynamic;
+		vks::Buffer view;
+		vks::Buffer dynamic;
 	} uniformBuffers;
 
 	struct {

@@ -21,7 +21,7 @@
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
-#include "vulkanbuffer.hpp"
+#include "VulkanBuffer.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -60,9 +60,9 @@ public:
 	} vertices;
 
 	struct {
-		vk::Buffer scene;
-		vk::Buffer skyBox;
-		vk::Buffer blurParams;
+		vks::Buffer scene;
+		vks::Buffer skyBox;
+		vks::Buffer blurParams;
 	} uniformBuffers;
 
 	struct UBO {
