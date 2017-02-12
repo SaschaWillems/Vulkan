@@ -21,7 +21,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "vulkanbuffer.hpp"
-#include "vulkanframebuffer.hpp"
+#include "VulkanFramebuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
@@ -156,9 +156,9 @@ public:
 	struct
 	{
 		// Framebuffer resources for the deferred pass
-		vk::Framebuffer *deferred;
+		vks::Framebuffer *deferred;
 		// Framebuffer resources for the shadow pass
-		vk::Framebuffer *shadow;
+		vks::Framebuffer *shadow;
 	} frameBuffers;
 
 	struct {
@@ -237,7 +237,7 @@ public:
 	// light sources' point of view to the layers of the depth attachment in one single pass 
 	void shadowSetup()
 	{
-		frameBuffers.shadow = new vk::Framebuffer(vulkanDevice);
+		frameBuffers.shadow = new vks::Framebuffer(vulkanDevice);
 
 		frameBuffers.shadow->width = SHADOWMAP_DIM;
 		frameBuffers.shadow->height = SHADOWMAP_DIM;
@@ -246,7 +246,7 @@ public:
 		// Each layer corresponds to one of the lights
 		// The actual output to the separate layers is done in the geometry shader using shader instancing
 		// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
-		vk::AttachmentCreateInfo attachmentInfo = {};
+		vks::AttachmentCreateInfo attachmentInfo = {};
 		attachmentInfo.format = SHADOWMAP_FORMAT;
 		attachmentInfo.width = SHADOWMAP_DIM;
 		attachmentInfo.height = SHADOWMAP_DIM;
@@ -275,13 +275,13 @@ public:
 	// Prepare the framebuffer for offscreen rendering with multiple attachments used as render targets inside the fragment shaders
 	void deferredSetup()
 	{
-		frameBuffers.deferred = new vk::Framebuffer(vulkanDevice);
+		frameBuffers.deferred = new vks::Framebuffer(vulkanDevice);
 
 		frameBuffers.deferred->width = FB_DIM;
 		frameBuffers.deferred->height = FB_DIM;
 
 		// Four attachments (3 color, 1 depth)
-		vk::AttachmentCreateInfo attachmentInfo = {};
+		vks::AttachmentCreateInfo attachmentInfo = {};
 		attachmentInfo.width = FB_DIM;
 		attachmentInfo.height = FB_DIM;
 		attachmentInfo.layerCount = 1;

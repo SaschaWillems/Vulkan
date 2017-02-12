@@ -15,7 +15,7 @@
 #include "VulkanDevice.hpp"
 #include "vulkantools.h"
 
-namespace vk
+namespace vks
 {
 	/**
 	* @brief Encapsulates a single frame buffer attachment 
@@ -95,7 +95,7 @@ namespace vk
 		VkFramebuffer framebuffer;
 		VkRenderPass renderPass;
 		VkSampler sampler;
-		std::vector<vk::FramebufferAttachment> attachments;
+		std::vector<vks::FramebufferAttachment> attachments;
 
 		/**
 		* Default constructor
@@ -132,9 +132,9 @@ namespace vk
 		*
 		* @return Index of the new attachment
 		*/
-		uint32_t addAttachment(vk::AttachmentCreateInfo createinfo)
+		uint32_t addAttachment(vks::AttachmentCreateInfo createinfo)
 		{
-			vk::FramebufferAttachment attachment;
+			vks::FramebufferAttachment attachment;
 
 			attachment.format = createinfo.format;
 
