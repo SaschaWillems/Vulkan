@@ -101,7 +101,7 @@ namespace vks
 		{
 			this->center = glm::vec3(center);
 			this->scale = glm::vec3(scale);
-			this->uvscale = glm::vec3(uvscale);
+			this->uvscale = glm::vec2(uvscale);
 		}
 
 	};
