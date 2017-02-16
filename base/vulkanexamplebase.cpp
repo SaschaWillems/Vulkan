@@ -414,7 +414,13 @@ void VulkanExampleBase::renderLoop()
 			viewUpdated = false;
 			viewChanged();
 		}
-		wl_display_dispatch(display);
+
+		while (wl_display_prepare_read(display) != 0)
+			wl_display_dispatch_pending(display);
+		wl_display_flush(display);
+		wl_display_read_events(display);
+		wl_display_dispatch_pending(display);
+
 		render();
 		frameCounter++;
 		auto tEnd = std::chrono::high_resolution_clock::now();
@@ -1494,6 +1500,7 @@ void VulkanExampleBase::initWaylandConnection()
 	{ registryGlobalCb, registryGlobalRemoveCb };
 	wl_registry_add_listener(registry, &registry_listener, this);
 	wl_display_dispatch(display);
+	wl_display_roundtrip(display);
 	if (!compositor || !shell || !seat)
 	{
 		std::cout << "Could not bind Wayland protocols!\n";
