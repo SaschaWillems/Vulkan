@@ -205,7 +205,7 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	shaderStage.module = vks::tools::loadShader(fileName.c_str(), device, stage);
 #endif
 	shaderStage.pName = "main"; // todo : make param
-	assert(shaderStage.module != NULL);
+	assert(shaderStage.module != VK_NULL_HANDLE);
 	shaderModules.push_back(shaderStage.module);
 	return shaderStage;
 }
