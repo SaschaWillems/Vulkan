@@ -383,7 +383,7 @@ namespace vks
 			VkPolygonMode polygonMode,
 			VkCullModeFlags cullMode,
 			VkFrontFace frontFace,
-			VkPipelineRasterizationStateCreateFlags flags)
+			VkPipelineRasterizationStateCreateFlags flags = 0)
 		{
 			VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
 			pipelineRasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -435,7 +435,7 @@ namespace vks
 		inline VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo(
 			uint32_t viewportCount,
 			uint32_t scissorCount,
-			VkPipelineViewportStateCreateFlags flags)
+			VkPipelineViewportStateCreateFlags flags = 0)
 		{
 			VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {};
 			pipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -447,7 +447,7 @@ namespace vks
 
 		inline VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo(
 			VkSampleCountFlagBits rasterizationSamples,
-			VkPipelineMultisampleStateCreateFlags flags)
+			VkPipelineMultisampleStateCreateFlags flags = 0)
 		{
 			VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {};
 			pipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
