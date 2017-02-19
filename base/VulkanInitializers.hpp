@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <vector>
 #include "vulkan/vulkan.h"
 
 namespace vks
@@ -222,6 +223,18 @@ namespace vks
 			return descriptorPoolInfo;
 		}
 
+		inline VkDescriptorPoolCreateInfo descriptorPoolCreateInfo(
+			const std::vector<VkDescriptorPoolSize>& poolSizes,
+			uint32_t maxSets)
+		{
+			VkDescriptorPoolCreateInfo descriptorPoolInfo{};
+			descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+			descriptorPoolInfo.pPoolSizes = poolSizes.data();
+			descriptorPoolInfo.maxSets = maxSets;
+			return descriptorPoolInfo;
+		}
+
 		inline VkDescriptorPoolSize descriptorPoolSize(
 			VkDescriptorType type,
 			uint32_t descriptorCount)
@@ -254,6 +267,16 @@ namespace vks
 			descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			descriptorSetLayoutCreateInfo.pBindings = pBindings;
 			descriptorSetLayoutCreateInfo.bindingCount = bindingCount;
+			return descriptorSetLayoutCreateInfo;
+		}
+
+		inline VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo(
+			const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+		{
+			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
+			descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			descriptorSetLayoutCreateInfo.pBindings = bindings.data();
+			descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
 			return descriptorSetLayoutCreateInfo;
 		}
 
@@ -464,6 +487,17 @@ namespace vks
 			pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 			pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates;
 			pipelineDynamicStateCreateInfo.dynamicStateCount = dynamicStateCount;
+			return pipelineDynamicStateCreateInfo;
+		}
+
+		inline VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo(
+			const std::vector<VkDynamicState>& pDynamicStates,
+			VkPipelineDynamicStateCreateFlags flags = 0)
+		{
+			VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo{};
+			pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+			pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates.data();
+			pipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(pDynamicStates.size());
 			return pipelineDynamicStateCreateInfo;
 		}
 
