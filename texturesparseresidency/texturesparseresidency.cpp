@@ -281,7 +281,7 @@ public:
 		texture.device = vulkanDevice->logicalDevice;
 		texture.width = width;
 		texture.height = height;
-		texture.mipLevels = floor(log2(std::max(width, height))) + 1; 
+		texture.mipLevels = (uint32_t)(floor(log2(std::max(width, height))) + 1); 
 		texture.layerCount = layerCount;
 		texture.format = format;
 

@@ -790,7 +790,7 @@ public:
 	VkShaderModule loadSPIRVShader(std::string filename)
 	{
 		size_t shaderSize;
-		char* shaderCode;
+		char* shaderCode = 0;
 
 #if defined(__ANDROID__)
 		// Load shader from compressed asset
