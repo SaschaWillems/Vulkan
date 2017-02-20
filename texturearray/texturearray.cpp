@@ -132,7 +132,7 @@ public:
 
 		textureArray.width = tex2DArray.extent().x;
 		textureArray.height = tex2DArray.extent().y;
-		layerCount = tex2DArray.layers();
+		layerCount = static_cast<uint32_t>(tex2DArray.layers());
 
 		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -212,7 +212,7 @@ public:
 
 				bufferCopyRegions.push_back(bufferCopyRegion);
 
-				offset += tex2DArray[layer].size();
+				offset += static_cast<uint32_t>(tex2DArray[layer].size());
 			}
 		}
 
@@ -264,7 +264,7 @@ public:
 			stagingBuffer,
 			textureArray.image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			bufferCopyRegions.size(),
+			static_cast<uint32_t>(bufferCopyRegions.size()),
 			bufferCopyRegions.data()
 			);
 
@@ -443,7 +443,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
 
@@ -469,7 +469,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vks::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
@@ -563,7 +563,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vks::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		// Instacing pipeline
@@ -610,13 +610,13 @@ public:
 		float offset = -1.5f;
 		uint32_t index = 0;
 		float center = (layerCount*offset) / 2;
-		for (int32_t i = 0; i < layerCount; i++)
+		for (int32_t i = 0; i < (int32_t)layerCount; i++)
 		{
 			// Instance model matrix
 			uboVS.instance[i].model = glm::translate(glm::mat4(), glm::vec3(0.0f, i * offset - center, 0.0f));
 			uboVS.instance[i].model = glm::rotate(uboVS.instance[i].model, glm::radians(60.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			// Instance texture array index
-			uboVS.instance[i].arrayIndex.x = i;
+			uboVS.instance[i].arrayIndex.x = (float)i;
 		}
 
 		// Update instanced part of the uniform buffer
