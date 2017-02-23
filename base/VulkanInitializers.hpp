@@ -519,6 +519,8 @@ namespace vks
 			pipelineCreateInfo.layout = layout;
 			pipelineCreateInfo.renderPass = renderPass;
 			pipelineCreateInfo.flags = flags;
+			pipelineCreateInfo.basePipelineIndex = -1;
+			pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 			return pipelineCreateInfo;
 		}
 

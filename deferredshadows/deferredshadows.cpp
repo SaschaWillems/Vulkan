@@ -260,16 +260,6 @@ public:
 
 		// Create default renderpass for the framebuffer
 		VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass());
-
-		VkCommandBuffer cmdBuf = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		vks::tools::setImageLayout(
-			cmdBuf,
-			frameBuffers.shadow->attachments[0].image,
-			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			frameBuffers.shadow->attachments[0].subresourceRange);
-		vulkanDevice->flushCommandBuffer(cmdBuf, queue);
 	}
 
 	// Prepare the framebuffer for offscreen rendering with multiple attachments used as render targets inside the fragment shaders
@@ -710,7 +700,7 @@ public:
 			vks::initializers::descriptorImageInfo(
 				frameBuffers.shadow->sampler,
 				frameBuffers.shadow->attachments[0].view,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
 		writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
