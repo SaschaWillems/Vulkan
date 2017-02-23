@@ -308,7 +308,7 @@ public:
 		// Get format properties for the swapchain color format
 		VkFormatProperties formatProps;
 
-		boolean supportsBlit = true;
+		bool supportsBlit = true;
 
 		// Check blit support for source and destination
 
@@ -476,7 +476,7 @@ public:
 		file << "P6\n" << width << "\n" << height << "\n" << 255 << "\n";
 
 		// If source is BGR (destination is always RGB) and we can't use blit (which does automatic conversion), we'll have to manually swizzle color components
-		boolean colorSwizzle = false;
+		bool colorSwizzle = false;
 		// Check if source is BGR 
 		// Note: Not complete, only contains most common and basic BGR surface formats for demonstation purposes
 		if (!supportsBlit)
