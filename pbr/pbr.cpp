@@ -196,7 +196,7 @@ public:
 					glm::vec3 pos = glm::vec3(float(x - (GRID_DIM / 2.0f)) * 2.5f, 0.0f, float(y - (GRID_DIM / 2.0f)) * 2.5f);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
 					mat.metallic = (float)x / (float)GRID_DIM;
-					mat.roughness = glm::clamp((float)y / (float)(GRID_DIM - 1), 0.05f, 1.0f);
+					mat.roughness = (float)y / (float)GRID_DIM;
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material), &mat);
 					vkCmdDrawIndexed(drawCmdBuffers[i], models.objects[models.objectIndex].indexCount, 1, 0, 0, 0);
 				}
