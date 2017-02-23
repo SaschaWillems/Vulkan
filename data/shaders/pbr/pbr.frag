@@ -86,7 +86,7 @@ float PBR_Shade(vec3 N, vec3 V, vec3 L, float roughness, float F0)
 	// Visibility term 
 	float Vs = GEOM_SchlickSmith(dotNL, dotNV, alpha);
 
-	return dotNL * Di * Fs * Vs;
+	return Di * Fs * Vs;
 }
 
 // ----------------------------------------------------------------------------
@@ -118,7 +118,7 @@ void main()
 	vec3 IBLreflection = texture(envmapiblrefl, inNormal).rgb;
 
 	// Fresnel part
-	float fresnel = pow(max(1.0 - dot(N, V), 0.0), 1.5);    
+	float fresnel = pow(max(1.0 - abs(dot(N, V)), 0.0), 1.5f + roughness);    
 		
 	// Reflection part        
 
@@ -134,7 +134,7 @@ void main()
 	// F0 based on metallic factor of material
 	vec3 F0 = vec3(0.04); 
 	F0 = mix(F0, lightColor, material.metallic);
-	vec3 spec = lightColor * PBR_Shade(N, V, L, roughness, 0.2);
+	vec3 spec = lightColor * PBR_Shade(N, V, L, roughness, F0.r);
 	reflection -= spec;
 		
 	// Diffuse part
