@@ -139,6 +139,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hdr", "hdr\hdr.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pbr", "pbr\pbr.vcxproj", "{92B2640A-0CC5-48EA-B34C-520BA13938D1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pbribl", "pbribl\pbribl.vcxproj", "{659987E9-863C-4B9B-A3D4-CBA7D67A9516}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -341,6 +343,10 @@ Global
 		{92B2640A-0CC5-48EA-B34C-520BA13938D1}.Debug|x64.Build.0 = Debug|x64
 		{92B2640A-0CC5-48EA-B34C-520BA13938D1}.Release|x64.ActiveCfg = Release|x64
 		{92B2640A-0CC5-48EA-B34C-520BA13938D1}.Release|x64.Build.0 = Release|x64
+		{659987E9-863C-4B9B-A3D4-CBA7D67A9516}.Debug|x64.ActiveCfg = Debug|x64
+		{659987E9-863C-4B9B-A3D4-CBA7D67A9516}.Debug|x64.Build.0 = Debug|x64
+		{659987E9-863C-4B9B-A3D4-CBA7D67A9516}.Release|x64.ActiveCfg = Release|x64
+		{659987E9-863C-4B9B-A3D4-CBA7D67A9516}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
