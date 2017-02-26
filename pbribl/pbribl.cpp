@@ -100,7 +100,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Physical based rendering";
+		title = "Vulkan Example - Physical based rendering with image based lighting";
 		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPosition(glm::vec3(13.0f, 8.0f, -10.0f));
@@ -108,8 +108,6 @@ public:
 		camera.movementSpeed = 4.0f;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.rotationSpeed = 0.25f;
-		width = 1920;
-		height = 1080;
 
 		// Setup some default materials (source: https://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
 		materials.push_back(Material("Gold", glm::vec3(1.0f, 0.765557f, 0.336057f), 0.1f, 1.0f));

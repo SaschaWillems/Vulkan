@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{92B2640A-0CC5-48EA-B34C-520BA13938D1}</ProjectGuid>
+    <ProjectGuid>{5E777010-A326-4D3B-A886-A4601A52F4BC}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -88,13 +88,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="pbr.cpp" />
+    <ClCompile Include="..\base\vulkandebug.cpp" />
+    <ClCompile Include="..\base\vulkanexamplebase.cpp" />
+    <ClCompile Include="..\base\vulkantools.cpp" />
+    <ClCompile Include="pbrbasic.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\data\shaders\pbr\pbr.frag" />
-    <None Include="..\data\shaders\pbr\pbr.vert" />
-    <None Include="..\data\shaders\pbr\skybox.frag" />
-    <None Include="..\data\shaders\pbr\skybox.vert" />
+    <ClInclude Include="..\base\vulkandebug.h" />
+    <ClInclude Include="..\base\vulkanexamplebase.h" />
+    <ClInclude Include="..\base\vulkantools.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\pbrbasic\pbr.frag" />
+    <None Include="..\data\shaders\pbrbasic\pbr.vert" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\base\vulkanexamplebase.vcxproj">

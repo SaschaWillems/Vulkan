@@ -18,21 +18,35 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pbr.cpp">
+    <ClCompile Include="..\base\vulkandebug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\base\vulkanexamplebase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\base\vulkantools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pbrbasic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\data\shaders\pbr\pbr.frag">
+    <ClInclude Include="..\base\vulkandebug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\base\vulkanexamplebase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\base\vulkantools.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\pbrbasic\pbr.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\data\shaders\pbr\pbr.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\pbr\skybox.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\pbr\skybox.vert">
+    <None Include="..\data\shaders\pbrbasic\pbr.vert">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
