@@ -49,11 +49,5 @@
     <None Include="..\data\shaders\pbr\pbr.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\data\shaders\pbr\skybox.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\pbr\skybox.vert">
-      <Filter>Shaders</Filter>
-    </None>
   </ItemGroup>
 </Project>

@@ -92,8 +92,6 @@
   <ItemGroup>
     <None Include="..\data\shaders\pbr\pbr.frag" />
     <None Include="..\data\shaders\pbr\pbr.vert" />
-    <None Include="..\data\shaders\pbr\skybox.frag" />
-    <None Include="..\data\shaders\pbr\skybox.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
