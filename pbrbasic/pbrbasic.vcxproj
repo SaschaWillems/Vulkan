@@ -82,7 +82,7 @@
     <ClCompile Include="..\base\vulkandebug.cpp" />
     <ClCompile Include="..\base\vulkanexamplebase.cpp" />
     <ClCompile Include="..\base\vulkantools.cpp" />
-    <ClCompile Include="pbr.cpp" />
+    <ClCompile Include="pbrbasic.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\base\vulkandebug.h" />
@@ -90,8 +90,8 @@
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\data\shaders\pbr\pbr.frag" />
-    <None Include="..\data\shaders\pbr\pbr.vert" />
+    <None Include="..\data\shaders\pbrbasic\pbr.frag" />
+    <None Include="..\data\shaders\pbrbasic\pbr.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
