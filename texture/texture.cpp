@@ -274,7 +274,6 @@ public:
 			imageCreateInfo.arrayLayers = 1;
 			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			// Set initial layout of the image to undefined
 			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
