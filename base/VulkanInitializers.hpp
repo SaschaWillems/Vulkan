@@ -475,6 +475,7 @@ namespace vks
 			VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {};
 			pipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 			pipelineMultisampleStateCreateInfo.rasterizationSamples = rasterizationSamples;
+			pipelineMultisampleStateCreateInfo.flags = flags;
 			return pipelineMultisampleStateCreateInfo;
 		}
 
@@ -487,6 +488,7 @@ namespace vks
 			pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 			pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates;
 			pipelineDynamicStateCreateInfo.dynamicStateCount = dynamicStateCount;
+			pipelineDynamicStateCreateInfo.flags = flags;
 			return pipelineDynamicStateCreateInfo;
 		}
 
@@ -498,6 +500,7 @@ namespace vks
 			pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 			pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates.data();
 			pipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(pDynamicStates.size());
+			pipelineDynamicStateCreateInfo.flags = flags;
 			return pipelineDynamicStateCreateInfo;
 		}
 

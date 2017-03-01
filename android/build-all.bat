@@ -42,3 +42,5 @@ call _build texture3d %1
 call _build specializationconstants %1
 call _build subpasses %1
 call _build hdr %1
+call _build pbrbasic %1
+call _build pbribl %1

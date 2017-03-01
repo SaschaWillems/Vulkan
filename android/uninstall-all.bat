@@ -48,6 +48,10 @@ adb uninstall de.saschawillems.vulkanTexture3d
 adb uninstall de.saschawillems.vulkanSpecializationconstants
 adb uninstall de.saschawillems.vulkanSubpasses
 adb uninstall de.saschawillems.vulkanHDR
+adb uninstall de.saschawillems.vulkanSSAO
+adb uninstall de.saschawillems.vulkanComputecullandlod
+adb uninstall de.saschawillems.vulkanPBRBasic
+adb uninstall de.saschawillems.vulkanPBRIBL
 goto finish
 
 :exit
