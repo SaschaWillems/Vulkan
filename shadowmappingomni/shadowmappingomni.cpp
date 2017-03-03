@@ -183,8 +183,9 @@ public:
 
 	void prepareCubeMap()
 	{
-		shadowCubeMap.width = TEX_DIM;
-		shadowCubeMap.height = TEX_DIM;
+		shadowCubeMap.device	= vulkanDevice;
+		shadowCubeMap.width		= TEX_DIM;
+		shadowCubeMap.height	= TEX_DIM;
 		
 		// 32 bit float format for higher precision
 		VkFormat format = VK_FORMAT_R32_SFLOAT;
