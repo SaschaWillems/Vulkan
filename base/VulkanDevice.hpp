@@ -368,6 +368,15 @@ namespace vks
 				void *mapped;
 				VK_CHECK_RESULT(vkMapMemory(logicalDevice, *memory, 0, size, 0, &mapped));
 				memcpy(mapped, data, size);
+				// If host coherency hasn't been requested, do a manual flush to make writes visible
+				if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+				{
+					VkMappedMemoryRange mappedRange = vks::initializers::mappedMemoryRange();
+					mappedRange.memory = *memory;
+					mappedRange.offset = 0;
+					mappedRange.size = size;
+					vkFlushMappedMemoryRanges(logicalDevice, 1, &mappedRange);
+				}
 				vkUnmapMemory(logicalDevice, *memory);
 			}
 
