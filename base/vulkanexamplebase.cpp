@@ -1134,20 +1134,49 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 	VulkanExampleBase* vulkanExample = reinterpret_cast<VulkanExampleBase*>(app->userData);
 	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
 	{
-		if (AInputEvent_getSource(event) == AINPUT_SOURCE_JOYSTICK)
-		{
-			// Left thumbstick
-			vulkanExample->gamePadState.axisLeft.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_X, 0);
-			vulkanExample->gamePadState.axisLeft.y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Y, 0);
-			// Right thumbstick
-			vulkanExample->gamePadState.axisRight.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Z, 0);
-			vulkanExample->gamePadState.axisRight.y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RZ, 0);
+		int32_t eventSource = AInputEvent_getSource(event);
+		switch (eventSource) {
+			case AINPUT_SOURCE_JOYSTICK: {
+				// Left thumbstick
+				vulkanExample->gamePadState.axisLeft.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_X, 0);
+				vulkanExample->gamePadState.axisLeft.y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Y, 0);
+				// Right thumbstick
+				vulkanExample->gamePadState.axisRight.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Z, 0);
+				vulkanExample->gamePadState.axisRight.y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RZ, 0);
+				break;
+			}
+
+			case AINPUT_SOURCE_TOUCHSCREEN: {
+				int32_t action = AMotionEvent_getAction(event);
+
+				switch (action) {
+					case AMOTION_EVENT_ACTION_DOWN: {
+						vulkanExample->touchPos.x = AMotionEvent_getX(event, 0);
+						vulkanExample->touchPos.y = AMotionEvent_getY(event, 0);
+						break;
+					}
+					case AMOTION_EVENT_ACTION_MOVE: {
+						int32_t eventX = AMotionEvent_getX(event, 0);
+						int32_t eventY = AMotionEvent_getY(event, 0);
+
+						vulkanExample->camera.rotate(glm::vec3(0.0f, 1.0f, 0.0f));
+						vulkanExample->rotation.x += (float)(vulkanExample->touchPos.y - eventY) * vulkanExample->rotationSpeed * 0.5f;				
+						vulkanExample->rotation.y -= (float)(vulkanExample->touchPos.x - eventX) * vulkanExample->rotationSpeed * 0.5f;				
+						vulkanExample->viewChanged();	
+
+						vulkanExample->touchPos.x = eventX;
+						vulkanExample->touchPos.y = eventY;
+
+						break;
+					}
+					default:
+						return 1;
+						break;
+				}
+			}
+
+			return 1;
 		}
-		else
-		{
-			// todo : touch input
-		}
-		return 1;
 	}
 
 	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_KEY)

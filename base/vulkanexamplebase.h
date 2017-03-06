@@ -197,7 +197,10 @@ public:
 #elif defined(__ANDROID__)
 	// true if application has focused, false if moved to background
 	bool focused = false;
-
+	struct TouchPos {
+		int32_t x;
+		int32_t y;
+	} touchPos;
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;
