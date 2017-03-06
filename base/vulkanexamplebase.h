@@ -17,6 +17,7 @@
 #include <android/native_activity.h>
 #include <android/asset_manager.h>
 #include <android_native_app_glue.h>
+#include <sys/system_properties.h>
 #include "vulkanandroid.h"
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <wayland-client.h>
@@ -201,6 +202,8 @@ public:
 		int32_t x;
 		int32_t y;
 	} touchPos;
+	/** @brief Product model and manufacturer of the Android device (via android.Product*) */
+	std::string androidProduct;
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;

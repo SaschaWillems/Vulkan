@@ -523,7 +523,11 @@ void VulkanExampleBase::updateTextOverlay()
 	ss << std::fixed << std::setprecision(3) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
 	textOverlay->addText(ss.str(), 5.0f, 25.0f, VulkanTextOverlay::alignLeft);
 
-	textOverlay->addText(deviceProperties.deviceName, 5.0f, 45.0f, VulkanTextOverlay::alignLeft);
+	std::string deviceName(deviceProperties.deviceName);
+#if defined(__ANDROID__)	
+	deviceName += " (" + androidProduct + ")";
+#endif
+	textOverlay->addText(deviceName, 5.0f, 45.0f, VulkanTextOverlay::alignLeft);
 
 	getOverlayText(textOverlay);
 
@@ -864,6 +868,21 @@ void VulkanExampleBase::initVulkan()
 	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+
+#if defined(__ANDROID__)
+	// Get Android device name and manufacturer (to display along GPU name)
+	androidProduct = "";
+	char prop[PROP_VALUE_MAX+1];
+	int len = __system_property_get("ro.product.manufacturer", prop);
+	if (len > 0) {
+		androidProduct += std::string(prop) + " ";
+	};
+	len = __system_property_get("ro.product.model", prop);
+	if (len > 0) {
+		androidProduct += std::string(prop);
+	};
+	LOGD("androidProduct = %s", androidProduct.c_str());
+#endif	
 }
 
 #if defined(_WIN32)
