@@ -1159,9 +1159,15 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						int32_t eventX = AMotionEvent_getX(event, 0);
 						int32_t eventY = AMotionEvent_getY(event, 0);
 
-						vulkanExample->camera.rotate(glm::vec3(0.0f, 1.0f, 0.0f));
-						vulkanExample->rotation.x += (float)(vulkanExample->touchPos.y - eventY) * vulkanExample->rotationSpeed * 0.5f;				
-						vulkanExample->rotation.y -= (float)(vulkanExample->touchPos.x - eventX) * vulkanExample->rotationSpeed * 0.5f;				
+						float deltaX = (float)(vulkanExample->touchPos.y - eventY) * vulkanExample->rotationSpeed * 0.5f;
+						float deltaY = (float)(vulkanExample->touchPos.x - eventX) * vulkanExample->rotationSpeed * 0.5f;
+
+						vulkanExample->camera.rotate(glm::vec3(deltaX, 0.0f, 0.0f));
+						vulkanExample->camera.rotate(glm::vec3(0.0f, -deltaY, 0.0f));
+
+						vulkanExample->rotation.x += deltaX;				
+						vulkanExample->rotation.y -= deltaY;				
+
 						vulkanExample->viewChanged();	
 
 						vulkanExample->touchPos.x = eventX;
