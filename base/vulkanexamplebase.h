@@ -202,6 +202,8 @@ public:
 		int32_t x;
 		int32_t y;
 	} touchPos;
+	bool touchDown = false;
+	double touchTimer = 0.0;
 	/** @brief Product model and manufacturer of the Android device (via android.Product*) */
 	std::string androidProduct;
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)

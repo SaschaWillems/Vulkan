@@ -327,11 +327,22 @@ void VulkanExampleBase::renderLoop()
 				fpsTimer = 0.0f;
 				frameCounter = 0;
 			}
+
+			bool updateView = false;
+
+			// Check touch state (for movement)
+			if (touchDown) {
+				touchTimer += frameTimer;
+			}
+			if (touchTimer >= 1.0) {
+				camera.keys.up = true;
+				viewChanged();
+			}
+
 			// Check gamepad state
 			const float deadZone = 0.0015f;
 			// todo : check if gamepad is present
 			// todo : time based and relative axis positions
-			bool updateView = false;
 			if (camera.type != Camera::CameraType::firstperson)
 			{
 				// Rotate
@@ -1169,9 +1180,17 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 				int32_t action = AMotionEvent_getAction(event);
 
 				switch (action) {
+					case AMOTION_EVENT_ACTION_UP: {
+						vulkanExample->touchTimer = 0.0;
+						vulkanExample->touchDown = false;
+						vulkanExample->camera.keys.up = false;
+						return 1;
+						break;
+					}
 					case AMOTION_EVENT_ACTION_DOWN: {
 						vulkanExample->touchPos.x = AMotionEvent_getX(event, 0);
 						vulkanExample->touchPos.y = AMotionEvent_getY(event, 0);
+						vulkanExample->touchDown = true;
 						break;
 					}
 					case AMOTION_EVENT_ACTION_MOVE: {
