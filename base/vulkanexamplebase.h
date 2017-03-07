@@ -44,7 +44,7 @@
 
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
-#include "vulkanswapchain.hpp"
+#include "VulkanSwapChain.hpp"
 #include "VulkanTextOverlay.hpp"
 #include "camera.hpp"
 
