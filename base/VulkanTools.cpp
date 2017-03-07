@@ -259,12 +259,13 @@ namespace vks
 
 		void exitFatal(std::string message, std::string caption)
 		{
-#ifdef _WIN32
+#if defined(_WIN32)
 			MessageBox(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+#elif defined(__ANDROID__)	
+			LOGE("Fatal error: %s", message.c_str());
 #else
-			// TODO : Linux
-#endif
 			std::cerr << message << "\n";
+#endif
 			exit(1);
 		}
 
