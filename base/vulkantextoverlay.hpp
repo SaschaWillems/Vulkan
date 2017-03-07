@@ -81,6 +81,8 @@ public:
 	bool visible = true;
 	bool invalidated = false;
 
+	float scale = 1.0f;
+
 	std::vector<VkCommandBuffer> cmdBuffers;
 
 	/**
@@ -551,8 +553,14 @@ public:
 	{
 		assert(vertexBuffer.mapped != nullptr);
 
-		const float charW = 1.5f / *frameBufferWidth;
-		const float charH = 1.5f / *frameBufferHeight;
+		if (align == alignLeft) {
+			x *= scale;
+		};
+
+		y *= scale;
+
+		const float charW = (1.5f * scale) / *frameBufferWidth;
+		const float charH = (1.5f * scale) / *frameBufferHeight;
 
 		float fbW = (float)*frameBufferWidth;
 		float fbH = (float)*frameBufferHeight;
