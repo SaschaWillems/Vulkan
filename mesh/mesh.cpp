@@ -86,9 +86,9 @@ public:
 		glm::vec4 lightPos = glm::vec4(25.0f, 5.0f, 5.0f, 1.0f);
 	} uboVS;
 
-	struct {
+	struct Pipelines {
 		VkPipeline solid;
-		VkPipeline wireframe;
+		VkPipeline wireframe = VK_NULL_HANDLE;
 	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
@@ -111,7 +111,9 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
-		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		if (pipelines.wireframe != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		}
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
