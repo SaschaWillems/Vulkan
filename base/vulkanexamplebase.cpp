@@ -830,6 +830,14 @@ void VulkanExampleBase::initVulkan()
 
 	physicalDevice = physicalDevices[selectedDevice];
 
+	// Store properties (including limits), features and memory properties of the phyiscal device (so that examples can check against them)
+	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
+
+	// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
+	getEnabledFeatures();
+
 	// Vulkan device creation
 	// This is handled by a separate class that gets a logical device representation
 	// and encapsulates functions related to a device
@@ -839,14 +847,6 @@ void VulkanExampleBase::initVulkan()
 		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), "Fatal error");
 	}
 	device = vulkanDevice->logicalDevice;
-
-	// todo: remove
-	// Store properties (including limits) and features of the phyiscal device
-	// So examples can check against them and see if a feature is actually supported
-	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
-	// Gather physical device memory properties
-	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
 	// Get a graphics queue from the device
 	vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
@@ -2009,6 +2009,11 @@ void VulkanExampleBase::setupRenderPass()
 	renderPassInfo.pDependencies = dependencies.data();
 
 	VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+}
+
+void VulkanExampleBase::getEnabledFeatures()
+{
+	// Can be overriden in derived class
 }
 
 void VulkanExampleBase::windowResize()

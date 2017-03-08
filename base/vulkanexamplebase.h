@@ -333,6 +333,9 @@ public:
 	// Can be overriden in derived class to setup a custom render pass (e.g. for MSAA)
 	virtual void setupRenderPass();
 
+	/** @brief (Virtual) called after the physical device features have been read, used to set features to enable on the device */
+	virtual void getEnabledFeatures();
+
 	// Connect and prepare the swap chain
 	void initSwapchain();
 	// Create swap chain images
