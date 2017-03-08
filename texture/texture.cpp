@@ -79,7 +79,7 @@ public:
 	{
 		zoom = -2.5f;
 		rotation = { 0.0f, 15.0f, 0.0f };
-		title = "Vulkan Example - Texturing";
+		title = "Vulkan Example - Texture loading";
 		enableTextOverlay = true;
 	}
 
@@ -591,6 +591,26 @@ public:
 			indices.data()));
 	}
 
+	// Texture loading is done here
+	void loadAssets()
+	{
+		// Vulkan core supports three different compressed texture formats
+		// As the support differs between implemementations we need to check and load the proper texture
+		// Block compression (BC) is common on desktops, ETC and ASTC on mobile
+		if (deviceFeatures.textureCompressionBC) {
+			loadTexture(getAssetPath() + "textures/metalplate01_bc2_unorm.ktx", VK_FORMAT_BC2_UNORM_BLOCK, false);
+		}
+		else if (deviceFeatures.textureCompressionASTC_LDR) {
+			loadTexture(getAssetPath() + "textures/metalplate01_astc_8x8_unorm.ktx", VK_FORMAT_ASTC_8x8_UNORM_BLOCK, false);
+		}
+		else if (deviceFeatures.textureCompressionETC2) {
+			loadTexture(getAssetPath() + "textures/metalplate01_etc2_unorm.ktx", VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK, false);
+		}
+		else {
+			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+		}
+	}
+
 	void setupVertexDescriptions()
 	{
 		// Binding description
@@ -828,13 +848,10 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		loadAssets();
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		loadTexture(
-			getAssetPath() + "textures/pattern_02_bc2.ktx", 
-			VK_FORMAT_BC2_UNORM_BLOCK, 
-			false);
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
