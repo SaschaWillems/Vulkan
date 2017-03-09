@@ -155,10 +155,10 @@ private:
 				texFormatSuffix = "_bc3_unorm";
 				texFormat = VK_FORMAT_BC3_UNORM_BLOCK;
 			}
-			//else if (vulkanDevice->features.textureCompressionASTC_LDR) {
-			//	texFormatSuffix = "_astc_8x8_unorm";
-			//	texFormat = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
-			//}
+			else if (vulkanDevice->features.textureCompressionASTC_LDR) {
+				texFormatSuffix = "_astc_8x8_unorm";
+				texFormat = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+			}
 			else if (vulkanDevice->features.textureCompressionETC2) {
 				texFormatSuffix = "_etc2_unorm";
 				texFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
