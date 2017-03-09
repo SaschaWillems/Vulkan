@@ -28,12 +28,6 @@
 class VulkanExample: public VulkanExampleBase 
 {
 public:
-	struct {
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
-
 	// Vertex layout for the models
 	vks::VertexLayout vertexLayout = vks::VertexLayout({
 		vks::VERTEX_COMPONENT_POSITION,
@@ -71,9 +65,6 @@ public:
 		rotation = glm::vec3(-25.0f, 15.0f, 0.0f);
 		enableTextOverlay = true;
 		title = "Vulkan Example - Pipeline state objects";
-		// Enable features for wireframe rendering and line width setting
-		enabledFeatures.fillModeNonSolid = VK_TRUE;
-		enabledFeatures.wideLines = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -92,6 +83,19 @@ public:
 
 		models.cube.destroy();
 		uniformBuffer.destroy();
+	}
+
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		// Fill mode non solid is required for wireframe display
+		if (deviceFeatures.fillModeNonSolid) {
+			enabledFeatures.fillModeNonSolid = VK_TRUE;
+			// Wide lines must be present for line width > 1.0f
+			if (deviceFeatures.wideLines) {
+				enabledFeatures.wideLines = VK_TRUE;
+			}
+		};
 	}
 
 	void buildCommandBuffers()
@@ -143,7 +147,10 @@ public:
 			viewport.x = (float)width / 3.0;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toon);
-			vkCmdSetLineWidth(drawCmdBuffers[i], 2.0f);
+			// Line width > 1.0f only if wide lines feature is supported
+			if (deviceFeatures.wideLines) {
+				vkCmdSetLineWidth(drawCmdBuffers[i], 2.0f);
+			}
 			vkCmdDrawIndexed(drawCmdBuffers[i], models.cube.indexCount, 1, 0, 0, 0);
 
 			if (deviceFeatures.fillModeNonSolid)
@@ -164,55 +171,6 @@ public:
 	void loadAssets()
 	{
 		models.cube.loadFromFile(getAssetPath() + "models/treasure_smooth.dae", vertexLayout, 1.0f, vulkanDevice, queue);
-	}
-
-	void setupVertexDescriptions()
-	{
-		// Binding description
-		vertices.bindingDescriptions.resize(1);
-		vertices.bindingDescriptions[0] =
-			vks::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				vertexLayout.stride(),
-				VK_VERTEX_INPUT_RATE_VERTEX);
-
-		// Attribute descriptions
-		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.resize(4);
-		// Location 0 : Position
-		vertices.attributeDescriptions[0] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				0);
-		// Location 1 : Color
-		vertices.attributeDescriptions[1] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3);
-		// Location 3 : Texture coordinates
-		vertices.attributeDescriptions[2] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6);
-		// Location 2 : Normal
-		vertices.attributeDescriptions[3] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8);
-
-		vertices.inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
-		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
-		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
 	void setupDescriptorPool()
@@ -315,9 +273,7 @@ public:
 			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 
 		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vks::initializers::pipelineMultisampleStateCreateInfo(
-				VK_SAMPLE_COUNT_1_BIT,
-				0);
+			vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 
 		std::vector<VkDynamicState> dynamicStateEnables = {
 			VK_DYNAMIC_STATE_VIEWPORT,
@@ -325,24 +281,13 @@ public:
 			VK_DYNAMIC_STATE_LINE_WIDTH,
 		};
 		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(
-				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
-				0);
+			vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
+
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
+			vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		// Phong shading pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pipelines/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-	
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vks::initializers::pipelineCreateInfo(
-				pipelineLayout,
-				renderPass,
-				0);
-
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -353,6 +298,31 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
+		// Shared vertex bindings and attributes used by all pipelines
+
+		// Binding description
+		std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
+			vks::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
+		};
+
+		// Attribute descriptions
+		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position			
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Color			
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),		// Location 2 : Texture coordinates			
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),	// Location 3 : Normal
+		};
+
+		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
+		vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
+		vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
+		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+		pipelineCreateInfo.pVertexInputState = &vertexInputState;
+
+		// Create the graphics pipeline state objects
+
 		// We are using this pipeline as the base for the other pipelines (derivatives)
 		// Pipeline derivatives can be used for pipelines that share most of their state
 		// Depending on the implementation this may result in better performance for pipeline 
@@ -360,6 +330,9 @@ public:
 		pipelineCreateInfo.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
 
 		// Textured pipeline
+		// Phong shading pipeline
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/pipelines/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong));
 
 		// All pipelines created after the base pipeline will be derivatives
@@ -373,13 +346,12 @@ public:
 		// Toon shading pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/pipelines/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.toon));
 
+		// Pipeline for wire frame rendering
 		// Non solid rendering is not a mandatory Vulkan feature
 		if (deviceFeatures.fillModeNonSolid)
 		{
-			// Pipeline for wire frame rendering
 			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 			shaderStages[0] = loadShader(getAssetPath() + "shaders/pipelines/wireframe.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 			shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelines/wireframe.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -432,7 +404,6 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
-		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
@@ -459,6 +430,9 @@ public:
 		textOverlay->addText("Phong shading pipeline",(float)width / 6.0f, height - 35.0f, VulkanTextOverlay::alignCenter);
 		textOverlay->addText("Toon shading pipeline", (float)width / 2.0f, height - 35.0f, VulkanTextOverlay::alignCenter);
 		textOverlay->addText("Wireframe pipeline", width - (float)width / 6.5f, height - 35.0f, VulkanTextOverlay::alignCenter);
+		if (!deviceFeatures.fillModeNonSolid) {
+			textOverlay->addText("Non solid fill modes not supported!", width - (float)width / 6.5f, (float)height / 2.0f - 7.5f, VulkanTextOverlay::alignCenter);
+		}
 	}
 };
 
