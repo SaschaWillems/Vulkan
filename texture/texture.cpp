@@ -497,6 +497,31 @@ public:
 		vkFreeMemory(device, texture.deviceMemory, nullptr);
 	}
 
+	void loadTextures()
+	{
+		// Vulkan core supports three different compressed texture formats
+		// As the support differs between implemementations we need to check device features and select a proper format and file
+		std::string filename;
+		VkFormat format;
+		if (deviceFeatures.textureCompressionBC) {
+			filename = "metalplate01_bc2_unorm.ktx";
+			format = VK_FORMAT_BC3_UNORM_BLOCK;
+		}
+		else if (deviceFeatures.textureCompressionASTC_LDR) {
+			filename = "metalplate01_astc_8x8_unorm.ktx";
+			format = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+		}
+		else if (deviceFeatures.textureCompressionETC2) {
+			filename = "metalplate01_etc2_unorm.ktx";
+			format = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+		}
+		else {
+			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+		}
+
+		loadTexture(getAssetPath() + "textures/" + filename, format, false);
+	}
+
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -589,26 +614,6 @@ public:
 			&indexBuffer,
 			indices.size() * sizeof(uint32_t),
 			indices.data()));
-	}
-
-	// Texture loading is done here
-	void loadAssets()
-	{
-		// Vulkan core supports three different compressed texture formats
-		// As the support differs between implemementations we need to check and load the proper texture
-		// Block compression (BC) is common on desktops, ETC and ASTC on mobile
-		if (deviceFeatures.textureCompressionBC) {
-			loadTexture(getAssetPath() + "textures/metalplate01_bc2_unorm.ktx", VK_FORMAT_BC2_UNORM_BLOCK, false);
-		}
-		else if (deviceFeatures.textureCompressionASTC_LDR) {
-			loadTexture(getAssetPath() + "textures/metalplate01_astc_8x8_unorm.ktx", VK_FORMAT_ASTC_8x8_UNORM_BLOCK, false);
-		}
-		else if (deviceFeatures.textureCompressionETC2) {
-			loadTexture(getAssetPath() + "textures/metalplate01_etc2_unorm.ktx", VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK, false);
-		}
-		else {
-			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
-		}
 	}
 
 	void setupVertexDescriptions()
@@ -848,7 +853,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadAssets();
+		loadTextures();
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
