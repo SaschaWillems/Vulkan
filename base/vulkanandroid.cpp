@@ -281,6 +281,15 @@ namespace vks
 		{
 			dlclose(libVulkan);
 		}
+
+		int32_t getScreenDensity()
+		{
+			AConfiguration* config = AConfiguration_new();
+			AConfiguration_fromAssetManager(config, androidApp->activity->assetManager);
+			int32_t density = AConfiguration_getDensity(config);
+			AConfiguration_delete(config);
+			return density;
+		}
 	}
 }
 

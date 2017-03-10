@@ -24,6 +24,7 @@
 
 #include <android/log.h>
 #include <android_native_app_glue.h>
+#include <android/configuration.h>
 #include <memory>
 
 // Missing from the NDK
@@ -158,6 +159,8 @@ namespace vks
 		bool loadVulkanLibrary();
 		void loadVulkanFunctions(VkInstance instance);
 		void freeVulkanLibrary();
+		/** @brief Returns the density of the device screen (in DPI) */
+		int32_t getScreenDensity();
 	}
 }
 
