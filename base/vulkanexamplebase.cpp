@@ -645,7 +645,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	
 #if defined(__ANDROID__)
 	// Vulkan library is loaded dynamically on Android
-	bool libLoaded = loadVulkanLibrary();
+	bool libLoaded = vks::android::loadVulkanLibrary();
 	assert(libLoaded);
 #elif defined(_DIRECT2DISPLAY)
 
@@ -746,7 +746,7 @@ void VulkanExampleBase::initVulkan()
 	}
 
 #if defined(__ANDROID__)
-	loadVulkanFunctions(instance);
+	vks::android::loadVulkanFunctions(instance);
 #endif
 
 	// If requested, we enable the default validation layers for debugging

@@ -151,9 +151,15 @@ extern PFN_vkCmdCopyQueryPoolResults vkCmdCopyQueryPoolResults;
 extern PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 extern PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
 
-bool loadVulkanLibrary();
-void loadVulkanFunctions(VkInstance instance);
-void freeVulkanLibrary();
+namespace vks
+{
+	namespace android
+	{
+		bool loadVulkanLibrary();
+		void loadVulkanFunctions(VkInstance instance);
+		void freeVulkanLibrary();
+	}
+}
 
 #endif
 
