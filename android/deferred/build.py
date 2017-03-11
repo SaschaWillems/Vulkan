@@ -7,7 +7,7 @@ import glob
 APK_NAME = "vulkanDeferred"
 SHADER_DIR = "deferred"
 ASSETS_MODELS = ["plane.obj"]
-ASSETS_TEXTURES = ["stonefloor01_color_astc_8x8_unorm.ktx", "stonefloor01_color_bc3_unorm.ktx", "stonefloor01_normal_astc_8x8_unorm.ktx", "stonefloor01_normal_bc3_unorm.ktx"]
+ASSETS_TEXTURES = ["stonefloor01_color_astc_8x8_unorm.ktx", "stonefloor01_color_bc3_unorm.ktx", "stonefloor01_normal_astc_8x8_unorm.ktx", "stonefloor01_normal_bc3_unorm.ktx", "stonefloor01_color_etc2_unorm.ktx", "stonefloor01_normal_etc2_unorm.ktx"]
 
 if subprocess.call("ndk-build", shell=True) == 0:   
     print("Build successful")
