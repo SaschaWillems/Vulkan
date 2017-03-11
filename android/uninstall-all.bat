@@ -42,6 +42,7 @@ adb uninstall de.saschawillems.vulkanDebugmarker
 adb uninstall de.saschawillems.vulkanScenerendering
 adb uninstall de.saschawillems.vulkanTerraintessellation
 adb uninstall de.saschawillems.vulkanDeferredshadows
+adb uninstall de.saschawillems.vulkanDeferredmulitsampling
 adb uninstall de.saschawillems.vulkanIndirectdraw
 adb uninstall de.saschawillems.vulkanTexturemipmapgen
 adb uninstall de.saschawillems.vulkanTexture3d
