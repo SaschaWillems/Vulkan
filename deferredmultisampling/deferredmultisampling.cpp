@@ -565,12 +565,6 @@ public:
 
 	void loadAssets()
 	{
-		textures.model.colorMap.loadFromFile(getAssetPath() + "models/armor/colormap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-		textures.model.normalMap.loadFromFile(getAssetPath() + "models/armor/normalmap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-
-		textures.floor.colorMap.loadFromFile(getAssetPath() + "textures/pattern_57_diffuse_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/pattern_57_normal_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-
 		models.model.loadFromFile(getAssetPath() + "models/armor/armor.dae", vertexLayout, 1.0f, vulkanDevice, queue);
 
 		vks::ModelCreateInfo modelCreateInfo;
@@ -578,6 +572,31 @@ public:
 		modelCreateInfo.uvscale = glm::vec2(8.0f, 8.0f);
 		modelCreateInfo.center = glm::vec3(0.0f, 2.3f, 0.0f);
 		models.floor.loadFromFile(getAssetPath() + "models/openbox.dae", vertexLayout, &modelCreateInfo, vulkanDevice, queue);
+
+		// Textures
+		std::string texFormatSuffix;
+		VkFormat texFormat;
+		// Get supported compressed texture format
+		if (vulkanDevice->features.textureCompressionBC) {
+			texFormatSuffix = "_bc3_unorm";
+			texFormat = VK_FORMAT_BC3_UNORM_BLOCK;
+		}
+		else if (vulkanDevice->features.textureCompressionASTC_LDR) {
+			texFormatSuffix = "_astc_8x8_unorm";
+			texFormat = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+		}
+		else if (vulkanDevice->features.textureCompressionETC2) {
+			texFormatSuffix = "_etc2_unorm";
+			texFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+		}
+		else {
+			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+		}
+
+		textures.model.colorMap.loadFromFile(getAssetPath() + "models/armor/color" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+		textures.model.normalMap.loadFromFile(getAssetPath() + "models/armor/normal" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+		textures.floor.colorMap.loadFromFile(getAssetPath() + "textures/stonefloor02_color" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/stonefloor02_normal" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()
