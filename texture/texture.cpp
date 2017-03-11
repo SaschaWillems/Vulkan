@@ -505,7 +505,7 @@ public:
 		VkFormat format;
 		if (deviceFeatures.textureCompressionBC) {
 			filename = "metalplate01_bc2_unorm.ktx";
-			format = VK_FORMAT_BC3_UNORM_BLOCK;
+			format = VK_FORMAT_BC2_UNORM_BLOCK;
 		}
 		else if (deviceFeatures.textureCompressionASTC_LDR) {
 			filename = "metalplate01_astc_8x8_unorm.ktx";
