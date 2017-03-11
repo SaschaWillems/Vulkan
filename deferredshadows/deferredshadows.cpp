@@ -184,8 +184,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, zNear, zFar);
 		timerSpeed *= 0.25f;
 		paused = true;
-		// Device features to be enabled for this example 
-		enabledFeatures.geometryShader = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -230,6 +228,18 @@ public:
 		textures.background.normalMap.destroy();
 
 		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
+	}
+
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		// Geometry shader support is required for writing to multiple shadow map layers in one single pass
+		if (deviceFeatures.geometryShader) {
+			enabledFeatures.geometryShader = VK_TRUE;
+		}
+		else {
+			vks::tools::exitFatal("Selected GPU does not support geometry shaders!", "Feature not supported");
+		}
 	}
 
 	// Prepare a layered shadow map with each layer containing depth from a light's point of view
@@ -417,10 +427,30 @@ public:
 		modelCreateInfo.center = glm::vec3(0.0f, 2.3f, 0.0f);
 		models.background.loadFromFile(getAssetPath() + "models/openbox.dae", vertexLayout, &modelCreateInfo, vulkanDevice, queue);
 
-		textures.model.colorMap.loadFromFile(getAssetPath() + "models/armor/colormap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-		textures.model.normalMap.loadFromFile(getAssetPath() + "models/armor/normalmap.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-		textures.background.colorMap.loadFromFile(getAssetPath() + "textures/pattern_57_diffuse_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-		textures.background.normalMap.loadFromFile(getAssetPath() + "textures/pattern_57_normal_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		// Textures
+		std::string texFormatSuffix;
+		VkFormat texFormat;
+		// Get supported compressed texture format
+		if (vulkanDevice->features.textureCompressionBC) {
+			texFormatSuffix = "_bc3_unorm";
+			texFormat = VK_FORMAT_BC3_UNORM_BLOCK;
+		}
+		else if (vulkanDevice->features.textureCompressionASTC_LDR) {
+			texFormatSuffix = "_astc_8x8_unorm";
+			texFormat = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+		}
+		else if (vulkanDevice->features.textureCompressionETC2) {
+			texFormatSuffix = "_etc2_unorm";
+			texFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+		}
+		else {
+			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+		}
+
+		textures.model.colorMap.loadFromFile(getAssetPath() + "models/armor/color" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+		textures.model.normalMap.loadFromFile(getAssetPath() + "models/armor/normal" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+		textures.background.colorMap.loadFromFile(getAssetPath() + "textures/stonefloor02_color" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+		textures.background.normalMap.loadFromFile(getAssetPath() + "textures/stonefloor02_normal" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
 	}
 
 	void reBuildCommandBuffers()
@@ -914,8 +944,8 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreen));
 
 		// Shadow mapping pipeline
-		// The shadow mapping pipeline uses geometry shader instancing (invoctations layout modifier) to output 
-		// shadow maps for multiple lights sources into the different shadiw map layers in one single render pass
+		// The shadow mapping pipeline uses geometry shader instancing (invocations layout modifier) to output 
+		// shadow maps for multiple lights sources into the different shadow map layers in one single render pass
 		std::array<VkPipelineShaderStageCreateInfo, 3> shadowStages;
 		shadowStages[0] = loadShader(getAssetPath() + "shaders/deferredshadows/shadow.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shadowStages[1] = loadShader(getAssetPath() + "shaders/deferredshadows/shadow.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
