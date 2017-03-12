@@ -416,7 +416,18 @@ public:
 	void loadAssets()
 	{
 		models.example.loadFromFile(getAssetPath() + "models/voyager/voyager.dae", vertexLayout, 1.0f, vulkanDevice, queue);
-		textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		if (deviceFeatures.textureCompressionBC) {
+			textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager_bc3_unorm.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		}
+		else if (deviceFeatures.textureCompressionASTC_LDR) {
+			textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager_astc_8x8_unorm.ktx", VK_FORMAT_ASTC_8x8_UNORM_BLOCK, vulkanDevice, queue);
+		}
+		else if (deviceFeatures.textureCompressionETC2) {
+			textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager_etc2_unorm.ktx", VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK, vulkanDevice, queue);
+		}
+		else {
+			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+		}
 	}
 
 	void setupVertexDescriptions()
