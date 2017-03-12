@@ -71,8 +71,25 @@ namespace vks
 				prefix += "DEBUG:";
 			}
 
-			// Display message to default output (console if activated)
-			std::cout << prefix << " [" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg << "\n";
+			// Display message to default output (console/logcat)
+			std::stringstream debugMessage;
+			debugMessage << prefix << " [" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
+
+#if defined(ANDROID)
+			if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
+				LOGE("%s", debugMessage.str().c_str());
+			}
+			else {
+				LOGD("%s", debugMessage.str().c_str());
+			}
+#else
+			if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
+				std::cerr << debugMessage.str() << "\n";
+			}
+			else {
+				std::cout << debugMessage.str() << "\n";
+			}
+#endif
 
 			fflush(stdout);
 
