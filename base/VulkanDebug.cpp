@@ -23,13 +23,12 @@ namespace vks
 		};
 #else
 		// On Android we need to explicitly select all layers
-		int32_t validationLayerCount = 7;
+		int32_t validationLayerCount = 6;
 		const char *validationLayerNames[] = {
 			"VK_LAYER_GOOGLE_threading",
 			"VK_LAYER_LUNARG_parameter_validation",
 			"VK_LAYER_LUNARG_object_tracker",
 			"VK_LAYER_LUNARG_core_validation",
-			"VK_LAYER_LUNARG_image",
 			"VK_LAYER_LUNARG_swapchain",
 			"VK_LAYER_GOOGLE_unique_objects"
 		};
