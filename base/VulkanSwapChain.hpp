@@ -374,9 +374,25 @@ public:
 			// We prefer a non-rotated transform
 			preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 		}
-		else 
+		else
 		{
 			preTransform = surfCaps.currentTransform;
+		}
+
+		// Find a supported composite alpha format (not all devices support alpha opaque)
+		VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		// Simply select the first composite alpha format available
+		std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
+			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+			VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+			VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
+			VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+		};
+		for (auto& compositeAlphaFlag : compositeAlphaFlags) {
+			if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag) {
+				compositeAlpha = compositeAlphaFlag;
+				break;
+			};
 		}
 
 		VkSwapchainCreateInfoKHR swapchainCI = {};
@@ -397,7 +413,7 @@ public:
 		swapchainCI.oldSwapchain = oldSwapchain;
 		// Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
 		swapchainCI.clipped = VK_TRUE;
-		swapchainCI.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swapchainCI.compositeAlpha = compositeAlpha;
 
 		// Set additional usage flag for blitting from the swapchain images if supported
 		VkFormatProperties formatProps;
