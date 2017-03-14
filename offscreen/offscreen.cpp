@@ -483,9 +483,6 @@ public:
 		models.example.loadFromFile(getAssetPath() + "models/chinesedragon.dae", vertexLayout, 0.3f, vulkanDevice, queue);
 
 		// Textures
-		std::string texFormatSuffix;
-		VkFormat texFormat;
-		// Get supported compressed texture format
 		if (vulkanDevice->features.textureCompressionBC) {
 			textures.colorMap.loadFromFile(getAssetPath() + "textures/darkmetal_bc3_unorm.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		}
