@@ -4,8 +4,8 @@ import subprocess
 import sys
 import glob
 
-APK_NAME = "scenerendering"
-SHADER_DIR = "pbribl"
+APK_NAME = "vulkanScenerendering"
+SHADER_DIR = "scenerendering"
 
 if subprocess.call("ndk-build", shell=True) == 0:   
     print("Build successful")
