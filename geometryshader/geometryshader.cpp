@@ -76,9 +76,6 @@ public:
 		rotation = glm::vec3(0.0f, -25.0f, 0.0f);
 		enableTextOverlay = true;
 		title = "Vulkan Example - Geometry shader";
-		// Enable physical device features required for this example		
-		// Tell the driver that we are going to use geometry shaders
-		enabledFeatures.geometryShader = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -95,6 +92,18 @@ public:
 
 		uniformBuffers.GS.destroy();
 		uniformBuffers.VS.destroy();
+	}
+
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		// Geometry shader support is required for this example
+		if (deviceFeatures.fillModeNonSolid) {
+			enabledFeatures.geometryShader = VK_TRUE;
+		}
+		else {
+			vks::tools::exitFatal("Selected GPU does not support geometry shaders!", "Feature not supported");
+		}
 	}
 
 	void reBuildCommandBuffers()
