@@ -196,10 +196,10 @@ public:
 		glm::vec4 lightPos = glm::vec4(0.0f, 5.0f, 15.0f, 1.0f);
 	} uboVS;
 
-	struct {
+	struct Pipelines {
 		VkPipeline toonshading;
 		VkPipeline color;
-		VkPipeline wireframe;
+		VkPipeline wireframe = VK_NULL_HANDLE;
 		VkPipeline postprocess;
 	} pipelines;
 
@@ -243,9 +243,16 @@ public:
 		cameraPos = { 0.1f, 1.1f, 0.0f };
 		enableTextOverlay = true;
 		title = "Vulkan Example - VK_EXT_debug_marker";
-		// Enable required device features
-		enabledFeatures.fillModeNonSolid = VK_TRUE;
-		enabledFeatures.wideLines = VK_TRUE;
+	}
+
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		// Fill mode non solid is required for wireframe display
+		if (deviceFeatures.fillModeNonSolid) {
+			enabledFeatures.fillModeNonSolid = VK_TRUE;
+		};
+		wireframe = deviceFeatures.fillModeNonSolid;
 	}
 
 	~VulkanExample()
@@ -254,8 +261,10 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.toonshading, nullptr);
 		vkDestroyPipeline(device, pipelines.color, nullptr);
-		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
 		vkDestroyPipeline(device, pipelines.postprocess, nullptr);
+		if (pipelines.wireframe != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		}
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -818,10 +827,12 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.color));
 
 		// Wire frame rendering pipeline
-		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		rasterizationState.lineWidth = 1.0f;
-		pipelineCreateInfo.renderPass = renderPass;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
+		if (deviceFeatures.fillModeNonSolid)
+		{
+			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+			pipelineCreateInfo.renderPass = renderPass;
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
+		}
 
 		// Post processing effect
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/postprocess.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -958,8 +969,11 @@ public:
 		{
 		case 0x57:
 		case GAMEPAD_BUTTON_X:
-			wireframe = !wireframe;
-			reBuildCommandBuffers();
+			if (deviceFeatures.fillModeNonSolid) 
+			{
+				wireframe = !wireframe;
+				reBuildCommandBuffers();
+			}
 			break;
 		case 0x47:
 		case GAMEPAD_BUTTON_A:
