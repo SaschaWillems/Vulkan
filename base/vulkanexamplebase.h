@@ -17,6 +17,7 @@
 #include <android/native_activity.h>
 #include <android/asset_manager.h>
 #include <android_native_app_glue.h>
+#include <sys/system_properties.h>
 #include "vulkanandroid.h"
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <wayland-client.h>
@@ -43,8 +44,8 @@
 
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
-#include "vulkanswapchain.hpp"
-#include "vulkantextoverlay.hpp"
+#include "VulkanSwapChain.hpp"
+#include "VulkanTextOverlay.hpp"
 #include "camera.hpp"
 
 class VulkanExampleBase
@@ -197,7 +198,14 @@ public:
 #elif defined(__ANDROID__)
 	// true if application has focused, false if moved to background
 	bool focused = false;
-
+	struct TouchPos {
+		int32_t x;
+		int32_t y;
+	} touchPos;
+	bool touchDown = false;
+	double touchTimer = 0.0;
+	/** @brief Product model and manufacturer of the Android device (via android.Product*) */
+	std::string androidProduct;
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;
@@ -324,6 +332,9 @@ public:
 	// Setup a default render pass
 	// Can be overriden in derived class to setup a custom render pass (e.g. for MSAA)
 	virtual void setupRenderPass();
+
+	/** @brief (Virtual) called after the physical device features have been read, used to set features to enable on the device */
+	virtual void getEnabledFeatures();
 
 	// Connect and prepare the swap chain
 	void initSwapchain();

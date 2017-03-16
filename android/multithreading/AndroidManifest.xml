@@ -15,6 +15,7 @@
                 android:label="Multi threading"
                 android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
 				android:launchMode="singleTask"
+                android:screenOrientation="landscape"
                 android:configChanges="orientation|screenSize|keyboardHidden">
 			<meta-data android:name="android.app.lib_name" android:value="vulkanMultithreading" />
 			<intent-filter>

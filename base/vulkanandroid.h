@@ -24,6 +24,7 @@
 
 #include <android/log.h>
 #include <android_native_app_glue.h>
+#include <android/configuration.h>
 #include <memory>
 
 // Missing from the NDK
@@ -151,9 +152,17 @@ extern PFN_vkCmdCopyQueryPoolResults vkCmdCopyQueryPoolResults;
 extern PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 extern PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
 
-bool loadVulkanLibrary();
-void loadVulkanFunctions(VkInstance instance);
-void freeVulkanLibrary();
+namespace vks
+{
+	namespace android
+	{
+		bool loadVulkanLibrary();
+		void loadVulkanFunctions(VkInstance instance);
+		void freeVulkanLibrary();
+		/** @brief Returns the density of the device screen (in DPI) */
+		int32_t getScreenDensity();
+	}
+}
 
 #endif
 

@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <vector>
+#include <sstream>
 #ifdef _WIN32
 #include <windows.h>
 #include <fcntl.h>
