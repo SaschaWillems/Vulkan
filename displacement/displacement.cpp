@@ -108,9 +108,9 @@ public:
 	// Enable physical device features required for this example				
 	virtual void getEnabledFeatures()
 	{
-		// Geometry shader support is required for this example
-		if (deviceFeatures.fillModeNonSolid) {
-			enabledFeatures.geometryShader = VK_TRUE;
+		// Tessellation shader support is required for this example
+		if (deviceFeatures.tessellationShader) {
+			enabledFeatures.tessellationShader = VK_TRUE;
 		}
 		else {
 			vks::tools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");

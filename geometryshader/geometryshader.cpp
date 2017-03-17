@@ -98,7 +98,7 @@ public:
 	virtual void getEnabledFeatures()
 	{
 		// Geometry shader support is required for this example
-		if (deviceFeatures.fillModeNonSolid) {
+		if (deviceFeatures.geometryShader) {
 			enabledFeatures.geometryShader = VK_TRUE;
 		}
 		else {
