@@ -82,9 +82,9 @@ public:
 		glm::mat4 mvp;
 	} uboVS;
 
-	struct {
+	struct Pipelines {
 		VkPipeline terrain;
-		VkPipeline wireframe;
+		VkPipeline wireframe = VK_NULL_HANDLE;
 		VkPipeline skysphere;
 	} pipelines;
 
@@ -108,7 +108,7 @@ public:
 		VkBuffer buffer;
 		VkDeviceMemory memory;
 	} queryResult;
-	VkQueryPool queryPool;
+	VkQueryPool queryPool = VK_NULL_HANDLE;
 	uint64_t pipelineStats[2] = { 0 };
 
 	// View frustum passed to tessellation control shader for culling
@@ -123,13 +123,6 @@ public:
 		camera.setRotation(glm::vec3(-12.0f, 159.0f, 0.0f));
 		camera.setTranslation(glm::vec3(18.0f, 22.5f, 57.5f));
 		camera.movementSpeed = 7.5f;
-		// Enable physical device features required for this example				
-		// Tell the driver that we are going to use geometry shaders
-		enabledFeatures.tessellationShader = VK_TRUE;
-		// Example also uses a wireframe pipeline, enable non-solid fill modes
-		enabledFeatures.fillModeNonSolid = VK_TRUE;
-		// Pipeline statistics
-		enabledFeatures.pipelineStatisticsQuery = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -137,7 +130,9 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.terrain, nullptr);
-		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		if (pipelines.wireframe != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		}
 		vkDestroyPipeline(device, pipelines.skysphere, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayouts.skysphere, nullptr);
@@ -156,10 +151,31 @@ public:
 		textures.skySphere.destroy();
 		textures.terrainArray.destroy();
 
-		vkDestroyQueryPool(device, queryPool, nullptr);
+		if (queryPool != VK_NULL_HANDLE) {
+			vkDestroyQueryPool(device, queryPool, nullptr);
+			vkDestroyBuffer(device, queryResult.buffer, nullptr);
+			vkFreeMemory(device, queryResult.memory, nullptr);
+		}
+	}
 
-		vkDestroyBuffer(device, queryResult.buffer, nullptr);
-		vkFreeMemory(device, queryResult.memory, nullptr);
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		// Tessellation shader support is required for this example
+		if (deviceFeatures.tessellationShader) {
+			enabledFeatures.tessellationShader = VK_TRUE;
+		}
+		else {
+			vks::tools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
+		}
+		// Fill mode non solid is required for wireframe display
+		if (deviceFeatures.fillModeNonSolid) {
+			enabledFeatures.fillModeNonSolid = VK_TRUE;
+		};
+		// Pipeline statistics
+		if (deviceFeatures.pipelineStatisticsQuery) {
+			enabledFeatures.pipelineStatisticsQuery = VK_TRUE;
+		};
 	}
 
 	// Setup pool and buffer for storing pipeline statistics results
@@ -183,15 +199,16 @@ public:
 		VK_CHECK_RESULT(vkBindBufferMemory(device, queryResult.buffer, queryResult.memory, 0));
 
 		// Create query pool
-		VkQueryPoolCreateInfo queryPoolInfo = {};
-		queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
-		queryPoolInfo.queryType = VK_QUERY_TYPE_PIPELINE_STATISTICS;
-		queryPoolInfo.pipelineStatistics = 
-			VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT | 
-			VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT;
-		queryPoolInfo.queryCount = 2;
-
-		VK_CHECK_RESULT(vkCreateQueryPool(device, &queryPoolInfo, NULL, &queryPool));
+		if (deviceFeatures.pipelineStatisticsQuery) {
+			VkQueryPoolCreateInfo queryPoolInfo = {};
+			queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+			queryPoolInfo.queryType = VK_QUERY_TYPE_PIPELINE_STATISTICS;
+			queryPoolInfo.pipelineStatistics =
+				VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT |
+				VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT;
+			queryPoolInfo.queryCount = 2;
+			VK_CHECK_RESULT(vkCreateQueryPool(device, &queryPoolInfo, NULL, &queryPool));
+		}
 	}
 
 	// Retrieves the results of the pipeline statistics query submitted to the command buffer
@@ -213,11 +230,32 @@ public:
 	{
 		models.skysphere.loadFromFile(getAssetPath() + "models/geosphere.obj", vertexLayout, 1.0f, vulkanDevice, queue);
 
-		textures.skySphere.loadFromFile(getAssetPath() + "textures/skysphere_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		// Textures
+		std::string texFormatSuffix;
+		VkFormat texFormat;
+		// Get supported compressed texture format
+		if (vulkanDevice->features.textureCompressionBC) {
+			texFormatSuffix = "_bc3_unorm";
+			texFormat = VK_FORMAT_BC3_UNORM_BLOCK;
+		}
+		else if (vulkanDevice->features.textureCompressionASTC_LDR) {
+			texFormatSuffix = "_astc_8x8_unorm";
+			texFormat = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+		}
+		else if (vulkanDevice->features.textureCompressionETC2) {
+			texFormatSuffix = "_etc2_unorm";
+			texFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+		}
+		else {
+			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+		}
+
+		textures.skySphere.loadFromFile(getAssetPath() + "textures/skysphere" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+		// Terrain textures are stored in a texture array with layers corresponding to terrain height
+		textures.terrainArray.loadFromFile(getAssetPath() + "textures/terrain_texturearray" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+
 		// Height data is stored in a one-channel texture
 		textures.heightMap.loadFromFile(getAssetPath() + "textures/terrain_heightmap_r16.ktx", VK_FORMAT_R16_UNORM, vulkanDevice, queue);
-		// Terrain textures are stored in a texture array with layers corresponding to terrain height
-		textures.terrainArray.loadFromFile(getAssetPath() + "textures/terrain_texturearray_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 
 		VkSamplerCreateInfo samplerInfo = vks::initializers::samplerCreateInfo();
 
@@ -292,7 +330,9 @@ public:
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
-			vkCmdResetQueryPool(drawCmdBuffers[i], queryPool, 0, 2);
+			if (deviceFeatures.pipelineStatisticsQuery) {
+				vkCmdResetQueryPool(drawCmdBuffers[i], queryPool, 0, 2);
+			}
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -314,16 +354,20 @@ public:
 			vkCmdDrawIndexed(drawCmdBuffers[i], models.skysphere.indexCount, 1, 0, 0, 0);
 
 			// Terrrain
-			// Begin pipeline statistics query			
-			vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, VK_QUERY_CONTROL_PRECISE_BIT);
+			if (deviceFeatures.pipelineStatisticsQuery) {
+				// Begin pipeline statistics query		
+				vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, VK_QUERY_CONTROL_PRECISE_BIT);
+			}
 			// Render
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.terrain);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.terrain, 0, 1, &descriptorSets.terrain, 0, NULL);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.terrain.vertices.buffer, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.terrain.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(drawCmdBuffers[i], models.terrain.indexCount, 1, 0, 0, 0);
-			// End pipeline statistics query
-			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 0);
+			if (deviceFeatures.pipelineStatisticsQuery) {
+				// End pipeline statistics query
+				vkCmdEndQuery(drawCmdBuffers[i], queryPool, 0);
+			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -784,8 +828,10 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.terrain));
 
 		// Terrain wireframe pipeline
-		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
+		if (deviceFeatures.fillModeNonSolid) {
+			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
+		};
 
 		// Skysphere pipeline
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
@@ -868,8 +914,10 @@ public:
 		// Submit to queue
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
-		// Read query results for displaying in next frame
-		getQueryResults();
+		if (deviceFeatures.pipelineStatisticsQuery) {
+			// Read query results for displaying in next frame
+			getQueryResults();
+		}
 
 		VulkanExampleBase::submitFrame();
 	}
@@ -885,7 +933,9 @@ public:
 		VulkanExampleBase::prepare();
 		loadAssets();
 		generateTerrain();
-		setupQueryResultBuffer();
+		if (deviceFeatures.pipelineStatisticsQuery) {
+			setupQueryResultBuffer();
+		}
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayouts();
@@ -943,7 +993,9 @@ public:
 			break;
 		case KEY_F:
 		case GAMEPAD_BUTTON_A:
-			toggleWireframe();
+			if (deviceFeatures.fillModeNonSolid) {
+				toggleWireframe();
+			}
 			break;
 		case KEY_T:
 		case GAMEPAD_BUTTON_X:
