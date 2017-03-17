@@ -127,8 +127,21 @@ public:
 	void loadAssets()
 	{
 		models.quad.loadFromFile(getAssetPath() + "models/plane_z.obj", vertexLayout, 0.1f, vulkanDevice, queue);
-		textures.colorMap.loadFromFile(getAssetPath() + "textures/rocks_color_bc3.dds", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		// Textures
 		textures.normalHeightMap.loadFromFile(getAssetPath() + "textures/rocks_normal_height_rgba.dds", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		if (vulkanDevice->features.textureCompressionBC) {
+			textures.colorMap.loadFromFile(getAssetPath() + "textures/rocks_color_bc3_unorm.dds", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		}
+		else if (vulkanDevice->features.textureCompressionASTC_LDR) {
+			textures.colorMap.loadFromFile(getAssetPath() + "textures/rocks_color_astc_8x8_unorm.ktx", VK_FORMAT_ASTC_8x8_UNORM_BLOCK, vulkanDevice, queue);
+		}
+		else if (vulkanDevice->features.textureCompressionETC2) {
+			textures.colorMap.loadFromFile(getAssetPath() + "textures/rocks_color_etc2_unorm.ktx", VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK, vulkanDevice, queue);
+		}
+		else {
+			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+		}
+
 	}
 
 	void reBuildCommandBuffers()
