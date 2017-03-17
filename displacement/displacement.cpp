@@ -70,9 +70,9 @@ public:
 		float tessStrength = 0.1f;
 	} uboTessEval;
 
-	struct {
+	struct Pipelines {
 		VkPipeline solid;
-		VkPipeline wireframe;
+		VkPipeline wireframe = VK_NULL_HANDLE;
 	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
@@ -85,11 +85,6 @@ public:
 		rotation = glm::vec3(-20.0f, 45.0f, 0.0f);
 		enableTextOverlay = true;
 		title = "Vulkan Example - Tessellation shader displacement mapping";
-		// Enable physical device features required for this example				
-		// Tell the driver that we are going to use geometry shaders
-		enabledFeatures.tessellationShader = VK_TRUE;
-		// Example also uses a wireframe pipeline, enable non-solid fill modes
-		enabledFeatures.fillModeNonSolid = VK_TRUE;
 	}
 
 	~VulkanExample()
@@ -97,7 +92,9 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
-		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		if (pipelines.wireframe != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		};
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -108,10 +105,41 @@ public:
 		textures.colorHeightMap.destroy();
 	}
 
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		// Geometry shader support is required for this example
+		if (deviceFeatures.fillModeNonSolid) {
+			enabledFeatures.geometryShader = VK_TRUE;
+		}
+		else {
+			vks::tools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
+		}
+		// Fill mode non solid is required for wireframe display
+		if (deviceFeatures.fillModeNonSolid) {
+			enabledFeatures.fillModeNonSolid = VK_TRUE;
+		}
+		else {
+			splitScreen = false;
+		}
+	}
+
 	void loadAssets()
 	{
 		models.object.loadFromFile(getAssetPath() + "models/plane.obj", vertexLayout, 0.25f, vulkanDevice, queue);
-		textures.colorHeightMap.loadFromFile(getAssetPath() + "textures/pattern_36_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		// Textures
+		if (vulkanDevice->features.textureCompressionBC) {
+			textures.colorHeightMap.loadFromFile(getAssetPath() + "textures/stonefloor03_color_bc3_unorm.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		}
+		else if (vulkanDevice->features.textureCompressionASTC_LDR) {
+			textures.colorHeightMap.loadFromFile(getAssetPath() + "textures/stonefloor03_color_astc_8x8_unorm.ktx", VK_FORMAT_ASTC_8x8_UNORM_BLOCK, vulkanDevice, queue);
+		}
+		else if (vulkanDevice->features.textureCompressionETC2) {
+			textures.colorHeightMap.loadFromFile(getAssetPath() + "textures/stonefloor03_color_etc2_unorm.ktx", VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK, vulkanDevice, queue);
+		}
+		else {
+			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+		}
 	}
 
 	void reBuildCommandBuffers()
@@ -405,10 +433,12 @@ public:
 		// Solid pipeline
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
-		// Wireframe pipeline
-		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		rasterizationState.cullMode = VK_CULL_MODE_NONE;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
+		if (deviceFeatures.fillModeNonSolid) {
+			// Wireframe pipeline
+			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+			rasterizationState.cullMode = VK_CULL_MODE_NONE;
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
+		}
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -562,7 +592,9 @@ public:
 			break;
 		case KEY_S:
 		case GAMEPAD_BUTTON_X:
-			toggleSplitScreen();
+			if (deviceFeatures.fillModeNonSolid) {
+				toggleSplitScreen();
+			};
 			break;
 		}
 	}
@@ -574,11 +606,15 @@ public:
 #if defined(__ANDROID__)
 		textOverlay->addText("Tessellation height: " + ss.str() + " (Buttons L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("\"Button A\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"Button X\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+		if (deviceFeatures.fillModeNonSolid) {
+			textOverlay->addText("\"Button X\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+		}
 #else
 		textOverlay->addText("Tessellation height: " + ss.str() + " (numpad +/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 		textOverlay->addText("\"d\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"s\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+		if (deviceFeatures.fillModeNonSolid) {
+			textOverlay->addText("\"s\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
+		}
 #endif
 	}
 };
