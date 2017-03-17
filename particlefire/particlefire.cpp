@@ -128,7 +128,7 @@ public:
 		zoom = -75.0f;
 		rotation = { -15.0f, 45.0f, 0.0f };
 		enableTextOverlay = true;
-		title = "Vulkan Example - Particle system";
+		title = "Vulkan Example - CPU particle system";
 		zoomSpeed *= 1.5f;
 		timerSpeed *= 8.0f;
 		srand(time(NULL));
@@ -168,7 +168,6 @@ public:
 
 		VkClearValue clearValues[2];
 		clearValues[0].color = defaultClearColor;
-		clearValues[0].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -327,13 +326,33 @@ public:
 
 	void loadAssets()
 	{
+		// Textures
+		std::string texFormatSuffix;
+		VkFormat texFormat;
+		// Get supported compressed texture format
+		if (vulkanDevice->features.textureCompressionBC) {
+			texFormatSuffix = "_bc3_unorm";
+			texFormat = VK_FORMAT_BC3_UNORM_BLOCK;
+		}
+		else if (vulkanDevice->features.textureCompressionASTC_LDR) {
+			texFormatSuffix = "_astc_8x8_unorm";
+			texFormat = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+		}
+		else if (vulkanDevice->features.textureCompressionETC2) {
+			texFormatSuffix = "_etc2_unorm";
+			texFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+		}
+		else {
+			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+		}
+
 		// Particles
-		textures.particles.smoke.loadFromFile(getAssetPath() + "textures/particle_smoke.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-		textures.particles.fire.loadFromFile(getAssetPath() + "textures/particle_fire.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.particles.smoke.loadFromFile(getAssetPath() + "textures/particle_smoke.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		textures.particles.fire.loadFromFile(getAssetPath() + "textures/particle_fire.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 
 		// Floor
-		textures.floor.colorMap.loadFromFile(getAssetPath() + "textures/fireplace_colormap_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/fireplace_normalmap_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
+		textures.floor.colorMap.loadFromFile(getAssetPath() + "textures/fireplace_colormap" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/fireplace_normalmap" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
 
 		// Create a custom sampler to be used with the particle textures
 		// Create sampler
