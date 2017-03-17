@@ -610,7 +610,14 @@ public:
 
 		// Load HDR texture (equirectangular projected)
 		// VK_FORMAT_BC6H_UFLOAT_BLOCK is a compressed 16 bit unsigned floating point format for storing HDR content
-		textures.envmap.loadFromFile(getAssetPath() + "textures/hdr_uffizi_bc6uf.DDS", VK_FORMAT_BC6H_UFLOAT_BLOCK, vulkanDevice, queue);
+		if (deviceFeatures.textureCompressionBC)
+		{
+			textures.envmap.loadFromFile(getAssetPath() + "textures/hdr_uffizi_bc6uf.DDS", VK_FORMAT_BC6H_UFLOAT_BLOCK, vulkanDevice, queue);
+		}
+		else 
+		{
+			textures.envmap.loadFromFile(getAssetPath() + "textures/hrd_uffizi_rgba16_float.dds", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);			
+		}
 
 		// Custom sampler with clamping adress mode
 		vkDestroySampler(device, textures.envmap.sampler, nullptr);
