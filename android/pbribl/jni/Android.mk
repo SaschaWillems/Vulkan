@@ -14,7 +14,7 @@ DATADIR := $(LOCAL_PATH)/../../data
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := vulkanPBRBIBL
+LOCAL_MODULE := vulkanPBRIBL
 
 PROJECT_FILES := $(wildcard $(LOCAL_PATH)/../../pbribl/*.cpp)
 PROJECT_FILES += $(wildcard $(LOCAL_PATH)/../../base/*.cpp)

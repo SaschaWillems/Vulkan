@@ -4,7 +4,7 @@ import subprocess
 import sys
 import glob
 
-APK_NAME = "vulkanPBRBIBL"
+APK_NAME = "vulkanPBRIBL"
 SHADER_DIR = "pbribl"
 ASSETS_MODELS = ["cube.obj", "geosphere.obj", "teapot.dae", "torusknot.obj", "venus.fbx"]
 ASSETS_TEXTURES = ["hamarikyu_bridge_radiance_cube.ktx", "hamarikyu_bridge_irradiance_cube.ktx"]

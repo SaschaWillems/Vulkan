@@ -4,10 +4,6 @@ import subprocess
 import sys
 import glob
 
-sys.path.append('../base/')
-
-import base
-
 APK_NAME = "vulkanOcclusionquery"
 APP_TITLE = "Occlusion queries"
 SHADER_DIR = "occlusionquery"
