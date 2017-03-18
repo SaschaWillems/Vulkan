@@ -95,7 +95,7 @@ public:
 	{
 		title = "Vulkan Example - Instanced mesh rendering";
 		enableTextOverlay = true;
-		srand(time(NULL));
+		srand((unsigned int)time(NULL));
 		zoom = -18.5f;
 		rotation = { -17.2f, -4.7f, 0.0f };
 		cameraPos = { 5.5f, -1.85f, 0.0f };
@@ -221,7 +221,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
 
@@ -247,7 +247,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vks::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
@@ -272,7 +272,7 @@ public:
 			vks::initializers::writeDescriptorSet(descriptorSets.instancedRocks, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,	0, &uniformBuffers.scene.descriptor),	// Binding 0 : Vertex shader uniform buffer			
 			vks::initializers::writeDescriptorSet(descriptorSets.instancedRocks, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.rocks.descriptor)	// Binding 1 : Color map 
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
 		// Planet
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descripotrSetAllocInfo, &descriptorSets.planet));
@@ -280,7 +280,7 @@ public:
 			vks::initializers::writeDescriptorSet(descriptorSets.planet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,	0, &uniformBuffers.scene.descriptor),			// Binding 0 : Vertex shader uniform buffer			
 			vks::initializers::writeDescriptorSet(descriptorSets.planet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.planet.descriptor)			// Binding 1 : Color map 
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
 	}
 
@@ -330,11 +330,11 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vks::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		// Load shaders
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {};
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(
@@ -349,7 +349,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		// This example uses two different input states, one for the instanced part and one for non-instanced rendering
@@ -420,7 +420,7 @@ public:
 
 	float rnd(float range)
 	{
-		return range * (rand() / double(RAND_MAX));
+		return float(range * (rand() / double(RAND_MAX)));
 	}
 
 	void prepareInstanceData()
@@ -428,7 +428,7 @@ public:
 		std::vector<InstanceData> instanceData;
 		instanceData.resize(INSTANCE_COUNT);
 
-		std::mt19937 rndGenerator(time(NULL));
+		std::mt19937 rndGenerator((unsigned int)time(NULL));
 		std::uniform_real_distribution<float> uniformDist(0.0, 1.0);
 
 		// Distribute rocks randomly on two different rings
@@ -441,20 +441,20 @@ public:
 
 			// Inner ring
 			rho = sqrt((pow(ring0[1], 2.0f) - pow(ring0[0], 2.0f)) * uniformDist(rndGenerator) + pow(ring0[0], 2.0f));
-			theta = 2.0 * M_PI * uniformDist(rndGenerator);
+			theta = (float)(2.0 * M_PI * uniformDist(rndGenerator));
 			instanceData[i].pos = glm::vec3(rho*cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho*sin(theta));
 			instanceData[i].rot = glm::vec3(M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator));
 			instanceData[i].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
-			instanceData[i].texIndex = rnd(textures.rocks.layerCount);
+			instanceData[i].texIndex = (uint32_t)rnd((float)textures.rocks.layerCount);
 			instanceData[i].scale *= 0.75f;
 
 			// Outer ring
 			rho = sqrt((pow(ring1[1], 2.0f) - pow(ring1[0], 2.0f)) * uniformDist(rndGenerator) + pow(ring1[0], 2.0f));
-			theta = 2.0 * M_PI * uniformDist(rndGenerator);
+			theta = (float)(2.0 * M_PI * uniformDist(rndGenerator));
 			instanceData[i + INSTANCE_COUNT / 2].pos = glm::vec3(rho*cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho*sin(theta));
 			instanceData[i + INSTANCE_COUNT / 2].rot = glm::vec3(M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator));
 			instanceData[i + INSTANCE_COUNT / 2].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
-			instanceData[i + INSTANCE_COUNT / 2].texIndex = rnd(textures.rocks.layerCount);
+			instanceData[i + INSTANCE_COUNT / 2].texIndex = (uint32_t)rnd((float)textures.rocks.layerCount);
 			instanceData[i + INSTANCE_COUNT / 2].scale *= 0.75f;
 		}
 

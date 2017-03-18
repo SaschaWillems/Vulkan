@@ -54,7 +54,7 @@ int32_t nextValuePair(std::stringstream *stream)
 {
 	std::string pair;
 	*stream >> pair;
-	uint32_t spos = pair.find("=");
+	size_t spos = pair.find("=");
 	std::string value = pair.substr(spos + 1);
 	int32_t val = std::stoi(value);
 	return val;
@@ -276,7 +276,7 @@ public:
 		std::vector<uint32_t> indices;
 		uint32_t indexOffset = 0;
 
-		float w = textures.fontSDF.width;
+		float w = (float)textures.fontSDF.width;
 
 		float posx = 0.0f;
 		float posy = 0.0f;
@@ -317,7 +317,7 @@ public:
 			float advance = ((float)(charInfo->xadvance) / 36.0f);
 			posx += advance;
 		}
-		indexCount = indices.size();
+		indexCount = static_cast<uint32_t>(indices.size());
 
 		// Center
 		for (auto& v : vertices)
@@ -372,9 +372,9 @@ public:
 				sizeof(float) * 3);
 
 		vertices.inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
+		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
 		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
+		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
 		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
@@ -388,7 +388,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = 
 			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
 
@@ -420,7 +420,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = 
 			vks::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
@@ -472,7 +472,7 @@ public:
 				&uniformBuffers.fs.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
 		// Default font rendering descriptor set
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.bitmap));
@@ -497,7 +497,7 @@ public:
 				&texDescriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
@@ -555,7 +555,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vks::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		// Load shaders
@@ -578,7 +578,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.sdf));

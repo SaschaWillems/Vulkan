@@ -791,7 +791,7 @@ public:
 	VkShaderModule loadSPIRVShader(std::string filename)
 	{
 		size_t shaderSize;
-		char* shaderCode;
+		char* shaderCode = 0;
 
 #if defined(__ANDROID__)
 		// Load shader from compressed asset
@@ -1109,7 +1109,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+int APIENTRY WinMain(
+	_In_		HINSTANCE	hInstance,
+	_In_opt_	HINSTANCE	hPrevInstance,
+	_In_		LPSTR		lpCmdLine,
+	_In_		int			nShowCmd
+	)
 {
 	for (size_t i = 0; i < __argc; i++) { VulkanExample::args.push_back(__argv[i]); };
 	vulkanExample = new VulkanExample();

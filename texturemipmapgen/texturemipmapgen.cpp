@@ -139,7 +139,7 @@ public:
 		// calculate num of mip maps
 		// numLevels = 1 + floor(log2(max(w, h, d)))
 		// Calculated as log2(max(width, height, depth))c + 1 (see specs)
-		texture.mipLevels = floor(log2(std::max(texture.width, texture.height))) + 1;
+		texture.mipLevels = (int32_t)(floor(log2(std::max(texture.width, texture.height))) + 1);
 
 		// Get device properites for the requested texture format
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
@@ -238,7 +238,7 @@ public:
 		VkCommandBuffer blitCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 		// Copy down mips from n-1 to n
-		for (int32_t i = 1; i < texture.mipLevels; i++)
+		for (int32_t i = 1; i < (int32_t)texture.mipLevels; i++)
 		{
 			VkImageBlit imageBlit{};				
 

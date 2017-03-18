@@ -19,7 +19,7 @@ namespace vks
 	class HeightMap
 	{
 	private:
-		uint16_t *heightdata;
+		uint16_t *heightdata		= nullptr;
 		uint32_t dim;
 		uint32_t scale;
 
@@ -137,7 +137,7 @@ namespace vks
 			// Generate indices
 
 			const uint32_t w = (patchsize - 1);
-			uint32_t *indices;
+			uint32_t *indices	= nullptr;
 
 			switch (topology)
 			{
