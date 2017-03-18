@@ -11,6 +11,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <functional>
 
 // make_unique is not available in C++11
 // Taken from Herb Sutter's blog (https://herbsutter.com/gotw/_102/)
