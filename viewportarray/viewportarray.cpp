@@ -33,14 +33,7 @@ public:
 		vks::VERTEX_COMPONENT_COLOR,
 	});
 
-	struct {
-		vks::Model object;
-	} models;
-
-	struct {
-		glm::mat4 projection;
-		glm::mat4 model;
-	} uboVS;
+	vks::Model scene;
 
 	struct UBOGS {
 		glm::mat4 projection[2];
@@ -48,10 +41,7 @@ public:
 		glm::vec4 lightPos = glm::vec4(-2.5f, -3.5f, 0.0f, 1.0f);
 	} uboGS;
 
-	struct {
-		vks::Buffer VS;
-		vks::Buffer GS;
-	} uniformBuffers;
+	vks::Buffer uniformBufferGS;
 
 	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
@@ -78,10 +68,9 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		models.object.destroy();
+		scene.destroy();
 
-		uniformBuffers.GS.destroy();
-		uniformBuffers.VS.destroy();
+		uniformBufferGS.destroy();
 	}
 
 	// Enable physical device features required for this example				
@@ -158,12 +147,10 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.object.vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.object.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-			// Solid shading
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &scene.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-			vkCmdDrawIndexed(drawCmdBuffers[i], models.object.indexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(drawCmdBuffers[i], scene.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -173,7 +160,7 @@ public:
 
 	void loadAssets()
 	{
-		models.object.loadFromFile(getAssetPath() + "models/sampleroom.dae", vertexLayout, 0.25f, vulkanDevice, queue);		
+		scene.loadFromFile(getAssetPath() + "models/sampleroom.dae", vertexLayout, 0.25f, vulkanDevice, queue);		
 	}
 
 	void setupDescriptorPool()
@@ -217,7 +204,7 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {			
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.GS.descriptor),	// Binding 0 :Geometry shader ubo
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBufferGS.descriptor),	// Binding 0 :Geometry shader ubo
 		};
 
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
@@ -302,41 +289,28 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.VS,
-			sizeof(uboVS)));
-
 		// Geometry shader uniform buffer block
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.GS,
+			&uniformBufferGS,
 			sizeof(uboGS)));
 
 		// Map persistent
-		VK_CHECK_RESULT(uniformBuffers.VS.map());
-		VK_CHECK_RESULT(uniformBuffers.GS.map());
+		VK_CHECK_RESULT(uniformBufferGS.map());
 
 		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
 	{
-		// Vertex shader
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		uboVS.model = camera.matrices.view;
-		memcpy(uniformBuffers.VS.mapped, &uboVS, sizeof(uboVS));
-
 		// Geometry shader
 		uboGS.projection[0] = camera.matrices.perspective;
 		uboGS.projection[1] = camera.matrices.perspective;
 		// todo: offsets left/right
 		uboGS.modelview[0] = camera.matrices.view;
 		uboGS.modelview[1] = camera.matrices.view;
-		memcpy(uniformBuffers.GS.mapped, &uboGS, sizeof(uboGS));
+		memcpy(uniformBufferGS.mapped, &uboGS, sizeof(uboGS));
 	}
 
 	void draw()
