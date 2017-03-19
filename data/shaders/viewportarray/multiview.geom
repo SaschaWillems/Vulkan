@@ -14,8 +14,6 @@ layout (binding = 0) uniform UBO
 
 layout (location = 0) in vec3 inNormal[];
 layout (location = 1) in vec3 inColor[];
-layout (location = 2) in vec3 inViewVec[];
-layout (location = 3) in vec3 inLightVec[];
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
