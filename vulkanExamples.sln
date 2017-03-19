@@ -90,11 +90,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Base", "Base", "{09B9A54B-F
 		base\VulkanHeightmap.hpp = base\VulkanHeightmap.hpp
 		base\VulkanInitializers.hpp = base\VulkanInitializers.hpp
 		base\VulkanModel.hpp = base\VulkanModel.hpp
-		base\vulkanswapchain.hpp = base\vulkanswapchain.hpp
-		base\vulkantextoverlay.hpp = base\vulkantextoverlay.hpp
+		base\VulkanSwapChain.hpp = base\VulkanSwapChain.hpp
+		base\VulkanTextOverlay.hpp = base\VulkanTextOverlay.hpp
 		base\VulkanTexture.hpp = base\VulkanTexture.hpp
+		base\vulkantools.cpp = base\vulkantools.cpp
 		base\VulkanTools.h = base\VulkanTools.h
-		base\VulkanTools.hpp = base\VulkanTools.hpp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "indirectdraw", "indirectdraw\indirectdraw.vcxproj", "{2BBDD10F-2C9D-4BEA-8C7B-1C510A2CE08B}"
@@ -127,6 +127,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		CMakeLists.txt = CMakeLists.txt
 		README.md = README.md
+		external\vulkan\vulkan.h = external\vulkan\vulkan.h
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "screenshot", "screenshot\screenshot.vcxproj", "{AD1DAD4D-A753-4A78-88E2-B4DCE15D482F}"
@@ -142,6 +143,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pbrbasic", "pbrbasic\pbrbasic.vcxproj", "{92B2640A-0CC5-48EA-B34C-520BA13938D1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pbr", "pbr", "{BE290A75-7E65-4D0A-B419-774A309B6A60}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "viewportarray", "viewportarray\viewportarray.vcxproj", "{CB2ABE1F-13C6-483E-AF1A-B933BC6A0F1B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -349,6 +352,10 @@ Global
 		{92B2640A-0CC5-48EA-B34C-520BA13938D1}.Debug|x64.Build.0 = Debug|x64
 		{92B2640A-0CC5-48EA-B34C-520BA13938D1}.Release|x64.ActiveCfg = Release|x64
 		{92B2640A-0CC5-48EA-B34C-520BA13938D1}.Release|x64.Build.0 = Release|x64
+		{CB2ABE1F-13C6-483E-AF1A-B933BC6A0F1B}.Debug|x64.ActiveCfg = Debug|x64
+		{CB2ABE1F-13C6-483E-AF1A-B933BC6A0F1B}.Debug|x64.Build.0 = Debug|x64
+		{CB2ABE1F-13C6-483E-AF1A-B933BC6A0F1B}.Release|x64.ActiveCfg = Release|x64
+		{CB2ABE1F-13C6-483E-AF1A-B933BC6A0F1B}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
