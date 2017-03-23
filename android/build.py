@@ -30,8 +30,6 @@ if not os.path.isfile(os.path.join(PROJECT_FOLDER, "build.py")):
     sys.exit(-1)
 
 BUILD_ARGUMENTS = " ".join(sys.argv[2:])
-print(BUILD_ARGUMENTS)
-exit(0)
 
 os.chdir(PROJECT_FOLDER)
 if subprocess.call("python build.py %s" % BUILD_ARGUMENTS) != 0:
