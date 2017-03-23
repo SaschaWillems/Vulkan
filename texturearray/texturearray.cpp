@@ -167,53 +167,24 @@ public:
 
 		// Setup buffer copy regions for array layers
 		std::vector<VkBufferImageCopy> bufferCopyRegions;
-		uint32_t offset = 0;
+		size_t offset = 0;
 
-		// Check if all array layers have the same dimensions
-		bool sameDims = true;
 		for (uint32_t layer = 0; layer < layerCount; layer++)
-		{
-			if (tex2DArray[layer].extent().x != textureArray.width || tex2DArray[layer].extent().y != textureArray.height)
-			{
-				sameDims = false;
-				break;
-			}
-		}
-
-		// If all layers of the texture array have the same dimensions, we only need to do one copy
-		if (sameDims)
 		{
 			VkBufferImageCopy bufferCopyRegion = {};
 			bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			bufferCopyRegion.imageSubresource.mipLevel = 0;
-			bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
-			bufferCopyRegion.imageSubresource.layerCount = layerCount;
-			bufferCopyRegion.imageExtent.width = tex2DArray[0].extent().x;
-			bufferCopyRegion.imageExtent.height = tex2DArray[0].extent().y;
+			bufferCopyRegion.imageSubresource.baseArrayLayer = layer;
+			bufferCopyRegion.imageSubresource.layerCount = 1;
+			bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2DArray[layer][0].extent().x);
+			bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2DArray[layer][0].extent().y);
 			bufferCopyRegion.imageExtent.depth = 1;
 			bufferCopyRegion.bufferOffset = offset;
 
 			bufferCopyRegions.push_back(bufferCopyRegion);
-		}
-		else
-		{
-			// If dimensions differ, copy layer by layer and pass offsets
-			for (uint32_t layer = 0; layer < layerCount; layer++)
-			{
-				VkBufferImageCopy bufferCopyRegion = {};
-				bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				bufferCopyRegion.imageSubresource.mipLevel = 0;
-				bufferCopyRegion.imageSubresource.baseArrayLayer = layer;
-				bufferCopyRegion.imageSubresource.layerCount = 1;
-				bufferCopyRegion.imageExtent.width = tex2DArray[layer].extent().x;
-				bufferCopyRegion.imageExtent.height = tex2DArray[layer].extent().y;
-				bufferCopyRegion.imageExtent.depth = 1;
-				bufferCopyRegion.bufferOffset = offset;
 
-				bufferCopyRegions.push_back(bufferCopyRegion);
-
-				offset += tex2DArray[layer].size();
-			}
+			// Increase offset into staging buffer for next level / face
+			offset += tex2DArray[layer][0].size();
 		}
 
 		// Create optimal tiled target image
@@ -303,6 +274,7 @@ public:
 		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		view.subresourceRange.layerCount = layerCount;
+		view.subresourceRange.levelCount = 1;
 		view.image = textureArray.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &textureArray.view));
 
