@@ -29,12 +29,7 @@ if not os.path.isfile(os.path.join(PROJECT_FOLDER, "build.py")):
     print("Error: No build script present!")
     sys.exit(-1)
 
-BUILD_ARGUMENTS = ""
-for arg in sys.argv[1:]:
-    if arg == "-deploy":
-        BUILD_ARGUMENTS += "-deploy"
-    if arg == "-validation":
-        BUILD_ARGUMENTS += "-validation"
+BUILD_ARGUMENTS = " ".join(sys.argv)
 
 os.chdir(PROJECT_FOLDER)
 if subprocess.call("python build.py %s" % BUILD_ARGUMENTS) != 0:
