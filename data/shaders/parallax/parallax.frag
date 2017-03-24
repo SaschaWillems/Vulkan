@@ -1,66 +1,143 @@
 #version 450
 
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
-
 layout (binding = 1) uniform sampler2D sColorMap;
 layout (binding = 2) uniform sampler2D sNormalHeightMap;
 
 layout (binding = 3) uniform UBO 
 {
-	float scale;
-	float bias;
-	float lightRadius;
-	int usePom;
-	int displayNormalMap;
+	float heightScale;
+	float parallaxBias;
+	float numLayers;
+	int mappingMode;
 } ubo;
 
 layout (location = 0) in vec2 inUV;
-layout (location = 1) in vec3 inLightVec;
-layout (location = 2) in vec3 inLightVecB;
-layout (location = 3) in vec3 inSpecular;
-layout (location = 4) in vec3 inEyeVec;
-layout (location = 5) in vec3 inLightDir;
-layout (location = 6) in vec3 inViewVec;
+layout (location = 1) in vec3 inTangentLightPos;
+layout (location = 2) in vec3 inTangentViewPos;
+layout (location = 3) in vec3 inTangentFragPos;
 
-layout (location = 0) out vec4 outFragColor;
+layout (location = 0) out vec4 outColor;
+
+vec2 parallax_uv(vec2 uv, vec3 view_dir, int type)
+{
+	if (type == 2) {
+		// Parallax mapping
+		float depth = 1.0 - texture(sNormalHeightMap, uv).a;
+		vec2 p = view_dir.xy * (depth * (ubo.heightScale * 0.5) + ubo.parallaxBias) / view_dir.z;
+		return uv - p;  
+	} else {
+		float layer_depth = 1.0 / ubo.numLayers;
+		float cur_layer_depth = 0.0;
+		vec2 delta_uv = view_dir.xy * ubo.heightScale / (view_dir.z * ubo.numLayers);
+		vec2 cur_uv = uv;
+
+		float depth_from_tex = 1.0 - texture(sNormalHeightMap, cur_uv).a;
+
+		for (int i = 0; i < 32; i++) {
+			cur_layer_depth += layer_depth;
+			cur_uv -= delta_uv;
+			depth_from_tex = 1.0 - texture(sNormalHeightMap, cur_uv).a;
+			if (depth_from_tex < cur_layer_depth) {
+				break;
+			}
+		}
+
+		if (type == 3) {
+			// Steep parallax mapping
+			return cur_uv;
+		} else {
+			// Parallax occlusion mapping
+			vec2 prev_uv = cur_uv + delta_uv;
+			float next = depth_from_tex - cur_layer_depth;
+			float prev = 1.0 - texture(sNormalHeightMap, prev_uv).a - cur_layer_depth + layer_depth;
+			float weight = next / (next - prev);
+			return mix(cur_uv, prev_uv, weight);
+		}
+	}
+}
+
+vec2 parallaxMapping(vec2 uv, vec3 viewDir) 
+{
+	float height = 1.0 - texture(sNormalHeightMap, uv).a;
+	vec2 p = viewDir.xy * (height * (ubo.heightScale * 0.5) + ubo.parallaxBias) / viewDir.z;
+	return uv - p;  
+}
+
+vec2 steepParallaxMapping(vec2 uv, vec3 viewDir) 
+{
+	float layerDepth = 1.0 / ubo.numLayers;
+	float currLayerDepth = 0.0;
+	vec2 deltaUV = viewDir.xy * ubo.heightScale / (viewDir.z * ubo.numLayers);
+	vec2 currUV = uv;
+	float height = 1.0 - texture(sNormalHeightMap, currUV).a;
+	for (int i = 0; i < ubo.numLayers; i++) {
+		currLayerDepth += layerDepth;
+		currUV -= deltaUV;
+		height = 1.0 - texture(sNormalHeightMap, currUV).a;
+		if (height < currLayerDepth) {
+			break;
+		}
+	}
+	return currUV;
+}
+
+vec2 parallaxOcclusionMapping(vec2 uv, vec3 viewDir) 
+{
+	float layerDepth = 1.0 / ubo.numLayers;
+	float currLayerDepth = 0.0;
+	vec2 deltaUV = viewDir.xy * ubo.heightScale / (viewDir.z * ubo.numLayers);
+	vec2 currUV = uv;
+	float height = 1.0 - texture(sNormalHeightMap, currUV).a;
+	for (int i = 0; i < ubo.numLayers; i++) {
+		currLayerDepth += layerDepth;
+		currUV -= deltaUV;
+		height = 1.0 - texture(sNormalHeightMap, currUV).a;
+		if (height < currLayerDepth) {
+			break;
+		}
+	}
+	vec2 prevUV = currUV + deltaUV;
+	float nextDepth = height - currLayerDepth;
+	float prevDepth = 1.0 - texture(sNormalHeightMap, prevUV).a - currLayerDepth + layerDepth;
+	return mix(currUV, prevUV, nextDepth / (nextDepth - prevDepth));
+}
 
 void main(void) 
 {
-	vec3 specularColor = vec3(0.0, 0.0, 0.0);
+	vec3 V = normalize(inTangentViewPos - inTangentFragPos);
+	vec2 uv = inUV;
 
-	float invRadius = 1.0/ubo.lightRadius;
-	float ambient = 0.5;
+	if (ubo.mappingMode == 0) {
+		// Color only
+		outColor = texture(sColorMap, inUV);
+	} else {
+		switch(ubo.mappingMode) {
+			case 2:
+				uv = parallaxMapping(inUV, V);
+				break;
+			case 3:
+				uv = steepParallaxMapping(inUV, V);
+				break;
+			case 4:
+				uv = parallaxOcclusionMapping(inUV, V);
+				break;
+		}
 
-	vec3 rgb, normal, eyeVecTs;
-	vec2 UV = inUV;
+		// Discard fragments at texture border
+		if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+			discard;
+		}
 
-	// Get new scaled and biased texture coordinates 
-	// Height info is stored in alpha channel of normal map
-	vec2 height_bump = vec2(texture(sNormalHeightMap, inUV).a * ubo.scale + ubo.bias, 0.0);
+		vec3 N = normalize(texture(sNormalHeightMap, uv).rgb * 2.0 - 1.0);   
+		vec3 L = normalize(inTangentLightPos - inTangentFragPos);
+		vec3 R = reflect(-L, N);
+		vec3 H = normalize(L + V);  
+   
+		vec3 color = texture(sColorMap, uv).rgb;
+		vec3 ambient = 0.2 * color;
+		vec3 diffuse = max(dot(L, N), 0.0) * color;
+		vec3 specular = vec3(0.15) * pow(max(dot(N, H), 0.0), 32.0);
 
-	// If parallax mapping is enabled, offset texture coordinates
-	if  (ubo.usePom == 1)
-	{
-		UV = inUV + (height_bump.x * normalize(inEyeVec).xy);
-	} 
-
-	rgb = (ubo.displayNormalMap == 0) ? texture(sColorMap, UV).rgb : texture(sNormalHeightMap, UV).rgb;
-
-	normal = normalize((texture(sNormalHeightMap, UV).rgb - 0.5) * 2.0);
-
-	eyeVecTs = normalize(inLightVec).xyz;
-	height_bump.y = min(dot(normal, eyeVecTs.xyz), 1.0);
-	height_bump.y = pow(height_bump.y, 8.0);
-
-	float distSqr = dot(inLightVecB, inLightVecB);
-	vec3 lVec = inLightVecB * inversesqrt(distSqr);
-
-	vec3 nvViewVec = normalize(inViewVec);
-	float specular = pow(clamp(dot(reflect(-nvViewVec, normal), lVec), 0.0, 1.0), 4.0);
-
-	float atten = clamp(1.0 - invRadius * sqrt(distSqr), 0.0, 1.0);
-	float diffuse = clamp(dot(lVec, normal), 0.0, 1.0);
-
-	outFragColor = vec4((rgb * ambient + (diffuse * rgb + 0.5 * specular * specularColor.rgb)) * atten, 1.0);    
+		outColor = vec4(ambient + diffuse + specular, 1.0f);
+	}	
 }

@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{d4e5cf47-9778-4a8e-8ef1-632080b554d6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\base\vulkandebug.cpp">
@@ -38,5 +41,13 @@
     <ClInclude Include="..\base\vulkantools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\shaders\parallax\parallax.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\parallax\parallax.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
