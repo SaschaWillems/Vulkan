@@ -48,16 +48,20 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
+	// Camera and view properties
+	float eyeSeparation = 0.08f;
+	const float focalLength = 0.5f;
+	const float fov = 90.0f;
+	const float zNear = 0.1f;
+	const float zFar = 256.0f;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -8.0f;
-		rotation = glm::vec3(0.0f, -25.0f, 0.0f);
-		enableTextOverlay = true;
 		title = "Vulkan Example - Viewport arrays";
+		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
-		camera.setPerspective(90.0f, (float)(width * 0.5) / (float)height, 0.1f, 256.0f);
 		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
-		camera.setTranslation(glm::vec3(9.5f, 3.2f, 0.75f));
+		camera.setTranslation(glm::vec3(7.0f, 3.2f, 0.0f));
 		camera.movementSpeed = 5.0f;
 	}
 
@@ -304,26 +308,58 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Geometry shader
-		uboGS.projection[0] = camera.matrices.perspective;
-		uboGS.projection[1] = camera.matrices.perspective;
-		// todo: offsets left/right
-		uboGS.modelview[0] = camera.matrices.view;
-		uboGS.modelview[1] = camera.matrices.view;
+		// Geometry shader matrices for the two viewports
+		// See http://paulbourke.net/stereographics/stereorender/
+
+		// Calculate some variables
+		float aspectRatio = (float)(width * 0.5f) / (float)height;
+		float wd2 = zNear * tan(glm::radians(fov / 2.0f));
+		float ndfl = zNear / focalLength;
+		float left, right;
+		float top = wd2;
+		float bottom = -wd2;
+
+		glm::vec3 camFront;
+		camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
+		camFront.y = sin(glm::radians(rotation.x));
+		camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
+		camFront = glm::normalize(camFront);
+		glm::vec3 camRight = glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+		glm::mat4 rotM = glm::mat4();
+		glm::mat4 transM;
+
+		rotM = glm::rotate(rotM, glm::radians(camera.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		rotM = glm::rotate(rotM, glm::radians(camera.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		rotM = glm::rotate(rotM, glm::radians(camera.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+	
+		// Left eye
+		left = -aspectRatio * wd2 + 0.5f * eyeSeparation * ndfl;
+		right = aspectRatio * wd2 + 0.5f * eyeSeparation * ndfl;
+
+		transM = glm::translate(glm::mat4(), camera.position - camRight * (eyeSeparation / 2.0f));
+
+		uboGS.projection[0] = glm::frustum(left, right, bottom, top, zNear, zFar);
+		uboGS.modelview[0] = rotM * transM;
+
+		// Right eye
+		left = -aspectRatio * wd2 - 0.5f * eyeSeparation * ndfl;
+		right = aspectRatio * wd2 - 0.5f * eyeSeparation * ndfl;
+
+		transM = glm::translate(glm::mat4(), camera.position + camRight * (eyeSeparation / 2.0f));
+
+		uboGS.projection[1] = glm::frustum(left, right, bottom, top, zNear, zFar);
+		uboGS.modelview[1] = rotM * transM;
+
 		memcpy(uniformBufferGS.mapped, &uboGS, sizeof(uboGS));
 	}
 
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
 		VulkanExampleBase::submitFrame();
 	}
 
@@ -352,9 +388,25 @@ public:
 		updateUniformBuffers();
 	}
 
+	void changeEyeSeparation(float delta)
+	{
+		eyeSeparation += delta;
+		updateUniformBuffers();
+	}
+
 	virtual void keyPressed(uint32_t keyCode)
 	{
-		//
+		switch (keyCode)
+		{
+		case KEY_KPADD:
+		case GAMEPAD_BUTTON_R1:
+			changeEyeSeparation(0.005);
+			break;
+		case KEY_KPSUB:
+		case GAMEPAD_BUTTON_L1:
+			changeEyeSeparation(-0.005);
+			break;
+		}
 	}
 
 };
