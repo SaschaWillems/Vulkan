@@ -1,8 +1,8 @@
-# Vulkan examples and demos
+# Vulkan C++ examples and demos
 
-<img src="./images/vulkanlogoscene.png" alt="Vulkan demo scene" height="256px">
+A comprehensive collection of open source C++ examples for [Vulkan(tm)](https://www.khronos.org/vulkan/), the new graphics and compute API from Khronos.
 
-Assorted C++ examples for [Vulkan(tm)](https://www.khronos.org/vulkan/), the new graphics and compute API from Khronos.
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BHXPMV6ZKPH9E)
 
 # Building
 
@@ -294,6 +294,18 @@ Example application to be used along with [this tutorial](http://www.saschawille
 
 ## Misc
 
+### [Parallax mapping](parallaxmapping/)
+<img src="./screenshots/parallax_mapping.jpg" height="72px" align="right">
+
+Implements multiple texture mapping methods to simulate depth based purely on texture information without generating additional geometry. Along with basic normal mapping the example includes parallax mapping, steep parallax mapping and parallax occlusion mapping, with the later being the best in quality but also with the highest performance impact.
+
+### [Spherical environment mapping](sphericalenvmapping/)
+<img src="./screenshots/spherical_env_mapping.png" height="72px" align="right">
+
+Uses a (spherical) material capture texture containing environment lighting and reflection information to fake complex lighting. The example also uses a texture array to store (and select) several material caps that can be toggled at runtime.
+
+The technique is based on [this article](https://github.com/spite/spherical-environment-mapping).
+
 ### [Vulkan Gears](gears/)
 <img src="./screenshots/basic_gears.png" height="72px" align="right">
 
@@ -306,18 +318,6 @@ Instead of just sampling a bitmap font texture, a texture with per-character sig
 
 Distance field font textures can be generated with tools like [Hiero](https://github.com/libgdx/libgdx/wiki/Hiero).
 
-### [Spherical environment mapping](sphericalenvmapping/)
-<img src="./screenshots/spherical_env_mapping.png" height="72px" align="right">
-
-Uses a (spherical) material capture texture containing environment lighting and reflection information to fake complex lighting. The example also uses a texture array to store (and select) several material caps that can be toggled at runtime.
-
-The technique is based on [this article](https://github.com/spite/spherical-environment-mapping).
-
-### [Parallax mapping](parallaxmapping/)
-<img src="./screenshots/parallax_mapping.jpg" height="72px" align="right">
-
-Like normal mapping, parallax mapping simulates geometry on a flat surface. In addition to normal mapping a heightmap is used to offset texture coordinates depending on the viewing angle giving the illusion of added depth.
-
 ### [Vulkan demo scene](vulkanscene/)
 <img src="./screenshots/vulkan_scene.png" height="72px" align="right">
 
@@ -328,7 +328,6 @@ Thanks to the authors of these libraries :
 - [OpenGL Mathematics (GLM)](https://github.com/g-truc/glm)
 - [OpenGL Image (GLI)](https://github.com/g-truc/gli)
 - [Open Asset Import Library](https://github.com/assimp/assimp)
-- [Tiny obj loader](https://github.com/syoyo/tinyobjloader)
 
 And a huge thanks to the Vulkan Working Group, Vulkan Advisory Panel, the fine people at [LunarG](http://www.lunarg.com), Baldur Karlsson ([RenderDoc](https://github.com/baldurk/renderdoc)) and everyone from the different IHVs that helped me get the examples up and working on their hardware!
 
