@@ -75,13 +75,17 @@ public:
 	// Max. number of concurrent threads
 	uint32_t numThreads;
 
+	// Keep the data update multi-threaded,
+	// but record the actual command buffers on a single thread
+	bool forceSingleRenderer;
+
 	// Use push constants to update shader
 	// parameters on a per-thread base
 	struct ThreadPushConstantBlock {
 		glm::mat4 mvp;
 		glm::vec3 color;
 	};
-	
+
 	struct ObjectData {
 		glm::mat4 model;
 		glm::vec3 pos;
@@ -129,10 +133,13 @@ public:
 		// Get number of max. concurrrent threads
 		numThreads = std::thread::hardware_concurrency();
 		assert(numThreads > 0);
+		forceSingleRenderer = false;
 #if defined(__ANDROID__)
 		LOGD("numThreads = %d", numThreads);
 #else
-		std::cout << "numThreads = " << numThreads << std::endl;
+		std::cout << "numThreads = " << numThreads << ", " <<
+			"forceSingleRenderer = " << forceSingleRenderer <<
+			std::endl;
 #endif
 		srand(time(NULL));
 
@@ -143,7 +150,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.phong, nullptr);
 		vkDestroyPipeline(device, pipelines.starsphere, nullptr);
@@ -186,7 +193,7 @@ public:
 		// Create a secondary command buffer for rendering the star sphere
 		cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffer));
-		
+
 		threadData.resize(numThreads);
 
 		float maxX = std::floor(std::sqrt(numThreads * numObjectsPerThread));
@@ -199,7 +206,7 @@ public:
 		for (uint32_t i = 0; i < numThreads; i++)
 		{
 			ThreadData *thread = &threadData[i];
-			
+
 			// Create one command pool for each thread
 			VkCommandPoolCreateInfo cmdPoolInfo = vks::initializers::commandPoolCreateInfo();
 			cmdPoolInfo.queueFamilyIndex = swapChain.queueNodeIndex;
@@ -234,40 +241,17 @@ public:
 				thread->pushConstBlock[j].color = glm::vec3(rnd(1.0f), rnd(1.0f), rnd(1.0f));
 			}
 		}
-	
 	}
 
-	// Builds the secondary command buffer for each thread
-	void threadRenderCode(uint32_t threadIndex, uint32_t cmdBufferIndex, VkCommandBufferInheritanceInfo inheritanceInfo)
+	bool threadUpdateCode(uint32_t threadIndex, uint32_t cmdBufferIndex)
 	{
 		ThreadData *thread = &threadData[threadIndex];
 		ObjectData *objectData = &thread->objectData[cmdBufferIndex];
 
-		// Check visibility against view frustum
-		objectData->visible = frustum.checkSphere(objectData->pos, objectSphereDim * 0.5f); 
-
+		objectData->visible = frustum.checkSphere(objectData->pos, objectSphereDim * 0.5f);
 		if (!objectData->visible)
-		{
-			return;
-		}
+			return false;
 
-		VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
-		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
-
-		VkCommandBuffer cmdBuffer = thread->commandBuffer[cmdBufferIndex];
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &commandBufferBeginInfo));
-
-		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
-
-		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
-
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
-
-		// Update
 		objectData->rotation.y += 2.5f * objectData->rotationSpeed * frameTimer;
 		if (objectData->rotation.y > 360.0f)
 		{
@@ -285,6 +269,30 @@ public:
 		objectData->model = glm::scale(objectData->model, glm::vec3(objectData->scale));
 
 		thread->pushConstBlock[cmdBufferIndex].mvp = matrices.projection * matrices.view * objectData->model;
+		return true;
+	}
+
+	// Builds the secondary command buffer for each thread
+	void threadRenderCode(uint32_t threadIndex, uint32_t cmdBufferIndex, VkCommandBufferInheritanceInfo inheritanceInfo)
+	{
+		ThreadData *thread = &threadData[threadIndex];
+		ObjectData *objectData = &thread->objectData[cmdBufferIndex];
+
+		VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+
+		VkCommandBuffer cmdBuffer = thread->commandBuffer[cmdBufferIndex];
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &commandBufferBeginInfo));
+
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
 
 		// Update shader push constant block
 		// Contains model view matrix
@@ -387,25 +395,59 @@ public:
 		updateSecondaryCommandBuffer(inheritanceInfo);
 		commandBuffers.push_back(secondaryCommandBuffer);
 
-		// Add a job to the thread's queue for each object to be rendered
-		for (uint32_t t = 0; t < numThreads; t++)
+		if (forceSingleRenderer)
 		{
-			for (uint32_t i = 0; i < numObjectsPerThread; i++)
+			// Add a job to the thread's queue for each object to be updated only
+			for (uint32_t t = 0; t < numThreads; t++)
 			{
-				threadPool.threads[t]->addJob([=] { threadRenderCode(t, i, inheritanceInfo); });
-			}
-		}
-			
-		threadPool.wait();
-
-		// Only submit if object is within the current view frustum
-		for (uint32_t t = 0; t < numThreads; t++)
-		{
-			for (uint32_t i = 0; i < numObjectsPerThread; i++)
-			{
-				if (threadData[t].objectData[i].visible)
+				for (uint32_t i = 0; i < numObjectsPerThread; i++)
 				{
-					commandBuffers.push_back(threadData[t].commandBuffer[i]);
+					threadPool.threads[t]->addJob([=] { threadUpdateCode(t, i); });
+				}
+			}
+
+			threadPool.wait();
+
+			// Render all visible objects
+			for (uint32_t t = 0; t < numThreads; t++)
+			{
+				ThreadData *thread = &threadData[t];
+				for (uint32_t i = 0; i < numObjectsPerThread; i++)
+				{
+					ObjectData *objectData = &thread->objectData[i];
+
+					if (objectData->visible)
+					{
+						threadRenderCode(t, i, inheritanceInfo);
+						commandBuffers.push_back(thread->commandBuffer[i]);
+					}
+				}
+			}
+		}else
+		{
+			// Add a job to the thread's queue for each object to be updated and rendered
+			for (uint32_t t = 0; t < numThreads; t++)
+			{
+				for (uint32_t i = 0; i < numObjectsPerThread; i++)
+				{
+					threadPool.threads[t]->addJob([=] {
+						if (threadUpdateCode(t, i))
+							threadRenderCode(t, i, inheritanceInfo);
+					});
+				}
+			}
+
+			threadPool.wait();
+
+			// Only submit if object is within the current view frustum
+			for (uint32_t t = 0; t < numThreads; t++)
+			{
+				for (uint32_t i = 0; i < numObjectsPerThread; i++)
+				{
+					if (threadData[t].objectData[i].visible)
+					{
+						commandBuffers.push_back(threadData[t].commandBuffer[i]);
+					}
 				}
 			}
 		}
