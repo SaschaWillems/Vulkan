@@ -16,7 +16,7 @@
 #include <io.h>
 #endif
 #ifdef __ANDROID__
-#include "vulkanandroid.h"
+#include "VulkanAndroid.h"
 #endif
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

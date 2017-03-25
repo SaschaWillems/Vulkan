@@ -23,7 +23,7 @@
 #include "VulkanDevice.hpp"
 
 #if defined(__ANDROID__)
-#include "vulkanandroid.h"
+#include "VulkanAndroid.h"
 #endif
 
 #include "../external/stb/stb_font_consolas_24_latin1.inl"

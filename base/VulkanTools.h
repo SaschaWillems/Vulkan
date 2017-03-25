@@ -26,7 +26,7 @@
 #include <fcntl.h>
 #include <io.h>
 #elif defined(__ANDROID__)
-#include "vulkanandroid.h"
+#include "VulkanAndroid.h"
 #include <android/asset_manager.h>
 #endif
 

@@ -18,7 +18,7 @@
 #include <android/asset_manager.h>
 #include <android_native_app_glue.h>
 #include <sys/system_properties.h>
-#include "vulkanandroid.h"
+#include "VulkanAndroid.h"
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <wayland-client.h>
 #elif defined(__linux__)

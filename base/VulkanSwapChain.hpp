@@ -27,7 +27,7 @@
 #include "VulkanTools.h"
 
 #ifdef __ANDROID__
-#include "vulkanandroid.h"
+#include "VulkanAndroid.h"
 #endif
 
 // Macro to get a procedure address based on a vulkan instance

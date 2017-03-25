@@ -6,7 +6,7 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include "vulkanandroid.h"
+#include "VulkanAndroid.h"
 
 #if defined(__ANDROID__)
 	#include <android/log.h>
