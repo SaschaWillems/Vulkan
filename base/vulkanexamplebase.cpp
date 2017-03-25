@@ -1181,6 +1181,9 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 
 				switch (action) {
 					case AMOTION_EVENT_ACTION_UP: {
+						vulkanExample->lastTapTime = AMotionEvent_getEventTime(event);
+						vulkanExample->touchPos.x = AMotionEvent_getX(event, 0);
+						vulkanExample->touchPos.y = AMotionEvent_getY(event, 0);
 						vulkanExample->touchTimer = 0.0;
 						vulkanExample->touchDown = false;
 						vulkanExample->camera.keys.up = false;
@@ -1188,9 +1191,22 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						break;
 					}
 					case AMOTION_EVENT_ACTION_DOWN: {
+						// Detect double tap
+						int64_t eventTime = AMotionEvent_getEventTime(event);
+						if (eventTime - vulkanExample->lastTapTime <= vks::android::DOUBLE_TAP_TIMEOUT) {
+							float deadZone = (160.f / vks::android::screenDensity) * vks::android::DOUBLE_TAP_SLOP * vks::android::DOUBLE_TAP_SLOP;
+							float x = AMotionEvent_getX(event, 0) - vulkanExample->touchPos.x;
+							float y = AMotionEvent_getY(event, 0) - vulkanExample->touchPos.y;
+							if ((x * x + y * y) < deadZone) {
+								vulkanExample->keyPressed(TOUCH_DOUBLE_TAP);
+								vulkanExample->touchDown = false;
+							}
+						}
+						else {
+							vulkanExample->touchDown = true;
+						}
 						vulkanExample->touchPos.x = AMotionEvent_getX(event, 0);
 						vulkanExample->touchPos.y = AMotionEvent_getY(event, 0);
-						vulkanExample->touchDown = true;
 						break;
 					}
 					case AMOTION_EVENT_ACTION_MOVE: {
@@ -1203,14 +1219,13 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						vulkanExample->camera.rotate(glm::vec3(deltaX, 0.0f, 0.0f));
 						vulkanExample->camera.rotate(glm::vec3(0.0f, -deltaY, 0.0f));
 
-						vulkanExample->rotation.x += deltaX;				
-						vulkanExample->rotation.y -= deltaY;				
+						vulkanExample->rotation.x += deltaX;
+						vulkanExample->rotation.y -= deltaY;
 
-						vulkanExample->viewChanged();	
+						vulkanExample->viewChanged();
 
 						vulkanExample->touchPos.x = eventX;
 						vulkanExample->touchPos.y = eventY;
-
 						break;
 					}
 					default:
