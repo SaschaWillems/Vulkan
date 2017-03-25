@@ -14,6 +14,7 @@
 #define KEY_F2 VK_F2
 #define KEY_F3 VK_F3
 #define KEY_F4 VK_F4
+#define KEY_F5 VK_F5
 #define KEY_W 0x57
 #define KEY_A 0x41
 #define KEY_S 0x53
@@ -81,10 +82,11 @@
 #endif
 
 // todo: Android gamepad keycodes outside of define for now
-#define GAMEPAD_BUTTON_A 0x1000
-#define GAMEPAD_BUTTON_B 0x1001
-#define GAMEPAD_BUTTON_X 0x1002
-#define GAMEPAD_BUTTON_Y 0x1003
-#define GAMEPAD_BUTTON_L1 0x1004
-#define GAMEPAD_BUTTON_R1 0x1005
-#define GAMEPAD_BUTTON_START 0x1006
+#define GAMEPAD_BUTTON_A		0x1000
+#define GAMEPAD_BUTTON_B		0x1001
+#define GAMEPAD_BUTTON_X		0x1002
+#define GAMEPAD_BUTTON_Y		0x1003
+#define GAMEPAD_BUTTON_L1		0x1004
+#define GAMEPAD_BUTTON_R1		0x1005
+#define GAMEPAD_BUTTON_START	0x1006
+#define TOUCH_DOUBLE_TAP		0x1100
