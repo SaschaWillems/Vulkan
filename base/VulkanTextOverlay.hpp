@@ -122,16 +122,15 @@ public:
 
 #if defined(__ANDROID__)		
 		// Scale text on Android devices with high DPI
-		int32_t screenDensity = vks::android::getScreenDensity();
-		if (screenDensity >= ACONFIGURATION_DENSITY_XXHIGH) {
+		if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_XXHIGH) {
 			LOGD("XXHIGH");
 			scale = 2.0f;
 		} 
-		else if (screenDensity >= ACONFIGURATION_DENSITY_XHIGH) {
+		else if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_XHIGH) {
 			LOGD("XHIGH");
 			scale = 1.5f;
 		} 
-		else if (screenDensity >= ACONFIGURATION_DENSITY_HIGH) {
+		else if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_HIGH) {
 			LOGD("HIGH");
 			scale = 1.25f;
 		};
