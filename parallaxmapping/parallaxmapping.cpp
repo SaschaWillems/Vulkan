@@ -402,6 +402,7 @@ public:
 		{
 		case KEY_SPACE:
 		case GAMEPAD_BUTTON_A:
+		case TOUCH_DOUBLE_TAP:
 			toggleMappingMode();
 			break;
 		}

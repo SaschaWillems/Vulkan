@@ -431,6 +431,7 @@ public:
 		case KEY_KPADD:
 		case KEY_SPACE:
 		case GAMEPAD_BUTTON_A:
+		case TOUCH_DOUBLE_TAP:
 			changeMatCapIndex(1);
 			break;
 		case KEY_KPSUB:
