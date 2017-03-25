@@ -134,6 +134,8 @@ set(EXAMPLES
 	offscreen
 	parallaxmapping
 	particlefire
+	pbrbasic
+	pbribl
 	pipelines
 	pushconstants
 	radialblur
@@ -157,6 +159,7 @@ set(EXAMPLES
 	texturemipmapgen
 	texturesparseresidency
 	triangle
+	viewportarray
 	vulkanscene
 )
 
