@@ -118,6 +118,7 @@ namespace vks
 		{
 			VkSamplerCreateInfo samplerCreateInfo {};
 			samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			samplerCreateInfo.maxAnisotropy = 1.0f;
 			return samplerCreateInfo;
 		}
 
