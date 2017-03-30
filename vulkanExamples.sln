@@ -79,8 +79,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Base", "Base", "{09B9A54B-F
 		base\frustum.hpp = base\frustum.hpp
 		base\keycodes.hpp = base\keycodes.hpp
 		base\threadpool.hpp = base\threadpool.hpp
-		base\vulkanandroid.cpp = base\vulkanandroid.cpp
-		base\vulkanandroid.h = base\vulkanandroid.h
+		base\VulkanAndroid.cpp = base\VulkanAndroid.cpp
+		base\VulkanAndroid.h = base\VulkanAndroid.h
 		base\VulkanBuffer.hpp = base\VulkanBuffer.hpp
 		base\vulkandebug.cpp = base\vulkandebug.cpp
 		base\vulkandebug.h = base\vulkandebug.h
@@ -146,6 +146,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pbr", "pbr", "{BE290A75-7E65-4D0A-B419-774A309B6A60}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "viewportarray", "viewportarray\viewportarray.vcxproj", "{CB2ABE1F-13C6-483E-AF1A-B933BC6A0F1B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "imgui\imgui.vcxproj", "{3BC2A597-A8BD-41AE-816B-2C242579D64E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -357,6 +359,10 @@ Global
 		{CB2ABE1F-13C6-483E-AF1A-B933BC6A0F1B}.Debug|x64.Build.0 = Debug|x64
 		{CB2ABE1F-13C6-483E-AF1A-B933BC6A0F1B}.Release|x64.ActiveCfg = Release|x64
 		{CB2ABE1F-13C6-483E-AF1A-B933BC6A0F1B}.Release|x64.Build.0 = Release|x64
+		{3BC2A597-A8BD-41AE-816B-2C242579D64E}.Debug|x64.ActiveCfg = Debug|x64
+		{3BC2A597-A8BD-41AE-816B-2C242579D64E}.Debug|x64.Build.0 = Debug|x64
+		{3BC2A597-A8BD-41AE-816B-2C242579D64E}.Release|x64.ActiveCfg = Release|x64
+		{3BC2A597-A8BD-41AE-816B-2C242579D64E}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

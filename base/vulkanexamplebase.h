@@ -64,8 +64,6 @@ private:
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 protected:
-	// Last frame time, measured using a high performance timer (if available)
-	float frameTimer = 1.0f;
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
 	uint32_t lastFPS = 0;
@@ -135,6 +133,9 @@ public:
 	bool prepared = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
+
+	/** @brief Last frame time measured using a high performance timer (if available) */
+	float frameTimer = 1.0f;
 
 	/** @brief Example settings that can be changed e.g. by command line arguments */
 	struct Settings {
