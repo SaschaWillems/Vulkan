@@ -25,7 +25,7 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-#define SAMPLE_COUNT VK_SAMPLE_COUNT_4_BIT
+#define SAMPLE_COUNT VK_SAMPLE_COUNT_8_BIT
 
 struct {
 	struct {
@@ -278,19 +278,17 @@ public:
 		depthReference.attachment = 2;
 		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		// Two resolve attachment references for color and depth
-		std::array<VkAttachmentReference,2> resolveReferences = {};
-		resolveReferences[0].attachment = 1;
-		resolveReferences[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		resolveReferences[1].attachment = 3;
-		resolveReferences[1].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		// Resolve attachment reference for the color attachment
+		VkAttachmentReference resolveReference = {};
+		resolveReference.attachment = 1;
+		resolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorReference;
 		// Pass our resolve attachments to the sub pass
-		subpass.pResolveAttachments = resolveReferences.data();
+		subpass.pResolveAttachments = &resolveReference;
 		subpass.pDepthStencilAttachment = &depthReference;
 
 		std::array<VkSubpassDependency, 2> dependencies;
