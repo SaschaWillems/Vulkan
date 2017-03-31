@@ -28,7 +28,7 @@
 #include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
 
-#define ENABLE_VALIDATION false
+#define ENABLE_VALIDATION true
 
 // Options and values to display/toggle from the UI
 struct UISettings {
@@ -62,8 +62,8 @@ private:
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
-	std::vector<VkShaderModule> shaderModules;
 	vks::VulkanDevice *device;
+	VulkanExampleBase *example;
 public:
 	// UI params are set via push constants
 	struct PushConstBlock {
@@ -71,7 +71,10 @@ public:
 		glm::vec2 translate;
 	} pushConstBlock;
 
-	ImGUI(vks::VulkanDevice *vulkanDevice) : device(vulkanDevice) {};
+	ImGUI(VulkanExampleBase *example) : example(example) 
+	{
+		device = example->vulkanDevice;
+	};
 	
 	~ImGUI()
 	{
@@ -87,7 +90,6 @@ public:
 		vkDestroyPipelineLayout(device->logicalDevice, pipelineLayout, nullptr);
 		vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
 		vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayout, nullptr);
-		for (auto module : shaderModules) { vkDestroyShaderModule(device->logicalDevice, module, nullptr); }
 	}
 
 	// Initialize styles, keys, etc.
@@ -107,7 +109,7 @@ public:
 	}
 
 	// Initialize all Vulkan resources used by the ui
-	void initResources(VkRenderPass renderPass, VkQueue copyQueue, std::string assetPath)
+	void initResources(VkRenderPass renderPass, VkQueue copyQueue)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -326,17 +328,8 @@ public:
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-		shaderStages[0].pName = "main";
-		shaderStages[0].module = vks::tools::loadShader((assetPath + "shaders/imgui/ui.vert.spv").c_str(), device->logicalDevice, VK_SHADER_STAGE_VERTEX_BIT);
-
-		shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		shaderStages[1].pName = "main";
-		shaderStages[1].module = vks::tools::loadShader((assetPath + "shaders/imgui/ui.frag.spv").c_str(), device->logicalDevice, VK_SHADER_STAGE_FRAGMENT_BIT);
-
-		shaderModules = { shaderStages[0].module, shaderStages[1].module };
+		shaderStages[0] = example->loadShader(example->getAssetPath() + "shaders/imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = example->loadShader(example->getAssetPath() + "shaders/imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
@@ -567,8 +560,6 @@ public:
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-			VK_CHECK_RESULT(vkResetCommandBuffer(drawCmdBuffers[i], 0));
-
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -760,9 +751,9 @@ public:
 
 	void prepareImGui()
 	{
-		imGui = new ImGUI(vulkanDevice);
+		imGui = new ImGUI(this);
 		imGui->init((float)width, (float)height);
-		imGui->initResources(renderPass, queue, getAssetPath());
+		imGui->initResources(renderPass, queue);
 	}
 
 	void prepare()

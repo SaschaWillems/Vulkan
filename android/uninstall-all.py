@@ -18,6 +18,7 @@ APP_NAMES = [
     "de.saschawillems.vulkanGears",
     "de.saschawillems.vulkanGeometryshader",
     "de.saschawillems.vulkanHDR",
+    "de.saschawillems.vulkanImGui",
     "de.saschawillems.vulkanIndirectdraw",
     "de.saschawillems.vulkanInstancing",
     "de.saschawillems.vulkanMesh",

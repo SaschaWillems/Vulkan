@@ -19,6 +19,7 @@ EXAMPLES = [
     "gears",
     "geometryshader",
     "hdr",
+    "imgui",
     "indirectdraw",
     "instancing",
     "mesh",
