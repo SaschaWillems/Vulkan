@@ -28,7 +28,7 @@
 #include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
 
-#define ENABLE_VALIDATION true
+#define ENABLE_VALIDATION false
 
 // Options and values to display/toggle from the UI
 struct UISettings {

@@ -30,9 +30,6 @@
     <ClCompile Include="..\base\vulkantools.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="imgui_main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\imgui\imgui.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
@@ -41,6 +38,9 @@
     </ClCompile>
     <ClCompile Include="..\external\imgui\imgui_draw.cpp">
       <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
