@@ -149,6 +149,18 @@ public:
 		uniformData.scene.destroy();
 	}
 
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		// Example uses multi draw indirect (if available)
+		if (deviceFeatures.multiDrawIndirect) {
+			enabledFeatures.multiDrawIndirect = VK_TRUE;
+		}
+		else {
+			std::cout << "MultiDrawIndirect not supported" << std::endl;
+		}
+	}
+
 	void reBuildCommandBuffers()
 	{
 		if (!checkCommandBuffers())
@@ -641,7 +653,7 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
