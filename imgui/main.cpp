@@ -328,8 +328,8 @@ public:
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		shaderStages[0] = example->loadShader(example->getAssetPath() + "shaders/imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = example->loadShader(example->getAssetPath() + "shaders/imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = example->loadShader(ASSET_PATH "shaders/imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = example->loadShader(ASSET_PATH "shaders/imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
@@ -695,8 +695,8 @@ public:
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/imgui/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/imgui/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(ASSET_PATH "shaders/imgui/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(ASSET_PATH "shaders/imgui/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
@@ -744,9 +744,9 @@ public:
 
 	void loadAssets()
 	{
-		models.models.loadFromFile(getAssetPath() + "models/vulkanscenemodels.dae", vertexLayout, 1.0f, vulkanDevice, queue);
-		models.background.loadFromFile(getAssetPath() + "models/vulkanscenebackground.dae", vertexLayout, 1.0f, vulkanDevice, queue);
-		models.logos.loadFromFile(getAssetPath() + "models/vulkanscenelogos.dae", vertexLayout, 1.0f, vulkanDevice, queue);
+		models.models.loadFromFile(ASSET_PATH "models/vulkanscenemodels.dae", vertexLayout, 1.0f, vulkanDevice, queue);
+		models.background.loadFromFile(ASSET_PATH "models/vulkanscenebackground.dae", vertexLayout, 1.0f, vulkanDevice, queue);
+		models.logos.loadFromFile(ASSET_PATH "models/vulkanscenelogos.dae", vertexLayout, 1.0f, vulkanDevice, queue);
 	}
 
 	void prepareImGui()
