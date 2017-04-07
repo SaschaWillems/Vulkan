@@ -43,7 +43,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 42
+#define VK_HEADER_VERSION 46
 
 
 #define VK_NULL_HANDLE 0
@@ -281,6 +281,7 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHX = 1000078002,
     VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHX = 1000079000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR = 1000080000,
+    VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR = 1000084000,
     VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO_KHR = 1000085000,
     VK_STRUCTURE_TYPE_OBJECT_TABLE_CREATE_INFO_NVX = 1000086000,
     VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_CREATE_INFO_NVX = 1000086001,
@@ -294,10 +295,12 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_DEVICE_EVENT_INFO_EXT = 1000091001,
     VK_STRUCTURE_TYPE_DISPLAY_EVENT_INFO_EXT = 1000091002,
     VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT = 1000091003,
+    VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE = 1000092000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_ATTRIBUTES_PROPERTIES_NVX = 1000097000,
     VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SWIZZLE_STATE_CREATE_INFO_NV = 1000098000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISCARD_RECTANGLE_PROPERTIES_EXT = 1000099000,
     VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT = 1000099001,
+    VK_STRUCTURE_TYPE_HDR_METADATA_EXT = 1000105000,
     VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK = 1000122000,
     VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK = 1000123000,
     VK_STRUCTURE_TYPE_BEGIN_RANGE = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -3296,6 +3299,19 @@ VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSurfaceKHR)
 
 typedef enum VkColorSpaceKHR {
     VK_COLOR_SPACE_SRGB_NONLINEAR_KHR = 0,
+    VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT = 1000104001,
+    VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT = 1000104002,
+    VK_COLOR_SPACE_DCI_P3_LINEAR_EXT = 1000104003,
+    VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT = 1000104004,
+    VK_COLOR_SPACE_BT709_LINEAR_EXT = 1000104005,
+    VK_COLOR_SPACE_BT709_NONLINEAR_EXT = 1000104006,
+    VK_COLOR_SPACE_BT2020_LINEAR_EXT = 1000104007,
+    VK_COLOR_SPACE_HDR10_ST2084_EXT = 1000104008,
+    VK_COLOR_SPACE_DOLBYVISION_EXT = 1000104009,
+    VK_COLOR_SPACE_HDR10_HLG_EXT = 1000104010,
+    VK_COLOR_SPACE_ADOBERGB_LINEAR_EXT = 1000104011,
+    VK_COLOR_SPACE_ADOBERGB_NONLINEAR_EXT = 1000104012,
+    VK_COLOR_SPACE_PASS_THROUGH_EXT = 1000104013,
     VK_COLOR_SPACE_BEGIN_RANGE_KHR = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
     VK_COLOR_SPACE_END_RANGE_KHR = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
     VK_COLOR_SPACE_RANGE_SIZE_KHR = (VK_COLOR_SPACE_SRGB_NONLINEAR_KHR - VK_COLOR_SPACE_SRGB_NONLINEAR_KHR + 1),
@@ -3703,7 +3719,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vkGetPhysicalDeviceXcbPresentationSupportKHR(
 #define VK_KHR_wayland_surface 1
 #include <wayland-client.h>
 
-#define VK_KHR_WAYLAND_SURFACE_SPEC_VERSION 5
+#define VK_KHR_WAYLAND_SURFACE_SPEC_VERSION 6
 #define VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME "VK_KHR_wayland_surface"
 
 typedef VkFlags VkWaylandSurfaceCreateFlagsKHR;
@@ -3989,6 +4005,30 @@ VKAPI_ATTR void VKAPI_CALL vkCmdPushDescriptorSetKHR(
     const VkWriteDescriptorSet*                 pDescriptorWrites);
 #endif
 
+#define VK_KHR_incremental_present 1
+#define VK_KHR_INCREMENTAL_PRESENT_SPEC_VERSION 1
+#define VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME "VK_KHR_incremental_present"
+
+typedef struct VkRectLayerKHR {
+    VkOffset2D    offset;
+    VkExtent2D    extent;
+    uint32_t      layer;
+} VkRectLayerKHR;
+
+typedef struct VkPresentRegionKHR {
+    uint32_t                 rectangleCount;
+    const VkRectLayerKHR*    pRectangles;
+} VkPresentRegionKHR;
+
+typedef struct VkPresentRegionsKHR {
+    VkStructureType              sType;
+    const void*                  pNext;
+    uint32_t                     swapchainCount;
+    const VkPresentRegionKHR*    pRegions;
+} VkPresentRegionsKHR;
+
+
+
 #define VK_KHR_descriptor_update_template 1
 VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDescriptorUpdateTemplateKHR)
 
@@ -4064,7 +4104,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdPushDescriptorSetWithTemplateKHR(
 #define VK_EXT_debug_report 1
 VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDebugReportCallbackEXT)
 
-#define VK_EXT_DEBUG_REPORT_SPEC_VERSION  5
+#define VK_EXT_DEBUG_REPORT_SPEC_VERSION  6
 #define VK_EXT_DEBUG_REPORT_EXTENSION_NAME "VK_EXT_debug_report"
 #define VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT
 
@@ -4103,6 +4143,7 @@ typedef enum VkDebugReportObjectTypeEXT {
     VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT = 30,
     VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT = 31,
     VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT = 32,
+    VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR_EXT = 1000085000,
     VK_DEBUG_REPORT_OBJECT_TYPE_BEGIN_RANGE_EXT = VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT,
     VK_DEBUG_REPORT_OBJECT_TYPE_END_RANGE_EXT = VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT,
     VK_DEBUG_REPORT_OBJECT_TYPE_RANGE_SIZE_EXT = (VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT - VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT + 1),
@@ -4759,7 +4800,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateViSurfaceNN(
 
 typedef struct VkPhysicalDeviceGroupPropertiesKHX {
     VkStructureType     sType;
-    const void*         pNext;
+    void*               pNext;
     uint32_t            physicalDeviceCount;
     VkPhysicalDevice    physicalDevices[VK_MAX_DEVICE_GROUP_SIZE_KHX];
     VkBool32            subsetAllocation;
@@ -4849,47 +4890,14 @@ typedef struct VkPhysicalDeviceIDPropertiesKHX {
     VkBool32           deviceLUIDValid;
 } VkPhysicalDeviceIDPropertiesKHX;
 
-typedef struct VkPhysicalDeviceProperties2KHX {
-    VkStructureType               sType;
-    void*                         pNext;
-    VkPhysicalDeviceProperties    properties;
-} VkPhysicalDeviceProperties2KHX;
-
-typedef struct VkImageFormatProperties2KHX {
-    VkStructureType            sType;
-    void*                      pNext;
-    VkImageFormatProperties    imageFormatProperties;
-} VkImageFormatProperties2KHX;
-
-typedef struct VkPhysicalDeviceImageFormatInfo2KHX {
-    VkStructureType       sType;
-    const void*           pNext;
-    VkFormat              format;
-    VkImageType           type;
-    VkImageTiling         tiling;
-    VkImageUsageFlags     usage;
-    VkImageCreateFlags    flags;
-} VkPhysicalDeviceImageFormatInfo2KHX;
-
 
 typedef void (VKAPI_PTR *PFN_vkGetPhysicalDeviceExternalBufferPropertiesKHX)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfoKHX* pExternalBufferInfo, VkExternalBufferPropertiesKHX* pExternalBufferProperties);
-typedef void (VKAPI_PTR *PFN_vkGetPhysicalDeviceProperties2KHX)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties2KHX* pProperties);
-typedef VkResult (VKAPI_PTR *PFN_vkGetPhysicalDeviceImageFormatProperties2KHX)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2KHX* pImageFormatInfo, VkImageFormatProperties2KHX* pImageFormatProperties);
 
 #ifndef VK_NO_PROTOTYPES
 VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceExternalBufferPropertiesKHX(
     VkPhysicalDevice                            physicalDevice,
     const VkPhysicalDeviceExternalBufferInfoKHX* pExternalBufferInfo,
     VkExternalBufferPropertiesKHX*              pExternalBufferProperties);
-
-VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties2KHX(
-    VkPhysicalDevice                            physicalDevice,
-    VkPhysicalDeviceProperties2KHX*             pProperties);
-
-VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties2KHX(
-    VkPhysicalDevice                            physicalDevice,
-    const VkPhysicalDeviceImageFormatInfo2KHX*  pImageFormatInfo,
-    VkImageFormatProperties2KHX*                pImageFormatProperties);
 #endif
 
 #define VK_KHX_external_memory 1
@@ -4917,7 +4925,7 @@ typedef struct VkExportMemoryAllocateInfoKHX {
 
 
 
-#ifdef VK_USE_PLATFORM_WIN32_KHR
+#ifdef VK_USE_PLATFORM_WIN32_KHX
 #define VK_KHX_external_memory_win32 1
 #define VK_KHX_EXTERNAL_MEMORY_WIN32_SPEC_VERSION 1
 #define VK_KHX_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME "VK_KHX_external_memory_win32"
@@ -4960,7 +4968,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryWin32HandlePropertiesKHX(
     HANDLE                                      handle,
     VkMemoryWin32HandlePropertiesKHX*           pMemoryWin32HandleProperties);
 #endif
-#endif /* VK_USE_PLATFORM_WIN32_KHR */
+#endif /* VK_USE_PLATFORM_WIN32_KHX */
 
 #define VK_KHX_external_memory_fd 1
 #define VK_KHX_EXTERNAL_MEMORY_FD_SPEC_VERSION 1
@@ -5565,6 +5573,51 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSwapchainCounterEXT(
     uint64_t*                                   pCounterValue);
 #endif
 
+#define VK_GOOGLE_display_timing 1
+#define VK_GOOGLE_DISPLAY_TIMING_SPEC_VERSION 1
+#define VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME "VK_GOOGLE_display_timing"
+
+typedef struct VkRefreshCycleDurationGOOGLE {
+    uint64_t    refreshDuration;
+} VkRefreshCycleDurationGOOGLE;
+
+typedef struct VkPastPresentationTimingGOOGLE {
+    uint32_t    presentID;
+    uint64_t    desiredPresentTime;
+    uint64_t    actualPresentTime;
+    uint64_t    earliestPresentTime;
+    uint64_t    presentMargin;
+} VkPastPresentationTimingGOOGLE;
+
+typedef struct VkPresentTimeGOOGLE {
+    uint32_t    presentID;
+    uint64_t    desiredPresentTime;
+} VkPresentTimeGOOGLE;
+
+typedef struct VkPresentTimesInfoGOOGLE {
+    VkStructureType               sType;
+    const void*                   pNext;
+    uint32_t                      swapchainCount;
+    const VkPresentTimeGOOGLE*    pTimes;
+} VkPresentTimesInfoGOOGLE;
+
+
+typedef VkResult (VKAPI_PTR *PFN_vkGetRefreshCycleDurationGOOGLE)(VkDevice device, VkSwapchainKHR swapchain, VkRefreshCycleDurationGOOGLE* pDisplayTimingProperties);
+typedef VkResult (VKAPI_PTR *PFN_vkGetPastPresentationTimingGOOGLE)(VkDevice device, VkSwapchainKHR swapchain, uint32_t* pPresentationTimingCount, VkPastPresentationTimingGOOGLE* pPresentationTimings);
+
+#ifndef VK_NO_PROTOTYPES
+VKAPI_ATTR VkResult VKAPI_CALL vkGetRefreshCycleDurationGOOGLE(
+    VkDevice                                    device,
+    VkSwapchainKHR                              swapchain,
+    VkRefreshCycleDurationGOOGLE*               pDisplayTimingProperties);
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetPastPresentationTimingGOOGLE(
+    VkDevice                                    device,
+    VkSwapchainKHR                              swapchain,
+    uint32_t*                                   pPresentationTimingCount,
+    VkPastPresentationTimingGOOGLE*             pPresentationTimings);
+#endif
+
 #define VK_NV_sample_mask_override_coverage 1
 #define VK_NV_SAMPLE_MASK_OVERRIDE_COVERAGE_SPEC_VERSION 1
 #define VK_NV_SAMPLE_MASK_OVERRIDE_COVERAGE_EXTENSION_NAME "VK_NV_sample_mask_override_coverage"
@@ -5649,7 +5702,7 @@ typedef VkFlags VkPipelineDiscardRectangleStateCreateFlagsEXT;
 
 typedef struct VkPhysicalDeviceDiscardRectanglePropertiesEXT {
     VkStructureType    sType;
-    const void*        pNext;
+    void*              pNext;
     uint32_t           maxDiscardRectangles;
 } VkPhysicalDeviceDiscardRectanglePropertiesEXT;
 
@@ -5671,6 +5724,44 @@ VKAPI_ATTR void VKAPI_CALL vkCmdSetDiscardRectangleEXT(
     uint32_t                                    firstDiscardRectangle,
     uint32_t                                    discardRectangleCount,
     const VkRect2D*                             pDiscardRectangles);
+#endif
+
+#define VK_EXT_swapchain_colorspace 1
+#define VK_EXT_SWAPCHAIN_COLOR_SPACE_SPEC_VERSION 2
+#define VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME "VK_EXT_swapchain_colorspace"
+
+
+#define VK_EXT_hdr_metadata 1
+#define VK_EXT_HDR_METADATA_SPEC_VERSION  1
+#define VK_EXT_HDR_METADATA_EXTENSION_NAME "VK_EXT_hdr_metadata"
+
+typedef struct VkXYColorEXT {
+    float    x;
+    float    y;
+} VkXYColorEXT;
+
+typedef struct VkHdrMetadataEXT {
+    VkStructureType    sType;
+    const void*        pNext;
+    VkXYColorEXT       displayPrimaryRed;
+    VkXYColorEXT       displayPrimaryGreen;
+    VkXYColorEXT       displayPrimaryBlue;
+    VkXYColorEXT       whitePoint;
+    float              maxLuminance;
+    float              minLuminance;
+    float              maxContentLightLevel;
+    float              maxFrameAverageLightLevel;
+} VkHdrMetadataEXT;
+
+
+typedef void (VKAPI_PTR *PFN_vkSetHdrMetadataEXT)(VkDevice device, uint32_t swapchainCount, const VkSwapchainKHR* pSwapchains, const VkHdrMetadataEXT* pMetadata);
+
+#ifndef VK_NO_PROTOTYPES
+VKAPI_ATTR void VKAPI_CALL vkSetHdrMetadataEXT(
+    VkDevice                                    device,
+    uint32_t                                    swapchainCount,
+    const VkSwapchainKHR*                       pSwapchains,
+    const VkHdrMetadataEXT*                     pMetadata);
 #endif
 
 #ifdef VK_USE_PLATFORM_IOS_MVK
