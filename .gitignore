@@ -205,3 +205,6 @@ vulkanCapsViewer/vulkanreport.json
 
 # DLLs in bin
 !bin/*.dll
+
+# Android validation layer libraries
+android/layers/*/*.so
