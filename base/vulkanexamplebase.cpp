@@ -1757,7 +1757,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 		buttonFlags.Value |= (mouseButtons.left) ? vks::VirtualMouseButtonFlags::Left : 0;
 		buttonFlags.Value |= (mouseButtons.middle) ? vks::VirtualMouseButtonFlags::Middle : 0;
 
-		handleMouseMove(buttonFlags, glm::vec2(static_cast<float>(motion->event_x), static_cast<float>(motion->event_y));
+		handleMouseMove(buttonFlags, glm::vec2(static_cast<float>(motion->event_x), static_cast<float>(motion->event_y)));
 	}
 	break;
 	case XCB_BUTTON_PRESS:
