@@ -1,4 +1,4 @@
-/s*
+/*
 * Vulkan Example - Multi sampling with explicit resolve for deferred shading example
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de

@@ -1195,10 +1195,10 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		ValidateRect(window, NULL);
 		break;
 	case WM_KEYDOWN:
-		handleKeyEvent(convertRawKey(wParam), true, static_cast<uint32_t>(wParam));
+		handleKeyEvent(convertRawKey((uint32_t)wParam), true, (uint32_t)(wParam));
 		break;
 	case WM_KEYUP:
-		handleKeyEvent(convertRawKey(wParam), false, static_cast<uint32_t>(wParam));
+		handleKeyEvent(convertRawKey((uint32_t)wParam), false, (uint32_t)(wParam));
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
