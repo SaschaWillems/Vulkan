@@ -963,9 +963,12 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+		
+		switch (rawKeyCode)
 		{
 		case 0x57:
 		case GAMEPAD_BUTTON_X:

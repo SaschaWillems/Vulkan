@@ -1,4 +1,4 @@
-/*
+/s*
 * Vulkan Example - Multi sampling with explicit resolve for deferred shading example
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
@@ -1170,22 +1170,27 @@ public:
 		updateUniformBuffersScreen();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_F2:
+		case vks::VirtualKey::F2:
 			useMSAA = !useMSAA;
 			reBuildCommandBuffers();
 			break;
-		case KEY_F3:
+		case vks::VirtualKey::F3:
 			useSampleShading = !useSampleShading;
 			reBuildCommandBuffers();
 			break;
-		case KEY_F4:
-		case GAMEPAD_BUTTON_A:
+		case vks::VirtualKey::F4:
+		case vks::VirtualKey::GamePadButtonA:
 			toggleDebugDisplay();
 			updateTextOverlay();
+			break;
+		default:
 			break;
 		}
 	}

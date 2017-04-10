@@ -943,21 +943,26 @@ public:
 		buildCommandBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_S:
-		case GAMEPAD_BUTTON_A:
+		case vks::VirtualKey::S:
+		case vks::VirtualKey::GamePadButtonA:
 			toggleShadowMapDisplay();
 			break;
-		case KEY_L:
-		case GAMEPAD_BUTTON_X:
+		case vks::VirtualKey::L:
+		case vks::VirtualKey::GamePadButtonX:
 			toogleLightPOV();
 			break;
-		case KEY_F:
+		case vks::VirtualKey::F:
 		case GAMEPAD_BUTTON_Y:
 			toogleFilterPCF();
+			break;
+		default:
 			break;
 		}
 	}

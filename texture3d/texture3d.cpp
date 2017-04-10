@@ -818,17 +818,22 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+
+		switch (virtualKey)
 		{
-		case KEY_N:
-		case GAMEPAD_BUTTON_A:
+		case vks::VirtualKey::N:
+		case vks::VirtualKey::GamePadButtonA:
 			if (!regenerateNoise)
 			{
 				regenerateNoise = true;
 				updateTextOverlay();
 			}
+			break;
+		default:
 			break;
 		}
 	}

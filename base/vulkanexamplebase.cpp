@@ -7,8 +7,107 @@
 */
 
 #include "vulkanexamplebase.h"
+#include "keycodes.hpp"
 
 std::vector<const char*> VulkanExampleBase::args;
+
+namespace
+{
+#if defined(__ANDROID__)
+	bool tryConvertAndroidGamepadKey(const uint32_t rawKeyCode, vks::VirtualKey& rVirtualKey, uint32_t& rOldStyleKey)
+	{
+		using namespace vks;
+
+		switch (keyCode)
+		{
+		case AKEYCODE_BUTTON_A:
+			rVirtualKey = VirtualKey::GamePadButtonA;
+			rOldStyleKey = GAMEPAD_BUTTON_A;
+			return true;
+		case AKEYCODE_BUTTON_B:
+			rVirtualKey = VirtualKey::GamePadButtonB;
+			rOldStyleKey = GAMEPAD_BUTTON_B;
+			return true;
+		case AKEYCODE_BUTTON_X:
+			rVirtualKey = VirtualKey::GamePadButtonX;
+			rOldStyleKey = GAMEPAD_BUTTON_X;
+			return true;
+		case AKEYCODE_BUTTON_Y:
+			rVirtualKey = VirtualKey::GamePadButtonY;
+			rOldStyleKey = GAMEPAD_BUTTON_Y;
+			return true;
+		case AKEYCODE_BUTTON_L1:
+			rVirtualKey = VirtualKey::GamePadButtonLeftShoulder1;
+			rOldStyleKey = GAMEPAD_BUTTON_L1;
+			return true;
+		case AKEYCODE_BUTTON_R1:
+			rVirtualKey = VirtualKey::GamePadButtonRightShoulder1;
+			rOldStyleKey = GAMEPAD_BUTTON_R1;
+			return true;
+		case AKEYCODE_BUTTON_START:
+			rVirtualKey = VirtualKey::GamePadButtonStart;
+			rOldStyleKey = GAMEPAD_BUTTON_START;
+			return true;
+		default:
+			rVirtualKey = VirtualKey::Undefined;
+			rOldStyleKey = 0;
+			return false;
+		};
+	}
+
+#endif
+
+	vks::VirtualKey convertRawKey(const uint32_t rawKeyCode)
+	{
+		using namespace vks;
+
+		switch (rawKeyCode)
+		{
+		case KEY_ESCAPE:
+			return VirtualKey::Escape;
+		case KEY_SPACE:
+			return VirtualKey::Space;
+		case KEY_F1:
+			return VirtualKey::F1;
+		case KEY_F2:
+			return VirtualKey::F2;
+		case KEY_F3:
+			return VirtualKey::F3;
+		case KEY_F4:
+			return VirtualKey::F4;
+		case KEY_F5:
+			return VirtualKey::F5;
+		case KEY_A:
+			return VirtualKey::A;
+		case KEY_B:
+			return VirtualKey::B;
+		case KEY_D:
+			return VirtualKey::D;
+		case KEY_F:
+			return VirtualKey::F;
+		case KEY_L:
+			return VirtualKey::L;
+		case KEY_N:
+			return VirtualKey::N;
+		case KEY_O:
+			return VirtualKey::O;
+		case KEY_P:
+			return VirtualKey::P;
+		case KEY_S:
+			return VirtualKey::S;
+		case KEY_T:
+			return VirtualKey::T;
+		case KEY_W:
+			return VirtualKey::W;
+		case KEY_KPADD:
+			return VirtualKey::Add;
+		case KEY_KPSUB:
+			return VirtualKey::Subtract;
+		default:
+			return VirtualKey::Undefined;
+		}
+	}
+}
 
 VkResult VulkanExampleBase::createInstance(bool enableValidation)
 {
@@ -380,7 +479,7 @@ void VulkanExampleBase::renderLoop()
 		}
 	}
 #elif defined(_DIRECT2DISPLAY)
-	while (!quit)
+	while (!quitRequested)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
 		if (viewUpdated)
@@ -417,7 +516,7 @@ void VulkanExampleBase::renderLoop()
 		}
 	}
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-	while (!quit)
+	while (!quitRequested)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
 		if (viewUpdated)
@@ -467,7 +566,7 @@ void VulkanExampleBase::renderLoop()
 	}
 #elif defined(__linux__)
 	xcb_flush(connection);
-	while (!quit)
+	while (!quitRequested)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
 		if (viewUpdated)
@@ -896,6 +995,66 @@ void VulkanExampleBase::initVulkan()
 #endif	
 }
 
+void VulkanExampleBase::handleKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode)
+{
+	using namespace vks;
+
+	if (isPressed)
+	{
+		switch (virtualKey)
+		{
+		case VirtualKey::P:
+			paused = !paused;
+			break;
+		case VirtualKey::F1:
+			if (enableTextOverlay)
+			{
+				textOverlay->visible = !textOverlay->visible;
+			}
+			break;
+		case VirtualKey::Escape:
+			RequestQuit();
+			break;
+		}
+	}
+
+	if (camera.firstperson)
+	{
+		switch (virtualKey)
+		{
+		case VirtualKey::W:
+			camera.keys.up = isPressed;
+			break;
+		case VirtualKey::S:
+			camera.keys.down = isPressed;
+			break;
+		case VirtualKey::A:
+			camera.keys.left = isPressed;
+			break;
+		case VirtualKey::D:
+			camera.keys.right = isPressed;
+			break;
+		}
+	}
+
+	switch (virtualKey)
+	{
+	case VirtualKey::GamePadButtonStart:
+		this->paused = !this->paused;
+		break;
+	default:
+    break;
+	};
+
+	onKeyEvent(virtualKey, isPressed, rawKeyCode);
+}
+
+void VulkanExampleBase::RequestQuit()
+{
+	quitRequested = true;
+}
+
+
 #if defined(_WIN32)
 // Win32 : Sets up a console window and redirects standard output to it
 void VulkanExampleBase::setupConsole(std::string title)
@@ -1030,68 +1189,16 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	case WM_CLOSE:
 		prepared = false;
 		DestroyWindow(hWnd);
-		PostQuitMessage(0);
+		RequestQuit();
 		break;
 	case WM_PAINT:
 		ValidateRect(window, NULL);
 		break;
 	case WM_KEYDOWN:
-		switch (wParam)
-		{
-		case KEY_P:
-			paused = !paused;
-			break;
-		case KEY_F1:
-			if (enableTextOverlay)
-			{
-				textOverlay->visible = !textOverlay->visible;
-			}
-			break;
-		case KEY_ESCAPE:
-			PostQuitMessage(0);
-			break;
-		}
-
-		if (camera.firstperson)
-		{
-			switch (wParam)
-			{
-			case KEY_W:
-				camera.keys.up = true;
-				break;
-			case KEY_S:
-				camera.keys.down = true;
-				break;
-			case KEY_A:
-				camera.keys.left = true;
-				break;
-			case KEY_D:
-				camera.keys.right = true;
-				break;
-			}
-		}
-
-		keyPressed((uint32_t)wParam);
+		handleKeyEvent(convertRawKey(wParam), true, static_cast<uint32_t>(wParam));
 		break;
 	case WM_KEYUP:
-		if (camera.firstperson)
-		{
-			switch (wParam)
-			{
-			case KEY_W:
-				camera.keys.up = false;
-				break;
-			case KEY_S:
-				camera.keys.down = false;
-				break;
-			case KEY_A:
-				camera.keys.left = false;
-				break;
-			case KEY_D:
-				camera.keys.right = false;
-				break;
-			}
-		}
+		handleKeyEvent(convertRawKey(wParam), false, static_cast<uint32_t>(wParam));
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
@@ -1157,6 +1264,11 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		resizing = false;
 		break;
 	}
+
+	if (quitRequested)
+	{
+		PostQuitMessage(0);
+	}
 }
 #elif defined(__ANDROID__)
 int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* event)
@@ -1198,7 +1310,8 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 							float x = AMotionEvent_getX(event, 0) - vulkanExample->touchPos.x;
 							float y = AMotionEvent_getY(event, 0) - vulkanExample->touchPos.y;
 							if ((x * x + y * y) < deadZone) {
-								vulkanExample->keyPressed(TOUCH_DOUBLE_TAP);
+								vulkanExample->handleKeyEvent(VirtualKey::TouchDoubleTap, true, TOUCH_DOUBLE_TAP);
+								vulkanExample->handleKeyEvent(VirtualKey::TouchDoubleTap, false, TOUCH_DOUBLE_TAP);
 								vulkanExample->touchDown = false;
 							}
 						}
@@ -1244,33 +1357,13 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 		int32_t action = AKeyEvent_getAction((const AInputEvent*)event);
 		int32_t button = 0;
 
-		if (action == AKEY_EVENT_ACTION_UP)
-			return 0;
+		vks::VirtualKey virtualKey;
+		uint32_t oldStyleKey,
 
-		switch (keyCode)
+		if (tryConvertAndroidGamepadKey(keyCode, virtualKey, oldStyleKey))
 		{
-		case AKEYCODE_BUTTON_A:
-			vulkanExample->keyPressed(GAMEPAD_BUTTON_A);
-			break;
-		case AKEYCODE_BUTTON_B:
-			vulkanExample->keyPressed(GAMEPAD_BUTTON_B);
-			break;
-		case AKEYCODE_BUTTON_X:
-			vulkanExample->keyPressed(GAMEPAD_BUTTON_X);
-			break;
-		case AKEYCODE_BUTTON_Y:
-			vulkanExample->keyPressed(GAMEPAD_BUTTON_Y);
-			break;
-		case AKEYCODE_BUTTON_L1:
-			vulkanExample->keyPressed(GAMEPAD_BUTTON_L1);
-			break;
-		case AKEYCODE_BUTTON_R1:
-			vulkanExample->keyPressed(GAMEPAD_BUTTON_R1);
-			break;
-		case AKEYCODE_BUTTON_START:
-			vulkanExample->paused = !vulkanExample->paused;
-			break;
-		};
+			handleKeyEvent(virtualKey, action != AKEY_EVENT_ACTION_UP, oldStyleKey);
+		}
 
 		LOGD("Button %d pressed", keyCode);
 	}
@@ -1469,35 +1562,7 @@ void VulkanExampleBase::pointerAxis(wl_pointer *pointer, uint32_t time,
 void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 		uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
 {
-	switch (key)
-	{
-	case KEY_W:
-		camera.keys.up = !!state;
-		break;
-	case KEY_S:
-		camera.keys.down = !!state;
-		break;
-	case KEY_A:
-		camera.keys.left = !!state;
-		break;
-	case KEY_D:
-		camera.keys.right = !!state;
-		break;
-	case KEY_P:
-		if (state)
-			paused = !paused;
-		break;
-	case KEY_F1:
-		if (state && enableTextOverlay)
-			textOverlay->visible = !textOverlay->visible;
-		break;
-	case KEY_ESC:
-		quit = true;
-		break;
-	}
-
-	if (state)
-		keyPressed(key);
+	handleKeyEvent(convertRawKey(key), !!state, key);
 }
 
 /*static*/void VulkanExampleBase::keyboardModifiersCb(void *data,
@@ -1728,7 +1793,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	case XCB_CLIENT_MESSAGE:
 		if ((*(xcb_client_message_event_t*)event).data.data32[0] ==
 			(*atom_wm_delete_window).atom) {
-			quit = true;
+			RequestQuit();
 		}
 		break;
 	case XCB_MOTION_NOTIFY:
@@ -1784,58 +1849,17 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	case XCB_KEY_PRESS:
 	{
 		const xcb_key_release_event_t *keyEvent = (const xcb_key_release_event_t *)event;
-		switch (keyEvent->detail)
-		{
-			case KEY_W:
-				camera.keys.up = true;
-				break;
-			case KEY_S:
-				camera.keys.down = true;
-				break;
-			case KEY_A:
-				camera.keys.left = true;
-				break;
-			case KEY_D:
-				camera.keys.right = true;
-				break;
-			case KEY_P:
-				paused = !paused;
-				break;
-			case KEY_F1:
-				if (enableTextOverlay)
-				{
-					textOverlay->visible = !textOverlay->visible;
-				}
-				break;				
-		}
+		handleKeyEvent(convertRawKey(keyEvent->detail), true, keyEvent->detail);
 	}
 	break;	
 	case XCB_KEY_RELEASE:
 	{
 		const xcb_key_release_event_t *keyEvent = (const xcb_key_release_event_t *)event;
-		switch (keyEvent->detail)
-		{
-			case KEY_W:
-				camera.keys.up = false;
-				break;
-			case KEY_S:
-				camera.keys.down = false;
-				break;
-			case KEY_A:
-				camera.keys.left = false;
-				break;
-			case KEY_D:
-				camera.keys.right = false;
-				break;			
-			case KEY_ESCAPE:
-				quit = true;
-				break;
-		}
-		keyPressed(keyEvent->detail);
+		handleKeyEvent(convertRawKey(keyEvent->detail), false, keyEvent->detail);
 	}
 	break;
 	case XCB_DESTROY_NOTIFY:
-		quit = true;
+		RequestQuit();
 		break;
 	case XCB_CONFIGURE_NOTIFY:
 	{
@@ -1862,7 +1886,7 @@ void VulkanExampleBase::viewChanged()
 	// Can be overrdiden in derived class
 }
 
-void VulkanExampleBase::keyPressed(uint32_t keyCode)
+void VulkanExampleBase::onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode)
 {
 	// Can be overriden in derived class
 }
