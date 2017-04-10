@@ -852,14 +852,21 @@ public:
 		updateUniformBuffer(true);
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_F:
-		case GAMEPAD_BUTTON_A:
+		case VirtualKeyCode::F:
+		case VirtualKeyCode::GamePadButtonA:
 			fixedFrustum = !fixedFrustum;
 			updateUniformBuffer(true);
+			break;
+		default:
 			break;
 		}
 	}

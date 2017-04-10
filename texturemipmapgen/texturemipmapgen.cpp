@@ -732,21 +732,28 @@ public:
 		updateTextOverlay();
 	}
 	
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+
+		switch (virtualKey)
 		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
+		case VirtualKeyCode::Add:
+		case VirtualKeyCode::GamePadButtonRightShoulder1:
 			changeLodBias(0.1f);
 			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
+		case VirtualKeyCode::Subtract:
+		case VirtualKeyCode::GamePadButtonLeftShoulder1:
 			changeLodBias(-0.1f);
 			break;
-		case KEY_F:
-		case GAMEPAD_BUTTON_A:
+		case VirtualKeyCode::F:
+		case VirtualKeyCode::GamePadButtonA:
 			toggleSampler();
+			break;
+		default:
 			break;
 		}
 	}

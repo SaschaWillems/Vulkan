@@ -1130,21 +1130,28 @@ public:
 		updateUniformBufferSSAOParams();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+
+		switch (virtualKey)
 		{
-		case KEY_F2:
-		case GAMEPAD_BUTTON_A:
+		case VirtualKeyCode::F2:
+		case VirtualKeyCode::GamePadButtonA:
 			toggleSSAO();
 			break;
-		case KEY_F3:
-		case GAMEPAD_BUTTON_X:
+		case VirtualKeyCode::F3:
+		case VirtualKeyCode::GamePadButtonX:
 			toggleSSAOBlur();
 			break;
-		case KEY_F4:
-		case GAMEPAD_BUTTON_Y:
+		case VirtualKeyCode::F4:
+		case VirtualKeyCode::GamePadButtonY:
 			toggleSSAOOnly();
+			break;
+		default:
 			break;
 		}
 	}

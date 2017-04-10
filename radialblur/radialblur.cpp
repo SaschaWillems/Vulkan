@@ -848,17 +848,24 @@ public:
 		reBuildCommandBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_B:
-		case GAMEPAD_BUTTON_A:
+		case VirtualKeyCode::B:
+		case VirtualKeyCode::GamePadButtonA:
 			toggleBlur();
 			break;
-		case KEY_T:
-		case GAMEPAD_BUTTON_X:
+		case VirtualKeyCode::T:
+		case VirtualKeyCode::GamePadButtonX:
 			toggleTextureDisplay();
+			break;
+		default:
 			break;
 		}
 	}

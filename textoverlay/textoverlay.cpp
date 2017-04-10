@@ -1227,13 +1227,20 @@ public:
 		updateTextOverlay();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+
+		switch (virtualKey)
 		{
-		case KEY_KPADD:
-		case KEY_SPACE:
+		case VirtualKeyCode::Add:
+		case VirtualKeyCode::Space:
 			textOverlay->visible = !textOverlay->visible;
+		default:
+			break;
 		}
 	}
 };

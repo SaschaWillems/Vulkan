@@ -396,14 +396,21 @@ public:
 		updateTextOverlay();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_A:
-		case TOUCH_DOUBLE_TAP:
+		case VirtualKeyCode::Space:
+		case VirtualKeyCode::GamePadButtonA:
+		case VirtualKeyCode::TouchDoubleTap:
 			toggleMappingMode();
+			break;
+		default:
 			break;
 		}
 	}
