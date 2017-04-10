@@ -968,21 +968,18 @@ public:
 		if( ! isPressed )
 			return;
 		
-		switch (rawKeyCode)
+		if(rawKeyCode == 0x57 || virtualKey == vks::VirtualKey::GamePadButtonX )
 		{
-		case 0x57:
-		case GAMEPAD_BUTTON_X:
 			if (deviceFeatures.fillModeNonSolid) 
 			{
 				wireframe = !wireframe;
 				reBuildCommandBuffers();
 			}
-			break;
-		case 0x47:
-		case GAMEPAD_BUTTON_A:
+		}
+		else if(rawKeyCode == 0x47 || virtualKey == vks::VirtualKey::GamePadButtonA )
+		{
 			glow = !glow;
 			reBuildCommandBuffers();
-			break;
 		}
 	}
 

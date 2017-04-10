@@ -959,7 +959,7 @@ public:
 			toogleLightPOV();
 			break;
 		case vks::VirtualKey::F:
-		case GAMEPAD_BUTTON_Y:
+		case vks::VirtualKey::GamePadButtonY:
 			toogleFilterPCF();
 			break;
 		default:
