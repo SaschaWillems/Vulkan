@@ -1,5 +1,5 @@
 /*
-* Platform indepdenent virtual key codes
+* Platform independent virtual key codes
 *
 * Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
 *
