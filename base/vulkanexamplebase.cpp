@@ -1015,6 +1015,8 @@ void VulkanExampleBase::handleKeyEvent(const vks::VirtualKeyCode virtualKey, con
 		case VirtualKeyCode::Escape:
 			RequestQuit();
 			break;
+		default:
+			break;
 		}
 	}
 
@@ -1034,6 +1036,8 @@ void VulkanExampleBase::handleKeyEvent(const vks::VirtualKeyCode virtualKey, con
 		case VirtualKeyCode::D:
 			camera.keys.right = isPressed;
 			break;
+		default:
+			break;
 		}
 	}
 
@@ -1043,7 +1047,7 @@ void VulkanExampleBase::handleKeyEvent(const vks::VirtualKeyCode virtualKey, con
 		this->paused = !this->paused;
 		break;
 	default:
-    break;
+		break;
 	};
 
 	onKeyEvent(virtualKey, isPressed, rawKeyCode);
