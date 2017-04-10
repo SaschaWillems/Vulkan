@@ -225,6 +225,7 @@ public:
 	vks::VirtualMouseButtonFlags  mouseButtonFlags;
 #elif defined(__linux__)
 	vks::VirtualMouseButtonFlags  mouseButtonFlags;
+  glm::vec2 mousePosition;
 	bool quit = false;
 	xcb_connection_t *connection;
 	xcb_screen_t *screen;

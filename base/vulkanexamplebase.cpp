@@ -1756,7 +1756,8 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	case XCB_MOTION_NOTIFY:
 	{
 		xcb_motion_notify_event_t *motion = (xcb_motion_notify_event_t *)event;
-		handleMouseMove(mouseButtonFlags, glm::vec2(static_cast<float>(motion->event_x), static_cast<float>(motion->event_y)));
+    mousePosition = glm::vec2(static_cast<float>(motion->event_x), static_cast<float>(motion->event_y));
+		handleMouseMove(mouseButtonFlags, mousePosition);
 	}
 	break;
 	case XCB_BUTTON_PRESS:
@@ -1766,11 +1767,11 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 		if (press->detail == XCB_BUTTON_INDEX_1)
 			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Left, true);
 		if (press->detail == XCB_BUTTON_INDEX_2)
-			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Middle, truefalse);
+			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Middle, true);
 		if (press->detail == XCB_BUTTON_INDEX_3)
 			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Right, true);
 
-		handleMouseButton(mouseButtonFlags, glm::vec2(static_cast<float>(motion->event_x), static_cast<float>(motion->event_y)));
+		handleMouseButton(mouseButtonFlags, mousePosition);
 	}
 	break;
 	case XCB_BUTTON_RELEASE:
@@ -1783,7 +1784,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 		if (press->detail == XCB_BUTTON_INDEX_3)
 			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Right, false);
 
-		handleMouseButton(mouseButtonFlags, glm::vec2(static_cast<float>(motion->event_x), static_cast<float>(motion->event_y)));
+		handleMouseButton(mouseButtonFlags, mousePosition);
 	}
 	break;
 	case XCB_KEY_PRESS:
