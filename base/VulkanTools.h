@@ -21,6 +21,7 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
+#include <fstream>
 #if defined(_WIN32)
 #include <windows.h>
 #include <fcntl.h>
@@ -123,5 +124,8 @@ namespace vks
 		// Load a GLSL shader (text)
 		// Note: GLSL support requires vendor-specific extensions to be enabled and is not a core-feature of Vulkan
 		VkShaderModule loadShaderGLSL(const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
+
+		/** @brief Checks if a file exists */
+		bool fileExists(const std::string &filename);
 	}
 }

@@ -104,6 +104,9 @@ namespace vks
 
 			free(textureData);
 #else
+			if (!vks::tools::fileExists(filename)) {
+				vks::tools::exitFatal("Could not load texture from " + filename, "File not found");
+			}
 			gli::texture2d tex2D(gli::load(filename.c_str()));
 #endif		
 			assert(!tex2D.empty());
@@ -582,9 +585,11 @@ namespace vks
 
 			free(textureData);
 #else
+			if (!vks::tools::fileExists(filename)) {
+				vks::tools::exitFatal("Could not load texture from " + filename, "File not found");
+			}
 			gli::texture2d_array tex2DArray(gli::load(filename));
 #endif	
-
 			assert(!tex2DArray.empty());
 
 			this->device = device;
@@ -791,6 +796,9 @@ namespace vks
 
 			free(textureData);
 #else
+			if (!vks::tools::fileExists(filename)) {
+				vks::tools::exitFatal("Could not load texture from " + filename, "File not found");
+			}
 			gli::texture_cube texCube(gli::load(filename));
 #endif	
 			assert(!texCube.empty());
