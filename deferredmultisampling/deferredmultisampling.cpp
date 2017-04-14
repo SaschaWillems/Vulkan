@@ -1170,22 +1170,29 @@ public:
 		updateUniformBuffersScreen();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_F2:
+		case VirtualKeyCode::F2:
 			useMSAA = !useMSAA;
 			reBuildCommandBuffers();
 			break;
-		case KEY_F3:
+		case VirtualKeyCode::F3:
 			useSampleShading = !useSampleShading;
 			reBuildCommandBuffers();
 			break;
-		case KEY_F4:
-		case GAMEPAD_BUTTON_A:
+		case VirtualKeyCode::F4:
+		case VirtualKeyCode::GamePadButtonA:
 			toggleDebugDisplay();
 			updateTextOverlay();
+			break;
+		default:
 			break;
 		}
 	}

@@ -1040,29 +1040,36 @@ public:
 		updateTextOverlay();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_B:
-		case GAMEPAD_BUTTON_Y:
+		case VirtualKeyCode::B:
+		case VirtualKeyCode::GamePadButtonY:
 			toggleBloom();
 			break;
-		case KEY_S:
-		case GAMEPAD_BUTTON_A:
+		case VirtualKeyCode::S:
+		case VirtualKeyCode::GamePadButtonA:
 			toggleSkyBox();
 			break;
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_X:
+		case VirtualKeyCode::Space:
+		case VirtualKeyCode::GamePadButtonX:
 			toggleObject();
 			break;
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
+		case VirtualKeyCode::Add:
+		case VirtualKeyCode::GamePadButtonRightShoulder1:
 			changeExposure(0.05f);
 			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
+		case VirtualKeyCode::Subtract:
+		case VirtualKeyCode::GamePadButtonLeftShoulder1:
 			changeExposure(-0.05f);
+			break;
+		default:
 			break;
 		}
 	}

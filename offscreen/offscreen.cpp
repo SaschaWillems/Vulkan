@@ -992,13 +992,20 @@ public:
 		updateUniformBufferOffscreen();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_D:
-		case GAMEPAD_BUTTON_A:
+		case VirtualKeyCode::D:
+		case VirtualKeyCode::GamePadButtonA:
 			toggleDebugDisplay();
+			break;
+		default:
 			break;
 		}
 	}

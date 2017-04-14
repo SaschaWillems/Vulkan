@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "VirtualKeyCode.hpp"
+
 #ifdef _WIN32
 #pragma comment(linker, "/subsystem:windows")
 #include <windows.h>
@@ -38,7 +40,6 @@
 
 #include "vulkan/vulkan.h"
 
-#include "keycodes.hpp"
 #include "VulkanTools.h"
 #include "VulkanDebug.h"
 
@@ -51,6 +52,7 @@
 class VulkanExampleBase
 {
 private:	
+	bool quitRequested = false;
 	// fps timer (one second interval)
 	float fpsTimer = 0.0f;
 	// Get window title with example name, device, et.
@@ -217,7 +219,6 @@ public:
 	wl_keyboard *keyboard = nullptr;
 	wl_surface *surface = nullptr;
 	wl_shell_surface *shell_surface = nullptr;
-	bool quit = false;
 	struct {
 		bool left = false;
 		bool right = false;
@@ -229,7 +230,6 @@ public:
 		bool right = false;
 		bool middle = false;
 	} mouseButtons;
-	bool quit = false;
 	xcb_connection_t *connection;
 	xcb_screen_t *screen;
 	xcb_window_t window;
@@ -244,6 +244,11 @@ public:
 
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
 	void initVulkan();
+
+	//! Platform independent key handling
+	void handleKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode);
+
+	void RequestQuit();
 
 #if defined(_WIN32)
 	void setupConsole(std::string title);
@@ -312,9 +317,9 @@ public:
 	// Can be overriden in derived class to e.g. update uniform buffers 
 	// Containing view dependant matrices
 	virtual void viewChanged();
-	// Called if a key is pressed
+	// Called if a key event occurs
 	// Can be overriden in derived class to do custom key handling
-	virtual void keyPressed(uint32_t keyCode);
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode);
 	// Called when the window has been resized
 	// Can be overriden in derived class to recreate or rebuild resources attached to the frame buffer / swapchain
 	virtual void windowResized();

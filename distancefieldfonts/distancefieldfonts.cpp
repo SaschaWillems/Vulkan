@@ -693,19 +693,25 @@ public:
 		updateFontSettings();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKeyCode virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		using namespace vks;
+
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_S:
-		case GAMEPAD_BUTTON_X:
+		case VirtualKeyCode::S:
+		case VirtualKeyCode::GamePadButtonX:
 			toggleSplitScreen();
 			break;
-		case KEY_O:
-		case GAMEPAD_BUTTON_A:
+		case VirtualKeyCode::O:
+		case VirtualKeyCode::GamePadButtonA:
 			toggleFontOutline();
 			break;
-
+		default:
+			break;
 		}
 	}
 
