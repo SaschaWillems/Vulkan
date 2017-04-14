@@ -52,6 +52,28 @@
 #define KEY_N 0xE
 #define KEY_O 0xF
 #define KEY_T 0x10
+
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+#define KEY_ESCAPE 0x35
+#define KEY_F1 0x7A
+#define KEY_F2 0x78
+#define KEY_F3 0x63
+#define KEY_F4 0x76
+#define KEY_W 0x0D
+#define KEY_A 0x00
+#define KEY_S 0x01
+#define KEY_D 0x02
+#define KEY_P 0x23
+#define KEY_SPACE 0x31
+#define KEY_KPADD 0x45
+#define KEY_KPSUB 0x4E
+#define KEY_B 0x0B
+#define KEY_F 0x03
+#define KEY_L 0x25
+#define KEY_N 0x2D
+#define KEY_O 0x1F
+#define KEY_T 0x11
+
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <linux/input.h>
 

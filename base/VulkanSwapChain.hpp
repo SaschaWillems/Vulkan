@@ -107,6 +107,9 @@ public:
 #ifdef __ANDROID__
 		ANativeWindow* window
 #else
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+    void* view
+#else
 #ifdef _DIRECT2DISPLAY
 	uint32_t width, uint32_t height
 #else
@@ -114,6 +117,7 @@ public:
 	wl_display *display, wl_surface *window
 #else
 	xcb_connection_t* connection, xcb_window_t window
+#endif
 #endif
 #endif
 #endif
@@ -136,6 +140,22 @@ public:
 		surfaceCreateInfo.window = window;
 		err = vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
 #else
+#ifdef VK_USE_PLATFORM_IOS_MVK
+        VkIOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
+        surfaceCreateInfo.pNext = NULL;
+        surfaceCreateInfo.flags = 0;
+        surfaceCreateInfo.pView = view;
+        err = vkCreateIOSSurfaceMVK(instance, &surfaceCreateInfo, nullptr, &surface);
+#else
+#ifdef VK_USE_PLATFORM_MACOS_MVK
+        VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
+        surfaceCreateInfo.pNext = NULL;
+        surfaceCreateInfo.flags = 0;
+        surfaceCreateInfo.pView = view;
+        err = vkCreateMacOSSurfaceMVK(instance, &surfaceCreateInfo, NULL, &surface);
+#else
 #if defined(_DIRECT2DISPLAY)
 		createDirect2DisplaySurface(width, height);
 #else
@@ -151,6 +171,8 @@ public:
 		surfaceCreateInfo.connection = connection;
 		surfaceCreateInfo.window = window;
 		err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#endif
+#endif
 #endif
 #endif
 #endif
