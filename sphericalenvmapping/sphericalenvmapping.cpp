@@ -424,19 +424,24 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+
+		switch (virtualKey)
 		{
-		case KEY_KPADD:
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_A:
-		case TOUCH_DOUBLE_TAP:
+		case vks::VirtualKey::Add:
+		case vks::VirtualKey::Space:
+		case vks::VirtualKey::GamePadButtonA:
+		case vks::VirtualKey::TouchDoubleTap:
 			changeMatCapIndex(1);
 			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_X:
+		case vks::VirtualKey::Subtract:
+		case vks::VirtualKey::GamePadButtonX:
 			changeMatCapIndex(-1);
+			break;
+		default:
 			break;
 		}
 	}

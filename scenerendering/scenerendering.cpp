@@ -863,33 +863,36 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_A:
+		case vks::VirtualKey::Space:
+		case vks::VirtualKey::GamePadButtonA:
 			if (deviceFeatures.fillModeNonSolid) {
 				wireframe = !wireframe;
 				reBuildCommandBuffers();
 			}
 			break;
-		case KEY_P:
+		case vks::VirtualKey::P:
 			scene->renderSingleScenePart = !scene->renderSingleScenePart;
 			reBuildCommandBuffers();
 			updateTextOverlay();
 			break;
-		case KEY_KPADD:
+		case vks::VirtualKey::Add:
 			scene->scenePartIndex = (scene->scenePartIndex < static_cast<uint32_t>(scene->meshes.size())) ? scene->scenePartIndex + 1 : 0;
 			reBuildCommandBuffers();
 			updateTextOverlay();
 			break;
-		case KEY_KPSUB:
+		case vks::VirtualKey::Subtract:
 			scene->scenePartIndex = (scene->scenePartIndex > 0) ? scene->scenePartIndex - 1 : static_cast<uint32_t>(scene->meshes.size()) - 1;
 			updateTextOverlay();
 			reBuildCommandBuffers();
 			break;
-		case KEY_L:
+		case vks::VirtualKey::L:
 			attachLight = !attachLight;
 			updateUniformBuffers();
 			break;

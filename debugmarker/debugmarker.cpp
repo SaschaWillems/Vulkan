@@ -963,23 +963,23 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+		
+		if(rawKeyCode == 0x57 || virtualKey == vks::VirtualKey::GamePadButtonX )
 		{
-		case 0x57:
-		case GAMEPAD_BUTTON_X:
 			if (deviceFeatures.fillModeNonSolid) 
 			{
 				wireframe = !wireframe;
 				reBuildCommandBuffers();
 			}
-			break;
-		case 0x47:
-		case GAMEPAD_BUTTON_A:
+		}
+		else if(rawKeyCode == 0x47 || virtualKey == vks::VirtualKey::GamePadButtonA )
+		{
 			glow = !glow;
 			reBuildCommandBuffers();
-			break;
 		}
 	}
 

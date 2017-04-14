@@ -551,13 +551,18 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_F2:
-		case GAMEPAD_BUTTON_A:
+		case vks::VirtualKey::F2:
+		case vks::VirtualKey::GamePadButtonA:
 			saveScreenshot("screenshot.ppm");
+			break;
+		default:
 			break;
 		}
 	}

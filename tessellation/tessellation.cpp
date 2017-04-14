@@ -547,27 +547,32 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+
+		switch (virtualKey)
 		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
+		case vks::VirtualKey::Add:
+		case vks::VirtualKey::GamePadButtonRightShoulder1:
 			changeTessellationLevel(0.25);
 			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
+		case vks::VirtualKey::Subtract:
+		case vks::VirtualKey::GamePadButtonLeftShoulder1:
 			changeTessellationLevel(-0.25);
 			break;
-		case KEY_W:
-		case GAMEPAD_BUTTON_A:
+		case vks::VirtualKey::W:
+		case vks::VirtualKey::GamePadButtonA:
 			if (deviceFeatures.fillModeNonSolid) {
 				togglePipelines();
 			}
 			break;
-		case KEY_S:
-		case GAMEPAD_BUTTON_X:
+		case vks::VirtualKey::S:
+		case vks::VirtualKey::GamePadButtonX:
 			toggleSplitScreen();
+			break;
+		default:
 			break;
 		}
 	}

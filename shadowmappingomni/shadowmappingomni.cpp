@@ -1050,13 +1050,18 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void onKeyEvent(const vks::VirtualKey virtualKey, const bool isPressed, const uint32_t rawKeyCode) override
 	{
-		switch (keyCode)
+		if( ! isPressed )
+			return;
+		
+		switch (virtualKey)
 		{
-		case KEY_D:
-		case GAMEPAD_BUTTON_A:
+		case vks::VirtualKey::D:
+		case vks::VirtualKey::GamePadButtonA:
 			toggleCubeMapDisplay();
+			break;
+		default:
 			break;
 		}
 	}
