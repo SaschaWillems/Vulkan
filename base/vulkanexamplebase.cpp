@@ -552,8 +552,15 @@ void VulkanExampleBase::getOverlayText(VulkanTextOverlay *textOverlay)
 
 void VulkanExampleBase::prepareFrame()
 {
-	// Acquire the next image from the swap chaing
-	VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
+	// Acquire the next image from the swap chain
+	VkResult err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+	if ((err == VK_ERROR_OUT_OF_DATE_KHR) || (err == VK_SUBOPTIMAL_KHR)) {
+		windowResize();
+	}
+	else {
+		VK_CHECK_RESULT(err);
+	}
 }
 
 void VulkanExampleBase::submitFrame()
