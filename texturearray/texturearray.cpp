@@ -597,7 +597,6 @@ public:
 
 		// Array indices and model matrices are fixed
 		float offset = -1.5f;
-		uint32_t index = 0;
 		float center = (layerCount*offset) / 2;
 		for (int32_t i = 0; i < layerCount; i++)
 		{
