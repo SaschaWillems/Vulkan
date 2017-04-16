@@ -23,9 +23,9 @@ namespace vks
 	*/
 	struct Buffer
 	{
-		VkBuffer buffer;
 		VkDevice device;
-		VkDeviceMemory memory;
+		VkBuffer buffer = VK_NULL_HANDLE;
+		VkDeviceMemory memory = VK_NULL_HANDLE;
 		VkDescriptorBufferInfo descriptor;
 		VkDeviceSize size = 0;
 		VkDeviceSize alignment = 0;
