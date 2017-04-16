@@ -53,7 +53,7 @@ This example is far more explicit than the other examples and is meant to be a s
 ### [Pipelines](pipelines/)
 <img src="./screenshots/basic_pipelines.png" height="72px" align="right">
 
-[Pipeline state objects](https://www.khronos.org/registry/vulkan/specs/1.0/xhtml/vkspec.html#pipelines) replace the biggest part of the dynamic state machine from OpenGL, baking state information for culling, blending, rasterization, etc. and shaders into a fixed stat that can be optimized much easier by the implementation.
+[Pipeline state objects](https://www.khronos.org/registry/vulkan/specs/1.0/xhtml/vkspec.html#pipelines) replace the biggest part of the dynamic state machine from OpenGL, baking state information for culling, blending, rasterization, etc. and shaders into a fixed state that can be optimized much easier by the implementation.
 
 This example uses three different PSOs for rendering the same scene with different visuals and shaders and also demonstrates the use of [pipeline derivatives](https://www.khronos.org/registry/vulkan/specs/1.0/xhtml/vkspec.html#pipelines-pipeline-derivatives).
 
