@@ -800,7 +800,9 @@ public:
 		// Pipeline layout
 		struct PushBlock {
 			glm::mat4 mvp;
-			float sampleDelta = 0.05f;
+			// Sampling deltas
+			float deltaPhi = (2.0f * M_PI) / 180.0f;
+			float deltaTheta = (0.5f * M_PI) / 64.0f;
 		} pushBlock;
 
 		VkPipelineLayout pipelinelayout;
