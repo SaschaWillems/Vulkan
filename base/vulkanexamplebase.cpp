@@ -903,6 +903,72 @@ void VulkanExampleBase::initVulkan()
 #endif	
 }
 
+
+void VulkanExampleBase::handleMouseButton(const vks::VirtualMouseButtonFlags& buttonFlags, const glm::vec2& position)
+{
+	// Only react to differences in the flags
+	if (currentMouseButtonFlags == buttonFlags)
+		return;
+	currentMouseButtonFlags = buttonFlags;
+
+	mousePos = position;
+
+	// Give examples a chance to handle the event
+	onMouseButton(buttonFlags, position);
+}
+
+
+void VulkanExampleBase::handleMouseMove(const vks::VirtualMouseButtonFlags& buttonFlags, const glm::vec2& position)
+{
+	using namespace vks;
+
+	const float dx = mousePos.x - position.x;
+	const float dy = mousePos.y - position.y;
+
+	if (buttonFlags.IsEnabled(VirtualMouseButtonFlags::Right))
+	{
+		zoom += dy * .005f * zoomSpeed;
+		camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f * zoomSpeed));
+		// NOTE: the old windows handler only sets this on mouse downs
+		//mousePos = position;
+		viewUpdated = true;
+	}
+	if (buttonFlags.IsEnabled(VirtualMouseButtonFlags::Left))
+	{
+		rotation.x += dy * 1.25f * rotationSpeed;
+		rotation.y -= dx * 1.25f * rotationSpeed;
+		camera.rotate(glm::vec3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
+		// NOTE: the old windows handler only sets this on mouse downs
+		//mousePos = position;
+		viewUpdated = true;
+	}
+	if (buttonFlags.IsEnabled(VirtualMouseButtonFlags::Middle))
+	{
+		cameraPos.x -= dx * 0.01f;
+		cameraPos.y -= dy * 0.01f;
+		camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+		// NOTE: the old windows handler only sets this on mouse downs
+		//mousePos = position;
+		viewUpdated = true;
+	}
+
+	// NOTE: the other 'old' handlers sets it all the time
+	mousePos = position;
+
+	// Give examples a chance to handle the event
+	onMouseMove(buttonFlags, position);
+}
+
+void VulkanExampleBase::handleMouseWheel(const float delta)
+{
+	zoom += delta * 0.005f * zoomSpeed;
+	camera.translate(glm::vec3(0.0f, 0.0f, delta * 0.005f * zoomSpeed));
+	viewUpdated = true;
+
+	// Give examples a chance to handle the event
+	onMouseWheel(delta);
+}
+
 #if defined(_WIN32)
 // Win32 : Sets up a console window and redirects standard output to it
 void VulkanExampleBase::setupConsole(std::string title)
@@ -1103,49 +1169,28 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
 	case WM_MBUTTONDOWN:
-		mousePos.x = (float)LOWORD(lParam);
-		mousePos.y = (float)HIWORD(lParam);
+	{
+		vks::VirtualMouseButtonFlags buttonFlags;
+		buttonFlags.Value |= (wParam & MK_RBUTTON) ? vks::VirtualMouseButtonFlags::Right : 0;
+		buttonFlags.Value |= (wParam & MK_LBUTTON) ? vks::VirtualMouseButtonFlags::Left : 0;
+		buttonFlags.Value |= (wParam & MK_MBUTTON) ? vks::VirtualMouseButtonFlags::Middle : 0;
+		handleMouseButton(buttonFlags, glm::vec2(static_cast<float>(LOWORD(lParam)), static_cast<float>(HIWORD(lParam))));
 		break;
+	}
 	case WM_MOUSEWHEEL:
 	{
-		short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-		zoom += (float)wheelDelta * 0.005f * zoomSpeed;
-		camera.translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f * zoomSpeed));
-		viewUpdated = true;
+		handleMouseWheel(static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)));
 		break;
 	}
 	case WM_MOUSEMOVE:
-		if (wParam & MK_RBUTTON)
-		{
-			int32_t posx = LOWORD(lParam);
-			int32_t posy = HIWORD(lParam);
-			zoom += (mousePos.y - (float)posy) * .005f * zoomSpeed;
-			camera.translate(glm::vec3(-0.0f, 0.0f, (mousePos.y - (float)posy) * .005f * zoomSpeed));
-			mousePos = glm::vec2((float)posx, (float)posy);
-			viewUpdated = true;
-		}
-		if (wParam & MK_LBUTTON)
-		{
-			int32_t posx = LOWORD(lParam);
-			int32_t posy = HIWORD(lParam);
-			rotation.x += (mousePos.y - (float)posy) * 1.25f * rotationSpeed;
-			rotation.y -= (mousePos.x - (float)posx) * 1.25f * rotationSpeed;
-			camera.rotate(glm::vec3((mousePos.y - (float)posy) * camera.rotationSpeed, -(mousePos.x - (float)posx) * camera.rotationSpeed, 0.0f));
-			mousePos = glm::vec2((float)posx, (float)posy);
-			viewUpdated = true;
-		}
-		if (wParam & MK_MBUTTON)
-		{
-			int32_t posx = LOWORD(lParam);
-			int32_t posy = HIWORD(lParam);
-			cameraPos.x -= (mousePos.x - (float)posx) * 0.01f;
-			cameraPos.y -= (mousePos.y - (float)posy) * 0.01f;
-			camera.translate(glm::vec3(-(mousePos.x - (float)posx) * 0.01f, -(mousePos.y - (float)posy) * 0.01f, 0.0f));
-			viewUpdated = true;
-			mousePos.x = (float)posx;
-			mousePos.y = (float)posy;
-		}
+	{
+		vks::VirtualMouseButtonFlags buttonFlags;
+		buttonFlags.Value |= (wParam & MK_RBUTTON) ? vks::VirtualMouseButtonFlags::Right : 0;
+		buttonFlags.Value |= (wParam & MK_LBUTTON) ? vks::VirtualMouseButtonFlags::Left : 0;
+		buttonFlags.Value |= (wParam & MK_MBUTTON) ? vks::VirtualMouseButtonFlags::Middle : 0;
+		handleMouseMove(buttonFlags, glm::vec2(static_cast<float>(LOWORD(lParam)), static_cast<float>(HIWORD(lParam))));
 		break;
+	}
 	case WM_SIZE:
 		if ((prepared) && (wParam != SIZE_MINIMIZED))
 		{
@@ -1368,33 +1413,7 @@ void VulkanExampleBase::pointerMotion(wl_pointer *pointer, uint32_t time,
 	double x = wl_fixed_to_double(sx);
 	double y = wl_fixed_to_double(sy);
 
-	double dx = mousePos.x - x;
-	double dy = mousePos.y - y;
-
-	if (mouseButtons.left)
-	{
-		rotation.x += dy * 1.25f * rotationSpeed;
-		rotation.y -= dx * 1.25f * rotationSpeed;
-		camera.rotate(glm::vec3(
-				dy * camera.rotationSpeed,
-				-dx * camera.rotationSpeed,
-				0.0f));
-		viewUpdated = true;
-	}
-	if (mouseButtons.right)
-	{
-		zoom += dy * .005f * zoomSpeed;
-		camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f * zoomSpeed));
-		viewUpdated = true;
-	}
-	if (mouseButtons.middle)
-	{
-		cameraPos.x -= dx * 0.01f;
-		cameraPos.y -= dy * 0.01f;
-		camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-		viewUpdated = true;
-	}
-	mousePos = glm::vec2(x, y);
+	handleMouseMove(mouseButtonFlags, glm::vec2(static_cast<float>(x), static_cast<float>(y));
 }
 
 /*static*/void VulkanExampleBase::pointerButtonCb(void *data,
@@ -1411,16 +1430,21 @@ void VulkanExampleBase::pointerButton(struct wl_pointer *pointer,
 	switch (button)
 	{
 	case BTN_LEFT:
-		mouseButtons.left = !!state;
+		mouseButtonFlags.Set(VirtualMouseButtonFlags::Left, !!state);
 		break;
 	case BTN_MIDDLE:
-		mouseButtons.middle = !!state;
+		mouseButtonFlags.Set(VirtualMouseButtonFlags::Middle, !!state);
 		break;
 	case BTN_RIGHT:
-		mouseButtons.right = !!state;
+		mouseButtonFlags.Set(VirtualMouseButtonFlags::Right, !!state);
 		break;
 	default:
 		break;
+	}
+
+	if (modified)
+	{
+		handleMouseMove(mouseButtonFlags, glm::vec2(static_cast<float>(x), static_cast<float>(y));
 	}
 }
 
@@ -1439,9 +1463,7 @@ void VulkanExampleBase::pointerAxis(wl_pointer *pointer, uint32_t time,
 	switch (axis)
 	{
 	case REL_X:
-		zoom += d * 0.005f * zoomSpeed;
-		camera.translate(glm::vec3(0.0f, 0.0f, d * 0.005f * zoomSpeed));
-		viewUpdated = true;
+		handleMouseWheel(static_cast<float>(d));
 		break;
 	default:
 		break;
@@ -1741,51 +1763,35 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	case XCB_MOTION_NOTIFY:
 	{
 		xcb_motion_notify_event_t *motion = (xcb_motion_notify_event_t *)event;
-		if (mouseButtons.left)
-		{
-			rotation.x += (mousePos.y - (float)motion->event_y) * 1.25f;
-			rotation.y -= (mousePos.x - (float)motion->event_x) * 1.25f;
-			camera.rotate(glm::vec3((mousePos.y - (float)motion->event_y) * camera.rotationSpeed, -(mousePos.x - (float)motion->event_x) * camera.rotationSpeed, 0.0f));
-			viewUpdated = true;
-		}
-		if (mouseButtons.right)
-		{
-			zoom += (mousePos.y - (float)motion->event_y) * .005f;
-			camera.translate(glm::vec3(-0.0f, 0.0f, (mousePos.y - (float)motion->event_y) * .005f * zoomSpeed));
-			viewUpdated = true;
-		}
-		if (mouseButtons.middle)
-		{
-			cameraPos.x -= (mousePos.x - (float)motion->event_x) * 0.01f;
-			cameraPos.y -= (mousePos.y - (float)motion->event_y) * 0.01f;
-			camera.translate(glm::vec3(-(mousePos.x - (float)(float)motion->event_x) * 0.01f, -(mousePos.y - (float)motion->event_y) * 0.01f, 0.0f));
-			viewUpdated = true;
-			mousePos.x = (float)motion->event_x;
-			mousePos.y = (float)motion->event_y;
-		}
-		mousePos = glm::vec2((float)motion->event_x, (float)motion->event_y);
+    mousePosition = glm::vec2(static_cast<float>(motion->event_x), static_cast<float>(motion->event_y));
+		handleMouseMove(mouseButtonFlags, mousePosition);
 	}
 	break;
 	case XCB_BUTTON_PRESS:
 	{
 		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
+
 		if (press->detail == XCB_BUTTON_INDEX_1)
-			mouseButtons.left = true;
+			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Left, true);
 		if (press->detail == XCB_BUTTON_INDEX_2)
-			mouseButtons.middle = true;
+			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Middle, true);
 		if (press->detail == XCB_BUTTON_INDEX_3)
-			mouseButtons.right = true;
+			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Right, true);
+
+		handleMouseButton(mouseButtonFlags, mousePosition);
 	}
 	break;
 	case XCB_BUTTON_RELEASE:
 	{
 		xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
 		if (press->detail == XCB_BUTTON_INDEX_1)
-			mouseButtons.left = false;
+			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Left, false);
 		if (press->detail == XCB_BUTTON_INDEX_2)
-			mouseButtons.middle = false;
+			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Middle, false);
 		if (press->detail == XCB_BUTTON_INDEX_3)
-			mouseButtons.right = false;
+			mouseButtonFlags.SetFlag(vks::VirtualMouseButtonFlags::Right, false);
+
+		handleMouseButton(mouseButtonFlags, mousePosition);
 	}
 	break;
 	case XCB_KEY_PRESS:

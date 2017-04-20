@@ -79,6 +79,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Base", "Base", "{09B9A54B-F
 		base\frustum.hpp = base\frustum.hpp
 		base\keycodes.hpp = base\keycodes.hpp
 		base\threadpool.hpp = base\threadpool.hpp
+		base\VirtualMouseButtonFlags.hpp = base\VirtualMouseButtonFlags.hpp
 		base\VulkanAndroid.cpp = base\VulkanAndroid.cpp
 		base\VulkanAndroid.h = base\VulkanAndroid.h
 		base\VulkanBuffer.hpp = base\VulkanBuffer.hpp
