@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "VirtualMouseButtonFlags.hpp"
+
 #ifdef _WIN32
 #pragma comment(linker, "/subsystem:windows")
 #include <windows.h>
@@ -245,6 +247,11 @@ public:
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
 	void initVulkan();
 
+	//! Platform independent mouse handling
+	void handleMouseButton(const vks::VirtualMouseButtonFlags& buttonFlags, const glm::vec2& position);
+	void handleMouseMove(const vks::VirtualMouseButtonFlags& buttonFlags, const glm::vec2& position);
+	void handleMouseWheel(const float delta);
+
 #if defined(_WIN32)
 	void setupConsole(std::string title);
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
@@ -315,6 +322,16 @@ public:
 	// Called if a key is pressed
 	// Can be overriden in derived class to do custom key handling
 	virtual void keyPressed(uint32_t keyCode);
+	// Called if a mouse button event occurs
+	// Can be overridden in derived class to do custom handling
+	virtual void onMouseButton(const vks::VirtualMouseButtonFlags& buttonFlags, const glm::vec2& position) {}
+	// Called if a mouse move event occurs
+	// Can be overridden in derived class to do custom handling
+	virtual void onMouseMove(const vks::VirtualMouseButtonFlags& buttonFlags, const glm::vec2& position) {}
+	// Called if a mouse wheel event occurs
+	// Can be overridden in derived class to do custom handling
+	virtual void onMouseWheel(const float delta) {}
+
 	// Called when the window has been resized
 	// Can be overriden in derived class to recreate or rebuild resources attached to the frame buffer / swapchain
 	virtual void windowResized();
