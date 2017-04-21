@@ -260,8 +260,6 @@ public:
 			models.objects.push_back(model);
 		}
 		textures.environmentCube.loadFromFile(ASSET_PATH "textures/hdr/pisa_cube.ktx", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);
-		// Irradiance map generated offline with https://github.com/dariomanesku/cmft
-		// textures.irradianceCube.loadFromFile(ASSET_PATH "textures/hdr/pisa_cube_irradiance.ktx", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);
 	}
 
 	void setupDescriptors()
@@ -1199,7 +1197,7 @@ public:
 		struct PushBlock {
 			glm::mat4 mvp;
 			float roughness;
-			uint32_t numSamples = 1024u;
+			uint32_t numSamples = 32u;
 		} pushBlock;
 
 		VkPipelineLayout pipelinelayout;
@@ -1439,7 +1437,7 @@ public:
 		// 3D object
 		uboMatrices.projection = camera.matrices.perspective;
 		uboMatrices.view = camera.matrices.view;
-		uboMatrices.model = glm::rotate(glm::mat4(), glm::radians(-90.0f + (models.objectIndex == 1 ? 45.0f : 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboMatrices.model = glm::rotate(glm::mat4(), glm::radians(90.0f + (models.objectIndex == 1 ? -45.0f : 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboMatrices.camPos = camera.position * -1.0f;
 		memcpy(uniformBuffers.object.mapped, &uboMatrices, sizeof(uboMatrices));
 
