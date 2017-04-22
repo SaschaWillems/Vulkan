@@ -964,7 +964,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 				}
 				else
 				{
-					return false;
+					return nullptr;
 				}
 			}
 		}
@@ -1019,7 +1019,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	{
 		printf("Could not create window!\n");
 		fflush(stdout);
-		return 0;
+		return nullptr;
 		exit(1);
 	}
 
