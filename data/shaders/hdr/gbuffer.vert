@@ -28,7 +28,6 @@ out gl_PerVertex
 void main() 
 {
 	outUVW = inPos;
-	outUVW.x *= -1.0;
 
 	switch(type) {
 		case 0: // Skybox

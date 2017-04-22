@@ -1,6 +1,8 @@
 /*
 * Vulkan Example - HDR
 *
+* Note: Requires the separate (HDR) asset pack (see data/textures/hdr/README.md)
+*
 * Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -41,7 +43,7 @@ public:
 	});
 
 	struct {
-		vks::Texture2D envmap;
+		vks::TextureCubeMap envmap;
 	} textures;
 
 	struct Models {
@@ -601,41 +603,14 @@ public:
 	{
 		// Models
 		models.skybox.loadFromFile(getAssetPath() + "models/cube.obj", vertexLayout, 0.05f, vulkanDevice, queue);
-		std::vector<std::string> filenames = {"sphere.obj", "teapot.dae", "torusknot.obj"};
+		std::vector<std::string> filenames = { "geosphere.obj", "teapot.dae", "torusknot.obj", "venus.fbx" };
 		for (auto file : filenames) {
 			vks::Model model;
-			model.loadFromFile(getAssetPath() + "models/" + file, vertexLayout, 0.05f, vulkanDevice, queue);
+			model.loadFromFile(ASSET_PATH "models/" + file, vertexLayout, 0.05f * (file == "venus.fbx" ? 3.0f : 1.0f), vulkanDevice, queue);
 			models.objects.push_back(model);
 		}
-
-		// Load HDR texture (equirectangular projected)
-		// VK_FORMAT_BC6H_UFLOAT_BLOCK is a compressed 16 bit unsigned floating point format for storing HDR content
-		if (deviceFeatures.textureCompressionBC)
-		{
-			textures.envmap.loadFromFile(getAssetPath() + "textures/hdr_uffizi_bc6uf.DDS", VK_FORMAT_BC6H_UFLOAT_BLOCK, vulkanDevice, queue);
-		}
-		else 
-		{
-			textures.envmap.loadFromFile(getAssetPath() + "textures/hrd_uffizi_rgba16_float.dds", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);			
-		}
-
-		// Custom sampler with clamping adress mode
-		vkDestroySampler(device, textures.envmap.sampler, nullptr);
-		VkSamplerCreateInfo sampler{};
-		sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		sampler.magFilter = VK_FILTER_LINEAR;
-		sampler.minFilter = VK_FILTER_LINEAR;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler.addressModeV = sampler.addressModeU;
-		sampler.addressModeW = sampler.addressModeU;
-		sampler.maxLod = (float)textures.envmap.mipLevels;
-		sampler.maxLod = 1.0f;
-		sampler.anisotropyEnable = VK_TRUE;
-		sampler.maxAnisotropy = vulkanDevice->properties.limits.maxSamplerAnisotropy;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		VK_CHECK_RESULT(vkCreateSampler(vulkanDevice->logicalDevice, &sampler, nullptr, &textures.envmap.sampler));
-		textures.envmap.descriptor.sampler = textures.envmap.sampler;
+		// Load HDR cube map
+		textures.envmap.loadFromFile(getAssetPath() + "textures/hdr/uffizi_cube.ktx", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);			
 	}
 
 	void setupDescriptorPool()

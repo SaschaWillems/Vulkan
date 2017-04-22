@@ -3,7 +3,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout (binding = 1) uniform sampler2D samplerEnvMap;
+layout (binding = 1) uniform samplerCube samplerEnvMap;
 
 layout (location = 0) in vec3 inUVW;
 layout (location = 1) in vec3 inPos;
@@ -24,13 +24,6 @@ layout (binding = 2) uniform UBO {
 	float exposure;
 } ubo;
 
-vec2 envMapEquirect(vec3 normal) 
-{
-	float phi = acos(-normal.y);
-	float theta = atan(-1.0 * normal.x, normal.z) + PI;
-	return vec2(theta / TwoPI, phi / PI);
-}
-
 void main() 
 {
 	vec4 color;
@@ -40,7 +33,7 @@ void main()
 		case 0: // Skybox			
 			{
 				vec3 normal = normalize(inUVW);
-				color = texture(samplerEnvMap, envMapEquirect(normal));
+				color = texture(samplerEnvMap, normal);
 			}
 			break;
 		
@@ -74,7 +67,7 @@ void main()
 		
 				float spec = (fresnel * geoAtt) / (NdotV * NdotL * 3.14);
  
-				color = texture(samplerEnvMap, envMapEquirect(reflect(-wViewVec, wNormal)));	 	
+				color = texture(samplerEnvMap, reflect(-wViewVec, wNormal));	 	
 
 				color = vec4(color.rgb * NdotL * (k + spec * (1.0 - k)), 1.0);
 			}
@@ -84,7 +77,7 @@ void main()
 			{
 				vec3 wViewVec = mat3(inInvModelView) * normalize(inViewVec);
 				vec3 wNormal = mat3(inInvModelView) * inNormal;
-				color = texture(samplerEnvMap, envMapEquirect(refract(-wViewVec, wNormal, 1.0/1.6)));		
+				color = texture(samplerEnvMap, refract(-wViewVec, wNormal, 1.0/1.6));		
 			}
 			break;
 	}
