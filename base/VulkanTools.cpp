@@ -156,6 +156,9 @@ namespace vks
 				// Make sure any shader reads from the image have been finished
 				imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				break;
+			default:
+				// Other source layouts aren't handled (yet)
+				break;
 			}
 
 			// Target layouts (new)
@@ -194,6 +197,9 @@ namespace vks
 					imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
 				}
 				imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				break;
+			default:
+				// Other source layouts aren't handled (yet)
 				break;
 			}
 
