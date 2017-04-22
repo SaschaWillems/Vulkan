@@ -1,14 +1,14 @@
 /*
 * Vulkan Example - Physical based rendering with image based lighting
 *
-* See http://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
+* Note: Requires the separate (HDR) asset pack (see data/textures/hdr/README.md)
 *
-* Important note: Work in progress (assets missing, may not work or compile, etc.)
-*
-* Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
+
+// For reference see http://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,13 +34,14 @@
 #define GRID_DIM 7
 
 struct Material {
-	float roughness;
-	float metallic;
-	float specular;
-	float r,g,b;	// Color components as single floats because we use push constants
+	// Set in object rendering loop
+	float roughness = 0.0f;
+	float metallic = 0.0f;
+	float specular = 0.0f;
+	float r, g, b;
 	std::string name;
 	Material() {};
-	Material(std::string n, glm::vec3 c, float r, float m) : name(n), roughness(r), metallic(m), r(c.r), g(c.g), b(c.b) { specular = 0.8f; };
+	Material(std::string n, glm::vec3 c) : name(n), r(c.r), g(c.g), b(c.b) { };
 };
 
 class VulkanExample : public VulkanExampleBase
@@ -84,7 +85,7 @@ public:
 
 	struct UBOParams {
 		glm::vec4 lights[4];
-		float exposure = 10.0f;
+		float exposure = 2.0f;
 		float gamma = 2.2f;
 	} uboParams;
 
@@ -115,24 +116,25 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.rotationSpeed = 0.25f;
 
-		camera.setRotation({ -22.75f, 180.0f, 0.0f });
-		camera.setPosition({ 1.2, 5.6, 17.0f });
+		camera.setRotation({ -3.75f, 180.0f, 0.0f });
+		camera.setPosition({ 0.55f, 0.85f, 12.0f });
 
 		// Setup some default materials (source: https://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
-		materials.push_back(Material("Gold", glm::vec3(1.0f, 0.765557f, 0.336057f), 0.1f, 1.0f));
-		materials.push_back(Material("Copper", glm::vec3(0.955008f, 0.637427f, 0.538163f), 0.1f, 1.0f));
-		materials.push_back(Material("Chromium", glm::vec3(0.549585f, 0.556114f, 0.554256f), 0.1f, 1.0f));
-		materials.push_back(Material("Nickel", glm::vec3(0.659777f, 0.608679f, 0.525649f), 0.1f, 1.0f));
-		materials.push_back(Material("Titanium", glm::vec3(0.541931f, 0.496791f, 0.449419f), 0.1f, 1.0f));
-		materials.push_back(Material("Cobalt", glm::vec3(0.662124f, 0.654864f, 0.633732f), 0.1f, 1.0f));
-		materials.push_back(Material("Platinum", glm::vec3(0.672411f, 0.637331f, 0.585456f), 0.1f, 1.0f));
+		materials.push_back(Material("Gold", glm::vec3(1.0f, 0.765557f, 0.336057f)));
+		materials.push_back(Material("Copper", glm::vec3(0.955008f, 0.637427f, 0.538163f)));
+		materials.push_back(Material("Chromium", glm::vec3(0.549585f, 0.556114f, 0.554256f)));
+		materials.push_back(Material("Nickel", glm::vec3(0.659777f, 0.608679f, 0.525649f)));
+		materials.push_back(Material("Titanium", glm::vec3(0.541931f, 0.496791f, 0.449419f)));
+		materials.push_back(Material("Cobalt", glm::vec3(0.662124f, 0.654864f, 0.633732f)));
+		materials.push_back(Material("Platinum", glm::vec3(0.672411f, 0.637331f, 0.585456f)));
 		// Testing materials
-		materials.push_back(Material("White", glm::vec3(1.0f), 0.1f, 1.0f));
-		materials.push_back(Material("Red", glm::vec3(1.0f, 0.0f, 0.0f), 0.1f, 1.0f));
-		materials.push_back(Material("Blue", glm::vec3(0.0f, 0.0f, 1.0f), 0.1f, 1.0f));
-		materials.push_back(Material("Black", glm::vec3(0.0f), 0.1f, 1.0f));
+		materials.push_back(Material("White", glm::vec3(1.0f)));
+		materials.push_back(Material("Dark", glm::vec3(0.1f)));
+		materials.push_back(Material("Black", glm::vec3(0.0f)));
+		materials.push_back(Material("Red", glm::vec3(1.0f, 0.0f, 0.0f)));
+		materials.push_back(Material("Blue", glm::vec3(0.0f, 0.0f, 1.0f)));
 
-		materialIndex = 7;
+		materialIndex = 9;
 	}
 
 	~VulkanExample()
@@ -385,13 +387,13 @@ public:
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
 		// Skybox pipeline (background cube)
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pbribl/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pbribl/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skybox));
 
 		// PBR pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pbribl/pbribl.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pbribl/pbribl.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/pbribl.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/pbribl.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Enable depth test and write
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		depthStencilState.depthTestEnable = VK_TRUE;
@@ -560,8 +562,8 @@ public:
 		pipelineCI.pVertexInputState = &emptyInputState;
 
 		// Look-up-table (from BRDF) pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pbribl/genbrdflut.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pbribl/genbrdflut.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/genbrdflut.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/genbrdflut.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipeline pipeline;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
@@ -799,8 +801,8 @@ public:
 		struct PushBlock {
 			glm::mat4 mvp;
 			// Sampling deltas
-			float deltaPhi = (2.0f * M_PI) / 180.0f;
-			float deltaTheta = (0.5f * M_PI) / 64.0f;
+			float deltaPhi = (2.0f * float(M_PI)) / 180.0f;
+			float deltaTheta = (0.5f * float(M_PI)) / 64.0f;
 		} pushBlock;
 
 		VkPipelineLayout pipelinelayout;
@@ -847,8 +849,8 @@ public:
 		pipelineCI.pVertexInputState = &vertexInputState;
 		pipelineCI.renderPass = renderpass;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pbribl/irradiancecube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/irradiancecube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipeline pipeline;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
@@ -1244,8 +1246,8 @@ public:
 		pipelineCI.pVertexInputState = &vertexInputState;
 		pipelineCI.renderPass = renderpass;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pbribl/prefilterenvmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/prefilterenvmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipeline pipeline;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
@@ -1573,9 +1575,7 @@ public:
 		textOverlay->addText("\"Button X\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #else
 		textOverlay->addText("Material: " + materials[materialIndex].name + " (+/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		//textOverlay->addText("Exposure = " + std::to_string(uboParams.exposure) + " (F3/F4)", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		//textOverlay->addText("\"F2\" to toggle skybox", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		//textOverlay->addText("\"space\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+		textOverlay->addText("Exposure: " + std::to_string(uboParams.exposure) + " (F3/F4)", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
 #endif
 	}
 };

@@ -6,10 +6,11 @@ layout (location = 0) in vec3 inUVW;
 
 layout (location = 0) out vec4 outColor;
 
-layout (binding = 1) uniform UBOShared {
+layout (binding = 1) uniform UBOParams {
+	vec4 lights[4];
 	float exposure;
 	float gamma;
-} uboShared;
+} uboParams;
 
 // From http://filmicworlds.com/blog/filmic-tonemapping-operators/
 vec3 Uncharted2Tonemap(vec3 color)
@@ -26,13 +27,13 @@ vec3 Uncharted2Tonemap(vec3 color)
 
 void main() 
 {
-	vec3 color = pow(texture(samplerEnv, inUVW).rgb, vec3(2.2));
+	vec3 color = texture(samplerEnv, inUVW).rgb;
 
-	color = Uncharted2Tonemap(color * uboShared.exposure);
-	color = color * (1.0 / Uncharted2Tonemap(vec3(11.2)));
-	
-	// gamma correction
-	color = pow(color, vec3(1.0 / uboShared.gamma));
+	// Tone mapping
+	color = Uncharted2Tonemap(color * uboParams.exposure);
+	color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));	
+	// Gamma correction
+	color = pow(color, vec3(1.0f / uboParams.gamma));
 	
 	outColor = vec4(color, 1.0);
 }
