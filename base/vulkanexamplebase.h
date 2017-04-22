@@ -240,7 +240,7 @@ public:
 	VulkanExampleBase(bool enableValidation);
 
 	// dtor
-	~VulkanExampleBase();
+	virtual ~VulkanExampleBase();
 
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
 	void initVulkan();
