@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - HDR
 *
-* Note: Requires the separate (HDR) asset pack (see data/textures/hdr/README.md)
+* Note: Requires the separate asset pack (see data/README.md)
 *
 * Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
 *

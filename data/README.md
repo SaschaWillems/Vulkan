@@ -9,7 +9,7 @@ Examples that require assets from this pack will have a note in the header:
 /*
 * Vulkan Example
 *
-* Note: Requires the separate (HDR) asset pack (see data/textures/hdr/README.md)
+* Note: Requires the separate asset pack (see data/README.md)
 *
 */
 ```
