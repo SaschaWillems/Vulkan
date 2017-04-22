@@ -10,6 +10,7 @@ include_directories(external)
 include_directories(external/glm)
 include_directories(external/gli)
 include_directories(external/assimp)
+include_directories(external/imgui)
 include_directories(base)
 
 OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
@@ -80,11 +81,20 @@ file(GLOB SOURCE *.cpp base/*.cpp)
 # Function for building single example
 function(buildExample EXAMPLE_NAME)
 	file(GLOB SOURCE *.cpp base/*.cpp ${EXAMPLE_NAME}/*.cpp)
-	if(WIN32)
-		add_executable(${EXAMPLE_NAME} WIN32 ${EXAMPLE_NAME}/${EXAMPLE_NAME}.cpp ${SOURCE})
+	SET(MAIN_CPP ${EXAMPLE_NAME}/${EXAMPLE_NAME}.cpp)
+	if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${EXAMPLE_NAME}/main.cpp)
+		SET(MAIN_CPP ${EXAMPLE_NAME}/main.cpp)
+	ENDIF()
+	# imgui example requires additional source files
+	IF(${EXAMPLE_NAME} STREQUAL "imgui")
+		file(GLOB ADD_SOURCE external/imgui/*.cpp)
+		SET(SOURCE ${SOURCE} ${ADD_SOURCE})
+	ENDIF()
+	if(WIN32)	
+		add_executable(${EXAMPLE_NAME} WIN32 ${MAIN_CPP} ${SOURCE})
 		target_link_libraries(${EXAMPLE_NAME} ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WINLIBS})
 	else(WIN32)
-		add_executable(${EXAMPLE_NAME} ${EXAMPLE_NAME}/${EXAMPLE_NAME}.cpp ${SOURCE})
+		add_executable(${EXAMPLE_NAME} ${MAIN_CPP} ${SOURCE})
 		target_link_libraries(${EXAMPLE_NAME} ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 	endif(WIN32)
 endfunction(buildExample)
@@ -125,6 +135,7 @@ set(EXAMPLES
 	gears
 	geometryshader
 	hdr
+	imgui
 	indirectdraw	
 	instancing
 	mesh
