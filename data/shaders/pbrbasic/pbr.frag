@@ -45,7 +45,7 @@ float D_GGX(float dotNH, float roughness)
 }
 
 // Geometric Shadowing function --------------------------------------
-float G_SchlickmithGGX(float dotNL, float dotNV, float roughness)
+float G_SchlicksmithGGX(float dotNL, float dotNV, float roughness)
 {
 	float r = (roughness + 1.0);
 	float k = (r*r) / 8.0;
@@ -84,7 +84,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
 		// D = Normal distribution (Distribution of the microfacets)
 		float D = D_GGX(dotNH, roughness); 
 		// G = Geometric shadowing term (Microfacets shadowing)
-		float G = G_SchlickmithGGX(dotNL, dotNV, roughness);
+		float G = G_SchlicksmithGGX(dotNL, dotNV, roughness);
 		// F = Fresnel factor (Reflectance depending on angle of incidence)
 		vec3 F = F_Schlick(dotNV, metallic);
 
