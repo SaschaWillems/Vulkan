@@ -545,10 +545,7 @@ void VulkanExampleBase::updateTextOverlay()
 	textOverlay->endTextUpdate();
 }
 
-void VulkanExampleBase::getOverlayText(VulkanTextOverlay *textOverlay)
-{
-	// Can be overriden in derived class
-}
+void VulkanExampleBase::getOverlayText(VulkanTextOverlay*) {}
 
 void VulkanExampleBase::prepareFrame()
 {
@@ -1864,20 +1861,11 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-void VulkanExampleBase::viewChanged()
-{
-	// Can be overrdiden in derived class
-}
+void VulkanExampleBase::viewChanged() {}
 
-void VulkanExampleBase::keyPressed(uint32_t keyCode)
-{
-	// Can be overriden in derived class
-}
+void VulkanExampleBase::keyPressed(uint32_t) {}
 
-void VulkanExampleBase::buildCommandBuffers()
-{
-	// Can be overriden in derived class
-}
+void VulkanExampleBase::buildCommandBuffers() {}
 
 void VulkanExampleBase::createCommandPool()
 {

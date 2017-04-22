@@ -665,7 +665,7 @@ public:
 		renderPassBeginInfo.clearValueCount = 0;
 		renderPassBeginInfo.pClearValues = nullptr;
 
-		for (int32_t i = 0; i < cmdBuffers.size(); ++i)
+		for (size_t i = 0; i < cmdBuffers.size(); ++i)
 		{
 			renderPassBeginInfo.framebuffer = *frameBuffers[i];
 

@@ -313,8 +313,8 @@ public:
 	// Containing view dependant matrices
 	virtual void viewChanged();
 	// Called if a key is pressed
-	// Can be overriden in derived class to do custom key handling
-	virtual void keyPressed(uint32_t keyCode);
+	/** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */
+	virtual void keyPressed(uint32_t);
 	// Called when the window has been resized
 	// Can be overriden in derived class to recreate or rebuild resources attached to the frame buffer / swapchain
 	virtual void windowResized();
@@ -334,7 +334,7 @@ public:
 	// Can be overriden in derived class to setup a custom render pass (e.g. for MSAA)
 	virtual void setupRenderPass();
 
-	/** @brief (Virtual) called after the physical device features have been read, used to set features to enable on the device */
+	/** @brief (Virtual) Called after the physical device features have been read, can be used to set features to enable on the device */
 	virtual void getEnabledFeatures();
 
 	// Connect and prepare the swap chain
@@ -371,9 +371,8 @@ public:
 
 	void updateTextOverlay();
 
-	// Called when the text overlay is updating
-	// Can be overriden in derived class to add custom text to the overlay
-	virtual void getOverlayText(VulkanTextOverlay * textOverlay);
+	/** @brief (Virtual) Called when the text overlay is updating, can be used to add custom text to the overlay */
+	virtual void getOverlayText(VulkanTextOverlay*);
 
 	// Prepare the frame for workload submission
 	// - Acquires the next image from the swap chain 
