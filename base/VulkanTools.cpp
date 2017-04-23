@@ -94,7 +94,6 @@ namespace vks
 		void setImageLayout(
 			VkCommandBuffer cmdbuffer,
 			VkImage image,
-			VkImageAspectFlags aspectMask,
 			VkImageLayout oldImageLayout,
 			VkImageLayout newImageLayout,
 			VkImageSubresourceRange subresourceRange,
@@ -229,7 +228,7 @@ namespace vks
 			subresourceRange.baseMipLevel = 0;
 			subresourceRange.levelCount = 1;
 			subresourceRange.layerCount = 1;
-			setImageLayout(cmdbuffer, image, aspectMask, oldImageLayout, newImageLayout, subresourceRange);
+			setImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
 		}
 
 		void insertImageMemoryBarrier(
@@ -293,7 +292,7 @@ namespace vks
 #if defined(__ANDROID__)
 		// Android shaders are stored as assets in the apk
 		// So they need to be loaded via the asset manager
-		VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device, VkShaderStageFlagBits stage)
+		VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device)
 		{
 			// Load shader from compressed asset
 			AAsset* asset = AAssetManager_open(assetManager, fileName, AASSET_MODE_STREAMING);
@@ -320,7 +319,7 @@ namespace vks
 			return shaderModule;
 		}
 #else
-		VkShaderModule loadShader(const char *fileName, VkDevice device, VkShaderStageFlagBits stage)
+		VkShaderModule loadShader(const char *fileName, VkDevice device)
 		{
 			std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
 

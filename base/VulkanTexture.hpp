@@ -222,7 +222,6 @@ namespace vks
 				vks::tools::setImageLayout(
 					copyCmd,
 					image,
-					VK_IMAGE_ASPECT_COLOR_BIT,
 					VK_IMAGE_LAYOUT_UNDEFINED,
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					subresourceRange);
@@ -242,7 +241,6 @@ namespace vks
 				vks::tools::setImageLayout(
 					copyCmd,
 					image,
-					VK_IMAGE_ASPECT_COLOR_BIT,
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					imageLayout,
 					subresourceRange);
@@ -483,7 +481,6 @@ namespace vks
 			vks::tools::setImageLayout(
 				copyCmd,
 				image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				subresourceRange);
@@ -503,7 +500,6 @@ namespace vks
 			vks::tools::setImageLayout(
 				copyCmd,
 				image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				imageLayout,
 				subresourceRange);
@@ -696,7 +692,6 @@ namespace vks
 			vks::tools::setImageLayout(
 				copyCmd,
 				image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				subresourceRange);
@@ -715,7 +710,6 @@ namespace vks
 			vks::tools::setImageLayout(
 				copyCmd,
 				image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				imageLayout,
 				subresourceRange);
@@ -910,7 +904,6 @@ namespace vks
 			vks::tools::setImageLayout(
 				copyCmd,
 				image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				subresourceRange);
@@ -929,7 +922,6 @@ namespace vks
 			vks::tools::setImageLayout(
 				copyCmd,
 				image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				imageLayout,
 				subresourceRange);

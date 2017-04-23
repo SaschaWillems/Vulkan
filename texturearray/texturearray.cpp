@@ -224,7 +224,6 @@ public:
 		vks::tools::setImageLayout(
 			copyCmd,
 			textureArray.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			subresourceRange);
@@ -244,7 +243,6 @@ public:
 		vks::tools::setImageLayout(
 			copyCmd,
 			textureArray.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			textureArray.imageLayout,
 			subresourceRange);

@@ -201,7 +201,12 @@ public:
 		subresourceRange.layerCount = 1;
 
 		// Optimal image will be used as destination for the copy, so we must transfer from our initial undefined image layout to the transfer destination layout
-		vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
+		vks::tools::setImageLayout(
+			copyCmd,
+			texture.image,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			subresourceRange);
 
 		// Copy the first mip of the chain, remaining mips will be generated
 		VkBufferImageCopy bufferCopyRegion = {};
@@ -220,7 +225,6 @@ public:
 		vks::tools::setImageLayout(
 			copyCmd,
 			texture.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			subresourceRange);
@@ -268,7 +272,6 @@ public:
 			vks::tools::setImageLayout(
 				blitCmd,
 				texture.image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				mipSubRange,
@@ -290,7 +293,6 @@ public:
 			vks::tools::setImageLayout(
 				blitCmd,
 				texture.image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				mipSubRange,
@@ -303,7 +305,6 @@ public:
 		vks::tools::setImageLayout(
 			blitCmd,
 			texture.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			texture.imageLayout,
 			subresourceRange);

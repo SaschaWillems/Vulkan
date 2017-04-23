@@ -227,7 +227,6 @@ public:
 		vks::tools::setImageLayout(
 			layoutCmd,
 			shadowCubeMap.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			subresourceRange);
@@ -520,7 +519,6 @@ public:
 		vks::tools::setImageLayout(
 			offscreenPass.commandBuffer,
 			shadowCubeMap.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			subresourceRange);
@@ -534,7 +532,6 @@ public:
 		vks::tools::setImageLayout(
 			offscreenPass.commandBuffer,
 			shadowCubeMap.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			subresourceRange);

@@ -200,9 +200,9 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
 #if defined(__ANDROID__)
-	shaderStage.module = vks::tools::loadShader(androidApp->activity->assetManager, fileName.c_str(), device, stage);
+	shaderStage.module = vks::tools::loadShader(androidApp->activity->assetManager, fileName.c_str(), device);
 #else
-	shaderStage.module = vks::tools::loadShader(fileName.c_str(), device, stage);
+	shaderStage.module = vks::tools::loadShader(fileName.c_str(), device);
 #endif
 	shaderStage.pName = "main"; // todo : make param
 	assert(shaderStage.module != VK_NULL_HANDLE);
