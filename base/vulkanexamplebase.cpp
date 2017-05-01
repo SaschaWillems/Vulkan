@@ -532,6 +532,7 @@ void VulkanExampleBase::updateTextOverlay()
 
 	std::stringstream ss;
 	ss << std::fixed << std::setprecision(3) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
+	std::cout<<lastFPS<<" FPS" << std::endl;
 	textOverlay->addText(ss.str(), 5.0f, 25.0f, VulkanTextOverlay::alignLeft);
 
 	std::string deviceName(deviceProperties.deviceName);
