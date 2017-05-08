@@ -32,12 +32,21 @@
 #define OBJ_DIM 0.05f
 
 struct Material {
-	float roughness;
-	float metallic;
-	float r, g, b;	// Color components as single floats because we use push constants
+	// Parameter block used as push constant block
+	struct PushBlock {
+		float roughness;
+		float metallic;
+		float r, g, b;
+	} params;
 	std::string name;
 	Material() {};
-	Material(std::string n, glm::vec3 c, float r, float m) : name(n), roughness(r), metallic(m), r(c.r), g(c.g), b(c.b) { };
+	Material(std::string n, glm::vec3 c, float r, float m) : name(n) {
+		params.roughness = r;
+		params.metallic = m;
+		params.r = c.r;
+		params.g = c.g;
+		params.b = c.b;
+	};
 };
 
 class VulkanExample : public VulkanExampleBase
@@ -181,17 +190,16 @@ public:
 
 			Material mat = materials[materialIndex];
 
-			//#define SINGLE_MESH 1	
-#ifdef SINGLE_MESH
-			mat.metallic = 1.0;
-			mat.roughness = 0.1;
+//#define SINGLE_ROW 1	
+#ifdef SINGLE_ROW
+			mat.params.metallic = 1.0;
 
 			uint32_t objcount = 10;
 			for (uint32_t x = 0; x < objcount; x++) {
 				glm::vec3 pos = glm::vec3(float(x - (objcount / 2.0f)) * 2.5f, 0.0f, 0.0f);
-				mat.roughness = glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
+				mat.params.roughness = glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material), &mat);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
 				vkCmdDrawIndexed(drawCmdBuffers[i], models.objects[models.objectIndex].indexCount, 1, 0, 0, 0);
 			}
 #else
@@ -199,9 +207,9 @@ public:
 				for (uint32_t x = 0; x < GRID_DIM; x++) {
 					glm::vec3 pos = glm::vec3(float(x - (GRID_DIM / 2.0f)) * 2.5f, 0.0f, float(y - (GRID_DIM / 2.0f)) * 2.5f);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
-					mat.metallic = (float)x / (float)(GRID_DIM - 1);
-					mat.roughness = glm::clamp((float)y / (float)(GRID_DIM - 1), 0.05f, 1.0f);
-					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material), &mat);
+					mat.params.metallic = (float)x / (float)(GRID_DIM - 1);
+					mat.params.roughness = glm::clamp((float)y / (float)(GRID_DIM - 1), 0.05f, 1.0f);
+					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
 					vkCmdDrawIndexed(drawCmdBuffers[i], models.objects[models.objectIndex].indexCount, 1, 0, 0, 0);
 				}
 			}
@@ -242,7 +250,7 @@ public:
 
 		std::vector<VkPushConstantRange> pushConstantRanges = {
 			vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec3), 0),
-			vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(Material), sizeof(glm::vec3)),
+			vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(Material::PushBlock), sizeof(glm::vec3)),
 		};
 
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 2;
