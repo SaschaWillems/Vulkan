@@ -2,6 +2,13 @@ language: cpp
 sudo: required
 os: linux
 dist: xenial
+addons:
+  apt:
+    sources:
+      - george-edison55-precise-backports
+    packages:
+      - cmake
+      - cmake-data
 compiler:
   - clang
   - gcc
