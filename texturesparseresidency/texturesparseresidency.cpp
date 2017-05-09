@@ -267,6 +267,17 @@ public:
 		uniformBufferVS.destroy();
 	}
 
+    virtual void getEnabledFeatures()
+    {
+        if (deviceFeatures.sparseBinding && deviceFeatures.sparseResidencyImage2D) {
+            enabledFeatures.sparseBinding = VK_TRUE;
+            enabledFeatures.sparseResidencyImage2D = VK_TRUE;
+        }
+        else {
+            std::cout << "Sparse binding not supported" << std::endl;
+        }
+    }
+
 	glm::uvec3 alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity)
 	{
 		glm::uvec3 res;
