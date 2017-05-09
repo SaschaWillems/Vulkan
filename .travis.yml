@@ -1,14 +1,7 @@
 language: cpp
 sudo: required
 os: linux
-dist: xenial
-addons:
-  apt:
-    sources:
-      - george-edison55-precise-backports
-    packages:
-      - cmake
-      - cmake-data
+dist: trusty
 compiler:
   - clang
   - gcc
@@ -21,6 +14,6 @@ script:
 notifications:
   email:
     recipients:
-      - webmaster@saschawillems.dev
+      - webmaster@saschawillems.de
     on_success: change
     on_failure: always
