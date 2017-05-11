@@ -150,6 +150,7 @@ set(EXAMPLES
 	particlefire
 	pbrbasic
 	pbribl
+	pbrtexture
 	pipelines
 	pushconstants
 	radialblur
