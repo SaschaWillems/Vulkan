@@ -6,7 +6,7 @@ import glob
 
 APK_NAME = "vulkanTexture"
 SHADER_DIR = "texture"
-ASSETS_TEXTURES = ["metalplate01_bc2_unorm.ktx", "metalplate01_astc_8x8_unorm.ktx", "metalplate01_etc2_unorm.ktx"]
+ASSETS_TEXTURES = ["metalplate01_rgba.ktx"]
 
 if subprocess.call("ndk-build", shell=True) == 0:   
     print("Build successful")
