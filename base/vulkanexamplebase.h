@@ -21,6 +21,8 @@
 #include "VulkanAndroid.h"
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <wayland-client.h>
+#elif defined(_DIRECT2DISPLAY)
+//
 #elif defined(__linux__)
 #include <xcb/xcb.h>
 #endif
@@ -223,6 +225,8 @@ public:
 		bool right = false;
 		bool middle = false;
 	} mouseButtons;
+#elif defined(_DIRECT2DISPLAY)
+	bool quit = false;
 #elif defined(__linux__)
 	struct {
 		bool left = false;
@@ -294,6 +298,8 @@ public:
 			uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched,
 			uint32_t mods_locked, uint32_t group);
 
+#elif defined(_DIRECT2DISPLAY)
+//
 #elif defined(__linux__)
 	xcb_window_t setupWindow();
 	void initxcbConnection();
