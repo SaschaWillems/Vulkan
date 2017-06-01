@@ -523,6 +523,7 @@ namespace vks
 			samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
 			samplerCreateInfo.minLod = 0.0f;
 			samplerCreateInfo.maxLod = 0.0f;
+			samplerCreateInfo.maxAnisotropy = 1.0f;
 			VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
 			// Create image view

@@ -217,15 +217,6 @@ public:
 		textures.ssaoNoise.destroy();
 	}
 
-	virtual void getEnabledFeatures()
-	{
-		// Enable anisotropic filtering if supported
-		if (deviceFeatures.samplerAnisotropy) {
-			enabledFeatures.samplerAnisotropy = VK_TRUE;
-		};
-	}
-
-
 	// Create a frame buffer attachment
 	void createAttachment(
 		VkFormat format,  
@@ -529,7 +520,7 @@ public:
 		sampler.addressModeV = sampler.addressModeU;
 		sampler.addressModeW = sampler.addressModeU;
 		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 0;
+		sampler.maxAnisotropy = 1.0f;
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
