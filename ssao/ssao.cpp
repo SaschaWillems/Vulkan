@@ -217,6 +217,15 @@ public:
 		textures.ssaoNoise.destroy();
 	}
 
+	virtual void getEnabledFeatures()
+	{
+		// Enable anisotropic filtering if supported
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		};
+	}
+
+
 	// Create a frame buffer attachment
 	void createAttachment(
 		VkFormat format,  
@@ -811,9 +820,8 @@ public:
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.ssaoBlur));
 		descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.ssaoBlur;
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets.ssaoBlur));
-		// todo
 		imageDescriptors = {
-			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.ssao.color.view, VK_IMAGE_LAYOUT_GENERAL),
+			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.ssao.color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
 		};
 		writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(descriptorSets.ssaoBlur, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imageDescriptors[0]),
