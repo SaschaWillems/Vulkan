@@ -536,6 +536,7 @@ public:
 	/**
 	* Create direct to display surface
 	*/	
+//#define USE_DEFAULT_DISPLAY_PLANE_0
 	void createDirect2DisplaySurface(uint32_t width, uint32_t height)
 	{
 		uint32_t displayPropertyCount;
@@ -544,12 +545,6 @@ public:
 		vkGetPhysicalDeviceDisplayPropertiesKHR(physicalDevice, &displayPropertyCount, NULL);
 		VkDisplayPropertiesKHR* pDisplayProperties = new VkDisplayPropertiesKHR[displayPropertyCount];
 		vkGetPhysicalDeviceDisplayPropertiesKHR(physicalDevice, &displayPropertyCount, pDisplayProperties);
-
-		// Get plane property
-		uint32_t planePropertyCount;
-		vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &planePropertyCount, NULL);
-		VkDisplayPlanePropertiesKHR* pPlaneProperties = new VkDisplayPlanePropertiesKHR[planePropertyCount];
-		vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &planePropertyCount, pPlaneProperties);
 
 		VkDisplayKHR display = VK_NULL_HANDLE;
 		VkDisplayModeKHR displayMode;
@@ -590,8 +585,19 @@ public:
 			return;
 		}
 
+		uint32_t planeIndex = 0;
+		uint32_t planeStackIndex = 0;
+		VkDisplayPlaneAlphaFlagBitsKHR alphaMode = VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR;
+
+#ifndef USE_DEFAULT_DISPLAY_PLANE_0
+		// Get plane property
+		uint32_t planePropertyCount;
+		vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &planePropertyCount, NULL);
+		VkDisplayPlanePropertiesKHR* pPlaneProperties = new VkDisplayPlanePropertiesKHR[planePropertyCount];
+		vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &planePropertyCount, pPlaneProperties);
+
 		// Search for a best plane we can use
-		uint32_t bestPlaneIndex = UINT32_MAX;
+		planeIndex = UINT32_MAX;
 		VkDisplayKHR* pDisplays = NULL;
 		for(uint32_t i = 0; i < planePropertyCount; i++)
 		{
@@ -606,30 +612,29 @@ public:
 			vkGetDisplayPlaneSupportedDisplaysKHR(physicalDevice, planeIndex, &displayCount, pDisplays);
 
 			// Find a display that matches the current plane
-			bestPlaneIndex = UINT32_MAX;
+			planeIndex = UINT32_MAX;
 			for(uint32_t j = 0; j < displayCount; j++)
 			{
 				if(display == pDisplays[j])
 				{
-					bestPlaneIndex = i;
+					planeIndex = i;
 					break;
 				}
 			}
-			if(bestPlaneIndex != UINT32_MAX)
+			if(planeIndex != UINT32_MAX)
 			{
 				break;
 			}
 		}
 
-		if(bestPlaneIndex == UINT32_MAX)
+		if(planeIndex == UINT32_MAX)
 		{
 			vks::tools::exitFatal("Can't find a plane for displaying!", "Fatal error");
 			return;
 		}
 
 		VkDisplayPlaneCapabilitiesKHR planeCap;
-		vkGetDisplayPlaneCapabilitiesKHR(physicalDevice, displayMode, bestPlaneIndex, &planeCap);
-		VkDisplayPlaneAlphaFlagBitsKHR alphaMode;
+		vkGetDisplayPlaneCapabilitiesKHR(physicalDevice, displayMode, planeIndex, &planeCap);
 
 		if (planeCap.supportedAlpha & VK_DISPLAY_PLANE_ALPHA_PER_PIXEL_PREMULTIPLIED_BIT_KHR)
 		{
@@ -645,13 +650,17 @@ public:
 			alphaMode = VK_DISPLAY_PLANE_ALPHA_GLOBAL_BIT_KHR;
 		}
 
+		planeStackIndex = pPlaneProperties[planeIndex].currentStackIndex;
+		delete[] pPlaneProperties;
+		delete[] pDisplays;
+#endif
 		VkDisplaySurfaceCreateInfoKHR surfaceInfo{};
 		surfaceInfo.sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR;
 		surfaceInfo.pNext = NULL;
 		surfaceInfo.flags = 0;
 		surfaceInfo.displayMode = displayMode;
-		surfaceInfo.planeIndex = bestPlaneIndex;
-		surfaceInfo.planeStackIndex = pPlaneProperties[bestPlaneIndex].currentStackIndex;
+		surfaceInfo.planeIndex = planeIndex;
+		surfaceInfo.planeStackIndex = planeStackIndex;
 		surfaceInfo.transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 		surfaceInfo.globalAlpha = 1.0;
 		surfaceInfo.alphaMode = alphaMode;
@@ -664,10 +673,8 @@ public:
 			vks::tools::exitFatal("Failed to create surface!", "Fatal error");
 		}
 
-		delete[] pDisplays;
 		delete[] pModeProperties;
 		delete[] pDisplayProperties;
-		delete[] pPlaneProperties;
 	}
 #endif 
 };
