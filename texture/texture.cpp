@@ -106,10 +106,7 @@ public:
 		// Enable anisotropic filtering if supported
 		if (deviceFeatures.samplerAnisotropy) {
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
-		}
-		else {
-			vks::tools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
-		}
+		};
 	}
 
 	// Create an image memory barrier used to change the layout of an image and put it into an active command buffer
