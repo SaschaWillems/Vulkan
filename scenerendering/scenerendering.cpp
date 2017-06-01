@@ -59,7 +59,7 @@ struct Vertex {
 
 // Shader properites for a material
 // Will be passed to the shaders using push constant
-struct SceneMaterialProperites
+struct SceneMaterialProperties
 {
 	glm::vec4 ambient;
 	glm::vec4 diffuse;
@@ -72,7 +72,7 @@ struct SceneMaterial
 {
 	std::string name;
 	// Material properties
-	SceneMaterialProperites properties;
+	SceneMaterialProperties properties;
 	// The example only uses a diffuse channel
 	vks::Texture2D diffuse;
 	// The material's descriptor contains the material descriptors
@@ -236,7 +236,7 @@ private:
 		// We will be using a push constant block to pass material properties to the fragment shaders
 		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(
 			VK_SHADER_STAGE_FRAGMENT_BIT, 
-			sizeof(SceneMaterialProperites), 
+			sizeof(SceneMaterialProperties), 
 			0);
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
@@ -558,7 +558,7 @@ public:
 				pipelineLayout,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
 				0,
-				sizeof(SceneMaterialProperites),
+				sizeof(SceneMaterialProperties),
 				&meshes[i].material->properties);
 
 			// Render from the global scene vertex buffer using the mesh index offset
