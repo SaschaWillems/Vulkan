@@ -53,7 +53,38 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		instanceCreateInfo.enabledLayerCount = vks::debug::validationLayerCount;
 		instanceCreateInfo.ppEnabledLayerNames = vks::debug::validationLayerNames;
 	}
-	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+	VkResult err = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+
+	if (err)
+	{
+		switch (err)
+		{
+		case VK_ERROR_EXTENSION_NOT_PRESENT:
+		{
+			std::cout << "Requested extenstion not suppported!\n Requested extenstions:" << std::endl;
+			for (int i = 0; i < instanceExtensions.size(); i++)
+				std::cout << "  -" << instanceExtensions[i] << std::endl;
+			uint32_t totalExtSupported = 0;
+			vkEnumerateInstanceExtensionProperties(NULL, &totalExtSupported, NULL);
+			std::vector<VkExtensionProperties> extensionsSupported;
+			extensionsSupported.resize(totalExtSupported);
+			vkEnumerateInstanceExtensionProperties(NULL, &totalExtSupported, extensionsSupported.data());
+			std::cout << " Only supports below extensions!" << std::endl;
+			for (int i = 0; i < totalExtSupported; i++)
+				std::cout << "  -" << extensionsSupported[i].extensionName << std::endl;
+			vks::tools::exitFatal("Could not create Vulkan instance!", "Fatal error");
+		}
+		break;
+		default:
+		{
+			vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), "Fatal error");
+		}
+		break;
+		}
+
+	}
+
+	return err;
 }
 
 std::string VulkanExampleBase::getWindowTitle()
@@ -743,11 +774,7 @@ void VulkanExampleBase::initVulkan()
 	VkResult err;
 
 	// Vulkan instance
-	err = createInstance(settings.validation);
-	if (err)
-	{
-		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), "Fatal error");
-	}
+	createInstance(settings.validation);
 
 #if defined(__ANDROID__)
 	vks::android::loadVulkanFunctions(instance);
