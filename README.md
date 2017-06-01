@@ -89,7 +89,7 @@ Uses [assimp](https://github.com/assimp/assimp) to load a mesh from a common 3D 
 ### [Dynamic uniform buffers](dynamicuniformbuffer/) :speech_balloon:
 <img src="./screenshots/dynamicuniformbuffer.jpg" height="72px" align="right">
 
-Demonstrates the use of dynamic uniform buffers for rendering multiple objects with different matrices from one big uniform buffer object. Sets up one bug uniform buffer that contains multiple model matrices that are dynamically addressed upon descriptor binding time.
+Demonstrates the use of dynamic uniform buffers for rendering multiple objects with different matrices from one big uniform buffer object. Sets up one big uniform buffer that contains multiple model matrices that are dynamically addressed upon descriptor binding time.
 
 This minimizes the number of descriptor sets required and may help in optimizing memory writes by e.g. only doing partial updates to that memory.
 
