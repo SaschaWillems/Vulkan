@@ -601,7 +601,7 @@ public:
 		VkDisplayKHR* pDisplays = NULL;
 		for(uint32_t i = 0; i < planePropertyCount; i++)
 		{
-			uint32_t planeIndex=i;
+			planeIndex=i;
 			uint32_t displayCount;
 			vkGetDisplayPlaneSupportedDisplaysKHR(physicalDevice, planeIndex, &displayCount, NULL);
 			if (pDisplays)
