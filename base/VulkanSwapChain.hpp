@@ -108,7 +108,7 @@ public:
 		ANativeWindow* window
 #else
 #ifdef _DIRECT2DISPLAY
-	uint32_t width, uint32_t height
+	uint32_t width, uint32_t height, uint32_t displayId
 #else
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
 	wl_display *display, wl_surface *window
@@ -137,7 +137,7 @@ public:
 		err = vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
 #else
 #if defined(_DIRECT2DISPLAY)
-		createDirect2DisplaySurface(width, height);
+		createDirect2DisplaySurface(width, height, displayId);
 #else
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
 		VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
@@ -537,7 +537,7 @@ public:
 	* Create direct to display surface
 	*/	
 //#define USE_DEFAULT_DISPLAY_PLANE_0
-	void createDirect2DisplaySurface(uint32_t width, uint32_t height)
+	void createDirect2DisplaySurface(uint32_t width, uint32_t height, uint32_t displayId)
 	{
 		uint32_t displayPropertyCount;
 		
@@ -552,14 +552,18 @@ public:
 		bool foundMode = false;
 		std::stringstream output;
 		output << displayPropertyCount << " display available " << std::endl;
-	   	for(uint32_t i = 0; i < displayPropertyCount;++i)
+		if (displayId >= displayPropertyCount)
+		{
+			output << "trying to access display " << (displayId + 1) << " which is not available!\n" << std::endl;
+			vks::tools::exitFatal(output.str(), "Fatal error");
+		}
 	   	{
-			display = pDisplayProperties[i].display;
+			display = pDisplayProperties[displayId].display;
 			uint32_t modeCount;
 			vkGetDisplayModePropertiesKHR(physicalDevice, display, &modeCount, NULL);
 			pModeProperties = new VkDisplayModePropertiesKHR[modeCount];
 			vkGetDisplayModePropertiesKHR(physicalDevice, display, &modeCount, pModeProperties);
-			output << " -display " << i << " (" << pDisplayProperties[i].displayName << ") supports " << modeCount << " modes" << std::endl;
+			output << " -display " << displayId << " (" << pDisplayProperties[displayId].displayName << ") supports " << modeCount << " modes" << std::endl;
 			for (uint32_t j = 0; j < modeCount; ++j)
 			{
 				const VkDisplayModePropertiesKHR* mode = &pModeProperties[j];
@@ -571,11 +575,6 @@ public:
 					break;
 				}
 			}
-			if (foundMode)
-			{
-				break;
-			}
-			delete [] pModeProperties;
 		}
 
 		if(!foundMode)

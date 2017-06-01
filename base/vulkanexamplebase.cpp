@@ -670,6 +670,14 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			uint32_t w = strtol(args[i + 1], &endptr, 10);
 			if (endptr != args[i + 1]) { width = w; };
 		}
+#if defined(_DIRECT2DISPLAY)
+		if (args[i] == std::string("-display"))
+		{
+			char* endptr;
+			uint32_t d = strtol(args[i + 1], &endptr, 10);
+			if (endptr != args[i + 1]) { displayId = d; };
+		}
+#endif
 		if ((args[i] == std::string("-h")) || (args[i] == std::string("-height")))
 		{
 			char* endptr;
@@ -2117,7 +2125,7 @@ void VulkanExampleBase::initSwapchain()
 #elif defined(__ANDROID__)	
 	swapChain.initSurface(androidApp->window);
 #elif defined(_DIRECT2DISPLAY)
-	swapChain.initSurface(width, height);
+	swapChain.initSurface(width, height, displayId);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	swapChain.initSurface(display, surface);
 #elif defined(__linux__)
