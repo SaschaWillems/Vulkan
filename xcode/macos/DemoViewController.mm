@@ -52,22 +52,15 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     CVDisplayLinkStart(_displayLink);
 }
 
-/** Resize the window to fit the size of the content as set by the sample code. */
--(void) viewWillAppear {
-	[super viewWillAppear];
-
-	CGSize vSz = self.view.bounds.size;
-	NSWindow *window = self.view.window;
-	NSRect wFrm = [window contentRectForFrameRect: window.frame];
-	NSRect newWFrm = [window frameRectForContentRect: NSMakeRect(wFrm.origin.x, wFrm.origin.y, vSz.width, vSz.height)];
-	[window setFrame: newWFrm display: YES animate: window.isVisible];
-	[window center];
-}
-
 -(void) dealloc {
     CVDisplayLinkRelease(_displayLink);
     delete(_vulkanExample);
     [super dealloc];
+}
+
+// Handle keyboard input
+-(void) keyDown:(NSEvent*) theEvent {
+    _vulkanExample->keyPressed(theEvent.keyCode);
 }
 
 @end
@@ -85,6 +78,13 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 +(Class) layerClass { return [CAMetalLayer class]; }
 
 /** If the wantsLayer property is set to YES, this method will be invoked to return a layer instance. */
--(CALayer*) makeBackingLayer { return [self.class.layerClass layer]; }
+-(CALayer*) makeBackingLayer {
+    CALayer* layer = [self.class.layerClass layer];
+    CGSize viewScale = [self convertSizeToBacking: CGSizeMake(1.0, 1.0)];
+    layer.contentsScale = MIN(viewScale.width, viewScale.height);
+    return layer;
+}
+
+-(BOOL) acceptsFirstResponder { return YES; }
 
 @end

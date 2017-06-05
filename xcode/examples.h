@@ -19,7 +19,7 @@
  *
  * For example, to run the pipelines example, you would add the MVK_pipelines define macro 
  * to the Preprocessor Macros (aka GCC_PREPROCESSOR_DEFINITIONS) entry of the Xcode project,
- * overwriting any other value there.
+ * overwriting any otheor value there.
  *
  * If you choose to add a #define statement to this file, be sure to clear the existing macro
  * from the Preprocessor Macros (aka GCC_PREPROCESSOR_DEFINITIONS) compiler setting in Xcode.
@@ -36,7 +36,7 @@
 #	include "../pipelines/pipelines.cpp"
 #endif
 
-#ifdef MVK_texture                          // inverse() function not available in MSL
+#ifdef MVK_texture
 #	include "../texture/texture.cpp"
 #endif
 
@@ -64,19 +64,19 @@
 #	include "../specializationconstants/specializationconstants.cpp"
 #endif
 
-#ifdef MVK_offscreen
+#ifdef MVK_offscreen                        // Bad access on iOS
 #	include "../offscreen/offscreen.cpp"
 #endif
 
-#ifdef MVK_radialblur                       // Runs but textureSize() function not available in MSL
+#ifdef MVK_radialblur
 #	include "../radialblur/radialblur.cpp"
 #endif
 
-#ifdef MVK_textoverlay                      // inverse() function not available in MSL
+#ifdef MVK_textoverlay
 #	include "../textoverlay/textoverlay.cpp"
 #endif
 
-#ifdef MVK_particlefire                     // Runs but inversesqrt() function not available in MSL
+#ifdef MVK_particlefire
 #	include "../particlefire/particlefire.cpp"
 #endif
 
@@ -87,11 +87,11 @@
 #	include "../multithreading/multithreading.cpp"
 #endif
 
-#ifdef MVK_scenerendering
+#ifdef MVK_scenerendering                   // Bad access on macOS
 #	include "../scenerendering/scenerendering.cpp"
 #endif
 
-#ifdef MVK_instancing                       // inverse() function not available in MSL
+#ifdef MVK_instancing
 #	include "../instancing/instancing.cpp"
 #endif
 
@@ -107,31 +107,31 @@
 #	include "../occlusionquery/occlusionquery.cpp"
 #endif
 
-#ifdef MVK_texturemipmapgen                 // inverse() function not available in MSL + SPIRV->MSL conversion error
+#ifdef MVK_texturemipmapgen                 // SPIRV->GLSL conversion error
 #	include "../texturemipmapgen/texturemipmapgen.cpp"
 #endif
 
-#ifdef MVK_multisampling
+#ifdef MVK_multisampling                    // Multisampling too low on iOS
 #	include "../multisampling/multisampling.cpp"
 #endif
 
-#ifdef MVK_shadowmapping                    // textureSize() function not available in MSL
+#ifdef MVK_shadowmapping                    // Bad access on iOS
 #	include "../shadowmapping/shadowmapping.cpp"
 #endif
 
-#ifdef MVK_shadowmappingomni
+#ifdef MVK_shadowmappingomni                // Bad access on iOS
 #	include "../shadowmappingomni/shadowmappingomni.cpp"
 #endif
 
-#ifdef MVK_skeletalanimation                // inverse() function not available in MSL
+#ifdef MVK_skeletalanimation                // Bad access on macOS
 #	include "../skeletalanimation/skeletalanimation.cpp"
 #endif
 
-#ifdef MVK_bloom                            // Runs but textureSize() function not available in MSL
+#ifdef MVK_bloom                            // Bad access on iOS
 #	include "../bloom/bloom.cpp"
 #endif
 
-#ifdef MVK_deferred                         // inverse() function not available in MSL
+#ifdef MVK_deferred                         // buffer overload
 #	include "../deferred/deferred.cpp"
 #endif
 
@@ -170,7 +170,7 @@
 #	include "../gears/gears.cpp"
 #endif
 
-#ifdef MVK_distancefieldfonts
+#ifdef MVK_distancefieldfonts           // Endless loop during loading on macOS
 #	include "../distancefieldfonts/distancefieldfonts.cpp"
 #endif
 

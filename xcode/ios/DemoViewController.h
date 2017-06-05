@@ -19,7 +19,7 @@
 #pragma mark DemoViewController
 
 /** The main view controller for the demo storyboard. */
-@interface DemoViewController : UIViewController
+@interface DemoViewController : UIViewController <UIKeyInput>
 @end
 
 

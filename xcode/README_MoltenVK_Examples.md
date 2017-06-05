@@ -61,4 +61,11 @@ in this repository on either *iOS* or *macOS*. To do so, follow these instructio
 
 3. Run either the `examples-iOS` or `examples-macOS` *Xcode Scheme* to run the example in *iOS*
    or *macOS*, repectively.
+   
+4. Many of the examples include an option to press keys to control the display of features
+   and scene components:
+   
+   - On *iOS*, tap on the scene to display the keyboard. Tap again on the scene to hide the keyboard.
+   - On both *iOS* and *macOS*, use the numeric keys (*1, 2, 3...*) instead of function keys (*F1, F2, F3...*). 
+   - On both *iOS* and *macOS*, use the *delete* key instead of the *escape* key. 
 

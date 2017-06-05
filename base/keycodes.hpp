@@ -53,12 +53,38 @@
 #define KEY_O 0xF
 #define KEY_T 0x10
 
-#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-#define KEY_ESCAPE 0x35
-#define KEY_F1 0x7A
-#define KEY_F2 0x78
-#define KEY_F3 0x63
-#define KEY_F4 0x76
+#elif defined(VK_USE_PLATFORM_IOS_MVK)
+// Use numeric keys instead of function keys.
+// Use Delete key instead of Escape key.
+#define KEY_ESCAPE 0x33
+#define KEY_F1 '1'
+#define KEY_F2 '2'
+#define KEY_F3 '3'
+#define KEY_F4 '4'
+#define KEY_W 'w'
+#define KEY_A 'a'
+#define KEY_S 's'
+#define KEY_D 'd'
+#define KEY_P 'p'
+#define KEY_SPACE ' '
+#define KEY_KPADD '+'
+#define KEY_KPSUB '-'
+#define KEY_B 'b'
+#define KEY_F 'f'
+#define KEY_L 'l'
+#define KEY_N 'n'
+#define KEY_O 'o'
+#define KEY_T 't'
+
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+// For iOS UX compatibility:
+// - Use numeric keys instead of function keys
+// - Use Delete key instead of Escape key
+#define KEY_ESCAPE 0x33
+#define KEY_F1 0x12
+#define KEY_F2 0x13
+#define KEY_F3 0x14
+#define KEY_F4 0x15
 #define KEY_W 0x0D
 #define KEY_A 0x00
 #define KEY_S 0x01
