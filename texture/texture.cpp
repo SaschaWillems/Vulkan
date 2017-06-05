@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Texture loading (and display) example (including mip maps)
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -100,8 +100,16 @@ public:
 		uniformBufferVS.destroy();
 	}
 
-	// Create an image memory barrier for changing the layout of
-	// an image and put it into an active command buffer
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		// Enable anisotropic filtering if supported
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		};
+	}
+
+	// Create an image memory barrier used to change the layout of an image and put it into an active command buffer
 	void setImageLayout(VkCommandBuffer cmdBuffer, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange)
 	{
 		// Create an image barrier object
@@ -168,12 +176,21 @@ public:
 			1, &imageMemoryBarrier);
 	}
 
-	void loadTexture(std::string fileName, VkFormat format, bool forceLinearTiling)
+	void loadTexture()
 	{
+		// We use the Khronos texture format (https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/) 
+		std::string filename = ASSET_PATH "textures/metalplate01_rgba.ktx";
+		// Texture data contains 4 channels (RGBA) with unnormalized 8-bit values, this is the most commonly supported format
+		VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+
+		// Set to true to use linear tiled images 
+		// This is just for learning purposes and not suggested, as linear tiled images are pretty restricted and often only support a small set of features (e.g. no mips, etc.)
+		bool forceLinearTiling = false;
+
 #if defined(__ANDROID__)
 		// Textures are stored inside the apk on Android (compressed)
 		// So they need to be loaded via the asset manager
-		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, fileName.c_str(), AASSET_MODE_STREAMING);
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 		assert(asset);
 		size_t size = AAsset_getLength(asset);
 		assert(size > 0);
@@ -184,7 +201,7 @@ public:
 
 		gli::texture2d tex2D(gli::load((const char*)textureData, size));
 #else
-		gli::texture2d tex2D(gli::load(fileName));
+		gli::texture2d tex2D(gli::load(filename));
 #endif
 
 		assert(!tex2D.empty());
@@ -342,10 +359,6 @@ public:
 		}
 		else
 		{
-			// Prefer using optimal tiling, as linear tiling 
-			// may support only a small set of features 
-			// depending on implementation (e.g. no mip maps, only one layer, etc.)
-
 			VkImage mappableImage;
 			VkDeviceMemory mappableMemory;
 
@@ -430,13 +443,10 @@ public:
 			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 		}
 
-		// Create sampler
+		// Create a texture sampler
 		// In Vulkan textures are accessed by samplers
-		// This separates all the sampling information from the 
-		// texture data
-		// This means you could have multiple sampler objects
-		// for the same texture with different settings
-		// Similar to the samplers available with OpenGL 3.3
+		// This separates all the sampling information from the texture data. This means you could have multiple sampler objects for the same texture with different settings
+		// Note: Similar to the samplers available with OpenGL 3.3
 		VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
 		sampler.magFilter = VK_FILTER_LINEAR;
 		sampler.minFilter = VK_FILTER_LINEAR;
@@ -488,38 +498,13 @@ public:
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
 	}
 
-	// Free all Vulkan resources used a texture object
+	// Free all Vulkan resources used by a texture object
 	void destroyTextureImage(Texture texture)
 	{
 		vkDestroyImageView(device, texture.view, nullptr);
 		vkDestroyImage(device, texture.image, nullptr);
 		vkDestroySampler(device, texture.sampler, nullptr);
 		vkFreeMemory(device, texture.deviceMemory, nullptr);
-	}
-
-	void loadTextures()
-	{
-		// Vulkan core supports three different compressed texture formats
-		// As the support differs between implemementations we need to check device features and select a proper format and file
-		std::string filename;
-		VkFormat format;
-		if (deviceFeatures.textureCompressionBC) {
-			filename = "metalplate01_bc2_unorm.ktx";
-			format = VK_FORMAT_BC2_UNORM_BLOCK;
-		}
-		else if (deviceFeatures.textureCompressionASTC_LDR) {
-			filename = "metalplate01_astc_8x8_unorm.ktx";
-			format = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
-		}
-		else if (deviceFeatures.textureCompressionETC2) {
-			filename = "metalplate01_etc2_unorm.ktx";
-			format = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
-		}
-		else {
-			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
-		}
-
-		loadTexture(getAssetPath() + "textures/" + filename, format, false);
 	}
 
 	void buildCommandBuffers()
@@ -720,8 +705,8 @@ public:
 		// Setup a descriptor image info for the current texture to be used as a combined image sampler
 		VkDescriptorImageInfo textureDescriptor;
 		textureDescriptor.imageView = texture.view;				// The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
-		textureDescriptor.sampler = texture.sampler;			//	The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
-		textureDescriptor.imageLayout = texture.imageLayout;	//	The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
+		textureDescriptor.sampler = texture.sampler;			// The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
+		textureDescriptor.imageLayout = texture.imageLayout;	// The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
@@ -735,8 +720,8 @@ public:
 			//	Fragment shader: layout (binding = 1) uniform sampler2D samplerColor;
 			vks::initializers::writeDescriptorSet(
 				descriptorSet, 				
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,			// The descriptor set will use a combined image sampler (sampler and image could be split)
-				1,													// Shader binding point 1
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,		// The descriptor set will use a combined image sampler (sampler and image could be split)
+				1,												// Shader binding point 1
 				&textureDescriptor)								// Pointer to the descriptor image for our texture
 		};
 
@@ -853,7 +838,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
+		loadTexture();
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
@@ -909,13 +894,15 @@ public:
 
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
-		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboVS.lodBias;
+		if (vulkanDevice->features.samplerAnisotropy) {
+			std::stringstream ss;
+			ss << std::setprecision(2) << std::fixed << uboVS.lodBias;
 #if defined(__ANDROID__)
-		textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+			textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #else
-		textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+			textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
 #endif
+		}
 	}
 };
 

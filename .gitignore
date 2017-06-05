@@ -208,3 +208,9 @@ vulkanCapsViewer/vulkanreport.json
 
 # Android validation layer libraries
 android/layers/*/*.so
+
+# Downloadable assets
+vulkan_asset_pack.*
+data/textures/hdr/*.*
+data/readme.txt
+!data/textures/hdr/README.md

@@ -203,9 +203,9 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
 #if defined(__ANDROID__)
-	shaderStage.module = vks::tools::loadShader(androidApp->activity->assetManager, fileName.c_str(), device, stage);
+	shaderStage.module = vks::tools::loadShader(androidApp->activity->assetManager, fileName.c_str(), device);
 #else
-	shaderStage.module = vks::tools::loadShader(fileName.c_str(), device, stage);
+	shaderStage.module = vks::tools::loadShader(fileName.c_str(), device);
 #endif
 	shaderStage.pName = "main"; // todo : make param
 	assert(shaderStage.module != VK_NULL_HANDLE);
@@ -587,15 +587,19 @@ void VulkanExampleBase::updateTextOverlay()
 	textOverlay->endTextUpdate();
 }
 
-void VulkanExampleBase::getOverlayText(VulkanTextOverlay *textOverlay)
-{
-	// Can be overriden in derived class
-}
+void VulkanExampleBase::getOverlayText(VulkanTextOverlay*) {}
 
 void VulkanExampleBase::prepareFrame()
 {
-	// Acquire the next image from the swap chaing
-	VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
+	// Acquire the next image from the swap chain
+	VkResult err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+	if ((err == VK_ERROR_OUT_OF_DATE_KHR) || (err == VK_SUBOPTIMAL_KHR)) {
+		windowResize();
+	}
+	else {
+		VK_CHECK_RESULT(err);
+	}
 }
 
 void VulkanExampleBase::submitFrame()
@@ -989,7 +993,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		dmScreenSettings.dmBitsPerPel = 32;
 		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
-		if ((width != screenWidth) && (height != screenHeight))
+		if ((width != (uint32_t)screenWidth) && (height != (uint32_t)screenHeight))
 		{
 			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 			{
@@ -999,7 +1003,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 				}
 				else
 				{
-					return false;
+					return nullptr;
 				}
 			}
 		}
@@ -1054,7 +1058,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	{
 		printf("Could not create window!\n");
 		fflush(stdout);
-		return 0;
+		return nullptr;
 		exit(1);
 	}
 
@@ -1905,20 +1909,11 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 }
 #endif
 
-void VulkanExampleBase::viewChanged()
-{
-	// Can be overrdiden in derived class
-}
+void VulkanExampleBase::viewChanged() {}
 
-void VulkanExampleBase::keyPressed(uint32_t keyCode)
-{
-	// Can be overriden in derived class
-}
+void VulkanExampleBase::keyPressed(uint32_t) {}
 
-void VulkanExampleBase::buildCommandBuffers()
-{
-	// Can be overriden in derived class
-}
+void VulkanExampleBase::buildCommandBuffers() {}
 
 void VulkanExampleBase::createCommandPool()
 {

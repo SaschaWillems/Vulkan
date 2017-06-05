@@ -312,6 +312,7 @@ public:
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 1.0f;
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		samplerInfo.maxAnisotropy = 1.0f;
 		VK_CHECK_RESULT(vkCreateSampler(vulkanDevice->logicalDevice, &samplerInfo, nullptr, &sampler));
 
 		// Descriptor
@@ -665,7 +666,7 @@ public:
 		renderPassBeginInfo.clearValueCount = 0;
 		renderPassBeginInfo.pClearValues = nullptr;
 
-		for (int32_t i = 0; i < cmdBuffers.size(); ++i)
+		for (size_t i = 0; i < cmdBuffers.size(); ++i)
 		{
 			renderPassBeginInfo.framebuffer = *frameBuffers[i];
 

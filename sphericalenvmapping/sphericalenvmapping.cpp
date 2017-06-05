@@ -450,17 +450,9 @@ public:
 #endif
 	}
 
-	void changeMatCapIndex(uint32_t delta)
+	void changeMatCapIndex(int32_t delta)
 	{
-		uboVS.texIndex += delta;
-		if (uboVS.texIndex < 0)
-		{
-			uboVS.texIndex = textures.matCapArray.layerCount-1;
-		}
-		if (uboVS.texIndex >= textures.matCapArray.layerCount)
-		{
-			uboVS.texIndex = 0;
-		}
+		uboVS.texIndex = (uboVS.texIndex + delta + textures.matCapArray.layerCount) % textures.matCapArray.layerCount;
 		updateUniformBuffers();
 	}
 

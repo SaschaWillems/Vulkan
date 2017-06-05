@@ -109,7 +109,7 @@ struct VirtualTexture
 	VkBindSparseInfo bindSparseInfo;									// Sparse queue binding information
 	std::vector<VirtualTexturePage> pages;								// Contains all virtual pages of the texture
 	std::vector<VkSparseImageMemoryBind> sparseImageMemoryBinds;		// Sparse image memory bindings of all memory-backed virtual tables
-	std::vector<VkSparseMemoryBind>	opaqueMemoryBinds;					// Sparse ópaque memory bindings for the mip tail (if present)
+	std::vector<VkSparseMemoryBind>	opaqueMemoryBinds;					// Sparse Ã³paque memory bindings for the mip tail (if present)
 	VkSparseImageMemoryBindInfo imageMemoryBindInfo;					// Sparse image memory bind info 
 	VkSparseImageOpaqueMemoryBindInfo opaqueMemoryBindInfo;				// Sparse image opaque memory bind info (mip tail)
 	uint32_t mipTailStart;												// First mip level in mip tail
@@ -266,6 +266,17 @@ public:
 
 		uniformBufferVS.destroy();
 	}
+
+    virtual void getEnabledFeatures()
+    {
+        if (deviceFeatures.sparseBinding && deviceFeatures.sparseResidencyImage2D) {
+            enabledFeatures.sparseBinding = VK_TRUE;
+            enabledFeatures.sparseResidencyImage2D = VK_TRUE;
+        }
+        else {
+            std::cout << "Sparse binding not supported" << std::endl;
+        }
+    }
 
 	glm::uvec3 alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity)
 	{
@@ -654,7 +665,7 @@ public:
 
 	void loadAssets()
 	{
-		textures.source.loadFromFile(getAssetPath() + "textures/ground_dry_bc3.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		textures.source.loadFromFile(getAssetPath() + "textures/ground_dry_bc3_unorm.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 	}
 
 	// Generate a terrain quad patch for feeding to the tessellation control shader

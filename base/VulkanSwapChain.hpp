@@ -124,7 +124,7 @@ public:
 #endif
 	)
 	{
-		VkResult err;
+		VkResult err = VK_SUCCESS;
 
 		// Create the os-specific surface
 #ifdef _WIN32
@@ -177,6 +177,10 @@ public:
 #endif
 #endif
 #endif
+
+		if (err != VK_SUCCESS) {
+			vks::tools::exitFatal("Could not create surface!", "Fatal error");
+		}
 
 		// Get available queue family properties
 		uint32_t queueCount;
@@ -246,13 +250,11 @@ public:
 
 		// Get list of supported surface formats
 		uint32_t formatCount;
-		err = fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, NULL);
-		assert(!err);
+		VK_CHECK_RESULT(fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, NULL));
 		assert(formatCount > 0);
 
 		std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
-		err = fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data());
-		assert(!err);
+		VK_CHECK_RESULT(fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data()));
 
 		// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
 		// there is no preferered format, so we assume VK_FORMAT_B8G8R8A8_UNORM
@@ -321,24 +323,19 @@ public:
 	*/
 	void create(uint32_t *width, uint32_t *height, bool vsync = false)
 	{
-		VkResult err;
 		VkSwapchainKHR oldSwapchain = swapChain;
 
 		// Get physical device surface properties and formats
 		VkSurfaceCapabilitiesKHR surfCaps;
-		err = fpGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps);
-		assert(!err);
+		VK_CHECK_RESULT(fpGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps));
 
 		// Get available present modes
 		uint32_t presentModeCount;
-		err = fpGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL);
-		assert(!err);
+		VK_CHECK_RESULT(fpGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL));
 		assert(presentModeCount > 0);
 
 		std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-
-		err = fpGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data());
-		assert(!err);
+		VK_CHECK_RESULT(fpGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()));
 
 		VkExtent2D swapchainExtent = {};
 		// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
@@ -444,8 +441,7 @@ public:
 			swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		}
 
-		err = fpCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain);
-		assert(!err);
+		VK_CHECK_RESULT(fpCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain));
 
 		// If an existing swap chain is re-created, destroy the old swap chain
 		// This also cleans up all the presentable images
@@ -457,14 +453,11 @@ public:
 			}
 			fpDestroySwapchainKHR(device, oldSwapchain, nullptr);
 		}
-
-		err = fpGetSwapchainImagesKHR(device, swapChain, &imageCount, NULL);
-		assert(!err);
+		VK_CHECK_RESULT(fpGetSwapchainImagesKHR(device, swapChain, &imageCount, NULL));
 
 		// Get the swap chain images
 		images.resize(imageCount);
-		err = fpGetSwapchainImagesKHR(device, swapChain, &imageCount, images.data());
-		assert(!err);
+		VK_CHECK_RESULT(fpGetSwapchainImagesKHR(device, swapChain, &imageCount, images.data()));
 
 		// Get the swap chain buffers containing the image and imageview
 		buffers.resize(imageCount);
@@ -492,8 +485,7 @@ public:
 
 			colorAttachmentView.image = buffers[i].image;
 
-			err = vkCreateImageView(device, &colorAttachmentView, nullptr, &buffers[i].view);
-			assert(!err);
+			VK_CHECK_RESULT(vkCreateImageView(device, &colorAttachmentView, nullptr, &buffers[i].view));
 		}
 	}
 

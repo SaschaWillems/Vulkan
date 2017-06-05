@@ -34,5 +34,6 @@ void main()
 	outWorldPos = locPos + pushConsts.objPos;
 	outNormal = mat3(ubo.model) * inNormal;
 	outUV = inUV;
+	outUV.t = 1.0 - inUV.t;
 	gl_Position =  ubo.projection * ubo.view * vec4(outWorldPos, 1.0);
 }

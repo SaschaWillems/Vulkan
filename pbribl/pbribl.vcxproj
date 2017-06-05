@@ -90,8 +90,13 @@
     <ClInclude Include="..\base\vulkantools.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\data\shaders\pbribl\genbrdflut.frag" />
+    <None Include="..\data\shaders\pbribl\genbrdflut.vert" />
+    <None Include="..\data\shaders\pbribl\irradiancecube.frag" />
     <None Include="..\data\shaders\pbribl\pbribl.frag" />
     <None Include="..\data\shaders\pbribl\pbribl.vert" />
+    <None Include="..\data\shaders\pbribl\prefilterenvmap.frag" />
+    <None Include="..\data\shaders\pbribl\filtercube.vert" />
     <None Include="..\data\shaders\pbribl\skybox.frag" />
     <None Include="..\data\shaders\pbribl\skybox.vert" />
   </ItemGroup>

@@ -1,6 +1,3 @@
-// Phyiscally based rendering using IBL
-// Based on http://www.trentreed.net/blog/physically-based-shading-and-image-based-lighting/
-
 #version 450
 
 layout (location = 0) in vec3 inWorldPos;
@@ -14,10 +11,11 @@ layout (binding = 0) uniform UBO {
 	vec3 camPos;
 } ubo;
 
-layout (binding = 1) uniform UBOShared {
+layout (binding = 1) uniform UBOParams {
+	vec4 lights[4];
 	float exposure;
 	float gamma;
-} uboShared;
+} uboParams;
 
 layout(push_constant) uniform PushConsts {
 	layout(offset = 12) float roughness;
@@ -28,13 +26,17 @@ layout(push_constant) uniform PushConsts {
 	layout(offset = 32) float b;
 } material;
 
-layout (binding = 2) uniform samplerCube radianceMap;
-layout (binding = 3) uniform samplerCube irradianceMap;
+layout (binding = 2) uniform samplerCube samplerIrradiance;
+layout (binding = 3) uniform sampler2D samplerBRDFLUT;
+layout (binding = 4) uniform samplerCube prefilteredMap;
 
 layout (location = 0) out vec4 outColor;
 
+#define PI 3.1415926535897932384626433832795
+#define ALBEDO vec3(material.r, material.g, material.b)
+
 // From http://filmicgames.com/archives/75
-vec3 Uncharted2Tonemap( vec3 x )
+vec3 Uncharted2Tonemap(vec3 x)
 {
 	float A = 0.15;
 	float B = 0.50;
@@ -45,48 +47,116 @@ vec3 Uncharted2Tonemap( vec3 x )
 	return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
-// Environment BRDF approximation from https://www.unrealengine.com/blog/physically-based-shading-on-mobile
-vec3 EnvBRDFApprox(vec3 SpecularColor, float Roughness, float NoV) 
+// Normal Distribution function --------------------------------------
+float D_GGX(float dotNH, float roughness)
 {
-	vec4 c0 = vec4(-1, -0.0275, -0.572, 0.022);
-	vec4 c1 = vec4(1, 0.0425, 1.04, -0.04);
-	vec4 r = Roughness * c0 + c1;
-	float a004 = min(r.x * r.x, exp2(-9.28 * NoV)) * r.x + r.y;
-	vec2 AB = vec2(-1.04, 1.04) * a004 + r.zw;
-	return SpecularColor * AB.x + AB.y;
+	float alpha = roughness * roughness;
+	float alpha2 = alpha * alpha;
+	float denom = dotNH * dotNH * (alpha2 - 1.0) + 1.0;
+	return (alpha2)/(PI * denom*denom); 
 }
 
-void main() 
+// Geometric Shadowing function --------------------------------------
+float G_SchlicksmithGGX(float dotNL, float dotNV, float roughness)
 {
+	float r = (roughness + 1.0);
+	float k = (r*r) / 8.0;
+	float GL = dotNL / (dotNL * (1.0 - k) + k);
+	float GV = dotNV / (dotNV * (1.0 - k) + k);
+	return GL * GV;
+}
+
+// Fresnel function ----------------------------------------------------
+vec3 F_Schlick(float cosTheta, vec3 F0)
+{
+	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+vec3 F_SchlickR(float cosTheta, vec3 F0, float roughness)
+{
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+vec3 prefilteredReflection(vec3 R, float roughness)
+{
+	const float MAX_REFLECTION_LOD = 9.0; // todo: param/const
+	float lod = roughness * MAX_REFLECTION_LOD;
+	float lodf = floor(lod);
+	float lodc = ceil(lod);
+	vec3 a = textureLod(prefilteredMap, R, lodf).rgb;
+	vec3 b = textureLod(prefilteredMap, R, lodc).rgb;
+	return mix(a, b, lod - lodf);
+}
+
+vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float roughness)
+{
+	// Precalculate vectors and dot products	
+	vec3 H = normalize (V + L);
+	float dotNH = clamp(dot(N, H), 0.0, 1.0);
+	float dotNV = clamp(dot(N, V), 0.0, 1.0);
+	float dotNL = clamp(dot(N, L), 0.0, 1.0);
+
+	// Light color fixed
+	vec3 lightColor = vec3(1.0);
+
+	vec3 color = vec3(0.0);
+
+	if (dotNL > 0.0) {
+		// D = Normal distribution (Distribution of the microfacets)
+		float D = D_GGX(dotNH, roughness); 
+		// G = Geometric shadowing term (Microfacets shadowing)
+		float G = G_SchlicksmithGGX(dotNL, dotNV, roughness);
+		// F = Fresnel factor (Reflectance depending on angle of incidence)
+		vec3 F = F_Schlick(dotNV, F0);		
+		vec3 spec = D * F * G / (4.0 * dotNL * dotNV + 0.001);		
+		vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);			
+		color += (kD * ALBEDO / PI + spec) * dotNL;
+	}
+
+	return color;
+}
+
+void main()
+{		
 	vec3 N = normalize(inNormal);
 	vec3 V = normalize(ubo.camPos - inWorldPos);
-	vec3 R = reflect(-V, N);
+	vec3 R = reflect(-V, N); 
 
-	vec3 baseColor = vec3(material.r, material.g, material.b);
-	
-	// Diffuse and specular color from material color and metallic factor
-	vec3 diffuseColor = baseColor - baseColor * material.metallic;
-	vec3 specularColor = mix(vec3(material.specular), baseColor, material.metallic);
+	float metallic = material.metallic;
+	float roughness = material.roughness;
 
-	// Cube map sampling
-	ivec2 cubedim = textureSize(radianceMap, 0);
-	int numMipLevels = int(log2(max(cubedim.s, cubedim.y)));
-	float mipLevel = numMipLevels - 1.0 + log2(material.roughness);
-	vec3 radianceSample = pow(textureLod(radianceMap, R, mipLevel).rgb, vec3(2.2f));
-	vec3 irradianceSample = pow(texture(irradianceMap, N).rgb, vec3(2.2f));
+	vec3 F0 = vec3(0.04); 
+	F0 = mix(F0, ALBEDO, metallic);
+
+	vec3 Lo = vec3(0.0);
+	for(int i = 0; i < uboParams.lights[i].length(); i++) {
+		vec3 L = normalize(uboParams.lights[i].xyz - inWorldPos);
+		Lo += specularContribution(L, V, N, F0, metallic, roughness);
+	}   
 	
-	vec3 reflection = EnvBRDFApprox(specularColor, pow(material.roughness, 1.0f), clamp(dot(N, V), 0.0, 1.0));
+	vec2 brdf = texture(samplerBRDFLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+	vec3 reflection = prefilteredReflection(R, roughness).rgb;	
+	vec3 irradiance = texture(samplerIrradiance, N).rgb;
+
+	// Diffuse based on irradiance
+	vec3 diffuse = irradiance * ALBEDO;	
+
+	vec3 F = F_SchlickR(max(dot(N, V), 0.0), F0, roughness);
+
+	// Specular reflectance
+	vec3 specular = reflection * (F * brdf.x + brdf.y);
+
+	// Ambient part
+	vec3 kD = 1.0 - F;
+	kD *= 1.0 - metallic;	  
+	vec3 ambient = (kD * diffuse + specular);
 	
-	// Combine specular IBL and BRDF
-	vec3 diffuse = diffuseColor * irradianceSample;
-	vec3 specular = radianceSample * reflection;
-	vec3 color = diffuse + specular;
-	
+	vec3 color = ambient + Lo;
+
 	// Tone mapping
-	color = Uncharted2Tonemap( color * uboShared.exposure );
+	color = Uncharted2Tonemap(color * uboParams.exposure);
 	color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));	
 	// Gamma correction
-	color = pow(color, vec3(1.0f / uboShared.gamma));
-	
-	outColor = vec4( color, 1.0 );
+	color = pow(color, vec3(1.0f / uboParams.gamma));
+
+	outColor = vec4(color, 1.0);
 }

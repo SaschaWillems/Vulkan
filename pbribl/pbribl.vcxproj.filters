@@ -55,5 +55,20 @@
     <None Include="..\data\shaders\pbribl\skybox.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="..\data\shaders\pbribl\prefilterenvmap.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\pbribl\genbrdflut.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\pbribl\genbrdflut.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\pbribl\filtercube.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\pbribl\irradiancecube.frag">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

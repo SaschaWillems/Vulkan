@@ -6,35 +6,35 @@ import glob
 
 APK_NAME = "vulkanHDR"
 SHADER_DIR = "hdr"
-ASSETS_MODELS = ["cube.obj", "sphere.obj", "teapot.dae", "torusknot.obj"]
-ASSETS_TEXTURES = ["hdr_uffizi_bc6uf.DDS", "hrd_uffizi_rgba16_float.dds"]
+ASSETS_MODELS = ["cube.obj", "sphere.obj", "teapot.dae", "torusknot.obj", "venus.fbx"]
+ASSETS_TEXTURES = ["hdr/uffizi_cube.ktx"]
 
-if subprocess.call("ndk-build", shell=True) == 0:   
+if subprocess.call("ndk-build", shell=True) == 0:
     print("Build successful")
 
     # Assets
     os.makedirs("./assets/shaders/base", exist_ok=True)
     os.makedirs("./assets/shaders/%s" % SHADER_DIR, exist_ok=True)
-    os.makedirs("./assets/textures", exist_ok=True)           
-    os.makedirs("./assets/models", exist_ok=True)           
+    os.makedirs("./assets/textures/hdr", exist_ok=True)
+    os.makedirs("./assets/models", exist_ok=True)
     os.makedirs("./res/drawable", exist_ok=True)
 
-    # Shaders    
+    # Shaders
     # Base
     for file in glob.glob("../../data/shaders/base/*.spv"):
-        shutil.copy(file, "./assets/shaders/base")    
+        shutil.copy(file, "./assets/shaders/base")
     # Sample
     for file in glob.glob("../../data/shaders/%s/*.spv" %SHADER_DIR):
-        shutil.copy(file, "./assets/shaders/%s" % SHADER_DIR)    
+        shutil.copy(file, "./assets/shaders/%s" % SHADER_DIR)
     # Textures
     for file in ASSETS_TEXTURES:
-        shutil.copy("../../data/textures/%s" % file, "./assets/textures")
+        shutil.copy("../../data/textures/%s" % file, "./assets/textures/hdr")
     # Models
     for file in ASSETS_MODELS:
         shutil.copy("../../data/models/%s" % file, "./assets/models")
 
     # Icon
-    shutil.copy("../../android/images/icon.png", "./res/drawable")      
+    shutil.copy("../../android/images/icon.png", "./res/drawable")
 
     if subprocess.call("ant debug -Dout.final.file=%s.apk" % APK_NAME, shell=True) == 0:
         for arg in sys.argv[1:]:

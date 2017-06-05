@@ -601,10 +601,7 @@ public:
 
 		// Compute is mandatory in Vulkan, so there must be at least one queue family that supports compute
 		assert(computeQueueFound);
-
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.queueFamilyIndex = compute.queueFamilyIndex;
-		queueCreateInfo.queueCount = 1;
+		// Get a compute queue from the device
 		vkGetDeviceQueue(device, compute.queueFamilyIndex, 0, &compute.queue);
 	}
 

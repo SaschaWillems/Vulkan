@@ -21,6 +21,8 @@
 #include "VulkanAndroid.h"
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <wayland-client.h>
+#elif defined(_DIRECT2DISPLAY)
+//
 #elif defined(__linux__)
 #include <xcb/xcb.h>
 #endif
@@ -225,6 +227,8 @@ public:
 		bool right = false;
 		bool middle = false;
 	} mouseButtons;
+#elif defined(_DIRECT2DISPLAY)
+	bool quit = false;
 #elif defined(__linux__)
 	struct {
 		bool left = false;
@@ -242,7 +246,7 @@ public:
 	VulkanExampleBase(bool enableValidation);
 
 	// dtor
-	~VulkanExampleBase();
+	virtual ~VulkanExampleBase();
 
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
 	void initVulkan();
@@ -297,6 +301,9 @@ public:
 	static void keyboardModifiersCb(void *data, struct wl_keyboard *keyboard,
 			uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched,
 			uint32_t mods_locked, uint32_t group);
+
+#elif defined(_DIRECT2DISPLAY)
+//
 #elif defined(__linux__)
 	xcb_window_t setupWindow();
 	void initxcbConnection();
@@ -316,8 +323,8 @@ public:
 	// Containing view dependant matrices
 	virtual void viewChanged();
 	// Called if a key is pressed
-	// Can be overriden in derived class to do custom key handling
-	virtual void keyPressed(uint32_t keyCode);
+	/** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */
+	virtual void keyPressed(uint32_t);
 	// Called when the window has been resized
 	// Can be overriden in derived class to recreate or rebuild resources attached to the frame buffer / swapchain
 	virtual void windowResized();
@@ -337,7 +344,7 @@ public:
 	// Can be overriden in derived class to setup a custom render pass (e.g. for MSAA)
 	virtual void setupRenderPass();
 
-	/** @brief (Virtual) called after the physical device features have been read, used to set features to enable on the device */
+	/** @brief (Virtual) Called after the physical device features have been read, can be used to set features to enable on the device */
 	virtual void getEnabledFeatures();
 
 	// Connect and prepare the swap chain
@@ -377,9 +384,8 @@ public:
 
 	void updateTextOverlay();
 
-	// Called when the text overlay is updating
-	// Can be overriden in derived class to add custom text to the overlay
-	virtual void getOverlayText(VulkanTextOverlay * textOverlay);
+	/** @brief (Virtual) Called when the text overlay is updating, can be used to add custom text to the overlay */
+	virtual void getOverlayText(VulkanTextOverlay*);
 
 	// Prepare the frame for workload submission
 	// - Acquires the next image from the swap chain 
@@ -405,9 +411,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)				
 	}																								\
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));												\
 }																									\
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)	\
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)									\
 {																									\
-	for (size_t i = 0; i < __argc; i++) { VulkanExample::args.push_back(__argv[i]); };  			\
+	for (int32_t i = 0; i < __argc; i++) { VulkanExample::args.push_back(__argv[i]); };  			\
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->initVulkan();																	\
 	vulkanExample->setupWindow(hInstance, WndProc);													\
