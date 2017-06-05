@@ -26,8 +26,9 @@
  */
 
 
-// In the list below, the comments indicate entries that do not currently run correctly,
-// and the comment indicates the problem that is encountered when run. Fixes are on the way.
+// In the list below, the comments indicate entries that do not currently run correctly on
+// one or both of iOS and macOS, and the comment indicates the problem that is encountered.
+// Fixes are on the way.
 
 
 // BASICS
@@ -36,7 +37,7 @@
 #	include "../pipelines/pipelines.cpp"
 #endif
 
-#ifdef MVK_texture
+#ifdef MVK_texture                          // Bad access
 #	include "../texture/texture.cpp"
 #endif
 
@@ -52,7 +53,7 @@
 #	include "../mesh/mesh.cpp"
 #endif
 
-#ifdef MVK_dynamicuniformbuffer             // Bad sampler state
+#ifdef MVK_dynamicuniformbuffer             // Bad access
 #	include "../dynamicuniformbuffer/dynamicuniformbuffer.cpp"
 #endif
 
@@ -64,7 +65,7 @@
 #	include "../specializationconstants/specializationconstants.cpp"
 #endif
 
-#ifdef MVK_offscreen                        // Bad access on iOS
+#ifdef MVK_offscreen                        // Bad access on iOS after 'd' key is pressed
 #	include "../offscreen/offscreen.cpp"
 #endif
 
