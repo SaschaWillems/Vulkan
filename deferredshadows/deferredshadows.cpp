@@ -240,6 +240,20 @@ public:
 		else {
 			vks::tools::exitFatal("Selected GPU does not support geometry shaders!", "Feature not supported");
 		}
+		// Enable anisotropic filtering if supported
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		}
+		// Enable texture compression  
+		if (deviceFeatures.textureCompressionBC) {
+			enabledFeatures.textureCompressionBC = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionASTC_LDR) {
+			enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionETC2) {
+			enabledFeatures.textureCompressionETC2 = VK_TRUE;
+		}
 	}
 
 	// Prepare a layered shadow map with each layer containing depth from a light's point of view

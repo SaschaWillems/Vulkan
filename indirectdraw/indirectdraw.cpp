@@ -152,14 +152,25 @@ public:
 	// Enable physical device features required for this example				
 	virtual void getEnabledFeatures()
 	{
-		// Example uses multi draw indirect (if available)
+		// Example uses multi draw indirect if available
 		if (deviceFeatures.multiDrawIndirect) {
 			enabledFeatures.multiDrawIndirect = VK_TRUE;
 		}
-		else {
-			std::cout << "MultiDrawIndirect not supported" << std::endl;
+		// Enable anisotropic filtering if supported
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
 		}
-	}
+		// Enable texture compression  
+		if (deviceFeatures.textureCompressionBC) {
+			enabledFeatures.textureCompressionBC = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionASTC_LDR) {
+			enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionETC2) {
+			enabledFeatures.textureCompressionETC2 = VK_TRUE;
+		}
+	};
 
 	void buildCommandBuffers()
 	{
