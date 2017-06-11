@@ -228,6 +228,25 @@ The final scene compositing pass then samples from the layered depth map to dete
 
 Implements ambient occlusion in screen space, adding depth with the help of ambient occlusion to a scene. The example is using a deferred shading setup with the AO pass using the depth information from the deferred G-Buffer to generate the ambient occlusion values. A second pass is then applied to blur the AO results before they're applied to the scene in the final composition pass.
 
+## Physically based rendering
+
+Physical based rendering as a lighting technique that achieves a more realistic and dynamic look by applying approximations of bidirectional reflectance distribution functions that rely on measured real-world material parameters and environment lighting.
+
+### [Physical shading basics](pbrbasic/)
+<img src="./screenshots/pbrbasic.jpg" height="72px" align="right">
+
+Basic implementation of a metallic-roughness based physical based rendering model using measured material parameters. Implements a specular BRDF based on material parameters for metallic reflectance, surface roughness and color and displays a grid of objects with varying metallic and roughness parameters light by mutliple fixed light sources.
+
+### [Physical shading with image based lighting](pbribl/)
+<img src="./screenshots/pbribl.jpg" height="72px" align="right">
+
+Adds ```image based lighting``` to the PBR equation. IBL uses the surrounding environment as a single light source. This adds an even more realistic look the models as the light contribution used by the materials is now controled by the environment. The sample uses a fixed HDR environment cubemap as for lighting and reflectance. The new textures and cubemaps required for the enhanced lighting (BRDF 2D-LUT, irradiance cube and a filtered cube based on roughness) are generated at run-time based on that cubemap.
+
+### [Physical shading with textures and image based lighting](pbrtexture/)
+<img src="./screenshots/pbrtexture.jpg" height="72px" align="right">
+
+This example adds a textured model with materials especially created for the metallic-roughness PBR workflow. Where the other examples used fixed material parameters for the PBR equation (metallic, roughness, albedo), this model contains texture maps that store these values (plus a normal and ambient occlusion map) used as input parameters for the BRDF shader. So even though the model uses only one material there are differing roughness and metallic areas and combined with image based lighting based on the environment the model is rendered with a realistic look.
+
 ## Compute
 
 *Compute shaders are mandatory in Vulkan and must be supported on all devices*
@@ -344,6 +363,7 @@ Please note that (some) models and textures use separate licenses. Please comply
 - Hidden treasure scene used in pipeline and debug marker examples by [Laurynas Jurgila](http://www.blendswap.com/user/PigArt)
 - Sibenik Cathedral model by Marko Dabrovic, using updated version by [Kenzie Lamar and Morgan McGuire](http://graphics.cs.williams.edu/data/meshes.xml)
 - Textures used in some examples by [Hugues Muller](http://www.yughues-folio.com)
+- Cerberus gun model used in PBR sample by [Andrew Maximov](http://artisaverb.info/Cerberus.html)
 - Updated compute particle system shader by [Lukas Bergdoll](https://github.com/Voultapher)
 - Vulkan scene model (and derived models) by [Dominic Agoro-Ombaka](http://www.agorodesign.com/) and [Sascha Willems](http://www.saschawillems.de)
 - Vulkan and the Vulkan logo are trademarks of the [Khronos Group Inc.](http://www.khronos.org)
