@@ -230,17 +230,17 @@ Implements ambient occlusion in screen space, adding depth with the help of ambi
 
 ## Physically based rendering
 
-Physical based rendering as a lighting technique that achieves a more realistic and dynamic look by applying approximations of bidirectional reflectance distribution functions that rely on measured real-world material parameters and environment lighting.
+*Physical based rendering as a lighting technique that achieves a more realistic and dynamic look by applying approximations of bidirectional reflectance distribution functions that rely on measured real-world material parameters and environment lighting.*
 
 ### [Physical shading basics](pbrbasic/)
 <img src="./screenshots/pbrbasic.jpg" height="72px" align="right">
 
-Basic implementation of a metallic-roughness based physical based rendering model using measured material parameters. Implements a specular BRDF based on material parameters for metallic reflectance, surface roughness and color and displays a grid of objects with varying metallic and roughness parameters light by mutliple fixed light sources.
+Basic implementation of a metallic-roughness based physical based rendering model using measured material parameters. Implements a specular BRDF based on material parameters for metallic reflectance, surface roughness and color and displays a grid of objects with varying metallic and roughness parameters light by multiple fixed light sources.
 
 ### [Physical shading with image based lighting](pbribl/)
 <img src="./screenshots/pbribl.jpg" height="72px" align="right">
 
-Adds ```image based lighting``` to the PBR equation. IBL uses the surrounding environment as a single light source. This adds an even more realistic look the models as the light contribution used by the materials is now controled by the environment. The sample uses a fixed HDR environment cubemap as for lighting and reflectance. The new textures and cubemaps required for the enhanced lighting (BRDF 2D-LUT, irradiance cube and a filtered cube based on roughness) are generated at run-time based on that cubemap.
+Adds ```image based lighting``` to the PBR equation. IBL uses the surrounding environment as a single light source. This adds an even more realistic look the models as the light contribution used by the materials is now controlled by the environment. The sample uses a fixed HDR environment cubemap as for lighting and reflectance. The new textures and cubemaps required for the enhanced lighting (BRDF 2D-LUT, irradiance cube and a filtered cube based on roughness) are generated at run-time based on that cubemap.
 
 ### [Physical shading with textures and image based lighting](pbrtexture/)
 <img src="./screenshots/pbrtexture.jpg" height="72px" align="right">
