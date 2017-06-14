@@ -30,6 +30,12 @@
 #include "VulkanAndroid.h"
 #endif
 
+#ifdef __APPLE__
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#endif
+
 // Macro to get a procedure address based on a vulkan instance
 #define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                        \
 {                                                                       \
@@ -113,7 +119,11 @@ public:
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
 	wl_display *display, wl_surface *window
 #else
+#ifdef __APPLE__
+	GLFWwindow* window
+#else
 	xcb_connection_t* connection, xcb_window_t window
+#endif
 #endif
 #endif
 #endif
@@ -146,11 +156,15 @@ public:
 		surfaceCreateInfo.surface = window;
 		err = vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 #else
+#ifdef __APPLE__
+		glfwCreateWindowSurface(instance, window, nullptr, &surface);
+#else
 		VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.connection = connection;
 		surfaceCreateInfo.window = window;
 		err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#endif
 #endif
 #endif
 #endif
