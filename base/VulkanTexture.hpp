@@ -340,8 +340,8 @@ namespace vks
 			samplerCreateInfo.minLod = 0.0f;
 			// Max level-of-detail should match mip level count
 			samplerCreateInfo.maxLod = (useStaging) ? (float)mipLevels : 0.0f;
-			// Enable anisotropic filtering
-			samplerCreateInfo.maxAnisotropy = 8;
+			// Only enable anisotropic filtering if enabled on the devicec
+			samplerCreateInfo.maxAnisotropy = device->enabledFeatures.samplerAnisotropy ? device->properties.limits.maxSamplerAnisotropy : 1.0f;
 			samplerCreateInfo.anisotropyEnable = VK_TRUE;
 			samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 			VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
@@ -726,7 +726,7 @@ namespace vks
 			samplerCreateInfo.addressModeV = samplerCreateInfo.addressModeU;
 			samplerCreateInfo.addressModeW = samplerCreateInfo.addressModeU;
 			samplerCreateInfo.mipLodBias = 0.0f;
-			samplerCreateInfo.maxAnisotropy = 8;
+			samplerCreateInfo.maxAnisotropy = device->enabledFeatures.samplerAnisotropy ? device->properties.limits.maxSamplerAnisotropy : 1.0f;
 			samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
 			samplerCreateInfo.minLod = 0.0f;
 			samplerCreateInfo.maxLod = (float)mipLevels;
@@ -938,7 +938,7 @@ namespace vks
 			samplerCreateInfo.addressModeV = samplerCreateInfo.addressModeU;
 			samplerCreateInfo.addressModeW = samplerCreateInfo.addressModeU;
 			samplerCreateInfo.mipLodBias = 0.0f;
-			samplerCreateInfo.maxAnisotropy = 8;
+			samplerCreateInfo.maxAnisotropy = device->enabledFeatures.samplerAnisotropy ? device->properties.limits.maxSamplerAnisotropy : 1.0f;
 			samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
 			samplerCreateInfo.minLod = 0.0f;
 			samplerCreateInfo.maxLod = (float)mipLevels;
