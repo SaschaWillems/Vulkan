@@ -1,0 +1,21 @@
+{
+  "apkname": "vulkanIndirectdraw",
+  "directories": {
+    "shaders": "indirectdraw"
+  },
+  "assets": {
+    "models": [
+      "plants.dae", 
+      "plane_circle.dae", 
+      "skysphere.dae"
+    ],
+    "textures": [
+      "texturearray_plants_bc3_unorm.ktx", 
+      "texturearray_plants_astc_8x8_unorm.ktx", 
+      "texturearray_plants_etc2_unorm.ktx", 
+      "ground_dry_bc3_unorm.ktx", 
+      "ground_dry_astc_8x8_unorm.ktx", 
+      "ground_dry_etc2_unorm.ktx"
+    ]    
+  }
+}
