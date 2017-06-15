@@ -14,6 +14,11 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 {
 	this->settings.validation = enableValidation;
 
+	// Validation can also be forced via a define
+#if defined(_VALIDATION)
+	this->settings.validation = true;
+#endif	
+
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = name.c_str();
