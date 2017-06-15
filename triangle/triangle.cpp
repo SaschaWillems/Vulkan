@@ -966,7 +966,7 @@ public:
 		// Set pipeline stage for this shader
 		shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
 		// Load binary SPIR-V shader
-		shaderStages[0].module = loadSPIRVShader(getAssetPath() + "shaders/triangle.vert.spv");
+		shaderStages[0].module = loadSPIRVShader(getAssetPath() + "shaders/triangle/triangle.vert.spv");
 		// Main entry point for the shader
 		shaderStages[0].pName = "main";
 		assert(shaderStages[0].module != VK_NULL_HANDLE);
@@ -976,7 +976,7 @@ public:
 		// Set pipeline stage for this shader
 		shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		// Load binary SPIR-V shader
-		shaderStages[1].module = loadSPIRVShader(getAssetPath() + "shaders/triangle.frag.spv");
+		shaderStages[1].module = loadSPIRVShader(getAssetPath() + "shaders/triangle/triangle.frag.spv");
 		// Main entry point for the shader
 		shaderStages[1].pName = "main";
 		assert(shaderStages[1].module != VK_NULL_HANDLE);
