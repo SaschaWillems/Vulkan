@@ -4,6 +4,7 @@ import subprocess
 import sys
 import shutil
 import glob
+import json
 
 # Android SDK version used
 SDK_VERSION = "android-23"
@@ -17,27 +18,96 @@ if not os.path.exists(PROJECT_FOLDER):
     print("Please specify a valid project folder to build!")
     sys.exit(-1)
 
+# Definitions (apk name, folders, etc.) will be taken from a json definition
+if not os.path.isfile(os.path.join(PROJECT_FOLDER, "example.json")):
+    print("Could not find json definition for example %s" % PROJECT_FOLDER)
+    sys.exit(-1)
+
 # Check if a build file is present, if not create one using the android SDK version specified
 if not os.path.isfile(os.path.join(PROJECT_FOLDER, "build.xml")):
     print("Build.xml not present, generating with %s " % SDK_VERSION)
-    if subprocess.call("android.bat update project -p ./%s -t %s" % (PROJECT_FOLDER, SDK_VERSION)) != 0:
+    ANDROID_CMD = "android"
+    if os.name == 'nt':
+        ANDROID_CMD += ".bat"
+    if subprocess.call("%s update project -p ./%s -t %s" % (ANDROID_CMD, PROJECT_FOLDER, SDK_VERSION)) != 0:
         print("Error: Project update failed!")
         sys.exit(-1)
 
-# Run actual build script from example folder
-if not os.path.isfile(os.path.join(PROJECT_FOLDER, "build.py")):
-    print("Error: No build script present!")
-    sys.exit(-1)
+# Load example definition from json file
+with open(os.path.join(PROJECT_FOLDER, "example.json")) as json_file:
+    EXAMPLE_JSON = json.load(json_file)
 
-BUILD_ARGUMENTS = " ".join(sys.argv[2:])
+APK_NAME = EXAMPLE_JSON["apkname"]
+SHADER_DIR = EXAMPLE_JSON["directories"]["shaders"]
 
+# Get assets to be copied
+ASSETS_MODELS = []
+ASSETS_TEXTURES = []
+if "assets" in EXAMPLE_JSON:
+    ASSETS = EXAMPLE_JSON["assets"]
+    if "models" in ASSETS:
+        ASSETS_MODELS = EXAMPLE_JSON["assets"]["models"]
+    if "textures" in ASSETS:
+        ASSETS_TEXTURES = EXAMPLE_JSON["assets"]["textures"]
+
+# Enable validation
+VALIDATION = False
+BUILD_ARGS = ""
+
+for arg in sys.argv[1:]:
+    print(arg)
+    if arg == "-validation":
+        VALIDATION = True
+        # Use a define to force validation in code
+        BUILD_ARGS = "APP_CFLAGS=-D_VALIDATION"
+        break
+
+# Build
 os.chdir(PROJECT_FOLDER)
-if subprocess.call("python build.py %s" % BUILD_ARGUMENTS) != 0:
-    print("Error during build process!")
+
+if subprocess.call("ndk-build %s" %BUILD_ARGS, shell=True) == 0:
+    print("Build successful")
+
+    if VALIDATION:
+        # Copy validation layers
+        # todo: Currently only arm v7
+        print("Validation enabled, copying validation layers...")
+        os.makedirs("./libs/armeabi-v7a", exist_ok=True)
+        for file in glob.glob("../layers/armeabi-v7a/*.so"):
+            print("\t" + file)
+            shutil.copy(file, "./libs/armeabi-v7a")
+
+    # Create folders
+    os.makedirs("./assets/shaders/base", exist_ok=True)
+    os.makedirs("./assets/shaders/%s" % SHADER_DIR, exist_ok=True)
+    os.makedirs("./res/drawable", exist_ok=True)
+    os.makedirs("./assets/models", exist_ok=True)
+    os.makedirs("./assets/textures", exist_ok=True)
+
+    for file in glob.glob("../../data/shaders/base/*.spv"):
+        shutil.copy(file, "./assets/shaders/base")
+    for file in glob.glob("../../data/shaders/%s/*.spv" %SHADER_DIR):
+        shutil.copy(file, "./assets/shaders/%s" % SHADER_DIR)
+    for file in ASSETS_MODELS:
+        shutil.copy("../../data/models/%s" % file, "./assets/models")
+    for file in ASSETS_TEXTURES:
+        shutil.copy("../../data/textures/%s" % file, "./assets/textures")
+
+    shutil.copy("../../android/images/icon.png", "./res/drawable")
+
+    if subprocess.call("ant debug -Dout.final.file=%s.apk" % APK_NAME, shell=True) == 0:
+        # Deploy to device
+        for arg in sys.argv[1:]:
+            if arg == "-deploy":
+                if subprocess.call("adb install -r %s.apk" % APK_NAME, shell=True) != 0:
+                    print("Could not deploy to device!")
+    else:
+        print("Error during build process!")
+        sys.exit(-1)
+else:
+    print("Error building project!")
     sys.exit(-1)
 
-# Move apk to bin folder
+# Copy apk to bin folder
 os.makedirs("../bin", exist_ok=True)
-for file in glob.glob("vulkan*.apk"):
-    print(file)
-    shutil.move(file, "../bin/%s" % file)
+shutil.move('%s.apk' % APK_NAME, "../bin/%s.apk" % APK_NAME)
