@@ -365,9 +365,6 @@ public:
 		// Use the color attachments filled in the first pass as input attachments
 		subpassDescriptions[1].inputAttachmentCount = 3;
 		subpassDescriptions[1].pInputAttachments = inputReferences;
-		// Preserve attachment 1 (position + depth) for next subpass
-		subpassDescriptions[1].preserveAttachmentCount = 1;
-		subpassDescriptions[1].pPreserveAttachments = &preserveAttachmentIndex;
 
 		// Third subpass: Forward transparency
 		// ----------------------------------------------------------------------------------------
