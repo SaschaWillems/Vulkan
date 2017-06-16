@@ -40,6 +40,16 @@ with open(os.path.join(PROJECT_FOLDER, "example.json")) as json_file:
 APK_NAME = EXAMPLE_JSON["apkname"]
 SHADER_DIR = EXAMPLE_JSON["directories"]["shaders"]
 
+# Additional
+ADDITIONAL_DIRS = []
+ADDITIONAL_FILES = []
+if "additional" in EXAMPLE_JSON["assets"]:
+    ADDITIONAL = EXAMPLE_JSON["assets"]["additional"]
+    if "directories" in ADDITIONAL:
+        ADDITIONAL_DIRS = ADDITIONAL["directories"]
+    if "files" in ADDITIONAL:
+        ADDITIONAL_FILES = ADDITIONAL["files"]
+
 # Get assets to be copied
 ASSETS_MODELS = []
 ASSETS_TEXTURES = []
@@ -80,18 +90,23 @@ if subprocess.call("ndk-build %s" %BUILD_ARGS, shell=True) == 0:
     # Create folders
     os.makedirs("./assets/shaders/base", exist_ok=True)
     os.makedirs("./assets/shaders/%s" % SHADER_DIR, exist_ok=True)
-    os.makedirs("./res/drawable", exist_ok=True)
     os.makedirs("./assets/models", exist_ok=True)
     os.makedirs("./assets/textures", exist_ok=True)
+    for directory in ADDITIONAL_DIRS:
+        os.makedirs("./assets/%s" % directory, exist_ok=True)
+    os.makedirs("./res/drawable", exist_ok=True)
 
-    for file in glob.glob("../../data/shaders/base/*.spv"):
-        shutil.copy(file, "./assets/shaders/base")
-    for file in glob.glob("../../data/shaders/%s/*.spv" %SHADER_DIR):
-        shutil.copy(file, "./assets/shaders/%s" % SHADER_DIR)
-    for file in ASSETS_MODELS:
-        shutil.copy("../../data/models/%s" % file, "./assets/models")
-    for file in ASSETS_TEXTURES:
-        shutil.copy("../../data/textures/%s" % file, "./assets/textures")
+    for filename in glob.glob("../../data/shaders/base/*.spv"):
+        shutil.copy(filename, "./assets/shaders/base")
+    for filename in glob.glob("../../data/shaders/%s/*.spv" %SHADER_DIR):
+        shutil.copy(filename, "./assets/shaders/%s" % SHADER_DIR)
+    for filename in ASSETS_MODELS:
+        shutil.copy("../../data/models/%s" % filename, "./assets/models")
+    for filename in ASSETS_TEXTURES:
+        shutil.copy("../../data/textures/%s" % filename, "./assets/textures")
+    for filename in ADDITIONAL_FILES:
+        print("%s" % filename)
+        shutil.copy("../../data/%s" % filename, "./assets/%s" % filename)
 
     shutil.copy("../../android/images/icon.png", "./res/drawable")
 
