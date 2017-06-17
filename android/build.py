@@ -104,7 +104,7 @@ if subprocess.call("ndk-build %s" %BUILD_ARGS, shell=True) == 0:
     for filename in ASSETS_TEXTURES:
         shutil.copy("../../data/textures/%s" % filename, "./assets/textures")
     for filename in ADDITIONAL_FILES:
-        if "*.*" in filename:
+        if "*." in filename:
             for fname in glob.glob("../../data/%s" % filename):
                 locfname = fname.replace("../../data/", "")
                 shutil.copy(fname, "./assets/%s" % locfname)
