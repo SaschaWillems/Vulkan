@@ -65,7 +65,6 @@ VALIDATION = False
 BUILD_ARGS = ""
 
 for arg in sys.argv[1:]:
-    print(arg)
     if arg == "-validation":
         VALIDATION = True
         # Use a define to force validation in code
@@ -105,8 +104,12 @@ if subprocess.call("ndk-build %s" %BUILD_ARGS, shell=True) == 0:
     for filename in ASSETS_TEXTURES:
         shutil.copy("../../data/textures/%s" % filename, "./assets/textures")
     for filename in ADDITIONAL_FILES:
-        print("%s" % filename)
-        shutil.copy("../../data/%s" % filename, "./assets/%s" % filename)
+        if "*.*" in filename:
+            for fname in glob.glob("../../data/%s" % filename):
+                locfname = fname.replace("../../data/", "")
+                shutil.copy(fname, "./assets/%s" % locfname)
+        else:
+            shutil.copy("../../data/%s" % filename, "./assets/%s" % filename)
 
     shutil.copy("../../android/images/icon.png", "./res/drawable")
 
