@@ -9,14 +9,14 @@ Since Vulkan is not yet part of the Android OS (like OpenGL ES) the library and 
 - Builds currently only support arm-v7, x86 may follow at a later point
 - Android TV leanback launcher is supported, so the examples will show up on the launcher
 - Basic gamepad support is available too (zoom and rotate)
-- Touch controls are not yet implemented, same for screen rotations
+- Basic touch control support (zoom, move, rotate, look)
 
 ## Building
 
 ### Requirements
 - [Android NDK r11b](http://developer.android.com/ndk/downloads/index.html) (or newer) - Somewhere in your search path
 - Examples are built against API level 23 (requires the SDK Platform installed)
-- Batch files for building are provided for windows only, with linux to be added at some point
+- Python 3.x
 
 ### Building the Examples
 
@@ -27,7 +27,7 @@ Since Vulkan is not yet part of the Android OS (like OpenGL ES) the library and 
 #### Build only
 
 ```
-build-all
+build-all.py
 ```
 
 This will build all apks and puts them into the **bin** folder.
@@ -35,7 +35,7 @@ This will build all apks and puts them into the **bin** folder.
 #### Build and deploy
 
 ```
-install-all
+install-all.py
 ```
 
 This will build all apks and deploys them to the currently attached android device.
@@ -49,7 +49,7 @@ These are for building and/or deploying a single example.
 Call build(.bat) with the name of the example to build, e.g. :
 
 ```
-build triangle
+build.py pbrtexture
 ```
 
 This will build the apk for the triangle example and puts it into the **bin** folder.
@@ -57,18 +57,28 @@ This will build the apk for the triangle example and puts it into the **bin** fo
 #### Build and deploy
 
 ```
-build triangle -deploy
+build.py pbrtexture -deploy
 ```
 
 This will build the apk for the triangle example and deploys it to the currently attached android device.
 
+#### Validation layers
+
+```
+build.py pbrtexture -validation (-deploy)
+```
+
+Builds the apk, adds the validation layer libraries and enables validation via a compiler define.
+
+**Note**: You need to manually build the validation layers and put them in the [proper folder](layers/). If the libaries are not present they won't be included with the apk and running the app will fail.
+
 ## Removing
 
-A batch file for removing all installed examples is provided in case you installed all of them and don't want to remove them by hand (which is especially tedious on Android TV).
+A single file for removing all installed examples is provided in case you installed all of them and don't want to remove them by hand (which is especially tedious on Android TV).
 
 
 ```
-uninstall-all
+uninstall-all.py
 ```
 
 This will remove any installed Android example from this repository from the attached device.
