@@ -1,0 +1,11 @@
+{
+  "apkname": "vulkanGeometryshader",
+  "directories": {
+    "shaders": "geometryshader"
+  },
+  "assets": {
+    "models": [
+      "suzanne.obj"
+    ]
+  }
+}

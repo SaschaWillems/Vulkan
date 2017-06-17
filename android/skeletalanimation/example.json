@@ -1,0 +1,20 @@
+{
+  "apkname": "vulkanSkeletalanimation",
+  "directories": {
+    "shaders": "skeletalanimation"
+  },
+  "assets": {
+    "models": [
+      "goblin.dae", 
+      "plane_z.obj"
+    ],
+    "textures": [
+      "trail_bc3_unorm.ktx", 
+      "goblin_bc3_unorm.ktx", 
+      "trail_astc_8x8_unorm.ktx", 
+      "goblin_astc_8x8_unorm.ktx", 
+      "trail_etc2_unorm.ktx", 
+      "goblin_etc2_unorm.ktx"
+    ]    
+  }
+}

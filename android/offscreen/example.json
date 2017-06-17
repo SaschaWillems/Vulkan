@@ -1,0 +1,17 @@
+{
+  "apkname": "vulkanOffscreen",
+  "directories": {
+    "shaders": "offscreen"
+  },
+  "assets": {
+    "models": [
+      "plane.obj", 
+      "chinesedragon.dae"
+    ],
+    "textures": [
+      "darkmetal_bc3_unorm.ktx", 
+      "darkmetal_astc_8x8_unorm.ktx", 
+      "darkmetal_etc2_unorm.ktx"
+    ]    
+  }
+}

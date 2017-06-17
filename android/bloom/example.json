@@ -1,0 +1,16 @@
+{
+  "apkname": "vulkanBloom",
+  "directories": {
+    "shaders": "bloom"
+  },
+  "assets": {
+    "models": [
+      "retroufo.dae", 
+      "retroufo_glow.dae", 
+      "cube.obj"
+    ],
+    "textures": [
+      "cubemap_space.ktx"
+    ]    
+  }
+}

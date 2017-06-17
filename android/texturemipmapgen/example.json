@@ -1,0 +1,14 @@
+{
+  "apkname": "vulkanTexturemipmapgen",
+  "directories": {
+    "shaders": "texturemipmapgen"
+  },
+  "assets": {
+    "models": [
+      "tunnel_cylinder.dae"
+    ],
+    "textures": [
+      "metalplate_nomips_rgba.ktx"
+    ]    
+  }
+}

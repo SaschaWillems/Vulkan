@@ -11,12 +11,7 @@
       "directories": ["textures/hdr", "models/cerberus"],
       "files": [
         "textures/hdr/gcanyon_cube.ktx",
-        "models/cerberus/cerberus.fbx",
-        "models/cerberus/albedo.ktx",
-        "models/cerberus/ao.ktx",
-        "models/cerberus/metallic.ktx",
-        "models/cerberus/normal.ktx",
-        "models/cerberus/roughness.ktx"
+        "models/cerberus/*.*"
       ]
     }
   }

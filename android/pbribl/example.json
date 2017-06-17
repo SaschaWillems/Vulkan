@@ -1,0 +1,23 @@
+{
+  "apkname": "vulkanPBRIBL",
+  "directories": {
+    "shaders": "pbribl"
+  },
+  "assets": {
+    "models": [
+      "cube.obj", 
+      "geosphere.obj", 
+      "teapot.dae", 
+      "torusknot.obj", 
+      "venus.fbx"
+    ],
+    "additional" : {
+      "directories": [
+        "textures/hdr"
+      ],
+      "files": [
+        "textures/hdr/pisa_cube.ktx"
+      ]
+    }
+  }
+}

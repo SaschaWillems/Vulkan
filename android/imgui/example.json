@@ -1,0 +1,13 @@
+{
+  "apkname": "vulkanImGui",
+  "directories": {
+    "shaders": "imgui"
+  },
+  "assets": {
+    "models": [
+      "vulkanscenemodels.dae", 
+      "vulkanscenebackground.dae", 
+      "vulkanscenelogos.dae"
+    ]
+  }
+}

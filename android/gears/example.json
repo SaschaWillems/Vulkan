@@ -1,0 +1,7 @@
+{
+  "apkname": "vulkanGears",
+  "directories": {
+    "shaders": "gears"
+  },
+  "assets": {}
+}

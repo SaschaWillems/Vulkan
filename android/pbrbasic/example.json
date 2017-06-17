@@ -1,0 +1,15 @@
+{
+  "apkname": "vulkanPBRBasic",
+  "directories": {
+    "shaders": "pbrbasic"
+  },
+  "assets": {
+    "models": [
+      "cube.obj", 
+      "geosphere.obj", 
+      "teapot.dae", 
+      "torusknot.obj", 
+      "venus.fbx"
+    ]
+  }
+}

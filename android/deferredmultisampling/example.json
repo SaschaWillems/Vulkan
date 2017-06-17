@@ -1,0 +1,25 @@
+{
+  "apkname": "vulkanDeferredmulitsampling",
+  "directories": {
+    "shaders": "deferredmultisampling"
+  },
+  "assets": {
+    "models": [
+        "openbox.dae"
+    ],
+    "textures": [
+      "stonefloor02_color_astc_8x8_unorm.ktx", 
+      "stonefloor02_color_bc3_unorm.ktx", 
+      "stonefloor02_normal_astc_8x8_unorm.ktx", 
+      "stonefloor02_normal_bc3_unorm.ktx", 
+      "stonefloor02_color_etc2_unorm.ktx", 
+      "stonefloor02_normal_etc2_unorm.ktx"
+    ],
+    "additional" : {
+      "directories": ["models/armor"],
+      "files": [
+        "models/armor/*.*"
+      ]
+    }    
+  }
+}

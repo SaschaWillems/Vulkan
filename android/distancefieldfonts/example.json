@@ -1,0 +1,17 @@
+{
+  "apkname": "vulkanDistancefieldfonts",
+  "directories": {
+    "shaders": "distancefieldfonts"
+  },
+  "assets": {
+    "textures": [
+      "font_sdf_rgba.ktx", 
+      "font_bitmap_rgba.ktx"
+    ],
+    "additional": {
+      "files": [
+        "/font.fnt"
+      ]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "apkname": "vulkanShadowmappingomni",
+  "directories": {
+    "shaders": "shadowmapomni"
+  },
+  "assets": {
+    "models": [
+      "shadowscene_fire.dae", 
+      "cube.obj"
+    ]
+  }
+}

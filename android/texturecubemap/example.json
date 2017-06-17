@@ -1,0 +1,19 @@
+{
+  "apkname": "vulkanTexturecubemap",
+  "directories": {
+    "shaders": "cubemap"
+  },
+  "assets": {
+    "models": [
+      "sphere.obj", 
+      "teapot.dae", 
+      "torusknot.obj", 
+      "cube.obj"
+    ],
+    "textures": [
+      "cubemap_yokohama_bc3_unorm.ktx", 
+      "cubemap_yokohama_etc2_unorm.ktx", 
+      "cubemap_yokohama_astc_8x8_unorm.ktx"
+    ]    
+  }
+}
