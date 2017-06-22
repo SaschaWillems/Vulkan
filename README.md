@@ -33,6 +33,10 @@ Note that you need [assimp](https://github.com/assimp/assimp) in order to compil
 
 Building on Android is done using the [Android NDK](http://developer.android.com/tools/sdk/ndk/index.html) and requires a device that supports Vulkan. Please see the [Android readme](./android/README.md) on how to build and deploy the examples.
 
+## <img src="./images/applelogo.png" alt="" height="32px"> [iOS and macOS](xcode/)
+
+Building for *iOS* and *macOS* is done using the [examples](xcode/examples.xcodeproj) *Xcode* project found in the [xcode](xcode) directory. These examples use the [**MoltenVK**](https://moltengl.com/moltenvk) Vulkan driver to provide Vulkan support on *iOS* and *macOS*, and require an *iOS* or *macOS* device that supports *Metal*. Please see the [MoltenVK Examples readme](xcode/README_MoltenVK_Examples.md) for more info on acquiring **MoltenVK** and building and deploying the examples on *iOS* and *macOS*.
+
 ## Additional asset pack
 
 **Note:** Binary assets (textures, models) will no longer be added directly to the repository to keep it's size down, so newer examples will require the download of an [additional asset pack](data/README.md).

@@ -1,12 +1,10 @@
 /*
- * examples.h
+ *  examples.h
  *
- * Copyright (c) 2014-2017 The Brenwill Workshop Ltd. All rights reserved.
- * http://www.brenwill.com
- */
-
-
-/** 
+ *  Copyright (c) 2016-2017 The Brenwill Workshop Ltd.
+ *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ *
+ *
  * Loads the appropriate example code, as indicated by the appropriate compiler build setting below.
  *
  * To select an example to run, define one (and only one) of the macros below, either by 
@@ -26,9 +24,8 @@
  */
 
 
-// In the list below, the comments indicate entries that do not currently run correctly on
-// one or both of iOS and macOS, and the comment indicates the problem that is encountered.
-// Fixes are on the way.
+// In the list below, the comments indicate entries that,
+// under certain conditions, that may not run as expected.
 
 
 // BASICS
@@ -37,15 +34,18 @@
 #	include "../pipelines/pipelines.cpp"
 #endif
 
-#ifdef MVK_texture                          // Bad access
+#ifdef MVK_texture
 #	include "../texture/texture.cpp"
 #endif
 
-#ifdef MVK_texturecubemap                   // mat4 passed as input
+// Does not run. Metal does not support passing matrices between shader stages.
+#ifdef MVK_texturecubemap
 #	include "../texturecubemap/texturecubemap.cpp"
 #endif
 
-#ifdef MVK_texturearray                     // Buffer binding error
+// Runs in Release mode. Does not run in Debug mode, as Metal validation will
+// assert that UBO buffer length is too short for UBO size declared in shader.
+#ifdef MVK_texturearray
 #	include "../texturearray/texturearray.cpp"
 #endif
 
@@ -53,19 +53,20 @@
 #	include "../mesh/mesh.cpp"
 #endif
 
-#ifdef MVK_dynamicuniformbuffer             // Bad access
+#ifdef MVK_dynamicuniformbuffer
 #	include "../dynamicuniformbuffer/dynamicuniformbuffer.cpp"
 #endif
 
-#ifdef MVK_pushconstants                    // Array in shader stage_in breaks shader
+// Does not run. Metal does not support passing arrays between shader stages.
+#ifdef MVK_pushconstants
 #	include "../pushconstants/pushconstants.cpp"
 #endif
 
-#ifdef MVK_specializationconstants          // Specialization constants not recognized in shader
+#ifdef MVK_specializationconstants
 #	include "../specializationconstants/specializationconstants.cpp"
 #endif
 
-#ifdef MVK_offscreen                        // Bad access on iOS after 'd' key is pressed
+#ifdef MVK_offscreen
 #	include "../offscreen/offscreen.cpp"
 #endif
 
@@ -88,7 +89,7 @@
 #	include "../multithreading/multithreading.cpp"
 #endif
 
-#ifdef MVK_scenerendering                   // Bad access on macOS
+#ifdef MVK_scenerendering
 #	include "../scenerendering/scenerendering.cpp"
 #endif
 
@@ -100,47 +101,54 @@
 #	include "../indirectdraw/indirectdraw.cpp"
 #endif
 
-#ifdef MVK_hdr                              // mat4 passed as input
+// Does not run. Metal does not support passing matrices between shader stages.
+#ifdef MVK_hdr
 #	include "../hdr/hdr.cpp"
 #endif
 
-#ifdef MVK_occlusionquery                   // Runs but exhausts 4096 capacity dynamic buffer
+#ifdef MVK_occlusionquery
 #	include "../occlusionquery/occlusionquery.cpp"
 #endif
 
-#ifdef MVK_texturemipmapgen                 // SPIRV->GLSL conversion error
+// Does not run. Sampler arrays require Metal 2.
+#ifdef MVK_texturemipmapgen
 #	include "../texturemipmapgen/texturemipmapgen.cpp"
 #endif
 
-#ifdef MVK_multisampling                    // Multisampling too low on iOS
+#ifdef MVK_multisampling
 #	include "../multisampling/multisampling.cpp"
 #endif
 
-#ifdef MVK_shadowmapping                    // Bad access on iOS
+#ifdef MVK_shadowmapping
 #	include "../shadowmapping/shadowmapping.cpp"
 #endif
 
-#ifdef MVK_shadowmappingomni                // Bad access on iOS
+#ifdef MVK_shadowmappingomni
 #	include "../shadowmappingomni/shadowmappingomni.cpp"
 #endif
 
-#ifdef MVK_skeletalanimation                // Bad access on macOS
+#ifdef MVK_skeletalanimation
 #	include "../skeletalanimation/skeletalanimation.cpp"
 #endif
 
-#ifdef MVK_bloom                            // Bad access on iOS
+#ifdef MVK_bloom
 #	include "../bloom/bloom.cpp"
 #endif
 
-#ifdef MVK_deferred                         // buffer overload
+// Runs in Release mode. Debug mode Metal validation will assert
+// UBO buffer length is too short for UBO size declared in shader.
+#ifdef MVK_deferred
 #	include "../deferred/deferred.cpp"
 #endif
 
-#ifdef MVK_deferredshadows                  // Geometry shaders not available in Metal
+// Does not run. Metal does not support geometry shaders.
+#ifdef MVK_deferredshadows
 #	include "../deferredshadows/deferredshadows.cpp"
 #endif
 
-#ifdef MVK_ssao                             // SPIRV->MSL conversion error
+// Runs in Release mode, but does not display content.
+// Metal does not support the use of specialization constants to set array lengths,
+#ifdef MVK_ssao
 #	include "../ssao/ssao.cpp"
 #endif
 
@@ -171,7 +179,7 @@
 #	include "../gears/gears.cpp"
 #endif
 
-#ifdef MVK_distancefieldfonts           // Endless loop during loading on macOS
+#ifdef MVK_distancefieldfonts
 #	include "../distancefieldfonts/distancefieldfonts.cpp"
 #endif
 

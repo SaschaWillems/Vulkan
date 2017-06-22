@@ -1,13 +1,13 @@
 /*
- * DemoViewController.mm
+ *  DemoViewController.mm
  *
- * Copyright (c) 2014-2017 The Brenwill Workshop Ltd. All rights reserved.
- * http://www.brenwill.com
+ *  Copyright (c) 2016-2017 The Brenwill Workshop Ltd.
+ *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
 
 #import "DemoViewController.h"
 
-#include "examples.h"
+#include "MVKExample.h"
 
 
 const std::string VulkanExampleBase::getAssetPath() {
@@ -19,7 +19,7 @@ const std::string VulkanExampleBase::getAssetPath() {
 #pragma mark DemoViewController
 
 @implementation DemoViewController {
-    VulkanExample* _vulkanExample;
+    MVKExample* _mvkExample;
     CADisplayLink* _displayLink;
     BOOL _viewHasAppeared;
 }
@@ -30,11 +30,7 @@ const std::string VulkanExampleBase::getAssetPath() {
 
     self.view.contentScaleFactor = UIScreen.mainScreen.nativeScale;
 
-    _vulkanExample = new VulkanExample();
-    _vulkanExample->initVulkan();
-    _vulkanExample->setupWindow(self.view);
-    _vulkanExample->initSwapchain();
-    _vulkanExample->prepare();
+    _mvkExample = new MVKExample(self.view);
 
     uint32_t fps = 60;
     _displayLink = [CADisplayLink displayLinkWithTarget: self selector: @selector(renderFrame)];
@@ -59,11 +55,11 @@ const std::string VulkanExampleBase::getAssetPath() {
 -(BOOL) canBecomeFirstResponder { return _viewHasAppeared; }
 
 -(void) renderFrame {
-    _vulkanExample->renderFrame();
+    _mvkExample->renderFrame();
 }
 
 -(void) dealloc {
-    delete(_vulkanExample);
+    delete _mvkExample;
     [super dealloc];
 }
 
@@ -85,7 +81,7 @@ const std::string VulkanExampleBase::getAssetPath() {
 
 // Handle keyboard input
 -(void) handleKeyboardInput: (unichar) keycode {
-    _vulkanExample->keyPressed(keycode);
+    _mvkExample->keyPressed(keycode);
 }
 
 

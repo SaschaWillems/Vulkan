@@ -606,7 +606,7 @@ public:
 		std::vector<std::string> filenames = { "geosphere.obj", "teapot.dae", "torusknot.obj", "venus.fbx" };
 		for (auto file : filenames) {
 			vks::Model model;
-			model.loadFromFile(ASSET_PATH "models/" + file, vertexLayout, 0.05f * (file == "venus.fbx" ? 3.0f : 1.0f), vulkanDevice, queue);
+			model.loadFromFile(getAssetPath() + "models/" + file, vertexLayout, 0.05f * (file == "venus.fbx" ? 3.0f : 1.0f), vulkanDevice, queue);
 			models.objects.push_back(model);
 		}
 		// Load HDR cube map

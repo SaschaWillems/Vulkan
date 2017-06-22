@@ -1,9 +1,9 @@
-//
-//  main.m
-//
-//  Created by Bill Hollings on 2015/07/30.
-//  Copyright © 2015 The Brenwill Workshop Ltd. All rights reserved.
-//
+/*
+ *  main.m
+ *
+ *  Copyright (c) 2016-2017 The Brenwill Workshop Ltd.
+ *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 
 #import <Cocoa/Cocoa.h>
 

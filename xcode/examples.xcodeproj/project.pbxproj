@@ -7,11 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A91227C31E9D5F5100108018 /* libMoltenVK.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A91227C21E9D5F5100108018 /* libMoltenVK.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		A91227C41E9D5F8200108018 /* libMoltenVK.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A91227C21E9D5F5100108018 /* libMoltenVK.dylib */; };
-		A91227C71E9D5FE500108018 /* libassimp.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A91227C61E9D5FE500108018 /* libassimp.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		A91227C81E9D601900108018 /* libassimp.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A91227C61E9D5FE500108018 /* libassimp.dylib */; };
-		A945BCFC1E9D4E8700BA3EE2 /* MoltenVK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A945BCFB1E9D4E8700BA3EE2 /* MoltenVK.framework */; };
 		A94C8D601EA047B400B3CE07 /* vulkangear.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A94C8D5E1EA047B400B3CE07 /* vulkangear.cpp */; };
 		A94C8D611EA047B400B3CE07 /* vulkangear.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A94C8D5E1EA047B400B3CE07 /* vulkangear.cpp */; };
 		A951FF171E9C349000FA9144 /* VulkanDebug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A951FF071E9C349000FA9144 /* VulkanDebug.cpp */; };
@@ -20,8 +15,14 @@
 		A951FF1A1E9C349000FA9144 /* vulkanexamplebase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A951FF0A1E9C349000FA9144 /* vulkanexamplebase.cpp */; };
 		A951FF1B1E9C349000FA9144 /* VulkanTools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A951FF131E9C349000FA9144 /* VulkanTools.cpp */; };
 		A951FF1C1E9C349000FA9144 /* VulkanTools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A951FF131E9C349000FA9144 /* VulkanTools.cpp */; };
-		A951FF271E9C891A00FA9144 /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A951FF261E9C891A00FA9144 /* libassimp.a */; };
-		A98703D71E9D33990066959C /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A98703D61E9D33990066959C /* libzlibstatic.a */; };
+		A9532B761EF99894000A09E2 /* libMoltenVK.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A9532B751EF99894000A09E2 /* libMoltenVK.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		A9532B771EF9991A000A09E2 /* libMoltenVK.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A9532B751EF99894000A09E2 /* libMoltenVK.dylib */; };
+		A9532B781EF99937000A09E2 /* libMoltenVK.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */; };
+		A9581BA61EEB648800247309 /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BA51EEB648800247309 /* libassimp.a */; };
+		A9581BA81EEB648C00247309 /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BA71EEB648C00247309 /* libzlibstatic.a */; };
+		A9581BAC1EEB64EC00247309 /* libMoltenVK.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		A9581BAE1EEB651100247309 /* libassimp.3.3.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A9581BAD1EEB651100247309 /* libassimp.3.3.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		A9581BAF1EEB651500247309 /* libassimp.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BAD1EEB651100247309 /* libassimp.3.3.1.dylib */; };
 		A98703D91E9D382A0066959C /* data in Resources */ = {isa = PBXBuildFile; fileRef = A98703D81E9D382A0066959C /* data */; };
 		A98703DA1E9D382A0066959C /* data in Resources */ = {isa = PBXBuildFile; fileRef = A98703D81E9D382A0066959C /* data */; };
 		A9B67B781C3AAE9800373FFD /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = A9B67B6C1C3AAE9800373FFD /* AppDelegate.m */; };
@@ -36,6 +37,8 @@
 		A9B67B8F1C3AAEA200373FFD /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A9B67B871C3AAEA200373FFD /* main.m */; };
 		A9B67B901C3AAEA200373FFD /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A9B67B8A1C3AAEA200373FFD /* Main.storyboard */; };
 		A9B67B911C3AAEA200373FFD /* macOS.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A9B67B8B1C3AAEA200373FFD /* macOS.xcassets */; };
+		A9BC9B1C1EE8421F00384233 /* MVKExample.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A9BC9B1A1EE8421F00384233 /* MVKExample.cpp */; };
+		A9BC9B1D1EE8421F00384233 /* MVKExample.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A9BC9B1A1EE8421F00384233 /* MVKExample.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -45,8 +48,18 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
-				A91227C71E9D5FE500108018 /* libassimp.dylib in CopyFiles */,
-				A91227C31E9D5F5100108018 /* libMoltenVK.dylib in CopyFiles */,
+				A9581BAC1EEB64EC00247309 /* libMoltenVK.dylib in CopyFiles */,
+				A9581BAE1EEB651100247309 /* libassimp.3.3.1.dylib in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A9532B741EF9987C000A09E2 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				A9532B761EF99894000A09E2 /* libMoltenVK.dylib in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,10 +70,7 @@
 		1D3623EB0D0F72F000981E51 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		1D6058910D05DD3D006BFB54 /* examples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = examples.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D500B990D5A79CF00DBA0E3 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
-		A91227C21E9D5F5100108018 /* libMoltenVK.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libMoltenVK.dylib; path = MoltenVK/macOS/libMoltenVK.dylib; sourceTree = "<group>"; };
-		A91227C61E9D5FE500108018 /* libassimp.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libassimp.dylib; path = ../libs/assimp/macos/libassimp.dylib; sourceTree = "<group>"; };
 		A92F37071C7E1B2B008F8BC9 /* examples.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = examples.h; sourceTree = "<group>"; };
-		A945BCFB1E9D4E8700BA3EE2 /* MoltenVK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MoltenVK.framework; path = MoltenVK/iOS/MoltenVK.framework; sourceTree = "<group>"; };
 		A94A67231B7BDE9B00F6D7C4 /* MetalGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalGL.framework; path = ../../MetalGL/macOS/MetalGL.framework; sourceTree = "<group>"; };
 		A94A67241B7BDE9B00F6D7C4 /* MetalGLShaderConverter.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalGLShaderConverter.framework; path = ../../MetalGLShaderConverter/macOS/MetalGLShaderConverter.framework; sourceTree = "<group>"; };
 		A94C8D5E1EA047B400B3CE07 /* vulkangear.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = vulkangear.cpp; path = ../gears/vulkangear.cpp; sourceTree = "<group>"; };
@@ -84,15 +94,17 @@
 		A951FF121E9C349000FA9144 /* VulkanTexture.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = VulkanTexture.hpp; sourceTree = "<group>"; };
 		A951FF131E9C349000FA9144 /* VulkanTools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanTools.cpp; sourceTree = "<group>"; };
 		A951FF141E9C349000FA9144 /* VulkanTools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanTools.h; sourceTree = "<group>"; };
-		A951FF241E9C7D2B00FA9144 /* libassimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libassimp.a; path = "../libs/assimp/armeabi-v7a/libassimp.a"; sourceTree = "<group>"; };
-		A951FF261E9C891A00FA9144 /* libassimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libassimp.a; path = ../libs/assimp/ios/arm64/libassimp.a; sourceTree = "<group>"; };
+		A9532B751EF99894000A09E2 /* libMoltenVK.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libMoltenVK.dylib; path = MoltenVK/iOS/libMoltenVK.dylib; sourceTree = "<group>"; };
+		A9581BA51EEB648800247309 /* libassimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libassimp.a; path = "assimp/assimp-ios/lib/iOS/arm64/libassimp.a"; sourceTree = "<group>"; };
+		A9581BA71EEB648C00247309 /* libzlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libzlibstatic.a; path = "assimp/assimp-ios/lib/libzlibstatic.a"; sourceTree = "<group>"; };
+		A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libMoltenVK.dylib; path = MoltenVK/macOS/libMoltenVK.dylib; sourceTree = "<group>"; };
+		A9581BAD1EEB651100247309 /* libassimp.3.3.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libassimp.3.3.1.dylib; path = "assimp/assimp-macos/lib/libassimp.3.3.1.dylib"; sourceTree = "<group>"; };
 		A977BCFE1B66BB010067E5BF /* examples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = examples.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A977BD211B67186B0067E5BF /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/AppKit.framework; sourceTree = DEVELOPER_DIR; };
 		A977BD221B67186B0067E5BF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
 		A977BD231B67186B0067E5BF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		A977BD251B67186B0067E5BF /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		A977BD261B67186B0067E5BF /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
-		A98703D61E9D33990066959C /* libzlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libzlibstatic.a; path = ../libs/assimp/ios/arm64/libzlibstatic.a; sourceTree = "<group>"; };
 		A98703D81E9D382A0066959C /* data */ = {isa = PBXFileReference; lastKnownFileType = folder; name = data; path = ../data; sourceTree = "<group>"; };
 		A9A222171B5D69F40050A5F9 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		A9B5D09B1CF8830B00D7CBDD /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
@@ -117,10 +129,10 @@
 		A9B67B8A1C3AAEA200373FFD /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
 		A9B67B8B1C3AAEA200373FFD /* macOS.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = macOS.xcassets; sourceTree = "<group>"; };
 		A9B6B7641C0F795D00A9E33A /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		A9BC9B1A1EE8421F00384233 /* MVKExample.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MVKExample.cpp; sourceTree = "<group>"; };
+		A9BC9B1B1EE8421F00384233 /* MVKExample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVKExample.h; sourceTree = "<group>"; };
 		A9CDEA271B6A782C00F7B008 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 		A9E264761B671B0A00FE691A /* libc++.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libc++.dylib"; path = "Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/lib/libc++.dylib"; sourceTree = DEVELOPER_DIR; };
-		A9EFB8381E9D566000223542 /* libassimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libassimp.a; path = ../libs/assimp/macos/libassimp.a; sourceTree = "<group>"; };
-		A9EFB8391E9D566000223542 /* libzlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libzlibstatic.a; path = ../libs/assimp/macos/libzlibstatic.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,9 +140,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A945BCFC1E9D4E8700BA3EE2 /* MoltenVK.framework in Frameworks */,
-				A98703D71E9D33990066959C /* libzlibstatic.a in Frameworks */,
-				A951FF271E9C891A00FA9144 /* libassimp.a in Frameworks */,
+				A9532B771EF9991A000A09E2 /* libMoltenVK.dylib in Frameworks */,
+				A9581BA61EEB648800247309 /* libassimp.a in Frameworks */,
+				A9581BA81EEB648C00247309 /* libzlibstatic.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -138,8 +150,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A91227C41E9D5F8200108018 /* libMoltenVK.dylib in Frameworks */,
-				A91227C81E9D601900108018 /* libassimp.dylib in Frameworks */,
+				A9532B781EF99937000A09E2 /* libMoltenVK.dylib in Frameworks */,
+				A9581BAF1EEB651500247309 /* libassimp.3.3.1.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -159,6 +171,8 @@
 			isa = PBXGroup;
 			children = (
 				A92F37071C7E1B2B008F8BC9 /* examples.h */,
+				A9BC9B1B1EE8421F00384233 /* MVKExample.h */,
+				A9BC9B1A1EE8421F00384233 /* MVKExample.cpp */,
 				A951FEFF1E9C349000FA9144 /* base */,
 				A94C8D5D1EA047A300B3CE07 /* extras */,
 				A98703D81E9D382A0066959C /* data */,
@@ -173,14 +187,11 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				A91227C61E9D5FE500108018 /* libassimp.dylib */,
-				A91227C21E9D5F5100108018 /* libMoltenVK.dylib */,
-				A9EFB8381E9D566000223542 /* libassimp.a */,
-				A9EFB8391E9D566000223542 /* libzlibstatic.a */,
-				A945BCFB1E9D4E8700BA3EE2 /* MoltenVK.framework */,
-				A98703D61E9D33990066959C /* libzlibstatic.a */,
-				A951FF261E9C891A00FA9144 /* libassimp.a */,
-				A951FF241E9C7D2B00FA9144 /* libassimp.a */,
+				A9581BAD1EEB651100247309 /* libassimp.3.3.1.dylib */,
+				A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */,
+				A9532B751EF99894000A09E2 /* libMoltenVK.dylib */,
+				A9581BA71EEB648C00247309 /* libzlibstatic.a */,
+				A9581BA51EEB648800247309 /* libassimp.a */,
 				A9B5D09B1CF8830B00D7CBDD /* libc++.tbd */,
 				A9B6B7641C0F795D00A9E33A /* CoreAudio.framework */,
 				A9ADEC601B6EC2EB00DBA48C /* iOS */,
@@ -312,6 +323,7 @@
 				1D60588D0D05DD3D006BFB54 /* Resources */,
 				1D60588E0D05DD3D006BFB54 /* Sources */,
 				1D60588F0D05DD3D006BFB54 /* Frameworks */,
+				A9532B741EF9987C000A09E2 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -407,6 +419,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A951FF171E9C349000FA9144 /* VulkanDebug.cpp in Sources */,
+				A9BC9B1C1EE8421F00384233 /* MVKExample.cpp in Sources */,
 				A9B67B7A1C3AAE9800373FFD /* DemoViewController.mm in Sources */,
 				A9B67B781C3AAE9800373FFD /* AppDelegate.m in Sources */,
 				A951FF1B1E9C349000FA9144 /* VulkanTools.cpp in Sources */,
@@ -421,6 +434,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A951FF181E9C349000FA9144 /* VulkanDebug.cpp in Sources */,
+				A9BC9B1D1EE8421F00384233 /* MVKExample.cpp in Sources */,
 				A9B67B8C1C3AAEA200373FFD /* AppDelegate.m in Sources */,
 				A9B67B8F1C3AAEA200373FFD /* main.m in Sources */,
 				A951FF1C1E9C349000FA9144 /* VulkanTools.cpp in Sources */,
@@ -438,7 +452,6 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = VU3TCKU48B;
-				FRAMEWORK_SEARCH_PATHS = "\"$(SRCROOT)/MoltenVK/iOS\"";
 				GCC_PREFIX_HEADER = "$(SRCROOT)/iOS/Prefix.pch";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -449,7 +462,12 @@
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/iOS/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../libs/assimp/ios\"";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
+				LIBRARY_SEARCH_PATHS = (
+					"\"$(SRCROOT)/MoltenVK/iOS\"",
+					"\"$(SRCROOT)/assimp/assimp-ios/lib/iOS/arm64\"",
+					"\"$(SRCROOT)/assimp/assimp-ios/lib\"",
+				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -461,7 +479,6 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = VU3TCKU48B;
-				FRAMEWORK_SEARCH_PATHS = "\"$(SRCROOT)/MoltenVK/iOS\"";
 				GCC_PREFIX_HEADER = "$(SRCROOT)/iOS/Prefix.pch";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -470,7 +487,12 @@
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/iOS/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../libs/assimp/ios\"";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
+				LIBRARY_SEARCH_PATHS = (
+					"\"$(SRCROOT)/MoltenVK/iOS\"",
+					"\"$(SRCROOT)/assimp/assimp-ios/lib/iOS/arm64\"",
+					"\"$(SRCROOT)/assimp/assimp-ios/lib\"",
+				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -493,7 +515,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SRCROOT)/MoltenVK/macOS\"",
-					"\"$(SRCROOT)/../libs/assimp/macos\"",
+					"\"$(SRCROOT)/assimp/assimp-macos/lib\"",
+					"$(PROJECT_DIR)/MoltenVK/macOS",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				SDKROOT = macosx;
@@ -514,7 +537,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SRCROOT)/MoltenVK/macOS\"",
-					"\"$(SRCROOT)/../libs/assimp/macos\"",
+					"\"$(SRCROOT)/assimp/assimp-macos/lib\"",
+					"$(PROJECT_DIR)/MoltenVK/macOS",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				SDKROOT = macosx;

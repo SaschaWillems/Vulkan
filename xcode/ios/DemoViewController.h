@@ -1,15 +1,8 @@
 /*
- * DemoViewController.h
+ *  DemoViewController.h
  *
- * Copyright (c) 2014-2017 The Brenwill Workshop Ltd. All rights reserved.
- * http://www.brenwill.com
- *
- * Use of this document is governed by the Molten License Agreement, as included
- * in the Molten distribution package. CAREFULLY READ THAT LICENSE AGREEMENT BEFORE
- * READING AND USING THIS DOCUMENT. BY READING OR OTHERWISE USING THIS DOCUMENT,
- * YOU ACCEPT AND AGREE TO BE BOUND BY THE TERMS AND CONDITIONS OF THAT LICENSE
- * AGREEMENT. IF YOU DO NOT ACCEPT THE TERMS AND CONDITIONS OF THAT LICENSE AGREEMENT,
- * DO NOT READ OR USE THIS DOCUMENT.
+ *  Copyright (c) 2016-2017 The Brenwill Workshop Ltd.
+ *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
 
 #import <UIKit/UIKit.h>

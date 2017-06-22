@@ -1,14 +1,14 @@
 /*
- * DemoViewController.mm
+ *  DemoViewController.mm
  *
- * Copyright (c) 2014-2017 The Brenwill Workshop Ltd. All rights reserved.
- * http://www.brenwill.com
+ *  Copyright (c) 2016-2017 The Brenwill Workshop Ltd.
+ *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
 
 #import "DemoViewController.h"
 #import <QuartzCore/CAMetalLayer.h>
 
-#include "examples.h"
+#include "MVKExample.h"
 
 
 const std::string VulkanExampleBase::getAssetPath() {
@@ -22,7 +22,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                                     CVOptionFlags flagsIn,
                                     CVOptionFlags* flagsOut,
                                     void* target) {
-    ((VulkanExample*)target)->renderFrame();
+    ((MVKExample*)target)->renderFrame();
     return kCVReturnSuccess;
 }
 
@@ -31,7 +31,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 #pragma mark DemoViewController
 
 @implementation DemoViewController {
-    VulkanExample* _vulkanExample;
+    MVKExample* _mvkExample;
     CVDisplayLinkRef _displayLink;
 }
 
@@ -41,26 +41,22 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 
 	self.view.wantsLayer = YES;		// Back the view with a layer created by the makeBackingLayer method.
 
-    _vulkanExample = new VulkanExample();
-    _vulkanExample->initVulkan();
-    _vulkanExample->setupWindow(self.view);
-    _vulkanExample->initSwapchain();
-    _vulkanExample->prepare();
+    _mvkExample = new MVKExample(self.view);
 
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
-    CVDisplayLinkSetOutputCallback(_displayLink, &DisplayLinkCallback, _vulkanExample);
+    CVDisplayLinkSetOutputCallback(_displayLink, &DisplayLinkCallback, _mvkExample);
     CVDisplayLinkStart(_displayLink);
 }
 
 -(void) dealloc {
     CVDisplayLinkRelease(_displayLink);
-    delete(_vulkanExample);
+    delete _mvkExample;
     [super dealloc];
 }
 
 // Handle keyboard input
 -(void) keyDown:(NSEvent*) theEvent {
-    _vulkanExample->keyPressed(theEvent.keyCode);
+    _mvkExample->keyPressed(theEvent.keyCode);
 }
 
 @end
