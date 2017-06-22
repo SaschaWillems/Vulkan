@@ -8,7 +8,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
 #include <assert.h>
 #include <vector>
 #include <algorithm>
@@ -694,7 +693,7 @@ public:
 
 	void prepare()
 	{
-        setSampleCount();
+        sampleCount = getMaxUsableSampleCount();
 		VulkanExampleBase::prepare();
 		loadAssets();
 		setupVertexDescriptions();
@@ -736,13 +735,19 @@ public:
 		}
 	}
 
-    // Determine the maximum sample count usable by the platform
-    void setSampleCount()
+    // Returns the maximum sample count usable by the platform
+    VkSampleCountFlagBits getMaxUsableSampleCount()
     {
-        VkSampleCountFlags flags = std::min(deviceProperties.limits.framebufferColorSampleCounts,
+        VkSampleCountFlags counts = std::min(deviceProperties.limits.framebufferColorSampleCounts,
                                             deviceProperties.limits.framebufferDepthSampleCounts);
-        // Extract the value of the high-order bit of the flags
-        sampleCount = (VkSampleCountFlagBits)(flags ? (1 << (fls(flags) - 1)) : 0);
+
+        if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+        if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+        if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+        if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+        if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+        if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+        return VK_SAMPLE_COUNT_1_BIT;
     }
 
 };
