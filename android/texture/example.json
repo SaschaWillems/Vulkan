@@ -1,0 +1,11 @@
+{
+  "apkname": "vulkanTexture",
+  "directories": {
+    "shaders": "texture"
+  },
+  "assets": {
+    "textures": [
+      "metalplate01_rgba.ktx"
+    ]    
+  }
+}

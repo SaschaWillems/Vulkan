@@ -1,0 +1,11 @@
+{
+  "apkname": "vulkanPushconstants",
+  "directories": {
+    "shaders": "pushconstants"
+  },
+  "assets": {
+    "models": [
+      "samplescene.dae"
+    ]
+  }
+}

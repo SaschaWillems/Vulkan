@@ -38,7 +38,7 @@ void main(void)
 
 		// Set the viewport index that the vertex will be emitted to
 		gl_ViewportIndex = gl_InvocationID;
-
+      gl_PrimitiveID = gl_PrimitiveIDIn;
 		EmitVertex();
 	}
 	EndPrimitive();

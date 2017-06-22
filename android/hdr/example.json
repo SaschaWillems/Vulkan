@@ -1,0 +1,23 @@
+{
+  "apkname": "vulkanHDR",
+  "directories": {
+    "shaders": "hdr"
+  },
+  "assets": {
+    "models": [
+      "cube.obj", 
+      "geosphere.obj", 
+      "teapot.dae", 
+      "torusknot.obj", 
+      "venus.fbx"
+    ],
+    "additional" : {
+      "directories": [
+        "textures/hdr"
+      ],
+      "files": [
+        "textures/hdr/uffizi_cube.ktx"
+      ]
+    }
+  }
+}

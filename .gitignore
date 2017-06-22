@@ -196,7 +196,7 @@ UpgradeLog*.htm
 # Microsoft Fakes
 FakesAssemblies/
 
-vulkanCapsViewer/vulkanreport.json
+.vs/
 
 # Don't ignore 3d models in obj format
 !data/models/*.obj
@@ -213,4 +213,5 @@ android/layers/*/*.so
 vulkan_asset_pack.*
 data/textures/hdr/*.*
 data/readme.txt
+data/models/cerberus/*.*
 !data/textures/hdr/README.md

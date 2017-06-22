@@ -3,7 +3,7 @@
 *
 * Encapsulates a physical Vulkan device and it's logical representation
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -29,6 +29,8 @@ namespace vks
 		VkPhysicalDeviceProperties properties;
 		/** @brief Features of the physical device that an application can use to check if a feature is supported */
 		VkPhysicalDeviceFeatures features;
+		/** @brief Features that have been enabled for use on the physical device */
+		VkPhysicalDeviceFeatures enabledFeatures;
 		/** @brief Memory types and heaps of the physical device */
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 		/** @brief Queue family properties of the physical device */
@@ -330,6 +332,8 @@ namespace vks
 				// Create a default command pool for graphics command buffers
 				commandPool = createCommandPool(queueFamilyIndices.graphics);
 			}
+
+			this->enabledFeatures = enabledFeatures;
 
 			return result;
 		}

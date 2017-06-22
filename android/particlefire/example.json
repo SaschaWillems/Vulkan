@@ -1,0 +1,21 @@
+{
+  "apkname": "vulkanParticlefire",
+  "directories": {
+    "shaders": "particlefire"
+  },
+  "assets": {
+    "models": [
+      "fireplace.obj"
+    ],
+    "textures": [
+      "particle_fire.ktx", 
+      "particle_smoke.ktx", 
+      "fireplace_normalmap_bc3_unorm.ktx", 
+      "fireplace_normalmap_astc_8x8_unorm.ktx", 
+      "fireplace_normalmap_etc2_unorm.ktx", 
+      "fireplace_colormap_bc3_unorm.ktx", 
+      "fireplace_colormap_astc_8x8_unorm.ktx", 
+      "fireplace_colormap_etc2_unorm.ktx"
+    ]    
+  }
+}

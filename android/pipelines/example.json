@@ -1,0 +1,11 @@
+{
+  "apkname": "vulkanPipelines",
+  "directories": {
+    "shaders": "pipelines"
+  },
+  "assets": {
+    "models": [
+      "treasure_smooth.dae"
+    ]
+  }
+}

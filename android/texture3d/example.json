@@ -1,0 +1,7 @@
+{
+  "apkname": "vulkanTexture3d",
+  "directories": {
+    "shaders": "texture3d"
+  },
+  "assets": {}
+}

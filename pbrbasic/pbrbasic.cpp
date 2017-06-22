@@ -96,8 +96,8 @@ public:
 		title = "Vulkan Example - Physical based shading basics";
 		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
-		camera.setPosition(glm::vec3(13.0f, 8.0f, -10.0f));
-		camera.setRotation(glm::vec3(-31.75f, 45.0f, 0.0f));
+		camera.setPosition(glm::vec3(10.0f, 13.0f, 1.8f));
+		camera.setRotation(glm::vec3(-62.5f, 90.0f, 0.0f));
 		camera.movementSpeed = 4.0f;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.rotationSpeed = 0.25f;
@@ -118,7 +118,7 @@ public:
 		materials.push_back(Material("Blue", glm::vec3(0.0f, 0.0f, 1.0f), 0.1f, 1.0f));
 		materials.push_back(Material("Black", glm::vec3(0.0f), 0.1f, 1.0f));
 
-		materialIndex = 8;
+		materialIndex = 0;
 	}
 
 	~VulkanExample()
@@ -138,22 +138,12 @@ public:
 		uniformBuffers.params.destroy();
 	}
 
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
-	}
-
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.1f, 0.1f, 0.1f, 1.0f } };
+		clearValues[0].color = defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -207,7 +197,7 @@ public:
 				for (uint32_t x = 0; x < GRID_DIM; x++) {
 					glm::vec3 pos = glm::vec3(float(x - (GRID_DIM / 2.0f)) * 2.5f, 0.0f, float(y - (GRID_DIM / 2.0f)) * 2.5f);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
-					mat.params.metallic = (float)x / (float)(GRID_DIM - 1);
+					mat.params.metallic = glm::clamp((float)x / (float)(GRID_DIM - 1), 0.1f, 1.0f);
 					mat.params.roughness = glm::clamp((float)y / (float)(GRID_DIM - 1), 0.05f, 1.0f);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
 					vkCmdDrawIndexed(drawCmdBuffers[i], models.objects[models.objectIndex].indexCount, 1, 0, 0, 0);
@@ -475,7 +465,7 @@ public:
 			models.objectIndex = 0;
 		}
 		updateUniformBuffers();
-		reBuildCommandBuffers();
+		buildCommandBuffers();
 	}
 
 	void toggleMaterial(int32_t dir)
@@ -487,7 +477,7 @@ public:
 		if (materialIndex > static_cast<int32_t>(materials.size()) - 1) {
 			materialIndex = 0;
 		}
-		reBuildCommandBuffers();
+		buildCommandBuffers();
 		updateTextOverlay();
 	}
 

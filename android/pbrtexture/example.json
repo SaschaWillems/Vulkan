@@ -1,0 +1,18 @@
+{
+  "apkname": "vulkanPBRTexture",
+  "directories": {
+    "shaders": "pbrtexture"
+  },
+  "assets": {
+    "models": [
+      "cube.obj"
+    ],
+    "additional" : {
+      "directories": ["textures/hdr", "models/cerberus"],
+      "files": [
+        "textures/hdr/gcanyon_cube.ktx",
+        "models/cerberus/*.*"
+      ]
+    }
+  }
+}

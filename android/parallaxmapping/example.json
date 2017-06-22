@@ -1,0 +1,17 @@
+{
+  "apkname": "vulkanParallaxmapping",
+  "directories": {
+    "shaders": "parallax"
+  },
+  "assets": {
+    "models": [
+      "plane_z.obj"
+    ],
+    "textures": [
+      "rocks_normal_height_rgba.dds",
+      "rocks_color_bc3_unorm.dds",
+      "rocks_color_astc_8x8_unorm.ktx",
+      "rocks_color_etc2_unorm.ktx"
+    ]    
+  }
+}

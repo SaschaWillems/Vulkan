@@ -1,0 +1,21 @@
+{
+  "apkname": "vulkanTessellation",
+  "directories": {
+    "shaders": "tessellation"
+  },
+  "assets": {
+    "textures": [
+      "deer_bc3_unorm.ktx", 
+      "deer_astc_8x8_unorm.ktx", 
+      "deer_etc2_unorm.ktx"
+    ],
+    "additional": {
+      "directories": [
+        "models/lowpoly"
+      ],
+      "files" : [
+        "models/lowpoly/deer.dae"
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "apkname": "vulkanRadialblur",
+  "directories": {
+    "shaders": "radialblur"
+  },
+  "assets": {
+    "models": [
+      "glowsphere.dae"
+    ],
+    "textures": [
+      "particle_gradient_rgba.ktx"
+    ]    
+  }
+}

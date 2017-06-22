@@ -150,14 +150,12 @@ public:
 		vkDestroySemaphore(device, compute.semaphore, nullptr);
 	}
 
-	void reBuildCommandBuffers()
+	virtual void getEnabledFeatures()
 	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
+		// Enable multi draw indirect if supported
+		if (deviceFeatures.multiDrawIndirect) {
+			enabledFeatures.multiDrawIndirect = VK_TRUE;
 		}
-		buildCommandBuffers();
 	}
 
 	void buildCommandBuffers()

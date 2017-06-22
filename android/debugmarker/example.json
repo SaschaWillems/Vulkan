@@ -1,0 +1,12 @@
+{
+  "apkname": "vulkanDebugmarker",
+  "directories": {
+    "shaders": "debugmarker"
+  },
+  "assets": {
+    "models": [
+      "treasure_smooth.dae", 
+      "treasure_glow.dae"
+    ]
+  }
+}
