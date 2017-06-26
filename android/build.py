@@ -29,7 +29,7 @@ if not os.path.isfile(os.path.join(PROJECT_FOLDER, "build.xml")):
     ANDROID_CMD = "android"
     if os.name == 'nt':
         ANDROID_CMD += ".bat"
-    if subprocess.call("%s update project -p ./%s -t %s" % (ANDROID_CMD, PROJECT_FOLDER, SDK_VERSION)) != 0:
+    if subprocess.call(("%s update project -p ./%s -t %s" % (ANDROID_CMD, PROJECT_FOLDER, SDK_VERSION)).split(' ')) != 0:
         print("Error: Project update failed!")
         sys.exit(-1)
 
@@ -43,7 +43,7 @@ SHADER_DIR = EXAMPLE_JSON["directories"]["shaders"]
 # Additional
 ADDITIONAL_DIRS = []
 ADDITIONAL_FILES = []
-if "additional" in EXAMPLE_JSON["assets"]:
+if "assets" in EXAMPLE_JSON and "additional" in EXAMPLE_JSON["assets"]:
     ADDITIONAL = EXAMPLE_JSON["assets"]["additional"]
     if "directories" in ADDITIONAL:
         ADDITIONAL_DIRS = ADDITIONAL["directories"]
