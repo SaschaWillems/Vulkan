@@ -8,7 +8,6 @@ if answer:
     for arg in sys.argv[1:]:
         if arg == "-validation":
             BUILD_ARGUMENTS += "-validation"
-    if subprocess.call("python build-all.py -deploy %s" % BUILD_ARGUMENTS) != 0:
+    if subprocess.call(("python build-all.py -deploy %s" % BUILD_ARGUMENTS).split(' ')) != 0:
         print("Error: Not all examples may have been installed!")
         sys.exit(-1)
-    

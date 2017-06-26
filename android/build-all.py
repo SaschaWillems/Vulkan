@@ -71,7 +71,7 @@ print("Building all examples...")
 
 for example in EXAMPLES:
     print(COLOR_GREEN + "Building %s (%d/%d)" % (example, CURR_INDEX, len(EXAMPLES)) + COLOR_END)
-    if subprocess.call("python build.py %s %s" % (example, BUILD_ARGUMENTS)) != 0:
+    if subprocess.call(("python build.py %s %s" % (example, BUILD_ARGUMENTS)).split(' ')) != 0:
         print("Error during build process for %s" % example)
         sys.exit(-1)
     CURR_INDEX += 1
