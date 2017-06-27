@@ -216,7 +216,7 @@ void VulkanExampleBase::renderLoop()
 	destHeight = height;
 #if defined(_WIN32)
 	MSG msg;
-   bool quitMessageReceived = false;
+	bool quitMessageReceived = false;
 	while (!quitMessageReceived)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
@@ -231,11 +231,11 @@ void VulkanExampleBase::renderLoop()
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 
-           if (msg.message == WM_QUIT)
-           {
-               quitMessageReceived = true;
-               break;
-           }
+			if (msg.message == WM_QUIT)
+			{
+				quitMessageReceived = true;
+				break;
+			}
 		}
 
 		render();
