@@ -73,6 +73,8 @@ std::string VulkanExampleBase::getWindowTitle()
 	return windowTitle;
 }
 
+#if !(defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+// iOS & macOS: VulkanExampleBase::getAssetPath() implemented externally to allow access to Objective-C components
 const std::string VulkanExampleBase::getAssetPath()
 {
 #if defined(__ANDROID__)
@@ -81,6 +83,7 @@ const std::string VulkanExampleBase::getAssetPath()
 	return "./../data/";
 #endif
 }
+#endif
 
 bool VulkanExampleBase::checkCommandBuffers()
 {
@@ -213,6 +216,45 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	assert(shaderStage.module != VK_NULL_HANDLE);
 	shaderModules.push_back(shaderStage.module);
 	return shaderStage;
+}
+
+void VulkanExampleBase::renderFrame()
+{
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+    auto tStart = std::chrono::high_resolution_clock::now();
+    if (viewUpdated)
+    {
+        viewUpdated = false;
+        viewChanged();
+    }
+    render();
+    frameCounter++;
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+    frameTimer = tDiff / 1000.0f;
+    camera.update(frameTimer);
+    if (camera.moving())
+    {
+        viewUpdated = true;
+    }
+    // Convert to clamped timer value
+    if (!paused)
+    {
+        timer += timerSpeed * frameTimer;
+        if (timer > 1.0)
+        {
+            timer -= 1.0f;
+        }
+    }
+    fpsTimer += (float)tDiff;
+    if (fpsTimer > 1000.0f)
+    {
+        lastFPS = frameCounter;
+        updateTextOverlay();
+        fpsTimer = 0.0f;
+        frameCounter = 0;
+    }
+#endif
 }
 
 void VulkanExampleBase::renderLoop()
@@ -1332,6 +1374,12 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		break;
 	}
 }
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+void* VulkanExampleBase::setupWindow(void* view)
+{
+    this->view = view;
+    return view;
+}
 #elif defined(_DIRECT2DISPLAY)
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 /*static*/void VulkanExampleBase::registryGlobalCb(void *data,
@@ -2096,6 +2144,8 @@ void VulkanExampleBase::initSwapchain()
 	swapChain.initSurface(windowInstance, window);
 #elif defined(__ANDROID__)	
 	swapChain.initSurface(androidApp->window);
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+    swapChain.initSurface(view);
 #elif defined(_DIRECT2DISPLAY)
 	swapChain.initSurface(width, height);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)

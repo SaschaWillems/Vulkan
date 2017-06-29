@@ -209,6 +209,8 @@ public:
 	int64_t lastTapTime = 0;
 	/** @brief Product model and manufacturer of the Android device (via android.Product*) */
 	std::string androidProduct;
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+    void* view;
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;
@@ -256,6 +258,8 @@ public:
 #elif defined(__ANDROID__)
 	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
 	static void handleAppCommand(android_app* app, int32_t cmd);
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+    void* setupWindow(void* view);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_shell_surface *setupWindow();
 	void initWaylandConnection();
@@ -375,6 +379,9 @@ public:
 	// Start the main render loop
 	void renderLoop();
 
+    // Render one frame of a render loop on platforms that sync rendering
+    void renderFrame();
+
 	void updateTextOverlay();
 
 	/** @brief (Virtual) Called when the text overlay is updating, can be used to add custom text to the overlay */
@@ -489,4 +496,6 @@ int main(const int argc, const char *argv[])													    \
 	delete(vulkanExample);																			\
 	return 0;																						\
 }
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+#define VULKAN_EXAMPLE_MAIN()
 #endif

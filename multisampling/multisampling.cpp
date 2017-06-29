@@ -8,9 +8,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 #include <vector>
+#include <algorithm>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -25,7 +25,6 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-#define SAMPLE_COUNT VK_SAMPLE_COUNT_8_BIT
 
 struct {
 	struct {
@@ -44,6 +43,7 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool useSampleShading = false;
+    VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
 	struct {
 		vks::Texture2D colorMap;
@@ -123,7 +123,7 @@ public:
 	void setupMultisampleTarget()
 	{
 		// Check if device supports requested sample count for color and depth frame buffer
-		assert((deviceProperties.limits.framebufferColorSampleCounts >= SAMPLE_COUNT) && (deviceProperties.limits.framebufferDepthSampleCounts >= SAMPLE_COUNT));
+		assert((deviceProperties.limits.framebufferColorSampleCounts >= sampleCount) && (deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount));
 
 		// Color target
 		VkImageCreateInfo info = vks::initializers::imageCreateInfo();
@@ -136,7 +136,7 @@ public:
 		info.arrayLayers = 1;
 		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		info.tiling = VK_IMAGE_TILING_OPTIMAL;
-		info.samples = SAMPLE_COUNT;
+		info.samples = sampleCount;
 		// Image will only be used as a transient target
 		info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -184,7 +184,7 @@ public:
 		info.arrayLayers = 1;
 		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		info.tiling = VK_IMAGE_TILING_OPTIMAL;
-		info.samples = SAMPLE_COUNT;
+		info.samples = sampleCount;
 		// Image will only be used as a transient target
 		info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -230,7 +230,7 @@ public:
 
 		// Multisampled attachment that we render to
 		attachments[0].format = swapChain.colorFormat;
-		attachments[0].samples = SAMPLE_COUNT;
+		attachments[0].samples = sampleCount;
 		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		// No longer required after resolve, this may save some bandwidth on certain GPUs
 		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -252,7 +252,7 @@ public:
 
 		// Multisampled depth attachment we render to
 		attachments[2].format = depthFormat;
-		attachments[2].samples = SAMPLE_COUNT;
+		attachments[2].samples = sampleCount;
 		attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -630,7 +630,7 @@ public:
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/mesh/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Setup multi sampling
-		multisampleState.rasterizationSamples = SAMPLE_COUNT;		// Number of samples to use for rasterization
+		multisampleState.rasterizationSamples = sampleCount;		// Number of samples to use for rasterization
 		
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.MSAA));
 
@@ -693,6 +693,7 @@ public:
 
 	void prepare()
 	{
+        sampleCount = getMaxUsableSampleCount();
 		VulkanExampleBase::prepare();
 		loadAssets();
 		setupVertexDescriptions();
@@ -733,6 +734,22 @@ public:
 			break;
 		}
 	}
+
+    // Returns the maximum sample count usable by the platform
+    VkSampleCountFlagBits getMaxUsableSampleCount()
+    {
+        VkSampleCountFlags counts = std::min(deviceProperties.limits.framebufferColorSampleCounts,
+                                            deviceProperties.limits.framebufferDepthSampleCounts);
+
+        if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+        if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+        if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+        if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+        if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+        if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+        return VK_SAMPLE_COUNT_1_BIT;
+    }
+
 };
 
 VULKAN_EXAMPLE_MAIN()

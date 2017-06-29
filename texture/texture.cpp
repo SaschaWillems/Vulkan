@@ -179,7 +179,7 @@ public:
 	void loadTexture()
 	{
 		// We use the Khronos texture format (https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/) 
-		std::string filename = ASSET_PATH "textures/metalplate01_rgba.ktx";
+		std::string filename = getAssetPath() + "textures/metalplate01_rgba.ktx";
 		// Texture data contains 4 channels (RGBA) with unnormalized 8-bit values, this is the most commonly supported format
 		VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
 
