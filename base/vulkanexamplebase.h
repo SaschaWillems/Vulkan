@@ -23,6 +23,11 @@
 #include <wayland-client.h>
 #elif defined(_DIRECT2DISPLAY)
 //
+#elif defined(__APPLE__)
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
+#include <MoltenVK/vk_mvk_moltenvk.h>
+#include <GLFW/glfw3.h>
 #elif defined(__linux__)
 #include <xcb/xcb.h>
 #endif
@@ -227,6 +232,9 @@ public:
 	} mouseButtons;
 #elif defined(_DIRECT2DISPLAY)
 	bool quit = false;
+#elif defined(__APPLE__)
+	GLFWwindow* window;
+	bool quit = false;
 #elif defined(__linux__)
 	struct {
 		bool left = false;
@@ -300,6 +308,9 @@ public:
 
 #elif defined(_DIRECT2DISPLAY)
 //
+#elif defined(__APPLE__)
+	void initGLFWConnection();
+	GLFWwindow* setupWindow();
 #elif defined(__linux__)
 	xcb_window_t setupWindow();
 	void initxcbConnection();
@@ -452,6 +463,22 @@ int main(const int argc, const char *argv[])													    \
 	return 0;																						\
 }
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+#define VULKAN_EXAMPLE_MAIN()																		\
+VulkanExample *vulkanExample;																		\
+int main(const int argc, const char *argv[])													    \
+{																									\
+	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };  				\
+	vulkanExample = new VulkanExample();															\
+	vulkanExample->initVulkan();																	\
+	vulkanExample->setupWindow();					 												\
+	vulkanExample->initSwapchain();																	\
+	vulkanExample->prepare();																		\
+	vulkanExample->renderLoop();																	\
+	delete(vulkanExample);																			\
+	return 0;																						\
+}
+#elif defined(__APPLE__)
+// Linux entry point
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 int main(const int argc, const char *argv[])													    \

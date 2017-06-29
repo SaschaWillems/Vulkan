@@ -1170,6 +1170,22 @@ int main(const int argc, const char *argv[])
 	delete(vulkanExample);
 	return 0;
 }
+#elif defined(__APPLE__)
+
+// Apple entry point
+VulkanExample *vulkanExample;
+int main(const int argc, const char *argv[])
+{
+	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };
+	vulkanExample = new VulkanExample();
+	vulkanExample->initVulkan();
+	vulkanExample->setupWindow();
+	vulkanExample->initSwapchain();
+	vulkanExample->prepare();
+	vulkanExample->renderLoop();
+	delete(vulkanExample);
+	return 0;
+}
 #elif defined(__linux__)
 
 // Linux entry point

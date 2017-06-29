@@ -7,6 +7,7 @@
 */
 
 #include "vulkanexamplebase.h"
+#define APP_LONG_NAME "GLFW Vulkan Window"
 
 std::vector<const char*> VulkanExampleBase::args;
 
@@ -472,6 +473,48 @@ void VulkanExampleBase::renderLoop()
 			frameCounter = 0;
 		}
 	}
+#elif defined(__APPLE__)
+    while ( !quit && !glfwWindowShouldClose( window ) )
+    {
+        glfwPollEvents();
+        auto tStart = std::chrono::high_resolution_clock::now();
+        if ( viewUpdated )
+        {
+            viewUpdated = false;
+            viewChanged();
+        }
+        render();
+        frameCounter++;
+        auto tEnd = std::chrono::high_resolution_clock::now();
+        auto tDiff = std::chrono::duration<double, std::milli>( tEnd - tStart ).count();
+        frameTimer = tDiff / 1000.0f;
+        camera.update( frameTimer );
+        if ( camera.moving() )
+        {
+            viewUpdated = true;
+        }
+        // Convert to clamped timer value
+        if ( !paused )
+        {
+            timer += timerSpeed * frameTimer;
+            if ( timer > 1.0 )
+            {
+                timer -= 1.0f;
+            }
+        }
+        fpsTimer += ( float )tDiff;
+        if ( fpsTimer > 1000.0f )
+        {
+            if ( !enableTextOverlay )
+            {
+                std::string windowTitle = getWindowTitle();
+            }
+            lastFPS = frameCounter;
+            updateTextOverlay();
+            fpsTimer = 0.0f;
+            frameCounter = 0;
+        }
+    }
 #elif defined(__linux__)
 	xcb_flush(connection);
 	while (!quit)
@@ -662,6 +705,8 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	initWaylandConnection();
+#elif defined(__APPLE__)
+    initGLFWConnection();
 #elif defined(__linux__)
 	initxcbConnection();
 #endif
@@ -735,6 +780,9 @@ VulkanExampleBase::~VulkanExampleBase()
 	wl_compositor_destroy(compositor);
 	wl_registry_destroy(registry);
 	wl_display_disconnect(display);
+#elif defined(__APPLE__)
+    glfwDestroyWindow( window );
+    glfwTerminate();
 #elif defined(__linux)
 #if defined(__ANDROID__)
 	// todo : android cleanup (if required)
@@ -905,6 +953,13 @@ void VulkanExampleBase::initVulkan()
 	};
 	LOGD("androidProduct = %s", androidProduct.c_str());
 #endif	
+
+#if defined(__APPLE__)
+	MVKDeviceConfiguration mvkConfig;
+	vkGetMoltenVKDeviceConfigurationMVK(device, &mvkConfig);
+	mvkConfig.shaderConversionLogging = true;
+	vkSetMoltenVKDeviceConfigurationMVK(device, &mvkConfig);
+#endif
 }
 
 #if defined(_WIN32)
@@ -1638,6 +1693,40 @@ wl_shell_surface *VulkanExampleBase::setupWindow()
 	return shell_surface;
 }
 
+#elif defined(__APPLE__)
+static void error_callback(int error, const char* description) {
+    printf("GLFW error: %s\n", description);
+    fflush(stdout);
+}
+
+void VulkanExampleBase::initGLFWConnection()
+{
+    glfwSetErrorCallback(error_callback);
+
+    if (!glfwInit()) {
+        printf("Cannot initialize GLFW.\nExiting ...\n");
+        fflush(stdout);
+        exit(1);
+    }
+
+    if (!glfwVulkanSupported()) {
+        printf("GLFW failed to find the Vulkan loader.\nExiting ...\n");
+        fflush(stdout);
+        exit(1);
+    }
+}
+
+GLFWwindow* VulkanExampleBase::setupWindow()
+{
+    glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
+
+    window = glfwCreateWindow( width,
+                               height,
+                               APP_LONG_NAME,
+                               nullptr,
+                               nullptr );
+    return window;
+}
 #elif defined(__linux__)
 
 static inline xcb_intern_atom_reply_t* intern_atom_helper(xcb_connection_t *conn, bool only_if_exists, const char *str)
@@ -2100,6 +2189,8 @@ void VulkanExampleBase::initSwapchain()
 	swapChain.initSurface(width, height);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	swapChain.initSurface(display, surface);
+#elif defined(__APPLE__)
+    swapChain.initSurface( window );
 #elif defined(__linux__)
 	swapChain.initSurface(connection, window);
 #endif
