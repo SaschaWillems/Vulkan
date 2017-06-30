@@ -106,7 +106,7 @@ public:
 		camera.rotationSpeed = 0.25f;
 
 		camera.setRotation({ -10.75f, 153.0f, 0.0f });
-		camera.setPosition({ 5.25f, 0.5f, 3.5f });
+		camera.setPosition({ 1.85f, 0.5f, 5.0f });
 	}
 
 	~VulkanExample()
