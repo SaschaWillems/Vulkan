@@ -111,7 +111,7 @@ public:
     void* view
 #else
 #ifdef _DIRECT2DISPLAY
-	uint32_t width, uint32_t height
+	uint32_t width, uint32_t height, uint32_t displayId
 #else
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
 	wl_display *display, wl_surface *window
@@ -157,7 +157,7 @@ public:
         err = vkCreateMacOSSurfaceMVK(instance, &surfaceCreateInfo, NULL, &surface);
 #else
 #if defined(_DIRECT2DISPLAY)
-		createDirect2DisplaySurface(width, height);
+		createDirect2DisplaySurface(width, height, displayId);
 #else
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
 		VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
@@ -558,7 +558,8 @@ public:
 	/**
 	* Create direct to display surface
 	*/	
-	void createDirect2DisplaySurface(uint32_t width, uint32_t height)
+//#define USE_DEFAULT_DISPLAY_PLANE_0
+	void createDirect2DisplaySurface(uint32_t width, uint32_t height, uint32_t displayId)
 	{
 		uint32_t displayPropertyCount;
 		
@@ -567,29 +568,28 @@ public:
 		VkDisplayPropertiesKHR* pDisplayProperties = new VkDisplayPropertiesKHR[displayPropertyCount];
 		vkGetPhysicalDeviceDisplayPropertiesKHR(physicalDevice, &displayPropertyCount, pDisplayProperties);
 
-		// Get plane property
-		uint32_t planePropertyCount;
-		vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &planePropertyCount, NULL);
-		VkDisplayPlanePropertiesKHR* pPlaneProperties = new VkDisplayPlanePropertiesKHR[planePropertyCount];
-		vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &planePropertyCount, pPlaneProperties);
-
 		VkDisplayKHR display = VK_NULL_HANDLE;
 		VkDisplayModeKHR displayMode;
 		VkDisplayModePropertiesKHR* pModeProperties;
 		bool foundMode = false;
-
-	   	for(uint32_t i = 0; i < displayPropertyCount;++i)
+		std::stringstream output;
+		output << displayPropertyCount << " display available " << std::endl;
+		if (displayId >= displayPropertyCount)
+		{
+			output << "trying to access display " << (displayId + 1) << " which is not available!\n" << std::endl;
+			vks::tools::exitFatal(output.str(), "Fatal error");
+		}
 	   	{
-			display = pDisplayProperties[i].display;
+			display = pDisplayProperties[displayId].display;
 			uint32_t modeCount;
 			vkGetDisplayModePropertiesKHR(physicalDevice, display, &modeCount, NULL);
 			pModeProperties = new VkDisplayModePropertiesKHR[modeCount];
 			vkGetDisplayModePropertiesKHR(physicalDevice, display, &modeCount, pModeProperties);
-
+			output << " -display " << displayId << " (" << pDisplayProperties[displayId].displayName << ") supports " << modeCount << " modes" << std::endl;
 			for (uint32_t j = 0; j < modeCount; ++j)
 			{
 				const VkDisplayModePropertiesKHR* mode = &pModeProperties[j];
-
+				output << "  -mode " << mode->parameters.visibleRegion.width << "x" << mode->parameters.visibleRegion.height << "@" << (uint32_t)(mode->parameters.refreshRate/1000) << "Hz" << std::endl;
 				if (mode->parameters.visibleRegion.width == width && mode->parameters.visibleRegion.height == height)
 				{
 					displayMode = mode->displayMode;
@@ -597,25 +597,32 @@ public:
 					break;
 				}
 			}
-			if (foundMode)
-			{
-				break;
-			}
-			delete [] pModeProperties;
 		}
 
 		if(!foundMode)
 		{
-			vks::tools::exitFatal("Can't find a display and a display mode!", "Fatal error");
+			output << "Can't find a display mode " << width << "x" << height <<" ! please select from above!" << std::endl;
+			vks::tools::exitFatal(output.str(), "Fatal error");
 			return;
 		}
 
+		uint32_t planeIndex = 0;
+		uint32_t planeStackIndex = 0;
+		VkDisplayPlaneAlphaFlagBitsKHR alphaMode = VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR;
+
+#ifndef USE_DEFAULT_DISPLAY_PLANE_0
+		// Get plane property
+		uint32_t planePropertyCount;
+		vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &planePropertyCount, NULL);
+		VkDisplayPlanePropertiesKHR* pPlaneProperties = new VkDisplayPlanePropertiesKHR[planePropertyCount];
+		vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &planePropertyCount, pPlaneProperties);
+
 		// Search for a best plane we can use
-		uint32_t bestPlaneIndex = UINT32_MAX;
+		planeIndex = UINT32_MAX;
 		VkDisplayKHR* pDisplays = NULL;
 		for(uint32_t i = 0; i < planePropertyCount; i++)
 		{
-			uint32_t planeIndex=i;
+			planeIndex=i;
 			uint32_t displayCount;
 			vkGetDisplayPlaneSupportedDisplaysKHR(physicalDevice, planeIndex, &displayCount, NULL);
 			if (pDisplays)
@@ -626,30 +633,29 @@ public:
 			vkGetDisplayPlaneSupportedDisplaysKHR(physicalDevice, planeIndex, &displayCount, pDisplays);
 
 			// Find a display that matches the current plane
-			bestPlaneIndex = UINT32_MAX;
+			planeIndex = UINT32_MAX;
 			for(uint32_t j = 0; j < displayCount; j++)
 			{
 				if(display == pDisplays[j])
 				{
-					bestPlaneIndex = i;
+					planeIndex = i;
 					break;
 				}
 			}
-			if(bestPlaneIndex != UINT32_MAX)
+			if(planeIndex != UINT32_MAX)
 			{
 				break;
 			}
 		}
 
-		if(bestPlaneIndex == UINT32_MAX)
+		if(planeIndex == UINT32_MAX)
 		{
 			vks::tools::exitFatal("Can't find a plane for displaying!", "Fatal error");
 			return;
 		}
 
 		VkDisplayPlaneCapabilitiesKHR planeCap;
-		vkGetDisplayPlaneCapabilitiesKHR(physicalDevice, displayMode, bestPlaneIndex, &planeCap);
-		VkDisplayPlaneAlphaFlagBitsKHR alphaMode;
+		vkGetDisplayPlaneCapabilitiesKHR(physicalDevice, displayMode, planeIndex, &planeCap);
 
 		if (planeCap.supportedAlpha & VK_DISPLAY_PLANE_ALPHA_PER_PIXEL_PREMULTIPLIED_BIT_KHR)
 		{
@@ -665,13 +671,17 @@ public:
 			alphaMode = VK_DISPLAY_PLANE_ALPHA_GLOBAL_BIT_KHR;
 		}
 
+		planeStackIndex = pPlaneProperties[planeIndex].currentStackIndex;
+		delete[] pPlaneProperties;
+		delete[] pDisplays;
+#endif
 		VkDisplaySurfaceCreateInfoKHR surfaceInfo{};
 		surfaceInfo.sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR;
 		surfaceInfo.pNext = NULL;
 		surfaceInfo.flags = 0;
 		surfaceInfo.displayMode = displayMode;
-		surfaceInfo.planeIndex = bestPlaneIndex;
-		surfaceInfo.planeStackIndex = pPlaneProperties[bestPlaneIndex].currentStackIndex;
+		surfaceInfo.planeIndex = planeIndex;
+		surfaceInfo.planeStackIndex = planeStackIndex;
 		surfaceInfo.transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 		surfaceInfo.globalAlpha = 1.0;
 		surfaceInfo.alphaMode = alphaMode;
@@ -684,10 +694,8 @@ public:
 			vks::tools::exitFatal("Failed to create surface!", "Fatal error");
 		}
 
-		delete[] pDisplays;
 		delete[] pModeProperties;
 		delete[] pDisplayProperties;
-		delete[] pPlaneProperties;
 	}
 #endif 
 };

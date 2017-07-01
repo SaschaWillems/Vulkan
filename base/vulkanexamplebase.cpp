@@ -62,7 +62,38 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		instanceCreateInfo.enabledLayerCount = vks::debug::validationLayerCount;
 		instanceCreateInfo.ppEnabledLayerNames = vks::debug::validationLayerNames;
 	}
-	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+	VkResult err = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+
+	if (err)
+	{
+		switch (err)
+		{
+		case VK_ERROR_EXTENSION_NOT_PRESENT:
+		{
+			std::cout << "Requested extenstion not suppported!\n Requested extenstions:" << std::endl;
+			for (int i = 0; i < instanceExtensions.size(); i++)
+				std::cout << "  -" << instanceExtensions[i] << std::endl;
+			uint32_t totalExtSupported = 0;
+			vkEnumerateInstanceExtensionProperties(NULL, &totalExtSupported, NULL);
+			std::vector<VkExtensionProperties> extensionsSupported;
+			extensionsSupported.resize(totalExtSupported);
+			vkEnumerateInstanceExtensionProperties(NULL, &totalExtSupported, extensionsSupported.data());
+			std::cout << " Only supports below extensions!" << std::endl;
+			for (int i = 0; i < totalExtSupported; i++)
+				std::cout << "  -" << extensionsSupported[i].extensionName << std::endl;
+			vks::tools::exitFatal("Could not create Vulkan instance!", "Fatal error");
+		}
+		break;
+		default:
+		{
+			vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), "Fatal error");
+		}
+		break;
+		}
+
+	}
+
+	return err;
 }
 
 std::string VulkanExampleBase::getWindowTitle()
@@ -692,6 +723,14 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			uint32_t w = strtol(args[i + 1], &endptr, 10);
 			if (endptr != args[i + 1]) { width = w; };
 		}
+#if defined(_DIRECT2DISPLAY)
+		if (args[i] == std::string("-display"))
+		{
+			char* endptr;
+			uint32_t d = strtol(args[i + 1], &endptr, 10);
+			if (endptr != args[i + 1]) { displayId = d; };
+		}
+#endif
 		if ((args[i] == std::string("-h")) || (args[i] == std::string("-height")))
 		{
 			char* endptr;
@@ -796,11 +835,7 @@ void VulkanExampleBase::initVulkan()
 	VkResult err;
 
 	// Vulkan instance
-	err = createInstance(settings.validation);
-	if (err)
-	{
-		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), "Fatal error");
-	}
+	createInstance(settings.validation);
 
 #if defined(__ANDROID__)
 	vks::android::loadVulkanFunctions(instance);
@@ -2151,7 +2186,7 @@ void VulkanExampleBase::initSwapchain()
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
     swapChain.initSurface(view);
 #elif defined(_DIRECT2DISPLAY)
-	swapChain.initSurface(width, height);
+	swapChain.initSurface(width, height, displayId);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	swapChain.initSurface(display, surface);
 #elif defined(__linux__)

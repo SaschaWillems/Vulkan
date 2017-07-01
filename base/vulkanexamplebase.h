@@ -229,6 +229,7 @@ public:
 	} mouseButtons;
 #elif defined(_DIRECT2DISPLAY)
 	bool quit = false;
+	uint32_t displayId = 0;
 #elif defined(__linux__)
 	struct {
 		bool left = false;
