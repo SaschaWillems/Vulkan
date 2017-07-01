@@ -38,6 +38,10 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #elif defined(__linux__)
 	instanceExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_IOS_MVK)
+    instanceExtensions.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+    instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #endif
 
 	VkInstanceCreateInfo instanceCreateInfo = {};
