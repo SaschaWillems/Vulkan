@@ -577,7 +577,8 @@ public:
 		VkDisplayModeKHR displayMode;
 		VkDisplayModePropertiesKHR* pModeProperties;
 		bool foundMode = false;
-
+		std::stringstream output;
+		output << displayPropertyCount << " display available " << std::endl;
 	   	for(uint32_t i = 0; i < displayPropertyCount;++i)
 	   	{
 			display = pDisplayProperties[i].display;
@@ -585,11 +586,11 @@ public:
 			vkGetDisplayModePropertiesKHR(physicalDevice, display, &modeCount, NULL);
 			pModeProperties = new VkDisplayModePropertiesKHR[modeCount];
 			vkGetDisplayModePropertiesKHR(physicalDevice, display, &modeCount, pModeProperties);
-
+			output << " -display " << i << " (" << pDisplayProperties[i].displayName << ") supports " << modeCount << " modes" << std::endl;
 			for (uint32_t j = 0; j < modeCount; ++j)
 			{
 				const VkDisplayModePropertiesKHR* mode = &pModeProperties[j];
-
+				output << "  -mode " << mode->parameters.visibleRegion.width << "x" << mode->parameters.visibleRegion.height << "@" << (uint32_t)(mode->parameters.refreshRate/1000) << "Hz" << std::endl;
 				if (mode->parameters.visibleRegion.width == width && mode->parameters.visibleRegion.height == height)
 				{
 					displayMode = mode->displayMode;
@@ -606,7 +607,8 @@ public:
 
 		if(!foundMode)
 		{
-			vks::tools::exitFatal("Can't find a display and a display mode!", "Fatal error");
+			output << "Can't find a display mode " << width << "x" << height <<" ! please select from above!" << std::endl;
+			vks::tools::exitFatal(output.str(), "Fatal error");
 			return;
 		}
 
