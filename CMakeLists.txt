@@ -16,6 +16,8 @@ include_directories(base)
 OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
 OPTION(USE_WAYLAND_WSI "Build the project using Wayland swapchain" OFF)
 
+set(RESOURCE_INSTALL_DIR "" CACHE PATH "Path to install resources to (leave empty for running uninstalled)")
+
 # Use FindVulkan module added with CMAKE 3.7
 if (NOT CMAKE_VERSION VERSION_LESS 3.7.0)
 	message(STATUS "Using module to find Vulkan")
@@ -108,6 +110,10 @@ function(buildExample EXAMPLE_NAME)
 		add_executable(${EXAMPLE_NAME} ${MAIN_CPP} ${SOURCE} ${SHADERS})
 		target_link_libraries(${EXAMPLE_NAME} ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 	endif(WIN32)
+
+	if(RESOURCE_INSTALL_DIR)
+		install(TARGETS ${EXAMPLE_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
+	endif()
 endfunction(buildExample)
 
 # Build all examples
@@ -116,6 +122,13 @@ function(buildExamples)
 		buildExample(${EXAMPLE})
 	endforeach(EXAMPLE)
 endfunction(buildExamples)
+
+if(RESOURCE_INSTALL_DIR)
+	add_definitions(-DVK_EXAMPLE_DATA_DIR=\"${RESOURCE_INSTALL_DIR}/\")
+	install(DIRECTORY data/ DESTINATION ${RESOURCE_INSTALL_DIR}/)
+else()
+	add_definitions(-DVK_EXAMPLE_DATA_DIR=\"${CMAKE_SOURCE_DIR}/data/\")
+endif()
 
 # Compiler specific stuff
 IF(MSVC)
@@ -128,7 +141,7 @@ ELSE(WIN32)
 	link_libraries(${XCB_LIBRARIES} ${Vulkan_LIBRARY})
 ENDIF(WIN32)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 
 set(EXAMPLES 
 	bloom

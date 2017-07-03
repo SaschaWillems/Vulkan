@@ -83,6 +83,8 @@ const std::string VulkanExampleBase::getAssetPath()
 {
 #if defined(__ANDROID__)
 	return "";
+#elif defined(VK_EXAMPLE_DATA_DIR)
+	return VK_EXAMPLE_DATA_DIR;
 #else
 	return "./../data/";
 #endif
