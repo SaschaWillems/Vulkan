@@ -1,0 +1,7 @@
+{
+  "apkname": "vulkanDynamicuniformbuffer",
+  "directories": {
+    "shaders": "dynamicuniformbuffer"
+  },
+  "assets": {}
+}

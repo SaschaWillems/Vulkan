@@ -1,0 +1,19 @@
+{
+  "apkname": "vulkanTerraintessellation",
+  "directories": {
+    "shaders": "terraintessellation"
+  },
+  "assets": {
+    "models": [
+      "geosphere.obj"
+    ],
+    "textures": [
+      "skysphere_bc3_unorm.ktx", 
+      "skysphere_astc_8x8_unorm.ktx", 
+      "skysphere_etc2_unorm.ktx", 
+      "terrain_texturearray_bc3_unorm.ktx", 
+      "terrain_texturearray_astc_8x8_unorm.ktx", 
+      "terrain_texturearray_etc2_unorm.ktx"
+    ]    
+  }
+}

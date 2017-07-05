@@ -235,7 +235,7 @@ public:
 		samplerInfo.addressModeV = samplerInfo.addressModeU;
 		samplerInfo.addressModeW = samplerInfo.addressModeU;
 		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.maxAnisotropy = 0;
+		samplerInfo.maxAnisotropy = 1.0f;
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 1.0f;
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;

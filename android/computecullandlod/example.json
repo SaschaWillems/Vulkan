@@ -1,0 +1,11 @@
+{
+  "apkname": "vulkanComputecullandlod",
+  "directories": {
+    "shaders": "computecullandlod"
+  },
+  "assets": {
+    "models": [
+      "suzanne_lods.dae"
+    ]
+  }
+}

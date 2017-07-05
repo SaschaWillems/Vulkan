@@ -435,7 +435,7 @@ public:
 			sampler.addressModeV = sampler.addressModeU;
 			sampler.addressModeW = sampler.addressModeU;
 			sampler.mipLodBias = 0.0f;
-			sampler.maxAnisotropy = 0;
+			sampler.maxAnisotropy = 1.0f;
 			sampler.minLod = 0.0f;
 			sampler.maxLod = 1.0f;
 			sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
@@ -526,7 +526,7 @@ public:
 			sampler.addressModeV = sampler.addressModeU;
 			sampler.addressModeW = sampler.addressModeU;
 			sampler.mipLodBias = 0.0f;
-			sampler.maxAnisotropy = 0;
+			sampler.maxAnisotropy = 1.0f;
 			sampler.minLod = 0.0f;
 			sampler.maxLod = 1.0f;
 			sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
@@ -606,7 +606,7 @@ public:
 		std::vector<std::string> filenames = { "geosphere.obj", "teapot.dae", "torusknot.obj", "venus.fbx" };
 		for (auto file : filenames) {
 			vks::Model model;
-			model.loadFromFile(ASSET_PATH "models/" + file, vertexLayout, 0.05f * (file == "venus.fbx" ? 3.0f : 1.0f), vulkanDevice, queue);
+			model.loadFromFile(getAssetPath() + "models/" + file, vertexLayout, 0.05f * (file == "venus.fbx" ? 3.0f : 1.0f), vulkanDevice, queue);
 			models.objects.push_back(model);
 		}
 		// Load HDR cube map

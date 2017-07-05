@@ -1,0 +1,16 @@
+{
+  "apkname": "vulkanMesh",
+  "directories": {
+    "shaders": "mesh"
+  },
+  "assets": {
+    "additional": {
+      "directories": [
+        "models/voyager"
+      ],
+      "files": [
+        "models/voyager/*.*"
+      ]
+    }
+  }
+}

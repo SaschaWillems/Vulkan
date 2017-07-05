@@ -1,0 +1,11 @@
+{
+  "apkname": "vulkanComputeshader",
+  "directories": {
+    "shaders": "computeshader"
+  },
+  "assets": {
+    "textures": [
+      "het_kanonschot_rgba8.ktx"
+    ]
+  }
+}

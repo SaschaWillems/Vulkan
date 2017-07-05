@@ -14,6 +14,11 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 {
 	this->settings.validation = enableValidation;
 
+	// Validation can also be forced via a define
+#if defined(_VALIDATION)
+	this->settings.validation = true;
+#endif	
+
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = name.c_str();
@@ -33,6 +38,10 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #elif defined(__linux__)
 	instanceExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_IOS_MVK)
+    instanceExtensions.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+    instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #endif
 
 	VkInstanceCreateInfo instanceCreateInfo = {};
@@ -68,6 +77,8 @@ std::string VulkanExampleBase::getWindowTitle()
 	return windowTitle;
 }
 
+#if !(defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+// iOS & macOS: VulkanExampleBase::getAssetPath() implemented externally to allow access to Objective-C components
 const std::string VulkanExampleBase::getAssetPath()
 {
 #if defined(__ANDROID__)
@@ -76,6 +87,7 @@ const std::string VulkanExampleBase::getAssetPath()
 	return "./../data/";
 #endif
 }
+#endif
 
 bool VulkanExampleBase::checkCommandBuffers()
 {
@@ -210,13 +222,53 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	return shaderStage;
 }
 
+void VulkanExampleBase::renderFrame()
+{
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+    auto tStart = std::chrono::high_resolution_clock::now();
+    if (viewUpdated)
+    {
+        viewUpdated = false;
+        viewChanged();
+    }
+    render();
+    frameCounter++;
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+    frameTimer = tDiff / 1000.0f;
+    camera.update(frameTimer);
+    if (camera.moving())
+    {
+        viewUpdated = true;
+    }
+    // Convert to clamped timer value
+    if (!paused)
+    {
+        timer += timerSpeed * frameTimer;
+        if (timer > 1.0)
+        {
+            timer -= 1.0f;
+        }
+    }
+    fpsTimer += (float)tDiff;
+    if (fpsTimer > 1000.0f)
+    {
+        lastFPS = frameCounter;
+        updateTextOverlay();
+        fpsTimer = 0.0f;
+        frameCounter = 0;
+    }
+#endif
+}
+
 void VulkanExampleBase::renderLoop()
 {
 	destWidth = width;
 	destHeight = height;
 #if defined(_WIN32)
 	MSG msg;
-	while (TRUE)
+	bool quitMessageReceived = false;
+	while (!quitMessageReceived)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
 		if (viewUpdated)
@@ -229,11 +281,12 @@ void VulkanExampleBase::renderLoop()
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-		}
 
-		if (msg.message == WM_QUIT)
-		{
-			break;
+			if (msg.message == WM_QUIT)
+			{
+				quitMessageReceived = true;
+				break;
+			}
 		}
 
 		render();
@@ -1325,6 +1378,12 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		break;
 	}
 }
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+void* VulkanExampleBase::setupWindow(void* view)
+{
+    this->view = view;
+    return view;
+}
 #elif defined(_DIRECT2DISPLAY)
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 /*static*/void VulkanExampleBase::registryGlobalCb(void *data,
@@ -2089,6 +2148,8 @@ void VulkanExampleBase::initSwapchain()
 	swapChain.initSurface(windowInstance, window);
 #elif defined(__ANDROID__)	
 	swapChain.initSurface(androidApp->window);
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+    swapChain.initSurface(view);
 #elif defined(_DIRECT2DISPLAY)
 	swapChain.initSurface(width, height);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)

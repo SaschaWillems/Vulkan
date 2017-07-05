@@ -1,0 +1,17 @@
+{
+  "apkname": "vulkanVulkanscene",
+  "directories": {
+    "shaders": "vulkanscene"
+  },
+  "assets": {
+    "models": [
+      "vulkanscenelogos.dae", 
+      "vulkanscenebackground.dae", 
+      "vulkanscenemodels.dae", 
+      "cube.obj"
+    ],
+    "textures": [
+      "cubemap_vulkan.ktx"
+    ]    
+  }
+}

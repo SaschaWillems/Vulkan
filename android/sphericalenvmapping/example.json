@@ -1,0 +1,14 @@
+{
+  "apkname": "vulkanSphericalenvmapping",
+  "directories": {
+    "shaders": "sphericalenvmapping"
+  },
+  "assets": {
+    "models": [
+      "chinesedragon.dae"
+    ],
+    "textures": [
+      "matcap_array_rgba.ktx"
+    ]    
+  }
+}

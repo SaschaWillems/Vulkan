@@ -1,0 +1,11 @@
+{
+  "apkname": "vulkanShadowmapping",
+  "directories": {
+    "shaders": "shadowmapping"
+  },
+  "assets": {
+    "models": [
+      "vulkanscene_shadow.dae"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "apkname": "vulkanMultithreading",
+  "directories": {
+    "shaders": "multithreading"
+  },
+  "assets": {
+    "models": [
+      "retroufo_red_lowpoly.dae", 
+      "sphere.obj"      
+    ]
+  }
+}

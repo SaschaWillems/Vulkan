@@ -91,7 +91,7 @@ public:
 
 	struct UBOParams {
 		glm::vec4 lights[4];
-		float exposure = 2.0f;
+		float exposure = 4.5f;
 		float gamma = 2.2f;
 	} uboParams;
 
@@ -114,7 +114,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "VK PBR IBL";
+		title = "Vulkan Example - PBR with image based lighting";
 
 		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
@@ -227,13 +227,11 @@ public:
 
 #define SINGLE_ROW 1	
 #ifdef SINGLE_ROW
-			mat.params.metallic = 1.0;
-
 			uint32_t objcount = 10;
 			for (uint32_t x = 0; x < objcount; x++) {
 				glm::vec3 pos = glm::vec3(float(x - (objcount / 2.0f)) * 2.15f, 0.0f, 0.0f);
-				mat.params.roughness = glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
-				mat.params.metallic = 1.0f - glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
+				mat.params.roughness = 1.0f-glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
+				mat.params.metallic = glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
 				vkCmdDrawIndexed(drawCmdBuffers[i], models.objects[models.objectIndex].indexCount, 1, 0, 0, 0);
@@ -1438,7 +1436,7 @@ public:
 		// 3D object
 		uboMatrices.projection = camera.matrices.perspective;
 		uboMatrices.view = camera.matrices.view;
-		uboMatrices.model = glm::rotate(glm::mat4(), glm::radians(90.0f + (models.objectIndex == 1 ? -45.0f : 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboMatrices.model = glm::rotate(glm::mat4(), glm::radians(90.0f + (models.objectIndex == 1 ? 45.0f : 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboMatrices.camPos = camera.position * -1.0f;
 		memcpy(uniformBuffers.object.mapped, &uboMatrices, sizeof(uboMatrices));
 

@@ -1,0 +1,17 @@
+{
+  "apkname": "vulkanSubpasses",
+  "directories": {
+    "shaders": "subpasses"
+  },
+  "assets": {
+    "models": [
+      "samplebuilding.dae", 
+      "samplebuilding_glass.dae"
+    ],
+    "textures": [
+      "colored_glass_bc3_unorm.ktx", 
+      "colored_glass_etc2_unorm.ktx", 
+      "colored_glass_astc_8x8_unorm.ktx"
+    ]
+  }
+}

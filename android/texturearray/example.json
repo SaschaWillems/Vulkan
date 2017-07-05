@@ -1,0 +1,13 @@
+{
+  "apkname": "vulkanTexturearray",
+  "directories": {
+    "shaders": "texturearray"
+  },
+  "assets": {
+    "textures": [
+      "texturearray_bc3_unorm.ktx", 
+      "texturearray_astc_8x8_unorm.ktx", 
+      "texturearray_etc2_unorm.ktx"
+    ]    
+  }
+}

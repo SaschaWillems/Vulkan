@@ -1,0 +1,30 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "5B3778DF088377325550251267213ED1422AF030",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "986064432ACD0B21E33CA886A95425627120351A" : 9223372036854775807,
+    "5B3778DF088377325550251267213ED1422AF030" : 9223372036854775807
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "CD2D1537-0CC5-4969-BD35-AB1ED0A0FACA",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "986064432ACD0B21E33CA886A95425627120351A" : "..\/..\/..\/Molten",
+    "5B3778DF088377325550251267213ED1422AF030" : "Vulkan-bw\/"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "examples",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "xcode\/examples.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/brenwill\/Vulkan.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "5B3778DF088377325550251267213ED1422AF030"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/brenwill\/molten.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "986064432ACD0B21E33CA886A95425627120351A"
+    }
+  ]
+}

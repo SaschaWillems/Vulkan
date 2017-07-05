@@ -1,0 +1,16 @@
+{
+  "apkname": "vulkanScenerendering",
+  "directories": {
+    "shaders": "scenerendering"
+  },
+  "assets": {
+    "additional" : {
+      "directories" : [
+        "models/sibenik"
+      ],
+      "files" : [
+        "models/sibenik/*.*"
+      ]
+    }
+  }
+}

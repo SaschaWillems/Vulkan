@@ -1,0 +1,13 @@
+{
+  "apkname": "vulkanOcclusionquery",
+  "directories": {
+    "shaders": "occlusionquery"
+  },
+  "assets": {
+    "models": [
+      "plane_z.3ds", 
+      "teapot.3ds", 
+      "sphere.3ds"
+    ]
+  }
+}

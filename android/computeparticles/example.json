@@ -1,0 +1,12 @@
+{
+  "apkname": "vulkanComputeparticles",
+  "directories": {
+    "shaders": "computeparticles"
+  },
+  "assets": {
+    "textures": [
+      "particle01_rgba.ktx", 
+      "particle_gradient_rgba.ktx"
+    ]
+  }
+}
