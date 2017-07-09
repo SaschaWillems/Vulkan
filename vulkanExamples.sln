@@ -151,6 +151,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "imgui\imgui.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pbrtexture", "pbrtexture\pbrtexture.vcxproj", "{60316D67-E879-4671-B9BA-ED6B26F13AC7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "computecloth", "computecloth\computecloth.vcxproj", "{12ACF921-90B1-44D9-AF06-B5C0F0B8191A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -369,6 +371,10 @@ Global
 		{60316D67-E879-4671-B9BA-ED6B26F13AC7}.Debug|x64.Build.0 = Debug|x64
 		{60316D67-E879-4671-B9BA-ED6B26F13AC7}.Release|x64.ActiveCfg = Release|x64
 		{60316D67-E879-4671-B9BA-ED6B26F13AC7}.Release|x64.Build.0 = Release|x64
+		{12ACF921-90B1-44D9-AF06-B5C0F0B8191A}.Debug|x64.ActiveCfg = Debug|x64
+		{12ACF921-90B1-44D9-AF06-B5C0F0B8191A}.Debug|x64.Build.0 = Debug|x64
+		{12ACF921-90B1-44D9-AF06-B5C0F0B8191A}.Release|x64.ActiveCfg = Release|x64
+		{12ACF921-90B1-44D9-AF06-B5C0F0B8191A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -394,5 +400,6 @@ Global
 		{659987E9-863C-4B9B-A3D4-CBA7D67A9516} = {BE290A75-7E65-4D0A-B419-774A309B6A60}
 		{92B2640A-0CC5-48EA-B34C-520BA13938D1} = {BE290A75-7E65-4D0A-B419-774A309B6A60}
 		{60316D67-E879-4671-B9BA-ED6B26F13AC7} = {BE290A75-7E65-4D0A-B419-774A309B6A60}
+		{12ACF921-90B1-44D9-AF06-B5C0F0B8191A} = {6B47BC47-0394-429E-9441-867EC23DFCD4}
 	EndGlobalSection
 EndGlobal
