@@ -30,9 +30,10 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	uint32_t sceneSetup = 1;
+	uint32_t sceneSetup = 0;
 	uint32_t readSet = 0;
 	uint32_t indexCount;
+	bool simulateWind = false;
 
 	vks::Texture2D textureCloth;
 
@@ -114,7 +115,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-30.0f, -45.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -3.5f));
-		paused = true;
 	}
 
 	~VulkanExample()
@@ -659,6 +659,14 @@ public:
 			compute.ubo.deltaT = 0.000005f;
 			// todo: base on frametime
 			//compute.ubo.deltaT = frameTimer * 0.0075f;
+			if (simulateWind) {
+				compute.ubo.gravity.x = sin(glm::radians(-timer * 360.0f)) * 4.0f;
+				compute.ubo.gravity.z = sin(glm::radians(timer * 360.0f)) * 4.0f;
+			}
+			else {
+				compute.ubo.gravity.x = 0.0f;
+				compute.ubo.gravity.z = 0.0f;
+			}
 		}
 		else {
 			compute.ubo.deltaT = 0.0f;
@@ -722,9 +730,24 @@ public:
 		updateGraphicsUBO();
 	}
 
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case KEY_W:
+		case GAMEPAD_BUTTON_A:
+			simulateWind = !simulateWind;
+			break;
+		}
+	}
+
 	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
 	{
-		textOverlay->addText(std::to_string(frameTimer * 0.0075f), 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#if defined(__ANDROID__)
+		textOverlay->addText("\"Button A\" to toggle wind simulation", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#else
+		textOverlay->addText("\"w\" to toggle wind simulation", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+#endif
 	}
 };
 
