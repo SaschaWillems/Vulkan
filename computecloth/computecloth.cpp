@@ -251,10 +251,19 @@ public:
 
 			vkCmdBindPipeline(compute.commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
 
+			uint32_t calculateNormals = 0;
+			vkCmdPushConstants(compute.commandBuffers[i], compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &calculateNormals);
+
 			// Dispatch the compute job
-			for (uint32_t j = 0; j < 64; j++) {
+			const uint32_t iterations = 64;
+			for (uint32_t j = 0; j < iterations; j++) {
 				readSet = 1 - readSet;
 				vkCmdBindDescriptorSets(compute.commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSets[readSet], 0, 0);
+
+				if (j == iterations - 1) {
+					calculateNormals = 1;
+					vkCmdPushConstants(compute.commandBuffers[i], compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &calculateNormals);
+				}
 
 				vkCmdDispatch(compute.commandBuffers[i], cloth.gridsize.x / 10, cloth.gridsize.y / 10, 1);
 
@@ -559,24 +568,23 @@ public:
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				static_cast<uint32_t>(setLayoutBindings.size()));
+			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device,	&descriptorLayout, nullptr,	&compute.descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(
-				&compute.descriptorSetLayout,
-				1);
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =
+			vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayout, 1);
 
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr,	&compute.pipelineLayout));
+		// Push constants used to pass some parameters
+		VkPushConstantRange pushConstantRange =
+			vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(uint32_t), 0);
+		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr,	&compute.pipelineLayout));
 
 		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&compute.descriptorSetLayout,
-				1);
+			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayout, 1);
 
 		// Create two descriptor sets with input and output buffers switched 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets[0]));

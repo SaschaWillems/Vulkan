@@ -35,6 +35,10 @@ layout (binding = 2) uniform UBO
 	ivec2 particleCount;
 } params;
 
+layout (push_constant) uniform PushConsts {
+	uint calculateNormals;
+} pushConsts;
+
 vec3 springForce(vec3 p0, vec3 p1, float restDist) 
 {
 	vec3 dist = p0 - p1;
@@ -113,36 +117,37 @@ void main()
 	}
 
 	// Normals
-	// todo: Only once (use push const to check)
-	vec3 normal = vec3(0.0);
-	vec3 a, b, c;
-	if (id.y > 0) {
-		if (id.x > 0) {
-			a = particleIn[index - 1].pos.xyz - pos;
-			b = particleIn[index - params.particleCount.x - 1].pos.xyz - pos;
-			c = particleIn[index - params.particleCount.x].pos.xyz - pos;
-			normal += cross(a,b) + cross(b,c);
+	if (pushConsts.calculateNormals == 1) {
+		vec3 normal = vec3(0.0);
+		vec3 a, b, c;
+		if (id.y > 0) {
+			if (id.x > 0) {
+				a = particleIn[index - 1].pos.xyz - pos;
+				b = particleIn[index - params.particleCount.x - 1].pos.xyz - pos;
+				c = particleIn[index - params.particleCount.x].pos.xyz - pos;
+				normal += cross(a,b) + cross(b,c);
+			}
+			if (id.x < params.particleCount.x - 1) {
+				a = particleIn[index - params.particleCount.x].pos.xyz - pos;
+				b = particleIn[index - params.particleCount.x + 1].pos.xyz - pos;
+				c = particleIn[index + 1].pos.xyz - pos;
+				normal += cross(a,b) + cross(b,c);
+			}
 		}
-		if (id.x < params.particleCount.x - 1) {
-			a = particleIn[index - params.particleCount.x].pos.xyz - pos;
-			b = particleIn[index - params.particleCount.x + 1].pos.xyz - pos;
-			c = particleIn[index + 1].pos.xyz - pos;
-			normal += cross(a,b) + cross(b,c);
+		if (id.y < params.particleCount.y - 1) {
+			if (id.x > 0) {
+				a = particleIn[index + params.particleCount.x].pos.xyz - pos;
+				b = particleIn[index + params.particleCount.x - 1].pos.xyz - pos;
+				c = particleIn[index - 1].pos.xyz - pos;
+				normal += cross(a,b) + cross(b,c);
+			}
+			if (id.x < params.particleCount.x - 1) {
+				a = particleIn[index + 1].pos.xyz - pos;
+				b = particleIn[index + params.particleCount.x + 1].pos.xyz - pos;
+				c = particleIn[index + params.particleCount.x].pos.xyz - pos;
+				normal += cross(a,b) + cross(b,c);
+			}
 		}
+		particleOut[index].normal = vec4(normalize(normal), 0.0f);
 	}
-	if (id.y < params.particleCount.y - 1) {
-		if (id.x > 0) {
-			a = particleIn[index + params.particleCount.x].pos.xyz - pos;
-			b = particleIn[index + params.particleCount.x - 1].pos.xyz - pos;
-			c = particleIn[index - 1].pos.xyz - pos;
-			normal += cross(a,b) + cross(b,c);
-		}
-		if (id.x < params.particleCount.x - 1) {
-			a = particleIn[index + 1].pos.xyz - pos;
-			b = particleIn[index + params.particleCount.x + 1].pos.xyz - pos;
-			c = particleIn[index + params.particleCount.x].pos.xyz - pos;
-			normal += cross(a,b) + cross(b,c);
-		}
-	}
-	particleOut[index].normal = vec4(normalize(normal), 0.0f);
 }
