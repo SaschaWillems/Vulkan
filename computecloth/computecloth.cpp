@@ -242,7 +242,7 @@ public:
 			bufferBarriers.push_back(bufferBarrier);
 
 			vkCmdPipelineBarrier(compute.commandBuffers[i],
-				VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 				VK_FLAGS_NONE,
 				0, nullptr,
@@ -295,7 +295,7 @@ public:
 			vkCmdPipelineBarrier(
 				compute.commandBuffers[i],
 				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-				VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 				VK_FLAGS_NONE,
 				0, nullptr,
 				static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
