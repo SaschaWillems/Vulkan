@@ -115,6 +115,7 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-30.0f, -45.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -3.5f));
+		srand((unsigned int)time(NULL));
 	}
 
 	~VulkanExample()
@@ -667,9 +668,13 @@ public:
 			compute.ubo.deltaT = 0.000005f;
 			// todo: base on frametime
 			//compute.ubo.deltaT = frameTimer * 0.0075f;
+
+			std::mt19937 rg((unsigned)time(nullptr));
+			std::uniform_real_distribution<float> rd(1.0f, 6.0f);
+
 			if (simulateWind) {
-				compute.ubo.gravity.x = sin(glm::radians(-timer * 360.0f)) * 4.0f;
-				compute.ubo.gravity.z = sin(glm::radians(timer * 360.0f)) * 4.0f;
+				compute.ubo.gravity.x = cos(glm::radians(-timer * 360.0f)) * (rd(rg) - rd(rg));
+				compute.ubo.gravity.z = sin(glm::radians(timer * 360.0f)) * (rd(rg) - rd(rg));
 			}
 			else {
 				compute.ubo.gravity.x = 0.0f;
