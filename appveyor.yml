@@ -5,6 +5,8 @@ branches:
 skip_tags: true
 image: Visual Studio 2015
 platform: x64
+install:
+  - git submodule update --init --recursive
 build:
   project: vulkanExamples.sln
   parallel: true
