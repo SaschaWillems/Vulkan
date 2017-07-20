@@ -447,6 +447,21 @@ public:
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
+		VkImageSubresourceRange cubeFaceSubresourceRange = {};
+		cubeFaceSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		cubeFaceSubresourceRange.baseMipLevel = 0;
+		cubeFaceSubresourceRange.levelCount = 1;
+		cubeFaceSubresourceRange.baseArrayLayer = faceIndex;
+		cubeFaceSubresourceRange.layerCount = 1;
+
+		// Change image layout of one cubemap face to transfer destination
+		vks::tools::setImageLayout(
+			offscreenPass.commandBuffer,
+			shadowCubeMap.image,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			cubeFaceSubresourceRange);
+
 		// Copy region for transfer from framebuffer to cube face
 		VkImageCopy copyRegion = {};
 
@@ -483,6 +498,14 @@ public:
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+		// Change image layout of copied face to shader read
+		vks::tools::setImageLayout(
+			offscreenPass.commandBuffer,
+			shadowCubeMap.image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			cubeFaceSubresourceRange);
 	}
 
 	// Command buffer for rendering and copying all cube map faces
@@ -509,32 +532,10 @@ public:
 		VkRect2D scissor = vks::initializers::rect2D(offscreenPass.width, offscreenPass.height,	0, 0);
 		vkCmdSetScissor(offscreenPass.commandBuffer, 0, 1, &scissor);
 
-		VkImageSubresourceRange subresourceRange = {};
-		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = 1;
-		subresourceRange.layerCount = 6;
-
-		// Change image layout for all cubemap faces to transfer destination
-		vks::tools::setImageLayout(
-			offscreenPass.commandBuffer,
-			shadowCubeMap.image,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			subresourceRange);
-
 		for (uint32_t face = 0; face < 6; ++face)
 		{
 			updateCubeFace(face);
 		}
-
-		// Change image layout for all cubemap faces to shader read after they have been copied
-		vks::tools::setImageLayout(
-			offscreenPass.commandBuffer,
-			shadowCubeMap.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			subresourceRange);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(offscreenPass.commandBuffer));
 	}
@@ -748,7 +749,7 @@ public:
 			vks::initializers::descriptorImageInfo(
 				shadowCubeMap.sampler,
 				shadowCubeMap.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		std::vector<VkWriteDescriptorSet> sceneDescriptorSets =
 		{
