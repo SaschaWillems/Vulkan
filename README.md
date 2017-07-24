@@ -4,6 +4,21 @@ A comprehensive collection of open source C++ examples for [Vulkan(tm)](https://
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BHXPMV6ZKPH9E)
 
+# Cloning
+
+This repository contains submodules for some of the external dependencies, so when doing a fresh clone you need to clone recursively:
+
+```
+git clone --recursive https://github.com/SaschaWillems/Vulkan.git
+``` 
+
+Existing repositories can be updated manually:
+
+```
+git submodule init
+git submodule update
+```
+
 # Building
 
 The repository contains everything required to compile and build the examples on Windows, Linux and Android using a C++ compiler that supports C++11. All required dependencies are included.
@@ -40,10 +55,6 @@ Building for *iOS* and *macOS* is done using the [examples](xcode/examples.xcode
 ## Additional asset pack
 
 **Note:** Binary assets (textures, models) will no longer be added directly to the repository to keep it's size down, so newer examples will require the download of an [additional asset pack](data/README.md).
-
-## Precompiled binaries
-
-Precompiled binaries for Windows (x64), Linux (x64) and Android can be [found here](http://vulkan.gpuinfo.org/examples.php). Note that these may not always be up-to-date with the repository.
 
 # Examples
 
