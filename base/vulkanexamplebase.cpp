@@ -39,9 +39,9 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 #elif defined(__linux__)
 	instanceExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
-    instanceExtensions.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
+	instanceExtensions.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
-    instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+	instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #endif
 
 	VkInstanceCreateInfo instanceCreateInfo = {};
@@ -185,7 +185,7 @@ void VulkanExampleBase::prepare()
 	setupRenderPass();
 	createPipelineCache();
 	setupFrameBuffer();
-
+	enableTextOverlay = enableTextOverlay && (!benchmark.active);
 	if (enableTextOverlay)
 	{
 		// Load the text rendering shaders
@@ -224,103 +224,106 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 
 void VulkanExampleBase::renderFrame()
 {
-#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    auto tStart = std::chrono::high_resolution_clock::now();
-    if (viewUpdated)
-    {
-        viewUpdated = false;
-        viewChanged();
-    }
-    render();
-    frameCounter++;
-    auto tEnd = std::chrono::high_resolution_clock::now();
-    auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-    frameTimer = tDiff / 1000.0f;
-    camera.update(frameTimer);
-    if (camera.moving())
-    {
-        viewUpdated = true;
-    }
-    // Convert to clamped timer value
-    if (!paused)
-    {
-        timer += timerSpeed * frameTimer;
-        if (timer > 1.0)
-        {
-            timer -= 1.0f;
-        }
-    }
-    fpsTimer += (float)tDiff;
-    if (fpsTimer > 1000.0f)
-    {
-        lastFPS = frameCounter;
-        updateTextOverlay();
-        fpsTimer = 0.0f;
-        frameCounter = 0;
-    }
+	auto tStart = std::chrono::high_resolution_clock::now();
+	if (viewUpdated)
+	{
+		viewUpdated = false;
+		viewChanged();
+	}
+
+	render();
+	frameCounter++;
+	auto tEnd = std::chrono::high_resolution_clock::now();
+	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+	frameTimer = (float)tDiff / 1000.0f;
+	camera.update(frameTimer);
+	if (camera.moving())
+	{
+		viewUpdated = true;
+	}
+	// Convert to clamped timer value
+	if (!paused)
+	{
+		timer += timerSpeed * frameTimer;
+		if (timer > 1.0)
+		{
+			timer -= 1.0f;
+		}
+	}
+	fpsTimer += (float)tDiff;
+	if (fpsTimer > 1000.0f)
+	{
+#if defined(_WIN32)
+		if (!enableTextOverlay)	{
+			std::string windowTitle = getWindowTitle();
+			SetWindowText(window, windowTitle.c_str());
+		}
 #endif
+		lastFPS = static_cast<uint32_t>(1.0f / frameTimer);
+		updateTextOverlay();
+		fpsTimer = 0.0f;
+		frameCounter = 0;
+	}
+}
+
+void VulkanExampleBase::benchmarkLoop()
+{
+	for (uint32_t i = 0; i < benchmark.iterations; i++) {
+		for (uint32_t f = 0; f < 1000; f++) {
+			auto tStart = std::chrono::high_resolution_clock::now();
+			render();
+			auto tEnd = std::chrono::high_resolution_clock::now();
+			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+			double frameTime = (double)tDiff / 1000;
+			benchmark.iterationTime[benchmark.currIteration] += frameTime;
+		}
+		benchmark.currIteration++;
+	}
+	vkDeviceWaitIdle(device);
+	// Save results as comma separated file
+	std::ofstream result("benchresults.csv", std::ios::out);
+	if (result.is_open()) {
+
+		double tMin = *std::min_element(benchmark.iterationTime.begin(), benchmark.iterationTime.end());
+		double tMax = *std::max_element(benchmark.iterationTime.begin(), benchmark.iterationTime.end());
+		double tAvg = std::accumulate(benchmark.iterationTime.begin(), benchmark.iterationTime.end(), 0.0) / benchmark.iterations;
+
+		result << std::fixed << std::setprecision(3);
+		result << title << std::endl;
+		result << ",iterations,time(ms),fps" << std::endl;;
+		for (size_t i = 0; i < benchmark.iterationTime.size(); i++) {
+			result << "," << i << "," << benchmark.iterationTime[i] << "," << (1000.0 / benchmark.iterationTime[i]) << std::endl;
+		}
+		result << ",summary" << std::endl;
+		result << ",,time(ms),fps" << std::endl;
+		result << ",min," << tMin << "," << (1000.0 / tMin) << std::endl;
+		result << ",max," << tMax << "," << (1000.0 / tMax) << std::endl;
+		result << ",avg," << tAvg << "," << (1000.0 / tAvg) << std::endl;
+	}
 }
 
 void VulkanExampleBase::renderLoop()
 {
+	if (benchmark.active) {
+		benchmarkLoop();
+		return;
+	}
+
 	destWidth = width;
 	destHeight = height;
 #if defined(_WIN32)
 	MSG msg;
 	bool quitMessageReceived = false;
-	while (!quitMessageReceived)
-	{
-		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-			viewChanged();
-		}
-
-		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
+	while (!quitMessageReceived) {
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-
-			if (msg.message == WM_QUIT)
-			{
+			if (msg.message == WM_QUIT) {
 				quitMessageReceived = true;
 				break;
 			}
 		}
-
-		render();
-		frameCounter++;
-		auto tEnd = std::chrono::high_resolution_clock::now();
-		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-		frameTimer = (float)tDiff / 1000.0f;
-		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
-		// Convert to clamped timer value
-		if (!paused)
-		{
-			timer += timerSpeed * frameTimer;
-			if (timer > 1.0)
-			{
-				timer -= 1.0f;
-			}
-		}
-		fpsTimer += (float)tDiff;
-		if (fpsTimer > 1000.0f)
-		{
-			if (!enableTextOverlay)
-			{
-				std::string windowTitle = getWindowTitle();
-				SetWindowText(window, windowTitle.c_str());
-			}
-			lastFPS = static_cast<uint32_t>(1.0f / frameTimer);
-			updateTextOverlay();
-			fpsTimer = 0.0f;
-			frameCounter = 0;
-		}
+		renderFrame();
 	}
 #elif defined(__ANDROID__)
 	while (1)
@@ -674,29 +677,37 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	// Parse command line arguments
 	for (size_t i = 0; i < args.size(); i++)
 	{
-		if (args[i] == std::string("-validation"))
-		{
+		if (args[i] == std::string("-validation")) {
 			settings.validation = true;
 		}
-		if (args[i] == std::string("-vsync"))
-		{
+		if (args[i] == std::string("-vsync")) {
 			settings.vsync = true;
 		}
-		if (args[i] == std::string("-fullscreen"))
-		{
+		if (args[i] == std::string("-fullscreen")) {
 			settings.fullscreen = true;
 		}
-		if ((args[i] == std::string("-w")) || (args[i] == std::string("-width")))
-		{
+		if ((args[i] == std::string("-w")) || (args[i] == std::string("-width"))) {
 			char* endptr;
 			uint32_t w = strtol(args[i + 1], &endptr, 10);
 			if (endptr != args[i + 1]) { width = w; };
 		}
-		if ((args[i] == std::string("-h")) || (args[i] == std::string("-height")))
-		{
+		if ((args[i] == std::string("-h")) || (args[i] == std::string("-height"))) {
 			char* endptr;
 			uint32_t h = strtol(args[i + 1], &endptr, 10);
 			if (endptr != args[i + 1]) { height = h; };
+		}
+		if ((args[i] == std::string("-b")) || (args[i] == std::string("-benchmark"))) {
+			benchmark.active = true;
+			// Number of iterations as optional parameter
+			if (args.size() > i + 1) {
+				char* endptr;
+				uint32_t iterations = strtol(args[i + 1], &endptr, 10);
+				if (endptr != args[i + 1]) { benchmark.iterations = iterations; };
+			}
+			benchmark.iterationTime.resize(benchmark.iterations);
+			benchmark.frameTimes.min = std::numeric_limits<double>::max();
+			benchmark.frameTimes.max = std::numeric_limits<double>::min();
+			benchmark.frameTimes.avg = 0.0;
 		}
 	}
 	
@@ -1381,8 +1392,8 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 void* VulkanExampleBase::setupWindow(void* view)
 {
-    this->view = view;
-    return view;
+	this->view = view;
+	return view;
 }
 #elif defined(_DIRECT2DISPLAY)
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
@@ -2149,7 +2160,7 @@ void VulkanExampleBase::initSwapchain()
 #elif defined(__ANDROID__)	
 	swapChain.initSurface(androidApp->window);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    swapChain.initSurface(view);
+	swapChain.initSurface(view);
 #elif defined(_DIRECT2DISPLAY)
 	swapChain.initSurface(width, height);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)

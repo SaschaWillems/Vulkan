@@ -37,6 +37,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <array>
+#include <numeric>
 
 #include "vulkan/vulkan.h"
 
@@ -150,6 +151,17 @@ public:
 
 	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
 
+	/** @brief Stores performance metrics for benchmark runs */
+	struct Benchmark {
+		bool active = false;
+		uint32_t iterations = 10;
+		uint32_t currIteration = 0;
+		std::vector<double> iterationTime;
+		struct FrameTimes {
+			double min, max, avg;
+		} frameTimes;
+	} benchmark;
+
 	float zoom = 0;
 
 	static std::vector<const char*> args;
@@ -210,7 +222,7 @@ public:
 	/** @brief Product model and manufacturer of the Android device (via android.Product*) */
 	std::string androidProduct;
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    void* view;
+	void* view;
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;
@@ -259,7 +271,7 @@ public:
 	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
 	static void handleAppCommand(android_app* app, int32_t cmd);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    void* setupWindow(void* view);
+	void* setupWindow(void* view);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_shell_surface *setupWindow();
 	void initWaylandConnection();
@@ -379,8 +391,10 @@ public:
 	// Start the main render loop
 	void renderLoop();
 
-    // Render one frame of a render loop on platforms that sync rendering
-    void renderFrame();
+	void benchmarkLoop();
+
+	// Render one frame of a render loop on platforms that sync rendering
+	void renderFrame();
 
 	void updateTextOverlay();
 
