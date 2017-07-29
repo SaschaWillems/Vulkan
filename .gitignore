@@ -215,3 +215,5 @@ data/textures/hdr/*.*
 data/readme.txt
 data/models/cerberus/*.*
 !data/textures/hdr/README.md
+
+*.args.json
