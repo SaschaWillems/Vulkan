@@ -6,6 +6,7 @@ import sys
 EXAMPLES = [
     "bloom",
     "computecullandlod",
+    "computecloth",
     "computenbody",
     "computeparticles",
     "computeshader",
