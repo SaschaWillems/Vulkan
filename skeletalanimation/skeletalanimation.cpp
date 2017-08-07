@@ -680,7 +680,7 @@ public:
 		}
 		else if (vulkanDevice->features.textureCompressionETC2) {
 			texFormatSuffix = "_etc2_unorm";
-			texFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+			texFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
 		}
 		else {
 			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
