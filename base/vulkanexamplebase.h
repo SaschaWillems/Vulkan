@@ -331,7 +331,7 @@ public:
 	// Pure virtual function to be overriden by the dervice class
 	// Called in case of an event where e.g. the framebuffer has to be rebuild and thus
 	// all command buffers that may reference this
-	virtual void buildCommandBuffers();
+	virtual void buildCommandBuffers() = 0;
 
 	// Creates a new (graphics) command pool object storing command buffers
 	void createCommandPool();
