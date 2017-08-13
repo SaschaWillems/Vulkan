@@ -1,7 +1,7 @@
 /*
 * Vulkan Example base class
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -30,13 +30,13 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	// Enable surface extensions depending on os
 #if defined(_WIN32)
 	instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 #elif defined(_DIRECT2DISPLAY)
 	instanceExtensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	instanceExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 	instanceExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
 	instanceExtensions.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
@@ -81,7 +81,7 @@ std::string VulkanExampleBase::getWindowTitle()
 // iOS & macOS: VulkanExampleBase::getAssetPath() implemented externally to allow access to Objective-C components
 const std::string VulkanExampleBase::getAssetPath()
 {
-#if defined(__ANDROID__)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	return "";
 #else
 	return "./../data/";
@@ -211,7 +211,7 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
-#if defined(__ANDROID__)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	shaderStage.module = vks::tools::loadShader(androidApp->activity->assetManager, fileName.c_str(), device);
 #else
 	shaderStage.module = vks::tools::loadShader(fileName.c_str(), device);
@@ -325,7 +325,7 @@ void VulkanExampleBase::renderLoop()
 		}
 		renderFrame();
 	}
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	while (1)
 	{
 		int ident;
@@ -521,7 +521,7 @@ void VulkanExampleBase::renderLoop()
 			frameCounter = 0;
 		}
 	}
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_flush(connection);
 	while (!quit)
 	{
@@ -591,7 +591,7 @@ void VulkanExampleBase::updateTextOverlay()
 	textOverlay->addText(ss.str(), 5.0f, 25.0f, VulkanTextOverlay::alignLeft);
 
 	std::string deviceName(deviceProperties.deviceName);
-#if defined(__ANDROID__)	
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)	
 	deviceName += " (" + androidProduct + ")";
 #endif
 	textOverlay->addText(deviceName, 5.0f, 45.0f, VulkanTextOverlay::alignLeft);
@@ -657,7 +657,7 @@ void VulkanExampleBase::submitFrame()
 
 VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 {
-#if !defined(__ANDROID__)
+#if !defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// Check for a valid asset path
 	struct stat info;
 	if (stat(getAssetPath().c_str(), &info) != 0)
@@ -711,7 +711,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		}
 	}
 	
-#if defined(__ANDROID__)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// Vulkan library is loaded dynamically on Android
 	bool libLoaded = vks::android::loadVulkanLibrary();
 	assert(libLoaded);
@@ -719,7 +719,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	initWaylandConnection();
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 	initxcbConnection();
 #endif
 
@@ -792,13 +792,11 @@ VulkanExampleBase::~VulkanExampleBase()
 	wl_compositor_destroy(compositor);
 	wl_registry_destroy(registry);
 	wl_display_disconnect(display);
-#elif defined(__linux)
-#if defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// todo : android cleanup (if required)
-#else
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_destroy_window(connection, window);
 	xcb_disconnect(connection);
-#endif
 #endif
 }
 
@@ -813,7 +811,7 @@ void VulkanExampleBase::initVulkan()
 		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), "Fatal error");
 	}
 
-#if defined(__ANDROID__)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	vks::android::loadVulkanFunctions(instance);
 #endif
 
@@ -846,7 +844,7 @@ void VulkanExampleBase::initVulkan()
 	// Defaults to the first device unless specified by command line
 	uint32_t selectedDevice = 0;
 
-#if !defined(__ANDROID__)	
+#if !defined(VK_USE_PLATFORM_ANDROID_KHR)	
 	// GPU selection via command line argument
 	for (size_t i = 0; i < args.size(); i++)
 	{
@@ -948,7 +946,7 @@ void VulkanExampleBase::initVulkan()
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
-#if defined(__ANDROID__)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// Get Android device name and manufacturer (to display along GPU name)
 	androidProduct = "";
 	char prop[PROP_VALUE_MAX+1];
@@ -1226,7 +1224,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		break;
 	}
 }
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* event)
 {
 	VulkanExampleBase* vulkanExample = reinterpret_cast<VulkanExampleBase*>(app->userData);
@@ -1701,7 +1699,7 @@ wl_shell_surface *VulkanExampleBase::setupWindow()
 	return shell_surface;
 }
 
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 
 static inline xcb_intern_atom_reply_t* intern_atom_helper(xcb_connection_t *conn, bool only_if_exists, const char *str)
 {
@@ -2157,7 +2155,7 @@ void VulkanExampleBase::initSwapchain()
 {
 #if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
-#elif defined(__ANDROID__)	
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)	
 	swapChain.initSurface(androidApp->window);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	swapChain.initSurface(view);
@@ -2165,7 +2163,7 @@ void VulkanExampleBase::initSwapchain()
 	swapChain.initSurface(width, height);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	swapChain.initSurface(display, surface);
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 	swapChain.initSurface(connection, window);
 #endif
 }

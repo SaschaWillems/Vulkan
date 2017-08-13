@@ -13,7 +13,7 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 #include <android/native_activity.h>
 #include <android/asset_manager.h>
 #include <android_native_app_glue.h>
@@ -23,7 +23,7 @@
 #include <wayland-client.h>
 #elif defined(_DIRECT2DISPLAY)
 //
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 #include <xcb/xcb.h>
 #endif
 
@@ -209,7 +209,7 @@ public:
 #if defined(_WIN32)
 	HWND window;
 	HINSTANCE windowInstance;
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// true if application has focused, false if moved to background
 	bool focused = false;
 	struct TouchPos {
@@ -241,7 +241,7 @@ public:
 	} mouseButtons;
 #elif defined(_DIRECT2DISPLAY)
 	bool quit = false;
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 	struct {
 		bool left = false;
 		bool right = false;
@@ -267,7 +267,7 @@ public:
 	void setupConsole(std::string title);
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
 	void handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
 	static void handleAppCommand(android_app* app, int32_t cmd);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
@@ -316,7 +316,7 @@ public:
 
 #elif defined(_DIRECT2DISPLAY)
 //
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_window_t setupWindow();
 	void initxcbConnection();
 	void handleEvent(const xcb_generic_event_t *event);
@@ -437,7 +437,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)									\
 	delete(vulkanExample);																			\
 	return 0;																						\
 }																									
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 // Android entry point
 // A note on app_dummy(): This is required as the compiler may otherwise remove the main entry point of the application
 #define VULKAN_EXAMPLE_MAIN()																		\
@@ -487,8 +487,7 @@ int main(const int argc, const char *argv[])													    \
 	delete(vulkanExample);																			\
 	return 0;																						\
 }
-#elif defined(__linux__)
-// Linux entry point
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 static void handleEvent(const xcb_generic_event_t *event)											\
