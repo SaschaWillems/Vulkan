@@ -1,0 +1,14 @@
+{
+  "apkname": "vulkanComputecloth",
+  "directories": {
+    "shaders": "computecloth"
+  },
+  "assets": {
+    "models": [
+      "geosphere.obj"
+    ],
+    "textures": [
+      "vulkan_cloth_rgba.ktx"
+    ]
+  }
+}

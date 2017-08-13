@@ -5,6 +5,7 @@ import sys
 APP_NAMES = [
     "de.saschawillems.vulkanBloom",
     "de.saschawillems.vulkanComputecullandlod",
+    "de.saschawillems.vulkanComputecloth",
     "de.saschawillems.vulkanComputenbody",
     "de.saschawillems.vulkanComputeparticles",
     "de.saschawillems.vulkanComputeshader",
