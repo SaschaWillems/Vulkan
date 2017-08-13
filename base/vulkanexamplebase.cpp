@@ -281,7 +281,7 @@ void VulkanExampleBase::benchmarkLoop()
 	}
 	vkDeviceWaitIdle(device);
 	// Save results as comma separated file
-	std::ofstream result("benchresults.csv", std::ios::out);
+	std::ofstream result(benchmark.resultFile + ".csv", std::ios::out);
 	if (result.is_open()) {
 
 		double tMin = *std::min_element(benchmark.iterationTime.begin(), benchmark.iterationTime.end());
@@ -698,16 +698,17 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		}
 		if ((args[i] == std::string("-b")) || (args[i] == std::string("-benchmark"))) {
 			benchmark.active = true;
-			// Number of iterations as optional parameter
+			// Result file name can be overriden
 			if (args.size() > i + 1) {
-				char* endptr;
-				uint32_t iterations = strtol(args[i + 1], &endptr, 10);
-				if (endptr != args[i + 1]) { benchmark.iterations = iterations; };
+				benchmark.resultFile = args[i + 1];
 			}
-			benchmark.iterationTime.resize(benchmark.iterations);
-			benchmark.frameTimes.min = std::numeric_limits<double>::max();
-			benchmark.frameTimes.max = std::numeric_limits<double>::min();
-			benchmark.frameTimes.avg = 0.0;
+			// Number of iterations as optional parameter
+			if (args.size() > i + 2) {
+				char* endptr;
+				uint32_t iterations = strtol(args[i + 2], &endptr, 10);
+				if (endptr != args[i + 2]) { benchmark.iterations = iterations; };
+			}
+			benchmark.init();
 		}
 	}
 	

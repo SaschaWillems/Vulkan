@@ -156,10 +156,17 @@ public:
 		bool active = false;
 		uint32_t iterations = 10;
 		uint32_t currIteration = 0;
+		std::string resultFile = "benchmarkresults";
 		std::vector<double> iterationTime;
 		struct FrameTimes {
 			double min, max, avg;
 		} frameTimes;
+		void init() {
+			iterationTime.resize(iterations);
+			frameTimes.min = std::numeric_limits<double>::max();
+			frameTimes.max = std::numeric_limits<double>::min();
+			frameTimes.avg = 0.0;
+		}
 	} benchmark;
 
 	float zoom = 0;
