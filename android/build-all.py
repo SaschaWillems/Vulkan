@@ -43,6 +43,7 @@ EXAMPLES = [
     "skeletalanimation",
     "specializationconstants",
     "sphericalenvmapping",
+    "stencilbuffer",
     "subpasses",
     "terraintessellation",
     "tessellation",

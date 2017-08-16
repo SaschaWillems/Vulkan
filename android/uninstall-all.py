@@ -42,6 +42,7 @@ APP_NAMES = [
     "de.saschawillems.vulkanSkeletalanimation",
     "de.saschawillems.vulkanSpecializationconstants",
     "de.saschawillems.vulkanSphericalenvmapping",
+    "de.saschawillems.vulkanStencilbuffer",
     "de.saschawillems.vulkanSubpasses",
     "de.saschawillems.vulkanTerraintessellation",
     "de.saschawillems.vulkanTessellation",
