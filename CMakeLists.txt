@@ -132,6 +132,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 
 set(EXAMPLES 
 	bloom
+	computecloth
 	computecullandlod
 	computenbody
 	computeparticles
@@ -171,6 +172,7 @@ set(EXAMPLES
 	specializationconstants
 	sphericalenvmapping
 	ssao
+	stencilbuffer
 	subpasses
 	terraintessellation
 	tessellation

@@ -1,0 +1,11 @@
+{
+  "apkname": "vulkanStencilbuffer",
+  "directories": {
+    "shaders": "stencilbuffer"
+  },
+  "assets": {
+    "models": [
+      "venus.fbx"
+    ]
+  }
+}
