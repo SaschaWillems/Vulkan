@@ -83,6 +83,8 @@ const std::string VulkanExampleBase::getAssetPath()
 {
 #if defined(__ANDROID__)
 	return "";
+#elif defined(BUILT_INSIDE_SRC_TREE)
+	return "./../data/";
 #else
 	return "./data/";
 #endif

@@ -99,6 +99,7 @@ ENDIF()
 # Add data target if build outside source tree
 if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+    add_definitions(-DBUILT_INSIDE_SRC_TREE)
 else()
     file(GLOB_RECURSE DATAS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "data/models/*" "data/textures/*" "data/*.fnt")
     FOREACH(DATA_FILE ${DATAS})
