@@ -71,6 +71,12 @@ for arg in sys.argv[1:]:
         BUILD_ARGS = "APP_CFLAGS=-D_VALIDATION"
         break
 
+# Verify submodules are loaded in external folder
+if not os.listdir("../external/glm/") or not os.listdir("../external/gli/"):
+    print("External submodules not loaded. Clone them using:")
+    print("\tgit submodule init\n\tgit submodule update")
+    sys.exit(-1)
+
 # Build
 os.chdir(PROJECT_FOLDER)
 
