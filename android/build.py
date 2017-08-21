@@ -11,6 +11,11 @@ SDK_VERSION = "android-23"
 
 PROJECT_FOLDER = ""
 
+# Check if python 3, python 2 not supported
+if sys.version_info <= (3, 0):
+    print("Sorry, requires Python 3.x, not Python 2.x")
+    sys.exit(-1)
+
 # Name/folder of the project to build
 if len(sys.argv) > 1:
     PROJECT_FOLDER = sys.argv[1]
