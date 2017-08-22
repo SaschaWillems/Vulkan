@@ -290,6 +290,7 @@ void VulkanExampleBase::benchmarkLoop()
 
 		result << std::fixed << std::setprecision(3);
 		result << title << std::endl;
+		result << deviceProperties.deviceName << std::endl;
 		result << ",iterations,time(ms),fps" << std::endl;;
 		for (size_t i = 0; i < benchmark.iterationTime.size(); i++) {
 			result << "," << i << "," << benchmark.iterationTime[i] << "," << (1000.0 / benchmark.iterationTime[i]) << std::endl;
