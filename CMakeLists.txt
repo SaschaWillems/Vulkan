@@ -82,12 +82,12 @@ endif(CMAKE_COMPILER_IS_GNUCXX)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 add_definitions(-std=c++11)
 
-file(GLOB SOURCE *.cpp base/*.cpp)
+file(GLOB SOURCE *.cpp )
 
 # Function for building single example
 function(buildExample EXAMPLE_NAME)
 	# Main
-	file(GLOB SOURCE *.cpp base/*.cpp ${EXAMPLE_NAME}/*.cpp)
+	file(GLOB SOURCE *.cpp ${BASE_HEADERS} ${EXAMPLE_NAME}/*.cpp)
 	SET(MAIN_CPP ${EXAMPLE_NAME}/${EXAMPLE_NAME}.cpp)
 	if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${EXAMPLE_NAME}/main.cpp)
 		SET(MAIN_CPP ${EXAMPLE_NAME}/main.cpp)
@@ -101,12 +101,12 @@ function(buildExample EXAMPLE_NAME)
 	set(SHADER_DIR data/shaders/${EXAMPLE_NAME})
 	file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.geom" "${SHADER_DIR}/*.tesc" "${SHADER_DIR}/*.tese")
 	source_group("Shaders" FILES ${SHADERS})
-	if(WIN32)	
+	if(WIN32)
 		add_executable(${EXAMPLE_NAME} WIN32 ${MAIN_CPP} ${SOURCE} ${SHADERS})
-		target_link_libraries(${EXAMPLE_NAME} ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WINLIBS})
+		target_link_libraries(${EXAMPLE_NAME} base ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WINLIBS})
 	else(WIN32)
 		add_executable(${EXAMPLE_NAME} ${MAIN_CPP} ${SOURCE} ${SHADERS})
-		target_link_libraries(${EXAMPLE_NAME} ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+		target_link_libraries(${EXAMPLE_NAME} base )
 	endif(WIN32)
 endfunction(buildExample)
 
@@ -125,12 +125,14 @@ ENDIF(MSVC)
 IF(WIN32)
 	# Nothing here (yet)
 ELSE(WIN32)
-	link_libraries(${XCB_LIBRARIES} ${Vulkan_LIBRARY})
+	link_libraries(${XCB_LIBRARIES} ${Vulkan_LIBRARY} ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 ENDIF(WIN32)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
 
-set(EXAMPLES 
+add_subdirectory(base)
+
+set(EXAMPLES
 	bloom
 	computecloth
 	computecullandlod
@@ -148,7 +150,7 @@ set(EXAMPLES
 	geometryshader
 	hdr
 	imgui
-	indirectdraw	
+	indirectdraw
 	instancing
 	mesh
 	multisampling
