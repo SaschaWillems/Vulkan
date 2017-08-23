@@ -2,6 +2,7 @@
 import subprocess
 import sys
 import os
+import platform
 
 EXAMPLES = [
 	"bloom",
@@ -60,9 +61,6 @@ EXAMPLES = [
 	"vulkanscene"
 ]
 
-COLOR_GREEN = '\033[92m'
-COLOR_END = '\033[0m'
-
 CURR_INDEX = 0
 
 ARGS = "-fullscreen -b"
@@ -73,7 +71,10 @@ os.makedirs("./benchmark", exist_ok=True)
 
 for example in EXAMPLES:
 	print("Running %s (%d/%d) in benchmark mode" % (example, CURR_INDEX+1, len(EXAMPLES)))
-	RESULT_CODE = subprocess.call("%s -fullscreen -b ./benchmark/%s" % (example, example)) 
+	if platform.system() == 'Linux':
+		RESULT_CODE = subprocess.call("./%s %s ./benchmark/%s" % (example, ARGS, example), shell=True)
+	else:
+		RESULT_CODE = subprocess.call("%s %s ./benchmark/%s" % (example, ARGS, example))
 	if RESULT_CODE == 0:
 		print("\tResults written to ./benchmark/%s.csv" % example)
 	else:
