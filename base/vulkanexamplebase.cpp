@@ -17,7 +17,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	// Validation can also be forced via a define
 #if defined(_VALIDATION)
 	this->settings.validation = true;
-#endif	
+#endif
 
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -39,9 +39,9 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 #elif defined(__linux__)
 	instanceExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
-    instanceExtensions.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
+	instanceExtensions.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
-    instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+	instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #endif
 
 	VkInstanceCreateInfo instanceCreateInfo = {};
@@ -83,8 +83,10 @@ const std::string VulkanExampleBase::getAssetPath()
 {
 #if defined(__ANDROID__)
 	return "";
-#else
+#elif defined(BUILT_INSIDE_SRC_TREE)
 	return "./../data/";
+#else
+	return "./data/";
 #endif
 }
 #endif
@@ -148,7 +150,7 @@ void VulkanExampleBase::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueu
 	{
 		return;
 	}
-	
+
 	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
 	VkSubmitInfo submitInfo = {};
@@ -225,39 +227,39 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 void VulkanExampleBase::renderFrame()
 {
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    auto tStart = std::chrono::high_resolution_clock::now();
-    if (viewUpdated)
-    {
-        viewUpdated = false;
-        viewChanged();
-    }
-    render();
-    frameCounter++;
-    auto tEnd = std::chrono::high_resolution_clock::now();
-    auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-    frameTimer = tDiff / 1000.0f;
-    camera.update(frameTimer);
-    if (camera.moving())
-    {
-        viewUpdated = true;
-    }
-    // Convert to clamped timer value
-    if (!paused)
-    {
-        timer += timerSpeed * frameTimer;
-        if (timer > 1.0)
-        {
-            timer -= 1.0f;
-        }
-    }
-    fpsTimer += (float)tDiff;
-    if (fpsTimer > 1000.0f)
-    {
-        lastFPS = frameCounter;
-        updateTextOverlay();
-        fpsTimer = 0.0f;
-        frameCounter = 0;
-    }
+	auto tStart = std::chrono::high_resolution_clock::now();
+	if (viewUpdated)
+	{
+		viewUpdated = false;
+		viewChanged();
+	}
+	render();
+	frameCounter++;
+	auto tEnd = std::chrono::high_resolution_clock::now();
+	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+	frameTimer = tDiff / 1000.0f;
+	camera.update(frameTimer);
+	if (camera.moving())
+	{
+		viewUpdated = true;
+	}
+	// Convert to clamped timer value
+	if (!paused)
+	{
+		timer += timerSpeed * frameTimer;
+		if (timer > 1.0)
+		{
+			timer -= 1.0f;
+		}
+	}
+	fpsTimer += (float)tDiff;
+	if (fpsTimer > 1000.0f)
+	{
+		lastFPS = frameCounter;
+		updateTextOverlay();
+		fpsTimer = 0.0f;
+		frameCounter = 0;
+	}
 #endif
 }
 
@@ -570,7 +572,7 @@ void VulkanExampleBase::renderLoop()
 		}
 	}
 #endif
-	// Flush device to make sure all resources can be freed 
+	// Flush device to make sure all resources can be freed
 	vkDeviceWaitIdle(device);
 }
 
@@ -588,7 +590,7 @@ void VulkanExampleBase::updateTextOverlay()
 	textOverlay->addText(ss.str(), 5.0f, 25.0f, VulkanTextOverlay::alignLeft);
 
 	std::string deviceName(deviceProperties.deviceName);
-#if defined(__ANDROID__)	
+#if defined(__ANDROID__)
 	deviceName += " (" + androidProduct + ")";
 #endif
 	textOverlay->addText(deviceName, 5.0f, 45.0f, VulkanTextOverlay::alignLeft);
@@ -699,7 +701,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			if (endptr != args[i + 1]) { height = h; };
 		}
 	}
-	
+
 #if defined(__ANDROID__)
 	// Vulkan library is loaded dynamically on Android
 	bool libLoaded = vks::android::loadVulkanLibrary();
@@ -835,7 +837,7 @@ void VulkanExampleBase::initVulkan()
 	// Defaults to the first device unless specified by command line
 	uint32_t selectedDevice = 0;
 
-#if !defined(__ANDROID__)	
+#if !defined(__ANDROID__)
 	// GPU selection via command line argument
 	for (size_t i = 0; i < args.size(); i++)
 	{
@@ -844,12 +846,12 @@ void VulkanExampleBase::initVulkan()
 		{
 			char* endptr;
 			uint32_t index = strtol(args[i + 1], &endptr, 10);
-			if (endptr != args[i + 1]) 
-			{ 
+			if (endptr != args[i + 1])
+			{
 				if (index > gpuCount - 1)
 				{
 					std::cerr << "Selected device index " << index << " is out of range, reverting to device 0 (use -listgpus to show available Vulkan devices)" << std::endl;
-				} 
+				}
 				else
 				{
 					std::cout << "Selected Vulkan device " << index << std::endl;
@@ -863,11 +865,11 @@ void VulkanExampleBase::initVulkan()
 		{
 			uint32_t gpuCount = 0;
 			VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr));
-			if (gpuCount == 0) 
+			if (gpuCount == 0)
 			{
 				std::cerr << "No Vulkan devices found!" << std::endl;
 			}
-			else 
+			else
 			{
 				// Enumerate devices
 				std::cout << "Available Vulkan devices" << std::endl;
@@ -950,7 +952,7 @@ void VulkanExampleBase::initVulkan()
 		androidProduct += std::string(prop);
 	};
 	LOGD("androidProduct = %s", androidProduct.c_str());
-#endif	
+#endif
 }
 
 #if defined(_WIN32)
@@ -1381,8 +1383,8 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 void* VulkanExampleBase::setupWindow(void* view)
 {
-    this->view = view;
-    return view;
+	this->view = view;
+	return view;
 }
 #elif defined(_DIRECT2DISPLAY)
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
@@ -1756,7 +1758,7 @@ xcb_window_t VulkanExampleBase::setupWindow()
 				&(atom_wm_fullscreen->atom));
 		free(atom_wm_fullscreen);
 		free(atom_wm_state);
-	}	
+	}
 
 	xcb_map_window(connection, window);
 
@@ -1869,10 +1871,10 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				{
 					textOverlay->visible = !textOverlay->visible;
 				}
-				break;				
+				break;
 		}
 	}
-	break;	
+	break;
 	case XCB_KEY_RELEASE:
 	{
 		const xcb_key_release_event_t *keyEvent = (const xcb_key_release_event_t *)event;
@@ -1889,7 +1891,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				break;
 			case KEY_D:
 				camera.keys.right = false;
-				break;			
+				break;
 			case KEY_ESCAPE:
 				quit = true;
 				break;
@@ -2107,7 +2109,7 @@ void VulkanExampleBase::windowResize()
 	vkDestroyImage(device, depthStencil.image, nullptr);
 	vkFreeMemory(device, depthStencil.mem, nullptr);
 	setupDepthStencil();
-	
+
 	for (uint32_t i = 0; i < frameBuffers.size(); i++)
 	{
 		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
@@ -2146,10 +2148,10 @@ void VulkanExampleBase::initSwapchain()
 {
 #if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
-#elif defined(__ANDROID__)	
+#elif defined(__ANDROID__)
 	swapChain.initSurface(androidApp->window);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    swapChain.initSurface(view);
+	swapChain.initSurface(view);
 #elif defined(_DIRECT2DISPLAY)
 	swapChain.initSurface(width, height);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
