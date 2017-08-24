@@ -6,6 +6,12 @@ set(NAME vulkanExamples)
 
 project(${NAME})
 
+if (NOT DEFINED ${CMAKE_BUILD_TYPE})
+	message(WARNING "Build type (Debug/Release) not set in 'CMAKE_BUILD_TYPE'")
+else()
+	message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+endif()
+
 include_directories(external)
 include_directories(external/glm)
 include_directories(external/gli)
@@ -124,7 +130,7 @@ file(GLOB SOURCE *.cpp)
 function(buildShader EXAMPLE_NAME)
 	# Add shaders target
 	set(SHADER_DIR data/shaders/${EXAMPLE_NAME})
-	file(GLOB SHADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.geom" "${SHADER_DIR}/*.tesc" "${SHADER_DIR}/*.tese")
+	file(GLOB SHADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.geom"  "${SHADER_DIR}/*.comp" "${SHADER_DIR}/*.tesc" "${SHADER_DIR}/*.tese")
 	source_group("Shaders" FILES ${SHADERS})
 	foreach(SHADER ${SHADERS})
 		set(shader-input ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER})
