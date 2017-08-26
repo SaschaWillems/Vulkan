@@ -772,9 +772,8 @@ void VulkanExampleBase::initVulkan()
 
 	// Vulkan instance
 	err = createInstance(settings.validation);
-	if (err)
-	{
-		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), "Fatal error");
+	if (err) {
+		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), "Fatal error", !benchmark.active);
 	}
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -799,9 +798,8 @@ void VulkanExampleBase::initVulkan()
 	// Enumerate devices
 	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
 	err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
-	if (err)
-	{
-		vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(err), "Fatal error");
+	if (err) {
+		vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(err), "Fatal error", !benchmark.active);
 	}
 
 	// GPU selection
@@ -876,7 +874,7 @@ void VulkanExampleBase::initVulkan()
 	vulkanDevice = new vks::VulkanDevice(physicalDevice);
 	VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, enabledExtensions);
 	if (res != VK_SUCCESS) {
-		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), "Fatal error");
+		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), "Fatal error", !benchmark.active);
 	}
 	device = vulkanDevice->logicalDevice;
 

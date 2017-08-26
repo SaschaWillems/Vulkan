@@ -260,15 +260,16 @@ namespace vks
 				1, &imageMemoryBarrier);
 		}
 
-		void exitFatal(std::string message, std::string caption)
+		void exitFatal(std::string message, std::string caption, bool silent)
 		{
 #if defined(_WIN32)
-			MessageBox(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+			if (!silent) {
+				MessageBox(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+			}
 #elif defined(__ANDROID__)	
 			LOGE("Fatal error: %s", message.c_str());
-#else
-			std::cerr << message << "\n";
 #endif
+			std::cerr << message << "\n";
 			exit(1);
 		}
 
