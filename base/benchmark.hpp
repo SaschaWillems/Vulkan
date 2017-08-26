@@ -26,8 +26,6 @@ namespace vks
 
 		Benchmark() {
 			active = true;
-			iterationTimes.resize(iterations);
-
 #if defined(_WIN32)
 			AttachConsole(ATTACH_PARENT_PROCESS);
 			FILE *stream;
@@ -37,7 +35,7 @@ namespace vks
 		}
 
 		void run(std::function<void()> renderFunc) {
-			static uint32_t currIteration;
+			iterationTimes.resize(iterations);
 			for (uint32_t i = 0; i < iterations; i++) {
 				for (uint32_t f = 0; f < framesPerIteration; f++) {
 					auto tStart = std::chrono::high_resolution_clock::now();

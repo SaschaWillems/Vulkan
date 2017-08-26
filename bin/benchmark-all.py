@@ -72,9 +72,9 @@ os.makedirs("./benchmark", exist_ok=True)
 for example in EXAMPLES:
 	print("---- (%d/%d) Running %s in benchmark mode ----" % (CURR_INDEX+1, len(EXAMPLES), example))
 	if platform.system() == 'Linux':
-		RESULT_CODE = subprocess.call("./%s %s ./benchmark/%s" % (example, ARGS, example), shell=True)
+		RESULT_CODE = subprocess.call("./%s %s ./benchmark/%s 5" % (example, ARGS, example), shell=True)
 	else:
-		RESULT_CODE = subprocess.call("%s %s ./benchmark/%s" % (example, ARGS, example))
+		RESULT_CODE = subprocess.call("%s %s ./benchmark/%s 5" % (example, ARGS, example))
 	if RESULT_CODE == 0:
 		print("Results written to ./benchmark/%s.csv" % example)
 	else:
