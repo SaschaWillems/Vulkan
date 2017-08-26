@@ -24,7 +24,7 @@ namespace vks
 		std::vector<double> iterationTimes;
 		std::string filename = "benchmarkresults.csv";
 
-		Benchmark() {
+		void run(std::function<void()> renderFunc) {
 			active = true;
 #if defined(_WIN32)
 			AttachConsole(ATTACH_PARENT_PROCESS);
@@ -32,9 +32,6 @@ namespace vks
 			freopen_s(&stream, "CONOUT$", "w+", stdout);
 			freopen_s(&stream, "CONOUT$", "w+", stderr);
 #endif
-		}
-
-		void run(std::function<void()> renderFunc) {
 			iterationTimes.resize(iterations);
 			for (uint32_t i = 0; i < iterations; i++) {
 				for (uint32_t f = 0; f < framesPerIteration; f++) {
@@ -74,6 +71,7 @@ namespace vks
 				std::cout << "best : " << (1000.0 / tMin) << " fps (" << tMin << " ms)" << std::endl;
 				std::cout << "worst: " << (1000.0 / tMax) << " fps (" << tMax << " ms)" << std::endl;
 				std::cout << "avg  : " << (1000.0 / tAvg) << " fps (" << tAvg << " ms)" << std::endl;
+				std::cout << std::flush;
 			}
 		}
 	};
