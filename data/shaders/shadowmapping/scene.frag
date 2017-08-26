@@ -3,7 +3,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout (binding = 1) uniform sampler2DShadow shadowMap;
+layout (binding = 1) uniform sampler2D shadowMap;
 
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec3 inColor;
@@ -19,16 +19,23 @@ layout (location = 0) out vec4 outFragColor;
 
 float textureProj(vec4 P, vec2 off)
 {
-        float shadow = 1.0;
-	if (textureProj(shadowMap, P + vec4(off, 0.0, 0.0)) == 0.0) 
-		shadow = ambient;
+	float shadow = 1.0;
+	vec4 shadowCoord = P / P.w;
+	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) 
+	{
+		float dist = texture( shadowMap, shadowCoord.st + off ).r;
+		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
+		{
+			shadow = ambient;
+		}
+	}
 	return shadow;
 }
 
 float filterPCF(vec4 sc)
 {
 	ivec2 texDim = textureSize(shadowMap, 0);
-	float scale = 0.5;
+	float scale = 1.5;
 	float dx = scale * 1.0 / float(texDim.x);
 	float dy = scale * 1.0 / float(texDim.y);
 

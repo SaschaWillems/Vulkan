@@ -299,8 +299,6 @@ public:
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		sampler.compareEnable = true;
-		sampler.compareOp = VK_COMPARE_OP_LESS;
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &offscreenPass.depthSampler));
 
 		prepareOffscreenRenderpass();
