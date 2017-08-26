@@ -50,6 +50,7 @@
 #include "VulkanSwapChain.hpp"
 #include "VulkanTextOverlay.hpp"
 #include "camera.hpp"
+#include "benchmark.hpp"
 
 class VulkanExampleBase
 {
@@ -64,6 +65,7 @@ private:
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;
+	vks::Benchmark benchmark;
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 protected:
@@ -150,24 +152,6 @@ public:
 	} settings;
 
 	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
-
-	/** @brief Stores performance metrics for benchmark runs */
-	struct Benchmark {
-		bool active = false;
-		uint32_t iterations = 10;
-		uint32_t currIteration = 0;
-		std::string resultFile = "benchmarkresults";
-		std::vector<double> iterationTime;
-		struct FrameTimes {
-			double min, max, avg;
-		} frameTimes;
-		void init() {
-			iterationTime.resize(iterations);
-			frameTimes.min = std::numeric_limits<double>::max();
-			frameTimes.max = std::numeric_limits<double>::min();
-			frameTimes.avg = 0.0;
-		}
-	} benchmark;
 
 	float zoom = 0;
 
@@ -397,8 +381,6 @@ public:
 	
 	// Start the main render loop
 	void renderLoop();
-
-	void benchmarkLoop();
 
 	// Render one frame of a render loop on platforms that sync rendering
 	void renderFrame();

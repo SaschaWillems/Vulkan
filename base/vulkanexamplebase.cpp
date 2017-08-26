@@ -266,47 +266,12 @@ void VulkanExampleBase::renderFrame()
 	}
 }
 
-void VulkanExampleBase::benchmarkLoop()
-{
-	for (uint32_t i = 0; i < benchmark.iterations; i++) {
-		for (uint32_t f = 0; f < 1000; f++) {
-			auto tStart = std::chrono::high_resolution_clock::now();
-			render();
-			auto tEnd = std::chrono::high_resolution_clock::now();
-			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-			double frameTime = (double)tDiff / 1000;
-			benchmark.iterationTime[benchmark.currIteration] += frameTime;
-		}
-		benchmark.currIteration++;
-	}
-	vkDeviceWaitIdle(device);
-	// Save results as comma separated file
-	std::ofstream result(benchmark.resultFile + ".csv", std::ios::out);
-	if (result.is_open()) {
-
-		double tMin = *std::min_element(benchmark.iterationTime.begin(), benchmark.iterationTime.end());
-		double tMax = *std::max_element(benchmark.iterationTime.begin(), benchmark.iterationTime.end());
-		double tAvg = std::accumulate(benchmark.iterationTime.begin(), benchmark.iterationTime.end(), 0.0) / benchmark.iterations;
-
-		result << std::fixed << std::setprecision(3);
-		result << title << std::endl;
-		result << deviceProperties.deviceName << std::endl;
-		result << ",iterations,time(ms),fps" << std::endl;;
-		for (size_t i = 0; i < benchmark.iterationTime.size(); i++) {
-			result << "," << i << "," << benchmark.iterationTime[i] << "," << (1000.0 / benchmark.iterationTime[i]) << std::endl;
-		}
-		result << ",summary" << std::endl;
-		result << ",,time(ms),fps" << std::endl;
-		result << ",min," << tMin << "," << (1000.0 / tMin) << std::endl;
-		result << ",max," << tMax << "," << (1000.0 / tMax) << std::endl;
-		result << ",avg," << tAvg << "," << (1000.0 / tAvg) << std::endl;
-	}
-}
-
 void VulkanExampleBase::renderLoop()
 {
 	if (benchmark.active) {
-		benchmarkLoop();
+		benchmark.run([=] { render(); });
+		vkDeviceWaitIdle(device);
+		benchmark.saveResults(title, deviceProperties.deviceName);
 		return;
 	}
 
@@ -701,7 +666,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			benchmark.active = true;
 			// Result file name can be overriden
 			if (args.size() > i + 1) {
-				benchmark.resultFile = args[i + 1];
+				benchmark.filename = args[i + 1];
 			}
 			// Number of iterations as optional parameter
 			if (args.size() > i + 2) {
@@ -709,7 +674,6 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 				uint32_t iterations = strtol(args[i + 2], &endptr, 10);
 				if (endptr != args[i + 2]) { benchmark.iterations = iterations; };
 			}
-			benchmark.init();
 		}
 	}
 	
