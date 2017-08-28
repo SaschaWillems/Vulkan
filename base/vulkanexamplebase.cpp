@@ -672,7 +672,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			if (args.size() > i + 2) {
 				char* endptr;
 				uint32_t iterations = strtol(args[i + 2], &endptr, 10);
-				if (endptr != args[i + 2]) { benchmark.iterations = iterations; };
+				if (endptr != args[i + 2]) { benchmark.iterationCount = iterations; };
 			}
 		}
 	}
