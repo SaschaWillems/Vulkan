@@ -244,7 +244,7 @@ public:
 			vks::initializers::descriptorImageInfo(
 				textures.skybox.sampler,
 				textures.skybox.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
