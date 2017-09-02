@@ -512,17 +512,6 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
 	}
 
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
-		buildDeferredCommandBuffer();
-	}
-
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -1185,7 +1174,7 @@ public:
 	void toggleDebugDisplay()
 	{
 		debugDisplay = !debugDisplay;
-		reBuildCommandBuffers();
+		buildCommandBuffers();
 		updateUniformBuffersScreen();
 	}
 
@@ -1195,11 +1184,13 @@ public:
 		{
 		case KEY_F2:
 			useMSAA = !useMSAA;
-			reBuildCommandBuffers();
+			updateTextOverlay();
+			buildCommandBuffers();
 			break;
 		case KEY_F3:
 			useSampleShading = !useSampleShading;
-			reBuildCommandBuffers();
+			updateTextOverlay();
+			buildCommandBuffers();
 			break;
 		case KEY_F4:
 		case GAMEPAD_BUTTON_A:
