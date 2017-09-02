@@ -20,6 +20,10 @@ Since Vulkan is not yet part of the Android OS (like OpenGL ES) the library and 
 
 ### Building the Examples
 
+### Grab Externals
+
+Make sure all submodules have been cloned using the [steps from main README](../README.md#cloning).
+
 ### Complete set
 
 **Please note that building (and deploying) all examples may take a while**
