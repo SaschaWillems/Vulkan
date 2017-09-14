@@ -149,6 +149,7 @@ set(EXAMPLES
 	bloom
 	computecloth
 	computecullandlod
+	computeheadless
 	computenbody
 	computeparticles
 	computeshader
