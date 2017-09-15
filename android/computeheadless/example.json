@@ -1,0 +1,8 @@
+{
+  "apkname": "vulkanComputeheadless",
+  "directories": {
+    "shaders": "computeheadless"
+  },
+  "assets": {
+  }
+}

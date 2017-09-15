@@ -10,6 +10,12 @@
 
 #if defined(_WIN32)
 #pragma comment(linker, "/subsystem:console")
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+#include <android/native_activity.h>
+#include <android/asset_manager.h>
+#include <android_native_app_glue.h>
+#include <android/log.h>
+#include "VulkanAndroid.h"
 #endif
 
 #include <stdio.h>
@@ -23,9 +29,19 @@
 #include <vulkan/vulkan.h>
 #include "VulkanTools.h"
 
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+android_app* androidapp;
+#endif
+
 #define DEBUG (!NDEBUG)
 
 #define BUFFER_ELEMENTS 32
+
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+#define LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vulkanExample", __VA_ARGS__))
+#else
+#define LOG(...) printf(__VA_ARGS__)
+#endif
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageCallback(
 	VkDebugReportFlagsEXT flags,
@@ -37,7 +53,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageCallback(
 	const char* pMessage,
 	void* pUserData) 
 {
-	std::cout << "[VALIDATION]:" << pLayerPrefix << ":" << pMessage << std::endl;
+	LOG("[VALIDATION]: %s - %s\n", pLayerPrefix, pMessage);
 	return VK_FALSE;
 }
 
@@ -103,7 +119,12 @@ public:
 
 	VulkanExample()
 	{
-		std::cout << "Running headless example" << std::endl;
+		LOG("Running headless compute example\n");
+
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+		LOG("loading vulkan lib");
+		vks::android::loadVulkanLibrary();
+#endif
 
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -117,22 +138,32 @@ public:
 		VkInstanceCreateInfo instanceCreateInfo = {};
 		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instanceCreateInfo.pApplicationInfo = &appInfo;
-#if defined(DEBUG)
-		// TODO: Explicit layer names on Android 
+
+		uint32_t layerCount = 0;
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+		const char* validationlayers[] = { "VK_LAYER_GOOGLE_threading",	"VK_LAYER_LUNARG_parameter_validation",	"VK_LAYER_LUNARG_object_tracker","VK_LAYER_LUNARG_core_validation",	"VK_LAYER_LUNARG_swapchain", "VK_LAYER_GOOGLE_unique_objects" };
+		layerCount = 6;
+#else
 		const char* validationlayers[] = { "VK_LAYER_LUNARG_standard_validation" };
-		const char* validationExt = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
-		instanceCreateInfo.enabledLayerCount = 1;
+		layerCount = 1;
+#endif
+#if DEBUG
 		instanceCreateInfo.ppEnabledLayerNames = validationlayers;
+		const char* validationExt = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
+		instanceCreateInfo.enabledLayerCount = layerCount;
 		instanceCreateInfo.enabledExtensionCount = 1;
 		instanceCreateInfo.ppEnabledExtensionNames = &validationExt;
 #endif
 		VK_CHECK_RESULT(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
 
-#if defined(DEBUG)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+		vks::android::loadVulkanFunctions(instance);
+#endif
+#if DEBUG
 		VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = {};
 		debugReportCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
 		debugReportCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-		debugReportCreateInfo.pfnCallback = &debugMessageCallback;
+		debugReportCreateInfo.pfnCallback = (PFN_vkDebugReportCallbackEXT)debugMessageCallback;
 
 		// We have to explicitly load this function.
 		PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
@@ -149,6 +180,10 @@ public:
 		std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
 		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data()));
 		physicalDevice = physicalDevices[0];
+
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+		LOG("GPU: %s\n", deviceProperties.deviceName);
 
 		// Request a single compute queue
 		const float defaultQueuePriority(0.0f);
@@ -297,7 +332,7 @@ public:
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-			shaderStage.module = vks::tools::loadShader(androidApp->activity->assetManager, fileName.c_str(), device);
+			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, ASSET_PATH "shaders/computeheadless/headless.comp.spv", device);
 #else
 			shaderStage.module = vks::tools::loadShader(ASSET_PATH "shaders/computeheadless/headless.comp.spv", device);
 #endif
@@ -415,15 +450,15 @@ public:
 		vkQueueWaitIdle(queue);
 
 		// Output buffer contents
-		std::cout << "Compute input: " << std::endl;
+		LOG("Compute input:\n");
 		for (auto v : computeInput) {
-			std::cout << v << "\t";
+			LOG("%d \t", v);
 		}
 		std::cout << std::endl;
 
-		std::cout << "Compute output: " << std::endl;
+		LOG("Compute output:\n");
 		for (auto v : computeOutput) {
-			std::cout << v << "\t";
+			LOG("%d \t", v);
 		}
 		std::cout << std::endl;
 
@@ -433,7 +468,7 @@ public:
 		vkDestroyBuffer(device, hostBuffer, nullptr);
 		vkFreeMemory(device, hostMemory, nullptr);
 
-#if defined(DEBUG)
+#if DEBUG
 		PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallback = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
 		assert(vkDestroyDebugReportCallback);
 		vkDestroyDebugReportCallback(instance, debugReportCallback, nullptr);
@@ -451,15 +486,28 @@ public:
 	}
 };
 
-#if defined(__ANDROID__)
-// Android entry point
-// A note on app_dummy(): This is required as the compiler may otherwise remove the main entry point of the application
-VulkanExample *vulkanExample;
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+void handleAppCommand(android_app * app, int32_t cmd) {
+	if (cmd == APP_CMD_INIT_WINDOW) {
+		VulkanExample *vulkanExample = new VulkanExample();
+		delete(vulkanExample);
+		ANativeActivity_finish(app->activity);
+	}
+}
 void android_main(android_app* state) {
 	app_dummy();
-	VulkanExample *vulkanExample = new VulkanExample();
-	state->userData = vulkanExample;
-	delete(vulkanExample);
+	androidapp = state;
+	androidapp->onAppCmd = handleAppCommand;
+	int ident, events;
+	struct android_poll_source* source;
+	while ((ident = ALooper_pollAll(-1, NULL, &events, (void**)&source)) >= 0) {
+		if (source != NULL)	{
+			source->process(androidapp, source);
+		}
+		if (androidapp->destroyRequested != 0) {
+			break;
+		}
+	}
 }
 #else
 int main() {

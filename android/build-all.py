@@ -7,6 +7,7 @@ EXAMPLES = [
     "bloom",
     "computecullandlod",
     "computecloth",
+    "computeheadless",
     "computenbody",
     "computeparticles",
     "computeshader",
