@@ -374,8 +374,8 @@ public:
 
 		// Get sparse memory requirements
 		// Count
-		uint32_t sparseMemoryReqsCount;
-		std::vector<VkSparseImageMemoryRequirements> sparseMemoryReqs(32);
+		uint32_t sparseMemoryReqsCount = 32;
+		std::vector<VkSparseImageMemoryRequirements> sparseMemoryReqs(sparseMemoryReqsCount);
 		vkGetImageSparseMemoryRequirements(device, texture.image, &sparseMemoryReqsCount, sparseMemoryReqs.data());
 		if (sparseMemoryReqsCount == 0)
 		{
