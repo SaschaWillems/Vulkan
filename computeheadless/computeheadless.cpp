@@ -247,7 +247,8 @@ public:
 
 			// Submit to the queue
 			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
-			VK_CHECK_RESULT(vkWaitForFences(device, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
+
 			vkDestroyFence(device, fence, nullptr);
 			vkFreeCommandBuffers(device, commandPool, 1, &copyCmd);
 		}
@@ -279,9 +280,7 @@ public:
 				vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-			VkDescriptorBufferInfo bufferDescriptor = {};
-			bufferDescriptor.buffer = deviceBuffer;
-			bufferDescriptor.range = VK_WHOLE_SIZE;
+			VkDescriptorBufferInfo bufferDescriptor = { deviceBuffer, 0, VK_WHOLE_SIZE };
 			std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets = {
 				vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferDescriptor),
 			};
@@ -325,17 +324,18 @@ public:
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 
+			// Barrier to ensure that input buffer transfer is finished before compute shader reads from it
 			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
 			bufferBarrier.buffer = deviceBuffer;
 			bufferBarrier.size = VK_WHOLE_SIZE;
-			bufferBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-			bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+			bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 			vkCmdPipelineBarrier(
 				commandBuffer,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_HOST_BIT,
 				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 				VK_FLAGS_NONE,
 				0, nullptr,
@@ -348,9 +348,8 @@ public:
 			vkCmdDispatch(commandBuffer, BUFFER_ELEMENTS, 1, 1);
 
 			// Barrier to ensure that shader writes are finished before buffer is read back from GPU
-
 			bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-			bufferBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+			bufferBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 			bufferBarrier.buffer = deviceBuffer;
 			bufferBarrier.size = VK_WHOLE_SIZE;
 			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -370,19 +369,34 @@ public:
 			copyRegion.size = bufferSize;
 			vkCmdCopyBuffer(commandBuffer, deviceBuffer, hostBuffer, 1, &copyRegion);
 
+			// Barrier to ensure that buffer copy is finished before host reading from it
+			bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			bufferBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+			bufferBarrier.buffer = hostBuffer;
+			bufferBarrier.size = VK_WHOLE_SIZE;
+			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			vkCmdPipelineBarrier(
+				commandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_HOST_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				1, &bufferBarrier,
+				0, nullptr);
+
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
 			// Submit compute work
 			vkResetFences(device, 1, &fence);
-
+			const VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
+			computeSubmitInfo.pWaitDstStageMask = &waitStageMask;
 			computeSubmitInfo.commandBufferCount = 1;
 			computeSubmitInfo.pCommandBuffers = &commandBuffer;
-
 			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &computeSubmitInfo, fence));
-
-			// Wait for fence
-			vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
 
 			// Make device writes visible to the host
 			void *mapped;
@@ -393,10 +407,12 @@ public:
 			mappedRange.size = VK_WHOLE_SIZE;
 			vkInvalidateMappedMemoryRanges(device, 1, &mappedRange);
 
-			void* mapped;
-			vkMapMemory(device, hostMemory, 0, VK_WHOLE_SIZE, 0, &mapped);
+			// Copy to output
 			memcpy(computeOutput.data(), mapped, bufferSize);
+			vkUnmapMemory(device, hostMemory);
 		}
+
+		vkQueueWaitIdle(queue);
 
 		// Output buffer contents
 		std::cout << "Compute input: " << std::endl;
