@@ -210,11 +210,14 @@ public:
 				computeInput.data());
 
 			// Flush writes to host visible buffer
+			void* mapped;
+			vkMapMemory(device, hostMemory, 0, VK_WHOLE_SIZE, 0, &mapped);
 			VkMappedMemoryRange mappedRange = vks::initializers::mappedMemoryRange();
 			mappedRange.memory = hostMemory;
 			mappedRange.offset = 0;
 			mappedRange.size = VK_WHOLE_SIZE;
 			vkFlushMappedMemoryRanges(device, 1, &mappedRange);
+			vkUnmapMemory(device, hostMemory);
 
 			createBuffer(
 				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -381,12 +384,14 @@ public:
 			// Wait for fence
 			vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
 
-			// Flush writes to host visible buffer
+			// Make device writes visible to the host
+			void *mapped;
+			vkMapMemory(device, hostMemory, 0, VK_WHOLE_SIZE, 0, &mapped);
 			VkMappedMemoryRange mappedRange = vks::initializers::mappedMemoryRange();
 			mappedRange.memory = hostMemory;
 			mappedRange.offset = 0;
 			mappedRange.size = VK_WHOLE_SIZE;
-			vkFlushMappedMemoryRanges(device, 1, &mappedRange);
+			vkInvalidateMappedMemoryRanges(device, 1, &mappedRange);
 
 			void* mapped;
 			vkMapMemory(device, hostMemory, 0, VK_WHOLE_SIZE, 0, &mapped);
