@@ -37,6 +37,7 @@ EXAMPLES = [
     "pushconstants",
     "radialblur",
     "raytracing",
+    "renderheadless",
     "ssao",
     "scenerendering",
     "shadowmapping",
