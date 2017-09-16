@@ -158,6 +158,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stencilbuffer", "stencilbuf
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "computeheadless", "computeheadless\computeheadless.vcxproj", "{13862534-67C8-46B7-9574-531E987D8F37}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderheadless", "renderheadless\renderheadless.vcxproj", "{8CBD2720-82A5-480A-BB8C-3A77948AEF67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -388,6 +390,10 @@ Global
 		{13862534-67C8-46B7-9574-531E987D8F37}.Debug|x64.Build.0 = Debug|x64
 		{13862534-67C8-46B7-9574-531E987D8F37}.Release|x64.ActiveCfg = Release|x64
 		{13862534-67C8-46B7-9574-531E987D8F37}.Release|x64.Build.0 = Release|x64
+		{8CBD2720-82A5-480A-BB8C-3A77948AEF67}.Debug|x64.ActiveCfg = Debug|x64
+		{8CBD2720-82A5-480A-BB8C-3A77948AEF67}.Debug|x64.Build.0 = Debug|x64
+		{8CBD2720-82A5-480A-BB8C-3A77948AEF67}.Release|x64.ActiveCfg = Release|x64
+		{8CBD2720-82A5-480A-BB8C-3A77948AEF67}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
