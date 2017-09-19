@@ -363,7 +363,7 @@ public:
 			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
 			bufferBarrier.buffer = deviceBuffer;
 			bufferBarrier.size = VK_WHOLE_SIZE;
-			bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			bufferBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
 			bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
