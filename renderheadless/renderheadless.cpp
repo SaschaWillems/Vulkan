@@ -37,8 +37,7 @@
 android_app* androidapp;
 #endif
 
-//#define DEBUG (!NDEBUG)
-#define DEBUG true
+#define DEBUG (!NDEBUG)
 
 #define BUFFER_ELEMENTS 32
 
