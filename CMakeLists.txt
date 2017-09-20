@@ -180,6 +180,7 @@ set(EXAMPLES
 	pushconstants
 	radialblur
 	raytracing
+	renderheadless
 	scenerendering
 	screenshot
 	shadowmapping
