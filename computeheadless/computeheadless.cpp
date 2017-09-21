@@ -328,6 +328,15 @@ public:
 			// Create pipeline		
 			VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(pipelineLayout, 0);
 
+			// Create specialization constant holding struct
+			struct SpecializationHolding
+			{
+				uint32_t BUFFER_ELEMENT_COUNT = BUFFER_ELEMENTS;
+			} specialization;
+			// create a specialization map entry
+			VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
+			VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(SpecializationHolding), &specialization);
+
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -337,6 +346,8 @@ public:
 			shaderStage.module = vks::tools::loadShader(ASSET_PATH "shaders/computeheadless/headless.comp.spv", device);
 #endif
 			shaderStage.pName = "main";
+			shaderStage.pSpecializationInfo = &specializationInfo;
+
 			assert(shaderStage.module != VK_NULL_HANDLE);
 			computePipelineCreateInfo.stage = shaderStage;
 			VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &pipeline));
