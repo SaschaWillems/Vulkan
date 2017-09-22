@@ -328,14 +328,12 @@ public:
 			// Create pipeline		
 			VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(pipelineLayout, 0);
 
-			// Create specialization constant holding struct
-			struct SpecializationHolding
-			{
+			// Pass SSBO size via specialization constant
+			struct SpecializationData {
 				uint32_t BUFFER_ELEMENT_COUNT = BUFFER_ELEMENTS;
-			} specialization;
-			// create a specialization map entry
+			} specializationData;
 			VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
-			VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(SpecializationHolding), &specialization);
+			VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(SpecializationData), &specializationData);
 
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
