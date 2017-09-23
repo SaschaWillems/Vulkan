@@ -321,7 +321,7 @@ public:
 					indexBufferSize);
 
 				VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
-				copyRegion.size = vertexBufferSize;
+				copyRegion.size = indexBufferSize;
 				vkCmdCopyBuffer(copyCmd, stagingBuffer, indexBuffer, 1, &copyRegion);
 				VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
 
