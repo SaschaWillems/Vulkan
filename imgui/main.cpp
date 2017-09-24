@@ -718,7 +718,7 @@ public:
 	{
 		// Vertex shader		
 		uboVS.projection = camera.matrices.perspective;
-		uboVS.modelview = camera.matrices.view * glm::mat4();
+		uboVS.modelview = camera.matrices.view * glm::mat4(1.0f);
 
 		// Light source
 		if (uiSettings.animateLight) {

@@ -491,11 +491,11 @@ public:
 	void updateUniformBuffers()
 	{
 		// Tessellation eval
-		glm::mat4 viewMatrix = glm::mat4();
+		glm::mat4 viewMatrix = glm::mat4(1.0f);
 		uboTessEval.projection = glm::perspective(glm::radians(45.0f), (float)(width* ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.1f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
-		uboTessEval.model = glm::mat4();
+		uboTessEval.model = glm::mat4(1.0f);
 		uboTessEval.model = viewMatrix * glm::translate(uboTessEval.model, cameraPos);
 		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));

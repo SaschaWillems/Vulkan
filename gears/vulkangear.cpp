@@ -277,7 +277,7 @@ void VulkanGear::updateUniformBuffer(glm::mat4 perspective, glm::vec3 rotation, 
 	ubo.view = glm::rotate(ubo.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 	ubo.view = glm::rotate(ubo.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 
-	ubo.model = glm::mat4();
+	ubo.model = glm::mat4(1.0f);
 	ubo.model = glm::translate(ubo.model, pos);
 	rotation.z = (rotSpeed * timer) + rotOffset;
 	ubo.model = glm::rotate(ubo.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));

@@ -808,7 +808,7 @@ public:
 
 		scene->uniformData.projection = camera.matrices.perspective;
 		scene->uniformData.view = camera.matrices.view;
-		scene->uniformData.model = glm::mat4();
+		scene->uniformData.model = glm::mat4(1.0f);
 
 		memcpy(scene->uniformBuffer.mapped, &scene->uniformData, sizeof(scene->uniformData));
 	}

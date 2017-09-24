@@ -816,19 +816,19 @@ public:
 		float AR = (float)height / (float)width;
 
 		uboVSquad.projection = glm::ortho(2.5f / AR, 0.0f, 0.0f, 2.5f, -1.0f, 1.0f);
-		uboVSquad.model = glm::mat4();
+		uboVSquad.model = glm::mat4(1.0f);
 
 		memcpy(uniformBuffers.debug.mapped, &uboVSquad, sizeof(uboVSquad));
 
 		// 3D scene
 		uboVSscene.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, zNear, zFar);
 
-		uboVSscene.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		uboVSscene.view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 		uboVSscene.view = glm::rotate(uboVSscene.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVSscene.view = glm::rotate(uboVSscene.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVSscene.view = glm::rotate(uboVSscene.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		uboVSscene.model = glm::mat4();
+		uboVSscene.model = glm::mat4(1.0f);
 
 		uboVSscene.lightPos = lightPos;
 
@@ -849,7 +849,7 @@ public:
 		// Matrix from light's point of view
 		glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
 		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
-		glm::mat4 depthModelMatrix = glm::mat4();
+		glm::mat4 depthModelMatrix = glm::mat4(1.0f);
 
 		uboOffscreenVS.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
 

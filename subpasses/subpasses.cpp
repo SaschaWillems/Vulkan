@@ -958,7 +958,7 @@ public:
 	{
 		uboGBuffer.projection = camera.matrices.perspective;
 		uboGBuffer.view = camera.matrices.view;
-		uboGBuffer.model = glm::mat4();
+		uboGBuffer.model = glm::mat4(1.0f);
 
 		VK_CHECK_RESULT(uniformBuffers.GBuffer.map());
 		memcpy(uniformBuffers.GBuffer.mapped, &uboGBuffer, sizeof(uboGBuffer));

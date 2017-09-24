@@ -1061,7 +1061,7 @@ public:
 		{
 			uboVS.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
 		}
-		uboVS.model = glm::mat4();
+		uboVS.model = glm::mat4(1.0f);
 
 		memcpy(uniformBuffers.vsFullScreen.mapped, &uboVS, sizeof(uboVS));
 	}
@@ -1070,7 +1070,7 @@ public:
 	{
 		uboOffscreenVS.projection = camera.matrices.perspective;
 		uboOffscreenVS.view = camera.matrices.view;
-		uboOffscreenVS.model = glm::mat4();
+		uboOffscreenVS.model = glm::mat4(1.0f);
 
 		memcpy(uniformBuffers.vsOffscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
 	}

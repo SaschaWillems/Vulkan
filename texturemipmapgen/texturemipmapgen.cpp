@@ -674,7 +674,7 @@ public:
 	{
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
-		uboVS.model = glm::rotate(glm::mat4(), glm::radians(timer * 360.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		uboVS.model = glm::rotate(glm::mat4(1.0f), glm::radians(timer * 360.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.viewPos = glm::vec4(camera.position, 0.0f) * glm::vec4(-1.0f);
 		VK_CHECK_RESULT(uniformBufferVS.map());
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));

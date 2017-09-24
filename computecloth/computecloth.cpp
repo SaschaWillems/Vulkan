@@ -320,7 +320,7 @@ public:
 			case 0 :
 			{
 				// Horz. cloth falls onto sphere
-				glm::mat4 transM = glm::translate(glm::mat4(), glm::vec3(- cloth.size.x / 2.0f, -2.0f, - cloth.size.y / 2.0f));
+				glm::mat4 transM = glm::translate(glm::mat4(1.0f), glm::vec3(- cloth.size.x / 2.0f, -2.0f, - cloth.size.y / 2.0f));
 				for (uint32_t i = 0; i <  cloth.gridsize.y; i++) {
 					for (uint32_t j = 0; j <  cloth.gridsize.x; j++) {
 						particleBuffer[i + j * cloth.gridsize.y].pos = transM * glm::vec4(dx * j, 0.0f, dy * i, 1.0f);
@@ -333,7 +333,7 @@ public:
 			case 1:
 			{
 				// Vert. Pinned cloth
-				glm::mat4 transM = glm::translate(glm::mat4(), glm::vec3(- cloth.size.x / 2.0f, - cloth.size.y / 2.0f, 0.0f));
+				glm::mat4 transM = glm::translate(glm::mat4(1.0f), glm::vec3(- cloth.size.x / 2.0f, - cloth.size.y / 2.0f, 0.0f));
 				for (uint32_t i = 0; i <  cloth.gridsize.y; i++) {
 					for (uint32_t j = 0; j <  cloth.gridsize.x; j++) {
 						particleBuffer[i + j * cloth.gridsize.y].pos = transM * glm::vec4(dx * j, dy * i, 0.0f, 1.0f);

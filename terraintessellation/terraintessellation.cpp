@@ -877,7 +877,7 @@ public:
 		// Tessellation
 
 		uboTess.projection = camera.matrices.perspective;
-		uboTess.modelview = camera.matrices.view * glm::mat4();
+		uboTess.modelview = camera.matrices.view * glm::mat4(1.0f);
 		uboTess.lightPos.y = -0.5f - uboTess.displacementFactor; // todo: Not uesed yet
 		uboTess.viewportDim = glm::vec2((float)width, (float)height);
 

@@ -316,7 +316,7 @@ public:
 		camFront = glm::normalize(camFront);
 		glm::vec3 camRight = glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f)));
 
-		glm::mat4 rotM = glm::mat4();
+		glm::mat4 rotM = glm::mat4(1.0f);
 		glm::mat4 transM;
 
 		rotM = glm::rotate(rotM, glm::radians(camera.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -327,7 +327,7 @@ public:
 		left = -aspectRatio * wd2 + 0.5f * eyeSeparation * ndfl;
 		right = aspectRatio * wd2 + 0.5f * eyeSeparation * ndfl;
 
-		transM = glm::translate(glm::mat4(), camera.position - camRight * (eyeSeparation / 2.0f));
+		transM = glm::translate(glm::mat4(1.0f), camera.position - camRight * (eyeSeparation / 2.0f));
 
 		uboGS.projection[0] = glm::frustum(left, right, bottom, top, zNear, zFar);
 		uboGS.modelview[0] = rotM * transM;
@@ -336,7 +336,7 @@ public:
 		left = -aspectRatio * wd2 - 0.5f * eyeSeparation * ndfl;
 		right = aspectRatio * wd2 - 0.5f * eyeSeparation * ndfl;
 
-		transM = glm::translate(glm::mat4(), camera.position + camRight * (eyeSeparation / 2.0f));
+		transM = glm::translate(glm::mat4(1.0f), camera.position + camRight * (eyeSeparation / 2.0f));
 
 		uboGS.projection[1] = glm::frustum(left, right, bottom, top, zNear, zFar);
 		uboGS.modelview[1] = rotM * transM;

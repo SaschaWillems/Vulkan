@@ -292,7 +292,7 @@ public:
 	{
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
-		uboVS.model = glm::mat4();
+		uboVS.model = glm::mat4(1.0f);
 
 		VK_CHECK_RESULT(uniformBuffer.map());
 		uniformBuffer.copyTo(&uboVS, sizeof(uboVS));

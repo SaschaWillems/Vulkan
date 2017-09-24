@@ -873,9 +873,9 @@ public:
 	{
 		// Mesh
 		uboShared.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 
-		uboShared.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
+		uboShared.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
 		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.y + meshRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -885,7 +885,7 @@ public:
 		memcpy(uniformBuffers.vsShared.mapped, &uboShared, sizeof(uboShared));
 
 		// Mirror
-		uboShared.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
+		uboShared.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
 		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -894,7 +894,7 @@ public:
 
 		// Debug quad
 		uboShared.projection = glm::ortho(4.0f, 0.0f, 0.0f, 4.0f*(float)height / (float)width, -1.0f, 1.0f);
-		uboShared.model = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
+		uboShared.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
 		memcpy(uniformBuffers.vsDebugQuad.mapped, &uboShared, sizeof(uboShared));
 	}
@@ -902,9 +902,9 @@ public:
 	void updateUniformBufferOffscreen()
 	{
 		uboShared.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 
-		uboShared.model = viewMatrix * glm::translate(glm::mat4(), cameraPos);
+		uboShared.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
 		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.y + meshRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));

@@ -1039,7 +1039,7 @@ public:
 		{
 			uboVS.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
 		}
-		uboVS.model = glm::mat4();
+		uboVS.model = glm::mat4(1.0f);
 
 		memcpy(uniformBuffers.vsFullScreen.mapped, &uboVS, sizeof(uboVS));
 	}
@@ -1047,17 +1047,17 @@ public:
 	void updateUniformBufferDeferredMatrices()
 	{
 		uboOffscreenVS.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
-		uboOffscreenVS.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		uboOffscreenVS.view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 
-		uboOffscreenVS.model = glm::mat4();
-		uboOffscreenVS.model = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.25f, 0.0f) + cameraPos);
+		uboOffscreenVS.model = glm::mat4(1.0f);
+		uboOffscreenVS.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.25f, 0.0f) + cameraPos);
 		uboOffscreenVS.model = glm::rotate(uboOffscreenVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboOffscreenVS.model = glm::rotate(uboOffscreenVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboOffscreenVS.model = glm::rotate(uboOffscreenVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uboOffscreenVS.projection = camera.matrices.perspective;
 		uboOffscreenVS.view = camera.matrices.view;
-		uboOffscreenVS.model = glm::mat4();
+		uboOffscreenVS.model = glm::mat4(1.0f);
 
 		memcpy(uniformBuffers.vsOffscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
 	}

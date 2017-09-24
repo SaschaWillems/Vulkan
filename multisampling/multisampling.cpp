@@ -662,13 +662,13 @@ public:
 	void updateUniformBuffers()
 	{
 		// Vertex shader
-		glm::mat4 viewMatrix = glm::mat4();
+		glm::mat4 viewMatrix = glm::mat4(1.0f);
 		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
 		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
 
 		float offset = 0.5f;
 		int uboIndex = 1;
-		uboVS.model = glm::mat4();
+		uboVS.model = glm::mat4(1.0f);
 		uboVS.model = viewMatrix * glm::translate(uboVS.model, cameraPos);
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));

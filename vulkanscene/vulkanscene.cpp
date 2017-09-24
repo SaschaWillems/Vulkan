@@ -394,7 +394,7 @@ public:
 			glm::vec3(0, 1, 0)
 			);
 
-		uboVS.model = glm::mat4();
+		uboVS.model = glm::mat4(1.0f);
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));

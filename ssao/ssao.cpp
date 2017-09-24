@@ -1047,7 +1047,7 @@ public:
 	{
 		uboSceneMatrices.projection = camera.matrices.perspective;
 		uboSceneMatrices.view = camera.matrices.view;
-		uboSceneMatrices.model = glm::mat4();
+		uboSceneMatrices.model = glm::mat4(1.0f);
 
 		VK_CHECK_RESULT(uniformBuffers.sceneMatrices.map());
 		uniformBuffers.sceneMatrices.copyTo(&uboSceneMatrices, sizeof(uboSceneMatrices));

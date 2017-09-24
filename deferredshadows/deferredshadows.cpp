@@ -1042,7 +1042,7 @@ public:
 	void updateUniformBuffersScreen()
 	{
 		uboVS.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-		uboVS.model = glm::mat4();
+		uboVS.model = glm::mat4(1.0f);
 		memcpy(uniformBuffers.vsFullScreen.mapped, &uboVS, sizeof(uboVS));
 	}
 
@@ -1050,7 +1050,7 @@ public:
 	{
 		uboOffscreenVS.projection = camera.matrices.perspective;
 		uboOffscreenVS.view = camera.matrices.view;
-		uboOffscreenVS.model = glm::mat4();
+		uboOffscreenVS.model = glm::mat4(1.0f);
 		memcpy(uniformBuffers.vsOffscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
 	}
 
@@ -1091,7 +1091,7 @@ public:
 			// mvp from light's pov (for shadows)
 			glm::mat4 shadowProj = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
 			glm::mat4 shadowView = glm::lookAt(glm::vec3(uboFragmentLights.lights[i].position), glm::vec3(uboFragmentLights.lights[i].target), glm::vec3(0.0f, 1.0f, 0.0f));
-			glm::mat4 shadowModel = glm::mat4();
+			glm::mat4 shadowModel = glm::mat4(1.0f);
 
 			uboShadowGS.mvp[i] = shadowProj * shadowView * shadowModel;
 			uboFragmentLights.lights[i].viewMatrix = uboShadowGS.mvp[i];

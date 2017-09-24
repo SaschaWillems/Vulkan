@@ -218,7 +218,7 @@ public:
 
 			VkDeviceSize offsets[1] = { 0 };
 
-			glm::mat4 modelMatrix = glm::mat4();
+			glm::mat4 modelMatrix = glm::mat4(1.0f);
 
 			// Occlusion pass
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.simple);
@@ -572,9 +572,9 @@ public:
 	{
 		// Vertex shader
 		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 
-		glm::mat4 rotMatrix = glm::mat4();
+		glm::mat4 rotMatrix = glm::mat4(1.0f);
 		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -590,13 +590,13 @@ public:
 		// Teapot
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[0] > 0) ? 1.0f : 0.0f;
-		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, -10.0f));
+		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f));
 		memcpy(uniformBuffers.teapot.mapped, &uboVS, sizeof(uboVS));
 
 		// Sphere
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[1] > 0) ? 1.0f : 0.0f;
-		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 10.0f));
+		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 10.0f));
 		memcpy(uniformBuffers.sphere.mapped, &uboVS, sizeof(uboVS));
 	}
 

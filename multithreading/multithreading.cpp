@@ -278,7 +278,7 @@ public:
 			objectData->deltaT -= 1.0f;
 		objectData->pos.y = sin(glm::radians(objectData->deltaT * 360.0f)) * 2.5f;
 
-		objectData->model = glm::translate(glm::mat4(), objectData->pos);
+		objectData->model = glm::translate(glm::mat4(1.0f), objectData->pos);
 		objectData->model = glm::rotate(objectData->model, -sinf(glm::radians(objectData->deltaT * 360.0f)) * 0.25f, glm::vec3(objectData->rotationDir, 0.0f, 0.0f));
 		objectData->model = glm::rotate(objectData->model, glm::radians(objectData->rotation.y), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
 		objectData->model = glm::rotate(objectData->model, glm::radians(objectData->deltaT * 360.0f), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
@@ -321,7 +321,7 @@ public:
 
 		vkCmdBindPipeline(secondaryCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
 
-		glm::mat4 view = glm::mat4();
+		glm::mat4 view = glm::mat4(1.0f);
 		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -572,7 +572,7 @@ public:
 	void updateMatrices()
 	{
 		matrices.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		matrices.view = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, zoom));
+		matrices.view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
