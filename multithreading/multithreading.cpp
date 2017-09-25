@@ -165,6 +165,9 @@ public:
 		vkDestroyFence(device, renderFence, nullptr);
 	}
 
+	virtual void buildCommandBuffers()
+	{}
+
 	float rnd(float range)
 	{
 		return range * (rand() / double(RAND_MAX));
