@@ -779,13 +779,9 @@ public:
 		io.DisplaySize = ImVec2((float)width, (float)height);
 		io.DeltaTime = frameTimer;
 
-		// todo: Android touch/gamepad, different platforms
-#if defined(_WIN32)
 		io.MousePos = ImVec2(mousePos.x, mousePos.y);
-		io.MouseDown[0] = (((GetKeyState(VK_LBUTTON) & 0x100) != 0));
-		io.MouseDown[1] = (((GetKeyState(VK_RBUTTON) & 0x100) != 0));
-#else
-#endif
+		io.MouseDown[0] = mouseButtons.left;
+		io.MouseDown[1] = mouseButtons.right;
 
 		draw();
 
@@ -797,6 +793,13 @@ public:
 	{
 		updateUniformBuffers();
 	}
+
+	virtual void mouseMoved(double x, double y, bool &handled)
+	{
+		ImGuiIO& io = ImGui::GetIO();	
+		handled = io.WantCaptureMouse;
+	}
+
 };
 
 VULKAN_EXAMPLE_MAIN()
