@@ -189,12 +189,16 @@ public:
 		VkImageView view;
 	} depthStencil;
 
-	// Gamepad state (only one pad supported)
-	struct
-	{
+	struct {
 		glm::vec2 axisLeft = glm::vec2(0.0f);
 		glm::vec2 axisRight = glm::vec2(0.0f);
 	} gamePadState;
+
+	struct {
+		bool left = false;
+		bool right = false;
+		bool middle = false;
+	} mouseButtons;
 
 	// OS specific 
 #if defined(_WIN32)
@@ -225,19 +229,10 @@ public:
 	wl_surface *surface = nullptr;
 	wl_shell_surface *shell_surface = nullptr;
 	bool quit = false;
-	struct {
-		bool left = false;
-		bool right = false;
-		bool middle = false;
-	} mouseButtons;
+
 #elif defined(_DIRECT2DISPLAY)
 	bool quit = false;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
-	struct {
-		bool left = false;
-		bool right = false;
-		bool middle = false;
-	} mouseButtons;
 	bool quit = false;
 	xcb_connection_t *connection;
 	xcb_screen_t *screen;
@@ -325,9 +320,10 @@ public:
 	// Can be overriden in derived class to e.g. update uniform buffers 
 	// Containing view dependant matrices
 	virtual void viewChanged();
-	// Called if a key is pressed
 	/** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */
 	virtual void keyPressed(uint32_t);
+	/** @brief (Virtual) Called after th mouse cursor moved and before internal events (like camera rotation) is handled */
+	virtual void mouseMoved(double x, double y, bool &handled);
 	// Called when the window has been resized
 	// Can be overriden in derived class to recreate or rebuild resources attached to the frame buffer / swapchain
 	virtual void windowResized();

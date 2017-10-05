@@ -1125,11 +1125,26 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			}
 		}
 		break;
-	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
+		mousePos = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
+		mouseButtons.left = true;
+		break;
+	case WM_RBUTTONDOWN:
+		mousePos = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
+		mouseButtons.right = true;
+		break;
 	case WM_MBUTTONDOWN:
-		mousePos.x = (float)LOWORD(lParam);
-		mousePos.y = (float)HIWORD(lParam);
+		mousePos = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
+		mouseButtons.middle = true;
+		break;
+	case WM_LBUTTONUP:
+		mouseButtons.left = false;
+		break;
+	case WM_RBUTTONUP:
+		mouseButtons.right = false;
+		break;
+	case WM_MBUTTONUP:
+		mouseButtons.middle = false;
 		break;
 	case WM_MOUSEWHEEL:
 	{
@@ -1140,37 +1155,37 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		break;
 	}
 	case WM_MOUSEMOVE:
-		if (wParam & MK_RBUTTON)
-		{
-			int32_t posx = LOWORD(lParam);
-			int32_t posy = HIWORD(lParam);
+	{
+		bool handled = false;
+		int32_t posx = LOWORD(lParam);
+		int32_t posy = HIWORD(lParam);
+		mouseMoved((float)posx, (float)posy, handled);
+		if (handled) {
+			mousePos = glm::vec2((float)posx, (float)posy);
+			break;
+		}
+		if (mouseButtons.right) {
 			zoom += (mousePos.y - (float)posy) * .005f * zoomSpeed;
 			camera.translate(glm::vec3(-0.0f, 0.0f, (mousePos.y - (float)posy) * .005f * zoomSpeed));
 			mousePos = glm::vec2((float)posx, (float)posy);
 			viewUpdated = true;
 		}
-		if (wParam & MK_LBUTTON)
-		{
-			int32_t posx = LOWORD(lParam);
-			int32_t posy = HIWORD(lParam);
+		if (mouseButtons.left) {
 			rotation.x += (mousePos.y - (float)posy) * 1.25f * rotationSpeed;
 			rotation.y -= (mousePos.x - (float)posx) * 1.25f * rotationSpeed;
 			camera.rotate(glm::vec3((mousePos.y - (float)posy) * camera.rotationSpeed, -(mousePos.x - (float)posx) * camera.rotationSpeed, 0.0f));
 			mousePos = glm::vec2((float)posx, (float)posy);
 			viewUpdated = true;
 		}
-		if (wParam & MK_MBUTTON)
-		{
-			int32_t posx = LOWORD(lParam);
-			int32_t posy = HIWORD(lParam);
+		if (mouseButtons.middle) {
 			cameraPos.x -= (mousePos.x - (float)posx) * 0.01f;
 			cameraPos.y -= (mousePos.y - (float)posy) * 0.01f;
 			camera.translate(glm::vec3(-(mousePos.x - (float)posx) * 0.01f, -(mousePos.y - (float)posy) * 0.01f, 0.0f));
+			mousePos = glm::vec2((float)posx, (float)posy);
 			viewUpdated = true;
-			mousePos.x = (float)posx;
-			mousePos.y = (float)posy;
 		}
 		break;
+	}
 	case WM_SIZE:
 		if ((prepared) && (wParam != SIZE_MINIMIZED))
 		{
@@ -1898,6 +1913,8 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 void VulkanExampleBase::viewChanged() {}
 
 void VulkanExampleBase::keyPressed(uint32_t) {}
+
+void VulkanExampleBase::mouseMoved(double x, double y, bool & handled) {}
 
 void VulkanExampleBase::buildCommandBuffers() {}
 
