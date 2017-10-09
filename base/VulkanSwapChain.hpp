@@ -394,7 +394,7 @@ public:
 		// Set additional usage flag for blitting from the swapchain images if supported
 		VkFormatProperties formatProps;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, colorFormat, &formatProps);
-		if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) {
+		if ((formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR) || (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
 			swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		}
 
