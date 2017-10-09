@@ -179,3 +179,19 @@ Once the loop is done we need to transition all mip levels of the image to their
 ```  
 
 Submitting that command buffer will result in an image with a complete mip-chain and all mip levels being transitioned to the proper image layout for shader reads.
+
+### Image View creation
+The Image View also requires information about how many Mip Levels are used. This is specified in the ```VkImageViewCreateInfo.subresourceRange.levelCount``` field.
+
+```cpp
+  VkImageViewCreateInfo view = vks::initializers::imageViewCreateInfo();
+  view.image = texture.image;
+  view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  view.format = format;
+  view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+  view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  view.subresourceRange.baseMipLevel = 0;
+  view.subresourceRange.baseArrayLayer = 0;
+  view.subresourceRange.layerCount = 1;
+  view.subresourceRange.levelCount = texture.mipLevels;
+```  
