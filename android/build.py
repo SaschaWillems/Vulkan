@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Single example build and deploy script
 import os
 import subprocess
