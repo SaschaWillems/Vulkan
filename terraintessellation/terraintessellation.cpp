@@ -176,6 +176,20 @@ public:
 		if (deviceFeatures.pipelineStatisticsQuery) {
 			enabledFeatures.pipelineStatisticsQuery = VK_TRUE;
 		};
+		// Enable anisotropic filtering if supported
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		}
+		// Enable texture compression  
+		if (deviceFeatures.textureCompressionBC) {
+			enabledFeatures.textureCompressionBC = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionASTC_LDR) {
+			enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionETC2) {
+			enabledFeatures.textureCompressionETC2 = VK_TRUE;
+		}
 	}
 
 	// Setup pool and buffer for storing pipeline statistics results
