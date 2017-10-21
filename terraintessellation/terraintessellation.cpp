@@ -361,7 +361,7 @@ public:
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(drawCmdBuffers[i], models.skysphere.indexCount, 1, 0, 0, 0);
 
-			// Terrrain
+			// Terrain
 			if (deviceFeatures.pipelineStatisticsQuery) {
 				// Begin pipeline statistics query		
 				vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, VK_QUERY_CONTROL_PRECISE_BIT);
@@ -443,7 +443,8 @@ public:
 		#define PATCH_SIZE 64
 		#define UV_SCALE 1.0f
 
-		Vertex *vertices = new Vertex[PATCH_SIZE * PATCH_SIZE * 4];
+		const uint32_t vertexCount = PATCH_SIZE * PATCH_SIZE;
+		Vertex *vertices = new Vertex[vertexCount];
 			
 		const float wx = 2.0f;
 		const float wy = 2.0f;
@@ -480,7 +481,7 @@ public:
 					}
 				}
 
-				// Calcualte the normal
+				// Calculate the normal
 				glm::vec3 normal;
 				// Gx sobel filter
 				normal.x = heights[0][0] - heights[2][0] + 2.0f * heights[0][1] - 2.0f * heights[2][1] + heights[0][2] - heights[2][2];
@@ -496,7 +497,8 @@ public:
 
 		// Indices
 		const uint32_t w = (PATCH_SIZE - 1);
-		uint32_t *indices = new uint32_t[w * w * 4];
+		const uint32_t indexCount = w * w * 4;
+		uint32_t *indices = new uint32_t[indexCount];
 		for (auto x = 0; x < w; x++)
 		{
 			for (auto y = 0; y < w; y++)
@@ -508,10 +510,10 @@ public:
 				indices[index + 3] = indices[index] + 1;
 			}
 		}
-		models.terrain.indexCount = (PATCH_SIZE - 1) * (PATCH_SIZE - 1) * 4;
+		models.terrain.indexCount = indexCount;
 
-		uint32_t vertexBufferSize = (PATCH_SIZE * PATCH_SIZE * 4) * sizeof(Vertex);
-		uint32_t indexBufferSize = (w * w * 4) * sizeof(uint32_t);
+		uint32_t vertexBufferSize = vertexCount * sizeof(Vertex);
+		uint32_t indexBufferSize = indexCount * sizeof(uint32_t);
 
 		struct {
 			VkBuffer buffer;
@@ -751,6 +753,7 @@ public:
 			VK_DYNAMIC_STATE_SCISSOR,
 			VK_DYNAMIC_STATE_LINE_WIDTH
 		};
+
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vks::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
