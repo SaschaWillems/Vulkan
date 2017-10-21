@@ -176,10 +176,10 @@ void VulkanExampleBase::createPipelineCache()
 
 void VulkanExampleBase::prepare()
 {
-	if (vulkanDevice->enableDebugMarkers)
-	{
+	if (vulkanDevice->enableDebugMarkers) {
 		vks::debugmarker::setup(device);
 	}
+	initSwapchain();
 	createCommandPool();
 	setupSwapChain();
 	createCommandBuffers();

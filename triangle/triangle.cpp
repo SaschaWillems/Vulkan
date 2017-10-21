@@ -1115,7 +1115,6 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 	vulkanExample = new VulkanExample();
 	vulkanExample->initVulkan();
 	vulkanExample->setupWindow(hInstance, WndProc);
-	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
 	vulkanExample->renderLoop();
 	delete(vulkanExample);
@@ -1150,7 +1149,6 @@ int main(const int argc, const char *argv[])
 	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };
 	vulkanExample = new VulkanExample();
 	vulkanExample->initVulkan();
-	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
 	vulkanExample->renderLoop();
 	delete(vulkanExample);
@@ -1164,7 +1162,6 @@ int main(const int argc, const char *argv[])
 	vulkanExample = new VulkanExample();
 	vulkanExample->initVulkan();
 	vulkanExample->setupWindow();
-	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
 	vulkanExample->renderLoop();
 	delete(vulkanExample);
@@ -1187,7 +1184,6 @@ int main(const int argc, const char *argv[])
 	vulkanExample = new VulkanExample();
 	vulkanExample->initVulkan();
 	vulkanExample->setupWindow();
-	vulkanExample->initSwapchain();
 	vulkanExample->prepare();
 	vulkanExample->renderLoop();
 	delete(vulkanExample);
