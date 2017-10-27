@@ -48,9 +48,12 @@ First step is to calculate the alignment required for the data we want to store 
 ```cpp
 void prepareUniformBuffers()
 {
-  // Calculate required alignment depending on device limits
-  size_t uboAlignment = vulkanDevice->properties.limits.minUniformBufferOffsetAlignment;
-  dynamicAlignment = (sizeof(glm::mat4) / uboAlignment) * uboAlignment + ((sizeof(glm::mat4) % uboAlignment) > 0 ? uboAlignment : 0);
+	// Calculate required alignment based on minimum device offset alignment
+	size_t minUboAlignment = vulkanDevice->properties.limits.minUniformBufferOffsetAlignment;
+	dynamicAlignment = sizeof(glm::mat4);
+	if (minUboAlignment > 0) {
+		dynamicAlignment = (dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+	}
 ```
 
 The max. allowed alignment (as per spec) is 256 bytes which may be much higher than the data size we actually need for each entry (one 4x4 matrix = 64 bytes). 

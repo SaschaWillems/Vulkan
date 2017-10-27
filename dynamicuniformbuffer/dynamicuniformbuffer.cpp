@@ -410,16 +410,19 @@ public:
 		// Allocate data for the dynamic uniform buffer object
 		// We allocate this manually as the alignment of the offset differs between GPUs
 
-		// Calculate required alignment depending on device limits
-		size_t uboAlignment = vulkanDevice->properties.limits.minUniformBufferOffsetAlignment;
-		dynamicAlignment = (sizeof(glm::mat4) / uboAlignment) * uboAlignment + ((sizeof(glm::mat4) % uboAlignment) > 0 ? uboAlignment : 0);
+		// Calculate required alignment based on minimum device offset alignment
+		size_t minUboAlignment = vulkanDevice->properties.limits.minUniformBufferOffsetAlignment;
+		dynamicAlignment = sizeof(glm::mat4);
+		if (minUboAlignment > 0) {
+			dynamicAlignment = (dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+		}
 
 		size_t bufferSize = OBJECT_INSTANCES * dynamicAlignment;
 
 		uboDataDynamic.model = (glm::mat4*)alignedAlloc(bufferSize, dynamicAlignment);
 		assert(uboDataDynamic.model);
 
-		std::cout << "minUniformBufferOffsetAlignment = " << uboAlignment << std::endl;
+		std::cout << "minUniformBufferOffsetAlignment = " << minUboAlignment << std::endl;
 		std::cout << "dynamicAlignment = " << dynamicAlignment << std::endl;
 
 		// Vertex shader uniform buffer block
