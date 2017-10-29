@@ -44,11 +44,11 @@
 #include "keycodes.hpp"
 #include "VulkanTools.h"
 #include "VulkanDebug.h"
+#include "VulkanUIOverlay.h"
 
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
-#include "VulkanTextOverlay.hpp"
 #include "camera.hpp"
 #include "benchmark.hpp"
 
@@ -149,6 +149,8 @@ public:
 		bool fullscreen = false;
 		/** @brief Set to true if v-sync will be forced for the swapchain */
 		bool vsync = false;
+		/** @brief Enable UI overlay */
+		bool overlay = false;
 	} settings;
 
 	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
@@ -165,8 +167,7 @@ public:
 	
 	bool paused = false;
 
-	bool enableTextOverlay = false;
-	VulkanTextOverlay *textOverlay;
+	vks::UIOverlay *UIOverlay = nullptr;
 
 	// Use to adjust mouse rotation speed
 	float rotationSpeed = 1.0f;
@@ -381,10 +382,7 @@ public:
 	// Render one frame of a render loop on platforms that sync rendering
 	void renderFrame();
 
-	void updateTextOverlay();
-
-	/** @brief (Virtual) Called when the text overlay is updating, can be used to add custom text to the overlay */
-	virtual void getOverlayText(VulkanTextOverlay*);
+	void updateOverlay();
 
 	// Prepare the frame for workload submission
 	// - Acquires the next image from the swap chain 
@@ -395,6 +393,8 @@ public:
 	// - Submits the text overlay (if enabled)
 	void submitFrame();
 
+	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
+	virtual void OnUpdateUIOverlay();
 };
 
 // OS specific macros for the example main entry points

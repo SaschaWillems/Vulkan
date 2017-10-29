@@ -70,8 +70,7 @@ std::string VulkanExampleBase::getWindowTitle()
 	std::string device(deviceProperties.deviceName);
 	std::string windowTitle;
 	windowTitle = title + " - " + device;
-	if (!enableTextOverlay)
-	{
+	if (!settings.overlay) {
 		windowTitle += " - " + std::to_string(frameCounter) + " fps";
 	}
 	return windowTitle;
@@ -187,24 +186,14 @@ void VulkanExampleBase::prepare()
 	setupRenderPass();
 	createPipelineCache();
 	setupFrameBuffer();
-	enableTextOverlay = enableTextOverlay && (!benchmark.active);
-	if (enableTextOverlay)
-	{
-		// Load the text rendering shaders
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-		shaderStages.push_back(loadShader(getAssetPath() + "shaders/base/textoverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
-		shaderStages.push_back(loadShader(getAssetPath() + "shaders/base/textoverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
-		textOverlay = new VulkanTextOverlay(
-			vulkanDevice,
-			queue,
-			frameBuffers,
-			swapChain.colorFormat,
-			depthFormat,
-			&width,
-			&height,
-			shaderStages
-			);
-		updateTextOverlay();
+	settings.overlay = settings.overlay && (!benchmark.active);
+	if (settings.overlay) {
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {
+			loadShader(getAssetPath() + "shaders/base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getAssetPath() + "shaders/base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
+		};
+		UIOverlay = new vks::UIOverlay(vulkanDevice, queue, frameBuffers, swapChain.colorFormat, depthFormat, &width, &height, shaderStages);
+		updateOverlay();
 	}
 }
 
@@ -256,16 +245,17 @@ void VulkanExampleBase::renderFrame()
 	if (fpsTimer > 1000.0f)
 	{
 #if defined(_WIN32)
-		if (!enableTextOverlay)	{
+		if (!settings.overlay)	{
 			std::string windowTitle = getWindowTitle();
 			SetWindowText(window, windowTitle.c_str());
 		}
 #endif
 		lastFPS = static_cast<uint32_t>(1.0f / frameTimer);
-		updateTextOverlay();
 		fpsTimer = 0.0f;
 		frameCounter = 0;
 	}
+	// TODO: Cap UI overlay update rates
+	updateOverlay();
 }
 
 void VulkanExampleBase::renderLoop()
@@ -545,31 +535,41 @@ void VulkanExampleBase::renderLoop()
 	vkDeviceWaitIdle(device);
 }
 
-void VulkanExampleBase::updateTextOverlay()
+void VulkanExampleBase::updateOverlay()
 {
-	if (!enableTextOverlay)
+	if (!settings.overlay)
 		return;
 
-	textOverlay->beginTextUpdate();
+	ImGuiIO& io = ImGui::GetIO();
 
-	textOverlay->addText(title, 5.0f, 5.0f, VulkanTextOverlay::alignLeft);
+	io.DisplaySize = ImVec2((float)width, (float)height);
+	io.DeltaTime = frameTimer;
 
-	std::stringstream ss;
-	ss << std::fixed << std::setprecision(3) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
-	textOverlay->addText(ss.str(), 5.0f, 25.0f, VulkanTextOverlay::alignLeft);
+	io.MousePos = ImVec2(mousePos.x, mousePos.y);
+	io.MouseDown[0] = mouseButtons.left;
+	io.MouseDown[1] = mouseButtons.right;
 
-	std::string deviceName(deviceProperties.deviceName);
-#if defined(VK_USE_PLATFORM_ANDROID_KHR)	
-	deviceName += " (" + androidProduct + ")";
-#endif
-	textOverlay->addText(deviceName, 5.0f, 45.0f, VulkanTextOverlay::alignLeft);
+	ImGui::NewFrame();
 
-	getOverlayText(textOverlay);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+	ImGui::SetNextWindowPos(ImVec2(10, 10));
+	ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiSetCond_FirstUseEver);
+	ImGui::Begin("Vulkan Example", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+	ImGui::Text(title.c_str());
+	ImGui::Text(deviceProperties.deviceName);
+	ImGui::Text("%.2f ms/frame (%.1d fps)", (frameTimer * 1000.0f), lastFPS);
 
-	textOverlay->endTextUpdate();
+	OnUpdateUIOverlay();
+
+	ImGui::End();
+	ImGui::PopStyleVar();
+
+	ImGui::Render();
+
+	UIOverlay->update();
 }
 
-void VulkanExampleBase::getOverlayText(VulkanTextOverlay*) {}
+//void VulkanExampleBase::getOverlayText(VulkanTextOverlay*) {}
 
 void VulkanExampleBase::prepareFrame()
 {
@@ -586,10 +586,9 @@ void VulkanExampleBase::prepareFrame()
 
 void VulkanExampleBase::submitFrame()
 {
-	bool submitTextOverlay = enableTextOverlay && textOverlay->visible;
+	bool submitOverlay = settings.overlay && UIOverlay->visible;
 
-	if (submitTextOverlay)
-	{
+	if (submitOverlay) {
 		// Wait for color attachment output to finish before rendering the text overlay
 		VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		submitInfo.pWaitDstStageMask = &stageFlags;
@@ -604,7 +603,7 @@ void VulkanExampleBase::submitFrame()
 
 		// Submit current text overlay command buffer
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &textOverlay->cmdBuffers[currentBuffer];
+		submitInfo.pCommandBuffers = &UIOverlay->cmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
 		// Reset stage mask
@@ -618,7 +617,7 @@ void VulkanExampleBase::submitFrame()
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 	}
 
-	VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, submitTextOverlay ? semaphores.textOverlayComplete : semaphores.renderComplete));
+	VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, submitOverlay ? semaphores.textOverlayComplete : semaphores.renderComplete));
 
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
@@ -732,9 +731,8 @@ VulkanExampleBase::~VulkanExampleBase()
 	vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
 	vkDestroySemaphore(device, semaphores.textOverlayComplete, nullptr);
 
-	if (enableTextOverlay)
-	{
-		delete textOverlay;
+	if (UIOverlay) {
+		delete UIOverlay;
 	}
 
 	delete vulkanDevice;
@@ -1074,9 +1072,8 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			paused = !paused;
 			break;
 		case KEY_F1:
-			if (enableTextOverlay)
-			{
-				textOverlay->visible = !textOverlay->visible;
+			if (settings.overlay) {
+				UIOverlay->visible = !UIOverlay->visible;
 			}
 			break;
 		case KEY_ESCAPE:
@@ -2114,10 +2111,10 @@ void VulkanExampleBase::windowResize()
 
 	vkDeviceWaitIdle(device);
 
-	if (enableTextOverlay)
-	{
-		textOverlay->reallocateCommandBuffers();
-		updateTextOverlay();
+	if (settings.overlay) {
+		// TODO: Check if still required
+		UIOverlay->reallocateCommandBuffers();
+		updateOverlay();
 	}
 
 	camera.updateAspectRatio((float)width / (float)height);
@@ -2155,3 +2152,5 @@ void VulkanExampleBase::setupSwapChain()
 {
 	swapChain.create(&width, &height, settings.vsync);
 }
+
+void VulkanExampleBase::OnUpdateUIOverlay() {}
