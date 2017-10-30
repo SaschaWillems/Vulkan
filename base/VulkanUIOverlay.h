@@ -86,5 +86,11 @@ namespace vks
 		void update();
 
 		void submit(VkQueue queue, uint32_t bufferindex, VkSubmitInfo submitInfo);
+
+		bool header(const char* caption);
+		bool checkBox(const char* caption, bool* value);
+		bool inputFloat(const char* caption, float* value, float step, uint32_t precision);
+		bool comboBox(const char* caption, int32_t* itemindex, std::vector<std::string> items);
+		void text(const char* formatstr, ...);		
 	};
 }

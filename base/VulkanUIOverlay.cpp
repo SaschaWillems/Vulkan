@@ -552,4 +552,40 @@ namespace vks
 			vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(cmdBuffers.size()));
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device->logicalDevice, &cmdBufAllocateInfo, cmdBuffers.data()));
 	}
+
+	bool UIOverlay::header(const char *caption)
+	{
+		return ImGui::CollapsingHeader(caption, ImGuiTreeNodeFlags_DefaultOpen);
+	}
+
+	bool UIOverlay::checkBox(const char *caption, bool *value)
+	{
+		return ImGui::Checkbox(caption, value);
+	}
+
+	bool UIOverlay::inputFloat(const char *caption, float *value, float step, uint32_t precision)
+	{
+		return ImGui::InputFloat(caption, value, step, step * 10.0f, precision);
+	}
+
+	bool UIOverlay::comboBox(const char *caption, int32_t *itemindex, std::vector<std::string> items)
+	{
+		if (items.empty()) {
+			return false;
+		}
+		std::vector<const char*> charitems;
+		charitems.reserve(items.size());
+		for (size_t i = 0; i < items.size(); i++) {
+			charitems.push_back(items[i].c_str());
+		}
+		return ImGui::Combo(caption, itemindex, &charitems[0], static_cast<uint32_t>(charitems.size()), 4);
+	}
+
+	void UIOverlay::text(const char *formatstr, ...)
+	{
+		va_list args;
+		va_start(args, formatstr);
+		ImGui::TextV(formatstr, args);
+		va_end(args);
+	}
 }
