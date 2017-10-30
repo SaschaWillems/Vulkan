@@ -568,6 +568,12 @@ namespace vks
 		return ImGui::InputFloat(caption, value, step, step * 10.0f, precision);
 	}
 
+	bool UIOverlay::sliderFloat(const char* caption, float* value, float min, float max)
+	{
+		ImGui::SliderFloat(caption, value, min, max);
+		return false;
+	}
+
 	bool UIOverlay::comboBox(const char *caption, int32_t *itemindex, std::vector<std::string> items)
 	{
 		if (items.empty()) {
