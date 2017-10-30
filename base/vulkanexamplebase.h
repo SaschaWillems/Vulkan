@@ -66,6 +66,7 @@ private:
 	uint32_t destHeight;
 	bool resizing = false;
 	vks::Benchmark benchmark;
+	vks::UIOverlay *UIOverlay = nullptr;
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 protected:
@@ -166,8 +167,6 @@ public:
 	float timerSpeed = 0.25f;
 	
 	bool paused = false;
-
-	vks::UIOverlay *UIOverlay = nullptr;
 
 	// Use to adjust mouse rotation speed
 	float rotationSpeed = 1.0f;
@@ -394,7 +393,7 @@ public:
 	void submitFrame();
 
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
-	virtual void OnUpdateUIOverlay();
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);
 };
 
 // OS specific macros for the example main entry points

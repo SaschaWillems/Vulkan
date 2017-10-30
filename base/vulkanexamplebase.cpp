@@ -559,7 +559,9 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::Text(deviceProperties.deviceName);
 	ImGui::Text("%.2f ms/frame (%.1d fps)", (frameTimer * 1000.0f), lastFPS);
 
-	OnUpdateUIOverlay();
+	ImGui::PushItemWidth(110.0f);
+	OnUpdateUIOverlay(UIOverlay);
+	ImGui::PopItemWidth();
 
 	ImGui::End();
 	ImGui::PopStyleVar();
@@ -568,8 +570,6 @@ void VulkanExampleBase::updateOverlay()
 
 	UIOverlay->update();
 }
-
-//void VulkanExampleBase::getOverlayText(VulkanTextOverlay*) {}
 
 void VulkanExampleBase::prepareFrame()
 {
@@ -2153,4 +2153,4 @@ void VulkanExampleBase::setupSwapChain()
 	swapChain.create(&width, &height, settings.vsync);
 }
 
-void VulkanExampleBase::OnUpdateUIOverlay() {}
+void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}
