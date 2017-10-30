@@ -468,7 +468,7 @@ void VulkanExampleBase::renderLoop()
 		fpsTimer += (float)tDiff;
 		if (fpsTimer > 1000.0f)
 		{
-			if (!enableTextOverlay)
+			if (!settings.overlay)
 			{
 				std::string windowTitle = getWindowTitle();
 				wl_shell_surface_set_title(shell_surface, windowTitle.c_str());
@@ -517,7 +517,7 @@ void VulkanExampleBase::renderLoop()
 		fpsTimer += (float)tDiff;
 		if (fpsTimer > 1000.0f)
 		{
-			if (!enableTextOverlay)
+			if (!settings.overlay)
 			{
 				std::string windowTitle = getWindowTitle();
 				xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
@@ -1538,7 +1538,7 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 			paused = !paused;
 		break;
 	case KEY_F1:
-		if (state && enableTextOverlay)
+		if (state && settings.overlay)
 			textOverlay->visible = !textOverlay->visible;
 		break;
 	case KEY_ESC:
@@ -1852,7 +1852,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				if (enableTextOverlay)
+				if (settings.overlay)
 				{
 					textOverlay->visible = !textOverlay->visible;
 				}
