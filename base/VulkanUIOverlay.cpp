@@ -29,15 +29,14 @@ namespace vks
 		this->frameBufferHeight = framebufferheight;
 
 	#if defined(__ANDROID__)		
-		// Scale text on Android devices with high DPI
 		if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_XXHIGH) {
-			scale = 2.0f;
+			scale = 3.0f;
 		}
 		else if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_XHIGH) {
-			scale = 1.5f;
+			scale = 2.25f;
 		}
 		else if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_HIGH) {
-			scale = 1.25f;
+			scale = 1.875f;
 		};
 	#endif
 
@@ -55,7 +54,7 @@ namespace vks
 		// Dimensions
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2((float)(*framebufferwidth), (float)(*framebufferheight));
-		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+		io.FontGlobalScale = scale;
 
 		cmdBuffers.resize(framebuffers.size());
 		prepareResources();
@@ -598,7 +597,8 @@ namespace vks
 		for (size_t i = 0; i < items.size(); i++) {
 			charitems.push_back(items[i].c_str());
 		}
-		return ImGui::Combo(caption, itemindex, &charitems[0], static_cast<uint32_t>(charitems.size()), 4);
+		uint32_t itemCount = static_cast<uint32_t>(charitems.size());
+		return ImGui::Combo(caption, itemindex, &charitems[0], itemCount, itemCount);
 	}
 
 	bool UIOverlay::button(const char *caption)
