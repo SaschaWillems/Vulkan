@@ -1154,6 +1154,10 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	case WM_MOUSEMOVE:
 	{
 		bool handled = false;
+
+		ImGuiIO& io = ImGui::GetIO();
+		handled = io.WantCaptureMouse;
+
 		int32_t posx = LOWORD(lParam);
 		int32_t posy = HIWORD(lParam);
 		mouseMoved((float)posx, (float)posy, handled);
