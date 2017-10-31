@@ -89,9 +89,12 @@ namespace vks
 
 		bool header(const char* caption);
 		bool checkBox(const char* caption, bool* value);
+		bool checkBox(const char* caption, int32_t* value);
 		bool inputFloat(const char* caption, float* value, float step, uint32_t precision);
 		bool sliderFloat(const char* caption, float* value, float min, float max);
+		bool sliderInt(const char* caption, int32_t* value, int32_t min, int32_t max);
 		bool comboBox(const char* caption, int32_t* itemindex, std::vector<std::string> items);
-		void text(const char* formatstr, ...);		
+		bool button(const char* caption);
+		void text(const char* formatstr, ...);
 	};
 }

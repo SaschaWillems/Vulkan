@@ -1,3 +1,4 @@
+#include "VulkanUIOverlay.h"
 /*
 * UI overlay class using ImGui
 *
@@ -563,6 +564,14 @@ namespace vks
 		return ImGui::Checkbox(caption, value);
 	}
 
+	bool UIOverlay::checkBox(const char *caption, int32_t *value)
+	{
+		bool val = (*value == 1);
+		bool res = ImGui::Checkbox(caption, &val);
+		*value = val;
+		return res;
+	}
+
 	bool UIOverlay::inputFloat(const char *caption, float *value, float step, uint32_t precision)
 	{
 		return ImGui::InputFloat(caption, value, step, step * 10.0f, precision);
@@ -572,6 +581,11 @@ namespace vks
 	{
 		ImGui::SliderFloat(caption, value, min, max);
 		return false;
+	}
+
+	bool UIOverlay::sliderInt(const char* caption, int32_t* value, int32_t min, int32_t max)
+	{
+		return ImGui::SliderInt(caption, value, min, max);
 	}
 
 	bool UIOverlay::comboBox(const char *caption, int32_t *itemindex, std::vector<std::string> items)
@@ -585,6 +599,11 @@ namespace vks
 			charitems.push_back(items[i].c_str());
 		}
 		return ImGui::Combo(caption, itemindex, &charitems[0], static_cast<uint32_t>(charitems.size()), 4);
+	}
+
+	bool UIOverlay::button(const char *caption)
+	{
+		return ImGui::Button(caption);
 	}
 
 	void UIOverlay::text(const char *formatstr, ...)
