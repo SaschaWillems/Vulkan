@@ -48,7 +48,7 @@ struct bmchar {
 
 // Quick and dirty : complete ASCII table
 // Only chars present in the .fnt are filled with data!
-std::array<bmchar, 255> fontChars;
+std::array<bmchar, 256> fontChars;
 
 int32_t nextValuePair(std::stringstream *stream)
 {
@@ -283,7 +283,7 @@ public:
 
 		for (uint32_t i = 0; i < text.size(); i++)
 		{
-			bmchar *charInfo = &fontChars[(int)text[i]];
+			bmchar *charInfo = &fontChars[text[i] & 0xff];
 
 			if (charInfo->width == 0)
 				charInfo->width = 36;
