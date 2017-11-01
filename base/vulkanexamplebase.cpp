@@ -337,10 +337,12 @@ void VulkanExampleBase::renderLoop()
 			if (fpsTimer > 1000.0f)
 			{
 				lastFPS = frameCounter;
-				updateTextOverlay();
 				fpsTimer = 0.0f;
 				frameCounter = 0;
 			}
+
+			// TODO: Cap UI overlay update rates/only issue when update requested
+			updateOverlay();
 
 			bool updateView = false;
 
@@ -425,10 +427,10 @@ void VulkanExampleBase::renderLoop()
 		if (fpsTimer > 1000.0f)
 		{
 			lastFPS = frameCounter;
-			updateTextOverlay();
 			fpsTimer = 0.0f;
 			frameCounter = 0;
 		}
+		updateOverlay();
 	}
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	while (!quit)
@@ -474,10 +476,10 @@ void VulkanExampleBase::renderLoop()
 				wl_shell_surface_set_title(shell_surface, windowTitle.c_str());
 			}
 			lastFPS = frameCounter;
-			updateTextOverlay();
 			fpsTimer = 0.0f;
 			frameCounter = 0;
 		}
+		updateOverlay();
 	}
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_flush(connection);
@@ -525,10 +527,10 @@ void VulkanExampleBase::renderLoop()
 					windowTitle.size(), windowTitle.c_str());
 			}
 			lastFPS = frameCounter;
-			updateTextOverlay();
 			fpsTimer = 0.0f;
 			frameCounter = 0;
 		}
+		updateOverlay();
 	}
 #endif
 	// Flush device to make sure all resources can be freed 
