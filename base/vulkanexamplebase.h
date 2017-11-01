@@ -126,8 +126,8 @@ protected:
 		VkSemaphore presentComplete;
 		// Command buffer submission and execution
 		VkSemaphore renderComplete;
-		// Text overlay submission and execution
-		VkSemaphore textOverlayComplete;
+		// UI overlay submission and execution
+		VkSemaphore overlayComplete;
 	} semaphores;
 public: 
 	bool prepared = false;
@@ -389,7 +389,6 @@ public:
 	void prepareFrame();
 
 	// Submit the frames' workload 
-	// - Submits the text overlay (if enabled)
 	void submitFrame();
 
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */

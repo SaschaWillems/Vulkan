@@ -599,11 +599,11 @@ void VulkanExampleBase::submitFrame()
 		// Wait for render complete semaphore
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = &semaphores.renderComplete;
-		// Signal ready with text overlay complete semaphpre
+		// Signal ready with UI overlay complete semaphpre
 		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &semaphores.textOverlayComplete;
+		submitInfo.pSignalSemaphores = &semaphores.overlayComplete;
 
-		// Submit current text overlay command buffer
+		// Submit current UI overlay command buffer
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &UIOverlay->cmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
@@ -619,7 +619,7 @@ void VulkanExampleBase::submitFrame()
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 	}
 
-	VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, submitOverlay ? semaphores.textOverlayComplete : semaphores.renderComplete));
+	VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, submitOverlay ? semaphores.overlayComplete : semaphores.renderComplete));
 
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
@@ -731,7 +731,7 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
 	vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
-	vkDestroySemaphore(device, semaphores.textOverlayComplete, nullptr);
+	vkDestroySemaphore(device, semaphores.overlayComplete, nullptr);
 
 	if (UIOverlay) {
 		delete UIOverlay;
@@ -898,9 +898,9 @@ void VulkanExampleBase::initVulkan()
 	// Ensures that the image is not presented until all commands have been sumbitted and executed
 	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete));
 	// Create a semaphore used to synchronize command submission
-	// Ensures that the image is not presented until all commands for the text overlay have been sumbitted and executed
-	// Will be inserted after the render complete semaphore if the text overlay is enabled
-	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.textOverlayComplete));
+	// Ensures that the image is not presented until all commands for the UI overlay have been sumbitted and executed
+	// Will be inserted after the render complete semaphore if the UI overlay is enabled
+	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.overlayComplete));
 
 	// Set up submit info structure
 	// Semaphores will stay the same during application lifetime
@@ -1545,7 +1545,7 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 		break;
 	case KEY_F1:
 		if (state && settings.overlay)
-			textOverlay->visible = !textOverlay->visible;
+			settings.overlay = !settings.overlay;
 		break;
 	case KEY_ESC:
 		quit = true;
@@ -1858,9 +1858,8 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				if (settings.overlay)
-				{
-					textOverlay->visible = !textOverlay->visible;
+				if (settings.overlay) {
+					settings.overlay = !settings.overlay;
 				}
 				break;				
 		}
