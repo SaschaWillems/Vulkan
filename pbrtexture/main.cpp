@@ -97,9 +97,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Textured PBR with IBL";
+		title = "Textured PBR with IBL";
 
-		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 4.0f;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
@@ -107,6 +106,8 @@ public:
 
 		camera.setRotation({ -10.75f, 153.0f, 0.0f });
 		camera.setPosition({ 1.85f, 0.5f, 5.0f });
+
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -1440,67 +1441,21 @@ public:
 	virtual void viewChanged()
 	{
 		updateUniformBuffers();
-		updateTextOverlay();
 	}
 
-	void toggleSkyBox()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		displaySkybox = !displaySkybox;
-		buildCommandBuffers();
-	}
-
-	void changeExposure(float delta)
-	{
-		uboParams.exposure += delta;
-		if (uboParams.exposure < 0.01f) {
-			uboParams.exposure = 0.01f;
+		if (overlay->header("Settings")) {
+			if (overlay->inputFloat("Exposure", &uboParams.exposure, 0.1f, 2)) {
+				updateParams();
+			}
+			if (overlay->inputFloat("Gamma", &uboParams.gamma, 0.1f, 2)) {
+				updateParams();
+			}
+			if (overlay->checkBox("Skybox", &displaySkybox)) {
+				buildCommandBuffers();
+			}
 		}
-		updateParams();
-		updateTextOverlay();
-	}
-
-	void changeGamma(float delta)
-	{
-		uboParams.gamma += delta;
-		if (uboParams.gamma < 0.01f) {
-			uboParams.gamma = 0.01f;
-		}
-		updateParams();
-		updateTextOverlay();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_F2:
-		case GAMEPAD_BUTTON_A:
-			toggleSkyBox();
-			break;
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeExposure(0.1f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeExposure(-0.1f);
-			break;
-		case KEY_F3:
-			changeGamma(-0.1f);
-			break;
-		case KEY_F4:
-			changeGamma(0.1f);
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-#else
-		textOverlay->addText("Exposure: " + std::to_string(uboParams.exposure) + " (-/+)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Gamma: " + std::to_string(uboParams.gamma) + " (F3/F4)", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

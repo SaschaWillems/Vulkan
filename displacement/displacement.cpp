@@ -83,8 +83,8 @@ public:
 	{
 		zoom = -1.25f;
 		rotation = glm::vec3(-20.0f, 45.0f, 0.0f);
-		enableTextOverlay = true;
-		title = "Vulkan Example - Tessellation shader displacement mapping";
+		title = "Tessellation shader displacement";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -140,16 +140,6 @@ public:
 		else {
 			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
 		}
-	}
-
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
 	}
 
 	void buildCommandBuffers()
@@ -543,77 +533,26 @@ public:
 		updateUniformBuffers();
 	}
 
-	void changeTessellationLevel(float delta)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		uboTessControl.tessLevel += delta;
-		uboTessControl.tessLevel = fmax(1.0f, fmin(uboTessControl.tessLevel, 32.0f));
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-
-	void changeTessellationStrength(float delta)
-	{
-		uboTessEval.tessStrength += delta;
-		uboTessEval.tessStrength = fmax(0.0f, fmin(uboTessEval.tessStrength, 1.0f));
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-
-	void toggleSplitScreen()
-	{
-		splitScreen = !splitScreen;
-		reBuildCommandBuffers();
-		updateUniformBuffers();
-	}
-
-	void toggleDisplacement()
-	{
-		displacement = !displacement;
-		updateUniformBuffers();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeTessellationStrength(0.025f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeTessellationStrength(-0.025f);
-			break;
-		case KEY_D:
-		case GAMEPAD_BUTTON_A:
-			toggleDisplacement();
-			break;
-		case KEY_S:
-		case GAMEPAD_BUTTON_X:
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Tessellation displacement", &displacement)) {
+				updateUniformBuffers();
+			}
+			if (overlay->inputFloat("Strength", &uboTessEval.tessStrength, 0.025f, 3)) {
+				updateUniformBuffers();
+			}
+			if (overlay->inputFloat("Level", &uboTessControl.tessLevel, 0.5f, 2)) {
+				updateUniformBuffers();
+			}
 			if (deviceFeatures.fillModeNonSolid) {
-				toggleSplitScreen();
-			};
-			break;
-		}
-	}
+				if (overlay->checkBox("Splitscreen", &splitScreen)) {
+					buildCommandBuffers();
+					updateUniformBuffers();
+				}
+			}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboTessEval.tessStrength;
-#if defined(__ANDROID__)
-		textOverlay->addText("Tessellation height: " + ss.str() + " (Buttons L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"Button A\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		if (deviceFeatures.fillModeNonSolid) {
-			textOverlay->addText("\"Button X\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
 		}
-#else
-		textOverlay->addText("Tessellation height: " + ss.str() + " (numpad +/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"d\" to toggle displacement", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		if (deviceFeatures.fillModeNonSolid) {
-			textOverlay->addText("\"s\" to toggle splitscreen", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-		}
-#endif
 	}
 };
 

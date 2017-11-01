@@ -52,10 +52,12 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
 
+	bool screenshotSaved = false;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Screenshot";
-		enableTextOverlay = true;
+		title = "Saving framebuffer to screenshot";
+		settings.overlay = true;
 
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
@@ -305,6 +307,8 @@ public:
 	// Note: This requires the swapchain images to be created with the VK_IMAGE_USAGE_TRANSFER_SRC_BIT flag (see VulkanSwapChain::create)
 	void saveScreenshot(const char *filename)
 	{
+		screenshotSaved = false;
+
 		// Get format properties for the swapchain color format
 		VkFormatProperties formatProps;
 
@@ -513,6 +517,8 @@ public:
 		vkUnmapMemory(device, dstImageMemory);
 		vkFreeMemory(device, dstImageMemory, nullptr);
 		vkDestroyImage(device, dstImage, nullptr);
+
+		screenshotSaved = true;
 	}
 
 	void draw()
@@ -551,25 +557,18 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_F2:
-		case GAMEPAD_BUTTON_A:
-			saveScreenshot("screenshot.ppm");
-			break;
+		if (overlay->header("Functions")) {
+			if (overlay->button("Take screenshot")) {
+				saveScreenshot("screenshot.ppm");
+			}
+			if (screenshotSaved) {
+				overlay->text("Screenshot saved as screenshot.ppm");
+			}
 		}
 	}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"Button A\" to save screenshot", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("\"F2\" to save screenshot", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
-	}
 };
 
 VULKAN_EXAMPLE_MAIN()

@@ -51,7 +51,7 @@ public:
 	struct Meshes {
 		vks::Model skybox;
 		std::vector<vks::Model> objects;
-		uint32_t objectIndex = 0;
+		int32_t objectIndex = 0;
 	} models;
 
 	struct {
@@ -78,13 +78,15 @@ public:
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSetLayout descriptorSetLayout;
 
+	std::vector<std::string> objectNames;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -4.0f;
 		rotationSpeed = 0.25f;
 		rotation = { -7.25f, -120.0f, 0.0f };
-		enableTextOverlay = true;
-		title = "Vulkan Example - Cube map";
+		title = "Cube map textures";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -322,16 +324,6 @@ public:
 		loadCubemap(getAssetPath() + "textures/" + filename, format, false);
 	}
 
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
-	}
-
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -389,15 +381,16 @@ public:
 		}
 	}
 
-	void loadMeshes()
+	void loadAssets()
 	{
 		// Skybox
 		models.skybox.loadFromFile(getAssetPath() + "models/cube.obj", vertexLayout, 0.05f, vulkanDevice, queue);
 		// Objects
-		std::vector<std::string> filenames = { "sphere.obj", "teapot.dae", "torusknot.obj" };
+		std::vector<std::string> filenames = { "sphere.obj", "teapot.dae", "torusknot.obj", "venus.fbx" };
+		objectNames = { "Sphere", "Teapot", "Torusknot", "Venus" };
 		for (auto file : filenames) {
 			vks::Model model;
-			model.loadFromFile(getAssetPath() + "models/" + file, vertexLayout, 0.05f, vulkanDevice, queue);
+			model.loadFromFile(getAssetPath() + "models/" + file, vertexLayout, 0.05f * (file == "venus.fbx" ? 3.0f : 1.0f), vulkanDevice, queue);
 			models.objects.push_back(model);
 		}
 	}
@@ -700,7 +693,7 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadTextures();
-		loadMeshes();
+		loadAssets();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
@@ -723,73 +716,19 @@ public:
 		updateUniformBuffers();
 	}
 
-	void toggleSkyBox()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		displaySkybox = !displaySkybox;
-		reBuildCommandBuffers();
-	}
-
-	void toggleObject()
-	{
-		models.objectIndex++;
-		if (models.objectIndex >= static_cast<uint32_t>(models.objects.size()))
-		{
-			models.objectIndex = 0;
+		if (overlay->header("Settings")) {
+			if (overlay->sliderFloat("LOD bias", &uboVS.lodBias, 0.0f, (float)cubeMap.mipLevels)) {
+				updateUniformBuffers();
+			}
+			if (overlay->comboBox("Object type", &models.objectIndex, objectNames)) {
+				buildCommandBuffers();
+			}
+			if (overlay->checkBox("Skybox", &displaySkybox)) {
+				buildCommandBuffers();
+			}
 		}
-		reBuildCommandBuffers();
-	}
-
-	void changeLodBias(float delta)
-	{
-		uboVS.lodBias += delta;
-		if (uboVS.lodBias < 0.0f)
-		{
-			uboVS.lodBias = 0.0f;
-		}
-		if (uboVS.lodBias > cubeMap.mipLevels)
-		{
-			uboVS.lodBias = cubeMap.mipLevels;
-		}
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_S:
-		case GAMEPAD_BUTTON_A:
-			toggleSkyBox();
-			break;
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_X:
-			toggleObject();
-			break;
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeLodBias(0.1f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeLodBias(-0.1f);
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboVS.lodBias;
-#if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to toggle skybox", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button X\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Press \"s\" to toggle skybox", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"space\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

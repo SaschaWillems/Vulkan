@@ -127,8 +127,8 @@ public:
 	{
 		zoom = -75.0f;
 		rotation = { -15.0f, 45.0f, 0.0f };
-		enableTextOverlay = true;
-		title = "Vulkan Example - CPU particle system";
+		title = "CPU based particle system";
+		settings.overlay = true;
 		zoomSpeed *= 1.5f;
 		timerSpeed *= 8.0f;
 		srand(time(NULL));

@@ -122,12 +122,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		enableTextOverlay = true;
 		title = "Vulkan Example - Compute cull and lod";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setTranslation(glm::vec3(0.5f, 0.0f, 0.0f));
 		camera.movementSpeed = 5.0f;
+		settings.overlay = true;
 		memset(&indirectStats, 0, sizeof(indirectStats));
 	}
 
@@ -850,29 +850,18 @@ public:
 		updateUniformBuffer(true);
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_F:
-		case GAMEPAD_BUTTON_A:
-			fixedFrustum = !fixedFrustum;
-			updateUniformBuffer(true);
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Freeze frustum", &fixedFrustum)) {
+				updateUniformBuffer(true);
+			}
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"Button A\" to freeze frustum", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("\"f\" to freeze frustum", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
-		textOverlay->addText("visible: " + std::to_string(indirectStats.drawCount), 5.0f, 110.0f, VulkanTextOverlay::alignLeft);
-		for (uint32_t i = 0; i < MAX_LOD_LEVEL + 1; i++)
-		{
-			textOverlay->addText("lod " + std::to_string(i) + ": " + std::to_string(indirectStats.lodCount[i]), 5.0f, 125.0f + (float)i * 20.0f, VulkanTextOverlay::alignLeft);
+		if (overlay->header("Statistics")) {
+			overlay->text("Visible objects: %d", indirectStats.drawCount);
+			for (uint32_t i = 0; i < MAX_LOD_LEVEL + 1; i++) {
+				overlay->text("LOD %d: %d", i, indirectStats.lodCount[i]);
+			}
 		}
 	}
 };

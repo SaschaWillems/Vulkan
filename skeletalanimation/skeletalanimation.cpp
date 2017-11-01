@@ -409,9 +409,9 @@ public:
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
 		rotation = { -182.5f, -38.5f, 180.0f };
-		enableTextOverlay = true;
-		title = "Vulkan Example - Skeletal animation";
+		title = "Skeletal animation (GPU skinning)";
 		cameraPos = { 0.0f, 0.0f, 12.0f };
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -1001,14 +1001,12 @@ public:
 		if (!paused)
 		{
 			runningTime += frameTimer * skinnedMesh->animationSpeed;
-			vkDeviceWaitIdle(device);
 			updateUniformBuffers(false);
 		}
 	}
 
 	virtual void viewChanged()
 	{
-		vkDeviceWaitIdle(device);
 		updateUniformBuffers(true);
 	}
 
@@ -1017,32 +1015,10 @@ public:
 		skinnedMesh->animationSpeed += delta;
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeAnimationSpeed(0.1f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeAnimationSpeed(-0.1f);
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		if (skinnedMesh != nullptr)
-		{
-			std::stringstream ss;
-			ss << std::setprecision(2) << std::fixed << skinnedMesh->animationSpeed;
-#if defined(__ANDROID__)
-			textOverlay->addText("Animation speed: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-			textOverlay->addText("Animation speed: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
+		if (overlay->header("Settings")) {
+			overlay->sliderFloat("Animation speed", &skinnedMesh->animationSpeed, 0.0f, 10.0f);
 		}
 	}
 };

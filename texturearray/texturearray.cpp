@@ -81,8 +81,8 @@ public:
 		zoom = -15.0f;
 		rotationSpeed = 0.25f;
 		rotation = { -15.0f, 35.0f, 0.0f };
-		enableTextOverlay = true;
-		title = "Vulkan Example - Texture arrays";
+		title = "Texture arrays";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()

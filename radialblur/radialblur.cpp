@@ -120,8 +120,8 @@ public:
 		zoom = -10.0f;
 		rotation = { -16.25f, -28.75f, 0.0f };
 		timerSpeed *= 0.5f;
-		enableTextOverlay = true;
-		title = "Vulkan Example - Radial blur";
+		title = "Full screen radial blur effect";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -384,16 +384,6 @@ public:
 		vkCmdEndRenderPass(offscreenPass.commandBuffer);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(offscreenPass.commandBuffer));
-	}
-
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
 	}
 
 	void buildCommandBuffers()
@@ -835,43 +825,16 @@ public:
 		updateUniformBuffersScene();
 	}
 
-	void toggleBlur()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		blur = !blur;
-		updateUniformBuffersScene();
-		reBuildCommandBuffers();
-	}
-
-	void toggleTextureDisplay()
-	{
-		displayTexture = !displayTexture;
-		reBuildCommandBuffers();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_B:
-		case GAMEPAD_BUTTON_A:
-			toggleBlur();
-			break;
-		case KEY_T:
-		case GAMEPAD_BUTTON_X:
-			toggleTextureDisplay();
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Radial blur", &blur)) {
+				buildCommandBuffers();
+			}
+			if (overlay->checkBox("Dsiplay render target", &displayTexture)) {
+				buildCommandBuffers();
+			}
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to toggle blur", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button X\" to display offscreen texture", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Press \"B\" to toggle blur", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"T\" to display offscreen texture", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

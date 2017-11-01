@@ -241,8 +241,8 @@ public:
 		rotationSpeed = 0.5f;
 		rotation = { -4.35f, 16.25f, 0.0f };
 		cameraPos = { 0.1f, 1.1f, 0.0f };
-		enableTextOverlay = true;
-		title = "Vulkan Example - VK_EXT_debug_marker";
+		title = "Debugging with VK_EXT_debug_marker";
+		settings.overlay = true;
 	}
 
 	// Enable physical device features required for this example				
@@ -546,8 +546,8 @@ public:
 
 	void reBuildCommandBuffers()
 	{
-		if (!checkCommandBuffers())
-		{
+		vkDeviceWaitIdle(device);
+		if (!checkCommandBuffers()) {
 			destroyCommandBuffers();
 			createCommandBuffers();
 		}
@@ -852,8 +852,8 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.postprocess));
 
 		// Name shader moduels for debugging
-		// Shader module count starts at 2 when text overlay in base class is enabled
-		uint32_t moduleIndex = enableTextOverlay ? 2 : 0;
+		// Shader module count starts at 2 when UI overlay in base class is enabled
+		uint32_t moduleIndex = settings.overlay ? 2 : 0;
 		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 0], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Toon shading vertex shader");
 		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 1], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Toon shading fragment shader");
 		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 2], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Color-only vertex shader");
@@ -908,8 +908,7 @@ public:
 		VulkanExampleBase::prepareFrame();
 
 		// Offscreen rendering
-		if (glow)
-		{
+		if (glow) {
 			// Wait for swap chain presentation to finish
 			submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 			// Signal ready with offscreen semaphore
@@ -919,11 +918,15 @@ public:
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &offscreenPass.commandBuffer;
 			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+			// Wait for offscreen semaphore
+			submitInfo.pWaitSemaphores = &offscreenPass.semaphore;
+		}
+		else {
+			submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 		}
 
 		// Scene rendering
-		// Wait for offscreen semaphore
-		submitInfo.pWaitSemaphores = &offscreenPass.semaphore;
 		// Signal ready with render complete semaphpre
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
@@ -947,7 +950,6 @@ public:
 		setupDescriptorSet();
 		buildCommandBuffers();
 		buildOffscreenCommandBuffer();
-		updateTextOverlay();
 		prepared = true;
 	}
 
@@ -963,35 +965,20 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case 0x57:
-		case GAMEPAD_BUTTON_X:
-			if (deviceFeatures.fillModeNonSolid) 
-			{
-				wireframe = !wireframe;
+		if (overlay->header("Info")) {
+			overlay->text("VK_EXT_debug_marker %s", (DebugMarker::active ? "active" : "not present"));
+		}
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Glow", &glow)) {
 				reBuildCommandBuffers();
 			}
-			break;
-		case 0x47:
-		case GAMEPAD_BUTTON_A:
-			glow = !glow;
-			reBuildCommandBuffers();
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		if (DebugMarker::active)
-		{
-			textOverlay->addText("VK_EXT_debug_marker active", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		}
-		else
-		{
-			textOverlay->addText("VK_EXT_debug_marker not present", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+			if (deviceFeatures.fillModeNonSolid) {
+				if (overlay->checkBox("Wireframe", &wireframe)) {
+					reBuildCommandBuffers();
+				}
+			}
 		}
 	}
 };

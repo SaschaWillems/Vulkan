@@ -77,8 +77,8 @@ public:
 		rotationSpeed = 0.75f;
 		zoomSpeed = 0.25f;
 		rotation = glm::vec3(-25.0f, 23.75f, 0.0f);
-		enableTextOverlay = true;
-		title = "Vulkan Example - Spherical Environment Mapping";
+		title = "Spherical Environment Mapping";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -424,36 +424,13 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_A:
-		case TOUCH_DOUBLE_TAP:
-			changeMatCapIndex(1);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_X:
-			changeMatCapIndex(-1);
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->sliderInt("Material cap", &uboVS.texIndex, 0, textures.matCapArray.layerCount)) {
+				updateUniformBuffers();
+			}
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"Button A\" to toggle material cap", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("\"Space\" to toggle material cap", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
-	}
-
-	void changeMatCapIndex(int32_t delta)
-	{
-		uboVS.texIndex = (uboVS.texIndex + delta + textures.matCapArray.layerCount) % textures.matCapArray.layerCount;
-		updateUniformBuffers();
 	}
 
 };

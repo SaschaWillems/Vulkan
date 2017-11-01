@@ -81,15 +81,23 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
 
+	const std::vector<std::string> mappingModes = {
+		"Color only", 
+		"Normal mapping", 
+		"Parallax mapping", 
+		"Steep parallax mapping", 
+		"Parallax occlusion mapping",
+	};
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Parallax Mapping";
-		enableTextOverlay = true;
+		title = "Parallax Mapping";
 		timerSpeed *= 0.5f;
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPosition(glm::vec3(0.0f, 1.25f, 1.5f));
 		camera.setRotation(glm::vec3(-45.0f, 180.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -386,39 +394,15 @@ public:
 		updateUniformBuffers();
 	}
 
-	void toggleMappingMode()
-	{	
-		ubos.fragmentShader.mappingMode++;
-		if (ubos.fragmentShader.mappingMode > 4) {
-			ubos.fragmentShader.mappingMode = 0;
-		};
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_A:
-		case TOUCH_DOUBLE_TAP:
-			toggleMappingMode();
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->comboBox("Mode", &ubos.fragmentShader.mappingMode, mappingModes)) {
+				updateUniformBuffers();
+			}
 		}
 	}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		const std::vector<std::string> mappingModes = {
-			"Color only", "Normal mapping", "Parallax mapping", "Steep parallax mapping", "Parallax occlusion mapping",
-		};
-#if defined(__ANDROID__)
-		textOverlay->addText("Mode: " + mappingModes[ubos.fragmentShader.mappingMode] + " (\"Button A\")", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else		
-		textOverlay->addText("Mode: " + mappingModes[ubos.fragmentShader.mappingMode] + " (\"Space\")", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
-	}
 };
 
 VULKAN_EXAMPLE_MAIN()

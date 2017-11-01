@@ -74,12 +74,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Specialization constants";
-		enableTextOverlay = true;
+		title = "Specialization constants";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, ((float)width / 3.0f) / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-40.0f, -90.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -2.0f));
+		settings.overlay = true;
 	}
 
 	~VulkanExample()

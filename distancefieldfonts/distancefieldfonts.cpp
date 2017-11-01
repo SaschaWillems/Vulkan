@@ -112,8 +112,8 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -2.0f;
-		enableTextOverlay = true;
-		title = "Vulkan Example - Distance field fonts";
+		title = "Distance field font rendering";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -670,9 +670,7 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
 		draw();
-		vkDeviceWaitIdle(device);
 	}
 
 	virtual void viewChanged()
@@ -680,44 +678,19 @@ public:
 		updateUniformBuffers();
 	}
 
-	void toggleSplitScreen()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		splitScreen = !splitScreen;
-		reBuildCommandBuffers();
-		updateUniformBuffers();
-	}
-
-	void toggleFontOutline()
-	{
-		uboFS.outline = !uboFS.outline;
-		updateFontSettings();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_S:
-		case GAMEPAD_BUTTON_X:
-			toggleSplitScreen();
-			break;
-		case KEY_O:
-		case GAMEPAD_BUTTON_A:
-			toggleFontOutline();
-			break;
-
+		if (overlay->header("Settings")) {
+			bool outline = (uboFS.outline == 1.0f);
+			if (overlay->checkBox("Outline", &outline)) {
+				uboFS.outline = outline ? 1.0f : 0.0f;
+				updateFontSettings();
+			}
+			if (overlay->checkBox("Splitscreen", &splitScreen)) {
+				buildCommandBuffers();
+				updateUniformBuffers();
+			}
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"Button A\" to toggle outline", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"Button X\" to toggle splitscreen", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("\"o\" to toggle outline", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"s\" to toggle splitscreen", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

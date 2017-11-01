@@ -123,13 +123,13 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		enableTextOverlay = true;
-		title = "Vulkan Example - Indirect rendering";
+		title = "Indirect rendering";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-12.0f, 159.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.4f, 1.25f, 0.0f));
 		camera.movementSpeed = 5.0f;
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -694,12 +694,15 @@ public:
 		updateUniformBuffer(true);
 	}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		textOverlay->addText(std::to_string(objectCount) + " objects", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		if (!vulkanDevice->features.multiDrawIndirect)
-		{
-			textOverlay->addText("multiDrawIndirect not supported", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
+		if (!vulkanDevice->features.multiDrawIndirect) {
+			if (overlay->header("Info")) {
+				overlay->text("multiDrawIndirect not supported");
+			}
+		}
+		if (overlay->header("Statistics")) {
+			overlay->text("Objects: %d", objectCount);
 		}
 	}
 };

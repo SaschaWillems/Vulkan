@@ -102,8 +102,8 @@ public:
 		rotationSpeed = 0.5f;
 		rotation = { -0.5f, -112.75f, 0.0f };
 		cameraPos = { 0.1f, 1.1f, 0.0f };
-		enableTextOverlay = true;
-		title = "Vulkan Example - Model rendering";
+		title = "Model rendering";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -130,16 +130,6 @@ public:
 		if (deviceFeatures.fillModeNonSolid) {
 			enabledFeatures.fillModeNonSolid = VK_TRUE;
 		};
-	}
-
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
 	}
 
 	void buildCommandBuffers()
@@ -663,28 +653,12 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_W:
-		case GAMEPAD_BUTTON_A:
-			if (deviceFeatures.fillModeNonSolid) {
-				wireframe = !wireframe;
-				reBuildCommandBuffers();
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Wireframe", &wireframe)) {
+				buildCommandBuffers();
 			}
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		if (deviceFeatures.fillModeNonSolid) {
-#if defined(__ANDROID__)
-			textOverlay->addText("Press \"Button A\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-			textOverlay->addText("Press \"w\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
 		}
 	}
 };

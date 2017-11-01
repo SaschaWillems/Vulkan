@@ -33,6 +33,7 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool splitScreen = true;
+	bool wireframe = true;
 
 	struct {
 		vks::Texture2D colorMap;
@@ -87,8 +88,8 @@ public:
 		zoom = -6.5f;
 		rotation = glm::vec3(-350.0f, 60.0f, 0.0f);
 		cameraPos = glm::vec3(-3.0f, 2.3f, 0.0f);
-		title = "Vulkan Example - Tessellation shader (PN Triangles)";
-		enableTextOverlay = true;
+		title = "Tessellation shader (PN Triangles)";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -128,20 +129,8 @@ public:
 			enabledFeatures.fillModeNonSolid = VK_TRUE;
 		}
 		else {
-			// Wireframe not supported, switch to solid pipelines
-			pipelineLeft = &pipelines.solidPassThrough;
-			pipelineRight = &pipelines.solid;
+			wireframe = false;
 		}
-	}
-
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
 	}
 
 	void buildCommandBuffers()
@@ -184,16 +173,15 @@ public:
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.object.vertices.buffer, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.object.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			if (splitScreen)
-			{
+			if (splitScreen) {
 				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineLeft);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wirePassThrough : pipelines.solidPassThrough);
 				vkCmdDrawIndexed(drawCmdBuffers[i], models.object.indexCount, 1, 0, 0, 0);
 				viewport.x = float(width) / 2;
 			}
 
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineRight);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wire : pipelines.solid);
 			vkCmdDrawIndexed(drawCmdBuffers[i], models.object.indexCount, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -547,60 +535,6 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeTessellationLevel(0.25);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeTessellationLevel(-0.25);
-			break;
-		case KEY_W:
-		case GAMEPAD_BUTTON_A:
-			if (deviceFeatures.fillModeNonSolid) {
-				togglePipelines();
-			}
-			break;
-		case KEY_S:
-		case GAMEPAD_BUTTON_X:
-			toggleSplitScreen();
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboTessControl.tessLevel;
-#if defined(__ANDROID__)
-		textOverlay->addText("Tessellation level: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		if (deviceFeatures.fillModeNonSolid) {
-			textOverlay->addText("Press \"Button X\" to toggle splitscreen", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-			textOverlay->addText("Press \"Button A\" to toggle wireframe", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-
-		}
-#else
-		textOverlay->addText("Tessellation level: " + ss.str() + " (NUMPAD +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		if (deviceFeatures.fillModeNonSolid) {
-			textOverlay->addText("Press \"s\" to toggle splitscreen", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-			textOverlay->addText("Press \"w\" to toggle wireframe", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-		}
-#endif
-	}
-
-	void changeTessellationLevel(float delta)
-	{
-		uboTessControl.tessLevel += delta;
-		// Clamp
-		uboTessControl.tessLevel = fmax(1.0f, fmin(uboTessControl.tessLevel, 32.0f));
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-
 	void togglePipelines()
 	{
 		if (pipelineRight == &pipelines.solid)
@@ -613,16 +547,28 @@ public:
 			pipelineRight = &pipelines.solid;
 			pipelineLeft = &pipelines.solidPassThrough;
 		}
-		reBuildCommandBuffers();
+		buildCommandBuffers();
 	}
 
-	void toggleSplitScreen()
+
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		splitScreen = !splitScreen;
-		updateUniformBuffers();
-		reBuildCommandBuffers();
+		if (overlay->header("Settings")) {
+			if (overlay->inputFloat("Tessellation level", &uboTessControl.tessLevel, 0.25f, 2)) {
+				updateUniformBuffers();
+			}
+			if (deviceFeatures.fillModeNonSolid) {
+				if (overlay->checkBox("Wireframe", &wireframe)) {
+					updateUniformBuffers();
+					buildCommandBuffers();
+				}
+				if (overlay->checkBox("Splitscreen", &splitScreen)) {
+					updateUniformBuffers();
+					buildCommandBuffers();
+				}
+			}
+		}
 	}
-
 };
 
 VULKAN_EXAMPLE_MAIN()

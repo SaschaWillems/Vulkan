@@ -62,7 +62,7 @@ public:
 	struct Meshes {
 		vks::Model skybox;
 		std::vector<vks::Model> objects;
-		uint32_t objectIndex = 0;
+		int32_t objectIndex = 0;
 	} models;
 
 	struct {
@@ -91,10 +91,12 @@ public:
 	std::vector<Material> materials;
 	int32_t materialIndex = 0;
 
+	std::vector<std::string> materialNames;
+	std::vector<std::string> objectNames;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Physical based shading basics";
-		enableTextOverlay = true;
+		title = "Physical based shading basics";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPosition(glm::vec3(10.0f, 13.0f, 1.8f));
 		camera.setRotation(glm::vec3(-62.5f, 90.0f, 0.0f));
@@ -103,6 +105,7 @@ public:
 		camera.rotationSpeed = 0.25f;
 		paused = true;
 		timerSpeed *= 0.25f;
+		settings.overlay = true;
 
 		// Setup some default materials (source: https://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
 		materials.push_back(Material("Gold", glm::vec3(1.0f, 0.765557f, 0.336057f), 0.1f, 1.0f));
@@ -117,6 +120,11 @@ public:
 		materials.push_back(Material("Red", glm::vec3(1.0f, 0.0f, 0.0f), 0.1f, 1.0f));
 		materials.push_back(Material("Blue", glm::vec3(0.0f, 0.0f, 1.0f), 0.1f, 1.0f));
 		materials.push_back(Material("Black", glm::vec3(0.0f), 0.1f, 1.0f));
+
+		for (auto material : materials) {
+			materialNames.push_back(material.name);
+		}
+		objectNames = { "Sphere", "Teapot", "Torusknot", "Venus" };
 
 		materialIndex = 0;
 	}
@@ -454,61 +462,19 @@ public:
 	virtual void viewChanged()
 	{
 		updateUniformBuffers();
-		updateTextOverlay();
 	}
 
-	void toggleObject()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		models.objectIndex++;
-		if (models.objectIndex >= static_cast<uint32_t>(models.objects.size()))
-		{
-			models.objectIndex = 0;
+		if (overlay->header("Settings")) {
+			if (overlay->comboBox("Material", &materialIndex, materialNames)) {
+				buildCommandBuffers();
+			}
+			if (overlay->comboBox("Object type", &models.objectIndex, objectNames)) {
+				updateUniformBuffers();
+				buildCommandBuffers();
+			}
 		}
-		updateUniformBuffers();
-		buildCommandBuffers();
-	}
-
-	void toggleMaterial(int32_t dir)
-	{
-		materialIndex += dir;
-		if (materialIndex < 0) {
-			materialIndex = static_cast<int32_t>(materials.size()) - 1;
-		}
-		if (materialIndex > static_cast<int32_t>(materials.size()) - 1) {
-			materialIndex = 0;
-		}
-		buildCommandBuffers();
-		updateTextOverlay();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_X:
-			toggleObject();
-			break;
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			toggleMaterial(1);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			toggleMaterial(-1);
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("Base material: " + materials[materialIndex].name + " (L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"X\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Base material: " + materials[materialIndex].name + " (-/+)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"space\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

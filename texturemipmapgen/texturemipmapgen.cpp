@@ -43,7 +43,7 @@ public:
 	} texture;
 
 	// To demonstrate mip mapping and filtering this example uses separate samplers
-	std::vector<std::string> samplerNames{ "No mip maps" , "With mip maps (bilinear)" , "With mip maps (anisotropic)" };
+	std::vector<std::string> samplerNames{ "No mip maps" , "Mip maps (bilinear)" , "Mip maps (anisotropic)" };
 	std::vector<VkSampler> samplers;
 
 	// Vertex layout for the models
@@ -71,7 +71,7 @@ public:
 		glm::mat4 model;
 		glm::vec4 viewPos;
 		float lodBias = 0.0f;
-		uint32_t samplerIndex = 2;
+		int32_t samplerIndex = 2;
 	} uboVS;
 
 	struct {
@@ -84,14 +84,14 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Runtime mip map generation";
-		enableTextOverlay = true;
+		title = "Runtime mip map generation";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 1024.0f);
 		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
 		camera.setTranslation(glm::vec3(40.75f, 0.0f, 0.0f));
 		camera.movementSpeed = 2.5f;
 		camera.rotationSpeed = 0.5f;
+		settings.overlay = true;
 		timerSpeed *= 0.05f;
 		paused = true;
 	}
@@ -711,58 +711,16 @@ public:
 		updateUniformBuffers();
 	}
 
-	void changeLodBias(float delta)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		uboVS.lodBias += delta;
-		if (uboVS.lodBias < 0.0f)
-		{
-			uboVS.lodBias = 0.0f;
+		if (overlay->header("Settings")) {
+			if (overlay->sliderFloat("LOD bias", &uboVS.lodBias, 0.0f, (float)texture.mipLevels)) {
+				updateUniformBuffers();
+			}
+			if (overlay->comboBox("Sampler type", &uboVS.samplerIndex, samplerNames)) {
+				updateUniformBuffers();
+			}
 		}
-		if (uboVS.lodBias > texture.mipLevels)
-		{
-			uboVS.lodBias = (float)texture.mipLevels;
-		}
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-
-	void toggleSampler()
-	{
-		uboVS.samplerIndex = (uboVS.samplerIndex < static_cast<uint32_t>(samplers.size()) - 1) ? uboVS.samplerIndex + 1 : 0;
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-	
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeLodBias(0.1f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeLodBias(-0.1f);
-			break;
-		case KEY_F:
-		case GAMEPAD_BUTTON_A:
-			toggleSampler();
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboVS.lodBias;
-#if defined(__ANDROID__)
-		textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Sampler: " + samplerNames[uboVS.samplerIndex] + " (\"Button A\" to toggle)", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Sampler: " + samplerNames[uboVS.samplerIndex] + " (\"f\" to toggle)", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

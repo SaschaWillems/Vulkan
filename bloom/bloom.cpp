@@ -129,9 +129,9 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Bloom";
+		title = "Bloom (offscreen rendering)";
 		timerSpeed *= 0.5f;
-		enableTextOverlay = true;
+		settings.overlay = true;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -10.25f));
 		camera.setRotation(glm::vec3(7.5f, -343.0f, 0.0f));
@@ -914,46 +914,16 @@ public:
 		updateUniformBuffersScene();
 	}
 
-	void changeBlurScale(float delta)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		ubos.blurParams.blurScale += delta;
-		updateUniformBuffersBlur();
-	}
-
-	void toggleBloom()
-	{
-		bloom = !bloom;
-		reBuildCommandBuffers();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeBlurScale(0.25f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeBlurScale(-0.25f);
-			break;
-		case KEY_B:
-		case GAMEPAD_BUTTON_A:
-			toggleBloom();
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Bloom", &bloom)) {
+				buildCommandBuffers();
+			}
+			if (overlay->inputFloat("Scale", &ubos.blurParams.blurScale, 0.1f, 2)) {
+				updateUniformBuffersBlur();
+			}
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("Press \"L1/R1\" to change blur scale", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button A\" to toggle bloom", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Press \"NUMPAD +/-\" to change blur scale", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"B\" to toggle bloom", 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

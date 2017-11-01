@@ -63,8 +63,8 @@ public:
 	{
 		zoom = -10.5f;
 		rotation = glm::vec3(-25.0f, 15.0f, 0.0f);
-		enableTextOverlay = true;
-		title = "Vulkan Example - Pipeline state objects";
+		title = "Pipeline state objects";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -425,13 +425,12 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		textOverlay->addText("Phong shading pipeline",(float)width / 6.0f, height - 35.0f, VulkanTextOverlay::alignCenter);
-		textOverlay->addText("Toon shading pipeline", (float)width / 2.0f, height - 35.0f, VulkanTextOverlay::alignCenter);
-		textOverlay->addText("Wireframe pipeline", width - (float)width / 6.5f, height - 35.0f, VulkanTextOverlay::alignCenter);
 		if (!deviceFeatures.fillModeNonSolid) {
-			textOverlay->addText("Non solid fill modes not supported!", width - (float)width / 6.5f, (float)height / 2.0f - 7.5f, VulkanTextOverlay::alignCenter);
+			if (overlay->header("Info")) {
+				overlay->text("Non solid fill modes not supported!");
+			}
 		}
 	}
 };

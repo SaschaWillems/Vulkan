@@ -110,13 +110,13 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		enableTextOverlay = true;
-		title = "Vulkan Example - Dynamic terrain tessellation";
+		title = "Dynamic terrain tessellation";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-12.0f, 159.0f, 0.0f));
 		camera.setTranslation(glm::vec3(18.0f, 22.5f, 57.5f));
 		camera.movementSpeed = 7.5f;
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -939,70 +939,26 @@ public:
 		updateUniformBuffers();
 	}
 
-	void changeTessellationFactor(float delta)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		uboTess.tessellationFactor += delta;
-		uboTess.tessellationFactor = fmax(0.25f, fmin(uboTess.tessellationFactor, 4.0f));
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
+		if (overlay->header("Settings")) {
 
-	void toggleWireframe()
-	{
-		wireframe = !wireframe;
-		reBuildCommandBuffers();
-		updateUniformBuffers();
-	}
-
-	void toggleTessellation()
-	{
-		tessellation = !tessellation;
-		updateUniformBuffers();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeTessellationFactor(0.05f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeTessellationFactor(-0.05f);
-			break;
-		case KEY_F:
-		case GAMEPAD_BUTTON_A:
-			if (deviceFeatures.fillModeNonSolid) {
-				toggleWireframe();
+			if (overlay->checkBox("Tessellation", &tessellation)) {
+				updateUniformBuffers();
 			}
-			break;
-		case KEY_T:
-		case GAMEPAD_BUTTON_X:
-			toggleTessellation();
-			break;
+			if (overlay->inputFloat("Factor", &uboTess.tessellationFactor, 0.05f, 2)) {
+				updateUniformBuffers();
+			}
+			if (deviceFeatures.fillModeNonSolid) {
+				if (overlay->checkBox("Wireframe", &wireframe)) {
+					buildCommandBuffers();
+				}
+			}
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboTess.tessellationFactor;
-
-#if defined(__ANDROID__)
-		textOverlay->addText("Tessellation factor: " + ss.str() + " (Buttons L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button A\" to toggle wireframe", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button X\" to toggle tessellation", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Tessellation factor: " + ss.str() + " (numpad +/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"f\" to toggle wireframe", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"t\" to toggle tessellation", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-#endif
-
-		textOverlay->addText("pipeline stats:", width - 5.0f, 5.0f, VulkanTextOverlay::alignRight);
-		textOverlay->addText("VS:" + std::to_string(pipelineStats[0]), width - 5.0f, 20.0f, VulkanTextOverlay::alignRight);
-		textOverlay->addText("TE:" + std::to_string(pipelineStats[1]), width - 5.0f, 35.0f, VulkanTextOverlay::alignRight);
+		if (overlay->header("Pipeline statistics")) {
+			overlay->text("VS invocations: %d", pipelineStats[0]);
+			overlay->text("TE invocations: %d", pipelineStats[1]);
+		}
 	}
 };
 

@@ -94,8 +94,8 @@ public:
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
 		rotation = { 0.0, -123.75, 0.0 };
-		enableTextOverlay = true;
-		title = "Vulkan Example - Occlusion queries";
+		title = "Occlusion queries";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -624,17 +624,17 @@ public:
 
 	virtual void viewChanged()
 	{
-		vkDeviceWaitIdle(device);
 		updateUniformBuffers();
-		VulkanExampleBase::updateTextOverlay();
 	}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		textOverlay->addText("Occlusion queries:", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Teapot: " + std::to_string(passedSamples[0]) + " samples passed" , 5.0f, 105.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Sphere: " + std::to_string(passedSamples[1]) + " samples passed", 5.0f, 125.0f, VulkanTextOverlay::alignLeft);
+		if (overlay->header("Occlusion query results")) {
+			overlay->text("Teapot: %d samples passed", passedSamples[0]);
+			overlay->text("Sphere: %d samples passed", passedSamples[1]);
+		}
 	}
+
 };
 
 VULKAN_EXAMPLE_MAIN()

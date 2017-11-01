@@ -229,10 +229,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -1.3f; 
-		rotation = { 76.25f, 0.0f, 0.0f }; 
-		title = "Vulkan Example - Sparse texture residency";
-		enableTextOverlay = true;
+		title = "Sparse texture residency";
 		std::cout.imbue(std::locale(""));
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 50.0f;
@@ -242,6 +239,7 @@ public:
 		camera.position = { 84.5f, 40.5f, 225.0f };
 		camera.setRotation(glm::vec3(-8.5f, -200.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 1024.0f);
+		settings.overlay = true;
 		// Device features to be enabled for this example 
 		enabledFeatures.shaderResourceResidency = VK_TRUE;
 		enabledFeatures.shaderResourceMinLod = VK_TRUE;
@@ -267,16 +265,16 @@ public:
 		uniformBufferVS.destroy();
 	}
 
-    virtual void getEnabledFeatures()
-    {
-        if (deviceFeatures.sparseBinding && deviceFeatures.sparseResidencyImage2D) {
-            enabledFeatures.sparseBinding = VK_TRUE;
-            enabledFeatures.sparseResidencyImage2D = VK_TRUE;
-        }
-        else {
-            std::cout << "Sparse binding not supported" << std::endl;
-        }
-    }
+	virtual void getEnabledFeatures()
+	{
+		if (deviceFeatures.sparseBinding && deviceFeatures.sparseResidencyImage2D) {
+			enabledFeatures.sparseBinding = VK_TRUE;
+			enabledFeatures.sparseResidencyImage2D = VK_TRUE;
+		}
+		else {
+			std::cout << "Sparse binding not supported" << std::endl;
+		}
+	}
 
 	glm::uvec3 alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity)
 	{
@@ -944,21 +942,6 @@ public:
 		updateUniformBuffers();
 	}
 
-	void changeLodBias(float delta)
-	{
-		uboVS.lodBias += delta;
-		if (uboVS.lodBias < 0.0f)
-		{
-			uboVS.lodBias = 0.0f;
-		}
-		if (uboVS.lodBias > texture.mipLevels)
-		{
-			uboVS.lodBias = (float)texture.mipLevels;
-		}
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-
 	// Clear all pages of the virtual texture
 	// todo: just for testing
 	void flushVirtualTexture()
@@ -1059,43 +1042,28 @@ public:
 		mipLevel--;
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeLodBias(0.1f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeLodBias(-0.1f);
-			break;
-		case KEY_F:
-			flushVirtualTexture();
-			break;
-		case KEY_N:
-			if (lastFilledMip >= 0)
-			{
-				fillVirtualTexture(lastFilledMip);
+		if (overlay->header("Settings")) {
+			if (overlay->sliderFloat("LOD bias", &uboVS.lodBias, 0.0f, (float)texture.mipLevels)) {
+				updateUniformBuffers();
 			}
-			break;
+			overlay->text("Last filled mip level: %d", lastFilledMip);
+			if (overlay->button("Fill next mip level")) {
+				if (lastFilledMip >= 0) {
+					fillVirtualTexture(lastFilledMip);
+				}
+			}
+			if (overlay->button("Flush virtual texture")) {
+				flushVirtualTexture();
+			}
 		}
-	}
+		if (overlay->header("Statistics")) {
+			uint32_t respages = 0;
+			std::for_each(texture.pages.begin(), texture.pages.end(), [&respages](VirtualTexturePage page) { respages += (page.imageMemoryBind.memory != VK_NULL_HANDLE) ? 1 : 0; });
+			overlay->text("Resident pages: %d of %d", respages, static_cast<uint32_t>(texture.pages.size()));
+		}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		uint32_t respages = 0;
-		std::for_each(texture.pages.begin(), texture.pages.end(), [&respages](VirtualTexturePage page) { respages += (page.imageMemoryBind.memory != VK_NULL_HANDLE) ? 1 :0; });
-		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboVS.lodBias;
-#if defined(__ANDROID__)
-//		textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		//textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Resident pages: " + std::to_string(respages) + " / " + std::to_string(texture.pages.size()), 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"n\" to fill next mip level (" + std::to_string(lastFilledMip) + ")", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

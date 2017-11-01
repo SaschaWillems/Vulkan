@@ -88,8 +88,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		enableTextOverlay = true;
-		title = "Vulkan Example - Compute shader particle system";
+		title = "Compute shader particle system";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -658,19 +658,10 @@ public:
 		updateUniformBuffers();
 	}
 
-	void toggleAnimation()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		animate = !animate;
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_A:
-		case GAMEPAD_BUTTON_A:
-			toggleAnimation();
-			break;
+		if (overlay->header("Settings")) {
+			overlay->checkBox("Moving attractor", &animate);
 		}
 	}
 };

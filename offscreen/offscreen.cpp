@@ -123,8 +123,8 @@ public:
 		rotation = { -2.5f, 0.0f, 0.0f };
 		cameraPos = { 0.0f, 1.0f, 0.0f };
 		timerSpeed *= 0.25f;
-		enableTextOverlay = true;
-		title = "Vulkan Example - Offscreen rendering";
+		title = "Offscreen rendering";
+		settings.overlay = true;
 		enabledFeatures.shaderClipDistance = VK_TRUE;
 	}
 
@@ -397,16 +397,6 @@ public:
 		vkCmdEndRenderPass(offscreenPass.commandBuffer);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(offscreenPass.commandBuffer));
-	}
-
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
 	}
 
 	void buildCommandBuffers()
@@ -992,30 +982,13 @@ public:
 		updateUniformBufferOffscreen();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_D:
-		case GAMEPAD_BUTTON_A:
-			toggleDebugDisplay();
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Display render target", &debugDisplay)) {
+				buildCommandBuffers();
+			}
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to display offscreen target", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Press \"d\" to display offscreen target", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
-	}
-
-	void toggleDebugDisplay()
-	{
-		debugDisplay = !debugDisplay;
-		reBuildCommandBuffers();
 	}
 };
 

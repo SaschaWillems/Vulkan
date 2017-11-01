@@ -57,12 +57,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Viewport arrays";
-		enableTextOverlay = true;
+		title = "Viewport arrays";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
 		camera.setTranslation(glm::vec3(7.0f, 3.2f, 0.0f));
 		camera.movementSpeed = 5.0f;
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -378,24 +378,12 @@ public:
 		updateUniformBuffers();
 	}
 
-	void changeEyeSeparation(float delta)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		eyeSeparation += delta;
-		updateUniformBuffers();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeEyeSeparation(0.005);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeEyeSeparation(-0.005);
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->sliderFloat("Eye separation", &eyeSeparation, -1.0f, 1.0f)) {
+				updateUniformBuffers();
+			}
 		}
 	}
 

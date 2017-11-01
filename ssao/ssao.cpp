@@ -68,9 +68,9 @@ public:
 
 	struct UBOSSAOParams {
 		glm::mat4 projection;
-		uint32_t ssao = true;
-		uint32_t ssaoOnly = false;
-		uint32_t ssaoBlur = true;
+		int32_t ssao = true;
+		int32_t ssaoOnly = false;
+		int32_t ssaoBlur = true;
 	} uboSSAOParams;
 
 	struct {
@@ -157,10 +157,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -8.0f;
-		rotation = { 0.0f, 0.0f, 0.0f };
-		enableTextOverlay = true;
-		title = "Vulkan Example - Screen space ambient occlusion";
+		title = "Screen space ambient occlusion";
+		settings.overlay = true;
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 5.0f;
 #ifndef __ANDROID__
@@ -1111,54 +1109,19 @@ public:
 		updateUniformBufferSSAOParams();
 	}
 
-	void toggleSSAO()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		uboSSAOParams.ssao = !uboSSAOParams.ssao;
-		updateUniformBufferSSAOParams();
-	}
-
-	void toggleSSAOBlur()
-	{
-		uboSSAOParams.ssaoBlur = !uboSSAOParams.ssaoBlur;
-		updateUniformBufferSSAOParams();
-	}
-
-	void toggleSSAOOnly()
-	{
-		uboSSAOParams.ssaoOnly = !uboSSAOParams.ssaoOnly;
-		updateUniformBufferSSAOParams();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_F2:
-		case GAMEPAD_BUTTON_A:
-			toggleSSAO();
-			break;
-		case KEY_F3:
-		case GAMEPAD_BUTTON_X:
-			toggleSSAOBlur();
-			break;
-		case KEY_F4:
-		case GAMEPAD_BUTTON_Y:
-			toggleSSAOOnly();
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Enable SSAO", &uboSSAOParams.ssao)) {
+				updateUniformBufferSSAOParams();
+			}
+			if (overlay->checkBox("SSAO blur", &uboSSAOParams.ssaoBlur)) {
+				updateUniformBufferSSAOParams();
+			}
+			if (overlay->checkBox("SSAO pass only", &uboSSAOParams.ssaoOnly)) {
+				updateUniformBufferSSAOParams();
+			}
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"Button A\" to toggle SSAO", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"Button X\" to toggle SSAO blur", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"Button Y\" to toggle SSAO display", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("\"F2\" to toggle SSAO", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"F3\" to toggle SSAO blur", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"F4\" to toggle SSAO display", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

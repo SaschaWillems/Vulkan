@@ -73,7 +73,7 @@ public:
 	struct Meshes {
 		vks::Model skybox;
 		std::vector<vks::Model> objects;
-		uint32_t objectIndex = 0;
+		int32_t objectIndex = 0;
 	} models;
 
 	struct {
@@ -112,11 +112,13 @@ public:
 	std::vector<Material> materials;
 	int32_t materialIndex = 0;
 
+	std::vector<std::string> materialNames;
+	std::vector<std::string> objectNames;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - PBR with image based lighting";
+		title = "PBR with image based lighting";
 
-		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 4.0f;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
@@ -139,6 +141,13 @@ public:
 		materials.push_back(Material("Black", glm::vec3(0.0f)));
 		materials.push_back(Material("Red", glm::vec3(1.0f, 0.0f, 0.0f)));
 		materials.push_back(Material("Blue", glm::vec3(0.0f, 0.0f, 1.0f)));
+
+		settings.overlay = true;
+
+		for (auto material : materials) {
+			materialNames.push_back(material.name);
+		}
+		objectNames = { "Sphere", "Teapot", "Torusknot", "Venus" };
 
 		materialIndex = 9;
 	}
@@ -257,15 +266,15 @@ public:
 	void loadAssets()
 	{
 		// Skybox
-		models.skybox.loadFromFile(ASSET_PATH "models/cube.obj", vertexLayout, 1.0f, vulkanDevice, queue);
+		models.skybox.loadFromFile(getAssetPath() + "models/cube.obj", vertexLayout, 1.0f, vulkanDevice, queue);
 		// Objects
 		std::vector<std::string> filenames = { "geosphere.obj", "teapot.dae", "torusknot.obj", "venus.fbx" };
 		for (auto file : filenames) {
 			vks::Model model;
-			model.loadFromFile(ASSET_PATH "models/" + file, vertexLayout, 0.05f * (file == "venus.fbx" ? 3.0f : 1.0f), vulkanDevice, queue);
+			model.loadFromFile(getAssetPath() + "models/" + file, vertexLayout, 0.05f * (file == "venus.fbx" ? 3.0f : 1.0f), vulkanDevice, queue);
 			models.objects.push_back(model);
 		}
-		textures.environmentCube.loadFromFile(ASSET_PATH "textures/hdr/pisa_cube.ktx", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);
+		textures.environmentCube.loadFromFile(getAssetPath() + "textures/hdr/pisa_cube.ktx", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);
 	}
 
 	void setupDescriptors()
@@ -391,13 +400,13 @@ public:
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
 		// Skybox pipeline (background cube)
-		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skybox));
 
 		// PBR pipeline
-		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/pbribl.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/pbribl.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/pbribl.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/pbribl.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Enable depth test and write
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		depthStencilState.depthTestEnable = VK_TRUE;
@@ -566,8 +575,8 @@ public:
 		pipelineCI.pVertexInputState = &emptyInputState;
 
 		// Look-up-table (from BRDF) pipeline
-		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/genbrdflut.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/genbrdflut.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/genbrdflut.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/genbrdflut.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipeline pipeline;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
@@ -852,8 +861,8 @@ public:
 		pipelineCI.pVertexInputState = &vertexInputState;
 		pipelineCI.renderPass = renderpass;
 
-		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/irradiancecube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/irradiancecube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipeline pipeline;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
@@ -1246,8 +1255,8 @@ public:
 		pipelineCI.pVertexInputState = &vertexInputState;
 		pipelineCI.renderPass = renderpass;
 
-		shaderStages[0] = loadShader(ASSET_PATH "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(ASSET_PATH "shaders/pbribl/prefilterenvmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/prefilterenvmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipeline pipeline;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
@@ -1491,90 +1500,30 @@ public:
 	virtual void viewChanged()
 	{
 		updateUniformBuffers();
-		updateTextOverlay();
 	}
 
-	void toggleSkyBox()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		displaySkybox = !displaySkybox;
-		buildCommandBuffers();
-	}
-
-	void toggleObject()
-	{
-		models.objectIndex++;
-		if (models.objectIndex >= static_cast<uint32_t>(models.objects.size()))
-		{
-			models.objectIndex = 0;
-		}
-		updateUniformBuffers();
-		buildCommandBuffers();
-	}
-
-	void toggleMaterial(int32_t dir)
-	{
-		materialIndex += dir;
-		if (materialIndex < 0) {
-			materialIndex = static_cast<int32_t>(materials.size()) - 1;
-		}
-		if (materialIndex > static_cast<int32_t>(materials.size()) - 1) {
-			materialIndex = 0;
-		}
-		buildCommandBuffers();
-		updateTextOverlay();
-	}
-
-	void changeExposure(float delta)
-	{
-		uboParams.exposure += delta;
-		if (uboParams.exposure < 0.01f) {
-			uboParams.exposure = 0.01f;
-		}
-		updateParams();
-		updateTextOverlay();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_F2:
-		case GAMEPAD_BUTTON_A:
-			toggleSkyBox();
-			break;
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_X:
-			toggleObject();
-			break;
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-		case TOUCH_DOUBLE_TAP:
-			toggleMaterial(1);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			toggleMaterial(-1);
-			break;
-		case KEY_F3:
-			changeExposure(-0.1f);
-			break;
-		case KEY_F4:
-			changeExposure(0.1f);
-			break;
-
+		if (overlay->header("Settings")) {
+			if (overlay->comboBox("Material", &materialIndex, materialNames)) {
+				buildCommandBuffers();
+			}
+			if (overlay->comboBox("Object type", &models.objectIndex, objectNames)) {
+				updateUniformBuffers();
+				buildCommandBuffers();
+			}
+			if (overlay->inputFloat("Exposure", &uboParams.exposure, 0.1f, 2)) {
+				updateParams();
+			}
+			if (overlay->inputFloat("Gamma", &uboParams.gamma, 0.1f, 2)) {
+				updateParams();
+			}
+			if (overlay->checkBox("Skybox", &displaySkybox)) {
+				buildCommandBuffers();
+			}
 		}
 	}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"Button A\" to toggle skybox", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"Button X\" to toggle object", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Material: " + materials[materialIndex].name + " (+/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Exposure: " + std::to_string(uboParams.exposure) + " (F3/F4)", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#endif
-	}
 };
 
 VULKAN_EXAMPLE_MAIN()

@@ -196,8 +196,8 @@ public:
 	{
 		zoom = -2.5f;
 		rotation = { 0.0f, 15.0f, 0.0f };
-		title = "Vulkan Example - 3D textures";
-		enableTextOverlay = true;
+		title = "3D textures";
+		settings.overlay = true;
 		srand((unsigned int)time(NULL));
 	}
 
@@ -816,34 +816,16 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_N:
-		case GAMEPAD_BUTTON_A:
-			if (!regenerateNoise)
-			{
-				regenerateNoise = true;
-				updateTextOverlay();
+		if (overlay->header("Settings")) {
+			if (regenerateNoise) {
+				overlay->text("Generating new noise texture...");
+			} else {
+				if (overlay->button("Generate new texture")) {
+					regenerateNoise = true;
+				}
 			}
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		if (regenerateNoise)
-		{
-			textOverlay->addText("Generating new noise texture...", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		}
-		else
-		{
-#ifdef __ANDROID__
-			textOverlay->addText("Press \"Button A\" to generate new noise", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-			textOverlay->addText("Press \"n\" to generate new noise", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
 		}
 	}
 };

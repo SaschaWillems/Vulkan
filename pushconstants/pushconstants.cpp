@@ -73,8 +73,8 @@ public:
 		rotationSpeed = 0.5f;
 		timerSpeed *= 0.5f;
 		rotation = { -32.5, 45.0, 0.0 };
-		enableTextOverlay = true;
-		title = "Vulkan Example - Push constants";
+		title = "Push constants";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()

@@ -144,9 +144,9 @@ public:
 	{
 		zoom = -20.0f;
 		rotation = { -15.0f, -390.0f, 0.0f };
-		enableTextOverlay = true;
-		title = "Vulkan Example - Projected shadow mapping";
+		title = "Projected shadow mapping";
 		timerSpeed *= 0.5f;
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -408,12 +408,10 @@ public:
 
 			VkDeviceSize offsets[1] = { 0 };
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.quad, 0, 1, &descriptorSet, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.quad);
-
 			// Visualize shadow map
-			if (displayShadowMap)
-			{
+			if (displayShadowMap) {
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.quad, 0, 1, &descriptorSet, 0, NULL);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.quad);
 				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.quad.vertices.buffer, offsets);
 				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.quad.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(drawCmdBuffers[i], models.quad.indexCount, 1, 0, 0, 0);
@@ -706,12 +704,7 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Solid rendering pipeline
-		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapping/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapping/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(
@@ -730,9 +723,14 @@ public:
 		pipelineCreateInfo.stageCount = shaderStages.size();
 		pipelineCreateInfo.pStages = shaderStages.data();
 
+		// Shadow mapping debug quad display
+		rasterizationState.cullMode = VK_CULL_MODE_NONE;
+		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapping/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapping/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.quad));
 
 		// Scene rendering with shadows applied
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapping/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapping/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Use specialization constants to select between horizontal and vertical blur
@@ -925,56 +923,20 @@ public:
 		updateUniformBuffers();
 	}
 
-	void toggleShadowMapDisplay()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		displayShadowMap = !displayShadowMap;
-		buildCommandBuffers();
-	}
-
-	void toogleLightPOV()
-	{
-		lightPOV = !lightPOV;
-		viewChanged();
-	}
-
-	void toogleFilterPCF()
-	{
-		filterPCF = !filterPCF;
-		buildCommandBuffers();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_S:
-		case GAMEPAD_BUTTON_A:
-			toggleShadowMapDisplay();
-			break;
-		case KEY_L:
-		case GAMEPAD_BUTTON_X:
-			toogleLightPOV();
-			break;
-		case KEY_F:
-		case GAMEPAD_BUTTON_Y:
-			toogleFilterPCF();
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Display shadow render target", &displayShadowMap)) {
+				buildCommandBuffers();
+			}
+			if (overlay->checkBox("PCF filtering", &filterPCF)) {
+				buildCommandBuffers();
+			}
+			if (overlay->checkBox("Light POV", &lightPOV)) {
+				viewChanged();
+			}
 		}
 	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"Button A\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"Button X\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"Button Y\" to toggle PCF filtering", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("\"s\" to toggle shadow map", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"l\" to toggle light's pov", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("\"f\" to toggle PCF filtering", 5.0f, 115.0f, VulkanTextOverlay::alignLeft);
-#endif
-	}
-
 };
 
 VULKAN_EXAMPLE_MAIN()

@@ -74,8 +74,8 @@ public:
 	{
 		zoom = -8.0f;
 		rotation = glm::vec3(0.0f, -25.0f, 0.0f);
-		enableTextOverlay = true;
-		title = "Vulkan Example - Geometry shader";
+		title = "Geometry shader normal debugging";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -470,32 +470,15 @@ public:
 		updateUniformBuffers();
 	}
 
-	void toggleNormals()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		displayNormals = !displayNormals;
-		reBuildCommandBuffers();
-	}
-
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_N:
-		case GAMEPAD_BUTTON_A:
-			toggleNormals();
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Display normals", &displayNormals)) {
+				buildCommandBuffers();
+			}
 		}
 	}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to toggle normals", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Press \"n\" to toggle normals", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif	
-	}
 };
 
 VULKAN_EXAMPLE_MAIN()

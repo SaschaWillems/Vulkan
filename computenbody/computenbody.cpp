@@ -94,9 +94,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		enableTextOverlay = true;
-		title = "Vulkan Example - Compute shader N-body system";
-
+		title = "Compute shader N-body system";
+		settings.overlay = true;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-26.0f, 75.0f, 0.0f));

@@ -79,8 +79,8 @@ public:
 	{
 		zoom = -2.5f;
 		rotation = { 0.0f, 15.0f, 0.0f };
-		title = "Vulkan Example - Texture loading";
-		enableTextOverlay = true;
+		title = "Texture loading";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -862,46 +862,12 @@ public:
 		updateUniformBuffers();
 	}
 
-	void changeLodBias(float delta)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		uboVS.lodBias += delta;
-		if (uboVS.lodBias < 0.0f)
-		{
-			uboVS.lodBias = 0.0f;
-		}
-		if (uboVS.lodBias > texture.mipLevels)
-		{
-			uboVS.lodBias = (float)texture.mipLevels;
-		}
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeLodBias(0.1f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeLodBias(-0.1f);
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		if (vulkanDevice->features.samplerAnisotropy) {
-			std::stringstream ss;
-			ss << std::setprecision(2) << std::fixed << uboVS.lodBias;
-#if defined(__ANDROID__)
-			textOverlay->addText("LOD bias: " + ss.str() + " (Buttons L1/R1 to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-			textOverlay->addText("LOD bias: " + ss.str() + " (numpad +/- to change)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
+		if (overlay->header("Settings")) {
+			if (overlay->sliderFloat("LOD bias", &uboVS.lodBias, 0.0f, (float)texture.mipLevels)) {
+				updateUniformBuffers();
+			}
 		}
 	}
 };

@@ -741,8 +741,7 @@ public:
 		zoomSpeed = 2.5f;
 		rotation = { -25.0f, 0.0f, 0.0f };
 		title = "Vulkan Example - Text overlay";
-		// Disable text overlay of the example base class
-		enableTextOverlay = false;
+		settings.overlay = false;
 	}
 
 	~VulkanExample()

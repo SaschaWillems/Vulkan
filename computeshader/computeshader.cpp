@@ -62,7 +62,7 @@ public:
 		VkDescriptorSet descriptorSet;				// Compute shader bindings
 		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
 		std::vector<VkPipeline> pipelines;			// Compute pipelines for image filters
-		uint32_t pipelineIndex = 0;					// Current image filtering compute pipeline index
+		int32_t pipelineIndex = 0;					// Current image filtering compute pipeline index
 		uint32_t queueFamilyIndex;					// Family index of the graphics queue, used for barriers
 	} compute;
 
@@ -77,16 +77,15 @@ public:
 		glm::mat4 model;
 	} uboVS;
 
-	struct {
-	} pipelines;
-
 	int vertexBufferSize;
+
+	std::vector<std::string> shaderNames;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -2.0f;
-		enableTextOverlay = true;
-		title = "Vulkan Example - Compute shader image processing";
+		title = "Compute shader image load/store";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -673,9 +672,8 @@ public:
 				0);
 
 		// One pipeline for each effect
-		std::vector<std::string> shaderNames = { "sharpen", "edgedetect", "emboss" };
-		for (auto& shaderName : shaderNames)
-		{
+		shaderNames = { "sharpen", "edgedetect", "emboss" };
+		for (auto& shaderName : shaderNames) {
 			std::string fileName = getAssetPath() + "shaders/computeshader/" + shaderName + ".comp.spv";
 			computePipelineCreateInfo.stage = loadShader(fileName.c_str(), VK_SHADER_STAGE_COMPUTE_BIT);
 			VkPipeline pipeline;
@@ -789,42 +787,13 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void switchComputePipeline(int32_t dir)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		if ((dir < 0) && (compute.pipelineIndex > 0))
-		{
-			compute.pipelineIndex--;
-			buildComputeCommandBuffer();
+		if (overlay->header("Settings")) {
+			if (overlay->comboBox("Shader", &compute.pipelineIndex, shaderNames)) {
+				buildComputeCommandBuffer();
+			}
 		}
-		if ((dir > 0) && (compute.pipelineIndex < compute.pipelines.size() - 1))
-		{
-			compute.pipelineIndex++;
-			buildComputeCommandBuffer();
-		}
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			switchComputePipeline(1);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			switchComputePipeline(-1);
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("Press \"L1/R1\" to change shaders", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Press \"NUMPAD +/-\" to change shaders", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

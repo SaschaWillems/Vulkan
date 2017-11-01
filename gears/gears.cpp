@@ -45,10 +45,10 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -16.0f;
-		rotation = glm::vec3(-23.75, 41.25, 21.0);
+		rotation = glm::vec3(-23.75f, 41.25f, 21.0f);
 		timerSpeed *= 0.25f;
-		enableTextOverlay = true;
-		title = "Vulkan Example - Gears";
+		title = "Rotating gears";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()

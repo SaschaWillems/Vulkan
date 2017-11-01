@@ -57,13 +57,13 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Stencil buffer outlines";
+		title = "Stencil buffer outlines";
 		timerSpeed *= 0.25f;
-		enableTextOverlay = true;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(2.5f, -35.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.08f, 3.6f, -8.4f));
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -326,37 +326,15 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void changeOutlineWidth(float delta)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		if (uboVS.outlineWidth + delta > 0.01f) {
-			uboVS.outlineWidth += delta;
-			updateUniformBuffers();
+		if (overlay->header("Settings")) {
+			if (overlay->inputFloat("Outline width", &uboVS.outlineWidth, 0.05f, 2)) {
+				updateUniformBuffers();
+			}
 		}
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeOutlineWidth(0.01f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeOutlineWidth(-0.01f);
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"L1/R1\" to change outline width", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("\"NUMPAD +/-\" to outline width", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
-	}
 };
 
 VULKAN_EXAMPLE_MAIN()

@@ -124,8 +124,8 @@ public:
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
 		rotation = { 0.0f, 37.5f, 0.0f };
-		enableTextOverlay = true;
-		title = "Vulkan Example - Multi threaded rendering";
+		title = "Multi threaded command buffer";
+		settings.overlay = true;
 		// Get number of max. concurrrent threads
 		numThreads = std::thread::hardware_concurrency();
 		assert(numThreads > 0);
@@ -630,9 +630,11 @@ public:
 		updateMatrices();
 	}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		textOverlay->addText("Using " + std::to_string(numThreads) + " threads", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		if (overlay->header("Statistics")) {
+			overlay->text("Active threads: %d", numThreads);
+		}
 	}
 };
 

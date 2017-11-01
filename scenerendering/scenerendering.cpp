@@ -442,7 +442,7 @@ public:
 
 	// For displaying only a single part of the scene
 	bool renderSingleScenePart = false;
-	uint32_t scenePartIndex = 0;
+	int32_t scenePartIndex = 0;
 
 	// Default constructor
 	Scene(vks::VulkanDevice *vulkanDevice, VkQueue queue)
@@ -583,14 +583,14 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Scene rendering";
+		title = "Multi-part scene rendering";
 		rotationSpeed = 0.5f;
-		enableTextOverlay = true;
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 7.5f;
 		camera.position = { 15.0f, -13.5f, 0.0f };
 		camera.setRotation(glm::vec3(5.0f, 90.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -605,16 +605,6 @@ public:
 		if (deviceFeatures.fillModeNonSolid) {
 			enabledFeatures.fillModeNonSolid = VK_TRUE;
 		};
-	}
-
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
 	}
 
 	void buildCommandBuffers()
@@ -863,55 +853,27 @@ public:
 		updateUniformBuffers();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_A:
+		if (overlay->header("Settings")) {
 			if (deviceFeatures.fillModeNonSolid) {
-				wireframe = !wireframe;
-				reBuildCommandBuffers();
+				if (overlay->checkBox("Wireframe", &wireframe)) {
+					buildCommandBuffers();
+				}
 			}
-			break;
-		case KEY_P:
-			scene->renderSingleScenePart = !scene->renderSingleScenePart;
-			reBuildCommandBuffers();
-			updateTextOverlay();
-			break;
-		case KEY_KPADD:
-			scene->scenePartIndex = (scene->scenePartIndex < static_cast<uint32_t>(scene->meshes.size())) ? scene->scenePartIndex + 1 : 0;
-			reBuildCommandBuffers();
-			updateTextOverlay();
-			break;
-		case KEY_KPSUB:
-			scene->scenePartIndex = (scene->scenePartIndex > 0) ? scene->scenePartIndex - 1 : static_cast<uint32_t>(scene->meshes.size()) - 1;
-			updateTextOverlay();
-			reBuildCommandBuffers();
-			break;
-		case KEY_L:
-			attachLight = !attachLight;
-			updateUniformBuffers();
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		if (deviceFeatures.fillModeNonSolid) {
-#if defined(__ANDROID__)
-			textOverlay->addText("Press \"Button A\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-			textOverlay->addText("Press \"space\" to toggle wireframe", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-			if ((scene) && (scene->renderSingleScenePart))
-			{
-				textOverlay->addText("Rendering mesh " + std::to_string(scene->scenePartIndex + 1) + " of " + std::to_string(static_cast<uint32_t>(scene->meshes.size())) + "(\"p\" to toggle)", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
+			if (scene) {
+				if (overlay->checkBox("Attach light to camera", &attachLight)) {
+					updateUniformBuffers();
+				}
+				if (overlay->checkBox("Render single part", &scene->renderSingleScenePart)) {
+					buildCommandBuffers();
+				}
+				if (scene->renderSingleScenePart) {
+					if (overlay->sliderInt("Part to render", &scene->scenePartIndex, 0, static_cast<int32_t>(scene->meshes.size()))) {
+						buildCommandBuffers();
+					}
+				}
 			}
-			else
-			{
-				textOverlay->addText("Rendering whole scene (\"p\" to toggle)", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-			}
-#endif
 		}
 	}
 };

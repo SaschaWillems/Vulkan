@@ -170,8 +170,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		enableTextOverlay = true;
-		title = "Vulkan Example - Deferred shading with shadows (2016 by Sascha Willems)";
+		title = "Deferred shading with shadows";
 		camera.type = Camera::CameraType::firstperson;
 #if defined(__ANDROID__)
 		camera.movementSpeed = 2.5f;
@@ -184,6 +183,7 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, zNear, zFar);
 		timerSpeed *= 0.25f;
 		paused = true;
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -1170,45 +1170,19 @@ public:
 		updateUniformBufferDeferredMatrices();
 	}
 
-	void toggleDebugDisplay()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		debugDisplay = !debugDisplay;
-		reBuildCommandBuffers();
-		updateUniformBuffersScreen();
-	}
-
-	void toggleShadows()
-	{
-		uboFragmentLights.useShadows = !uboFragmentLights.useShadows;
-		updateUniformBufferDeferredLights();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_F1:
-		case GAMEPAD_BUTTON_A:
-			toggleDebugDisplay();
-			updateTextOverlay();
-			break;
-		case KEY_F2:
-		case GAMEPAD_BUTTON_X:
-			toggleShadows();
-			updateTextOverlay();
-			break;
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Display shadow targets", &debugDisplay)) {
+				buildCommandBuffers();
+				updateUniformBuffersScreen();
+			}
+			bool shadows = (uboFragmentLights.useShadows == 1);
+			if (overlay->checkBox("Shadows", &shadows)) {
+				uboFragmentLights.useShadows = shadows;
+				updateUniformBufferDeferredLights();
+			}
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("Press \"Button A\" to toggle debug view", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"Button X\" to toggle shadows", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Press \"F1\" to toggle debug view", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-		textOverlay->addText("Press \"F2\" to toggle shadows", 5.0f, 100.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

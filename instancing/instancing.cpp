@@ -93,13 +93,13 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Instanced mesh rendering";
-		enableTextOverlay = true;
+		title = "Instanced mesh rendering";
 		srand(time(NULL));
 		zoom = -18.5f;
 		rotation = { -17.2f, -4.7f, 0.0f };
 		cameraPos = { 5.5f, -1.85f, 0.0f };
 		rotationSpeed = 0.25f;
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -606,9 +606,11 @@ public:
 		updateUniformBuffer(true);
 	}
 
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		textOverlay->addText("Rendering " + std::to_string(INSTANCE_COUNT) + " instances", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
+		if (overlay->header("Statistics")) {
+			overlay->text("Instances: %d", INSTANCE_COUNT);
+		}
 	}
 };
 

@@ -49,7 +49,7 @@ public:
 	struct Models {
 		vks::Model skybox;
 		std::vector<vks::Model> objects;
-		uint32_t objectIndex = 1;
+		int32_t objectIndex = 1;
 	} models;
 
 	struct {
@@ -124,14 +124,16 @@ public:
 		VkSampler sampler;
 	} filterPass;
 
+	std::vector<std::string> objectNames;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - HDR rendering";
-		enableTextOverlay = true;
+		title = "Hight dynamic range rendering";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.0f));
 		camera.setRotation(glm::vec3(0.0f, 180.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -604,6 +606,7 @@ public:
 		// Models
 		models.skybox.loadFromFile(getAssetPath() + "models/cube.obj", vertexLayout, 0.05f, vulkanDevice, queue);
 		std::vector<std::string> filenames = { "geosphere.obj", "teapot.dae", "torusknot.obj", "venus.fbx" };
+		objectNames = { "Sphere", "Teapot", "Torusknot", "Venus" };
 		for (auto file : filenames) {
 			vks::Model model;
 			model.loadFromFile(getAssetPath() + "models/" + file, vertexLayout, 0.05f * (file == "venus.fbx" ? 3.0f : 1.0f), vulkanDevice, queue);
@@ -983,74 +986,23 @@ public:
 		updateUniformBuffers();
 	}
 
-	void toggleSkyBox()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		displaySkybox = !displaySkybox;
-		reBuildCommandBuffers();
-	}
-
-	void toggleBloom()
-	{
-		bloom = !bloom;
-		reBuildCommandBuffers();
-	}
-
-	void toggleObject()
-	{
-		models.objectIndex++;
-		if (models.objectIndex >= static_cast<uint32_t>(models.objects.size()))
-		{
-			models.objectIndex = 0;
+		if (overlay->header("Settings")) {
+			if (overlay->comboBox("Object type", &models.objectIndex, objectNames)) {
+				updateUniformBuffers();
+				buildDeferredCommandBuffer();
+			}
+			if (overlay->inputFloat("Exposure", &uboParams.exposure, 0.025f, 3)) {
+				updateParams();
+			}
+			if (overlay->checkBox("Bloom", &bloom)) {
+				buildCommandBuffers();
+			}
+			if (overlay->checkBox("Skybox", &displaySkybox)) {
+				buildDeferredCommandBuffer();
+			}
 		}
-		reBuildCommandBuffers();
-	}
-
-	void changeExposure(float delta)
-	{
-		uboParams.exposure += delta;
-		if (uboParams.exposure < 0.0f) {
-			uboParams.exposure = 0.0f;
-		}
-		updateParams();
-		updateTextOverlay();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_B:
-		case GAMEPAD_BUTTON_Y:
-			toggleBloom();
-			break;
-		case KEY_S:
-		case GAMEPAD_BUTTON_A:
-			toggleSkyBox();
-			break;
-		case KEY_SPACE:
-		case GAMEPAD_BUTTON_X:
-			toggleObject();
-			break;
-		case KEY_KPADD:
-		case GAMEPAD_BUTTON_R1:
-			changeExposure(0.05f);
-			break;
-		case KEY_KPSUB:
-		case GAMEPAD_BUTTON_L1:
-			changeExposure(-0.05f);
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-		std::stringstream ss;
-		ss << std::setprecision(2) << std::fixed << uboParams.exposure;
-#if defined(__ANDROID__)
-		textOverlay->addText("Exposure: " + ss.str() + " (L1/R1)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("Exposure: " + ss.str() + " (+/-)", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

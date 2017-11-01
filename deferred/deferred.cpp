@@ -138,8 +138,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Deferred shading (2016 by Sascha Willems)";
-		enableTextOverlay = true;
+		title = "Deferred shading (2016 by Sascha Willems)";
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 5.0f;
 #ifndef __ANDROID__
@@ -148,6 +147,7 @@ public:
 		camera.position = { 2.15f, 0.3f, -8.75f };
 		camera.setRotation(glm::vec3(-0.75f, 12.5f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -1195,39 +1195,13 @@ public:
 		updateUniformBufferDeferredMatrices();
 	}
 
-	void toggleDebugDisplay()
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		debugDisplay = !debugDisplay;
-		reBuildCommandBuffers();
-		updateUniformBuffersScreen();
-	}
-
-	virtual void keyPressed(uint32_t keyCode)
-	{
-		switch (keyCode)
-		{
-		case KEY_F2:
-		case GAMEPAD_BUTTON_A:
-			toggleDebugDisplay();
-			updateTextOverlay();
-			break;
-		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"Button A\" to toggle debug display", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("\"F2\" to toggle debug display", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
-		// Render targets
-		if (debugDisplay)
-		{
-			textOverlay->addText("World space position", (float)width * 0.25f, (float)height * 0.5f - 25.0f, VulkanTextOverlay::alignCenter);
-			textOverlay->addText("World space normals", (float)width * 0.75f, (float)height * 0.5f - 25.0f, VulkanTextOverlay::alignCenter);
-			textOverlay->addText("Albedo", (float)width * 0.25f, (float)height - 25.0f, VulkanTextOverlay::alignCenter);
-			textOverlay->addText("Final image", (float)width * 0.75f, (float)height - 25.0f, VulkanTextOverlay::alignCenter);
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Display render targets", &debugDisplay)) {
+				buildCommandBuffers();
+				updateUniformBuffersScreen();
+			}
 		}
 	}
 };

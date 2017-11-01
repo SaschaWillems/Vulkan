@@ -109,12 +109,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		enableTextOverlay = true;
-		title = "Vulkan Example - Compute shader cloth simulation";
+		title = "Compute shader cloth simulation";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-30.0f, -45.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -3.5f));
+		settings.overlay = true;
 		srand((unsigned int)time(NULL));
 	}
 
@@ -151,7 +151,7 @@ public:
 	void loadAssets()
 	{
 		textureCloth.loadFromFile(getAssetPath() + "textures/vulkan_cloth_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
-		modelSphere.loadFromFile(ASSET_PATH "models/geosphere.obj", vertexLayout, compute.ubo.sphereRadius * 0.05f, vulkanDevice, queue);
+		modelSphere.loadFromFile(getAssetPath() + "models/geosphere.obj", vertexLayout, compute.ubo.sphereRadius * 0.05f, vulkanDevice, queue);
 	}
 
 	void buildCommandBuffers()
@@ -743,24 +743,11 @@ public:
 		updateGraphicsUBO();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		switch (keyCode)
-		{
-		case KEY_W:
-		case GAMEPAD_BUTTON_A:
-			simulateWind = !simulateWind;
-			break;
+		if (overlay->header("Settings")) {
+			overlay->checkBox("Simulate wind", &simulateWind);
 		}
-	}
-
-	virtual void getOverlayText(VulkanTextOverlay *textOverlay)
-	{
-#if defined(__ANDROID__)
-		textOverlay->addText("\"Button A\" to toggle wind simulation", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#else
-		textOverlay->addText("\"w\" to toggle wind simulation", 5.0f, 85.0f, VulkanTextOverlay::alignLeft);
-#endif
 	}
 };
 

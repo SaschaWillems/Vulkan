@@ -11,9 +11,9 @@ layout (binding = 4) uniform sampler2D samplerSSAOBlur;
 layout (binding = 5) uniform UBO 
 {
 	mat4 _dummy;
-	uint ssao;
-	uint ssaoOnly;
-	uint ssaoBlur;
+	int ssao;
+	int ssaoOnly;
+	int ssaoBlur;
 } uboParams;
 
 layout (location = 0) in vec2 inUV;
