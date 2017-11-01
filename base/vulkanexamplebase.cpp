@@ -192,7 +192,7 @@ void VulkanExampleBase::prepare()
 			loadShader(getAssetPath() + "shaders/base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
 			loadShader(getAssetPath() + "shaders/base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
 		};
-		UIOverlay = new vks::UIOverlay(vulkanDevice, queue, frameBuffers, swapChain.colorFormat, depthFormat, &width, &height, shaderStages);
+		UIOverlay = new vks::UIOverlay(vulkanDevice, queue, frameBuffers, swapChain.colorFormat, depthFormat, width, height, shaderStages);
 		updateOverlay();
 	}
 }
@@ -2096,14 +2096,11 @@ void VulkanExampleBase::windowResize()
 	setupSwapChain();
 
 	// Recreate the frame buffers
-
 	vkDestroyImageView(device, depthStencil.view, nullptr);
 	vkDestroyImage(device, depthStencil.image, nullptr);
 	vkFreeMemory(device, depthStencil.mem, nullptr);
-	setupDepthStencil();
-	
-	for (uint32_t i = 0; i < frameBuffers.size(); i++)
-	{
+	setupDepthStencil();	
+	for (uint32_t i = 0; i < frameBuffers.size(); i++) {
 		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
 	}
 	setupFrameBuffer();
@@ -2117,9 +2114,7 @@ void VulkanExampleBase::windowResize()
 	vkDeviceWaitIdle(device);
 
 	if (settings.overlay) {
-		// TODO: Check if still required
-		UIOverlay->reallocateCommandBuffers();
-		updateOverlay();
+		UIOverlay->resize(width, height);
 	}
 
 	camera.updateAspectRatio((float)width / (float)height);

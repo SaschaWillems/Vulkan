@@ -1,4 +1,3 @@
-#include "VulkanUIOverlay.h"
 /*
 * UI overlay class using ImGui
 *
@@ -11,7 +10,7 @@
 
 namespace vks 
 {
-	UIOverlay::UIOverlay(vks::VulkanDevice *vulkanDevice, VkQueue copyQueue, std::vector<VkFramebuffer> &framebuffers, VkFormat colorformat, VkFormat depthformat, uint32_t *framebufferwidth, uint32_t *framebufferheight, std::vector<VkPipelineShaderStageCreateInfo> shaderstages) 
+	UIOverlay::UIOverlay(vks::VulkanDevice *vulkanDevice, VkQueue copyQueue, std::vector<VkFramebuffer> &framebuffers, VkFormat colorformat, VkFormat depthformat, uint32_t width, uint32_t height, std::vector<VkPipelineShaderStageCreateInfo> shaderstages) 
 	{
 		this->device = vulkanDevice;
 		this->copyQueue = copyQueue;
@@ -25,8 +24,8 @@ namespace vks
 
 		this->shaderStages = shaderstages;
 
-		this->frameBufferWidth = framebufferwidth;
-		this->frameBufferHeight = framebufferheight;
+		this->width = width;
+		this->height = height;
 
 	#if defined(__ANDROID__)		
 		if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_XXHIGH) {
@@ -53,7 +52,7 @@ namespace vks
 		style.Colors[ImGuiCol_CheckMark] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
 		// Dimensions
 		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2((float)(*framebufferwidth), (float)(*framebufferheight));
+		io.DisplaySize = ImVec2((float)(width), (float)(height));
 		io.FontGlobalScale = scale;
 
 		cmdBuffers.resize(framebuffers.size());
@@ -408,8 +407,8 @@ namespace vks
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
 		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.extent.width = *frameBufferWidth;
-		renderPassBeginInfo.renderArea.extent.height = *frameBufferHeight;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
 		// None of the attachments will be cleared
 		renderPassBeginInfo.clearValueCount = 0;
 		renderPassBeginInfo.pClearValues = nullptr;
@@ -532,6 +531,15 @@ namespace vks
 		}
 	}
 
+	void UIOverlay::resize(uint32_t width, uint32_t height)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2((float)(width), (float)(height));
+		this->width = width;
+		this->height = height;
+		updateCommandBuffers();
+	}
+
 	/** Submit the overlay command buffers to a queue */
 	void UIOverlay::submit(VkQueue queue, uint32_t bufferindex, VkSubmitInfo submitInfo)
 	{
@@ -546,15 +554,6 @@ namespace vks
 
 		VK_CHECK_RESULT(vkWaitForFences(device->logicalDevice, 1, &fence, VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device->logicalDevice, 1, &fence));
-	}
-
-	/** Reallocate command buffers for the text overlay */
-	void UIOverlay::reallocateCommandBuffers()
-	{
-		vkFreeCommandBuffers(device->logicalDevice, commandPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-			vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(cmdBuffers.size()));
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device->logicalDevice, &cmdBufAllocateInfo, cmdBuffers.data()));
 	}
 
 	bool UIOverlay::header(const char *caption)

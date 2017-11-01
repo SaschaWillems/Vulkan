@@ -39,8 +39,8 @@ namespace vks
 		VkFormat colorFormat;
 		VkFormat depthFormat;
 
-		uint32_t *frameBufferWidth;
-		uint32_t *frameBufferHeight;
+		uint32_t width;
+		uint32_t height;
 
 		vks::Buffer vertexBuffer;
 		vks::Buffer indexBuffer;
@@ -79,11 +79,11 @@ namespace vks
 
 		std::vector<VkCommandBuffer> cmdBuffers;
 
-		UIOverlay(vks::VulkanDevice *vulkanDevice, VkQueue copyQueue, std::vector<VkFramebuffer> &framebuffers, VkFormat colorformat, VkFormat depthformat, uint32_t *framebufferwidth,	uint32_t *framebufferheight, std::vector<VkPipelineShaderStageCreateInfo> shaderstages);
+		UIOverlay(vks::VulkanDevice *vulkanDevice, VkQueue copyQueue, std::vector<VkFramebuffer> &framebuffers, VkFormat colorformat, VkFormat depthformat, uint32_t width, uint32_t height, std::vector<VkPipelineShaderStageCreateInfo> shaderstages);
 		~UIOverlay();
 
-		void reallocateCommandBuffers();
 		void update();
+		void resize(uint32_t width, uint32_t height);
 
 		void submit(VkQueue queue, uint32_t bufferindex, VkSubmitInfo submitInfo);
 
