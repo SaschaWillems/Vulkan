@@ -578,8 +578,7 @@ namespace vks
 
 	bool UIOverlay::sliderFloat(const char* caption, float* value, float min, float max)
 	{
-		ImGui::SliderFloat(caption, value, min, max);
-		return false;
+		return ImGui::SliderFloat(caption, value, min, max);
 	}
 
 	bool UIOverlay::sliderInt(const char* caption, int32_t* value, int32_t min, int32_t max)
