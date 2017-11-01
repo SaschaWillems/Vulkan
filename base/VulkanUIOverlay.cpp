@@ -66,6 +66,10 @@ namespace vks
 	UIOverlay::~UIOverlay()
 	{
 		vertexBuffer.destroy();
+		indexBuffer.destroy();
+		vkDestroyImageView(device->logicalDevice, fontView, nullptr);
+		vkDestroyImage(device->logicalDevice, fontImage, nullptr);
+		vkFreeMemory(device->logicalDevice, fontMemory, nullptr);
 		vkDestroySampler(device->logicalDevice, sampler, nullptr);
 		vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayout, nullptr);
 		vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
