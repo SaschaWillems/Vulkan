@@ -29,13 +29,13 @@ namespace vks
 
 	#if defined(__ANDROID__)		
 		if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_XXHIGH) {
-			scale = 3.0f;
+			scale = 3.5f;
 		}
 		else if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_XHIGH) {
-			scale = 2.25f;
+			scale = 2.5f;
 		}
 		else if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_HIGH) {
-			scale = 1.875f;
+			scale = 2.0f;
 		};
 	#endif
 

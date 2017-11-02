@@ -576,6 +576,12 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::Render();
 
 	UIOverlay->update();
+
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+	if (mouseButtons.left) {
+		mouseButtons.left = false;
+	}
+#endif
 }
 
 void VulkanExampleBase::prepareFrame()
@@ -1211,6 +1217,19 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						vulkanExample->touchTimer = 0.0;
 						vulkanExample->touchDown = false;
 						vulkanExample->camera.keys.up = false;
+
+						// Detect single tap
+						int64_t eventTime = AMotionEvent_getEventTime(event);
+						int64_t downTime = AMotionEvent_getDownTime(event);
+						if (eventTime - downTime <= vks::android::TAP_TIMEOUT) {
+							float deadZone = (160.f / vks::android::screenDensity) * vks::android::TAP_SLOP * vks::android::TAP_SLOP;
+							float x = AMotionEvent_getX(event, 0) - vulkanExample->touchPos.x;
+							float y = AMotionEvent_getY(event, 0) - vulkanExample->touchPos.y;
+							if ((x * x + y * y) < deadZone) {
+								vulkanExample->mouseButtons.left = true;
+							}
+						};
+
 						return 1;
 						break;
 					}
@@ -1231,25 +1250,34 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						}
 						vulkanExample->touchPos.x = AMotionEvent_getX(event, 0);
 						vulkanExample->touchPos.y = AMotionEvent_getY(event, 0);
+						vulkanExample->mousePos.x = AMotionEvent_getX(event, 0);
+						vulkanExample->mousePos.y = AMotionEvent_getY(event, 0);
 						break;
-					}
+					}					
 					case AMOTION_EVENT_ACTION_MOVE: {
-						int32_t eventX = AMotionEvent_getX(event, 0);
-						int32_t eventY = AMotionEvent_getY(event, 0);
+						bool handled = false;
+						if (vulkanExample->settings.overlay) {
+							ImGuiIO& io = ImGui::GetIO();
+							handled = io.WantCaptureMouse;
+						}					
+						if (!handled) {
+							int32_t eventX = AMotionEvent_getX(event, 0);
+							int32_t eventY = AMotionEvent_getY(event, 0);
 
-						float deltaX = (float)(vulkanExample->touchPos.y - eventY) * vulkanExample->rotationSpeed * 0.5f;
-						float deltaY = (float)(vulkanExample->touchPos.x - eventX) * vulkanExample->rotationSpeed * 0.5f;
+							float deltaX = (float)(vulkanExample->touchPos.y - eventY) * vulkanExample->rotationSpeed * 0.5f;
+							float deltaY = (float)(vulkanExample->touchPos.x - eventX) * vulkanExample->rotationSpeed * 0.5f;
 
-						vulkanExample->camera.rotate(glm::vec3(deltaX, 0.0f, 0.0f));
-						vulkanExample->camera.rotate(glm::vec3(0.0f, -deltaY, 0.0f));
+							vulkanExample->camera.rotate(glm::vec3(deltaX, 0.0f, 0.0f));
+							vulkanExample->camera.rotate(glm::vec3(0.0f, -deltaY, 0.0f));
 
-						vulkanExample->rotation.x += deltaX;
-						vulkanExample->rotation.y -= deltaY;
+							vulkanExample->rotation.x += deltaX;
+							vulkanExample->rotation.y -= deltaY;
 
-						vulkanExample->viewChanged();
+							vulkanExample->viewChanged();
 
-						vulkanExample->touchPos.x = eventX;
-						vulkanExample->touchPos.y = eventY;
+							vulkanExample->touchPos.x = eventX;
+							vulkanExample->touchPos.y = eventY;
+						}
 						break;
 					}
 					default:
