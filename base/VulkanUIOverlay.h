@@ -91,7 +91,7 @@ namespace vks
 		~UIOverlay();
 
 		void update();
-		void resize(uint32_t width, uint32_t height);
+		void resize(uint32_t width, uint32_t height, std::vector<VkFramebuffer> framebuffers);
 
 		void submit(VkQueue queue, uint32_t bufferindex, VkSubmitInfo submitInfo);
 

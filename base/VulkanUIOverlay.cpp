@@ -540,12 +540,13 @@ namespace vks
 		}
 	}
 
-	void UIOverlay::resize(uint32_t width, uint32_t height)
+	void UIOverlay::resize(uint32_t width, uint32_t height, std::vector<VkFramebuffer> framebuffers)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2((float)(width), (float)(height));
 		createInfo.width = width;
 		createInfo.height = height;
+		createInfo.framebuffers = framebuffers;
 		updateCommandBuffers();
 	}
 
