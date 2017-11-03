@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 from urllib.request import urlretrieve
 from zipfile import ZipFile
