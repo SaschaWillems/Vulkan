@@ -43,7 +43,7 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool useSampleShading = false;
-    VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
+	VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
 	struct {
 		vks::Texture2D colorMap;
@@ -83,6 +83,7 @@ public:
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
+	VkRenderPass uiRenderPass;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -90,7 +91,8 @@ public:
 		zoomSpeed = 2.5f;
 		rotation = { 0.0f, -90.0f, 0.0f };
 		cameraPos = glm::vec3(2.5f, 2.5f, 0.0f);
-		title = "Vulkan Example - Multisampling";
+		title = "Multisampling";
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -99,6 +101,7 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.MSAA, nullptr);
 		vkDestroyPipeline(device, pipelines.MSAASampleShading, nullptr);
+		vkDestroyRenderPass(device, uiRenderPass, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -232,8 +235,7 @@ public:
 		attachments[0].format = swapChain.colorFormat;
 		attachments[0].samples = sampleCount;
 		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		// No longer required after resolve, this may save some bandwidth on certain GPUs
-		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -318,6 +320,11 @@ public:
 		renderPassInfo.pDependencies = dependencies.data();
 
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+
+		// Create custom overlay render pass
+		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &uiRenderPass));
 	}
 
 	// Frame buffer attachments must match with render pass setup, 
@@ -353,16 +360,6 @@ public:
 			attachments[1] = swapChain.buffers[i].view;
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
 		}
-	}
-
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
 	}
 
 	void buildCommandBuffers()
@@ -693,7 +690,7 @@ public:
 
 	void prepare()
 	{
-        sampleCount = getMaxUsableSampleCount();
+		sampleCount = getMaxUsableSampleCount();
 		VulkanExampleBase::prepare();
 		loadAssets();
 		setupVertexDescriptions();
@@ -718,38 +715,41 @@ public:
 		updateUniformBuffers();
 	}
 
-	void toggleSampleShading()
+	// Returns the maximum sample count usable by the platform
+	VkSampleCountFlagBits getMaxUsableSampleCount()
 	{
-		useSampleShading = !useSampleShading;
-		reBuildCommandBuffers();
+		VkSampleCountFlags counts = std::min(deviceProperties.limits.framebufferColorSampleCounts, deviceProperties.limits.framebufferDepthSampleCounts);
+		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+		if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+		if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+		if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+		return VK_SAMPLE_COUNT_1_BIT;
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	// UI overlay configuration needs to be adjusted for this example (renderpass setup, attachment count, etc.)
+	virtual void OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo)
 	{
-		switch (keyCode)
-		{
-		case KEY_S:
-		case GAMEPAD_BUTTON_A:
-			toggleSampleShading();
-			break;
+		createInfo.renderPass = uiRenderPass;
+		createInfo.framebuffers = frameBuffers;
+		createInfo.rasterizationSamples = sampleCount;
+		createInfo.attachmentCount = 1;
+		createInfo.clearValues = {
+			{ { 1.0f, 1.0f, 1.0f, 1.0f } },
+			{ { 1.0f, 1.0f, 1.0f, 1.0f } },
+			{ { 1.0f, 0 } },
+		};
+	}
+
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
+	{
+		if (overlay->header("Settings")) {
+			if (overlay->checkBox("Sample rate shading", &useSampleShading)) {
+				buildCommandBuffers();
+			}
 		}
 	}
-
-    // Returns the maximum sample count usable by the platform
-    VkSampleCountFlagBits getMaxUsableSampleCount()
-    {
-        VkSampleCountFlags counts = std::min(deviceProperties.limits.framebufferColorSampleCounts,
-                                            deviceProperties.limits.framebufferDepthSampleCounts);
-
-        if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
-        if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
-        if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
-        if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
-        if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
-        if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
-        return VK_SAMPLE_COUNT_1_BIT;
-    }
-
 };
 
 VULKAN_EXAMPLE_MAIN()

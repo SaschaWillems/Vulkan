@@ -110,10 +110,12 @@ public:
 	struct Attachments {
 		FrameBufferAttachment position, normal, albedo;
 	} attachments;
+
+	VkRenderPass uiRenderPass;
 	
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Subpasses";
+		title = "Subpasses";
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 5.0f;
 #ifndef __ANDROID__
@@ -122,7 +124,7 @@ public:
 		camera.setPosition(glm::vec3(-3.2f, 1.0f, 5.9f));
 		camera.setRotation(glm::vec3(0.5f, 210.05f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		settings.overlay = false;
+		settings.overlay = true;
 	}
 
 	~VulkanExample()
@@ -153,6 +155,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.composition, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.transparent, nullptr);
+
+		vkDestroyRenderPass(device, uiRenderPass, nullptr);
 
 		textures.glass.destroy();
 		models.scene.destroy();
@@ -426,6 +430,10 @@ public:
 		renderPassInfo.pDependencies = dependencies.data();
 
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+
+		// Create custom overlay render pass
+		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &uiRenderPass));
 	}
 
 	void buildCommandBuffers()
@@ -1042,15 +1050,34 @@ public:
 		updateUniformBufferDeferredLights();
 	}
 
-	virtual void keyPressed(uint32_t keyCode)
+	// UI overlay configuration needs to be adjusted for this example (renderpass setup, attachment count, etc.)
+	virtual void OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo)
 	{
-		switch (keyCode)
-		{
-		case KEY_F1:
-		case GAMEPAD_BUTTON_A:
-			initLights();
-			updateUniformBufferDeferredLights();
-			break;
+		createInfo.renderPass = uiRenderPass;
+		createInfo.framebuffers = frameBuffers;
+		createInfo.subpassCount = 3;
+		createInfo.attachmentCount = 4;
+		createInfo.clearValues = {
+			{ { 0.0f, 0.0f, 0.0f, 0.0f } },
+			{ { 0.0f, 0.0f, 0.0f, 0.0f } },
+			{ { 0.0f, 0.0f, 0.0f, 0.0f } },
+			{ { 0.0f, 0.0f, 0.0f, 0.0f } },
+			{ { 1.0f, 0 } },
+		};
+	}
+
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
+	{
+		if (overlay->header("Subpasses")) {
+			overlay->text("0: Deferred G-Buffer creation");
+			overlay->text("1: Deferred composition");
+			overlay->text("2: Forward transparency");
+		}
+		if (overlay->header("Settings")) {
+			if (overlay->button("Randomize lights")) {
+				initLights();
+				updateUniformBufferDeferredLights();
+			}
 		}
 	}
 };
