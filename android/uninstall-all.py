@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Remove all examples from connected device(s)
 import subprocess
 import sys

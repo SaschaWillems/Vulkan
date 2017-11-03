@@ -1,7 +1,10 @@
-# Build all examples
-# Pass -deploy to also install on connected device
+#!/usr/bin/env python3
+
+import argparse
 import subprocess
 import sys
+
+import build
 
 EXAMPLES = [
     "bloom",
@@ -64,18 +67,16 @@ COLOR_END = '\033[0m'
 
 CURR_INDEX = 0
 
-BUILD_ARGUMENTS = ""
-for arg in sys.argv[1:]:
-    if arg == "-deploy":
-        BUILD_ARGUMENTS += "-deploy"
-    if arg == "-validation":
-        BUILD_ARGUMENTS += "-validation"
+parser = argparse.ArgumentParser()
+parser.add_argument('-deploy', default=False, action='store_true', help="install examples on device")
+parser.add_argument('-validation', default=False, action='store_true')
+args = parser.parse_args()
 
 print("Building all examples...")
 
 for example in EXAMPLES:
     print(COLOR_GREEN + "Building %s (%d/%d)" % (example, CURR_INDEX, len(EXAMPLES)) + COLOR_END)
-    if subprocess.call(("python build.py %s %s" % (example, BUILD_ARGUMENTS)).split(' ')) != 0:
+    if not build.main(example, args.deploy, args.validation):
         print("Error during build process for %s" % example)
         sys.exit(-1)
     CURR_INDEX += 1
