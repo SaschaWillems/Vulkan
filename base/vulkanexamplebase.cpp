@@ -188,11 +188,25 @@ void VulkanExampleBase::prepare()
 	setupFrameBuffer();
 	settings.overlay = settings.overlay && (!benchmark.active);
 	if (settings.overlay) {
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {
-			loadShader(getAssetPath() + "shaders/base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getAssetPath() + "shaders/base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
-		};
-		UIOverlay = new vks::UIOverlay(vulkanDevice, queue, frameBuffers, swapChain.colorFormat, depthFormat, width, height, shaderStages);
+		vks::UIOverlayCreateInfo overlayCreateInfo = {};
+		// Setup default overlay creation info
+		overlayCreateInfo.device = vulkanDevice;
+		overlayCreateInfo.copyQueue = queue;
+		overlayCreateInfo.framebuffers = frameBuffers;
+		overlayCreateInfo.colorformat = swapChain.colorFormat;
+		overlayCreateInfo.depthformat = depthFormat;
+		overlayCreateInfo.width = width;
+		overlayCreateInfo.height = height;
+		// Virtual function call for example to customize overlay creation
+		OnSetupUIOverlay(overlayCreateInfo);
+		// Load default shaders if not specified by example
+		if (overlayCreateInfo.shaders.size() == 0) {
+			overlayCreateInfo.shaders = {
+				loadShader(getAssetPath() + "shaders/base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+				loadShader(getAssetPath() + "shaders/base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
+			};
+		}
+		UIOverlay = new vks::UIOverlay(overlayCreateInfo);
 		updateOverlay();
 	}
 }
@@ -2141,4 +2155,5 @@ void VulkanExampleBase::setupSwapChain()
 	swapChain.create(&width, &height, settings.vsync);
 }
 
+void VulkanExampleBase::OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo) {}
 void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}

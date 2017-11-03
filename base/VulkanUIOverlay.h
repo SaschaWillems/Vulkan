@@ -30,18 +30,26 @@
 
 namespace vks 
 {
+	struct UIOverlayCreateInfo 
+	{
+		vks::VulkanDevice *device;
+		VkQueue copyQueue;
+		VkRenderPass renderPass;
+		std::vector<VkFramebuffer> framebuffers;
+		VkFormat colorformat;
+		VkFormat depthformat;
+		uint32_t width;
+		uint32_t height;
+		std::vector<VkPipelineShaderStageCreateInfo> shaders;
+		VkSampleCountFlagBits rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		uint32_t subpassCount = 1;
+		std::vector<VkClearValue> clearValues = {};
+		uint32_t attachmentCount = 1;
+	};
+
 	class UIOverlay 
 	{
 	private:
-		vks::VulkanDevice *device;
-
-		VkQueue copyQueue;
-		VkFormat colorFormat;
-		VkFormat depthFormat;
-
-		uint32_t width;
-		uint32_t height;
-
 		vks::Buffer vertexBuffer;
 		vks::Buffer indexBuffer;
 		int32_t vertexCount = 0;
@@ -55,8 +63,6 @@ namespace vks
 		VkPipeline pipeline;
 		VkRenderPass renderPass;
 		VkCommandPool commandPool;
-		std::vector<VkFramebuffer*> frameBuffers;
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 		VkFence fence;
 
 		VkDeviceMemory fontMemory = VK_NULL_HANDLE;
@@ -69,6 +75,8 @@ namespace vks
 			glm::vec2 translate;
 		} pushConstBlock;
 
+		UIOverlayCreateInfo createInfo = {};
+
 		void prepareResources();
 		void preparePipeline();
 		void prepareRenderPass();
@@ -79,7 +87,7 @@ namespace vks
 
 		std::vector<VkCommandBuffer> cmdBuffers;
 
-		UIOverlay(vks::VulkanDevice *vulkanDevice, VkQueue copyQueue, std::vector<VkFramebuffer> &framebuffers, VkFormat colorformat, VkFormat depthformat, uint32_t width, uint32_t height, std::vector<VkPipelineShaderStageCreateInfo> shaderstages);
+		UIOverlay(vks::UIOverlayCreateInfo createInfo);
 		~UIOverlay();
 
 		void update();

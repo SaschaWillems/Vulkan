@@ -392,6 +392,8 @@ public:
 	// Submit the frames' workload 
 	void submitFrame();
 
+	/** @brief (Virtual) Called before the UI overlay is created, can be used to do a custom setup e.g. with different renderpass */
+	virtual void OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo);
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);
 };
