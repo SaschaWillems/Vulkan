@@ -40,7 +40,7 @@ namespace vks
 
 		VkDebugReportCallbackEXT msgCallback;
 
-		VkBool32 messageCallback(
+		VKAPI_ATTR VkBool32 VKAPI_CALL messageCallback(
 			VkDebugReportFlagsEXT flags,
 			VkDebugReportObjectTypeEXT objType,
 			uint64_t srcObject,
