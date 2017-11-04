@@ -218,3 +218,9 @@ data/models/cerberus/*.*
 !data/textures/hdr/README.md
 
 *.args.json
+
+# Ignore VS project files
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
