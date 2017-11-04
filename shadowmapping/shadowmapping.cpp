@@ -69,9 +69,12 @@ public:
 	});
 
 	struct {
-		vks::Model scene;
 		vks::Model quad;
 	} models;
+
+	std::vector<vks::Model> scenes;
+	std::vector<std::string> sceneNames;
+	int32_t sceneIndex = 0;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -177,7 +180,9 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		// Meshes
-		models.scene.destroy();
+		for (auto scene : scenes) {
+			scene.destroy();
+		}
 		models.quad.destroy();
 
 		// Uniform buffers
@@ -433,7 +438,10 @@ public:
 
 	void loadAssets()
 	{
-		models.scene.loadFromFile(getAssetPath() + "models/vulkanscene_shadow.dae", vertexLayout, 4.0f, vulkanDevice, queue);
+		scenes.resize(2);
+		scenes[0].loadFromFile(getAssetPath() + "models/vulkanscene_shadow.dae", vertexLayout, 4.0f, vulkanDevice, queue);
+		scenes[1].loadFromFile(getAssetPath() + "models/samplescene.dae", vertexLayout, 0.25f, vulkanDevice, queue);
+		sceneNames = {"Vulkan scene", "Teapots and pillars" };
 	}
 
 	void generateQuad()
@@ -927,6 +935,10 @@ public:
 	{
 		if (overlay->header("Settings")) {
 			if (overlay->checkBox("Display shadow render target", &displayShadowMap)) {
+			if (overlay->comboBox("Scenes", &sceneIndex, sceneNames)) {
+				buildCommandBuffers();
+				buildOffscreenCommandBuffer();
+			}
 				buildCommandBuffers();
 			}
 			if (overlay->checkBox("PCF filtering", &filterPCF)) {
