@@ -934,11 +934,11 @@ public:
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (overlay->checkBox("Display shadow render target", &displayShadowMap)) {
 			if (overlay->comboBox("Scenes", &sceneIndex, sceneNames)) {
 				buildCommandBuffers();
 				buildOffscreenCommandBuffer();
 			}
+			if (overlay->checkBox("Display shadow render target", &displayShadowMap)) {
 				buildCommandBuffers();
 			}
 			if (overlay->checkBox("PCF filtering", &filterPCF)) {
