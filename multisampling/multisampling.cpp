@@ -121,6 +121,25 @@ public:
 		uniformBuffer.destroy();
 	}
 
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		// Enable sample rate shading filtering if supported
+		if (deviceFeatures.sampleRateShading) {
+			enabledFeatures.sampleRateShading = VK_TRUE;
+		}
+		// Enable texture compression  
+		if (deviceFeatures.textureCompressionBC) {
+			enabledFeatures.textureCompressionBC = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionASTC_LDR) {
+			enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionETC2) {
+			enabledFeatures.textureCompressionETC2 = VK_TRUE;
+		}
+	}
+
 	// Creates a multi sample render target (image and view) that is used to resolve 
 	// into the visible frame buffer target in the render pass
 	void setupMultisampleTarget()
@@ -628,7 +647,7 @@ public:
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Setup multi sampling
 		multisampleState.rasterizationSamples = sampleCount;		// Number of samples to use for rasterization
-		
+	
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.MSAA));
 
 		// MSAA with sample shading pipeline
@@ -744,9 +763,11 @@ public:
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		if (overlay->header("Settings")) {
-			if (overlay->checkBox("Sample rate shading", &useSampleShading)) {
-				buildCommandBuffers();
+		if (vulkanDevice->features.sampleRateShading) {
+			if (overlay->header("Settings")) {
+				if (overlay->checkBox("Sample rate shading", &useSampleShading)) {
+					buildCommandBuffers();
+				}
 			}
 		}
 	}

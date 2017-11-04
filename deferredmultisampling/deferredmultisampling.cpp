@@ -215,6 +215,10 @@ public:
 	// Enable physical device features required for this example				
 	virtual void getEnabledFeatures()
 	{
+		// Enable sample rate shading filtering if supported
+		if (deviceFeatures.sampleRateShading) {
+			enabledFeatures.sampleRateShading = VK_TRUE;
+		}
 		// Enable anisotropic filtering if supported
 		if (deviceFeatures.samplerAnisotropy) {
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
@@ -1179,8 +1183,10 @@ public:
 			if (overlay->checkBox("MSAA", &useMSAA)) {
 				buildCommandBuffers();
 			}
-			if (overlay->checkBox("Sample rate shading", &useSampleShading)) {
-				buildDeferredCommandBuffer();
+			if (vulkanDevice->features.sampleRateShading) {
+				if (overlay->checkBox("Sample rate shading", &useSampleShading)) {
+					buildDeferredCommandBuffer();
+				}
 			}
 		}
 	}
