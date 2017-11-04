@@ -77,6 +77,14 @@ def main(project_folder, deploy=False, validation=False):
     old_cwd = os.getcwd()
     os.chdir(project_folder)
 
+    # Create android build files from templates
+    os.makedirs("./jni", exist_ok=True)
+    shutil.copy("./../templates/Application.mk", "./jni/")
+    with open("./../templates/Android.mk", "rt") as fin:
+        with open("./jni/Android.mk", "wt") as fout:
+            for line in fin:
+                fout.write(line.replace("%APK_NAME%", "%s" % APK_NAME).replace("%SRC_FOLDER%", "%s" % project_folder))
+
     if subprocess.call("ndk-build %s" %BUILD_ARGS, shell=True) == 0:
         print("Build successful")
 
@@ -98,9 +106,10 @@ def main(project_folder, deploy=False, validation=False):
             os.makedirs("./assets/%s" % directory, exist_ok=True)
         os.makedirs("./res/drawable", exist_ok=True)
 
+        # Copy assets
         for filename in glob.glob("../../data/shaders/base/*.spv"):
             shutil.copy(filename, "./assets/shaders/base")
-        for filename in glob.glob("../../data/shaders/%s/*.spv" %SHADER_DIR):
+        for filename in glob.glob("../../data/shaders/%s/*.spv" % SHADER_DIR):
             shutil.copy(filename, "./assets/shaders/%s" % SHADER_DIR)
         for filename in ASSETS_MODELS:
             shutil.copy("../../data/models/%s" % filename, "./assets/models")
