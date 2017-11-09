@@ -94,8 +94,8 @@ public:
 		// Find a memory type index that fits the properties of the buffer
 		bool memTypeFound = false;
 		for (uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++) {
-			if ((memReqs.memoryTypeBits & 1) == 1) {
-				if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags) {
+			if ((memReqs.memoryTypeBits & 1) == 1) {                                                                     //Ensuring that the selected memory type is located on the device AND visible to Host.
+				if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags && (deviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) > 0) {
 					memAlloc.memoryTypeIndex = i;
 					memTypeFound = true;
 				}
