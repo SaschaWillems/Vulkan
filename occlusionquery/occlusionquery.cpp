@@ -76,12 +76,6 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	// Stores occlusion query results
-	struct {
-		VkBuffer buffer;
-		VkDeviceMemory memory;
-	} queryResult;
-
 	// Pool that stores all occlusion queries
 	VkQueryPool queryPool;
 
@@ -111,9 +105,6 @@ public:
 
 		vkDestroyQueryPool(device, queryPool, nullptr);
 
-		vkDestroyBuffer(device, queryResult.buffer, nullptr);
-		vkFreeMemory(device, queryResult.memory, nullptr);
-
 		uniformBuffers.occluder.destroy();
 		uniformBuffers.sphere.destroy();
 		uniformBuffers.teapot.destroy();
@@ -123,34 +114,13 @@ public:
 		models.teapot.destroy();
 	}
 
-	// Create a buffer for storing the query result
-	// Setup a query pool
-	void setupQueryResultBuffer()
+	// Create a query pool for storing the occlusion query result
+	void setupQueryPool()
 	{
-		uint32_t bufSize = 2 * sizeof(uint64_t);
-
-		VkMemoryRequirements memReqs;
-		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
-		VkBufferCreateInfo bufferCreateInfo = 
-			vks::initializers::bufferCreateInfo(
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 
-				bufSize);
-
-		// Results are saved in a host visible buffer for easy access by the application
-		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &queryResult.buffer));
-		vkGetBufferMemoryRequirements(device, queryResult.buffer, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &queryResult.memory));
-		VK_CHECK_RESULT(vkBindBufferMemory(device, queryResult.buffer, queryResult.memory, 0));
-
-		// Create query pool
 		VkQueryPoolCreateInfo queryPoolInfo = {};
 		queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
-		// Query pool will be created for occlusion queries
 		queryPoolInfo.queryType = VK_QUERY_TYPE_OCCLUSION;
 		queryPoolInfo.queryCount = 2;
-
 		VK_CHECK_RESULT(vkCreateQueryPool(device, &queryPoolInfo, NULL, &queryPool));
 	}
 
@@ -604,7 +574,7 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
-		setupQueryResultBuffer();
+		setupQueryPool();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
