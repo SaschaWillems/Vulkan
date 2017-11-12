@@ -1,6 +1,6 @@
 # Dynamic uniform buffers
 
-<img src="../screenshots/dynamicuniformbuffer.jpg" height="256px">
+<img src="../../screenshots/dynamicuniformbuffer.jpg" height="256px">
 
 ## Synopsis
 

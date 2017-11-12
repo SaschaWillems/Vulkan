@@ -1,6 +1,6 @@
 # Indirect drawing
 
-<img src="../screenshots/indirectdraw.jpg" height="256px">
+<img src="../../screenshots/indirectdraw.jpg" height="256px">
 
 ## Synopsis
 
