@@ -177,6 +177,7 @@ set(EXAMPLES
 	pbribl
 	pbrtexture
 	pipelines
+	pipelinestatistics
 	pushconstants
 	radialblur
 	raytracing
