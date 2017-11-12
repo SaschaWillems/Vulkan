@@ -20,6 +20,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanModel.hpp"
+#include "VulkanTexture.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -44,7 +45,12 @@ public:
 
 	struct {
 		vks::Model object;
+		vks::Model leaves;
 	} models;
+
+	struct {
+		vks::Texture2D leaf;
+	} textures;
 
 	struct {
 		glm::mat4 projection;
@@ -54,6 +60,7 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 model;
+		glm::vec2 viewportDim;
 	} uboGS;
 
 	struct {
@@ -121,7 +128,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+		clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 0.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -142,8 +149,7 @@ public:
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f
-				);
+			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
@@ -164,6 +170,8 @@ public:
 			// Normal debugging
 			if (displayNormals)
 			{
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.leaves.vertices.buffer, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.leaves.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.normals);
 				vkCmdDrawIndexed(drawCmdBuffers[i], models.object.indexCount, 1, 0, 0, 0);
 			}
@@ -176,7 +184,9 @@ public:
 
 	void loadAssets()
 	{
-		models.object.loadFromFile(getAssetPath() + "models/suzanne.obj", vertexLayout, 0.25f, vulkanDevice, queue);
+		models.object.loadFromFile(getAssetPath() + "models/tree.dae", vertexLayout, 0.25f, vulkanDevice, queue);
+		models.leaves.loadFromFile(getAssetPath() + "models/tree_leaves.dae", vertexLayout, 0.25f, vulkanDevice, queue);
+		textures.leaf.loadFromFile(getAssetPath() + "textures/leaf.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void setupVertexDescriptions()
@@ -227,10 +237,9 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses two ubos
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
+		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -255,7 +264,12 @@ public:
 			vks::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_GEOMETRY_BIT,
-				1)
+				1),
+			// Binding 2 : tba
+			vks::initializers::descriptorSetLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				2),
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
@@ -296,7 +310,13 @@ public:
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				1,
-				&uniformBuffers.GS.descriptor)
+				&uniformBuffers.GS.descriptor),
+			// Binding 2 : tba
+			vks::initializers::writeDescriptorSet(
+				descriptorSet,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				2,
+				&textures.leaf.descriptor),
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -313,7 +333,7 @@ public:
 		VkPipelineRasterizationStateCreateInfo rasterizationState =
 			vks::initializers::pipelineRasterizationStateCreateInfo(
 				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_BACK_BIT,
+				VK_CULL_MODE_NONE,
 				VK_FRONT_FACE_CLOCKWISE,
 				0);
 
@@ -427,6 +447,7 @@ public:
 		// Geometry shader
 		uboGS.model = uboVS.model;
 		uboGS.projection = uboVS.projection;
+		uboGS.viewportDim = glm::vec2(width, height);
 		memcpy(uniformBuffers.GS.mapped, &uboGS, sizeof(uboGS));
 	}
 

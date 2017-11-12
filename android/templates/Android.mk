@@ -16,7 +16,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := %APK_NAME%
 
-PROJECT_FILES := $(wildcard $(LOCAL_PATH)/../../%SRC_FOLDER%/*.cpp)
+PROJECT_FILES := $(wildcard $(LOCAL_PATH)/../../examples/%SRC_FOLDER%/*.cpp)
 PROJECT_FILES += $(wildcard $(LOCAL_PATH)/../../base/*.cpp)
 PROJECT_FILES += $(wildcard $(LOCAL_PATH)/../../external/imgui/imgui.cpp $(LOCAL_PATH)/../../external/imgui/imgui_draw.cpp)
 

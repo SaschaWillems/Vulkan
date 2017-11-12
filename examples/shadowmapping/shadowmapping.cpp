@@ -43,7 +43,6 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool displayShadowMap = false;
-	bool lightPOV = false;
 	bool filterPCF = true;
 
 	// Keep depth range as small as possible
@@ -720,7 +719,6 @@ public:
 				renderPass,
 				0);
 
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -735,7 +733,12 @@ public:
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapping/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapping/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// Empty vertex input state
+		VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
+		pipelineCreateInfo.pVertexInputState = &emptyInputState;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.quad));
+
+		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 
 		// Scene rendering with shadows applied
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -838,13 +841,6 @@ public:
 
 		uboVSscene.lightPos = lightPos;
 
-		// Render scene from light's point of view
-		if (lightPOV)
-		{
-			uboVSscene.projection = glm::perspective(glm::radians(lightFOV), (float)width / (float)height, zNear, zFar);
-			uboVSscene.view = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		}
-	
 		uboVSscene.depthBiasMVP = uboOffscreenVS.depthMVP;
 
 		memcpy(uniformBuffers.scene.mapped, &uboVSscene, sizeof(uboVSscene));
@@ -943,9 +939,6 @@ public:
 			}
 			if (overlay->checkBox("PCF filtering", &filterPCF)) {
 				buildCommandBuffers();
-			}
-			if (overlay->checkBox("Light POV", &lightPOV)) {
-				viewChanged();
 			}
 		}
 	}
