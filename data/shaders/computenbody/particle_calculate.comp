@@ -57,6 +57,7 @@ void main()
 		}
 
 		memoryBarrierShared();
+		barrier();
 
 		for (int j = 0; j < gl_WorkGroupSize.x; j++)
 		{
