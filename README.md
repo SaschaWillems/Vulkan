@@ -324,6 +324,16 @@ Generating curved PN-Triangles on the GPU using tessellation shaders to add deta
 
 Uses a geometry shader to generate per-vertex normals that could be used for debugging. The first pass displays the solid mesh using basic phong shading and then does a second pass with the geometry shader that generates normals for each vertex of the mesh.
 
+## Headless
+
+*Examples that run one-time tasks and don't make use of visual output (no window system integration). These can be run in environments where no user interface is available (see [blog entry](https://www.saschawillems.de/?p=2719) for details).*
+
+### [Compute](examples/computeheadless)
+Demonstrates basic compute shader usage for running calculations on an input data set (passed via SSBO). A fibonacci row is calculated based on input data via the compute shader, stored back and displayed via command line.
+
+### [Render](examples/renderheadless)
+Renders a basic scene to a (non-visible) frame buffer attachment, reads it back to host memory and stores it to disk. Also shows proper use of memory barriers required for device to host image synchronization.
+
 ## Extensions
 
 ### [VK_EXT_debug_marker](examples/debugmarker/)
