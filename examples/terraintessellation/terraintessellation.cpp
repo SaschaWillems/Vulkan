@@ -955,9 +955,11 @@ public:
 				}
 			}
 		}
-		if (overlay->header("Pipeline statistics")) {
-			overlay->text("VS invocations: %d", pipelineStats[0]);
-			overlay->text("TE invocations: %d", pipelineStats[1]);
+		if (deviceFeatures.pipelineStatisticsQuery) {
+			if (overlay->header("Pipeline statistics")) {
+				overlay->text("VS invocations: %d", pipelineStats[0]);
+				overlay->text("TE invocations: %d", pipelineStats[1]);
+			}
 		}
 	}
 };
