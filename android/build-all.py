@@ -60,6 +60,7 @@ EXAMPLES = [
     "texturecubemap",
     "texturemipmapgen",
     "triangle",
+    "viewportarray",
     "vulkanscene"
 ]
 

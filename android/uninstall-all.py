@@ -58,6 +58,7 @@ APP_NAMES = [
     "de.saschawillems.vulkanTexturecubemap",
     "de.saschawillems.vulkanTexturemipmapgen",
     "de.saschawillems.vulkanTriangle",
+    "de.saschawillems.vulkanViewportarray",
     "de.saschawillems.vulkanVulkanscene"
 ]
 

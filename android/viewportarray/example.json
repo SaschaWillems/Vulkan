@@ -1,0 +1,11 @@
+{
+  "apkname": "vulkanViewportarray",
+  "directories": {
+    "shaders": "viewportarray"
+  },
+  "assets": {
+    "models": [
+      "sampleroom.dae"
+    ]
+  }
+}
