@@ -258,13 +258,13 @@ void VulkanExampleBase::renderFrame()
 	fpsTimer += (float)tDiff;
 	if (fpsTimer > 1000.0f)
 	{
+		lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
 #if defined(_WIN32)
 		if (!settings.overlay)	{
 			std::string windowTitle = getWindowTitle();
 			SetWindowText(window, windowTitle.c_str());
 		}
 #endif
-		lastFPS = static_cast<uint32_t>(1.0f / frameTimer);
 		fpsTimer = 0.0f;
 		frameCounter = 0;
 	}
@@ -350,7 +350,7 @@ void VulkanExampleBase::renderLoop()
 			fpsTimer += (float)tDiff;
 			if (fpsTimer > 1000.0f)
 			{
-				lastFPS = frameCounter;
+				lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
 				fpsTimer = 0.0f;
 				frameCounter = 0;
 			}
@@ -440,7 +440,7 @@ void VulkanExampleBase::renderLoop()
 		fpsTimer += (float)tDiff;
 		if (fpsTimer > 1000.0f)
 		{
-			lastFPS = frameCounter;
+			lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
 			fpsTimer = 0.0f;
 			frameCounter = 0;
 		}
@@ -489,7 +489,7 @@ void VulkanExampleBase::renderLoop()
 				std::string windowTitle = getWindowTitle();
 				wl_shell_surface_set_title(shell_surface, windowTitle.c_str());
 			}
-			lastFPS = frameCounter;
+			lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
 			fpsTimer = 0.0f;
 			frameCounter = 0;
 		}
@@ -540,7 +540,7 @@ void VulkanExampleBase::renderLoop()
 					window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
 					windowTitle.size(), windowTitle.c_str());
 			}
-			lastFPS = frameCounter;
+			lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
 			fpsTimer = 0.0f;
 			frameCounter = 0;
 		}
