@@ -67,6 +67,14 @@ public:
 		return keys.left || keys.right || keys.up || keys.down;
 	}
 
+	float getNearClip() { 
+		return znear;
+	}
+
+	float getFarClip() {
+		return zfar;
+	}
+
 	void setPerspective(float fov, float aspect, float znear, float zfar)
 	{
 		this->fov = fov;
