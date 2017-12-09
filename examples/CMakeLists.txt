@@ -78,6 +78,7 @@ set(EXAMPLES
 	screenshot
 	shadowmapping
 	shadowmappingomni
+	shadowmappingcascade
 	skeletalanimation
 	specializationconstants
 	sphericalenvmapping
