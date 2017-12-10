@@ -50,7 +50,7 @@ float textureProj(vec4 P, vec2 offset, uint cascadeIndex)
 float filterPCF(vec4 sc, uint cascadeIndex)
 {
 	ivec2 texDim = textureSize(shadowMap, 0).xy;
-	float scale = 1.5;
+	float scale = 0.75;
 	float dx = scale * 1.0 / float(texDim.x);
 	float dy = scale * 1.0 / float(texDim.y);
 
@@ -93,23 +93,23 @@ void main()
 	vec3 H = normalize(L + inViewPos);
 	float diffuse = max(dot(N, L), 0.0);
 	vec3 lightColor = vec3(1.0);
-	outFragColor.rgb = max(lightColor * (diffuse ), vec3(0.0));
+	outFragColor.rgb = max(lightColor * (diffuse * inColor), vec3(0.0));
 	outFragColor.rgb *= shadow;
 
 	// Color cascades (if enabled)
 	if (ubo.colorCascades == 1) {
 		switch(cascadeIndex) {
 			case 0 : 
-				outFragColor.rgb *= vec3(1.0f, 0.0f, 0.0f);
+				outFragColor.rgb *= vec3(1.0f, 0.25f, 0.25f);
 				break;
 			case 1 : 
-				outFragColor.rgb *= vec3(0.0f, 1.0f, 0.0f);
+				outFragColor.rgb *= vec3(0.25f, 1.0f, 0.25f);
 				break;
 			case 2 : 
-				outFragColor.rgb *= vec3(0.0f, 0.0f, 1.0f);
+				outFragColor.rgb *= vec3(0.25f, 0.25f, 1.0f);
 				break;
 			case 3 : 
-				outFragColor.rgb *= vec3(1.0f, 1.0f, 0.0f);
+				outFragColor.rgb *= vec3(1.0f, 1.0f, 0.25f);
 				break;
 		}
 	}

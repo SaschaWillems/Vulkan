@@ -30,7 +30,6 @@
 #else
 #define SHADOWMAP_DIM 2048
 #endif
-#define SHADOWMAP_FILTER VK_FILTER_LINEAR
 
 #define SHADOW_MAP_CASCADE_COUNT 4
 
@@ -144,9 +143,11 @@ public:
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 2.5f;
 		camera.setPerspective(45.0f, (float)width / (float)height, zNear, zFar);
-		camera.setPosition(glm::vec3(8.75f, 0.5f, -8.3f));
-		camera.setRotation(glm::vec3(-1.0f, 50.0f, 0.0f));
+		camera.setPosition(glm::vec3(2.0f, 0.375f, -1.25f));
+		camera.setRotation(glm::vec3(-19.0f, 42.0f, 0.0f));
 		settings.overlay = true;
+		timer = 0.317028880f;
+		paused = true;
 	}
 
 	~VulkanExample()
@@ -313,8 +314,8 @@ public:
 
 		// Shared sampler for cascade deoth reads
 		VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
-		sampler.magFilter = SHADOWMAP_FILTER;
-		sampler.minFilter = SHADOWMAP_FILTER;
+		sampler.magFilter = VK_FILTER_LINEAR;
+		sampler.minFilter = VK_FILTER_LINEAR;
 		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		sampler.addressModeV = sampler.addressModeU;
@@ -387,7 +388,7 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i) {
+		for (int32_t i = 0; i < drawCmdBuffers.size(); i++) {
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
@@ -426,9 +427,10 @@ public:
 	void loadAssets()
 	{
 		scenes.resize(2);
-		scenes[0].loadFromFile(getAssetPath() + "models/terrain.obj", vertexLayout, 2.0f, vulkanDevice, queue);
-		scenes[1].loadFromFile(getAssetPath() + "models/shadowtest.obj", vertexLayout, 0.25f, vulkanDevice, queue);
-		sceneNames = {"Terrain test", "Object test" };
+		scenes[0].loadFromFile(getAssetPath() + "models/trees.dae", vertexLayout, 1.0f, vulkanDevice, queue);
+		scenes[1].loadFromFile(getAssetPath() + "models/samplescene.dae", vertexLayout, 0.25f, vulkanDevice, queue);
+		sceneNames = { "Trees", "Teapots and pillars" };
+
 	}
 
 	void setupDescriptorPool()
@@ -655,6 +657,7 @@ public:
 	}
 
 	// Calculate frustum split depths and matrices for the shadow map cascades
+	// Based on https://johanmedestrom.wordpress.com/2016/03/18/opengl-cascaded-shadow-maps/
 	void updateCascades()
 	{
 		float cascadeSplits[SHADOW_MAP_CASCADE_COUNT];
@@ -681,7 +684,7 @@ public:
 
 		// Calculate orthographic projection matrix for each cascade
 		float lastSplitDist = 0.0;
-		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; ++i) {
+		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
 			float splitDist = cascadeSplits[i];
 
 			glm::vec3 frustumCorners[8] = {
@@ -697,12 +700,12 @@ public:
 
 			// Project frustum corners into world space
 			glm::mat4 invCam = glm::inverse(camera.matrices.perspective * camera.matrices.view);
-			for (uint32_t i = 0; i < 8; ++i) {
+			for (uint32_t i = 0; i < 8; i++) {
 				glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
 				frustumCorners[i] = invCorner / invCorner.w;
 			}
 
-			for (uint32_t i = 0; i < 4; ++i) {
+			for (uint32_t i = 0; i < 4; i++) {
 				glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
 				frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
 				frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
@@ -716,25 +719,21 @@ public:
 			frustumCenter /= 8.0f;
 
 			float radius = 0.0f;
-			for (uint32_t i = 0; i < 8; ++i) {
+			for (uint32_t i = 0; i < 8; i++) {
 				float distance = glm::length(frustumCorners[i] - frustumCenter);
 				radius = glm::max(radius, distance);
 			}
 			radius = std::ceil(radius * 16.0f) / 16.0f;
 
-			glm::vec3 maxExtents = glm::vec3(radius, radius, radius);
+			glm::vec3 maxExtents = glm::vec3(radius);
 			glm::vec3 minExtents = -maxExtents;
 
 			glm::vec3 lightDir = normalize(-lightPos);
 			glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
-
-			glm::vec3 cascadeExtents = maxExtents - minExtents;
-
-			glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, cascadeExtents.z);
+			glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
 
 			// Store split distance and matrix in cascade
-			const float clipDist = camera.getFarClip() - camera.getNearClip();
-			cascades[i].splitDepth = (camera.getNearClip() + splitDist * clipDist) * -1.0f;
+			cascades[i].splitDepth = (camera.getNearClip() + splitDist * clipRange) * -1.0f;
 			cascades[i].viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
 
 			lastSplitDist = cascadeSplits[i];
@@ -743,9 +742,9 @@ public:
 
 	void updateLight()
 	{
-		lightPos.x = cos(glm::radians(timer * 360.0f)) * 50.0f;
-		lightPos.y = -20.0f;
-		lightPos.z = sin(glm::radians(timer * 360.0f)) * 50.0f;
+		float angle = glm::radians(timer * 360.0f);
+		float radius = 20.0f;
+		lightPos = glm::vec3(cos(angle) * radius, -radius, sin(angle) * radius);
 	}
 
 	void updateUniformBuffers()
@@ -813,6 +812,8 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
+		updateLight();
+		updateCascades();
 		prepareShadowMaps();
 		prepareUniformBuffers();
 		setupDescriptorPool();
@@ -820,7 +821,6 @@ public:
 		preparePipelines();
 		buildCommandBuffers();
 		buildOffscreenCommandBuffer();
-		updateCascades();
 		prepared = true;
 	}
 
