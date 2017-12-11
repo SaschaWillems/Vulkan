@@ -184,6 +184,10 @@ namespace vks
 			free(meshData);
 #else
 			pScene = Importer.ReadFile(filename.c_str(), flags);
+			if (!pScene) {
+				std::string error = Importer.GetErrorString();
+				vks::tools::exitFatal(error + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", "Error");
+			}
 #endif
 
 			if (pScene)
