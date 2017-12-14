@@ -1,0 +1,12 @@
+{
+  "apkname": "vulkanShadowmappingcascade",
+  "directories": {
+    "shaders": "shadowmappingcascade"
+  },
+  "assets": {
+    "models": [
+      "trees.dae",
+      "samplescene.dae"
+    ]
+  }
+}

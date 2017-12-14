@@ -44,6 +44,7 @@ APP_NAMES = [
     "de.saschawillems.vulkanScenerendering",
     "de.saschawillems.vulkanShadowmapping",
     "de.saschawillems.vulkanShadowmappingomni",
+    "de.saschawillems.vulkanShadowmappingcascade"
     "de.saschawillems.vulkanSkeletalanimation",
     "de.saschawillems.vulkanSpecializationconstants",
     "de.saschawillems.vulkanSphericalenvmapping",

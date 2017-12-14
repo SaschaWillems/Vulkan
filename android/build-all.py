@@ -45,6 +45,7 @@ EXAMPLES = [
     "ssao",
     "scenerendering",
     "shadowmapping",
+    "shadowmappingcascade",
     "shadowmappingomni",
     "skeletalanimation",
     "specializationconstants",
