@@ -21,6 +21,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanBuffer.hpp"
+#include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
 #define ENABLE_VALIDATION false
@@ -28,7 +29,7 @@
 #if defined(__ANDROID__)
 #define SHADOWMAP_DIM 1024
 #else
-#define SHADOWMAP_DIM 2048
+#define SHADOWMAP_DIM 4096
 #endif
 
 #define SHADOW_MAP_CASCADE_COUNT 4
@@ -41,7 +42,7 @@ public:
 	bool colorCascades = false;
 	bool filterPCF = false;
 
-	float cascadeSplitLambda = 1.0f;
+	float cascadeSplitLambda = 0.95f;
 
 	float zNear = 0.5f;
 	float zFar = 48.0f;
@@ -56,23 +57,27 @@ public:
 		vks::VERTEX_COMPONENT_NORMAL,
 	});
 
-	std::vector<vks::Model> scenes;
-	std::vector<std::string> sceneNames;
-	int32_t sceneIndex = 0;
+	std::vector<vks::Model> models;
 
-	struct {
+	struct Material {
+		vks::Texture2D texture;
+		VkDescriptorSet descriptorSet;
+	};
+	std::vector<Material> materials;
+
+	struct uniformBuffers {
 		vks::Buffer VS;
 		vks::Buffer FS;
 	} uniformBuffers;
 
-	struct {
+	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 model;
 		glm::vec3 lightDir;
 	} uboVS;
 
-	struct {
+	struct UBOFS {
 		float cascadeSplits[4];
 		glm::mat4 cascadeViewProjMat[4];
 		glm::mat4 inverseViewMat;
@@ -81,15 +86,24 @@ public:
 		int32_t colorCascades;
 	} uboFS;
 
-	struct {
+	VkPipelineLayout pipelineLayout;
+	struct Pipelines {
 		VkPipeline debugShadowMap;
 		VkPipeline sceneShadow;
 		VkPipeline sceneShadowPCF;
 	} pipelines;
 
-	VkPipelineLayout pipelineLayout;
+	struct DescriptorSetLayouts {
+		VkDescriptorSetLayout base;
+		VkDescriptorSetLayout material;
+	} descriptorSetLayouts;
 	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+
+	// For simplicity all pipelines use the same push constant block layout
+	struct PushConstBlock {
+		glm::vec4 position;
+		uint32_t cascadeIndex;
+	};
 
 	// Resources of the depth map generation pass
 	struct DepthPass {
@@ -139,15 +153,18 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Cascaded shadow mapping";
-		timerSpeed *= 0.05f;
+		timerSpeed *= 0.025f;
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 2.5f;
 		camera.setPerspective(45.0f, (float)width / (float)height, zNear, zFar);
-		camera.setPosition(glm::vec3(2.0f, 0.375f, -1.25f));
-		camera.setRotation(glm::vec3(-19.0f, 42.0f, 0.0f));
+		camera.setPosition(glm::vec3(0.0f, 0.62f, -2.4f));
+		camera.setRotation(glm::vec3(0.0f, -13.0f, 0.0f));
+
+		camera.setPosition(glm::vec3(-0.12f, 1.14f, -2.25f));
+		camera.setRotation(glm::vec3(-17.0f, 7.0f, 0.0f));
+
 		settings.overlay = true;
-		timer = 0.317028880f;
-		paused = true;
+		timer = 0.2f;
 	}
 
 	~VulkanExample()
@@ -167,10 +184,14 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyPipelineLayout(device, depthPass.pipelineLayout, nullptr);
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.base, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.material, nullptr);
 
-		for (auto scene : scenes) {
-			scene.destroy();
+		for (auto model : models) {
+			model.destroy();
+		}
+		for (auto material : materials) {
+			material.texture.destroy();
 		}
 
 		depthPass.uniformBuffer.destroy();
@@ -183,6 +204,7 @@ public:
 
 	virtual void getEnabledFeatures()
 	{
+		enabledFeatures.samplerAnisotropy = deviceFeatures.samplerAnisotropy;
 		// Depth clamp to avoid near plane clipping
 		enabledFeatures.depthClamp = deviceFeatures.depthClamp;		
 	}
@@ -194,7 +216,7 @@ public:
 		vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
 
 		depthPass.commandBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
-		// Create a semaphore used to synchronize offscreen rendering and usage
+		// Create a semaphore used to synchronize depth map generation and use
 		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &depthPass.semaphore));
 
@@ -328,6 +350,48 @@ public:
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &depth.sampler));
 	}
 
+	void renderScene(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet, uint32_t cascadeIndex = 0) {
+		const VkDeviceSize offsets[1] = { 0 };
+		PushConstBlock pushConstBlock = { glm::vec4(0.0f), cascadeIndex };
+
+		std::array<VkDescriptorSet,2> sets;
+		sets[0] = descriptorSet;
+
+		// Floor
+		sets[1] = materials[0].descriptorSet;
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, NULL);
+		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models[0].vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, models[0].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(commandBuffer, models[0].indexCount, 1, 0, 0, 0);
+
+		// Trees
+		const std::vector<glm::vec3> positions = {
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::vec3(1.25f, 0.25f, 1.25f),
+			glm::vec3(-1.25f, -0.2f, 1.25f),
+			glm::vec3(1.25f, 0.1f, -1.25f),
+			glm::vec3(-1.25f, -0.25f, -1.25f),
+		};
+
+		for (auto position : positions) {
+			pushConstBlock.position = glm::vec4(position, 0.0f);
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+
+			sets[1] = materials[1].descriptorSet;
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, NULL);
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models[1].vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, models[1].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(commandBuffer, models[1].indexCount, 1, 0, 0, 0);
+
+			sets[1] = materials[2].descriptorSet;
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, NULL);
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models[2].vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, models[2].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(commandBuffer, models[2].indexCount, 1, 0, 0, 0);
+		}
+	}
+
 	void buildOffscreenCommandBuffer()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -358,12 +422,9 @@ public:
 			renderPassBeginInfo.framebuffer = cascades[i].frameBuffer;
 			vkCmdBeginRenderPass(depthPass.commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdBindPipeline(depthPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPass.pipeline);
-			vkCmdPushConstants(depthPass.commandBuffer, depthPass.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &i);
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindDescriptorSets(depthPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPass.pipelineLayout, 0, 1, &cascades[i].descriptorSet, 0, NULL);
-			vkCmdBindVertexBuffers(depthPass.commandBuffer, 0, 1, &scenes[sceneIndex].vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(depthPass.commandBuffer, scenes[sceneIndex].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(depthPass.commandBuffer, scenes[sceneIndex].indexCount, 1, 0, 0, 0);
+			renderScene(depthPass.commandBuffer, depthPass.pipelineLayout, cascades[i].descriptorSet, i);
 			vkCmdEndRenderPass(depthPass.commandBuffer);
 		}
 
@@ -407,16 +468,15 @@ public:
 			if (displayDepthMap) {
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debugShadowMap);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &displayDepthMapCascadeIndex);
+				PushConstBlock pushConstBlock = {};
+				pushConstBlock.cascadeIndex = displayDepthMapCascadeIndex;
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
 				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 			}
 
 			// Render shadowed scene
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, (filterPCF) ? pipelines.sceneShadowPCF : pipelines.sceneShadow);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &scenes[sceneIndex].vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], scenes[sceneIndex].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], scenes[sceneIndex].indexCount, 1, 0, 0, 0);
+			renderScene(drawCmdBuffers[i], pipelineLayout, descriptorSet);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -426,80 +486,65 @@ public:
 
 	void loadAssets()
 	{
-		scenes.resize(2);
-		scenes[0].loadFromFile(getAssetPath() + "models/trees.dae", vertexLayout, 1.0f, vulkanDevice, queue);
-		scenes[1].loadFromFile(getAssetPath() + "models/samplescene.dae", vertexLayout, 0.25f, vulkanDevice, queue);
-		sceneNames = { "Trees", "Teapots and pillars" };
+		materials.resize(3);
+		materials[0].texture.loadFromFile(getAssetPath() + "textures/gridlines.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		materials[1].texture.loadFromFile(getAssetPath() + "textures/oak_bark.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		materials[2].texture.loadFromFile(getAssetPath() + "textures/oak_leafs.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 
+		models.resize(3);
+		models[0].loadFromFile(getAssetPath() + "models/terrain_simple.dae", vertexLayout, 1.0f, vulkanDevice, queue);
+		models[1].loadFromFile(getAssetPath() + "models/oak_trunk.dae", vertexLayout, 2.0f, vulkanDevice, queue);
+		models[2].loadFromFile(getAssetPath() + "models/oak_leafs.dae", vertexLayout, 2.0f, vulkanDevice, queue);
 	}
 
-	void setupDescriptorPool()
+	void setupLayoutsAndDescriptors() 
 	{
+		/*
+			Descriptor pool
+		*/
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 12),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 32),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 32)
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), 3 + SHADOW_MAP_CASCADE_COUNT);
+			vks::initializers::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), 4 + SHADOW_MAP_CASCADE_COUNT);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupLayoutsAndDescriptors()
-	{
 		/*
-			Layouts
+			Descriptor set layouts
 		*/
 
+		// Shared matrices and samplers
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
 		};
-
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.base));
 
-		// Shared pipeline layout
-		{
-			// Pass cascade index as push constant
-			VkPushConstantRange pushConstantRange =
-				vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(uint32_t), 0);
-			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =
-				vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-			pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-		}
-
-		// Offscreen pipeline layout
-		{
-			// Pass cascade matrix as push constant
-			VkPushConstantRange pushConstantRange =
-				vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4), 0);
-			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =
-				vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-			pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &depthPass.pipelineLayout));
-		}
+		// Material texture
+		setLayoutBindings = {
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+		};
+		descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.material));
 
 		/*
-			Dscriptor sets
+			Descriptor sets
 		*/
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-
-		// Scene rendering / debug display
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-
 		VkDescriptorImageInfo depthMapDescriptor =
 			vks::initializers::descriptorImageInfo(depth.sampler, depth.view, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
+		VkDescriptorSetAllocateInfo allocInfo =
+			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.base, 1);
+
+		// Scene rendering / debug display
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 		writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.VS.descriptor),
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &depthMapDescriptor),
@@ -507,7 +552,7 @@ public:
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
-		// Per-cascade descriptor set
+		// Per-cascade descriptor sets
 		// Each descriptor set represents a single layer of the array texture
 		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &cascades[i].descriptorSet));
@@ -517,6 +562,38 @@ public:
 				vks::initializers::writeDescriptorSet(cascades[i].descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &cascadeImageInfo)
 			};
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+		}
+
+		// Per-material descriptor sets
+		allocInfo.pSetLayouts = &descriptorSetLayouts.material;
+		for (auto& material : materials) {
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &material.descriptorSet));
+			VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &material.texture.descriptor);
+			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		}
+
+		/*
+			Pipeline layouts
+		*/
+
+		// Shared pipeline layout (scene and depth map debug display)
+		{
+			VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(PushConstBlock), 0);
+			std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayouts.base, descriptorSetLayouts.material };
+			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
+			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+			pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+		}
+
+		// Depth pass pipeline layout
+		{
+			VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(PushConstBlock), 0);
+			std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayouts.base, descriptorSetLayouts.material };
+			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
+			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+			pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &depthPass.pipelineLayout));
 		}
 	}
 
@@ -597,7 +674,7 @@ public:
 		/*
 			Shadow mapped scene rendering
 		*/
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmappingcascade/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmappingcascade/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Use specialization constants to select between horizontal and vertical blur
@@ -605,9 +682,7 @@ public:
 		VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
 		VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(uint32_t), &enablePCF);
 		shaderStages[1].pSpecializationInfo = &specializationInfo;
-		// No filtering
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.sceneShadow));
-		// PCF filtering
 		enablePCF = 1;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.sceneShadowPCF));
 
@@ -816,7 +891,6 @@ public:
 		updateCascades();
 		prepareShadowMaps();
 		prepareUniformBuffers();
-		setupDescriptorPool();
 		setupLayoutsAndDescriptors();
 		preparePipelines();
 		buildCommandBuffers();
@@ -845,10 +919,6 @@ public:
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (overlay->comboBox("Scenes", &sceneIndex, sceneNames)) {
-				buildCommandBuffers();
-				buildOffscreenCommandBuffer();
-			}
 			if (overlay->sliderFloat("Split lambda", &cascadeSplitLambda, 0.1f, 1.0f)) {
 				updateCascades();
 				updateUniformBuffers();

@@ -15,6 +15,12 @@ layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
 layout (location = 2) out vec3 outViewPos;
 layout (location = 3) out vec3 outPos;
+layout (location = 4) out vec2 outUV;
+
+layout(push_constant) uniform PushConsts {
+	vec4 position;
+	uint cascadeIndex;
+} pushConsts;
 
 out gl_PerVertex {
 	vec4 gl_Position;   
@@ -24,8 +30,10 @@ void main()
 {
 	outColor = inColor;
 	outNormal = inNormal;
-	outPos = inPos;
-	outViewPos = (ubo.view * vec4(inPos.xyz, 1.0)).xyz;
-	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos.xyz, 1.0);
+	outUV = inUV;
+	vec3 pos = inPos + pushConsts.position.xyz;
+	outPos = pos;
+	outViewPos = (ubo.view * vec4(pos.xyz, 1.0)).xyz;
+	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(pos.xyz, 1.0);
 }
 

@@ -2,20 +2,22 @@
 
 #define SHADOW_MAP_CASCADE_COUNT 4
 
-layout (binding = 1) uniform sampler2DArray shadowMap;
+layout (set = 0, binding = 1) uniform sampler2DArray shadowMap;
+layout (set = 1, binding = 0) uniform sampler2D colorMap;
 
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec3 inColor;
 layout (location = 2) in vec3 inViewPos;
 layout (location = 3) in vec3 inPos;
+layout (location = 4) in vec2 inUV;
 
 layout (constant_id = 0) const int enablePCF = 0;
 
 layout (location = 0) out vec4 outFragColor;
 
-#define ambient 0.1
+#define ambient 0.3
 
-layout (binding = 2) uniform UBO {
+layout (set = 0, binding = 2) uniform UBO {
 	vec4 cascadeSplits;
 	mat4 cascadeViewProjMat[SHADOW_MAP_CASCADE_COUNT];
 	mat4 inverseViewMat;
@@ -69,6 +71,11 @@ float filterPCF(vec4 sc, uint cascadeIndex)
 
 void main() 
 {	
+	vec4 color = texture(colorMap, inUV);
+	if (color.a < 0.5) {
+		discard;
+	}
+
 	// Get cascade index for the current fragment's view position
 	uint cascadeIndex = 0;
 	for(uint i = 0; i < SHADOW_MAP_CASCADE_COUNT - 1; ++i) {
@@ -91,10 +98,11 @@ void main()
 	vec3 N = normalize(inNormal);
 	vec3 L = normalize(-ubo.lightDir);
 	vec3 H = normalize(L + inViewPos);
-	float diffuse = max(dot(N, L), 0.0);
+	float diffuse = max(dot(N, L), ambient);
 	vec3 lightColor = vec3(1.0);
-	outFragColor.rgb = max(lightColor * (diffuse * inColor), vec3(0.0));
+	outFragColor.rgb = max(lightColor * (diffuse * color.rgb), vec3(0.0));
 	outFragColor.rgb *= shadow;
+	outFragColor.a = color.a;
 
 	// Color cascades (if enabled)
 	if (ubo.colorCascades == 1) {
