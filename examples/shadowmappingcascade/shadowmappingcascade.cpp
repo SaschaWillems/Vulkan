@@ -216,6 +216,52 @@ public:
 	}
 
 	/*
+		Render the example scene with given command buffer, pipeline layout and dscriptor set
+		Used by the scene rendering and depth pass generation command buffer
+	*/
+	void renderScene(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet, uint32_t cascadeIndex = 0) {
+		const VkDeviceSize offsets[1] = { 0 };
+		PushConstBlock pushConstBlock = { glm::vec4(0.0f), cascadeIndex };
+
+		std::array<VkDescriptorSet, 2> sets;
+		sets[0] = descriptorSet;
+
+		// Floor
+		sets[1] = materials[0].descriptorSet;
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, NULL);
+		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models[0].vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, models[0].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(commandBuffer, models[0].indexCount, 1, 0, 0, 0);
+
+		// Trees
+		const std::vector<glm::vec3> positions = {
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::vec3(1.25f, 0.25f, 1.25f),
+			glm::vec3(-1.25f, -0.2f, 1.25f),
+			glm::vec3(1.25f, 0.1f, -1.25f),
+			glm::vec3(-1.25f, -0.25f, -1.25f),
+		};
+
+		for (auto position : positions) {
+			pushConstBlock.position = glm::vec4(position, 0.0f);
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+
+			sets[1] = materials[1].descriptorSet;
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, NULL);
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models[1].vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, models[1].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(commandBuffer, models[1].indexCount, 1, 0, 0, 0);
+
+			sets[1] = materials[2].descriptorSet;
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, NULL);
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models[2].vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, models[2].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(commandBuffer, models[2].indexCount, 1, 0, 0, 0);
+		}
+	}
+
+	/*
 		Setup resources used by the depth pass
 		The depth image is layered with each layer storing one shadow map cascade
 	*/
@@ -320,6 +366,7 @@ public:
 		// One image and framebuffer per cascade
 		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
 			// Image view for this cascade's layer (inside the depth map)
+			// This view is used to render to that specific depth image layer
 			VkImageViewCreateInfo viewInfo = vks::initializers::imageViewCreateInfo();
 			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 			viewInfo.format = depthFormat;
@@ -358,49 +405,12 @@ public:
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &depth.sampler));
 	}
 
-	void renderScene(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet, uint32_t cascadeIndex = 0) {
-		const VkDeviceSize offsets[1] = { 0 };
-		PushConstBlock pushConstBlock = { glm::vec4(0.0f), cascadeIndex };
-
-		std::array<VkDescriptorSet,2> sets;
-		sets[0] = descriptorSet;
-
-		// Floor
-		sets[1] = materials[0].descriptorSet;
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, NULL);
-		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models[0].vertices.buffer, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, models[0].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(commandBuffer, models[0].indexCount, 1, 0, 0, 0);
-
-		// Trees
-		const std::vector<glm::vec3> positions = {
-			glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::vec3(1.25f, 0.25f, 1.25f),
-			glm::vec3(-1.25f, -0.2f, 1.25f),
-			glm::vec3(1.25f, 0.1f, -1.25f),
-			glm::vec3(-1.25f, -0.25f, -1.25f),
-		};
-
-		for (auto position : positions) {
-			pushConstBlock.position = glm::vec4(position, 0.0f);
-			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
-
-			sets[1] = materials[1].descriptorSet;
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, NULL);
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models[1].vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, models[1].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(commandBuffer, models[1].indexCount, 1, 0, 0, 0);
-
-			sets[1] = materials[2].descriptorSet;
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, NULL);
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models[2].vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, models[2].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(commandBuffer, models[2].indexCount, 1, 0, 0, 0);
-		}
-	}
-
-	void buildOffscreenCommandBuffer()
+	/*
+		Build the command buffer for rendering the depth map cascades
+		Uses multiple passes with each pass rendering the scene to the cascade's depth image layer
+		Could be optimized using a geometry shader (and layered frame buffer) on devices that support geometry shaders
+	*/
+	void buildDepthPassCommandBuffer()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -424,8 +434,8 @@ public:
 		VkRect2D scissor = vks::initializers::rect2D(SHADOWMAP_DIM, SHADOWMAP_DIM, 0, 0);
 		vkCmdSetScissor(depthPass.commandBuffer, 0, 1, &scissor);
 
-		// Multi-pass depht map cascade generation
-		// Could be simplified to one pass using geometry shaders and layered frame buffers
+		// One pass per cascade
+		// The layer that this pass renders too is defined by the cascade's image view (selected via the cascade's decsriptor set)
 		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
 			renderPassBeginInfo.framebuffer = cascades[i].frameBuffer;
 			vkCmdBeginRenderPass(depthPass.commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -904,7 +914,7 @@ public:
 		setupLayoutsAndDescriptors();
 		preparePipelines();
 		buildCommandBuffers();
-		buildOffscreenCommandBuffer();
+		buildDepthPassCommandBuffer();
 		prepared = true;
 	}
 
