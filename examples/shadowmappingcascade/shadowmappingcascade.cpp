@@ -440,8 +440,6 @@ public:
 			renderPassBeginInfo.framebuffer = cascades[i].frameBuffer;
 			vkCmdBeginRenderPass(depthPass.commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdBindPipeline(depthPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPass.pipeline);
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindDescriptorSets(depthPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPass.pipelineLayout, 0, 1, &cascades[i].descriptorSet, 0, NULL);
 			renderScene(depthPass.commandBuffer, depthPass.pipelineLayout, cascades[i].descriptorSet, i);
 			vkCmdEndRenderPass(depthPass.commandBuffer);
 		}
