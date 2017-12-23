@@ -1,11 +1,21 @@
 /*
-* Vulkan Example - Cascaded shadow mapping for directional light sources
-*
-* Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+	Vulkan Example - Cascaded shadow mapping for directional light sources
+	Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+	This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
-// Note: Could be simplified with a layered frame buffer using geometry shaders (not available on all devices)
+
+/*
+	This example implements projective cascaded shadow mapping. This technique splits up the camera frustum into
+	multiple frustums with each getting it's own full-res shadow map, implemented as a layered depth-only image.
+	The shader then selects the proper shadow map layer depending on what split of the frustum the depth value
+	to compare fits into.
+
+	This results in a better shadow map resolution distribution that can be tweaked even further by increasing
+	the number of frustum splits.
+
+	A further optimization could be done using a geometry shader to do a single-pass render for the depth map
+	cascades instead of multiple passes (geometry shaders are not supported on all target devices).
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +37,7 @@
 #define ENABLE_VALIDATION false
 
 #if defined(__ANDROID__)
-#define SHADOWMAP_DIM 1024
+#define SHADOWMAP_DIM 2048
 #else
 #define SHADOWMAP_DIM 4096
 #endif
@@ -157,12 +167,8 @@ public:
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 2.5f;
 		camera.setPerspective(45.0f, (float)width / (float)height, zNear, zFar);
-		camera.setPosition(glm::vec3(0.0f, 0.62f, -2.4f));
-		camera.setRotation(glm::vec3(0.0f, -13.0f, 0.0f));
-
 		camera.setPosition(glm::vec3(-0.12f, 1.14f, -2.25f));
 		camera.setRotation(glm::vec3(-17.0f, 7.0f, 0.0f));
-
 		settings.overlay = true;
 		timer = 0.2f;
 	}
@@ -209,8 +215,11 @@ public:
 		enabledFeatures.depthClamp = deviceFeatures.depthClamp;		
 	}
 
-	// Setup resources used for the shadow map cascades
-	void prepareShadowMaps()
+	/*
+		Setup resources used by the depth pass
+		The depth image is layered with each layer storing one shadow map cascade
+	*/
+	void prepareDepthPass()
 	{
 		VkFormat depthFormat;
 		vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
@@ -276,7 +285,6 @@ public:
 			Layered depth image and views
 		*/
 
-		// Layered depth image 
 		VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageInfo.extent.width = SHADOWMAP_DIM;
@@ -731,8 +739,10 @@ public:
 		updateUniformBuffers();
 	}
 
-	// Calculate frustum split depths and matrices for the shadow map cascades
-	// Based on https://johanmedestrom.wordpress.com/2016/03/18/opengl-cascaded-shadow-maps/
+	/*
+		Calculate frustum split depths and matrices for the shadow map cascades
+		Based on https://johanmedestrom.wordpress.com/2016/03/18/opengl-cascaded-shadow-maps/
+	*/
 	void updateCascades()
 	{
 		float cascadeSplits[SHADOW_MAP_CASCADE_COUNT];
@@ -889,7 +899,7 @@ public:
 		loadAssets();
 		updateLight();
 		updateCascades();
-		prepareShadowMaps();
+		prepareDepthPass();
 		prepareUniformBuffers();
 		setupLayoutsAndDescriptors();
 		preparePipelines();

@@ -5,8 +5,14 @@
   },
   "assets": {
     "models": [
-      "trees.dae",
-      "samplescene.dae"
+      "terrain_simple.dae",
+      "oak_trunk.dae",
+      "oak_leafs.dae"
+    ],
+    "textures": [
+      "gridlines.ktx",
+      "oak_bark.ktx",
+      "oak_leafs.ktx"
     ]
   }
 }
