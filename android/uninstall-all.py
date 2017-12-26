@@ -36,6 +36,7 @@ APP_NAMES = [
     "de.saschawillems.vulkanParallaxmapping",
     "de.saschawillems.vulkanParticlefire",
     "de.saschawillems.vulkanPipelines",
+    "de.saschawillems.vulkanPipelinestatistics",
     "de.saschawillems.vulkanPushconstants",
     "de.saschawillems.vulkanRadialblur",
     "de.saschawillems.vulkanRaytracing",
