@@ -202,6 +202,13 @@ Dynamic shadows from a ```directional light source``` in two passes. The first p
 
 The second pass renders the scene from the camera's point-of-view and compares the depth value of the texels with the one stored in the offscreen depth attachment (which the shader directly samples from) to determine whether a texel is shadowed or not and then applies a PCF filter to smooth out shadow borders. To avoid shadow artefacts the dynamic depth bias state ([vkCmdSetDepthBias](https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdSetDepthBias.html)) is used to apply a constant and slope depth bias factor.
 
+### [Cascaded shadow mapping](examples/shadowmappingcascade/)
+<img src="./screenshots/cascaded_shadow_mapping.jpg" height="72px" align="right">
+
+Implements a technique that splits up the camera frustum into multiple frustums, with each getting it's own full-res shadow map (stored in a layered texture). In the final scene rendering pass the shader then selects the proper depth map layer (cascade) by comparing the fragment's depth against cascade split depths.
+
+This results in a better shadow map resolution distribution with objects closer to the camera getting the highest shadow map resolution. This is esp. useful in large open scenes with high shadow draw distances where a single depth map would result in a poor shadow map resolution coverage.
+
 ### [Omnidirectional shadow mapping](examples/shadowmappingomni/)
 <img src="./screenshots/shadow_omnidirectional.png" height="72px" align="right">
 
