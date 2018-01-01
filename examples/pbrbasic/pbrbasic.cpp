@@ -60,14 +60,12 @@ public:
 	});
 
 	struct Meshes {
-		vks::Model skybox;
 		std::vector<vks::Model> objects;
 		int32_t objectIndex = 0;
 	} models;
 
 	struct {
 		vks::Buffer object;
-		vks::Buffer skybox;
 		vks::Buffer params;
 	} uniformBuffers;
 
@@ -139,10 +137,8 @@ public:
 		for (auto& model : models.objects) {
 			model.destroy();
 		}
-		models.skybox.destroy();
 
 		uniformBuffers.object.destroy();
-		uniformBuffers.skybox.destroy();
 		uniformBuffers.params.destroy();
 	}
 
@@ -220,9 +216,6 @@ public:
 
 	void loadAssets()
 	{
-		// Skybox
-		models.skybox.loadFromFile(getAssetPath() + "models/cube.obj", vertexLayout, 1.0f, vulkanDevice, queue);
-		// Objects
 		std::vector<std::string> filenames = { "geosphere.obj", "teapot.dae", "torusknot.obj", "venus.fbx" };
 		for (auto file : filenames) {
 			vks::Model model;
@@ -371,13 +364,6 @@ public:
 			&uniformBuffers.object,
 			sizeof(uboMatrices)));
 
-		// Skybox vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.skybox,
-			sizeof(uboMatrices)));
-
 		// Shared parameter uniform buffer
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -387,7 +373,6 @@ public:
 
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffers.object.map());
-		VK_CHECK_RESULT(uniformBuffers.skybox.map());
 		VK_CHECK_RESULT(uniformBuffers.params.map());
 
 		updateUniformBuffers();
@@ -402,10 +387,6 @@ public:
 		uboMatrices.model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f + (models.objectIndex == 1 ? 45.0f : 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboMatrices.camPos = camera.position * -1.0f;
 		memcpy(uniformBuffers.object.mapped, &uboMatrices, sizeof(uboMatrices));
-
-		// Skybox
-		uboMatrices.model = glm::mat4(glm::mat3(camera.matrices.view));
-		memcpy(uniformBuffers.skybox.mapped, &uboMatrices, sizeof(uboMatrices));
 	}
 
 	void updateLights()
