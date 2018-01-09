@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 /*
-** Copyright (c) 2015-2017 The Khronos Group Inc.
+** Copyright (c) 2015-2018 The Khronos Group Inc.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 61
+#define VK_HEADER_VERSION 67
 
 
 #define VK_NULL_HANDLE 0
@@ -147,6 +147,7 @@ typedef enum VkResult {
     VK_ERROR_INVALID_SHADER_NV = -1000012000,
     VK_ERROR_OUT_OF_POOL_MEMORY_KHR = -1000069000,
     VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR = -1000072003,
+    VK_ERROR_NOT_PERMITTED_EXT = -1000174001,
     VK_RESULT_BEGIN_RANGE = VK_ERROR_FRAGMENTED_POOL,
     VK_RESULT_END_RANGE = VK_INCOMPLETE,
     VK_RESULT_RANGE_SIZE = (VK_INCOMPLETE - VK_ERROR_FRAGMENTED_POOL + 1),
@@ -303,6 +304,8 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SWIZZLE_STATE_CREATE_INFO_NV = 1000098000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISCARD_RECTANGLE_PROPERTIES_EXT = 1000099000,
     VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT = 1000099001,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT = 1000101000,
+    VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT = 1000101001,
     VK_STRUCTURE_TYPE_HDR_METADATA_EXT = 1000105000,
     VK_STRUCTURE_TYPE_SHARED_PRESENT_SURFACE_CAPABILITIES_KHR = 1000111000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_FENCE_INFO_KHR = 1000112000,
@@ -353,6 +356,10 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO_KHR = 1000157001,
     VK_STRUCTURE_TYPE_VALIDATION_CACHE_CREATE_INFO_EXT = 1000160000,
     VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT = 1000160001,
+    VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT = 1000174000,
+    VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT = 1000178000,
+    VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT = 1000178001,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT = 1000178002,
     VK_STRUCTURE_TYPE_BEGIN_RANGE = VK_STRUCTURE_TYPE_APPLICATION_INFO,
     VK_STRUCTURE_TYPE_END_RANGE = VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO,
     VK_STRUCTURE_TYPE_RANGE_SIZE = (VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO - VK_STRUCTURE_TYPE_APPLICATION_INFO + 1),
@@ -4193,6 +4200,9 @@ typedef enum VkExternalMemoryHandleTypeFlagBitsKHR {
     VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT_BIT_KHR = 0x00000010,
     VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP_BIT_KHR = 0x00000020,
     VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE_BIT_KHR = 0x00000040,
+    VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT = 0x00000200,
+    VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT = 0x00000080,
+    VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_MAPPED_FOREIGN_MEMORY_BIT_EXT = 0x00000100,
     VK_EXTERNAL_MEMORY_HANDLE_TYPE_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
 } VkExternalMemoryHandleTypeFlagBitsKHR;
 typedef VkFlags VkExternalMemoryHandleTypeFlagsKHR;
@@ -5192,7 +5202,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkBindImageMemory2KHR(
 #define VK_EXT_debug_report 1
 VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDebugReportCallbackEXT)
 
-#define VK_EXT_DEBUG_REPORT_SPEC_VERSION  8
+#define VK_EXT_DEBUG_REPORT_SPEC_VERSION  9
 #define VK_EXT_DEBUG_REPORT_EXTENSION_NAME "VK_EXT_debug_report"
 #define VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT
 #define VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT_EXT
@@ -5484,6 +5494,57 @@ typedef struct VkTextureLODGatherFormatPropertiesAMD {
     VkBool32           supportsTextureGatherLODBiasAMD;
 } VkTextureLODGatherFormatPropertiesAMD;
 
+
+
+#define VK_AMD_shader_info 1
+#define VK_AMD_SHADER_INFO_SPEC_VERSION   1
+#define VK_AMD_SHADER_INFO_EXTENSION_NAME "VK_AMD_shader_info"
+
+
+typedef enum VkShaderInfoTypeAMD {
+    VK_SHADER_INFO_TYPE_STATISTICS_AMD = 0,
+    VK_SHADER_INFO_TYPE_BINARY_AMD = 1,
+    VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD = 2,
+    VK_SHADER_INFO_TYPE_BEGIN_RANGE_AMD = VK_SHADER_INFO_TYPE_STATISTICS_AMD,
+    VK_SHADER_INFO_TYPE_END_RANGE_AMD = VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD,
+    VK_SHADER_INFO_TYPE_RANGE_SIZE_AMD = (VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD - VK_SHADER_INFO_TYPE_STATISTICS_AMD + 1),
+    VK_SHADER_INFO_TYPE_MAX_ENUM_AMD = 0x7FFFFFFF
+} VkShaderInfoTypeAMD;
+
+typedef struct VkShaderResourceUsageAMD {
+    uint32_t    numUsedVgprs;
+    uint32_t    numUsedSgprs;
+    uint32_t    ldsSizePerLocalWorkGroup;
+    size_t      ldsUsageSizeInBytes;
+    size_t      scratchMemUsageInBytes;
+} VkShaderResourceUsageAMD;
+
+typedef struct VkShaderStatisticsInfoAMD {
+    VkShaderStageFlags          shaderStageMask;
+    VkShaderResourceUsageAMD    resourceUsage;
+    uint32_t                    numPhysicalVgprs;
+    uint32_t                    numPhysicalSgprs;
+    uint32_t                    numAvailableVgprs;
+    uint32_t                    numAvailableSgprs;
+    uint32_t                    computeWorkGroupSize[3];
+} VkShaderStatisticsInfoAMD;
+
+
+typedef VkResult (VKAPI_PTR *PFN_vkGetShaderInfoAMD)(VkDevice device, VkPipeline pipeline, VkShaderStageFlagBits shaderStage, VkShaderInfoTypeAMD infoType, size_t* pInfoSize, void* pInfo);
+
+#ifndef VK_NO_PROTOTYPES
+VKAPI_ATTR VkResult VKAPI_CALL vkGetShaderInfoAMD(
+    VkDevice                                    device,
+    VkPipeline                                  pipeline,
+    VkShaderStageFlagBits                       shaderStage,
+    VkShaderInfoTypeAMD                         infoType,
+    size_t*                                     pInfoSize,
+    void*                                       pInfo);
+#endif
+
+#define VK_AMD_shader_image_load_store_lod 1
+#define VK_AMD_SHADER_IMAGE_LOAD_STORE_LOD_SPEC_VERSION 1
+#define VK_AMD_SHADER_IMAGE_LOAD_STORE_LOD_EXTENSION_NAME "VK_AMD_shader_image_load_store_lod"
 
 
 #define VK_KHX_multiview 1
@@ -6473,6 +6534,47 @@ VKAPI_ATTR void VKAPI_CALL vkCmdSetDiscardRectangleEXT(
     const VkRect2D*                             pDiscardRectangles);
 #endif
 
+#define VK_EXT_conservative_rasterization 1
+#define VK_EXT_CONSERVATIVE_RASTERIZATION_SPEC_VERSION 1
+#define VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME "VK_EXT_conservative_rasterization"
+
+
+typedef enum VkConservativeRasterizationModeEXT {
+    VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT = 0,
+    VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT = 1,
+    VK_CONSERVATIVE_RASTERIZATION_MODE_UNDERESTIMATE_EXT = 2,
+    VK_CONSERVATIVE_RASTERIZATION_MODE_BEGIN_RANGE_EXT = VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT,
+    VK_CONSERVATIVE_RASTERIZATION_MODE_END_RANGE_EXT = VK_CONSERVATIVE_RASTERIZATION_MODE_UNDERESTIMATE_EXT,
+    VK_CONSERVATIVE_RASTERIZATION_MODE_RANGE_SIZE_EXT = (VK_CONSERVATIVE_RASTERIZATION_MODE_UNDERESTIMATE_EXT - VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT + 1),
+    VK_CONSERVATIVE_RASTERIZATION_MODE_MAX_ENUM_EXT = 0x7FFFFFFF
+} VkConservativeRasterizationModeEXT;
+
+typedef VkFlags VkPipelineRasterizationConservativeStateCreateFlagsEXT;
+
+typedef struct VkPhysicalDeviceConservativeRasterizationPropertiesEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    float              primitiveOverestimationSize;
+    float              maxExtraPrimitiveOverestimationSize;
+    float              extraPrimitiveOverestimationSizeGranularity;
+    VkBool32           primitiveUnderestimation;
+    VkBool32           conservativePointAndLineRasterization;
+    VkBool32           degenerateTrianglesRasterized;
+    VkBool32           degenerateLinesRasterized;
+    VkBool32           fullyCoveredFragmentShaderInputVariable;
+    VkBool32           conservativeRasterizationPostDepthCoverage;
+} VkPhysicalDeviceConservativeRasterizationPropertiesEXT;
+
+typedef struct VkPipelineRasterizationConservativeStateCreateInfoEXT {
+    VkStructureType                                           sType;
+    const void*                                               pNext;
+    VkPipelineRasterizationConservativeStateCreateFlagsEXT    flags;
+    VkConservativeRasterizationModeEXT                        conservativeRasterizationMode;
+    float                                                     extraPrimitiveOverestimationSize;
+} VkPipelineRasterizationConservativeStateCreateInfoEXT;
+
+
+
 #define VK_EXT_swapchain_colorspace 1
 #define VK_EXT_SWAPCHAIN_COLOR_SPACE_SPEC_VERSION 3
 #define VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME "VK_EXT_swapchain_colorspace"
@@ -6563,6 +6665,17 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateMacOSSurfaceMVK(
 #endif
 #endif /* VK_USE_PLATFORM_MACOS_MVK */
 
+#define VK_EXT_external_memory_dma_buf 1
+#define VK_EXT_EXTERNAL_MEMORY_DMA_BUF_SPEC_VERSION 1
+#define VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME "VK_EXT_external_memory_dma_buf"
+
+
+#define VK_EXT_queue_family_foreign 1
+#define VK_EXT_QUEUE_FAMILY_FOREIGN_SPEC_VERSION 1
+#define VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME "VK_EXT_queue_family_foreign"
+#define VK_QUEUE_FAMILY_FOREIGN_EXT       (~0U-2)
+
+
 #define VK_EXT_sampler_filter_minmax 1
 #define VK_EXT_SAMPLER_FILTER_MINMAX_SPEC_VERSION 1
 #define VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME "VK_EXT_sampler_filter_minmax"
@@ -6647,7 +6760,7 @@ typedef struct VkRenderPassSampleLocationsBeginInfoEXT {
     uint32_t                                 attachmentInitialSampleLocationsCount;
     const VkAttachmentSampleLocationsEXT*    pAttachmentInitialSampleLocations;
     uint32_t                                 postSubpassSampleLocationsCount;
-    const VkSubpassSampleLocationsEXT*       pSubpassSampleLocations;
+    const VkSubpassSampleLocationsEXT*       pPostSubpassSampleLocations;
 } VkRenderPassSampleLocationsBeginInfoEXT;
 
 typedef struct VkPipelineSampleLocationsStateCreateInfoEXT {
@@ -6852,6 +6965,64 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetValidationCacheDataEXT(
 #define VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_SPEC_VERSION 1
 #define VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME "VK_EXT_shader_viewport_index_layer"
 
+
+#define VK_EXT_global_priority 1
+#define VK_EXT_GLOBAL_PRIORITY_SPEC_VERSION 2
+#define VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME "VK_EXT_global_priority"
+
+
+typedef enum VkQueueGlobalPriorityEXT {
+    VK_QUEUE_GLOBAL_PRIORITY_LOW_EXT = 128,
+    VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT = 256,
+    VK_QUEUE_GLOBAL_PRIORITY_HIGH_EXT = 512,
+    VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT = 1024,
+    VK_QUEUE_GLOBAL_PRIORITY_BEGIN_RANGE_EXT = VK_QUEUE_GLOBAL_PRIORITY_LOW_EXT,
+    VK_QUEUE_GLOBAL_PRIORITY_END_RANGE_EXT = VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT,
+    VK_QUEUE_GLOBAL_PRIORITY_RANGE_SIZE_EXT = (VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT - VK_QUEUE_GLOBAL_PRIORITY_LOW_EXT + 1),
+    VK_QUEUE_GLOBAL_PRIORITY_MAX_ENUM_EXT = 0x7FFFFFFF
+} VkQueueGlobalPriorityEXT;
+
+typedef struct VkDeviceQueueGlobalPriorityCreateInfoEXT {
+    VkStructureType             sType;
+    const void*                 pNext;
+    VkQueueGlobalPriorityEXT    globalPriority;
+} VkDeviceQueueGlobalPriorityCreateInfoEXT;
+
+
+
+#define VK_EXT_external_memory_host 1
+#define VK_EXT_EXTERNAL_MEMORY_HOST_SPEC_VERSION 1
+#define VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME "VK_EXT_external_memory_host"
+
+typedef struct VkImportMemoryHostPointerInfoEXT {
+    VkStructureType                          sType;
+    const void*                              pNext;
+    VkExternalMemoryHandleTypeFlagBitsKHR    handleType;
+    void*                                    pHostPointer;
+} VkImportMemoryHostPointerInfoEXT;
+
+typedef struct VkMemoryHostPointerPropertiesEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    uint32_t           memoryTypeBits;
+} VkMemoryHostPointerPropertiesEXT;
+
+typedef struct VkPhysicalDeviceExternalMemoryHostPropertiesEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    VkDeviceSize       minImportedHostPointerAlignment;
+} VkPhysicalDeviceExternalMemoryHostPropertiesEXT;
+
+
+typedef VkResult (VKAPI_PTR *PFN_vkGetMemoryHostPointerPropertiesEXT)(VkDevice device, VkExternalMemoryHandleTypeFlagBitsKHR handleType, const void* pHostPointer, VkMemoryHostPointerPropertiesEXT* pMemoryHostPointerProperties);
+
+#ifndef VK_NO_PROTOTYPES
+VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryHostPointerPropertiesEXT(
+    VkDevice                                    device,
+    VkExternalMemoryHandleTypeFlagBitsKHR       handleType,
+    const void*                                 pHostPointer,
+    VkMemoryHostPointerPropertiesEXT*           pMemoryHostPointerProperties);
+#endif
 
 #ifdef __cplusplus
 }
