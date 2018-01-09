@@ -901,7 +901,7 @@ void VulkanExampleBase::initVulkan()
 	vulkanDevice = new vks::VulkanDevice(physicalDevice);
 	VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, enabledExtensions);
 	if (res != VK_SUCCESS) {
-		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), "Fatal error", !benchmark.active);
+		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), "Fatal error", benchmark.active);
 	}
 	device = vulkanDevice->logicalDevice;
 
