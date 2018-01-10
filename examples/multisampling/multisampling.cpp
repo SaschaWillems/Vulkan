@@ -341,8 +341,11 @@ public:
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 
 		// Create custom overlay render pass
-		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		colorReference.attachment = 1;
 		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		subpass.pResolveAttachments = 0;
+		subpass.pDepthStencilAttachment = 0;
+
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &uiRenderPass));
 	}
 
@@ -752,7 +755,7 @@ public:
 	{
 		createInfo.renderPass = uiRenderPass;
 		createInfo.framebuffers = frameBuffers;
-		createInfo.rasterizationSamples = sampleCount;
+		createInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 		createInfo.attachmentCount = 1;
 		createInfo.clearValues = {
 			{ { 1.0f, 1.0f, 1.0f, 1.0f } },
