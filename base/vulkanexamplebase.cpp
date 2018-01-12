@@ -668,6 +668,8 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 
 	settings.validation = enableValidation;
 
+	char* numConvPtr;
+
 	// Parse command line arguments
 	for (size_t i = 0; i < args.size(); i++)
 	{
@@ -681,26 +683,42 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			settings.fullscreen = true;
 		}
 		if ((args[i] == std::string("-w")) || (args[i] == std::string("-width"))) {
-			char* endptr;
-			uint32_t w = strtol(args[i + 1], &endptr, 10);
-			if (endptr != args[i + 1]) { width = w; };
+			uint32_t w = strtol(args[i + 1], &numConvPtr, 10);
+			if (numConvPtr != args[i + 1]) { width = w; };
 		}
 		if ((args[i] == std::string("-h")) || (args[i] == std::string("-height"))) {
-			char* endptr;
-			uint32_t h = strtol(args[i + 1], &endptr, 10);
-			if (endptr != args[i + 1]) { height = h; };
+			uint32_t h = strtol(args[i + 1], &numConvPtr, 10);
+			if (numConvPtr != args[i + 1]) { height = h; };
 		}
 		if ((args[i] == std::string("-b")) || (args[i] == std::string("-benchmark"))) {
+			// TODO: option toggle for detailed frame rate output
 			benchmark.active = true;
-			// Result file name can be overriden
+			// Warmup time in seconds
 			if (args.size() > i + 1) {
-				benchmark.filename = args[i + 1];
+				uint32_t num = strtol(args[i + 1], &numConvPtr, 10);
+				if (numConvPtr != args[i + 1]) {
+					benchmark.warmup = num;
+				} else {
+					std::cerr << "Warmup time for benchmark mode must be specified as a number!" << std::endl;
+				}
 			}
-			// Number of iterations as optional parameter
+			// Benchmark runtime in seconds
 			if (args.size() > i + 2) {
-				char* endptr;
-				uint32_t iterations = strtol(args[i + 2], &endptr, 10);
-				if (endptr != args[i + 2]) { benchmark.iterationCount = iterations; };
+				uint32_t num = strtol(args[i + 2], &numConvPtr, 10);
+				if (numConvPtr != args[i + 2]) {
+					benchmark.duration = num;
+				}
+				else {
+					std::cerr << "Benchmark run duration must be specified as a number!" << std::endl;
+				}
+			}
+			// Default file name can be overriden
+			if (args.size() > i + 3) {
+				if (args[i + 3][0] == '-') {
+					std::cerr << "Filename for benchmark results must not start with a hyphen!" << std::endl;
+				} else {
+					benchmark.filename = args[i + 3];
+				}
 			}
 		}
 	}
