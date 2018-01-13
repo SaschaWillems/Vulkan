@@ -690,10 +690,12 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 			uint32_t h = strtol(args[i + 1], &numConvPtr, 10);
 			if (numConvPtr != args[i + 1]) { height = h; };
 		}
-		if ((args[i] == std::string("-b")) || (args[i] == std::string("-benchmark"))) {
-			// TODO: option toggle for detailed frame rate output
+		// Benchmark
+		if ((args[i] == std::string("-b")) || (args[i] == std::string("--benchmark"))) {
 			benchmark.active = true;
-			// Warmup time in seconds
+		}
+		// Warmup time (in seconds)
+		if ((args[i] == std::string("-bw")) || (args[i] == std::string("--benchwarmup"))) {
 			if (args.size() > i + 1) {
 				uint32_t num = strtol(args[i + 1], &numConvPtr, 10);
 				if (numConvPtr != args[i + 1]) {
@@ -702,24 +704,32 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 					std::cerr << "Warmup time for benchmark mode must be specified as a number!" << std::endl;
 				}
 			}
-			// Benchmark runtime in seconds
-			if (args.size() > i + 2) {
-				uint32_t num = strtol(args[i + 2], &numConvPtr, 10);
-				if (numConvPtr != args[i + 2]) {
+		}
+		// Benchmark runtime (in seconds)
+		if ((args[i] == std::string("-br")) || (args[i] == std::string("--benchruntime"))) {
+			if (args.size() > i + 1) {
+				uint32_t num = strtol(args[i + 1], &numConvPtr, 10);
+				if (numConvPtr != args[i + 1]) {
 					benchmark.duration = num;
 				}
 				else {
 					std::cerr << "Benchmark run duration must be specified as a number!" << std::endl;
 				}
 			}
-			// Default file name can be overriden
-			if (args.size() > i + 3) {
-				if (args[i + 3][0] == '-') {
+		}
+		// Bench result save filename (overrides default)
+		if ((args[i] == std::string("-bf")) || (args[i] == std::string("--benchfilename"))) {
+			if (args.size() > i + 1) {
+				if (args[i + 1][0] == '-') {
 					std::cerr << "Filename for benchmark results must not start with a hyphen!" << std::endl;
 				} else {
-					benchmark.filename = args[i + 3];
+					benchmark.filename = args[i + 1];
 				}
 			}
+		}
+		// Output frame times to benchmark result file
+		if ((args[i] == std::string("-bt")) || (args[i] == std::string("--benchframetimes"))) {
+			benchmark.outputFrameTimes = true;
 		}
 	}
 	

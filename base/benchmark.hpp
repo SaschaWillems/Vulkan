@@ -21,7 +21,7 @@ namespace vks
 		FILE *stream;
 	public:
 		bool active = false;
-		bool outputFrameTimes = true;
+		bool outputFrameTimes = false;
 		uint32_t warmup = 1;
 		uint32_t duration = 10;
 		std::vector<double> frameTimes;
@@ -72,8 +72,8 @@ namespace vks
 			if (result.is_open()) {
 				result << std::fixed << std::setprecision(4);
 
-				result << "duration (ms),frames" << std::endl;
-				result << runtime << "," << frameCount << std::endl;
+				result << "duration (ms),frames,fps" << std::endl;
+				result << runtime << "," << frameCount << "," << frameCount / (runtime / 1000.0) << std::endl;
 
 				if (outputFrameTimes) {
 					result << std::endl << "frame,ms" << std::endl;
