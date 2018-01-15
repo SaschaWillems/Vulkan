@@ -94,7 +94,6 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Instanced mesh rendering";
-		srand(time(NULL));
 		zoom = -18.5f;
 		rotation = { -17.2f, -4.7f, 0.0f };
 		cameraPos = { 5.5f, -1.85f, 0.0f };
@@ -437,22 +436,17 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.starfield));
 	}
 
-	float rnd(float range)
-	{
-		return range * (rand() / double(RAND_MAX));
-	}
-
 	void prepareInstanceData()
 	{
 		std::vector<InstanceData> instanceData;
 		instanceData.resize(INSTANCE_COUNT);
 
-		std::mt19937 rndGenerator(time(NULL));
+		std::mt19937 rndGenerator(benchmark.active ? 0 : (unsigned)time(NULL));
 		std::uniform_real_distribution<float> uniformDist(0.0, 1.0);
+		std::uniform_int_distribution<uint32_t> rndTextureIndex(0, textures.rocks.layerCount);
 
 		// Distribute rocks randomly on two different rings
-		for (auto i = 0; i < INSTANCE_COUNT / 2; i++)
-		{		
+		for (auto i = 0; i < INSTANCE_COUNT / 2; i++) {		
 			glm::vec2 ring0 { 7.0f, 11.0f };
 			glm::vec2 ring1 { 14.0f, 18.0f };
 
@@ -464,7 +458,7 @@ public:
 			instanceData[i].pos = glm::vec3(rho*cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho*sin(theta));
 			instanceData[i].rot = glm::vec3(M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator));
 			instanceData[i].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
-			instanceData[i].texIndex = rnd(textures.rocks.layerCount);
+			instanceData[i].texIndex = rndTextureIndex(rndGenerator);
 			instanceData[i].scale *= 0.75f;
 
 			// Outer ring
@@ -473,7 +467,7 @@ public:
 			instanceData[i + INSTANCE_COUNT / 2].pos = glm::vec3(rho*cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho*sin(theta));
 			instanceData[i + INSTANCE_COUNT / 2].rot = glm::vec3(M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator), M_PI * uniformDist(rndGenerator));
 			instanceData[i + INSTANCE_COUNT / 2].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
-			instanceData[i + INSTANCE_COUNT / 2].texIndex = rnd(textures.rocks.layerCount);
+			instanceData[i + INSTANCE_COUNT / 2].texIndex = rndTextureIndex(rndGenerator);
 			instanceData[i + INSTANCE_COUNT / 2].scale *= 0.75f;
 		}
 

@@ -65,7 +65,6 @@ private:
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;
-	vks::Benchmark benchmark;
 	vks::UIOverlay *UIOverlay = nullptr;
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
@@ -139,6 +138,8 @@ public:
 	float frameTimer = 1.0f;
 	/** @brief Returns os specific base asset path (for shaders, models, textures) */
 	const std::string getAssetPath();
+
+	vks::Benchmark benchmark;
 
 	/** @brief Encapsulated physical and logical vulkan device */
 	vks::VulkanDevice *vulkanDevice;
