@@ -289,7 +289,7 @@ public:
 		// Initial particle positions
 		std::vector<Particle> particleBuffer(numParticles);
 
-		std::mt19937 rndGen(static_cast<uint32_t>(time(0)));
+		std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
 		std::normal_distribution<float> rndDist(0.0f, 1.0f);
 
 		for (uint32_t i = 0; i < static_cast<uint32_t>(attractors.size()); i++)
@@ -307,15 +307,15 @@ public:
 				else
 				{
 					// Position					
-					glm::vec3 position(attractors[i] + glm::vec3(rndDist(rndGen), rndDist(rndGen), rndDist(rndGen)) * 0.75f);
+					glm::vec3 position(attractors[i] + glm::vec3(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine)) * 0.75f);
 					float len = glm::length(glm::normalize(position - attractors[i]));
 					position.y *= 2.0f - (len * len);
 
 					// Velocity
 					glm::vec3 angular = glm::vec3(0.5f, 1.5f, 0.5f) * (((i % 2) == 0) ? 1.0f : -1.0f);
-					glm::vec3 velocity = glm::cross((position - attractors[i]), angular) + glm::vec3(rndDist(rndGen), rndDist(rndGen), rndDist(rndGen) * 0.025f);
+					glm::vec3 velocity = glm::cross((position - attractors[i]), angular) + glm::vec3(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine) * 0.025f);
 
-					float mass = (rndDist(rndGen) * 0.5f + 0.5f) * 75.0f;
+					float mass = (rndDist(rndEngine) * 0.5f + 0.5f) * 75.0f;
 					particle.pos = glm::vec4(position, mass);
 					particle.vel = glm::vec4(velocity, 0.0f);
 				}

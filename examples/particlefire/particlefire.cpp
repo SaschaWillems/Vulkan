@@ -11,6 +11,7 @@
 #include <string.h>
 #include <assert.h>
 #include <vector>
+#include <random>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -123,6 +124,8 @@ public:
 
 	std::vector<Particle> particleBuffer;
 
+	std::default_random_engine rndEngine;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -75.0f;
@@ -131,7 +134,7 @@ public:
 		settings.overlay = true;
 		zoomSpeed *= 1.5f;
 		timerSpeed *= 8.0f;
-		srand(time(NULL));
+		rndEngine.seed(benchmark.active ? 0 : (unsigned)time(nullptr));
 	}
 
 	~VulkanExample()
@@ -217,7 +220,8 @@ public:
 
 	float rnd(float range)
 	{
-		return range * (rand() / float(RAND_MAX));
+		std::uniform_real_distribution<float> rndDist(0.0f, range);
+		return rndDist(rndEngine);
 	}
 
 	void initParticle(Particle *particle, glm::vec3 emitterPos)

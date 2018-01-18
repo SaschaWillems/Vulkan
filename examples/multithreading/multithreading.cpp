@@ -118,6 +118,8 @@ public:
 	// View frustum for culling invisible objects
 	vks::Frustum frustum;
 
+	std::default_random_engine rndEngine;
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		zoom = -32.5f;
@@ -134,11 +136,10 @@ public:
 #else
 		std::cout << "numThreads = " << numThreads << std::endl;
 #endif
-		srand(time(NULL));
-
 		threadPool.setThreadCount(numThreads);
-
 		numObjectsPerThread = 512 / numThreads;
+		rndEngine.seed(benchmark.active ? 0 : (unsigned)time(nullptr));
+		paused = true;
 	}
 
 	~VulkanExample()
@@ -167,7 +168,8 @@ public:
 
 	float rnd(float range)
 	{
-		return range * (rand() / double(RAND_MAX));
+		std::uniform_real_distribution<float> rndDist(0.0f, range);
+		return rndDist(rndEngine);
 	}
 
 	// Create all threads and initialize shader push constants
@@ -193,11 +195,7 @@ public:
 		uint32_t posX = 0;
 		uint32_t posZ = 0;
 
-		std::mt19937 rndGenerator((unsigned)time(NULL));
-		std::uniform_real_distribution<float> uniformDist(0.0f, 1.0f);
-
-		for (uint32_t i = 0; i < numThreads; i++)
-		{
+		for (uint32_t i = 0; i < numThreads; i++) {
 			ThreadData *thread = &threadData[i];
 			
 			// Create one command pool for each thread
@@ -219,10 +217,9 @@ public:
 			thread->pushConstBlock.resize(numObjectsPerThread);
 			thread->objectData.resize(numObjectsPerThread);
 
-			for (uint32_t j = 0; j < numObjectsPerThread; j++)
-			{
-				float theta = 2.0f * float(M_PI) * uniformDist(rndGenerator);
-				float phi = acos(1.0f - 2.0f * uniformDist(rndGenerator));
+			for (uint32_t j = 0; j < numObjectsPerThread; j++) {
+				float theta = 2.0f * float(M_PI) * rnd(1.0f);
+				float phi = acos(1.0f - 2.0f * rnd(1.0f));
 				thread->objectData[j].pos = glm::vec3(sin(phi) * cos(theta), 0.0f, cos(phi)) * 35.0f;
 
 				thread->objectData[j].rotation = glm::vec3(0.0f, rnd(360.0f), 0.0f);
@@ -268,15 +265,16 @@ public:
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
 
 		// Update
-		objectData->rotation.y += 2.5f * objectData->rotationSpeed * frameTimer;
-		if (objectData->rotation.y > 360.0f)
-		{
-			objectData->rotation.y -= 360.0f;
+		if (!paused) {
+			objectData->rotation.y += 2.5f * objectData->rotationSpeed * frameTimer;
+			if (objectData->rotation.y > 360.0f) {
+				objectData->rotation.y -= 360.0f;
+			}
+			objectData->deltaT += 0.15f * frameTimer;
+			if (objectData->deltaT > 1.0f)
+				objectData->deltaT -= 1.0f;
+			objectData->pos.y = sin(glm::radians(objectData->deltaT * 360.0f)) * 2.5f;
 		}
-		objectData->deltaT += 0.15f * frameTimer;
-		if (objectData->deltaT > 1.0f)
-			objectData->deltaT -= 1.0f;
-		objectData->pos.y = sin(glm::radians(objectData->deltaT * 360.0f)) * 2.5f;
 
 		objectData->model = glm::translate(glm::mat4(1.0f), objectData->pos);
 		objectData->model = glm::rotate(objectData->model, -sinf(glm::radians(objectData->deltaT * 360.0f)) * 0.25f, glm::vec3(objectData->rotationDir, 0.0f, 0.0f));
@@ -593,8 +591,7 @@ public:
 
 		// Wait for fence to signal that all command buffers are ready
 		VkResult fenceRes;
-		do
-		{
+		do {
 			fenceRes = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
 		} while (fenceRes == VK_TIMEOUT);
 		VK_CHECK_RESULT(fenceRes);

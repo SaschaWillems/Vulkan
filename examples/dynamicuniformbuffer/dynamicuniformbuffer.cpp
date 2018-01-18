@@ -446,12 +446,11 @@ public:
 		VK_CHECK_RESULT(uniformBuffers.dynamic.map());
 
 		// Prepare per-object matrices with offsets and random rotations
-		std::mt19937 rndGen(static_cast<uint32_t>(time(0)));
+		std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
 		std::normal_distribution<float> rndDist(-1.0f, 1.0f);
-		for (uint32_t i = 0; i < OBJECT_INSTANCES; i++)
-		{
-			rotations[i] = glm::vec3(rndDist(rndGen), rndDist(rndGen), rndDist(rndGen)) * 2.0f * (float)M_PI;
-			rotationSpeeds[i] = glm::vec3(rndDist(rndGen), rndDist(rndGen), rndDist(rndGen));
+		for (uint32_t i = 0; i < OBJECT_INSTANCES; i++) {
+			rotations[i] = glm::vec3(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine)) * 2.0f * (float)M_PI;
+			rotationSpeeds[i] = glm::vec3(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine));
 		}
 
 		updateUniformBuffers();

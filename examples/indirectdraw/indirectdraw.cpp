@@ -594,16 +594,15 @@ public:
 		std::vector<InstanceData> instanceData;
 		instanceData.resize(objectCount);
 
-		std::mt19937 rndGenerator((unsigned)time(NULL));
+		std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
 		std::uniform_real_distribution<float> uniformDist(0.0f, 1.0f);
 
-		for (uint32_t i = 0; i < objectCount; i++)
-		{
-			instanceData[i].rot = glm::vec3(0.0f, float(M_PI) * uniformDist(rndGenerator), 0.0f);
-			float theta = 2 * float(M_PI) * uniformDist(rndGenerator);
-			float phi = acos(1 - 2 * uniformDist(rndGenerator));
+		for (uint32_t i = 0; i < objectCount; i++) {
+			instanceData[i].rot = glm::vec3(0.0f, float(M_PI) * uniformDist(rndEngine), 0.0f);
+			float theta = 2 * float(M_PI) * uniformDist(rndEngine);
+			float phi = acos(1 - 2 * uniformDist(rndEngine));
 			instanceData[i].pos = glm::vec3(sin(phi) * cos(theta), 0.0f, cos(phi)) * PLANT_RADIUS;
-			instanceData[i].scale = 1.0f + uniformDist(rndGenerator) * 2.0f;
+			instanceData[i].scale = 1.0f + uniformDist(rndEngine) * 2.0f;
 			instanceData[i].texIndex = i / OBJECT_INSTANCE_COUNT;
 		}
 

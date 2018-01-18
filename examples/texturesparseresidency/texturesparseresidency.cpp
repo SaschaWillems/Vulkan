@@ -962,7 +962,7 @@ public:
 	void fillVirtualTexture(int32_t &mipLevel)
 	{
 		vkDeviceWaitIdle(device);
-		std::default_random_engine rndEngine(std::random_device{}());
+		std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
 		std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 		std::vector<VkImageBlit> imageBlits;
 		for (auto& page : texture.pages)

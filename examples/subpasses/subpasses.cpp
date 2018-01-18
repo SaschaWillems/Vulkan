@@ -1009,7 +1009,7 @@ public:
 			glm::vec3(1.0f, 1.0f, 0.0f),
 		};
 
-		std::mt19937 rndGen(benchmark.active ? 0 : (unsigned)time(NULL));
+		std::default_random_engine rndGen(benchmark.active ? 0 : (unsigned)time(nullptr));
 		std::uniform_real_distribution<float> rndDist(-1.0f, 1.0f);
 		std::uniform_int_distribution<uint32_t> rndCol(0, static_cast<uint32_t>(colors.size()-1));
 
