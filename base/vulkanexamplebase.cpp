@@ -275,9 +275,11 @@ void VulkanExampleBase::renderFrame()
 void VulkanExampleBase::renderLoop()
 {
 	if (benchmark.active) {
-		benchmark.run([=] { render(); });
+		benchmark.run([=] { render(); }, vulkanDevice->properties);
 		vkDeviceWaitIdle(device);
-		benchmark.saveResults(title, deviceProperties.deviceName);
+		if (benchmark.filename != "") {
+			benchmark.saveResults();
+		}
 		return;
 	}
 
