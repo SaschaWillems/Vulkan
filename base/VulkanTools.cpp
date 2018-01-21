@@ -262,17 +262,22 @@ namespace vks
 				1, &imageMemoryBarrier);
 		}
 
-		void exitFatal(std::string message, std::string caption, bool silent)
+		void exitFatal(std::string message, int32_t exitCode)
 		{
 #if defined(_WIN32)
 			if (!errorModeSilent) {
-				MessageBox(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+				MessageBox(NULL, message.c_str(), NULL, MB_OK | MB_ICONERROR);
 			}
 #elif defined(__ANDROID__)	
 			LOGE("Fatal error: %s", message.c_str());
 #endif
 			std::cerr << message << "\n";
-			exit(1);
+			exit(exitCode);
+		}
+
+		void exitFatal(std::string message, VkResult resultCode)
+		{
+			exitFatal(message, (int32_t)resultCode);
 		}
 
 		std::string readTextFile(const char *fileName)

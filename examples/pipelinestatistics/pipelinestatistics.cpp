@@ -102,7 +102,7 @@ public:
 			enabledFeatures.pipelineStatisticsQuery = VK_TRUE;
 		}
 		else {
-			vks::tools::exitFatal("Selected GPU does not support pipeline statistics!", "Feature not supported");
+			vks::tools::exitFatal("Selected GPU does not support pipeline statistics!", VK_ERROR_FEATURE_NOT_PRESENT);
 		}
 		if (deviceFeatures.fillModeNonSolid) {
 			enabledFeatures.fillModeNonSolid = VK_TRUE;

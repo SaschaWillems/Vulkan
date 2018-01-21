@@ -160,7 +160,7 @@ public:
 			enabledFeatures.tessellationShader = VK_TRUE;
 		}
 		else {
-			vks::tools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
+			vks::tools::exitFatal("Selected GPU does not support tessellation shaders!", VK_ERROR_FEATURE_NOT_PRESENT);
 		}
 		// Fill mode non solid is required for wireframe display
 		if (deviceFeatures.fillModeNonSolid) {
@@ -255,7 +255,7 @@ public:
 			texFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
 		}
 		else {
-			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+			vks::tools::exitFatal("Device does not support any compressed texture format!", VK_ERROR_FEATURE_NOT_PRESENT);
 		}
 
 		textures.skySphere.loadFromFile(getAssetPath() + "textures/skysphere" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);

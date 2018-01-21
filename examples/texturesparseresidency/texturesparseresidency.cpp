@@ -912,9 +912,8 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		// Check if the GPU supports sparse residency for 2D images
-		if (!vulkanDevice->features.sparseResidencyImage2D)
-		{
-			vks::tools::exitFatal("Device does not support sparse residency for 2D images!", "Feature not supported");
+		if (!vulkanDevice->features.sparseResidencyImage2D) {
+			vks::tools::exitFatal("Device does not support sparse residency for 2D images!", VK_ERROR_FEATURE_NOT_PRESENT);
 		}
 		loadAssets();
 		generateTerrain();

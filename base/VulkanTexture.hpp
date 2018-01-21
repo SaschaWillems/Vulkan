@@ -93,7 +93,7 @@ namespace vks
 			// So they need to be loaded via the asset manager
 			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 			if (!asset) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", "Error");
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			}
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
@@ -107,7 +107,7 @@ namespace vks
 			free(textureData);
 #else
 			if (!vks::tools::fileExists(filename)) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", "Error");
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			}
 			gli::texture2d tex2D(gli::load(filename.c_str()));
 #endif		
@@ -573,7 +573,7 @@ namespace vks
 			// So they need to be loaded via the asset manager
 			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 			if (!asset) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", "Error");
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			}
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
@@ -587,7 +587,7 @@ namespace vks
 			free(textureData);
 #else
 			if (!vks::tools::fileExists(filename)) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", "Error");
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			}
 			gli::texture2d_array tex2DArray(gli::load(filename));
 #endif	
@@ -785,7 +785,7 @@ namespace vks
 			// So they need to be loaded via the asset manager
 			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 			if (!asset) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", "Error");
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			}
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
@@ -799,7 +799,7 @@ namespace vks
 			free(textureData);
 #else
 			if (!vks::tools::fileExists(filename)) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", "Error");
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			}
 			gli::texture_cube texCube(gli::load(filename));
 #endif	

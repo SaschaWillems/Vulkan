@@ -103,7 +103,7 @@ public:
 			enabledFeatures.geometryShader = VK_TRUE;
 		}
 		else {
-			vks::tools::exitFatal("Selected GPU does not support geometry shaders!", "Feature not supported");
+			vks::tools::exitFatal("Selected GPU does not support geometry shaders!", VK_ERROR_FEATURE_NOT_PRESENT);
 		}
 	}
 

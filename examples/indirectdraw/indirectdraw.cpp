@@ -270,7 +270,7 @@ public:
 			texFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
 		}
 		else {
-			vks::tools::exitFatal("Device does not support any compressed texture format!", "Error");
+			vks::tools::exitFatal("Device does not support any compressed texture format!", VK_ERROR_FEATURE_NOT_PRESENT);
 		}
 
 		textures.plants.loadFromFile(getAssetPath() + "textures/texturearray_plants" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
