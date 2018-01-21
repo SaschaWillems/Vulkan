@@ -906,12 +906,6 @@ public:
 
 	void prepare()
 	{
-		// Check if device supports tessellation shaders
-		if (!deviceFeatures.tessellationShader)
-		{
-			vks::tools::exitFatal("Selected GPU does not support tessellation shaders!", "Feature not supported");
-		}
-
 		VulkanExampleBase::prepare();
 		loadAssets();
 		generateTerrain();
