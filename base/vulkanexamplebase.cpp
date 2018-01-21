@@ -258,7 +258,7 @@ void VulkanExampleBase::renderFrame()
 	fpsTimer += (float)tDiff;
 	if (fpsTimer > 1000.0f)
 	{
-		lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
+		lastFPS = static_cast<uint32_t>((float)frameCounter * (1000.0f / fpsTimer));
 #if defined(_WIN32)
 		if (!settings.overlay)	{
 			std::string windowTitle = getWindowTitle();
