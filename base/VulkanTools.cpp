@@ -12,6 +12,8 @@ namespace vks
 {
 	namespace tools
 	{
+		bool errorModeSilent = false;
+
 		std::string errorString(VkResult errorCode)
 		{
 			switch (errorCode)
@@ -263,7 +265,7 @@ namespace vks
 		void exitFatal(std::string message, std::string caption, bool silent)
 		{
 #if defined(_WIN32)
-			if (!silent) {
+			if (!errorModeSilent) {
 				MessageBox(NULL, message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
 			}
 #elif defined(__ANDROID__)	

@@ -695,6 +695,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		// Benchmark
 		if ((args[i] == std::string("-b")) || (args[i] == std::string("--benchmark"))) {
 			benchmark.active = true;
+			vks::tools::errorModeSilent = true;
 		}
 		// Warmup time (in seconds)
 		if ((args[i] == std::string("-bw")) || (args[i] == std::string("--benchwarmup"))) {

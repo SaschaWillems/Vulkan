@@ -69,6 +69,9 @@ namespace vks
 {
 	namespace tools
 	{
+		/** @brief Disable message boxes on fatal errors */
+		extern bool errorModeSilent;
+
 		/** @brief Returns an error code as a string */
 		std::string errorString(VkResult errorCode);
 
