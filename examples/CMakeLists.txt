@@ -94,7 +94,6 @@ set(EXAMPLES
 	texturecubemap
 	texturemipmapgen
 	texturesparseresidency
-	timestampquery
 	triangle
 	viewportarray
 	vulkanscene
