@@ -681,7 +681,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		if (args[i] == std::string("-vsync")) {
 			settings.vsync = true;
 		}
-		if (args[i] == std::string("-fullscreen")) {
+		if ((args[i] == std::string("-f")) || (args[i] == std::string("--fullscreen"))) {
 			settings.fullscreen = true;
 		}
 		if ((args[i] == std::string("-w")) || (args[i] == std::string("-width"))) {
