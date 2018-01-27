@@ -139,7 +139,6 @@ public:
 		threadPool.setThreadCount(numThreads);
 		numObjectsPerThread = 512 / numThreads;
 		rndEngine.seed(benchmark.active ? 0 : (unsigned)time(nullptr));
-		paused = true;
 	}
 
 	~VulkanExample()
