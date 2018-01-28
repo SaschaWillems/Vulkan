@@ -74,6 +74,7 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline pipeline;
+	VkShaderModule shaderModule;
 
 	VkDebugReportCallbackEXT debugReportCallback;
 
@@ -345,6 +346,7 @@ public:
 #endif
 			shaderStage.pName = "main";
 			shaderStage.pSpecializationInfo = &specializationInfo;
+			shaderModule = shaderStage.module;
 
 			assert(shaderStage.module != VK_NULL_HANDLE);
 			computePipelineCreateInfo.stage = shaderStage;
@@ -476,22 +478,25 @@ public:
 		vkFreeMemory(device, deviceMemory, nullptr);
 		vkDestroyBuffer(device, hostBuffer, nullptr);
 		vkFreeMemory(device, hostMemory, nullptr);
+	}
 
+	~VulkanExample()
+	{
+		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+		vkDestroyPipeline(device, pipeline, nullptr);
+		vkDestroyPipelineCache(device, pipelineCache, nullptr);
+		vkDestroyFence(device, fence, nullptr);
+		vkDestroyCommandPool(device, commandPool, nullptr);
+		vkDestroyShaderModule(device, shaderModule, nullptr);
+		vkDestroyDevice(device, nullptr);
 #if DEBUG
 		PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallback = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
 		assert(vkDestroyDebugReportCallback);
 		vkDestroyDebugReportCallback(instance, debugReportCallback, nullptr);
 #endif
-	}
-
-	~VulkanExample()
-	{
-		// todo: all other stuff
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		vkDestroyPipeline(device, pipeline, nullptr);
-		vkDestroyFence(device, fence, nullptr);
-		vkDestroyCommandPool(device, commandPool, nullptr);
+		vkDestroyInstance(instance, nullptr);
 	}
 };
 

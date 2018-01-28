@@ -75,6 +75,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline pipeline;
+	std::vector<VkShaderModule> shaderModules;
 	VkBuffer vertexBuffer, indexBuffer;
 	VkDeviceMemory vertexMemory, indexMemory;
 
@@ -238,7 +239,7 @@ public:
 		deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
 		VK_CHECK_RESULT(vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device));
 
-		// Get a compute queue
+		// Get a graphics queue
 		vkGetDeviceQueue(device, queueFamilyIndex, 0, &queue);
 
 		// Command pool
@@ -578,11 +579,12 @@ public:
 			shaderStages[0].module = vks::tools::loadShader(ASSET_PATH "shaders/renderheadless/triangle.vert.spv", device);
 			shaderStages[1].module = vks::tools::loadShader(ASSET_PATH "shaders/renderheadless/triangle.frag.spv", device);
 #endif
+			shaderModules = { shaderStages[0].module, shaderStages[1].module };
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 		}
 
 		/* 
-			Command buffer creation (for compute work submission)
+			Command buffer creation
 		*/
 		{
 			VkCommandBuffer commandBuffer;
@@ -683,7 +685,7 @@ public:
 			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &dstImageMemory));
 			VK_CHECK_RESULT(vkBindImageMemory(device, dstImage, dstImageMemory, 0));
 
-			// Do the actual blit from the swapchain image to our host visible destination image
+			// Do the actual blit from the offscreen image to our host visible destination image
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
 			VkCommandBuffer copyCmd;
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &copyCmd));
@@ -806,12 +808,6 @@ public:
 		}
 
 		vkQueueWaitIdle(queue);
-
-#if DEBUG
-		PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallback = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
-		assert(vkDestroyDebugReportCallback);
-		vkDestroyDebugReportCallback(instance, debugReportCallback, nullptr);
-#endif
 	}
 
 	~VulkanExample()
@@ -820,7 +816,6 @@ public:
 		vkFreeMemory(device, vertexMemory, nullptr);
 		vkDestroyBuffer(device, indexBuffer, nullptr);
 		vkFreeMemory(device, indexMemory, nullptr);
-
 		vkDestroyImageView(device, colorAttachment.view, nullptr);
 		vkDestroyImage(device, colorAttachment.image, nullptr);
 		vkFreeMemory(device, colorAttachment.memory, nullptr);
@@ -832,7 +827,18 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 		vkDestroyPipeline(device, pipeline, nullptr);
+		vkDestroyPipelineCache(device, pipelineCache, nullptr);
 		vkDestroyCommandPool(device, commandPool, nullptr);
+		for (auto shadermodule : shaderModules) {
+			vkDestroyShaderModule(device, shadermodule, nullptr);
+		}
+		vkDestroyDevice(device, nullptr);
+#if DEBUG
+		PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallback = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
+		assert(vkDestroyDebugReportCallback);
+		vkDestroyDebugReportCallback(instance, debugReportCallback, nullptr);
+#endif
+		vkDestroyInstance(instance, nullptr);
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 		vks::android::freeVulkanLibrary();
 #endif
