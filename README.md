@@ -406,4 +406,5 @@ Please note that (some) models and textures use separate licenses. Please comply
 - [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
 - [Vulkan API specifications](https://www.khronos.org/registry/vulkan/specs/1.0/apispec.html) ([quick reference cards](https://www.khronos.org/registry/vulkan/specs/1.0/refguide/Vulkan-1.0-web.pdf))
 - [SPIR-V specifications](https://www.khronos.org/registry/spir-v/specs/1.0/SPIRV.html)
+- [My 2016 Khronos Munich Chapter Meeting Vulkan presentation](https://www.saschawillems.de/wp-content/uploads/2018/01/Khronos_meetup_munich_fromGLtoVulkan.pdf)
 - [My personal view on Vulkan (as a hobby developer)](http://www.saschawillems.de/?p=1886)
