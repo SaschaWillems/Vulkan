@@ -115,6 +115,23 @@ public:
 		uniformBuffers.skybox.destroy();
 	}
 
+	// Enable physical device features required for this example				
+	virtual void getEnabledFeatures()
+	{
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		}
+		if (deviceFeatures.textureCompressionBC) {
+			enabledFeatures.textureCompressionBC = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionASTC_LDR) {
+			enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
+		}
+		else if (deviceFeatures.textureCompressionETC2) {
+			enabledFeatures.textureCompressionETC2 = VK_TRUE;
+		}
+	};
+
 	void loadCubemap(std::string filename, VkFormat format, bool forceLinearTiling)
 	{
 #if defined(__ANDROID__)
