@@ -7,15 +7,15 @@
  *
  * Loads the appropriate example code, as indicated by the appropriate compiler build setting below.
  *
- * To select an example to run, define one (and only one) of the macros below, either by 
- * adding a #define XXX statement at the top of this file, or more flexibily, by adding the 
+ * To select an example to run, define one (and only one) of the macros below, either by
+ * adding a #define XXX statement at the top of this file, or more flexibily, by adding the
  * macro value to the Preprocessor Macros (aka GCC_PREPROCESSOR_DEFINITIONS) compiler setting.
  *
- * To add a compiler setting, select the project in the Xcode Project Navigator panel, 
- * select the Build Settings panel, and add the value to the Preprocessor Macros 
+ * To add a compiler setting, select the project in the Xcode Project Navigator panel,
+ * select the Build Settings panel, and add the value to the Preprocessor Macros
  * (aka GCC_PREPROCESSOR_DEFINITIONS) entry.
  *
- * For example, to run the pipelines example, you would add the MVK_pipelines define macro 
+ * For example, to run the pipelines example, you would add the MVK_pipelines define macro
  * to the Preprocessor Macros (aka GCC_PREPROCESSOR_DEFINITIONS) entry of the Xcode project,
  * overwriting any otheor value there.
  *
@@ -27,129 +27,130 @@
 // In the list below, the comments indicate entries that,
 // under certain conditions, that may not run as expected.
 
+#define MVK_vulkanscene
 
 // BASICS
 
 #ifdef MVK_pipelines
-#	include "../pipelines/pipelines.cpp"
+#   include "../examples/pipelines/pipelines.cpp"
 #endif
 
 #ifdef MVK_texture
-#	include "../texture/texture.cpp"
+#   include "../examples/texture/texture.cpp"
 #endif
 
 // Does not run. Metal does not support passing matrices between shader stages.
 #ifdef MVK_texturecubemap
-#	include "../texturecubemap/texturecubemap.cpp"
+#   include "../examples/texturecubemap/texturecubemap.cpp"
 #endif
 
 // Runs in Release mode. Does not run in Debug mode, as Metal validation will
 // assert that UBO buffer length is too short for UBO size declared in shader.
 #ifdef MVK_texturearray
-#	include "../texturearray/texturearray.cpp"
+#   include "../examples/texturearray/texturearray.cpp"
 #endif
 
 #ifdef MVK_mesh
-#	include "../mesh/mesh.cpp"
+#   include "../examples/mesh/mesh.cpp"
 #endif
 
 #ifdef MVK_dynamicuniformbuffer
-#	include "../dynamicuniformbuffer/dynamicuniformbuffer.cpp"
+#   include "../examples/dynamicuniformbuffer/dynamicuniformbuffer.cpp"
 #endif
 
 // Does not run. Metal does not support passing arrays between shader stages.
 #ifdef MVK_pushconstants
-#	include "../pushconstants/pushconstants.cpp"
+#   include "../examples/pushconstants/pushconstants.cpp"
 #endif
 
 #ifdef MVK_specializationconstants
-#	include "../specializationconstants/specializationconstants.cpp"
+#   include "../examples/specializationconstants/specializationconstants.cpp"
 #endif
 
 #ifdef MVK_offscreen
-#	include "../offscreen/offscreen.cpp"
+#   include "../examples/offscreen/offscreen.cpp"
 #endif
 
 #ifdef MVK_radialblur
-#	include "../radialblur/radialblur.cpp"
+#   include "../examples/radialblur/radialblur.cpp"
 #endif
 
 #ifdef MVK_textoverlay
-#	include "../textoverlay/textoverlay.cpp"
+#   include "../examples/textoverlay/textoverlay.cpp"
 #endif
 
 #ifdef MVK_particlefire
-#	include "../particlefire/particlefire.cpp"
+#   include "../examples/particlefire/particlefire.cpp"
 #endif
 
 
 // ADVANCED
 
 #ifdef MVK_multithreading
-#	include "../multithreading/multithreading.cpp"
+#   include "../examples/multithreading/multithreading.cpp"
 #endif
 
 #ifdef MVK_scenerendering
-#	include "../scenerendering/scenerendering.cpp"
+#   include "../examples/scenerendering/scenerendering.cpp"
 #endif
 
 #ifdef MVK_instancing
-#	include "../instancing/instancing.cpp"
+#   include "../examples/instancing/instancing.cpp"
 #endif
 
 #ifdef MVK_indirectdraw
-#	include "../indirectdraw/indirectdraw.cpp"
+#   include "../examples/indirectdraw/indirectdraw.cpp"
 #endif
 
 // Does not run. Metal does not support passing matrices between shader stages.
 #ifdef MVK_hdr
-#	include "../hdr/hdr.cpp"
+#   include "../examples/hdr/hdr.cpp"
 #endif
 
 #ifdef MVK_occlusionquery
-#	include "../occlusionquery/occlusionquery.cpp"
+#   include "../examples/occlusionquery/occlusionquery.cpp"
 #endif
 
 // Does not run. Sampler arrays require Metal 2.
 #ifdef MVK_texturemipmapgen
-#	include "../texturemipmapgen/texturemipmapgen.cpp"
+#   include "../examples/texturemipmapgen/texturemipmapgen.cpp"
 #endif
 
 #ifdef MVK_multisampling
-#	include "../multisampling/multisampling.cpp"
+#   include "../examples/multisampling/multisampling.cpp"
 #endif
 
 #ifdef MVK_shadowmapping
-#	include "../shadowmapping/shadowmapping.cpp"
+#   include "../examples/shadowmapping/shadowmapping.cpp"
 #endif
 
 #ifdef MVK_shadowmappingomni
-#	include "../shadowmappingomni/shadowmappingomni.cpp"
+#   include "../examples/shadowmappingomni/shadowmappingomni.cpp"
 #endif
 
 #ifdef MVK_skeletalanimation
-#	include "../skeletalanimation/skeletalanimation.cpp"
+#   include "../examples/skeletalanimation/skeletalanimation.cpp"
 #endif
 
 #ifdef MVK_bloom
-#	include "../bloom/bloom.cpp"
+#   include "../examples/bloom/bloom.cpp"
 #endif
 
 // Runs in Release mode. Debug mode Metal validation will assert
 // UBO buffer length is too short for UBO size declared in shader.
 #ifdef MVK_deferred
-#	include "../deferred/deferred.cpp"
+#   include "../examples/deferred/deferred.cpp"
 #endif
 
 // Does not run. Metal does not support geometry shaders.
 #ifdef MVK_deferredshadows
-#	include "../deferredshadows/deferredshadows.cpp"
+#   include "../examples/deferredshadows/deferredshadows.cpp"
 #endif
 
 // Runs in Release mode, but does not display content.
 // Metal does not support the use of specialization constants to set array lengths,
 #ifdef MVK_ssao
-#	include "../ssao/ssao.cpp"
+#   include "../examples/ssao/ssao.cpp"
 #endif
 
 
@@ -168,22 +169,22 @@
 // MISC
 
 #ifdef MVK_parallaxmapping
-#	include "../parallaxmapping/parallaxmapping.cpp"
+#   include "../examples/parallaxmapping/parallaxmapping.cpp"
 #endif
 
 #ifdef MVK_sphericalenvmapping
-#	include "../sphericalenvmapping/sphericalenvmapping.cpp"
+#   include "../examples/sphericalenvmapping/sphericalenvmapping.cpp"
 #endif
 
 #ifdef MVK_gears
-#	include "../gears/gears.cpp"
+#   include "../examples/gears/gears.cpp"
 #endif
 
 #ifdef MVK_distancefieldfonts
-#	include "../distancefieldfonts/distancefieldfonts.cpp"
+#   include "../examples/distancefieldfonts/distancefieldfonts.cpp"
 #endif
 
 #ifdef MVK_vulkanscene
-#	include "../vulkanscene/vulkanscene.cpp"
+#   include "../examples/vulkanscene/vulkanscene.cpp"
 #endif
 
