@@ -224,3 +224,6 @@ data/models/cerberus/*.*
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
+
+# Ignore macOS .DS_Store
+.DS_Store
