@@ -343,6 +343,7 @@ public:
 		// Create custom overlay render pass
 		colorReference.attachment = 1;
 		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		attachments[1].initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		subpass.pResolveAttachments = 0;
 		subpass.pDepthStencilAttachment = 0;
 
