@@ -45,6 +45,7 @@ set(EXAMPLES
 	computenbody
 	computeparticles
 	computeshader
+	conservativeraster
 	debugmarker
 	deferred
 	deferredmultisampling
