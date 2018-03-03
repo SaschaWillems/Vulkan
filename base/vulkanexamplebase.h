@@ -90,7 +90,8 @@ protected:
 	*/
 	VkPhysicalDeviceFeatures enabledFeatures{};
 	/** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
-	std::vector<const char*> enabledExtensions;
+	std::vector<const char*> enabledDeviceExtensions;
+	std::vector<const char*> enabledInstanceExtensions;
 	/** @brief Logical device, application's view of the physical device (GPU) */
 	// todo: getter? should always point to VulkanDevice->device
 	VkDevice device;
