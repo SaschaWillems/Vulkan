@@ -22,7 +22,7 @@ vec2 parallax_uv(vec2 uv, vec3 view_dir, int type)
 {
 	if (type == 2) {
 		// Parallax mapping
-		float depth = 1.0 - texture(sNormalHeightMap, uv).a;
+		float depth = 1.0 - textureLod(sNormalHeightMap, uv, 0.0).a;
 		vec2 p = view_dir.xy * (depth * (ubo.heightScale * 0.5) + ubo.parallaxBias) / view_dir.z;
 		return uv - p;  
 	} else {
@@ -31,12 +31,12 @@ vec2 parallax_uv(vec2 uv, vec3 view_dir, int type)
 		vec2 delta_uv = view_dir.xy * ubo.heightScale / (view_dir.z * ubo.numLayers);
 		vec2 cur_uv = uv;
 
-		float depth_from_tex = 1.0 - texture(sNormalHeightMap, cur_uv).a;
+		float depth_from_tex = 1.0 - textureLod(sNormalHeightMap, cur_uv, 0.0).a;
 
 		for (int i = 0; i < 32; i++) {
 			cur_layer_depth += layer_depth;
 			cur_uv -= delta_uv;
-			depth_from_tex = 1.0 - texture(sNormalHeightMap, cur_uv).a;
+			depth_from_tex = 1.0 - textureLod(sNormalHeightMap, cur_uv, 0.0).a;
 			if (depth_from_tex < cur_layer_depth) {
 				break;
 			}
@@ -49,7 +49,7 @@ vec2 parallax_uv(vec2 uv, vec3 view_dir, int type)
 			// Parallax occlusion mapping
 			vec2 prev_uv = cur_uv + delta_uv;
 			float next = depth_from_tex - cur_layer_depth;
-			float prev = 1.0 - texture(sNormalHeightMap, prev_uv).a - cur_layer_depth + layer_depth;
+			float prev = 1.0 - textureLod(sNormalHeightMap, prev_uv, 0.0).a - cur_layer_depth + layer_depth;
 			float weight = next / (next - prev);
 			return mix(cur_uv, prev_uv, weight);
 		}
@@ -58,7 +58,7 @@ vec2 parallax_uv(vec2 uv, vec3 view_dir, int type)
 
 vec2 parallaxMapping(vec2 uv, vec3 viewDir) 
 {
-	float height = 1.0 - texture(sNormalHeightMap, uv).a;
+	float height = 1.0 - textureLod(sNormalHeightMap, uv, 0.0).a;
 	vec2 p = viewDir.xy * (height * (ubo.heightScale * 0.5) + ubo.parallaxBias) / viewDir.z;
 	return uv - p;  
 }
@@ -69,11 +69,11 @@ vec2 steepParallaxMapping(vec2 uv, vec3 viewDir)
 	float currLayerDepth = 0.0;
 	vec2 deltaUV = viewDir.xy * ubo.heightScale / (viewDir.z * ubo.numLayers);
 	vec2 currUV = uv;
-	float height = 1.0 - texture(sNormalHeightMap, currUV).a;
+	float height = 1.0 - textureLod(sNormalHeightMap, currUV, 0.0).a;
 	for (int i = 0; i < ubo.numLayers; i++) {
 		currLayerDepth += layerDepth;
 		currUV -= deltaUV;
-		height = 1.0 - texture(sNormalHeightMap, currUV).a;
+		height = 1.0 - textureLod(sNormalHeightMap, currUV, 0.0).a;
 		if (height < currLayerDepth) {
 			break;
 		}
@@ -87,18 +87,18 @@ vec2 parallaxOcclusionMapping(vec2 uv, vec3 viewDir)
 	float currLayerDepth = 0.0;
 	vec2 deltaUV = viewDir.xy * ubo.heightScale / (viewDir.z * ubo.numLayers);
 	vec2 currUV = uv;
-	float height = 1.0 - texture(sNormalHeightMap, currUV).a;
+	float height = 1.0 - textureLod(sNormalHeightMap, currUV, 0.0).a;
 	for (int i = 0; i < ubo.numLayers; i++) {
 		currLayerDepth += layerDepth;
 		currUV -= deltaUV;
-		height = 1.0 - texture(sNormalHeightMap, currUV).a;
+		height = 1.0 - textureLod(sNormalHeightMap, currUV, 0.0).a;
 		if (height < currLayerDepth) {
 			break;
 		}
 	}
 	vec2 prevUV = currUV + deltaUV;
 	float nextDepth = height - currLayerDepth;
-	float prevDepth = 1.0 - texture(sNormalHeightMap, prevUV).a - currLayerDepth + layerDepth;
+	float prevDepth = 1.0 - textureLod(sNormalHeightMap, prevUV, 0.0).a - currLayerDepth + layerDepth;
 	return mix(currUV, prevUV, nextDepth / (nextDepth - prevDepth));
 }
 
@@ -128,7 +128,7 @@ void main(void)
 			discard;
 		}
 
-		vec3 N = normalize(texture(sNormalHeightMap, uv).rgb * 2.0 - 1.0);   
+		vec3 N = normalize(textureLod(sNormalHeightMap, uv, 0.0).rgb * 2.0 - 1.0);
 		vec3 L = normalize(inTangentLightPos - inTangentFragPos);
 		vec3 R = reflect(-L, N);
 		vec3 H = normalize(L + V);  
