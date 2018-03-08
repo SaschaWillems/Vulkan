@@ -1,7 +1,7 @@
 {
   "apkname": "vulkanParallaxmapping",
   "directories": {
-    "shaders": "parallax"
+    "shaders": "parallaxmapping"
   },
   "assets": {
     "models": [
