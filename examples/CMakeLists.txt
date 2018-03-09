@@ -72,6 +72,7 @@ set(EXAMPLES
 	pipelines
 	pipelinestatistics
 	pushconstants
+	pushdescriptors
 	radialblur
 	raytracing
 	renderheadless
