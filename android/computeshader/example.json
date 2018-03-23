@@ -5,7 +5,7 @@
   },
   "assets": {
     "textures": [
-      "het_kanonschot_rgba8.ktx"
+      "vulkan_11_rgba.ktx"
     ]
   }
 }
