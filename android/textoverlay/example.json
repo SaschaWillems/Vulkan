@@ -6,14 +6,6 @@
   "assets": {
     "models": [
       "cube.dae"
-    ],
-    "textures": [
-      "skysphere_bc3_unorm.ktx", 
-      "skysphere_astc_8x8_unorm.ktx", 
-      "skysphere_etc2_unorm.ktx", 
-      "round_window_bc3_unorm.ktx", 
-      "round_window_astc_8x8_unorm.ktx", 
-      "round_window_etc2_unorm.ktx"
-    ]    
+    ]
   }
 }
