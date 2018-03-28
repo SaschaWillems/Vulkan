@@ -1,12 +1,11 @@
 # Vulkan C++ examples and demos
 
-A comprehensive collection of open source C++ examples for [Vulkan(tm)](https://www.khronos.org/vulkan/), the new graphics and compute API from Khronos.
+A comprehensive collection of open source C++ examples for [Vulkan®](https://www.khronos.org/vulkan/), the new graphics and compute API from Khronos.
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BHXPMV6ZKPH9E)
 
-# Cloning
-
-This repository contains submodules for some of the external dependencies, so when doing a fresh clone you need to clone recursively:
+## Cloning
+This repository contains submodules for external dependencies, so when doing a fresh clone you need to clone recursively:
 
 ```
 git clone --recursive https://github.com/SaschaWillems/Vulkan.git
@@ -19,392 +18,291 @@ git submodule init
 git submodule update
 ```
 
-# Building
+## Assets
+Many examples require assets from the asset pack that is not part of this repository due to file size. A python script is included to download the asset pack that. Run
 
-The repository contains everything required to compile and build the examples on Windows, Linux and Android using a C++ compiler that supports C++11. All required dependencies are included.
+    python download_assets.py
 
-## <img src="./images/windowslogo.png" alt="" height="32px"> Windows
+from the root of the repository after cloning or see [this](data/README.md) for manual download.
 
-[![Build status](https://ci.appveyor.com/api/projects/status/abylymfyil0mhpx8?svg=true)](https://ci.appveyor.com/project/SaschaWillems/vulkan)
+## Building
 
-Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler, e.g.:
-```
-cmake -G "Visual Studio 14 2015 Win64"
-```
+The repository contains everything required to compile and build the examples on <img src="./images/windowslogo.png" alt="" height="22px" valign="bottom"> Windows, <img src="./images/linuxlogo.png" alt="" height="24px" valign="bottom"> Linux, <img src="./images/androidlogo.png" alt="" height="24px" valign="bottom"> Android, <img src="./images/applelogo.png" alt="" valign="bottom" height="24px"> iOS and macOS (using MoltenVK) using a C++ compiler that supports C++11.
 
-## <img src="./images/linuxlogo.png" alt="" height="32px"> Linux
+See [BUILD.md](BUILD.md) for details on how to build for the different platforms.
 
-[![Build Status](https://travis-ci.org/SaschaWillems/Vulkan.svg?branch=master)](https://travis-ci.org/SaschaWillems/Vulkan)
+## Examples
 
-Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler.
+### Basics
 
-Note that you need [assimp](https://github.com/assimp/assimp) in order to compile the examples for Linux. Either compile and install from the repository, or install libassimp-dev. The examples require at least version 3.2.
+#### [01 - Triangle](examples/triangle/)
+Basic and verbose example for getting a colored triangle rendered to the screen using Vulkan. This is meant as a starting point for learning Vulkan from the ground up. A huge part of the code is boilerplate that is abstracted away in later examples.
 
-##### [Window system integration](https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/html/vkspec.html#wsi)
-- **XCB**: Default WSI (if no cmake option is specified)
-- **Wayland**: Use cmake option ```USE_WAYLAND_WSI``` (```-DUSE_WAYLAND_WSI=ON```)
-- **DirectToDisplay**: Use cmake option ```USE_D2D_WSI``` (```-DUSE_D2D_WSI=ON```)
+#### [02 - Pipelines](examples/pipelines/)
 
-## <img src="./images/androidlogo.png" alt="" height="32px"> [Android](android/)
+Using pipeline state objects (pso) that bake state information (rasterization states, culling modes, etc.) along with the shaders into a single object, making it easy for an implementation to optimize usage (compared to OpenGL's dynamic state machine). Also demonstrates the use of pipeline derivatives.
 
-Building on Android is done using the [Android NDK](http://developer.android.com/tools/sdk/ndk/index.html) and requires a device that supports Vulkan. Please see the [Android readme](./android/README.md) on how to build and deploy the examples.
+#### [03 - Dynamic uniform buffers](examples/dynamicuniformbuffer/)
 
-## <img src="./images/applelogo.png" alt="" height="32px"> [iOS and macOS](xcode/)
+Dynamic uniform buffers are used for rendering multiple objects with multiple matrices stored in a single uniform buffer object. Individual matrices are dynamically addressed upon descriptor binding time, minimizing the number of required descriptor sets.
 
-Building for *iOS* and *macOS* is done using the [examples](xcode/examples.xcodeproj) *Xcode* project found in the [xcode](xcode) directory. These examples use the [**MoltenVK**](https://moltengl.com/moltenvk) Vulkan driver to provide Vulkan support on *iOS* and *macOS*, and require an *iOS* or *macOS* device that supports *Metal*. Please see the [MoltenVK Examples readme](xcode/README_MoltenVK_Examples.md) for more info on acquiring **MoltenVK** and building and deploying the examples on *iOS* and *macOS*.
+#### [04 - Push constants](examples/pushconstants/)
 
-## Additional asset pack
+Uses push constants, small blocks of uniform data stored within a command buffer, to pass data to a shader without the need for uniform buffers.
 
-**Note:** Binary assets (textures, models) will no longer be added directly to the repository to keep it's size down, so newer examples will require the download of an [additional asset pack](data/README.md).
+#### [05 - Specialization constants](examples/specializationconstants/)
 
-# Examples
+Uses SPIR-V specialization constants to create multiple pipelines with different lighting paths from a single "uber" shader.
 
-*Examples marked with :speech_balloon: offer additional details with a separate readme.*
+#### [06 - Texture mapping](examples/texture/)
 
-## Basics
+Loads a 2D texture from disk (including all mip levels), uses staging to upload it into video memory and samples from it using combined image samplers.
 
-### [Triangle](examples/triangle/)
-<img src="./screenshots/basic_triangle.png" height="72px" align="right">
+#### [07 - Cube map textures](examples/texturecubemap/)
 
-Most basic example. Renders a colored triangle using an indexed vertex buffer. Vertex and index data are uploaded to device local memory using so-called "staging buffers". Uses a single pipeline with basic shaders loaded from SPIR-V and and single uniform block for passing matrices that is updated on changing the view.
+Loads a cube map texture from disk containing six different faces. All faces and mip levels are uploaded into video memory and the cubemap is sampled once as a skybox (for the background) and as a source for reflections (for a 3D model).
 
-This example is far more explicit than the other examples and is meant to be a starting point for learning Vulkan from the ground up. Much of the code is boilerplate that you'd usually encapsulate in helper functions and classes (which is what the other examples do).
+#### [08 - Texture arrays](examples/texturearray/)
 
-### [Pipelines](examples/pipelines/)
-<img src="./screenshots/basic_pipelines.png" height="72px" align="right">
+Loads a 2D texture array containing multiple 2D texture slices (each with it's own mip chain) and renders multiple meshes each sampling from a different layer of the texture. 2D texture arrays don't do any interpolation between the slices.
 
-[Pipeline state objects](https://www.khronos.org/registry/vulkan/specs/1.0/xhtml/vkspec.html#pipelines) replace the biggest part of the dynamic state machine from OpenGL, baking state information for culling, blending, rasterization, etc. and shaders into a fixed state that can be optimized much easier by the implementation.
+#### [09 - 3D textures](examples/texture3d/)
 
-This example uses three different PSOs for rendering the same scene with different visuals and shaders and also demonstrates the use of [pipeline derivatives](https://www.khronos.org/registry/vulkan/specs/1.0/xhtml/vkspec.html#pipelines-pipeline-derivatives).
+Generates a 3D texture on the cpu (using perlin noise), uploads it to the device and samples it to render an animation. 3D textures store volumetric data and interpolate in all three dimensions.
 
-### [Texture mapping](examples/texture/)
-<img src="./screenshots/basic_texture.png" height="72px" align="right">
+#### [10 - Model rendering](examples/mesh/)
 
-Shows how to upload a 2D texture into video memory for sampling in a shader. Loads a compressed texture into a host visible staging buffer and copies all mip levels to a device local optimal tiled image for best performance.
+Loads a 3D model and texture maps from a common file format (using [assimp](https://github.com/assimp/assimp)), uploads the vertex and index buffer data to video memory, sets up a matching vertex layout and renders the 3D model.
 
-Also demonstrates the use of combined image samplers. Samplers are detached from the actual texture image and only contain information on how an image is sampled in the shader.
+#### [11 - Sub passes](examples/subpasses/)
 
-### [Cube maps](examples/texturecubemap/)
-<img src="./screenshots/texture_cubemap.jpg" height="72px" align="right">
+Uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass. 
 
-Building on the basic texture loading example, a cubemap texture is loaded into a staging buffer and is copied over to a device local optimal image using buffer to image copies for all of it's faces and mip maps.
+#### [12 - Offscreen rendering](examples/offscreen/)
 
-The demo then uses two different pipelines (and shader sets) to display the cubemap as a skybox (background) and as a source for reflections.
+Basic offscreen rendering in two passes. First pass renders the mirrored scene to a separate framebuffer with color and depth attachments, second pass samples from that color attachment for rendering a mirror surface.
 
-### [Texture arrays](examples/texturearray/)
-<img src="./screenshots/texture_array.png" height="72px" align="right">
+#### [13 - CPU particle system](examples/particlefire/)
 
-Texture arrays allow storing of multiple images in different layers without any interpolation between the layers.
-This example demonstrates the use of a 2D texture array with instanced rendering. Each instance samples from a different layer of the texture array.
+Implements a simple CPU based particle system. Particle data is stored in host memory, updated on the CPU per-frame and synchronized with the device before it's rendered using pre-multiplied alpha.
 
-### [Mesh rendering](examples/mesh/)
-<img src="./screenshots/basic_mesh.png" height="72px" align="right">
+#### [14 - Stencil buffer](examples/stencilbuffer/)
 
-Uses [assimp](https://github.com/assimp/assimp) to load a mesh from a common 3D format including a color map. The mesh data is then converted to a fixed vertex layout matching the shader vertex attribute bindings.
+Uses the stencil buffer and it's compare functionality for rendering a 3D model with dynamic outlines.
 
-### [Dynamic uniform buffers](examples/dynamicuniformbuffer/) :speech_balloon:
-<img src="./screenshots/dynamicuniformbuffer.jpg" height="72px" align="right">
+### Advanced
 
-Demonstrates the use of dynamic uniform buffers for rendering multiple objects with different matrices from one big uniform buffer object. Sets up one big uniform buffer that contains multiple model matrices that are dynamically addressed upon descriptor binding time.
+#### [01 - Scene rendering](examples/scenerendering/)
 
-This minimizes the number of descriptor sets required and may help in optimizing memory writes by e.g. only doing partial updates to that memory.
+Combines multiple techniques to render a complex scene consisting of multiple meshes, textures and materials. Meshes are stored and rendered from a single buffer using vertex offsets. Material parameters are passed via push constants, and separate per-model and scene descriptor sets are used to pass data to the shaders.
 
-### [Push constants](examples/pushconstants/)
-<img src="./screenshots/push_constants.png" height="72px" align="right">
+#### [02 - Multi sampling](examples/multisampling/)
 
-Demonstrates the use of push constants for updating small blocks of shader data at pipeline creation time, without having to use a uniform buffer. Displays several light sources with position updates through a push constant block in a separate command buffer.
+Implements multisample anti-aliasing (MSAA) using a renderpass with multisampled attachments and resolve attachments that get resolved into the visible frame buffer.
 
-### [Specialization constants](examples/specializationconstants/)
-<img src="./screenshots/specialization_constants.jpg" height="72px" align="right">
+#### [03 - High dynamic range](examples/hdr/)
 
-Demonstrates the use of SPIR-V specialization constants used to specify shader constants at pipeline creation time. The example uses one "uber" shader with different lighting paths (phong, toon, texture mapped) from which all pipelines are build, with a specialization constant used to select the shader path to be used for that pipeline at creation time.
+Implements a high dynamic range rendering pipeline using 16/32 bit floating point precision for all internal formats, textures and calculations, including a bloom pass, manual exposure and tone mapping. 
 
-### [Offscreen rendering](examples/offscreen/)
-<img src="./screenshots/basic_offscreen.jpg" height="72px" align="right">
+#### [04 - Shadow mapping](examples/shadowmapping/)
 
-Shows how to do basic offscreen rendering. Uses a separate framebuffer with color and depth attachments (that is not part of the swap chain) to render the mirrored scene off screen in the first pass.
+Rendering shadows for a directional light source. First pass stores depth values from the light's pov, second pass compares against these to check if a fragment is shadowed. Uses depth bias to avoid shadow artifacts and applies a PCF filter to smooth shadow edges.
 
-The second pass then samples from the color attachment of that framebuffer for rendering a mirror surface.
+#### [05 - Cascaded shadow mapping](examples/shadowmappingcascade/)
 
-### [Fullscreen radial blur](examples/radialblur/)
-<img src="./screenshots/radial_blur.png" height="72px" align="right">
+Uses multiple shadow maps (stored as a layered texture) to increase shadow resolution for larger scenes. The camera frustum is split up into multiple cascades with corresponding layers in the shadow map. Layer selection for shadowing depth compare is then done by comparing fragment depth with the cascades' depths ranges.
 
-Demonstrates the basics of a fullscreen (fragment) shader effect. The scene is rendered into a low resolution offscreen framebuffer first and blended on top of the scene in a second pass. The fragment shader also applies a radial blur to it.
+#### [06 - Omnidirectional shadow mapping](examples/shadowmappingomni/)
 
-### [Text rendering](examples/textoverlay/)
-<img src="./screenshots/textoverlay.png" height="72px" align="right">
+Uses a dynamic floating point cube map to implement shadowing for a point light source that casts shadows in all directions. The cube map is updated every frame and stores distance to the light source for each fragment used to determine if a fragment is shadowed.
 
-Renders a 2D text overlay on top of an existing 3D scene. The example implements a text overlay class with separate descriptor sets, layouts, pipelines and render pass to detach it from the rendering of the scene. The font is generated by loading glyph data from a [stb font file](http://nothings.org/stb/font/) into a buffer that's copied to the font image.
+#### [07 - Run-time mip-map generation](examples/texturemipmapgen/)
 
-After rendering the scene, the second render pass of the text overlay class loads the contents of the first render pass and displays text on top of it using blending.
+Generating a complete mip-chain at runtime instead of loading it from a file, by blitting from one mip level, starting with the actual texture image, down to the next smaller size until the lower 1x1 pixel end of the mip chain.
 
-### [CPU particles](examples/particlefire/)
-<img src="./screenshots/particlefire.jpg" height="72px" align="right">
+#### [08 - Skeletal animation](examples/skeletalanimation/)
 
-CPU based point sprite particle system simulating a fire. Particles and their attributes are stored in a host visible vertex buffer that's updated on the CPU on each frame. Demonstrates how to update vertex buffer per frame.
+Loads and renders an animated skinned 3D model. Skinning is done on the GPU by passing per-vertex bone weights and translation matrices. 
 
-Also makes use of pre-multiplied alpha for rendering particles with different blending modes (smoke and fire) in one single pass.
+#### [09 - Capturing screenshots](examples/screenshot/)
 
-## Advanced
+Capturing and saving an image after a scene has been rendered using blits to copy the last swapchain image from optimal device to host local linear memory, so that it can be stored into a ppm image.
 
-### [Multi threaded command buffer generation](examples/multithreading/)
-<img src="./screenshots/multithreading.jpg" height="72px" align="right">
-This example demonstrates multi threaded command buffer generation. All available hardware threads are used to generated n secondary command buffers concurrent, with each thread also checking object visibility against the current viewing frustum. Command buffers are rebuilt on each frame.
+### Performance
 
-Once all threads have finished (and all secondary command buffers have been constructed), the secondary command buffers are executed inside the primary command buffer and submitted to the queue.
+#### [01 - Multi threaded command buffer generation](examples/multithreading/)
 
-### [Scene rendering](examples/scenerendering/)
-<img src="./screenshots/scenerendering.jpg" height="72px" align="right">
+Multi threaded parallel command buffer generation. Instead of prebuilding and reusing the same command buffers this sample uses multiple hardware threads to demonstrate parallel per-frame recreation of secondary command buffers that are executed and submitted in a primary buffer once all threads have finished.
 
-This example demonstrates a way to render a complex scene consisting of multiple meshes with different materials and textures. It makes use of separate per-material descriptor sets for passing texturing information and uses push constants to pass material properties to the shaders upon pipeline creation.
+#### [02 - Instancing](examples/instancing/)
 
-Also shows how to use multiple descriptor sets simultaneously with the new GLSL "set" layout qualifier introduced with [GL_KHR_vulkan_glsl](https://www.khronos.org/registry/vulkan/specs/misc/GL_KHR_vulkan_glsl.txt).
+Uses the instancing feature for rendering many instances of the same mesh from a single vertex buffer with variable parameters and textures (indexing a layered texture). Instanced data is passed using a secondary vertex buffer.
 
-### [Instancing](examples/instancing/)
-<img src="./screenshots/instancing.jpg" height="72px" align="right">
+#### [03 - Indirect drawing](examples/indirectdraw/)
 
-Uses instancing for rendering multiple instances of the same mesh using different attributes. A secondary vertex buffer containing instanced data (in device local memory) is used to pass instanced data to the shader via vertex attributes, including a texture layer index for using different textures per-instance. Also shows how to mix instanced and non-instanced object rendering.
-<br><br>
+Rendering thousands of instanced objects with different geometry using one single indirect draw call instead of issuing separate draws. All draw commands to be executed are stored in a dedicated indirect draw buffer object (storing index count, offset, instance count, etc.) that is uploaded to the device and sourced by the indirect draw command for rendering.
 
-### [Indirect drawing](examples/indirectdraw/) :speech_balloon:
-<img src="./screenshots/indirectdraw.jpg" height="72px" align="right">
+#### [04 - Occlusion queries](examples/occlusionquery/)
 
-This example renders thousands of instanced objects with different geometries using only one single indirect draw call (if ```multiDrawIndirect``` is supported). Unlike direct drawing function, indirect drawing functions take their draw commands from a buffer object containing information like index count, index offset and number of instances to draw.
+Using query pool objects to get number of passed samples for rendered primitives got determining on-screen visibility.
 
-Shows how to generate and render such an indirect draw command buffer that is staged to the device. Indirect draw buffers are the base for generating and updating draw commands on the GPU using shaders.
+#### [05 - Pipeline statistics](examples/pipelinestatistics/)
 
-### [High dynamic range](examples/hdr/)
-<img src="./screenshots/hdr.jpg" height="72px" align="right">
+Using query pool objects to gather statistics from different stages of the pipeline like vertex, fragment shader and tessellation evaluation shader invocations depending on payload.
 
-Demonstrates high dynamic range rendering using floating point texture and framebuffer formats, extending the internal image precision range from the usual 8 Bits used in LDR to 16/32 bits. Also adds HDR bloom on top of the scene using a separable blur filter and manual exposure via tone mapping.
+### Physically based rendering
 
-### [Occlusion queries](examples/occlusionquery/)
-<img src="./screenshots/occlusion_queries.png" height="72px" align="right">
+Physical based rendering as a lighting technique that achieves a more realistic and dynamic look by applying approximations of bidirectional reflectance distribution functions based on measured real-world material parameters and environment lighting.
 
-Shows how to use occlusion queries to determine object visibility depending on the number of passed samples for a given object. Does an occlusion pass first, drawing all objects (and the occluder) with basic shaders, then reads the query results to conditionally color the objects during the final pass depending on their visibility.
+#### [01 - PBR basics](examples/pbrbasic/)
 
-### [Run-time mip-map generation](examples/texturemipmapgen/) :speech_balloon:
-<img src="./screenshots/texture_mipmap_gen.jpg" height="72px" align="right">
+Demonstrates a basic specular BRDF implementation with solid materials and fixed light sources on a grid of objects with varying material parameters, demonstrating how metallic reflectance and surface roughness affect the appearance of pbr lit objects.
 
-Generates a complete mip-chain at runtime (instead of using mip levels stored in texture file) by blitting from one mip level down to the next smaller size until the lower end of the mip chain (1x1 pixels is reached).
+#### [02 - PBR image based lighting](examples/pbribl/)
 
-This is done using image blits and proper image memory barriers.     
+Adds image based lighting from an hdr environment cubemap to the PBR equation, using the surrounding environment as the light source. This adds an even more realistic look the scene as the light contribution used by the materials is now controlled by the environment. Also shows how to generate the BRDF 2D-LUT and irradiance and filtered cube maps from the environment map.
 
-### [Multi sampling](examples/multisampling/)
-<img src="./screenshots/multisampling.png" height="72px" align="right">
+#### [03 - Textured PBR with IBL](examples/pbrtexture/)
 
-Demonstrates the use of resolve attachments for doing multisampling. Instead of doing an explicit resolve from a multisampled image this example creates multisampled attachments for the color and depth buffer and sets up the render pass to use these as resolve attachments that will get resolved to the visible frame buffer at the end of this render pass. To highlight MSAA the example renders a mesh with fine details against a bright background. Here is a [screenshot without MSAA](./screenshots/multisampling_nomsaa.png) to compare.
+Renders a model specially crafted for a metallic-roughness PBR workflow with textures defining material parameters for the PRB equation (albedo, metallic, roughness, baked ambient occlusion, normal maps) in an image based lighting environment.
 
-### [Shadow mapping](examples/shadowmapping/)
-<img src="./screenshots/shadowmapping.png" height="72px" align="right">
+### Deferred
 
-Dynamic shadows from a ```directional light source``` in two passes. The first pass renders the scene depth from the light's point-of-view into a separate framebuffer attachment with a different (higher) resolution.
+These examples use a [deferred shading](https://en.wikipedia.org/wiki/Deferred_shading) setup.
 
-The second pass renders the scene from the camera's point-of-view and compares the depth value of the texels with the one stored in the offscreen depth attachment (which the shader directly samples from) to determine whether a texel is shadowed or not and then applies a PCF filter to smooth out shadow borders. To avoid shadow artefacts the dynamic depth bias state ([vkCmdSetDepthBias](https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdSetDepthBias.html)) is used to apply a constant and slope depth bias factor.
+#### [01 - Deferred shading basics](examples/deferred/)
 
-### [Cascaded shadow mapping](examples/shadowmappingcascade/)
-<img src="./screenshots/cascaded_shadow_mapping.jpg" height="72px" align="right">
+Uses multiple render targets to fill all attachments (albedo, normals, position, depth) required for a G-Buffer in a single pass. A deferred pass then uses these to calculate shading and lighting in screen space, so that calculations only have to be done for visible fragments independent of no. of lights.
 
-Implements a technique that splits up the camera frustum into multiple frustums, with each getting it's own full-res shadow map (stored in a layered texture). In the final scene rendering pass the shader then selects the proper depth map layer (cascade) by comparing the fragment's depth against cascade split depths.
+#### [02 - Deferred multi sampling](examples/deferredmultisampling/)
 
-This results in a better shadow map resolution distribution with objects closer to the camera getting the highest shadow map resolution. This is esp. useful in large open scenes with high shadow draw distances where a single depth map would result in a poor shadow map resolution coverage.
+Adds multi sampling to a deferred renderer using manual resolve in the fragment shader.
 
-### [Omnidirectional shadow mapping](examples/shadowmappingomni/)
-<img src="./screenshots/shadow_omnidirectional.png" height="72px" align="right">
+#### [03 - Deferred shading shadow mapping](examples/deferredshadows/)
 
-Dynamic shadows from a ```point light source```. Uses a dynamic 32 bit floating point cube map for a point light source that casts shadows in all directions (unlike projective shadow mapping).
+Adds shadows from multiple spotlights to a deferred renderer using a layered depth attachment filled in one pass using multiple geometry shader invocations.
 
-The cube map faces contain the distances from the light sources, which are then used in the final scene rendering pass to determine if the fragment is shadowed or not.
+#### [04 - Screen space ambient occlusion](examples/ssao/)
 
-### [Skeletal animation](examples/skeletalanimation/)
-<img src="./screenshots/mesh_skeletalanimation.png" height="72px" align="right">
+Adds ambient occlusion in screen space to a 3D scene. Depth values from a previous deferred pass are used to generate an ambient occlusion texture that is blurred before being applied to the scene in a final composition path.
 
-This example loads and displays a rigged COLLADA model including animations. Bone weights are extracted for each vertex and are passed to the vertex shader together with the final bone transformation matrices for vertex position calculations.
+### Compute shader
 
-### [Bloom](examples/bloom/)
-<img src="./screenshots/bloom.jpg" height="72px" align="right">
+#### [01 - Image processing](examples/computeshader/)
 
-Advanced fullscreen shader example implementing a separated gaussian blur using two passes. The glowing parts of the scene are rendered to a low-resolution offscreen framebuffer that is blurred in two steps and then blended on top of the scene.
+Uses a compute shader along with a separate compute queue to apply different convolution kernels (and effects) on an input image in realtime.
 
-## Deferred
+#### [02 - GPU particle system](examples/computeparticles/)
 
-*These examples use a [deferred shading](https://en.wikipedia.org/wiki/Deferred_shading) setup*
+Attraction based 2D GPU particle system using compute shaders. Particle data is stored in a shader storage buffer and only modified on the GPU using memory barriers for synchronizing compute particle updates with graphics pipeline vertex access.
 
-### [Deferred shading](examples/deferred/)
-<img src="./screenshots/deferred_shading.jpg" height="72px" align="right">
+#### [03 - N-body simulation](examples/computenbody/)
 
-Demonstrates the use of multiple render targets to fill a G-Buffer for a deferred shading setup with multiple dynamic lights and normal mapped surfaces.
+N-body simulation based particle system with multiple attractors and particle-to-particle interaction using two passes separating particle movement calculation and final integration. Shared compute shader memory is used to speed up compute calculations.
 
-Deferred shading collects all values (color, normal, position) into different render targets in one pass thanks to multiple render targets, and then does all shading and lighting calculations based on these in screen space, thus allowing for much more light sources than traditional forward renderers.
+#### [04 - Ray tracing](examples/raytracing/)
 
-### [Deferred shading and shadow mapping](examples/deferredshadows/)
-<img src="./screenshots/deferred_shadows.jpg" height="72px" align="right">
+Simple GPU ray tracer with shadows and reflections using a compute shader. No scene geometry is rendered in the graphics pass.
 
-Building on the deferred shading setup this example adds directional shadows using shadow maps from multiple spotlights.
+#### [05 - Cloth simulation](examples/computecloth/)
 
-Scene depth from the different light's point-of-view is renderer to a layered depth attachment using only one pass. This is done using multiple geometry shader invocations that allows to output multiple instances of the same geometry using different matrices into the layers of the depth attachment.
+Mass-spring based cloth system on the GPU using a compute shader to calculate and integrate spring forces, also implementing basic collision with a fixed scene object.
 
-The final scene compositing pass then samples from the layered depth map to determine if a fragment is shadowed or not.
+#### [06 - Cull and LOD](examples/computecullandlod/)
 
-### [Screen space ambient occlusion](examples/ssao/)
-<img src="./screenshots/ssao.jpg" height="72px" align="right">
+Purely GPU based frustum visibility culling and level-of-detail system. A compute shader is used to modify draw commands stored in an indirect draw commands buffer to toggle model visibility and select it's level-of-detail based on camera distance, no calculations have to be done on and synced with the CPU.
 
-Implements ambient occlusion in screen space, adding depth with the help of ambient occlusion to a scene. The example is using a deferred shading setup with the AO pass using the depth information from the deferred G-Buffer to generate the ambient occlusion values. A second pass is then applied to blur the AO results before they're applied to the scene in the final composition pass.
+### Geometry shader
 
-## Physically based rendering
+#### [01 - Normal debugging](examples/geometryshader/)
 
-*Physical based rendering as a lighting technique that achieves a more realistic and dynamic look by applying approximations of bidirectional reflectance distribution functions that rely on measured real-world material parameters and environment lighting.*
+Visualizing per-vertex model normals (for debugging). First pass renders the plain model, second pass uses a geometry shader to generate colored lines based on per-vertex model normals,
 
-### [Physical shading basics](examples/pbrbasic/)
-<img src="./screenshots/pbrbasic.jpg" height="72px" align="right">
+#### [02 - Viewport arrays](examples/viewportarray/)
 
-Basic implementation of a metallic-roughness based physical based rendering model using measured material parameters. Implements a specular BRDF based on material parameters for metallic reflectance, surface roughness and color and displays a grid of objects with varying metallic and roughness parameters light by multiple fixed light sources.
+Renders a scene to multiple viewports in one pass using a geometry shader to apply different matrices per viewport to simulate stereoscopic rendering (left/right). Requires a device with support for ```multiViewport```.
 
-### [Physical shading with image based lighting](examples/pbribl/)
-<img src="./screenshots/pbribl.jpg" height="72px" align="right">
+### Tessellation shader
 
-Adds ```image based lighting``` to the PBR equation. IBL uses the surrounding environment as a single light source. This adds an even more realistic look the models as the light contribution used by the materials is now controlled by the environment. The sample uses a fixed HDR environment cubemap as for lighting and reflectance. The new textures and cubemaps required for the enhanced lighting (BRDF 2D-LUT, irradiance cube and a filtered cube based on roughness) are generated at run-time based on that cubemap.
+#### [01 - Displacement mapping](examples/tessellation/)
 
-### [Physical shading with textures and image based lighting](examples/pbrtexture/)
-<img src="./screenshots/pbrtexture.jpg" height="72px" align="right">
+Uses a height map to dynamically generate and displace additional geometric detail for a low-poly mesh.
 
-This example adds a textured model with materials especially created for the metallic-roughness PBR workflow. Where the other examples used fixed material parameters for the PBR equation (metallic, roughness, albedo), this model contains texture maps that store these values (plus a normal and ambient occlusion map) used as input parameters for the BRDF shader. So even though the model uses only one material there are differing roughness and metallic areas and combined with image based lighting based on the environment the model is rendered with a realistic look.
+#### [02 - Dynamic terrain tessellation](examples/terraintessellation/)
 
-## Compute
+Renders a terrain using tessellation shaders for height displacement (based on a 16-bit height map), dynamic level-of-detail (based on triangle screen space size) and per-patch frustum culling.
 
-*Compute shaders are mandatory in Vulkan and must be supported on all devices*
+#### [03 - Model tessellation](examples/tessellation/)
 
-### [Particle system](examples/computeparticles/)
-<img src="./screenshots/compute_particles.jpg" height="72px" align="right">
+Uses curved PN-triangles ([paper](http://alex.vlachos.com/graphics/CurvedPNTriangles.pdf)) for adding details to a low-polygon model.
 
-Attraction based particle system. A shader storage buffer is used to store particle on which the compute shader does some physics calculations. The buffer is then used by the graphics pipeline for rendering with a gradient texture for. Demonstrates the use of memory barriers for synchronizing vertex buffer access between a compute and graphics pipeline
+### Headless 
 
-### [N-body simulation](examples/computenbody/)
-<img src="./screenshots/compute_nbody.jpg" height="72px" align="right">
+Examples that run one-time tasks and don't make use of visual output (no window system integration). These can be run in environments where no user interface is available ([blog entry](https://www.saschawillems.de/?p=2719)).
 
-Implements a N-body simulation based particle system with multiple attractors and particle-to-particle interaction using two passes separating particle movement calculation and final integration.
+#### [01 - Render](examples/renderheadless)
 
-Also shows how to use ```shared compute shader memory``` for a significant performance boost.
+Renders a basic scene to a (non-visible) frame buffer attachment, reads it back to host memory and stores it to disk without any on-screen presentation, showing proper use of memory barriers required for device to host image synchronization.
 
-### [Ray tracing](examples/raytracing/)
-<img src="./screenshots/compute_raytracing.jpg" height="72px" align="right">
+#### [02 - Compute](examples/computeheadless)
 
-Implements a simple ray tracer using a compute shader. No primitives are rendered by the traditional pipeline except for a fullscreen quad that displays the ray traced results of the scene rendered by the compute shaders. Also implements shadows and basic reflections.
+Only uses compute shader capabilities for running calculations on an input data set (passed via SSBO). A fibonacci row is calculated based on input data via the compute shader, stored back and displayed via command line.
 
-### [Cull and LOD](examples/computecullandlod/)
-<img src="./screenshots/compute_cullandlod.jpg" height="72px" align="right">
+### User interface
 
-Based on ```indirect drawing``` this example uses a compute shader for visibility testing using ```frustum culling``` and ```level-of-detail selection``` based on object's distance to the viewer.
+#### [01 - Text rendering](examples/textoverlay/)
 
-A compute shader is applied to the indirect draw commands buffer that updates the indirect draw calls depending on object visibility and camera distance. This moves all visibility calculations to the GPU so the indirect draw buffer can stay in device local memory without having to map it back to the host for CPU-based updates.
+Load and render a 2D text overlay created from the bitmap glyph data of a [stb font file](https://nothings.org/stb/font/). This data is uploaded as a texture and used for displaying text on top of a 3D scene in a second pass.
 
-### [Image processing](examples/computeshader/)
-<img src="./screenshots/compute_imageprocessing.jpg" height="72px" align="right">
+#### [02 - Distance field fonts](examples/distancefieldfonts/)
 
-Demonstrates the basic use of a separate compute queue (and command buffer) to apply different convolution kernels on an input image in realtime.
+Uses a texture that stores signed distance field information per character along with a special fragment shader calculating output based on that distance data. This results in crisp high quality font rendering independent of font size and scale.
 
-## Tessellation
+#### [03 - ImGui overlay](examples/imgui/)
 
-*Tessellation shader support is optional* (see ```deviceFeatures.tessellationShader```)
+Generates and renders a complex user interface with multiple windows, controls and user interaction on top of a 3D scene. The UI is generated using [Dear ImGUI](https://github.com/ocornut/imgui) and updated each frame.
 
-### [Displacement mapping](examples/tessellation/)
-<img src="./screenshots/tess_displacement.jpg" height="72px" align="right">
+### Effects
 
-Uses tessellation shaders to generate additional details and displace geometry based on a heightmap.
+#### [01 - Fullscreen radial blur](examples/radialblur/)
 
-### [Dynamic terrain tessellation](examples/terraintessellation/)
-<img src="./screenshots/tess_dynamicterrain.jpg" height="72px" align="right">
+Demonstrates the basics of fullscreen shader effects. The scene is rendered into an offscreen framebuffer at lower resolution and rendered as a fullscreen quad atop the scene using a radial blur fragment shader.
 
-Renders a terrain with dynamic tessellation based on screen space triangle size, resulting in closer parts of the terrain getting more details than distant parts. The terrain geometry is also generated by the tessellation shader using a 16 bit height map for displacement. To improve performance the example also does frustum culling in the tessellation shader.
+#### [02 - Bloom](examples/bloom/)
 
-### [PN-Triangles](examples/tessellation/)
-<img src="./screenshots/tess_pntriangles.jpg" height="72px" align="right">
+Advanced fullscreen effect example adding a bloom effect to a scene. Glowing scene parts are rendered to a low res offscreen framebuffer that is applied atop the scene using a two pass separated gaussian blur.
 
-Generating curved PN-Triangles on the GPU using tessellation shaders to add details to low-polygon meshes, based on [this paper](http://alex.vlachos.com/graphics/CurvedPNTriangles.pdf), with shaders from [this tutorial](http://onrendering.blogspot.de/2011/12/tessellation-on-gpu-curved-pn-triangles.html).
+#### [03 - Parallax mapping](examples/parallaxmapping/)
 
-## Geometry shader
+Implements multiple texture mapping methods to simulate depth based on texture information: Normal mapping, parallax mapping, steep parallax mapping and parallax occlusion mapping (best quality, worst performance).
 
-*Geometry shader support is optional* (see ```deviceFeatures.geometryShader```)
+#### [04 - Spherical environment mapping](examples/sphericalenvmapping/)
 
-### [Normal debugging](examples/geometryshader/)
-<img src="./screenshots/geom_normals.jpg" height="72px" align="right">
+Uses a spherical material capture texture array defining environment lighting and reflection information to fake complex lighting. 
 
-Uses a geometry shader to generate per-vertex normals that could be used for debugging. The first pass displays the solid mesh using basic phong shading and then does a second pass with the geometry shader that generates normals for each vertex of the mesh.
+### Extensions
 
-## Headless
+#### [01 - Conservative rasterization (VK_EXT_conservative_rasterization)](examples/conservativeraster/)
 
-*Examples that run one-time tasks and don't make use of visual output (no window system integration). These can be run in environments where no user interface is available (see [blog entry](https://www.saschawillems.de/?p=2719) for details).*
+Uses conservative rasterization to change the way fragments are generated by the gpu. The example enables overestimation to generate fragments for every pixel touched instead of only pixels that are fully covered ([blog post](https://www.saschawillems.de/?p=2778)).
 
-### [Compute](examples/computeheadless)
-Demonstrates basic compute shader usage for running calculations on an input data set (passed via SSBO). A fibonacci row is calculated based on input data via the compute shader, stored back and displayed via command line.
+#### [02 - Push descriptors (VK_KHR_push_descriptor)](examples/pushdescriptors/)
 
-### [Render](examples/renderheadless)
-Renders a basic scene to a (non-visible) frame buffer attachment, reads it back to host memory and stores it to disk. Also shows proper use of memory barriers required for device to host image synchronization.
+Uses push descriptors apply the push constants concept to descriptor sets. Instead of creating per-object descriptor sets for rendering multiple objects, this example passes descriptors at command buffer creation time.
 
-## Extensions
+#### [03 - Debug markers (VK_EXT_debug_marker)](examples/debugmarker/)
 
-### [VK_EXT_debug_marker](examples/debugmarker/)
-<img src="./screenshots/ext_debugmarker.jpg" height="72px" align="right">
+Uses the VK_EXT_debug_marker extension to set debug markers, regions and to name Vulkan objects for advanced debugging in graphics debuggers like [RenderDoc](https://www.renderdoc.org). Details can be found in [this tutorial](https://www.saschawillems.de/?page_id=2017).
 
-Example application to be used along with [this tutorial](http://www.saschawillems.de/?page_id=2017) for demonstrating the use of the new VK_EXT_debug_marker extension. Introduced with Vulkan 1.0.12, it adds functionality to set debug markers, regions and name objects for advanced debugging in an offline graphics debugger like [RenderDoc](http://www.renderdoc.org).
+### Misc
 
-## Misc
+#### [01 - Vulkan Gears](examples/gears/)
 
-### [Parallax mapping](examples/parallaxmapping/)
-<img src="./screenshots/parallax_mapping.jpg" height="72px" align="right">
+Vulkan interpretation of glxgears. Procedurally generates and animates multiple gears.
 
-Implements multiple texture mapping methods to simulate depth based purely on texture information without generating additional geometry. Along with basic normal mapping the example includes parallax mapping, steep parallax mapping and parallax occlusion mapping, with the later being the best in quality but also with the highest performance impact.
+#### [02 - Vulkan demo scene](examples/vulkanscene/)
 
-### [Spherical environment mapping](examples/sphericalenvmapping/)
-<img src="./screenshots/spherical_env_mapping.png" height="72px" align="right">
+Renders a Vulkan demo scene with logos and mascots. Not an actual example but more of a playground and showcase.
 
-Uses a (spherical) material capture texture containing environment lighting and reflection information to fake complex lighting. The example also uses a texture array to store (and select) several material caps that can be toggled at runtime.
-
-The technique is based on [this article](https://github.com/spite/spherical-environment-mapping).
-
-### [Vulkan Gears](examples/gears/)
-<img src="./screenshots/basic_gears.png" height="72px" align="right">
-
-Vulkan interpretation of glxgears. Procedurally generates separate meshes for each gear, with every mesh having it's own uniform buffer object for animation. Also demonstrates how to use different descriptor sets.
-
-### [Distance field fonts](examples/distancefieldfonts/)
-<img src="./screenshots/font_distancefield.png" height="72px" align="right">
-
-Instead of just sampling a bitmap font texture, a texture with per-character signed distance fields is used to generate high quality glyphs in the fragment shader. This results in a much higher quality than common bitmap fonts, even if heavily zoomed.
-
-Distance field font textures can be generated with tools like [Hiero](https://github.com/libgdx/libgdx/wiki/Hiero).
-
-### [Vulkan demo scene](examples/vulkanscene/)
-<img src="./screenshots/vulkan_scene.png" height="72px" align="right">
-
-More of a playground than an actual example. Renders the Vulkan logo using multiple meshes with different shaders (and pipelines) including a background.
-
-## Credits
-Thanks to the authors of these libraries :
-- [OpenGL Mathematics (GLM)](https://github.com/g-truc/glm)
-- [OpenGL Image (GLI)](https://github.com/g-truc/gli)
-- [Open Asset Import Library](https://github.com/assimp/assimp)
-
-And a huge thanks to the Vulkan Working Group, Vulkan Advisory Panel, the fine people at [LunarG](http://www.lunarg.com), Baldur Karlsson ([RenderDoc](https://github.com/baldurk/renderdoc)) and everyone from the different IHVs that helped me get the examples up and working on their hardware!
-
-## Attributions / Licenses
-Please note that (some) models and textures use separate licenses. Please comply to these when redistributing or using them in your own projects :
-- Cubemap used in cubemap example by [Emil Persson(aka Humus)](http://www.humus.name/)
-- Armored knight model used in deferred example by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
-- Voyager model by [NASA](http://nasa3d.arc.nasa.gov/models)
-- Old deer model used in tessellation example by [Čestmír Dammer](http://opengameart.org/users/cdmir)
-- Hidden treasure scene used in pipeline and debug marker examples by [Laurynas Jurgila](http://www.blendswap.com/user/PigArt)
-- Sibenik Cathedral model by Marko Dabrovic, using updated version by [Kenzie Lamar and Morgan McGuire](http://graphics.cs.williams.edu/data/meshes.xml)
-- Textures used in some examples by [Hugues Muller](http://www.yughues-folio.com)
-- Cerberus gun model used in PBR sample by [Andrew Maximov](http://artisaverb.info/Cerberus.html)
-- Updated compute particle system shader by [Lukas Bergdoll](https://github.com/Voultapher)
-- Vulkan scene model (and derived models) by [Dominic Agoro-Ombaka](http://www.agorodesign.com/) and [Sascha Willems](http://www.saschawillems.de)
-- Vulkan and the Vulkan logo are trademarks of the [Khronos Group Inc.](http://www.khronos.org)
-
-## External resources
-- [LunarG Vulkan SDK](https://vulkan.lunarg.com)
-- [Official list of Vulkan resources](https://www.khronos.org/vulkan/resources)
-- [Vulkan API specifications](https://www.khronos.org/registry/vulkan/specs/1.0/apispec.html) ([quick reference cards](https://www.khronos.org/registry/vulkan/specs/1.0/refguide/Vulkan-1.0-web.pdf))
-- [SPIR-V specifications](https://www.khronos.org/registry/spir-v/specs/1.0/SPIRV.html)
-- [My 2016 Khronos Munich Chapter Meeting Vulkan presentation](https://www.saschawillems.de/wp-content/uploads/2018/01/Khronos_meetup_munich_fromGLtoVulkan.pdf)
-- [My personal view on Vulkan (as a hobby developer)](http://www.saschawillems.de/?p=1886)
+## Credits and attributions
+See [CREDITS.md](CREDITS.md) for additional credits and attributions.
