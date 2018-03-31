@@ -832,15 +832,6 @@ public:
 		/*
 			Scene rendering
 		*/
-		uboVS.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, zNear, zFar);
-
-		uboVS.view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-		uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		uboVS.model = glm::mat4(1.0f);
-
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
 		uboVS.model = glm::mat4(1.0f);
