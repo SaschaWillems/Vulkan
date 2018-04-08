@@ -42,51 +42,55 @@ Basic and verbose example for getting a colored triangle rendered to the screen 
 
 Using pipeline state objects (pso) that bake state information (rasterization states, culling modes, etc.) along with the shaders into a single object, making it easy for an implementation to optimize usage (compared to OpenGL's dynamic state machine). Also demonstrates the use of pipeline derivatives.
 
-#### [03 - Dynamic uniform buffers](examples/dynamicuniformbuffer/)
+#### [03 - Descriptor sets](examples/descriptorsets)
+
+Descriptors are used to pass data to shader binding points. Sets up descriptor sets, layouts, pools, creates a single pipeline based on the set layout and renders multiple objects with different descriptor sets.
+
+#### [04 - Dynamic uniform buffers](examples/dynamicuniformbuffer/)
 
 Dynamic uniform buffers are used for rendering multiple objects with multiple matrices stored in a single uniform buffer object. Individual matrices are dynamically addressed upon descriptor binding time, minimizing the number of required descriptor sets.
 
-#### [04 - Push constants](examples/pushconstants/)
+#### [05 - Push constants](examples/pushconstants/)
 
 Uses push constants, small blocks of uniform data stored within a command buffer, to pass data to a shader without the need for uniform buffers.
 
-#### [05 - Specialization constants](examples/specializationconstants/)
+#### [06 - Specialization constants](examples/specializationconstants/)
 
 Uses SPIR-V specialization constants to create multiple pipelines with different lighting paths from a single "uber" shader.
 
-#### [06 - Texture mapping](examples/texture/)
+#### [07 - Texture mapping](examples/texture/)
 
 Loads a 2D texture from disk (including all mip levels), uses staging to upload it into video memory and samples from it using combined image samplers.
 
-#### [07 - Cube map textures](examples/texturecubemap/)
+#### [08 - Cube map textures](examples/texturecubemap/)
 
 Loads a cube map texture from disk containing six different faces. All faces and mip levels are uploaded into video memory and the cubemap is sampled once as a skybox (for the background) and as a source for reflections (for a 3D model).
 
-#### [08 - Texture arrays](examples/texturearray/)
+#### [09 - Texture arrays](examples/texturearray/)
 
 Loads a 2D texture array containing multiple 2D texture slices (each with it's own mip chain) and renders multiple meshes each sampling from a different layer of the texture. 2D texture arrays don't do any interpolation between the slices.
 
-#### [09 - 3D textures](examples/texture3d/)
+#### [10 - 3D textures](examples/texture3d/)
 
 Generates a 3D texture on the cpu (using perlin noise), uploads it to the device and samples it to render an animation. 3D textures store volumetric data and interpolate in all three dimensions.
 
-#### [10 - Model rendering](examples/mesh/)
+#### [11 - Model rendering](examples/mesh/)
 
 Loads a 3D model and texture maps from a common file format (using [assimp](https://github.com/assimp/assimp)), uploads the vertex and index buffer data to video memory, sets up a matching vertex layout and renders the 3D model.
 
-#### [11 - Sub passes](examples/subpasses/)
+#### [12 - Sub passes](examples/subpasses/)
 
 Uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass. 
 
-#### [12 - Offscreen rendering](examples/offscreen/)
+#### [13 - Offscreen rendering](examples/offscreen/)
 
 Basic offscreen rendering in two passes. First pass renders the mirrored scene to a separate framebuffer with color and depth attachments, second pass samples from that color attachment for rendering a mirror surface.
 
-#### [13 - CPU particle system](examples/particlefire/)
+#### [14 - CPU particle system](examples/particlefire/)
 
 Implements a simple CPU based particle system. Particle data is stored in host memory, updated on the CPU per-frame and synchronized with the device before it's rendered using pre-multiplied alpha.
 
-#### [14 - Stencil buffer](examples/stencilbuffer/)
+#### [15 - Stencil buffer](examples/stencilbuffer/)
 
 Uses the stencil buffer and it's compare functionality for rendering a 3D model with dynamic outlines.
 

@@ -50,6 +50,7 @@ set(EXAMPLES
 	deferred
 	deferredmultisampling
 	deferredshadows
+	descriptorsets
 	displacement
 	distancefieldfonts
 	dynamicuniformbuffer
