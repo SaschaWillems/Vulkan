@@ -338,17 +338,6 @@ public:
 			vks::tools::exitFatal("Could not get a valid function pointer for vkCmdPushDescriptorSetKHR", -1);
 		}
 
-		// Get device push descriptor properties (to display them)
-		PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2KHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR"));
-		if (!vkGetPhysicalDeviceProperties2KHR) {
-			vks::tools::exitFatal("Could not get a valid function pointer for vkGetPhysicalDeviceProperties2KHR", -1);
-		}
-		VkPhysicalDeviceProperties2KHR deviceProps2{};
-		pushDescriptorProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR;
-		deviceProps2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
-		deviceProps2.pNext = &pushDescriptorProps;
-		vkGetPhysicalDeviceProperties2KHR(physicalDevice, &deviceProps2);
-
 		/*
 			End of extension specific functions
 		*/
