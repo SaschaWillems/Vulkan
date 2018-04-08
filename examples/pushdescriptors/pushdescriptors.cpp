@@ -340,7 +340,7 @@ public:
 
 		// Get device push descriptor properties (to display them)
 		PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2KHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR"));
-		if (!vkCmdPushDescriptorSetKHR) {
+		if (!vkGetPhysicalDeviceProperties2KHR) {
 			vks::tools::exitFatal("Could not get a valid function pointer for vkGetPhysicalDeviceProperties2KHR", -1);
 		}
 		VkPhysicalDeviceProperties2KHR deviceProps2{};
