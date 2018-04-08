@@ -59,7 +59,7 @@ private:
 	float fpsTimer = 0.0f;
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
-	/** brief Indicates that the view (position, rotation) has changed and */
+	/** brief Indicates that the view (position, rotation) has changed and buffers containing camera matrices need to be updated */
 	bool viewUpdated = false;
 	// Destination dimensions for resizing the window
 	uint32_t destWidth;
