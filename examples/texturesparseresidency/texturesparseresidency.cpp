@@ -346,7 +346,6 @@ public:
 		sparseImageCreateInfo.arrayLayers = texture.layerCount;
 		sparseImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		sparseImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		sparseImageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 		sparseImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		sparseImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		sparseImageCreateInfo.extent = { texture.width, texture.height, 1 };
@@ -558,7 +557,6 @@ public:
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
 		sampler.maxLod = static_cast<float>(texture.mipLevels);
-		sampler.anisotropyEnable = vulkanDevice->features.samplerAnisotropy;
 		sampler.maxAnisotropy = vulkanDevice->features.samplerAnisotropy ? vulkanDevice->properties.limits.maxSamplerAnisotropy : 1.0f;
 		sampler.anisotropyEnable = false;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
@@ -888,19 +886,8 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Vertex shader
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
-		uboVS.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.model = camera.matrices.view;
-		//uboVS.model = glm::mat4(1.0f);
-
 		uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
 
 		VK_CHECK_RESULT(uniformBufferVS.map());
@@ -961,8 +948,6 @@ public:
 	void fillVirtualTexture(int32_t &mipLevel)
 	{
 		vkDeviceWaitIdle(device);
-		std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
-		std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 		std::vector<VkImageBlit> imageBlits;
 		for (auto& page : texture.pages)
 		{

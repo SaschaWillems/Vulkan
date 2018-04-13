@@ -179,8 +179,6 @@ public:
 
 			if (info == "char")
 			{
-				std::string pair;
-
 				// char id
 				uint32_t charid = nextValuePair(&lineStream);
 				// Char properties

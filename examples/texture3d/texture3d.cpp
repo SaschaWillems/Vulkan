@@ -234,7 +234,7 @@ public:
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, texture.format, &formatProperties);
 		// Check if format supports transfer
-		if (!formatProperties.optimalTilingFeatures && VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+		if (!(formatProperties.optimalTilingFeatures & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
 		{
 			std::cout << "Error: Device does not support flag TRANSFER_DST for selected texture format!" << std::endl;
 			return;
@@ -255,7 +255,6 @@ public:
 		imageCreateInfo.arrayLayers = 1;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageCreateInfo.extent.width = texture.width;
 		imageCreateInfo.extent.height = texture.width;
@@ -326,7 +325,6 @@ public:
 		PerlinNoise<float> perlinNoise;
 		FractalNoise<float> fractalNoise(perlinNoise);
 
-		std::default_random_engine rndEngine(std::random_device{}());
 		const int32_t noiseType = rand() % 2;
 		const float noiseScale = static_cast<float>(rand() % 10) + 4.0f;
 
