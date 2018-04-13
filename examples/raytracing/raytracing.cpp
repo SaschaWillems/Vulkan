@@ -283,23 +283,6 @@ public:
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffer, &cmdBufInfo));
 
-    VkBufferMemoryBarrier bufferMemoryBarrier = {};
-    bufferMemoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    bufferMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-    bufferMemoryBarrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
-    bufferMemoryBarrier.buffer = compute.uniformBuffer.buffer;
-    bufferMemoryBarrier.offset = 0;
-    bufferMemoryBarrier.size = VK_WHOLE_SIZE;
-    vkCmdPipelineBarrier(
-      compute.commandBuffer,
-      VK_PIPELINE_STAGE_HOST_BIT,
-      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-      VK_FLAGS_NONE,
-      0, nullptr,
-      1, &bufferMemoryBarrier,
-      0, nullptr );
-
-		vkCmdBindPipeline(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
 		vkCmdBindDescriptorSets(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSet, 0, 0);
 
 		vkCmdDispatch(compute.commandBuffer, textureComputeTarget.width / 16, textureComputeTarget.height / 16, 1);
