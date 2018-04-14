@@ -1,7 +1,7 @@
 {
   "apkname": "vulkanTexturecubemap",
   "directories": {
-    "shaders": "cubemap"
+    "shaders": "texturecubemap"
   },
   "assets": {
     "models": [
