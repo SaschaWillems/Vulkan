@@ -843,12 +843,12 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.bloom[0]));
 
 		// Second blur pass (into separate framebuffer)
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		pipelineCreateInfo.renderPass = filterPass.renderPass;
 		dir = 0;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.bloom[1]));
 
 		// Object rendering pipelines 
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
 		// Vertex bindings an attributes for model rendering
 		// Binding description
