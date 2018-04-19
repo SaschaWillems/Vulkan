@@ -76,8 +76,6 @@ public:
 		VkPipeline solidPassThrough;
 		VkPipeline wirePassThrough = VK_NULL_HANDLE;
 	} pipelines;
-	VkPipeline *pipelineLeft = &pipelines.wirePassThrough;
-	VkPipeline *pipelineRight = &pipelines.wire;
 	
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
@@ -534,22 +532,6 @@ public:
 	{
 		updateUniformBuffers();
 	}
-
-	void togglePipelines()
-	{
-		if (pipelineRight == &pipelines.solid)
-		{
-			pipelineRight = &pipelines.wire;
-			pipelineLeft = &pipelines.wirePassThrough;
-		}
-		else
-		{
-			pipelineRight = &pipelines.solid;
-			pipelineLeft = &pipelines.solidPassThrough;
-		}
-		buildCommandBuffers();
-	}
-
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
