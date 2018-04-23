@@ -761,8 +761,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	{
 		setupConsole("Vulkan validation output");
 	}
-
-	SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+	setupDPIAwareness();
 #endif
 }
 
@@ -1002,6 +1001,25 @@ void VulkanExampleBase::setupConsole(std::string title)
 	freopen_s(&stream, "CONOUT$", "w+", stdout);
 	freopen_s(&stream, "CONOUT$", "w+", stderr);
 	SetConsoleTitle(TEXT(title.c_str()));
+}
+
+void VulkanExampleBase::setupDPIAwareness()
+{
+	using SetProcessDpiAwarenessFunc = HRESULT(*)(PROCESS_DPI_AWARENESS);
+
+	HMODULE shCore = LoadLibraryA("Shcore.dll");
+	if (shCore)
+	{
+		SetProcessDpiAwarenessFunc setProcessDpiAwareness =
+			(SetProcessDpiAwarenessFunc)GetProcAddress(shCore, "SetProcessDpiAwareness");
+
+		if (setProcessDpiAwareness != nullptr)
+		{
+			setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+		}
+
+		FreeLibrary(shCore);
+	}
 }
 
 HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
