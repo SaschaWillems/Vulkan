@@ -761,6 +761,8 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	{
 		setupConsole("Vulkan validation output");
 	}
+
+	SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
 #endif
 }
 
