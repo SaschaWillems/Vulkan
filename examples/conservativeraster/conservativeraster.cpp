@@ -588,27 +588,11 @@ public:
 		*/
 		PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2KHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR"));
 		assert(vkGetPhysicalDeviceProperties2KHR);
-		const char* extName(VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME);
 		VkPhysicalDeviceProperties2KHR deviceProps2{};
 		conservativeRasterProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT;
 		deviceProps2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
 		deviceProps2.pNext = &conservativeRasterProps;
 		vkGetPhysicalDeviceProperties2KHR(physicalDevice, &deviceProps2);
-
-		/*
-			Conservative rasterization pipeline state
-		*/
-		VkPipelineRasterizationConservativeStateCreateInfoEXT conservativeRasterStateCI{};
-		conservativeRasterStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT;
-		conservativeRasterStateCI.conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT;
-		conservativeRasterStateCI.extraPrimitiveOverestimationSize = conservativeRasterProps.maxExtraPrimitiveOverestimationSize;
-
-		// Conservative rasterization state has to be chained into the pipeline rasterization state create info structure
-		rasterizationStateCI.pNext = &conservativeRasterStateCI;
-
-		/*
-			End of conservative rasterization setup
-		*/
 
 		// Vertex bindings and attributes
 		std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
@@ -635,7 +619,6 @@ public:
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		// Full screen pass
-		conservativeRasterStateCI.conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/conservativeraster/fullscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/conservativeraster/fullscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Empty vertex input state (full screen triangle generated in vertex shader)
@@ -647,26 +630,39 @@ public:
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 		pipelineCreateInfo.layout = pipelineLayouts.scene;
 
-		// Original triangle outline (no conservative rasterization)
+		// Original triangle outline
 		// TODO: Check support for lines
 		rasterizationStateCI.lineWidth = 2.0f;
 		rasterizationStateCI.polygonMode = VK_POLYGON_MODE_LINE;
-		conservativeRasterStateCI.conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/conservativeraster/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/conservativeraster/triangleoverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.triangleOverlay));
 
 		pipelineCreateInfo.renderPass = offscreenPass.renderPass;
 
-		// Triangle rendering
+		/*
+			Triangle rendering
+		*/
 		rasterizationStateCI.polygonMode = VK_POLYGON_MODE_FILL;
-		conservativeRasterStateCI.conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/conservativeraster/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/conservativeraster/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		// Default
+
+		/*
+			Basic pipeline
+		*/
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.triangle));
-		// Conservative rasterization enabled
+
+		/*
+			Pipeline with conservative rasterization enabled
+		*/
+		VkPipelineRasterizationConservativeStateCreateInfoEXT conservativeRasterStateCI{};
+		conservativeRasterStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT;
 		conservativeRasterStateCI.conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT;
+		conservativeRasterStateCI.extraPrimitiveOverestimationSize = conservativeRasterProps.maxExtraPrimitiveOverestimationSize;
+
+		// Conservative rasterization state has to be chained into the pipeline rasterization state create info structure
+		rasterizationStateCI.pNext = &conservativeRasterStateCI;
+
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.triangleConservativeRaster));
 	}
 
