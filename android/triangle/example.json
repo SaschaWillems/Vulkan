@@ -1,6 +1,0 @@
-{
-  "apkname": "vulkanTriangle",
-  "directories": {
-    "shaders": "triangle"
-  }
-}

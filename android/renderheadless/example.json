@@ -1,8 +1,0 @@
-{
-  "apkname": "vulkanRenderheadless",
-  "directories": {
-    "shaders": "renderheadless"
-  },
-  "assets": {
-  }
-}
