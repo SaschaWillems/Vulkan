@@ -1,9 +1,10 @@
 apply plugin: 'com.android.application'
+apply from: '../gradle/outputfilename.gradle'
 
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "de.saschawillems.vulkanTriangle"
+        applicationId "de.saschawillems.VulkanTriangle"
         minSdkVersion 19
         targetSdkVersion 26
         versionCode 1
