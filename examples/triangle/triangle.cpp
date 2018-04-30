@@ -1123,11 +1123,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 
 #elif defined(__ANDROID__)
 // Android entry point
-// A note on app_dummy(): This is required as the compiler may otherwise remove the main entry point of the application
 VulkanExample *vulkanExample;
 void android_main(android_app* state)
 {
-	app_dummy();
 	vulkanExample = new VulkanExample();
 	state->userData = vulkanExample;
 	state->onAppCmd = VulkanExample::handleAppCommand;
