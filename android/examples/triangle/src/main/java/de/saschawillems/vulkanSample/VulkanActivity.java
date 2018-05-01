@@ -15,8 +15,6 @@ import java.util.concurrent.Semaphore;
 
 public class VulkanActivity extends NativeActivity {
 
-    VulkanActivity _activity;
-
     static {
         // Load native library
         System.loadLibrary("native-lib");
@@ -24,7 +22,6 @@ public class VulkanActivity extends NativeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        _activity = this;
     }
 
     // Use a semaphore to create a modal dialog
@@ -33,12 +30,14 @@ public class VulkanActivity extends NativeActivity {
 
     public void showAlert(final String message)
     {
-        ApplicationInfo applicationInfo = _activity.getApplicationInfo();
+        final VulkanActivity activity = this;
+
+        ApplicationInfo applicationInfo = activity.getApplicationInfo();
         final String applicationName = applicationInfo.nonLocalizedLabel.toString();
 
         this.runOnUiThread(new Runnable() {
            public void run() {
-               AlertDialog.Builder builder = new AlertDialog.Builder(_activity, AlertDialog.THEME_HOLO_DARK);
+               AlertDialog.Builder builder = new AlertDialog.Builder(activity, AlertDialog.THEME_HOLO_DARK);
                builder.setTitle(applicationName);
                builder.setMessage(message);
                builder.setPositiveButton("Close", new DialogInterface.OnClickListener() {

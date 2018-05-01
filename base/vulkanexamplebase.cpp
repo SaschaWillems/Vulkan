@@ -333,6 +333,7 @@ void VulkanExampleBase::renderLoop()
 		// Exit loop, example will be destroyed in application main
 		if (destroy)
 		{
+            ANativeActivity_finish(androidApp->activity);
 			break;
 		}
 
@@ -555,8 +556,10 @@ void VulkanExampleBase::renderLoop()
 		updateOverlay();
 	}
 #endif
-	// Flush device to make sure all resources can be freed 
-	vkDeviceWaitIdle(device);
+	// Flush device to make sure all resources can be freed
+    if (device != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(device);
+    }
 }
 
 void VulkanExampleBase::updateOverlay()
@@ -830,7 +833,7 @@ VulkanExampleBase::~VulkanExampleBase()
 #endif
 }
 
-void VulkanExampleBase::initVulkan()
+bool VulkanExampleBase::initVulkan()
 {
 	VkResult err;
 
@@ -838,6 +841,7 @@ void VulkanExampleBase::initVulkan()
 	err = createInstance(settings.validation);
 	if (err) {
 		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), err);
+		return false;
 	}
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -864,6 +868,7 @@ void VulkanExampleBase::initVulkan()
 	err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
 	if (err) {
 		vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(err), err);
+		return false;
 	}
 
 	// GPU selection
@@ -939,6 +944,7 @@ void VulkanExampleBase::initVulkan()
 	VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions);
 	if (res != VK_SUCCESS) {
 		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), res);
+		return false;
 	}
 	device = vulkanDevice->logicalDevice;
 
@@ -988,6 +994,8 @@ void VulkanExampleBase::initVulkan()
 	};
 	LOGD("androidProduct = %s", androidProduct.c_str());
 #endif	
+
+	return true;
 }
 
 #if defined(_WIN32)
@@ -1399,9 +1407,14 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		LOGD("APP_CMD_INIT_WINDOW");
 		if (androidApp->window != NULL)
 		{
-			vulkanExample->initVulkan();
-			vulkanExample->prepare();
-			assert(vulkanExample->prepared);
+			if (vulkanExample->initVulkan()) {
+				vulkanExample->prepare();
+				assert(vulkanExample->prepared);
+			}
+			else {
+				LOGE("Could not initialize Vulkan, exiting!");
+                androidApp->destroyRequested = 1;
+			}
 		}
 		else
 		{
@@ -1419,7 +1432,9 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 	case APP_CMD_TERM_WINDOW:
 		// Window is hidden or closed, clean up resources
 		LOGD("APP_CMD_TERM_WINDOW");
-		vulkanExample->swapChain.cleanup();
+		if (vulkanExample->prepared) {
+			vulkanExample->swapChain.cleanup();
+		}
 		break;
 	}
 }

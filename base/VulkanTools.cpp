@@ -273,7 +273,9 @@ namespace vks
 			vks::android::showAlert(message.c_str());
 #endif
 			std::cerr << message << "\n";
+#if !defined(__ANDROID__)
 			exit(exitCode);
+#endif
 		}
 
 		void exitFatal(std::string message, VkResult resultCode)
