@@ -747,7 +747,7 @@ public:
 
 		VkPipelineColorBlendAttachmentState blendAttachmentState =
 			vks::initializers::pipelineColorBlendAttachmentState(
-				0xf,
+				VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
 				VK_FALSE);
 
 		VkPipelineColorBlendStateCreateInfo colorBlendState =
@@ -786,8 +786,12 @@ public:
 				0);
 
 		std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates = {
-			vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-			vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
+			vks::initializers::pipelineColorBlendAttachmentState(
+				VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+				VK_FALSE),
+			vks::initializers::pipelineColorBlendAttachmentState(
+				VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+				VK_FALSE),
 		};
 
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;

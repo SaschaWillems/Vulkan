@@ -790,7 +790,9 @@ public:
 	{
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE, 0);
-		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(
+			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+			VK_FALSE);
 		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
@@ -871,9 +873,15 @@ public:
 			// This is important, as color write mask will otherwise be 0x0 and you
 			// won't see anything rendered to the attachment
 			std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
-				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE)
+				vks::initializers::pipelineColorBlendAttachmentState(
+					VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+					VK_FALSE),
+				vks::initializers::pipelineColorBlendAttachmentState(
+					VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+					VK_FALSE),
+				vks::initializers::pipelineColorBlendAttachmentState(
+					VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+					VK_FALSE)
 			};
 			colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());
 			colorBlendState.pAttachments = blendAttachmentStates.data();
