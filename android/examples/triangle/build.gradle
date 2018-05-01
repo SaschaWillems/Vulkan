@@ -36,24 +36,24 @@ android {
     }
 }
 
-task copyRes(type: Copy) {
-    from '../../common/res/drawable'
-    into "src/main/res/drawable"
-    include 'icon.png'
+task copyTask << {
+    copy {
+        from '../../common/res/drawable'
+        into "src/main/res/drawable"
+        include 'icon.png'
+    }
+
+    copy {
+        from '../../../data/shaders/base'
+        into "assets/shaders/base"
+        include '*.spv'
+    }
+
+    copy {
+        from '../../../data/shaders/triangle'
+        into "assets/shaders/triangle"
+        include '*.spv'
+    }
 }
 
-task copyBaseShaders(type: Copy) {
-    from '../../../data/shaders/base'
-    into "assets/shaders/base"
-    include '*.spv'
-}
-
-task copyShaders(type: Copy) {
-    from '../../../data/shaders/triangle'
-    into "assets/shaders/triangle"
-    include '*.spv'
-}
-
-preBuild.dependsOn copyRes
-preBuild.dependsOn copyBaseShaders
-preBuild.dependsOn copyShaders
+preBuild.dependsOn copyTask
