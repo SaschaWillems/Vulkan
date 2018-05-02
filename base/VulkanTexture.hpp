@@ -320,7 +320,7 @@ namespace vks
 				// and can be directly used as textures
 				image = mappableImage;
 				deviceMemory = mappableMemory;
-				this.imageLayout = imageLayout;
+				this->imageLayout = imageLayout;
 
 				// Setup image memory barrier
 				vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
