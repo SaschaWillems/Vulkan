@@ -8,7 +8,6 @@ set(EXTERNAL_DIR ../../../external)
 set(LIB_DIR ../../../libs)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -DVK_USE_PLATFORM_ANDROID_KHR -DVK_NO_PROTOTYPES")
-#set(CMAKE_SHARED_LINKER_FLAGS "--no-fatal-warnings")
 
 file(GLOB EXAMPLE_SRC "${SRC_DIR}/*.cpp")
 file(GLOB BASE_SRC "${BASE_DIR}/*.cpp")
