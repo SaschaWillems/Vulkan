@@ -234,7 +234,7 @@ public:
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, texture.format, &formatProperties);
 		// Check if format supports transfer
-		if (!(formatProperties.optimalTilingFeatures & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
+		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_DST_BIT))
 		{
 			std::cout << "Error: Device does not support flag TRANSFER_DST for selected texture format!" << std::endl;
 			return;
