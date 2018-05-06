@@ -5,7 +5,8 @@
   },
   "assets": {
     "models": [
-      "vulkanscene_shadow.dae"
+      "vulkanscene_shadow.dae",
+      "samplescene.dae"
     ]
   }
 }
