@@ -608,14 +608,17 @@ void VulkanExampleBase::updateOverlay()
 
 void VulkanExampleBase::prepareFrame()
 {
-	// Acquire the next image from the swap chain
-	VkResult err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-	if ((err == VK_ERROR_OUT_OF_DATE_KHR) || (err == VK_SUBOPTIMAL_KHR)) {
-		windowResize();
-	}
-	else {
-		VK_CHECK_RESULT(err);
+	for (int i = 0; i < 2; ++i) {
+		// Acquire the next image from the swap chain
+		VkResult err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+		if (((err == VK_ERROR_OUT_OF_DATE_KHR) || (err == VK_SUBOPTIMAL_KHR)) && (i == 0)) {
+			windowResize();
+		}
+		else {
+			VK_CHECK_RESULT(err);
+			break;
+		}
 	}
 }
 
