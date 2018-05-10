@@ -4,19 +4,18 @@ apply from: '../gradle/outputfilename.gradle'
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "de.saschawillems.VulkanTriangle"
+        applicationId "de.saschawillems.vulkanTriangle"
         minSdkVersion 19
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters "armeabi-v7a"
         }
         externalNativeBuild {
             cmake {
-                cppFlags "-std=c++11"
-                arguments "-DANDROID_STL=c++_static"
+                cppFlags "-std=c++14"
+                arguments "-DANDROID_STL=c++_shared", '-DANDROID_TOOLCHAIN=clang'
             }
         }
     }
@@ -50,10 +49,12 @@ task copyTask << {
     }
 
     copy {
-        from '../../../data/shaders/triangle'
-        into "assets/shaders/triangle"
-        include '*.spv'
+       from '../../../data/shaders/triangle'
+       into 'assets/shaders/triangle'
+       include '*.*'
     }
+
+
 }
 
 preBuild.dependsOn copyTask

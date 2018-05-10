@@ -3,7 +3,7 @@
     package="de.saschawillems.vulkanTriangle">
 
     <application
-        android:label="Vulkan Triangle"
+        android:label="Vulkan triangle"
         android:icon="@drawable/icon"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity android:name="de.saschawillems.vulkanSample.VulkanActivity"
