@@ -26,7 +26,7 @@ Note that you need [assimp](https://github.com/assimp/assimp) in order to compil
 
 ## <img src="./images/androidlogo.png" alt="" height="32px"> [Android](android/)
 
-Building on Android is done using the [Android NDK](http://developer.android.com/tools/sdk/ndk/index.html) and requires a device that supports Vulkan. Please see the [Android readme](./android/README.md) on how to build and deploy the examples.
+Building on Android is done using [Android Studio](https://developer.android.com/studio/) (Google's own and free Android IDE) and requires a device that supports Vulkan. Please see the [Android readme](./android/README.md) for details on how to build and run the samples.
 
 ## <img src="./images/applelogo.png" alt="" height="32px"> [iOS and macOS](xcode/)
 

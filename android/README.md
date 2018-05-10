@@ -1,6 +1,4 @@
-# Vulkan examples on Android
-
-## <img src="./../images/androidlogo.png" alt="" height="32px"> Vulkan on Android
+# <img src="./../images/androidlogo.png" alt="" height="32px"> Vulkan examples on Android
 
 ## Device support
 - **To run these examples you need a device with an Android image that suports Vulkan**
