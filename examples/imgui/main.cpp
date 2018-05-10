@@ -343,8 +343,8 @@ public:
 
 		ImVec4 clear_color = ImColor(114, 144, 154);
 		static float f = 0.0f;
-		ImGui::Text(example->title.c_str());
-		ImGui::Text(device->properties.deviceName);
+		ImGui::TextUnformatted(example->title.c_str());
+		ImGui::TextUnformatted(device->properties.deviceName);
 
 		// Update frame time display
 		if (updateFrameGraph) {
