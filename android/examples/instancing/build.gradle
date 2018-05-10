@@ -1,0 +1,90 @@
+apply plugin: 'com.android.application'
+apply from: '../gradle/outputfilename.gradle'
+
+android {
+    compileSdkVersion 26
+    defaultConfig {
+        applicationId "de.saschawillems.vulkanInstancing"
+        minSdkVersion 19
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        ndk {
+            abiFilters "armeabi-v7a"
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++14"
+                arguments "-DANDROID_STL=c++_shared", '-DANDROID_TOOLCHAIN=clang'
+            }
+        }
+    }
+    sourceSets {
+        main.assets.srcDirs = ['assets']
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+}
+
+task copyTask << {
+    copy {
+        from '../../common/res/drawable'
+        into "src/main/res/drawable"
+        include 'icon.png'
+    }
+
+    copy {
+        from '../../../data/shaders/base'
+        into "assets/shaders/base"
+        include '*.spv'
+    }
+
+    copy {
+       from '../../../data/shaders/instancing'
+       into 'assets/shaders/instancing'
+       include '*.*'
+    }
+
+    copy {
+       from '../../../data/models'
+       into 'assets/models'
+       include 'rock01.dae'
+    }
+
+    copy {
+       from '../../../data/models'
+       into 'assets/models'
+       include 'sphere.obj'
+    }
+
+    copy {
+       from '../../../data/models'
+       into 'assets/models'
+       include 'cube.obj'
+    }
+
+    copy {
+       from '../../../data/textures'
+       into 'assets/textures'
+       include 'texturearray_rocks*.ktx'
+    }
+
+    copy {
+       from '../../../data/textures'
+       into 'assets/textures'
+       include 'lavaplanet*.ktx'
+    }
+
+
+}
+
+preBuild.dependsOn copyTask
