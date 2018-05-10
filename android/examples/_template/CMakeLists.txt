@@ -19,6 +19,7 @@ add_subdirectory(../base ${CMAKE_SOURCE_DIR}/../base)
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 
 include_directories(${BASE_DIR})
+include_directories(${EXTERNAL_DIR})
 include_directories(${EXTERNAL_DIR}/glm)
 include_directories(${EXTERNAL_DIR}/gli)
 include_directories(${EXTERNAL_DIR}/imgui)
