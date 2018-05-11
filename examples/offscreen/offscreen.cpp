@@ -125,7 +125,6 @@ public:
 		timerSpeed *= 0.25f;
 		title = "Offscreen rendering";
 		settings.overlay = true;
-		enabledFeatures.shaderClipDistance = VK_TRUE;
 	}
 
 	~VulkanExample()

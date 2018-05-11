@@ -1,88 +1,37 @@
-# Vulkan examples on Android
-
-## <img src="./../images/androidlogo.png" alt="" height="32px"> Vulkan on Android
-
-Since Vulkan is not yet part of the Android OS (like OpenGL ES) the library and function pointers need to be dynamically loaded before using any of the Vulkan functions. See the **vulkanandroid.h** and **vulkanandroid.cpp** files in the base folder of the repositoy root for how this is done.
+# <img src="./../images/androidlogo.png" alt="" height="32px"> Vulkan examples on Android
 
 ## Device support
 - **To run these examples you need a device with an Android image that suports Vulkan**
-- Builds currently only support arm-v7, x86 may follow at a later point
-- Android TV leanback launcher is supported, so the examples will show up on the launcher
+- Builds currently only support arm-v7, other architectures may be added later
 - Basic gamepad support is available too (zoom and rotate)
 - Basic touch control support (zoom, move, rotate, look)
 
 ## Building
 
 ### Requirements
-- [Android NDK r11b](http://developer.android.com/ndk/downloads/index.html) (or newer) - Somewhere in your search path
-- Examples are built against API level 23 (requires the SDK Platform installed)
-- Python 3.x
+
+- [Android Studio](https://developer.android.com/studio/)
+- [Android NDK](https://developer.android.com/ndk/downloads/) (r11b or higher)
+- [Android SDK](https://developer.android.com/studio/index.html)
+
+### Update the asset pack
+
+During the Android build process, assets are copied over from the data folder, so it's important to make sure that a current version of the [asset pack](../data/README.md) has been downloaded and extracted. 
 
 ### Building the Examples
 
-### Grab Externals
+Select **Import project** from the welcome screen (or from inside Android via **File->New**):
 
-Make sure all submodules have been cloned using the [steps from main README](../README.md#cloning).
+<img src="androidstudio01.jpg" alt="" width="384px">
 
-### Complete set
+Navigate to the **android** subfolder of this repository (should be higlighted with a gadle symbol):
 
-**Please note that building (and deploying) all examples may take a while**
+<img src="androidstudio02.jpg" alt="" width="384px">
 
-#### Build only
+Select OK to start the import.
 
-```
-build-all.py
-```
+**Note:** Initial import will take a while due to the number of examples.
 
-This will build all apks and puts them into the **bin** folder.
+Once the import is done, the samples can be build, debugged and run from inside Android Studio just like any other Android project.
 
-#### Build and deploy
-
-```
-build-all.py -deploy
-```
-
-This will build all apks and deploys them to the currently attached android device.
-
-### Single examples
-
-These are for building and/or deploying a single example.
-
-#### Build only
-
-Call build(.bat) with the name of the example to build, e.g. :
-
-```
-build.py pbrtexture
-```
-
-This will build the apk for the triangle example and puts it into the **bin** folder.
-
-#### Build and deploy
-
-```
-build.py pbrtexture -deploy
-```
-
-This will build the apk for the triangle example and deploys it to the currently attached android device.
-
-#### Validation layers
-
-```
-build.py pbrtexture -validation (-deploy)
-```
-
-Builds the apk, adds the validation layer libraries and enables validation via a compiler define.
-
-**Note**: You need to manually build the validation layers and put them in the [proper folder](layers/). If the libaries are not present they won't be included with the apk and running the app will fail.
-
-## Removing
-
-A single file for removing all installed examples is provided in case you installed all of them and don't want to remove them by hand (which is especially tedious on Android TV).
-
-
-```
-uninstall-all.py
-```
-
-This will remove any installed Android example from this repository from the attached device.
+**Note:** If you update the repository at a later point you may have to resync to have additional examples added to the Android Studio project (**File->Sync Project with Gradle files**).
