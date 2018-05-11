@@ -844,7 +844,6 @@ void handleAppCommand(android_app * app, int32_t cmd) {
 	}
 }
 void android_main(android_app* state) {
-	app_dummy();
 	androidapp = state;
 	androidapp->onAppCmd = handleAppCommand;
 	int ident, events;
