@@ -76,7 +76,7 @@ public:
 	VkPipeline pipeline;
 	VkShaderModule shaderModule;
 
-	VkDebugReportCallbackEXT debugReportCallback;
+	VkDebugReportCallbackEXT debugReportCallback{};
 
 	VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkBuffer *buffer, VkDeviceMemory *memory, VkDeviceSize size, void *data = nullptr)
 	{
@@ -142,18 +142,41 @@ public:
 
 		uint32_t layerCount = 0;
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-		const char* validationlayers[] = { "VK_LAYER_GOOGLE_threading",	"VK_LAYER_LUNARG_parameter_validation",	"VK_LAYER_LUNARG_object_tracker","VK_LAYER_LUNARG_core_validation",	"VK_LAYER_LUNARG_swapchain", "VK_LAYER_GOOGLE_unique_objects" };
+		const char* validationLayers[] = { "VK_LAYER_GOOGLE_threading",	"VK_LAYER_LUNARG_parameter_validation",	"VK_LAYER_LUNARG_object_tracker","VK_LAYER_LUNARG_core_validation",	"VK_LAYER_LUNARG_swapchain", "VK_LAYER_GOOGLE_unique_objects" };
 		layerCount = 6;
 #else
-		const char* validationlayers[] = { "VK_LAYER_LUNARG_standard_validation" };
+		const char* validationLayers[] = { "VK_LAYER_LUNARG_standard_validation" };
 		layerCount = 1;
 #endif
 #if DEBUG
-		instanceCreateInfo.ppEnabledLayerNames = validationlayers;
-		const char* validationExt = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
-		instanceCreateInfo.enabledLayerCount = layerCount;
-		instanceCreateInfo.enabledExtensionCount = 1;
-		instanceCreateInfo.ppEnabledExtensionNames = &validationExt;
+		// Check if layers are available
+		uint32_t instanceLayerCount;
+		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
+		std::vector<VkLayerProperties> instanceLayers(instanceLayerCount);
+		vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayers.data());
+
+		bool layersAvailable = true;
+		for (auto layerName : validationLayers) {
+			bool layerAvailable = false;
+			for (auto instanceLayer : instanceLayers) {
+				if (strcmp(instanceLayer.layerName, layerName) == 0) {
+					layerAvailable = true;
+					break;
+				}
+			}
+			if (!layerAvailable) {
+				layersAvailable = false;
+				break;
+			}
+		}
+
+		if (layersAvailable) {
+			instanceCreateInfo.ppEnabledLayerNames = validationLayers;
+			const char *validationExt = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
+			instanceCreateInfo.enabledLayerCount = layerCount;
+			instanceCreateInfo.enabledExtensionCount = 1;
+			instanceCreateInfo.ppEnabledExtensionNames = &validationExt;
+		}
 #endif
 		VK_CHECK_RESULT(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
 
@@ -161,15 +184,17 @@ public:
 		vks::android::loadVulkanFunctions(instance);
 #endif
 #if DEBUG
-		VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = {};
-		debugReportCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-		debugReportCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-		debugReportCreateInfo.pfnCallback = (PFN_vkDebugReportCallbackEXT)debugMessageCallback;
+		if (layersAvailable) {
+			VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = {};
+			debugReportCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+			debugReportCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+			debugReportCreateInfo.pfnCallback = (PFN_vkDebugReportCallbackEXT)debugMessageCallback;
 
-		// We have to explicitly load this function.
-		PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
-		assert(vkCreateDebugReportCallbackEXT);
-		VK_CHECK_RESULT(vkCreateDebugReportCallbackEXT(instance, &debugReportCreateInfo, nullptr, &debugReportCallback));
+			// We have to explicitly load this function.
+			PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
+			assert(vkCreateDebugReportCallbackEXT);
+			VK_CHECK_RESULT(vkCreateDebugReportCallbackEXT(instance, &debugReportCreateInfo, nullptr, &debugReportCallback));
+		}
 #endif
 
 		/* 
@@ -492,9 +517,11 @@ public:
 		vkDestroyShaderModule(device, shaderModule, nullptr);
 		vkDestroyDevice(device, nullptr);
 #if DEBUG
-		PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallback = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
-		assert(vkDestroyDebugReportCallback);
-		vkDestroyDebugReportCallback(instance, debugReportCallback, nullptr);
+		if (debugReportCallback) {
+			PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallback = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
+			assert(vkDestroyDebugReportCallback);
+			vkDestroyDebugReportCallback(instance, debugReportCallback, nullptr);
+		}
 #endif
 		vkDestroyInstance(instance, nullptr);
 	}
