@@ -69,7 +69,7 @@ task copyTask << {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'torusknot.objdae'
+       include 'torusknot.obj'
     }
 
     copy {
