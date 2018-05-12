@@ -79,6 +79,12 @@ task copyTask << {
     }
 
     copy {
+        from '../../../data/models'
+        into 'assets/models'
+        include 'venus.fbx'
+    }
+
+    copy {
        from '../../../data/textures'
        into 'assets/textures'
        include 'cubemap_yokohama*.ktx'
