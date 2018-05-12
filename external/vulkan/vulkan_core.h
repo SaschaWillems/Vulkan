@@ -43,7 +43,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 71
+#define VK_HEADER_VERSION 74
 
 
 #define VK_NULL_HANDLE 0
@@ -147,6 +147,7 @@ typedef enum VkResult {
     VK_ERROR_INCOMPATIBLE_DISPLAY_KHR = -1000003001,
     VK_ERROR_VALIDATION_FAILED_EXT = -1000011001,
     VK_ERROR_INVALID_SHADER_NV = -1000012000,
+    VK_ERROR_FRAGMENTATION_EXT = -1000161000,
     VK_ERROR_NOT_PERMITTED_EXT = -1000174001,
     VK_ERROR_OUT_OF_POOL_MEMORY_KHR = VK_ERROR_OUT_OF_POOL_MEMORY,
     VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR = VK_ERROR_INVALID_EXTERNAL_HANDLE,
@@ -377,10 +378,16 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_MODULATION_STATE_CREATE_INFO_NV = 1000152000,
     VK_STRUCTURE_TYPE_VALIDATION_CACHE_CREATE_INFO_EXT = 1000160000,
     VK_STRUCTURE_TYPE_SHADER_MODULE_VALIDATION_CACHE_CREATE_INFO_EXT = 1000160001,
+    VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT = 1000161000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT = 1000161001,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT = 1000161002,
+    VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT = 1000161003,
+    VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_LAYOUT_SUPPORT_EXT = 1000161004,
     VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT = 1000174000,
     VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT = 1000178000,
     VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT = 1000178001,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT = 1000178002,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD = 1000185000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT = 1000190000,
     VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_EXT = 1000190001,
     VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO_KHR = VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO,
@@ -1498,12 +1505,14 @@ typedef VkFlags VkSamplerCreateFlags;
 
 typedef enum VkDescriptorSetLayoutCreateFlagBits {
     VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR = 0x00000001,
+    VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT = 0x00000002,
     VK_DESCRIPTOR_SET_LAYOUT_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 } VkDescriptorSetLayoutCreateFlagBits;
 typedef VkFlags VkDescriptorSetLayoutCreateFlags;
 
 typedef enum VkDescriptorPoolCreateFlagBits {
     VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT = 0x00000001,
+    VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT = 0x00000002,
     VK_DESCRIPTOR_POOL_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 } VkDescriptorPoolCreateFlagBits;
 typedef VkFlags VkDescriptorPoolCreateFlags;
@@ -3738,6 +3747,7 @@ typedef enum VkSubgroupFeatureFlagBits {
     VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT = 0x00000020,
     VK_SUBGROUP_FEATURE_CLUSTERED_BIT = 0x00000040,
     VK_SUBGROUP_FEATURE_QUAD_BIT = 0x00000080,
+    VK_SUBGROUP_FEATURE_PARTITIONED_BIT_NV = 0x00000100,
     VK_SUBGROUP_FEATURE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 } VkSubgroupFeatureFlagBits;
 typedef VkFlags VkSubgroupFeatureFlags;
@@ -7232,6 +7242,95 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetValidationCacheDataEXT(
     void*                                       pData);
 #endif
 
+#define VK_EXT_descriptor_indexing 1
+#define VK_EXT_DESCRIPTOR_INDEXING_SPEC_VERSION 2
+#define VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME "VK_EXT_descriptor_indexing"
+
+
+typedef enum VkDescriptorBindingFlagBitsEXT {
+    VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT = 0x00000001,
+    VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT = 0x00000002,
+    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT = 0x00000004,
+    VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT = 0x00000008,
+    VK_DESCRIPTOR_BINDING_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
+} VkDescriptorBindingFlagBitsEXT;
+typedef VkFlags VkDescriptorBindingFlagsEXT;
+
+typedef struct VkDescriptorSetLayoutBindingFlagsCreateInfoEXT {
+    VkStructureType                       sType;
+    const void*                           pNext;
+    uint32_t                              bindingCount;
+    const VkDescriptorBindingFlagsEXT*    pBindingFlags;
+} VkDescriptorSetLayoutBindingFlagsCreateInfoEXT;
+
+typedef struct VkPhysicalDeviceDescriptorIndexingFeaturesEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    VkBool32           shaderInputAttachmentArrayDynamicIndexing;
+    VkBool32           shaderUniformTexelBufferArrayDynamicIndexing;
+    VkBool32           shaderStorageTexelBufferArrayDynamicIndexing;
+    VkBool32           shaderUniformBufferArrayNonUniformIndexing;
+    VkBool32           shaderSampledImageArrayNonUniformIndexing;
+    VkBool32           shaderStorageBufferArrayNonUniformIndexing;
+    VkBool32           shaderStorageImageArrayNonUniformIndexing;
+    VkBool32           shaderInputAttachmentArrayNonUniformIndexing;
+    VkBool32           shaderUniformTexelBufferArrayNonUniformIndexing;
+    VkBool32           shaderStorageTexelBufferArrayNonUniformIndexing;
+    VkBool32           descriptorBindingUniformBufferUpdateAfterBind;
+    VkBool32           descriptorBindingSampledImageUpdateAfterBind;
+    VkBool32           descriptorBindingStorageImageUpdateAfterBind;
+    VkBool32           descriptorBindingStorageBufferUpdateAfterBind;
+    VkBool32           descriptorBindingUniformTexelBufferUpdateAfterBind;
+    VkBool32           descriptorBindingStorageTexelBufferUpdateAfterBind;
+    VkBool32           descriptorBindingUpdateUnusedWhilePending;
+    VkBool32           descriptorBindingPartiallyBound;
+    VkBool32           descriptorBindingVariableDescriptorCount;
+    VkBool32           runtimeDescriptorArray;
+} VkPhysicalDeviceDescriptorIndexingFeaturesEXT;
+
+typedef struct VkPhysicalDeviceDescriptorIndexingPropertiesEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    uint32_t           maxUpdateAfterBindDescriptorsInAllPools;
+    VkBool32           shaderUniformBufferArrayNonUniformIndexingNative;
+    VkBool32           shaderSampledImageArrayNonUniformIndexingNative;
+    VkBool32           shaderStorageBufferArrayNonUniformIndexingNative;
+    VkBool32           shaderStorageImageArrayNonUniformIndexingNative;
+    VkBool32           shaderInputAttachmentArrayNonUniformIndexingNative;
+    VkBool32           robustBufferAccessUpdateAfterBind;
+    VkBool32           quadDivergentImplicitLod;
+    uint32_t           maxPerStageDescriptorUpdateAfterBindSamplers;
+    uint32_t           maxPerStageDescriptorUpdateAfterBindUniformBuffers;
+    uint32_t           maxPerStageDescriptorUpdateAfterBindStorageBuffers;
+    uint32_t           maxPerStageDescriptorUpdateAfterBindSampledImages;
+    uint32_t           maxPerStageDescriptorUpdateAfterBindStorageImages;
+    uint32_t           maxPerStageDescriptorUpdateAfterBindInputAttachments;
+    uint32_t           maxPerStageUpdateAfterBindResources;
+    uint32_t           maxDescriptorSetUpdateAfterBindSamplers;
+    uint32_t           maxDescriptorSetUpdateAfterBindUniformBuffers;
+    uint32_t           maxDescriptorSetUpdateAfterBindUniformBuffersDynamic;
+    uint32_t           maxDescriptorSetUpdateAfterBindStorageBuffers;
+    uint32_t           maxDescriptorSetUpdateAfterBindStorageBuffersDynamic;
+    uint32_t           maxDescriptorSetUpdateAfterBindSampledImages;
+    uint32_t           maxDescriptorSetUpdateAfterBindStorageImages;
+    uint32_t           maxDescriptorSetUpdateAfterBindInputAttachments;
+} VkPhysicalDeviceDescriptorIndexingPropertiesEXT;
+
+typedef struct VkDescriptorSetVariableDescriptorCountAllocateInfoEXT {
+    VkStructureType    sType;
+    const void*        pNext;
+    uint32_t           descriptorSetCount;
+    const uint32_t*    pDescriptorCounts;
+} VkDescriptorSetVariableDescriptorCountAllocateInfoEXT;
+
+typedef struct VkDescriptorSetVariableDescriptorCountLayoutSupportEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    uint32_t           maxVariableDescriptorCount;
+} VkDescriptorSetVariableDescriptorCountLayoutSupportEXT;
+
+
+
 #define VK_EXT_shader_viewport_index_layer 1
 #define VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_SPEC_VERSION 1
 #define VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME "VK_EXT_shader_viewport_index_layer"
@@ -7310,6 +7409,31 @@ VKAPI_ATTR void VKAPI_CALL vkCmdWriteBufferMarkerAMD(
     uint32_t                                    marker);
 #endif
 
+#define VK_AMD_shader_core_properties 1
+#define VK_AMD_SHADER_CORE_PROPERTIES_SPEC_VERSION 1
+#define VK_AMD_SHADER_CORE_PROPERTIES_EXTENSION_NAME "VK_AMD_shader_core_properties"
+
+typedef struct VkPhysicalDeviceShaderCorePropertiesAMD {
+    VkStructureType    sType;
+    void*              pNext;
+    uint32_t           shaderEngineCount;
+    uint32_t           shaderArraysPerEngineCount;
+    uint32_t           computeUnitsPerShaderArray;
+    uint32_t           simdPerComputeUnit;
+    uint32_t           wavefrontsPerSimd;
+    uint32_t           wavefrontSize;
+    uint32_t           sgprsPerSimd;
+    uint32_t           minSgprAllocation;
+    uint32_t           maxSgprAllocation;
+    uint32_t           sgprAllocationGranularity;
+    uint32_t           vgprsPerSimd;
+    uint32_t           minVgprAllocation;
+    uint32_t           maxVgprAllocation;
+    uint32_t           vgprAllocationGranularity;
+} VkPhysicalDeviceShaderCorePropertiesAMD;
+
+
+
 #define VK_EXT_vertex_attribute_divisor 1
 #define VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_SPEC_VERSION 1
 #define VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME "VK_EXT_vertex_attribute_divisor"
@@ -7332,6 +7456,11 @@ typedef struct VkPipelineVertexInputDivisorStateCreateInfoEXT {
     const VkVertexInputBindingDivisorDescriptionEXT*    pVertexBindingDivisors;
 } VkPipelineVertexInputDivisorStateCreateInfoEXT;
 
+
+
+#define VK_NV_shader_subgroup_partitioned 1
+#define VK_NV_SHADER_SUBGROUP_PARTITIONED_SPEC_VERSION 1
+#define VK_NV_SHADER_SUBGROUP_PARTITIONED_EXTENSION_NAME "VK_NV_shader_subgroup_partitioned"
 
 
 #ifdef __cplusplus
