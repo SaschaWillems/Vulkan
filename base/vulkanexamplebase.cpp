@@ -333,7 +333,7 @@ void VulkanExampleBase::renderLoop()
 		// Exit loop, example will be destroyed in application main
 		if (destroy)
 		{
-            ANativeActivity_finish(androidApp->activity);
+			ANativeActivity_finish(androidApp->activity);
 			break;
 		}
 
@@ -557,9 +557,9 @@ void VulkanExampleBase::renderLoop()
 	}
 #endif
 	// Flush device to make sure all resources can be freed
-    if (device != VK_NULL_HANDLE) {
-        vkDeviceWaitIdle(device);
-    }
+	if (device != VK_NULL_HANDLE) {
+		vkDeviceWaitIdle(device);
+	}
 }
 
 void VulkanExampleBase::updateOverlay()
@@ -1433,7 +1433,7 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 			}
 			else {
 				LOGE("Could not initialize Vulkan, exiting!");
-                androidApp->destroyRequested = 1;
+				androidApp->destroyRequested = 1;
 			}
 		}
 		else
