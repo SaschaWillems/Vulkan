@@ -23,7 +23,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = name.c_str();
 	appInfo.pEngineName = name.c_str();
-	appInfo.apiVersion = VK_API_VERSION_1_0;
+	appInfo.apiVersion = apiVersion;
 
 	std::vector<const char*> instanceExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
