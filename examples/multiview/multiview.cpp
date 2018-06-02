@@ -24,7 +24,6 @@
 #include "VulkanModel.hpp"
 
 #define ENABLE_VALIDATION false
-//#define VULKAN_1_1
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -44,13 +43,13 @@ public:
 
 	vks::Model scene;
 
-	struct UBOGS {
+	struct UBO {
 		glm::mat4 projection[2];
 		glm::mat4 modelview[2];
 		glm::vec4 lightPos = glm::vec4(-2.5f, -3.5f, 0.0f, 1.0f);
-	} uboGS;
+	} ubo;
 
-	vks::Buffer uniformBufferGS;
+	vks::Buffer uniformBuffer;
 
 	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
@@ -88,9 +87,15 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
+		vkDestroyImageView(device, colorAttachment.view, nullptr);
+		vkDestroyImage(device, colorAttachment.image, nullptr);
+		vkFreeMemory(device, colorAttachment.memory, nullptr);
+
+		vkDestroySemaphore(device, blitCompleteSemaphore, nullptr);
+
 		scene.destroy();
 
-		uniformBufferGS.destroy();
+		uniformBuffer.destroy();
 	}
 
 	/*
@@ -476,7 +481,7 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocateInfo, &descriptorSet));
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0: Vertex shader UBO
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBufferGS.descriptor),	
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),	
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
@@ -574,9 +579,9 @@ public:
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBufferGS,
-			sizeof(uboGS)));
-		VK_CHECK_RESULT(uniformBufferGS.map());
+			&uniformBuffer,
+			sizeof(ubo)));
+		VK_CHECK_RESULT(uniformBuffer.map());
 		updateUniformBuffers();
 	}
 
@@ -613,8 +618,8 @@ public:
 
 		transM = glm::translate(glm::mat4(1.0f), camera.position - camRight * (eyeSeparation / 2.0f));
 
-		uboGS.projection[0] = glm::frustum(left, right, bottom, top, zNear, zFar);
-		uboGS.modelview[0] = rotM * transM;
+		ubo.projection[0] = glm::frustum(left, right, bottom, top, zNear, zFar);
+		ubo.modelview[0] = rotM * transM;
 
 		// Right eye
 		left = -aspectRatio * wd2 - 0.5f * eyeSeparation * ndfl;
@@ -622,10 +627,10 @@ public:
 
 		transM = glm::translate(glm::mat4(1.0f), camera.position + camRight * (eyeSeparation / 2.0f));
 
-		uboGS.projection[1] = glm::frustum(left, right, bottom, top, zNear, zFar);
-		uboGS.modelview[1] = rotM * transM;
+		ubo.projection[1] = glm::frustum(left, right, bottom, top, zNear, zFar);
+		ubo.modelview[1] = rotM * transM;
 
-		memcpy(uniformBufferGS.mapped, &uboGS, sizeof(uboGS));
+		memcpy(uniformBuffer.mapped, &ubo, sizeof(ubo));
 	}
 
 	void draw()

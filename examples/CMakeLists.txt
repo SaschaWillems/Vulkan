@@ -63,6 +63,7 @@ set(EXAMPLES
 	mesh
 	multisampling
 	multithreading
+	multiview
 	occlusionquery
 	offscreen
 	parallaxmapping
