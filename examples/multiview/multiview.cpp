@@ -99,72 +99,6 @@ public:
 	}
 
 	/*
-		Custom framebuffer setup	
-		Creates a color framebuffer with multiple layers rendered to in a single pass
-	*/
-	void setupFrameBuffer()
-	{
-		VkImageView attachments[2];
-
-		{
-			VkImageCreateInfo imageCI = vks::initializers::imageCreateInfo();
-			imageCI.imageType = VK_IMAGE_TYPE_2D;
-			imageCI.format = swapChain.colorFormat;
-			imageCI.extent = { width, height, 1 };
-			imageCI.mipLevels = 1;
-			// Two layers for two views
-			imageCI.arrayLayers = 2;
-			imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-			imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-			VkMemoryRequirements memReqs;
-			VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &colorAttachment.image));
-			vkGetImageMemoryRequirements(device, colorAttachment.image, &memReqs);
-
-			VkMemoryAllocateInfo memoryAllocInfo = vks::initializers::memoryAllocateInfo();
-			memoryAllocInfo.allocationSize = memReqs.size;
-			memoryAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			VK_CHECK_RESULT(vkAllocateMemory(device, &memoryAllocInfo, nullptr, &colorAttachment.memory));
-			VK_CHECK_RESULT(vkBindImageMemory(device, colorAttachment.image, colorAttachment.memory, 0));
-
-			VkImageViewCreateInfo imageViewCI = vks::initializers::imageViewCreateInfo();
-			imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-			imageViewCI.format = swapChain.colorFormat;
-			imageViewCI.flags = 0;
-			imageViewCI.subresourceRange = {};
-			imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imageViewCI.subresourceRange.baseMipLevel = 0;
-			imageViewCI.subresourceRange.levelCount = 1;
-			imageViewCI.subresourceRange.baseArrayLayer = 0;
-			// Two layers for two views
-			imageViewCI.subresourceRange.layerCount = 2;
-			imageViewCI.image = colorAttachment.image;
-			VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &colorAttachment.view));
-		}
-
-		// Depth/Stencil attachment is the same for all frame buffers
-		attachments[0] = colorAttachment.view;
-		attachments[1] = depthStencil.view;
-
-		VkFramebufferCreateInfo frameBufferCreateInfo = {};
-		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		frameBufferCreateInfo.pNext = NULL;
-		frameBufferCreateInfo.renderPass = renderPass;
-		frameBufferCreateInfo.attachmentCount = 2;
-		frameBufferCreateInfo.pAttachments = attachments;
-		frameBufferCreateInfo.width = width;
-		frameBufferCreateInfo.height = height;
-		frameBufferCreateInfo.layers = 1;
-
-		// Create frame buffers for every swap chain image
-		frameBuffers.resize(swapChain.imageCount);
-		for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
-		}
-	}
-
-	/*
 		Custom depth/stencil setup
 		Creates a depth/stencil framebuffer with multiple layers rendered to in a single pass
 	*/
@@ -229,7 +163,6 @@ public:
 		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		//attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		attachments[0].finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		// Depth attachment
 		attachments[1].format = depthFormat;
@@ -314,6 +247,81 @@ public:
 		renderPassCI.pNext = &renderPassMultiviewCI;
 
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCI, nullptr, &renderPass));
+
+		// The custom render pass does not include the swapchain images, so we need to do an initial layout transition
+
+		VkCommandBuffer layoutCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkImageSubresourceRange subresourceRange { VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_MIP_LEVELS };
+		for (uint32_t i = 0; i < swapChain.imageCount; i++) {
+			vks::tools::setImageLayout(
+				layoutCmd,
+				swapChain.images[i],
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				subresourceRange);
+		}
+		vulkanDevice->flushCommandBuffer(layoutCmd, queue);
+	}
+
+	/*
+		Custom framebuffer setup
+		Creates a color framebuffer with multiple layers rendered to in a single pass
+	*/
+	void setupFrameBuffer()
+	{
+		VkImageCreateInfo imageCI = vks::initializers::imageCreateInfo();
+		imageCI.imageType = VK_IMAGE_TYPE_2D;
+		imageCI.format = swapChain.colorFormat;
+		imageCI.extent = { width, height, 1 };
+		imageCI.mipLevels = 1;
+		// Two layers for two views
+		imageCI.arrayLayers = 2;
+		imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+		VkMemoryRequirements memReqs;
+		VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &colorAttachment.image));
+		vkGetImageMemoryRequirements(device, colorAttachment.image, &memReqs);
+
+		VkMemoryAllocateInfo memoryAllocInfo = vks::initializers::memoryAllocateInfo();
+		memoryAllocInfo.allocationSize = memReqs.size;
+		memoryAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memoryAllocInfo, nullptr, &colorAttachment.memory));
+		VK_CHECK_RESULT(vkBindImageMemory(device, colorAttachment.image, colorAttachment.memory, 0));
+
+		VkImageViewCreateInfo imageViewCI = vks::initializers::imageViewCreateInfo();
+		imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+		imageViewCI.format = swapChain.colorFormat;
+		imageViewCI.flags = 0;
+		imageViewCI.subresourceRange = {};
+		imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageViewCI.subresourceRange.baseMipLevel = 0;
+		imageViewCI.subresourceRange.levelCount = 1;
+		imageViewCI.subresourceRange.baseArrayLayer = 0;
+		// Two layers for two views
+		imageViewCI.subresourceRange.layerCount = 2;
+		imageViewCI.image = colorAttachment.image;
+		VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &colorAttachment.view));
+
+		// Depth/Stencil attachment is the same for all frame buffers
+		std::vector<VkImageView> attachments = { colorAttachment.view, depthStencil.view };
+
+		VkFramebufferCreateInfo frameBufferCreateInfo = {};
+		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		frameBufferCreateInfo.pNext = NULL;
+		frameBufferCreateInfo.renderPass = renderPass;
+		frameBufferCreateInfo.attachmentCount = 2;
+		frameBufferCreateInfo.pAttachments = attachments.data();
+		frameBufferCreateInfo.width = width;
+		frameBufferCreateInfo.height = height;
+		frameBufferCreateInfo.layers = 1;
+
+		// Create frame buffers for every swap chain image
+		frameBuffers.resize(swapChain.imageCount);
+		for (uint32_t i = 0; i < frameBuffers.size(); i++) {
+			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
+		}
 	}
 
 	void buildCommandBuffers()
@@ -369,7 +377,7 @@ public:
 		}
 
 		/*
-			Blits
+			Layered color attachment to swapchain blit
 		*/
 		blitCommandBuffers.resize(drawCmdBuffers.size());
 
@@ -379,10 +387,7 @@ public:
 		for (int32_t i = 0; i < blitCommandBuffers.size(); ++i) {
 			VK_CHECK_RESULT(vkBeginCommandBuffer(blitCommandBuffers[i], &cmdBufInfo));
 
-			VkImageSubresourceRange subresourceRange{};
-			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-			subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+			VkImageSubresourceRange subresourceRange { VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_MIP_LEVELS };
 
 			vks::tools::setImageLayout(
 				blitCommandBuffers[i],
@@ -391,13 +396,6 @@ public:
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				subresourceRange);
 
-			//vks::tools::setImageLayout(
-			//	blitCommandBuffers[i],
-			//	colorAttachment.image,
-			//	VK_IMAGE_LAYOUT_UNDEFINED,
-			//	VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			//	subresourceRange);
-
 			VkImageBlit imageBlit{};
 			imageBlit.srcOffsets[0] = { 0, 0, 0 };
 			imageBlit.srcOffsets[1] = { static_cast<int32_t>(width), static_cast<int32_t>(height), 1 };
@@ -405,7 +403,7 @@ public:
 			imageBlit.srcSubresource.layerCount = 1;
 			imageBlit.dstSubresource = imageBlit.srcSubresource;
 
-			// Left
+			// Blit first color attachment layer to the left of the swapchain image
 			imageBlit.dstOffsets[0] = { 0, 0, 0 };
 			imageBlit.dstOffsets[1] = { static_cast<int32_t>(width) / 2, static_cast<int32_t>(height), 1 };
 			imageBlit.srcSubresource.baseArrayLayer = 0;
@@ -419,7 +417,7 @@ public:
 				&imageBlit,
 				VK_FILTER_NEAREST);
 
-			// Right
+			// Blit second color attachment layer to the left of the swapchain image
 			imageBlit.dstOffsets[0] = { static_cast<int32_t>(width) / 2, 0, 0 };
 			imageBlit.dstOffsets[1] = { static_cast<int32_t>(width), static_cast<int32_t>(height), 1 };
 			imageBlit.srcSubresource.baseArrayLayer = 1;
@@ -635,22 +633,26 @@ public:
 
 	void draw()
 	{
-		// TODO: blit after render, needs changes in base clase (fixed semaphores in submitFrame)
-
 		VulkanExampleBase::prepareFrame();
 
+		// Render
 		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		// Blit
+		submitInfo.pWaitSemaphores = &semaphores.renderComplete;
 		submitInfo.pSignalSemaphores = &blitCompleteSemaphore;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &blitCommandBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
-		submitInfo.pWaitSemaphores = &blitCompleteSemaphore;
-		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, blitCompleteSemaphore));
 
-		VulkanExampleBase::submitFrame();
+		// TODO: Proper fence sync
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	void prepare()
