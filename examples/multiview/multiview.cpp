@@ -59,6 +59,7 @@ public:
 	// Semaphore used to synchronize blit to swapchain
 	VkSemaphore blitCompleteSemaphore;
 	std::vector<VkCommandBuffer> blitCommandBuffers;
+	std::vector<VkFence> blitWaitFences;
 
 	// Camera and view properties
 	float eyeSeparation = 0.08f;
@@ -92,6 +93,9 @@ public:
 		vkFreeMemory(device, colorAttachment.memory, nullptr);
 
 		vkDestroySemaphore(device, blitCompleteSemaphore, nullptr);
+		for (auto& fence : blitWaitFences) {
+			vkDestroyFence(device, fence, nullptr);
+		}
 
 		scene.destroy();
 
@@ -636,23 +640,24 @@ public:
 		VulkanExampleBase::prepareFrame();
 
 		// Render
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
 		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
 
 		// Blit
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &blitWaitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &blitWaitFences[currentBuffer]));
 		submitInfo.pWaitSemaphores = &semaphores.renderComplete;
 		submitInfo.pSignalSemaphores = &blitCompleteSemaphore;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &blitCommandBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, blitWaitFences[currentBuffer]));
 
 		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, blitCompleteSemaphore));
-
-		// TODO: Proper fence sync
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 	}
 
 	void prepare()
@@ -663,6 +668,13 @@ public:
 		prepareDescriptors();
 		preparePipelines();
 		buildCommandBuffers();
+
+		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+		blitWaitFences.resize(blitCommandBuffers.size());
+		for (auto& fence : blitWaitFences) {
+			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+		}
+
 		prepared = true;
 	}
 
