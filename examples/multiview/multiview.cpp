@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Multiview (VK_KHR_multiview)
 *
-* VK_KHR_multiview allows rendering to multiple views of a single renderpass
+* Uses VK_KHR_multiview for simultaneously rendering to multiple views and displays these with barrel distortion using a fragment shader 
 *
 * Copyright (C) 2018 by Sascha Willems - www.saschawillems.de
 *
@@ -35,11 +35,20 @@ public:
 		vks::VERTEX_COMPONENT_COLOR,
 	});
 
-	struct ColorAttachment {
-		VkImage image;
-		VkImageView view;
-		VkDeviceMemory memory;
-	} colorAttachment;
+	struct MultiviewPass {
+		struct FrameBufferAttachment {
+			VkImage image;
+			VkDeviceMemory memory;
+			VkImageView view;
+		} color, depth;
+		VkFramebuffer frameBuffer;
+		VkRenderPass renderPass;
+		VkDescriptorImageInfo descriptor;
+		VkSampler sampler;
+		VkSemaphore semaphore;
+		std::vector<VkCommandBuffer> commandBuffers;
+		std::vector<VkFence> waitFences;
+	} multiviewPass;
 
 	vks::Model scene;
 
@@ -56,10 +65,7 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	// Semaphore used to synchronize blit to swapchain
-	VkSemaphore blitCompleteSemaphore;
-	std::vector<VkCommandBuffer> blitCommandBuffers;
-	std::vector<VkFence> blitWaitFences;
+	VkPipeline viewDisplayPipelines[2];
 
 	// Camera and view properties
 	float eyeSeparation = 0.08f;
@@ -70,14 +76,17 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Multiview";
+		title = "Multiview rendering";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
 		camera.setTranslation(glm::vec3(7.0f, 3.2f, 0.0f));
 		camera.movementSpeed = 5.0f;
-		settings.overlay = false;
+		settings.overlay = true;
 
+		// Enable extension required for multiview
 		enabledDeviceExtensions.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
+		
+		// Reading device properties and features for multiview requires VK_KHR_get_physical_device_properties2 to be enabled
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 	}
 
@@ -88,13 +97,26 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkDestroyImageView(device, colorAttachment.view, nullptr);
-		vkDestroyImage(device, colorAttachment.image, nullptr);
-		vkFreeMemory(device, colorAttachment.memory, nullptr);
+		// Multiview pass
 
-		vkDestroySemaphore(device, blitCompleteSemaphore, nullptr);
-		for (auto& fence : blitWaitFences) {
+		vkDestroyImageView(device, multiviewPass.color.view, nullptr);
+		vkDestroyImage(device, multiviewPass.color.image, nullptr);
+		vkFreeMemory(device, multiviewPass.color.memory, nullptr);
+		vkDestroyImageView(device, multiviewPass.depth.view, nullptr);
+		vkDestroyImage(device, multiviewPass.depth.image, nullptr);
+		vkFreeMemory(device, multiviewPass.depth.memory, nullptr);
+
+		vkDestroyRenderPass(device, multiviewPass.renderPass, nullptr);
+		vkDestroySampler(device, multiviewPass.sampler, nullptr);
+		vkDestroyFramebuffer(device, multiviewPass.frameBuffer, nullptr);
+
+		vkDestroySemaphore(device, multiviewPass.semaphore, nullptr);
+		for (auto& fence : multiviewPass.waitFences) {
 			vkDestroyFence(device, fence, nullptr);
+		}
+
+		for (auto& pipeline : viewDisplayPipelines) {
+			vkDestroyPipeline(device, pipeline, nullptr);
 		}
 
 		scene.destroy();
@@ -103,348 +125,328 @@ public:
 	}
 
 	/*
-		Custom depth/stencil setup
-		Creates a depth/stencil framebuffer with multiple layers rendered to in a single pass
+		Prepares all resources required for the multiview attachment
+		Images, views, attachments, renderpass, framebuffer, etc.
 	*/
-	void setupDepthStencil()
+	void prepareMultiview()
 	{
-		VkImageCreateInfo image = {};
-		image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		image.pNext = NULL;
-		image.imageType = VK_IMAGE_TYPE_2D;
-		image.format = depthFormat;
-		image.extent = { width, height, 1 };
-		image.mipLevels = 1;
-		image.arrayLayers = 2; // Two layers for two viewports
-		image.samples = VK_SAMPLE_COUNT_1_BIT;
-		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		image.flags = 0;
-
-		VkMemoryAllocateInfo mem_alloc = {};
-		mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		mem_alloc.pNext = NULL;
-		mem_alloc.allocationSize = 0;
-		mem_alloc.memoryTypeIndex = 0;
-
-		VkImageViewCreateInfo depthStencilView = {};
-		depthStencilView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		depthStencilView.pNext = NULL;
-		depthStencilView.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-		depthStencilView.format = depthFormat;
-		depthStencilView.flags = 0;
-		depthStencilView.subresourceRange = {};
-		depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		depthStencilView.subresourceRange.baseMipLevel = 0;
-		depthStencilView.subresourceRange.levelCount = 1;
-		depthStencilView.subresourceRange.baseArrayLayer = 0;
-		depthStencilView.subresourceRange.layerCount = 1;
-
-		VkMemoryRequirements memReqs;
-
-		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &depthStencil.image));
-		vkGetImageMemoryRequirements(device, depthStencil.image, &memReqs);
-		mem_alloc.allocationSize = memReqs.size;
-		mem_alloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &mem_alloc, nullptr, &depthStencil.mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0));
-
-		depthStencilView.image = depthStencil.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &depthStencil.view));
-	}
-
-	/*
-		Custom renderpass setup
-	*/
-	void setupRenderPass()
-	{
-		std::array<VkAttachmentDescription, 2> attachments = {};
-		// Color attachment
-		attachments[0].format = swapChain.colorFormat;
-		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		attachments[0].finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		// Depth attachment
-		attachments[1].format = depthFormat;
-		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference colorReference = {};
-		colorReference.attachment = 0;
-		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 1;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpassDescription = {};
-		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpassDescription.colorAttachmentCount = 1;
-		subpassDescription.pColorAttachments = &colorReference;
-		subpassDescription.pDepthStencilAttachment = &depthReference;
-		subpassDescription.inputAttachmentCount = 0;
-		subpassDescription.pInputAttachments = nullptr;
-		subpassDescription.preserveAttachmentCount = 0;
-		subpassDescription.pPreserveAttachments = nullptr;
-		subpassDescription.pResolveAttachments = nullptr;
-
-		// Subpass dependencies for layout transitions
-		std::array<VkSubpassDependency, 2> dependencies;
-
-		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[0].dstSubpass = 0;
-		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-		dependencies[1].srcSubpass = 0;
-		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-		VkRenderPassCreateInfo renderPassCI{};
-		renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassCI.attachmentCount = static_cast<uint32_t>(attachments.size());
-		renderPassCI.pAttachments = attachments.data();
-		renderPassCI.subpassCount = 1;
-		renderPassCI.pSubpasses = &subpassDescription;
-		renderPassCI.dependencyCount = static_cast<uint32_t>(dependencies.size());
-		renderPassCI.pDependencies = dependencies.data();
+		// Example renders to two views (left/right)
+		const uint32_t multiviewLayerCount = 2;
 
 		/*
-			Setup multiview info for the renderpass
+			Layered depth/stencil framebuffer
 		*/
+		{
+			VkImageCreateInfo imageCI= vks::initializers::imageCreateInfo();
+			imageCI.imageType = VK_IMAGE_TYPE_2D;
+			imageCI.format = depthFormat;
+			imageCI.extent = { width, height, 1 };
+			imageCI.mipLevels = 1;
+			imageCI.arrayLayers = multiviewLayerCount;
+			imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+			imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+			imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+			imageCI.flags = 0;
+			VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &multiviewPass.depth.image));
 
-		/* 
-			Bit mask that specifies which view rendering is broadcast to
-			0011 = Broadcast to first and second view (layer)
-		*/
-		const uint32_t viewMask = 0b00000011;
-		
-		/*
-			Bit mask that specifices correlation between views
-			An implementation may use this for optimizations (concurrent render)
-		*/
-		const uint32_t correlationMask = 0b00000011;
+			VkMemoryRequirements memReqs;
+			vkGetImageMemoryRequirements(device, multiviewPass.depth.image, &memReqs);
 
-		VkRenderPassMultiviewCreateInfo renderPassMultiviewCI{};
-		renderPassMultiviewCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO;
-		renderPassMultiviewCI.subpassCount = 1;
-		renderPassMultiviewCI.pViewMasks = &viewMask;
-		renderPassMultiviewCI.correlationMaskCount = 1;
-		renderPassMultiviewCI.pCorrelationMasks = &correlationMask;
+			VkMemoryAllocateInfo memAllocInfo{};
+			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			memAllocInfo.allocationSize = 0;
+			memAllocInfo.memoryTypeIndex = 0;
 
-		renderPassCI.pNext = &renderPassMultiviewCI;
+			VkImageViewCreateInfo depthStencilView = {};
+			depthStencilView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			depthStencilView.pNext = NULL;
+			depthStencilView.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			depthStencilView.format = depthFormat;
+			depthStencilView.flags = 0;
+			depthStencilView.subresourceRange = {};
+			depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+			depthStencilView.subresourceRange.baseMipLevel = 0;
+			depthStencilView.subresourceRange.levelCount = 1;
+			depthStencilView.subresourceRange.baseArrayLayer = 0;
+			depthStencilView.subresourceRange.layerCount = multiviewLayerCount;
+			depthStencilView.image = multiviewPass.depth.image;
 
-		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCI, nullptr, &renderPass));
-
-		// The custom render pass does not include the swapchain images, so we need to do an initial layout transition
-
-		VkCommandBuffer layoutCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		VkImageSubresourceRange subresourceRange { VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_MIP_LEVELS };
-		for (uint32_t i = 0; i < swapChain.imageCount; i++) {
-			vks::tools::setImageLayout(
-				layoutCmd,
-				swapChain.images[i],
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				subresourceRange);
+			memAllocInfo.allocationSize = memReqs.size;
+			memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &multiviewPass.depth.memory));
+			VK_CHECK_RESULT(vkBindImageMemory(device, multiviewPass.depth.image, multiviewPass.depth.memory, 0));
+			VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &multiviewPass.depth.view));
 		}
-		vulkanDevice->flushCommandBuffer(layoutCmd, queue);
-	}
 
-	/*
-		Custom framebuffer setup
-		Creates a color framebuffer with multiple layers rendered to in a single pass
-	*/
-	void setupFrameBuffer()
-	{
-		VkImageCreateInfo imageCI = vks::initializers::imageCreateInfo();
-		imageCI.imageType = VK_IMAGE_TYPE_2D;
-		imageCI.format = swapChain.colorFormat;
-		imageCI.extent = { width, height, 1 };
-		imageCI.mipLevels = 1;
-		// Two layers for two views
-		imageCI.arrayLayers = 2;
-		imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		/*
+			Layered color attachment
+		*/
+		{
+			VkImageCreateInfo imageCI = vks::initializers::imageCreateInfo();
+			imageCI.imageType = VK_IMAGE_TYPE_2D;
+			imageCI.format = swapChain.colorFormat;
+			imageCI.extent = { width, height, 1 };
+			imageCI.mipLevels = 1;
+			imageCI.arrayLayers = multiviewLayerCount;
+			imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+			imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+			imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &multiviewPass.color.image));
 
-		VkMemoryRequirements memReqs;
-		VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &colorAttachment.image));
-		vkGetImageMemoryRequirements(device, colorAttachment.image, &memReqs);
+			VkMemoryRequirements memReqs;
+			vkGetImageMemoryRequirements(device, multiviewPass.color.image, &memReqs);
 
-		VkMemoryAllocateInfo memoryAllocInfo = vks::initializers::memoryAllocateInfo();
-		memoryAllocInfo.allocationSize = memReqs.size;
-		memoryAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memoryAllocInfo, nullptr, &colorAttachment.memory));
-		VK_CHECK_RESULT(vkBindImageMemory(device, colorAttachment.image, colorAttachment.memory, 0));
+			VkMemoryAllocateInfo memoryAllocInfo = vks::initializers::memoryAllocateInfo();
+			memoryAllocInfo.allocationSize = memReqs.size;
+			memoryAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memoryAllocInfo, nullptr, &multiviewPass.color.memory));
+			VK_CHECK_RESULT(vkBindImageMemory(device, multiviewPass.color.image, multiviewPass.color.memory, 0));
 
-		VkImageViewCreateInfo imageViewCI = vks::initializers::imageViewCreateInfo();
-		imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-		imageViewCI.format = swapChain.colorFormat;
-		imageViewCI.flags = 0;
-		imageViewCI.subresourceRange = {};
-		imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imageViewCI.subresourceRange.baseMipLevel = 0;
-		imageViewCI.subresourceRange.levelCount = 1;
-		imageViewCI.subresourceRange.baseArrayLayer = 0;
-		// Two layers for two views
-		imageViewCI.subresourceRange.layerCount = 2;
-		imageViewCI.image = colorAttachment.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &colorAttachment.view));
+			VkImageViewCreateInfo imageViewCI = vks::initializers::imageViewCreateInfo();
+			imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			imageViewCI.format = swapChain.colorFormat;
+			imageViewCI.flags = 0;
+			imageViewCI.subresourceRange = {};
+			imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageViewCI.subresourceRange.baseMipLevel = 0;
+			imageViewCI.subresourceRange.levelCount = 1;
+			imageViewCI.subresourceRange.baseArrayLayer = 0;
+			imageViewCI.subresourceRange.layerCount = multiviewLayerCount;
+			imageViewCI.image = multiviewPass.color.image;
+			VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &multiviewPass.color.view));
 
-		// Depth/Stencil attachment is the same for all frame buffers
-		std::vector<VkImageView> attachments = { colorAttachment.view, depthStencil.view };
+			// Create sampler to sample from the attachment in the fragment shader
+			VkSamplerCreateInfo samplerCI = vks::initializers::samplerCreateInfo();
+			samplerCI.magFilter = VK_FILTER_NEAREST;
+			samplerCI.minFilter = VK_FILTER_NEAREST;
+			samplerCI.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			samplerCI.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			samplerCI.addressModeV = samplerCI.addressModeU;
+			samplerCI.addressModeW = samplerCI.addressModeU;
+			samplerCI.mipLodBias = 0.0f;
+			samplerCI.maxAnisotropy = 1.0f;
+			samplerCI.minLod = 0.0f;
+			samplerCI.maxLod = 1.0f;
+			samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+			VK_CHECK_RESULT(vkCreateSampler(device, &samplerCI, nullptr, &multiviewPass.sampler));
 
-		VkFramebufferCreateInfo frameBufferCreateInfo = {};
-		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		frameBufferCreateInfo.pNext = NULL;
-		frameBufferCreateInfo.renderPass = renderPass;
-		frameBufferCreateInfo.attachmentCount = 2;
-		frameBufferCreateInfo.pAttachments = attachments.data();
-		frameBufferCreateInfo.width = width;
-		frameBufferCreateInfo.height = height;
-		frameBufferCreateInfo.layers = 1;
+			// Fill a descriptor for later use in a descriptor set 
+			multiviewPass.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			multiviewPass.descriptor.imageView = multiviewPass.color.view;
+			multiviewPass.descriptor.sampler = multiviewPass.sampler;
+		}
 
-		// Create frame buffers for every swap chain image
-		frameBuffers.resize(swapChain.imageCount);
-		for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
+		/*
+			Renderpass
+		*/
+		{
+			std::array<VkAttachmentDescription, 2> attachments = {};
+			// Color attachment
+			attachments[0].format = swapChain.colorFormat;
+			attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+			attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments[0].finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			// Depth attachment
+			attachments[1].format = depthFormat;
+			attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+			attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			VkAttachmentReference colorReference = {};
+			colorReference.attachment = 0;
+			colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			VkAttachmentReference depthReference = {};
+			depthReference.attachment = 1;
+			depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			VkSubpassDescription subpassDescription = {};
+			subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpassDescription.colorAttachmentCount = 1;
+			subpassDescription.pColorAttachments = &colorReference;
+			subpassDescription.pDepthStencilAttachment = &depthReference;
+
+			// Subpass dependencies for layout transitions
+			std::array<VkSubpassDependency, 2> dependencies;
+
+			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[0].dstSubpass = 0;
+			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+			dependencies[1].srcSubpass = 0;
+			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+			VkRenderPassCreateInfo renderPassCI{};
+			renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			renderPassCI.attachmentCount = static_cast<uint32_t>(attachments.size());
+			renderPassCI.pAttachments = attachments.data();
+			renderPassCI.subpassCount = 1;
+			renderPassCI.pSubpasses = &subpassDescription;
+			renderPassCI.dependencyCount = static_cast<uint32_t>(dependencies.size());
+			renderPassCI.pDependencies = dependencies.data();
+			
+			/*
+				Setup multiview info for the renderpass
+			*/
+
+			/*
+				Bit mask that specifies which view rendering is broadcast to
+				0011 = Broadcast to first and second view (layer)
+			*/
+			const uint32_t viewMask = 0b00000011;
+
+			/*
+				Bit mask that specifices correlation between views
+				An implementation may use this for optimizations (concurrent render)
+			*/
+			const uint32_t correlationMask = 0b00000011;
+
+			VkRenderPassMultiviewCreateInfo renderPassMultiviewCI{};
+			renderPassMultiviewCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO;
+			renderPassMultiviewCI.subpassCount = 1;
+			renderPassMultiviewCI.pViewMasks = &viewMask;
+			renderPassMultiviewCI.correlationMaskCount = 1;
+			renderPassMultiviewCI.pCorrelationMasks = &correlationMask;
+
+			renderPassCI.pNext = &renderPassMultiviewCI;
+
+			VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassCI, nullptr, &multiviewPass.renderPass));
+		}
+
+		/*
+			Framebuffer
+		*/
+		{
+			VkImageView attachments[2];
+			attachments[0] = multiviewPass.color.view;
+			attachments[1] = multiviewPass.depth.view;
+
+			VkFramebufferCreateInfo framebufferCI = vks::initializers::framebufferCreateInfo();
+			framebufferCI.renderPass = multiviewPass.renderPass;
+			framebufferCI.attachmentCount = 2;
+			framebufferCI.pAttachments = attachments;
+			framebufferCI.width = width;
+			framebufferCI.height = height;
+			framebufferCI.layers = 1;
+			VK_CHECK_RESULT(vkCreateFramebuffer(device, &framebufferCI, nullptr, &multiviewPass.frameBuffer));
 		}
 	}
 
 	void buildCommandBuffers()
 	{
 		/*
-			Scene rendering
+			View display
 		*/
+		{
+			VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+			VkClearValue clearValues[2];
+			clearValues[0].color = defaultClearColor;
+			clearValues[1].depthStencil = { 1.0f, 0 };
 
-		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
-		clearValues[1].depthStencil = { 1.0f, 0 };
+			VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo.renderPass = renderPass;
+			renderPassBeginInfo.renderArea.offset.x = 0;
+			renderPassBeginInfo.renderArea.offset.y = 0;
+			renderPassBeginInfo.renderArea.extent.width = width;
+			renderPassBeginInfo.renderArea.extent.height = height;
+			renderPassBeginInfo.clearValueCount = 2;
+			renderPassBeginInfo.pClearValues = clearValues;
 
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
+			for (int32_t i = 0; i < drawCmdBuffers.size(); ++i) {
+				renderPassBeginInfo.framebuffer = frameBuffers[i];
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i) {
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
+				VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+				VkViewport viewport = vks::initializers::viewport((float)width / 2.0f, (float)height, 0.0f, 1.0f);
+				VkRect2D scissor = vks::initializers::rect2D(width / 2, height, 0, 0);
+				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+				// Left eye
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, viewDisplayPipelines[0]);
+				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+				// Right eye
+				viewport.x = (float)width / 2;
+				scissor.offset.x = width / 2;
+				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, viewDisplayPipelines[1]);
+				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &scene.vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-			vkCmdDrawIndexed(drawCmdBuffers[i], scene.indexCount, 1, 0, 0, 0);
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			VkImageSubresourceRange subresourceRange{};
-			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-			subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
+				vkCmdEndRenderPass(drawCmdBuffers[i]);
+				VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
+			}
 		}
 
 		/*
-			Layered color attachment to swapchain blit
+			Multiview layered attachment scene rendering
 		*/
-		blitCommandBuffers.resize(drawCmdBuffers.size());
+
+		multiviewPass.commandBuffers.resize(drawCmdBuffers.size());
 
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, blitCommandBuffers.data()));
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, multiviewPass.commandBuffers.data()));
 
-		for (int32_t i = 0; i < blitCommandBuffers.size(); ++i) {
-			VK_CHECK_RESULT(vkBeginCommandBuffer(blitCommandBuffers[i], &cmdBufInfo));
+		{
+			VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-			VkImageSubresourceRange subresourceRange { VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_MIP_LEVELS };
+			VkClearValue clearValues[2];
+			clearValues[0].color = defaultClearColor;
+			clearValues[1].depthStencil = { 1.0f, 0 };
 
-			vks::tools::setImageLayout(
-				blitCommandBuffers[i],
-				swapChain.images[i],
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				subresourceRange);
+			VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo.renderPass = multiviewPass.renderPass;
+			renderPassBeginInfo.renderArea.offset.x = 0;
+			renderPassBeginInfo.renderArea.offset.y = 0;
+			renderPassBeginInfo.renderArea.extent.width = width;
+			renderPassBeginInfo.renderArea.extent.height = height;
+			renderPassBeginInfo.clearValueCount = 2;
+			renderPassBeginInfo.pClearValues = clearValues;
 
-			VkImageBlit imageBlit{};
-			imageBlit.srcOffsets[0] = { 0, 0, 0 };
-			imageBlit.srcOffsets[1] = { static_cast<int32_t>(width), static_cast<int32_t>(height), 1 };
-			imageBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imageBlit.srcSubresource.layerCount = 1;
-			imageBlit.dstSubresource = imageBlit.srcSubresource;
+			for (int32_t i = 0; i < multiviewPass.commandBuffers.size(); ++i) {
+				renderPassBeginInfo.framebuffer = multiviewPass.frameBuffer;
 
-			// Blit first color attachment layer to the left of the swapchain image
-			imageBlit.dstOffsets[0] = { 0, 0, 0 };
-			imageBlit.dstOffsets[1] = { static_cast<int32_t>(width) / 2, static_cast<int32_t>(height), 1 };
-			imageBlit.srcSubresource.baseArrayLayer = 0;
-			vkCmdBlitImage(
-				blitCommandBuffers[i], 
-				colorAttachment.image, 
-				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
-				swapChain.images[i], 
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-				1, 
-				&imageBlit,
-				VK_FILTER_NEAREST);
+				VK_CHECK_RESULT(vkBeginCommandBuffer(multiviewPass.commandBuffers[i], &cmdBufInfo));
+				vkCmdBeginRenderPass(multiviewPass.commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+				VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+				vkCmdSetViewport(multiviewPass.commandBuffers[i], 0, 1, &viewport);
+				VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+				vkCmdSetScissor(multiviewPass.commandBuffers[i], 0, 1, &scissor);
 
-			// Blit second color attachment layer to the left of the swapchain image
-			imageBlit.dstOffsets[0] = { static_cast<int32_t>(width) / 2, 0, 0 };
-			imageBlit.dstOffsets[1] = { static_cast<int32_t>(width), static_cast<int32_t>(height), 1 };
-			imageBlit.srcSubresource.baseArrayLayer = 1;
-			vkCmdBlitImage(
-				blitCommandBuffers[i], 
-				colorAttachment.image, 
-				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
-				swapChain.images[i], 
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-				1, 
-				&imageBlit,
-				VK_FILTER_NEAREST);
+				vkCmdBindDescriptorSets(multiviewPass.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-			vks::tools::setImageLayout(
-				blitCommandBuffers[i],
-				swapChain.images[i],
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				subresourceRange);
+				VkDeviceSize offsets[1] = { 0 };
+				vkCmdBindVertexBuffers(multiviewPass.commandBuffers[i], 0, 1, &scene.vertices.buffer, offsets);
+				vkCmdBindIndexBuffer(multiviewPass.commandBuffers[i], scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindPipeline(multiviewPass.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+				vkCmdDrawIndexed(multiviewPass.commandBuffers[i], scene.indexCount, 1, 0, 0, 0);
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(blitCommandBuffers[i]));
+				vkCmdEndRenderPass(multiviewPass.commandBuffers[i]);
+				VK_CHECK_RESULT(vkEndCommandBuffer(multiviewPass.commandBuffers[i]));
+			}
 		}
-
 	}
 
 	void loadAssets()
@@ -483,7 +485,8 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocateInfo, &descriptorSet));
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0: Vertex shader UBO
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),	
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &multiviewPass.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
@@ -492,7 +495,7 @@ public:
 	{
 
 		VkSemaphoreCreateInfo semaphoreCI = vks::initializers::semaphoreCreateInfo();
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &blitCompleteSemaphore));
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &multiviewPass.semaphore));
 
 		/*
 			Display multi view features and properties
@@ -571,8 +574,36 @@ public:
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/multiview/multiview.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		pipelineCI.stageCount = 2;
 		pipelineCI.pStages = shaderStages.data();
-
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
+
+		/*
+			Full screen pass
+		*/
+
+		float multiviewArrayLayer = 0.0f;
+
+		VkSpecializationMapEntry specializationMapEntry{ 0, 0, sizeof(float) };
+
+		VkSpecializationInfo specializationInfo{};
+		specializationInfo.dataSize = sizeof(float);
+		specializationInfo.mapEntryCount = 1;
+		specializationInfo.pMapEntries = &specializationMapEntry;
+		specializationInfo.pData = &multiviewArrayLayer;
+
+		/*
+			Separate pipelines per eye (view) using specialization constants to set view array layer to sample from
+		*/
+		for (uint32_t i = 0; i < 2; i++) {
+			shaderStages[0] = loadShader(getAssetPath() + "shaders/multiview/viewdisplay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+			shaderStages[1] = loadShader(getAssetPath() + "shaders/multiview/viewdisplay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+			shaderStages[1].pSpecializationInfo = &specializationInfo;
+			multiviewArrayLayer = (float)i;
+			VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
+			pipelineCI.pVertexInputState = &emptyInputState;
+			pipelineCI.layout = pipelineLayout;
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &viewDisplayPipelines[i]));
+		}
+
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -639,39 +670,40 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		// Render
+		// Multiview offscreen render
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &multiviewPass.waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &multiviewPass.waitFences[currentBuffer]));
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		submitInfo.pSignalSemaphores = &multiviewPass.semaphore;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &multiviewPass.commandBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, multiviewPass.waitFences[currentBuffer]));
+
+		// View display
 		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
-		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		submitInfo.pWaitSemaphores = &multiviewPass.semaphore;
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
 
-		// Blit
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &blitWaitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &blitWaitFences[currentBuffer]));
-		submitInfo.pWaitSemaphores = &semaphores.renderComplete;
-		submitInfo.pSignalSemaphores = &blitCompleteSemaphore;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &blitCommandBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, blitWaitFences[currentBuffer]));
-
-		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, blitCompleteSemaphore));
+		VulkanExampleBase::submitFrame();
 	}
 
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
+		prepareMultiview();
 		prepareUniformBuffers();
 		prepareDescriptors();
 		preparePipelines();
 		buildCommandBuffers();
 
 		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-		blitWaitFences.resize(blitCommandBuffers.size());
-		for (auto& fence : blitWaitFences) {
+		multiviewPass.waitFences.resize(multiviewPass.commandBuffers.size());
+		for (auto& fence : multiviewPass.waitFences) {
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
 		}
 
