@@ -188,6 +188,7 @@ void VulkanExampleBase::prepare()
 	createCommandPool();
 	setupSwapChain();
 	createCommandBuffers();
+	createSynchronizationPrimitives();
 	setupDepthStencil();
 	setupRenderPass();
 	createPipelineCache();
@@ -798,6 +799,9 @@ VulkanExampleBase::~VulkanExampleBase()
 	vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
 	vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
 	vkDestroySemaphore(device, semaphores.overlayComplete, nullptr);
+	for (auto& fence : waitFences) {
+		vkDestroyFence(device, fence, nullptr);
+	}
 
 	if (UIOverlay) {
 		delete UIOverlay;
@@ -1955,6 +1959,16 @@ void VulkanExampleBase::keyPressed(uint32_t) {}
 void VulkanExampleBase::mouseMoved(double x, double y, bool & handled) {}
 
 void VulkanExampleBase::buildCommandBuffers() {}
+
+void VulkanExampleBase::createSynchronizationPrimitives()
+{
+	// Wait fences to sync command buffer access
+	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+	waitFences.resize(drawCmdBuffers.size());
+	for (auto& fence : waitFences) {
+		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+	}
+}
 
 void VulkanExampleBase::createCommandPool()
 {

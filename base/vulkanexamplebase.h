@@ -131,6 +131,7 @@ protected:
 		// UI overlay submission and execution
 		VkSemaphore overlayComplete;
 	} semaphores;
+	std::vector<VkFence> waitFences;
 public: 
 	bool prepared = false;
 	uint32_t width = 1280;
@@ -337,6 +338,8 @@ public:
 	// Called in case of an event where e.g. the framebuffer has to be rebuild and thus
 	// all command buffers that may reference this
 	virtual void buildCommandBuffers();
+
+	void createSynchronizationPrimitives();
 
 	// Creates a new (graphics) command pool object storing command buffers
 	void createCommandPool();
