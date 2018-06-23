@@ -340,5 +340,4 @@ Renders a Vulkan demo scene with logos and mascots. Not an actual example but mo
 See [CREDITS.md](CREDITS.md) for additional credits and attributions.
 
 ## <a name="Ports"></a> Ports
-    
-    + [jvm, written in Kotlin](https://github.com/java-opengl-labs/Vulkan)
+- [jvm, written in Kotlin](https://github.com/java-opengl-labs/Vulkan)
