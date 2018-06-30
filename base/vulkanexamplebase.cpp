@@ -304,7 +304,9 @@ void VulkanExampleBase::renderLoop()
 				break;
 			}
 		}
-		renderFrame();
+		if (!IsIconic(window)) {
+			renderFrame();
+		}
 	}
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	while (1)
@@ -2172,11 +2174,12 @@ void VulkanExampleBase::windowResize()
 
 	vkDeviceWaitIdle(device);
 
-	if (settings.overlay) {
-		UIOverlay->resize(width, height, frameBuffers);
+	if ((width > 0.0f) && (height > 0.0f)) {
+		if (settings.overlay) {
+			UIOverlay->resize(width, height, frameBuffers);
+		}
+		camera.updateAspectRatio((float)width / (float)height);
 	}
-
-	camera.updateAspectRatio((float)width / (float)height);
 
 	// Notify derived class
 	windowResized();
