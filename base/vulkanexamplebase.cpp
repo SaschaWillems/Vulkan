@@ -656,7 +656,16 @@ void VulkanExampleBase::submitFrame()
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 	}
 
-	VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, submitOverlay ? semaphores.overlayComplete : semaphores.renderComplete));
+	VkResult res = swapChain.queuePresent(queue, currentBuffer, submitOverlay ? semaphores.overlayComplete : semaphores.renderComplete);
+	if (!((res == VK_SUCCESS) || (res == VK_SUBOPTIMAL_KHR))) {
+		if (res == VK_ERROR_OUT_OF_DATE_KHR) {
+			// Swap chain is no longer compatible with the surface and needs to be recreated
+			windowResize();
+			return;
+		} else {
+			VK_CHECK_RESULT(res);
+		}
+	}
 
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
