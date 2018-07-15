@@ -59,6 +59,7 @@ set(EXAMPLES
 	hdr
 	imgui
 	indirectdraw
+	inputattachments
 	instancing
 	mesh
 	multisampling
