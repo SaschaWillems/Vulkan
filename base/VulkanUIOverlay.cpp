@@ -304,6 +304,7 @@ namespace vks
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(createInfo.shaders.size());
 		pipelineCreateInfo.pStages = createInfo.shaders.data();
+		pipelineCreateInfo.subpass = createInfo.targetSubpass;
 
 		// Vertex bindings an attributes based on ImGui vertex definition
 		std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
@@ -428,6 +429,12 @@ namespace vks
 
 			vkCmdBeginRenderPass(cmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+			if (createInfo.targetSubpass > 0) {
+				for (uint32_t j = 0; j < createInfo.targetSubpass; j++) {
+					vkCmdNextSubpass(cmdBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
+				}
+			}
+
 			vkCmdBindPipeline(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 			vkCmdBindDescriptorSets(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
@@ -468,7 +475,7 @@ namespace vks
 
 			// Add empty subpasses if requested
 			if (createInfo.subpassCount > 1) {
-				for (uint32_t j = 1; j < createInfo.subpassCount; j++) {
+				for (uint32_t j = createInfo.targetSubpass+1; j < createInfo.subpassCount; j++) {
 					vkCmdNextSubpass(cmdBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 				}
 			}

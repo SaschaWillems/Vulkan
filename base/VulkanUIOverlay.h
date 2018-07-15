@@ -42,6 +42,7 @@ namespace vks
 		uint32_t height;
 		std::vector<VkPipelineShaderStageCreateInfo> shaders;
 		VkSampleCountFlagBits rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		uint32_t targetSubpass = 0;
 		uint32_t subpassCount = 1;
 		std::vector<VkClearValue> clearValues = {};
 		uint32_t attachmentCount = 1;
