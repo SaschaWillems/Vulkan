@@ -217,8 +217,8 @@ public:
 		createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &attachments.depth);
 
 		std::array<VkAttachmentDescription, 3> attachments{};
-		// Swap chain image
-		// Part of the render pass so we don't have to manually do the layout transitions
+
+		// Swap chain image color attachment
 		attachments[0].format = swapChain.colorFormat;
 		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -252,36 +252,32 @@ public:
 
 		/*
 			First subpass
-			Fill attachments
+			Fill the color and depth attachments
 		*/
-
-		VkAttachmentReference colorReferences[2];
-		colorReferences[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-		colorReferences[1] = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+		VkAttachmentReference colorReference = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 		VkAttachmentReference depthReference = { 2, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
 		subpassDescriptions[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpassDescriptions[0].colorAttachmentCount = 2;
-		subpassDescriptions[0].pColorAttachments = colorReferences;
+		subpassDescriptions[0].colorAttachmentCount = 1;
+		subpassDescriptions[0].pColorAttachments = &colorReference;
 		subpassDescriptions[0].pDepthStencilAttachment = &depthReference;
 
 		/*
 			Second subpass
-			Input attachment read
+			Input attachment read and swap chain color attachment write
 		*/
 
-		VkAttachmentReference colorReference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
-		VkAttachmentReference inputReferences[3];
-		inputReferences[0] = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-		inputReferences[1] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-
-		uint32_t preserveAttachmentIndex = 1;
+		// Color reference (target) for this sub pass is the swap chain color attachment
+		VkAttachmentReference colorReferenceSwapchain = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
 		subpassDescriptions[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpassDescriptions[1].colorAttachmentCount = 1;
-		subpassDescriptions[1].pColorAttachments = &colorReference;
-		subpassDescriptions[1].pDepthStencilAttachment = nullptr;
+		subpassDescriptions[1].pColorAttachments = &colorReferenceSwapchain;
+
+		// Color and depth attachment written to in first sub pass will be used as input attachments to be read in the fragment shader
+		VkAttachmentReference inputReferences[2];
+		inputReferences[0] = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+		inputReferences[1] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 		
 		// Use the attachments filled in the first pass as input attachments
 		subpassDescriptions[1].inputAttachmentCount = 2;
@@ -536,14 +532,6 @@ public:
 
 		pipelineCI.pVertexInputState = &vertexInputStateCI;
 
-		std::array<VkPipelineColorBlendAttachmentState, 2> blendAttachmentStates = {
-			vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-			vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-		};
-
-		colorBlendStateCI.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());
-		colorBlendStateCI.pAttachments = blendAttachmentStates.data();
-
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/inputattachments/attachmentwrite.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/inputattachments/attachmentwrite.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 	
@@ -623,8 +611,9 @@ public:
 	{
 		createInfo.renderPass = uiRenderPass;
 		createInfo.framebuffers = frameBuffers;
+		createInfo.targetSubpass = 1;
 		createInfo.subpassCount = 2;
-		createInfo.attachmentCount = 2;
+		createInfo.attachmentCount = 1;
 		createInfo.clearValues = {
 			{ { 0.0f, 0.0f, 0.0f, 0.0f } },
 			{ { 0.0f, 0.0f, 0.0f, 0.0f } },
