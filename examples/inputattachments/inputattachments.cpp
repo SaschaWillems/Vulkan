@@ -68,6 +68,7 @@ public:
 	} pipelineLayouts;
 
 	struct {
+		VkDescriptorSet attachmentWrite;
 		VkDescriptorSet attachmentRead;
 	} descriptorSets;
 
