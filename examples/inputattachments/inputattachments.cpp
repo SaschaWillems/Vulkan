@@ -106,7 +106,7 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		for (uint32_t i = 0; i < attachments.size; i++) {
+		for (uint32_t i = 0; i < attachments.size(); i++) {
 			vkDestroyImageView(device, attachments[i].color.view, nullptr);
 			vkDestroyImage(device, attachments[i].color.image, nullptr);
 			vkFreeMemory(device, attachments[i].color.memory, nullptr);
