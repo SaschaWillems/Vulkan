@@ -69,7 +69,7 @@ public:
 
 	struct {
 		VkDescriptorSet attachmentWrite;
-		VkDescriptorSet attachmentRead;
+		std::vector<VkDescriptorSet> attachmentRead;
 	} descriptorSets;
 
 	struct {
@@ -85,7 +85,8 @@ public:
 	};
 	struct Attachments {
 		FrameBufferAttachment color, depth;
-	} attachments;
+	};
+	std::vector<Attachments> attachments;
 
 	VkRenderPass uiRenderPass;
 	
@@ -105,13 +106,14 @@ public:
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
 
-		vkDestroyImageView(device, attachments.color.view, nullptr);
-		vkDestroyImage(device, attachments.color.image, nullptr);
-		vkFreeMemory(device, attachments.color.memory, nullptr);
-
-		vkDestroyImageView(device, attachments.depth.view, nullptr);
-		vkDestroyImage(device, attachments.depth.image, nullptr);
-		vkFreeMemory(device, attachments.depth.memory, nullptr);
+		for (uint32_t i = 0; i < attachments.size; i++) {
+			vkDestroyImageView(device, attachments[i].color.view, nullptr);
+			vkDestroyImage(device, attachments[i].color.image, nullptr);
+			vkFreeMemory(device, attachments[i].color.memory, nullptr);
+			vkDestroyImageView(device, attachments[i].depth.view, nullptr);
+			vkDestroyImage(device, attachments[i].depth.image, nullptr);
+			vkFreeMemory(device, attachments[i].depth.memory, nullptr);
+		}
 
 		vkDestroyPipeline(device, pipelines.attachmentRead, nullptr);
 		vkDestroyPipeline(device, pipelines.attachmentWrite, nullptr);
@@ -185,24 +187,23 @@ public:
 	// Override framebuffer setup from base class
 	void setupFrameBuffer()
 	{
-		VkImageView attachments[3];
+		VkImageView views[3];
 
 		VkFramebufferCreateInfo frameBufferCI{};
 		frameBufferCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		frameBufferCI.renderPass = renderPass;
 		frameBufferCI.attachmentCount = 3;
-		frameBufferCI.pAttachments = attachments;
+		frameBufferCI.pAttachments = views;
 		frameBufferCI.width = width;
 		frameBufferCI.height = height;
 		frameBufferCI.layers = 1;
 
-		// Create frame buffers for every swap chain image
 		frameBuffers.resize(swapChain.imageCount);
 		for (uint32_t i = 0; i < frameBuffers.size(); i++)
 		{
-			attachments[0] = swapChain.buffers[i].view;
-			attachments[1] = this->attachments.color.view;
-			attachments[2] = this->attachments.depth.view;
+			views[0] = swapChain.buffers[i].view;
+			views[1] = attachments[i].color.view;
+			views[2] = attachments[i].depth.view;
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCI, nullptr, &frameBuffers[i]));
 		}
 	}
@@ -210,8 +211,13 @@ public:
 	// Override render pass setup from base class
 	void setupRenderPass()
 	{
-		createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.color);
-		createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &attachments.depth);
+		const VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
+
+		attachments.resize(swapChain.imageCount);
+		for (auto i = 0; i < attachments.size(); i++) {
+			createAttachment(colorFormat, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments[i].color);
+			createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &attachments[i].depth);
+		}
 
 		std::array<VkAttachmentDescription, 3> attachments{};
 
@@ -231,19 +237,19 @@ public:
 		// and then read in the secod subpass
 
 		// Color
-		attachments[1].format = this->attachments.color.format;
+		attachments[1].format = colorFormat;
 		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[1].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		// Depth
-		attachments[2].format = this->attachments.depth.format;
+		attachments[2].format = depthFormat;
 		attachments[2].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -389,7 +395,7 @@ public:
 				vkCmdNextSubpass(drawCmdBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.attachmentRead);
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.attachmentRead, 0, 1, &descriptorSets.attachmentRead, 0, NULL);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.attachmentRead, 0, 1, &descriptorSets.attachmentRead[i], 0, NULL);
 				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 
 				vks::debugmarker::endRegion(drawCmdBuffers[i]);
@@ -457,23 +463,26 @@ public:
 			VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.attachmentRead, 1);
 			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts.attachmentRead));
 
-			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.attachmentRead, 1);
-			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.attachmentRead));
+			descriptorSets.attachmentRead.resize(attachments.size());
+			for (auto i = 0; i < descriptorSets.attachmentRead.size(); i++) {
+				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.attachmentRead, 1);
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.attachmentRead[i]));
 
-			// Image descriptors for the input attachments read by the shader
-			std::vector<VkDescriptorImageInfo> descriptors = {
-				vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-				vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.depth.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-			};
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-				// Binding 0: Color input attachment
-				vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, &descriptors[0]),
-				// Binding 1: Depth input attachment
-				vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &descriptors[1]),
-				// Binding 2: Display parameters uniform buffer
-				vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffers.params.descriptor),
-			};
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+				// Image descriptors for the input attachments read by the shader
+				std::vector<VkDescriptorImageInfo> descriptors = {
+					vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments[i].color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+					vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments[i].depth.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+				};
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					// Binding 0: Color input attachment
+					vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, &descriptors[0]),
+					// Binding 1: Depth input attachment
+					vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &descriptors[1]),
+					// Binding 2: Display parameters uniform buffer
+					vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffers.params.descriptor),
+				};
+				vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+			}
 		}
 
 	}
