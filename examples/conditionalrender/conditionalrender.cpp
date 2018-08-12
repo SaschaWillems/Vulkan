@@ -287,6 +287,11 @@ public:
 		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
 	}
 
+	void updateConditionalBuffer()
+	{
+		memcpy(conditionalBuffer.mapped, &conditionalVisibility, sizeof(conditionalVisibility));
+	}
+
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
@@ -353,7 +358,7 @@ public:
 			Copy visibility data
 		*/
 		for (auto i = 0; i < conditionalVisibility.size(); i++) {
-			conditionalVisibility[i] = 0;
+			conditionalVisibility[i] = 1;
 		}
 		VK_CHECK_RESULT(conditionalBuffer.map());
 		memcpy(conditionalBuffer.mapped, &conditionalVisibility, sizeof(conditionalVisibility));
@@ -386,7 +391,9 @@ public:
 	{
 		if (overlay->header("Visibility")) {
 			for (uint32_t i = 0; i < MODEL_ROWS; i++) {
-				overlay->checkBox(std::to_string(i).c_str(), &conditionalVisibility[i]);
+				if (overlay->checkBox(std::to_string(i).c_str(), &conditionalVisibility[i])) {
+					updateConditionalBuffer();
+				};
 				if (i < MODEL_ROWS - 1) { ImGui::SameLine(); };
 			}
 		}
