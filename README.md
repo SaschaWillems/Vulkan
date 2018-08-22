@@ -78,19 +78,23 @@ Generates a 3D texture on the cpu (using perlin noise), uploads it to the device
 
 Loads a 3D model and texture maps from a common file format (using [assimp](https://github.com/assimp/assimp)), uploads the vertex and index buffer data to video memory, sets up a matching vertex layout and renders the 3D model.
 
-#### [12 - Sub passes](examples/subpasses/)
+#### [12 - Input attachments](examples/inputattachments)
 
-Uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass. 
+Uses input attachments to read framebuffer contents from a previous sub pass at the same pixel position within a single render pass. This can be used for basic post processing or image composition ([blog entry](https://www.saschawillems.de/?p=3055)).
 
-#### [13 - Offscreen rendering](examples/offscreen/)
+#### [13 - Sub passes](examples/subpasses/)
+
+Advanced example that sses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass. 
+
+#### [14 - Offscreen rendering](examples/offscreen/)
 
 Basic offscreen rendering in two passes. First pass renders the mirrored scene to a separate framebuffer with color and depth attachments, second pass samples from that color attachment for rendering a mirror surface.
 
-#### [14 - CPU particle system](examples/particlefire/)
+#### [15 - CPU particle system](examples/particlefire/)
 
 Implements a simple CPU based particle system. Particle data is stored in host memory, updated on the CPU per-frame and synchronized with the device before it's rendered using pre-multiplied alpha.
 
-#### [15 - Stencil buffer](examples/stencilbuffer/)
+#### [16 - Stencil buffer](examples/stencilbuffer/)
 
 Uses the stencil buffer and it's compare functionality for rendering a 3D model with dynamic outlines.
 
