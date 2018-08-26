@@ -257,7 +257,7 @@ public:
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageCreateInfo.extent.width = texture.width;
-		imageCreateInfo.extent.height = texture.width;
+		imageCreateInfo.extent.height = texture.height;
 		imageCreateInfo.extent.depth = texture.depth;
 		// Set initial layout of the image to undefined
 		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
