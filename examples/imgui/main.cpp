@@ -74,10 +74,12 @@ public:
 	ImGUI(VulkanExampleBase *example) : example(example) 
 	{
 		device = example->vulkanDevice;
+		ImGui::CreateContext();
 	};
 	
 	~ImGUI()
 	{
+		ImGui::DestroyContext();
 		// Release all Vulkan resources required for rendering imGui
 		vertexBuffer.destroy();
 		indexBuffer.destroy();
@@ -375,7 +377,7 @@ public:
 		ImGui::End();
 
 		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-		ImGui::ShowTestWindow();
+		ImGui::ShowDemoWindow();
 
 		// Render to generate draw buffers
 		ImGui::Render();
@@ -389,6 +391,10 @@ public:
 		// Note: Alignment is done inside buffer creation
 		VkDeviceSize vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
 		VkDeviceSize indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
+
+		if ((vertexBufferSize == 0) || (indexBufferSize == 0)) {
+			return;
+		}
 
 		// Update buffers only if vertex or index count has been changed compared to current buffer size
 
@@ -437,11 +443,6 @@ public:
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-		// Bind vertex and index buffer
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
-
 		VkViewport viewport = vks::initializers::viewport(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y, 0.0f, 1.0f);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
@@ -454,22 +455,30 @@ public:
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 		int32_t vertexOffset = 0;
 		int32_t indexOffset = 0;
-		for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
-		{
-			const ImDrawList* cmd_list = imDrawData->CmdLists[i];
-			for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
+
+		if (imDrawData->CmdListsCount > 0) {
+
+			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+
+			for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
 			{
-				const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
-				VkRect2D scissorRect;
-				scissorRect.offset.x = std::max((int32_t)(pcmd->ClipRect.x), 0);
-				scissorRect.offset.y = std::max((int32_t)(pcmd->ClipRect.y), 0);
-				scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
-				scissorRect.extent.height = (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y);
-				vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
-				vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
-				indexOffset += pcmd->ElemCount;
+				const ImDrawList* cmd_list = imDrawData->CmdLists[i];
+				for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
+				{
+					const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
+					VkRect2D scissorRect;
+					scissorRect.offset.x = std::max((int32_t)(pcmd->ClipRect.x), 0);
+					scissorRect.offset.y = std::max((int32_t)(pcmd->ClipRect.y), 0);
+					scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
+					scissorRect.extent.height = (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y);
+					vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
+					vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
+					indexOffset += pcmd->ElemCount;
+				}
+				vertexOffset += cmd_list->VtxBuffer.Size;
 			}
-			vertexOffset += cmd_list->VtxBuffer.Size;
 		}
 	}
 
