@@ -13,7 +13,6 @@ namespace vks
 	UIOverlay::UIOverlay(vks::UIOverlayCreateInfo createInfo)
 	{
 		this->createInfo = createInfo;
-		this->renderPass = createInfo.renderPass;
 
 #if defined(__ANDROID__)		
 		if (vks::android::screenDensity >= ACONFIGURATION_DENSITY_XXHIGH) {
@@ -28,6 +27,7 @@ namespace vks
 #endif
 
 		// Init ImGui
+		ImGui::CreateContext();
 		// Color scheme
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -43,17 +43,13 @@ namespace vks
 		io.DisplaySize = ImVec2((float)(createInfo.width), (float)(createInfo.height));
 		io.FontGlobalScale = scale;
 
-		cmdBuffers.resize(createInfo.framebuffers.size());
 		prepareResources();
-		if (createInfo.renderPass == VK_NULL_HANDLE) {
-			prepareRenderPass();
-		}
-		preparePipeline();
 	}
 
 	/** Free up all Vulkan resources acquired by the UI overlay */
 	UIOverlay::~UIOverlay()
 	{
+		ImGui::DestroyContext();
 		vertexBuffer.destroy();
 		indexBuffer.destroy();
 		vkDestroyImageView(createInfo.device->logicalDevice, fontView, nullptr);
@@ -63,14 +59,7 @@ namespace vks
 		vkDestroyDescriptorSetLayout(createInfo.device->logicalDevice, descriptorSetLayout, nullptr);
 		vkDestroyDescriptorPool(createInfo.device->logicalDevice, descriptorPool, nullptr);
 		vkDestroyPipelineLayout(createInfo.device->logicalDevice, pipelineLayout, nullptr);
-		vkDestroyPipelineCache(createInfo.device->logicalDevice, pipelineCache, nullptr);
 		vkDestroyPipeline(createInfo.device->logicalDevice, pipeline, nullptr);
-		if (createInfo.renderPass == VK_NULL_HANDLE) {
-			vkDestroyRenderPass(createInfo.device->logicalDevice, renderPass, nullptr);
-		}
-		vkFreeCommandBuffers(createInfo.device->logicalDevice, commandPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
-		vkDestroyCommandPool(createInfo.device->logicalDevice, commandPool, nullptr);
-		vkDestroyFence(createInfo.device->logicalDevice, fence, nullptr);
 	}
 
 	/** Prepare all vulkan resources required to render the UI overlay */
@@ -185,17 +174,6 @@ namespace vks
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		VK_CHECK_RESULT(vkCreateSampler(createInfo.device->logicalDevice, &samplerInfo, nullptr, &sampler));
 
-		// Command buffer
-		VkCommandPoolCreateInfo cmdPoolInfo = {};
-		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		cmdPoolInfo.queueFamilyIndex = createInfo.device->queueFamilyIndices.graphics;
-		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		VK_CHECK_RESULT(vkCreateCommandPool(createInfo.device->logicalDevice, &cmdPoolInfo, nullptr, &commandPool));
-
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-			vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(cmdBuffers.size()));
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(createInfo.device->logicalDevice, &cmdBufAllocateInfo, cmdBuffers.data()));
-
 		// Descriptor pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
@@ -222,12 +200,11 @@ namespace vks
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &fontDescriptor)
 		};
 		vkUpdateDescriptorSets(createInfo.device->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+	}
 
-		// Pipeline cache
-		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreatePipelineCache(createInfo.device->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
-
+	/** Prepare a separate pipeline for the UI overlay rendering decoupled from the main application */
+	void UIOverlay::preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass)
+	{
 		// Pipeline layout
 		// Push constants for UI rendering parameters
 		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(PushConstBlock), 0);
@@ -236,14 +213,6 @@ namespace vks
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 		VK_CHECK_RESULT(vkCreatePipelineLayout(createInfo.device->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
-		// Command buffer execution fence
-		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo();
-		VK_CHECK_RESULT(vkCreateFence(createInfo.device->logicalDevice, &fenceCreateInfo, nullptr, &fence));
-	}
-
-	/** Prepare a separate pipeline for the UI overlay rendering decoupled from the main application */
-	void UIOverlay::preparePipeline()
-	{
 		// Setup graphics pipeline for UI rendering
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
 			vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
@@ -278,7 +247,7 @@ namespace vks
 			vks::initializers::pipelineColorBlendStateCreateInfo(static_cast<uint32_t>(blendStates.size()), blendStates.data());
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
+			vks::initializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS);
 
 		VkPipelineViewportStateCreateInfo viewportState =
 			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
@@ -326,183 +295,22 @@ namespace vks
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(createInfo.device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
-	/** Prepare a separate render pass for rendering the UI as an overlay */
-	void UIOverlay::prepareRenderPass()
-	{
-		VkAttachmentDescription attachments[2] = {};
-
-		// Color attachment
-		attachments[0].format = createInfo.colorformat;
-		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[0].initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-		// Depth attachment
-		attachments[1].format = createInfo.depthformat;
-		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference colorReference = {};
-		colorReference.attachment = 0;
-		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 1;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDependency subpassDependencies[2] = {};
-
-		// Transition from final to initial (VK_SUBPASS_EXTERNAL refers to all commmands executed outside of the actual renderpass)
-		subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-		subpassDependencies[0].dstSubpass = 0;
-		subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		subpassDependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		subpassDependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-		// Transition from initial to final
-		subpassDependencies[1].srcSubpass = 0;
-		subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-		subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		subpassDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		subpassDependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		subpassDependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-		VkSubpassDescription subpassDescription = {};
-		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpassDescription.flags = 0;
-		subpassDescription.inputAttachmentCount = 0;
-		subpassDescription.pInputAttachments = NULL;
-		subpassDescription.colorAttachmentCount = 1;
-		subpassDescription.pColorAttachments = &colorReference;
-		subpassDescription.pResolveAttachments = NULL;
-		subpassDescription.pDepthStencilAttachment = &depthReference;
-		subpassDescription.preserveAttachmentCount = 0;
-		subpassDescription.pPreserveAttachments = NULL;
-
-		VkRenderPassCreateInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.pNext = NULL;
-		renderPassInfo.attachmentCount = 2;
-		renderPassInfo.pAttachments = attachments;
-		renderPassInfo.subpassCount = 1;
-		renderPassInfo.pSubpasses = &subpassDescription;
-		renderPassInfo.dependencyCount = 2;
-		renderPassInfo.pDependencies = subpassDependencies;
-
-		VK_CHECK_RESULT(vkCreateRenderPass(createInfo.device->logicalDevice, &renderPassInfo, nullptr, &renderPass));
-	}
-
-	/** Update the command buffers to reflect UI changes */
-	void UIOverlay::updateCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.extent.width = createInfo.width;
-		renderPassBeginInfo.renderArea.extent.height = createInfo.height;
-		renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(createInfo.clearValues.size());
-		renderPassBeginInfo.pClearValues = createInfo.clearValues.data();
-
-		ImGuiIO& io = ImGui::GetIO();
-
-		for (size_t i = 0; i < cmdBuffers.size(); ++i) {
-			renderPassBeginInfo.framebuffer = createInfo.framebuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffers[i], &cmdBufInfo));
-
-			if (vks::debugmarker::active) {
-				vks::debugmarker::beginRegion(cmdBuffers[i], "UI overlay", glm::vec4(1.0f, 0.94f, 0.3f, 1.0f));
-			}
-
-			vkCmdBeginRenderPass(cmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			if (createInfo.targetSubpass > 0) {
-				for (uint32_t j = 0; j < createInfo.targetSubpass; j++) {
-					vkCmdNextSubpass(cmdBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
-				}
-			}
-
-			vkCmdBindPipeline(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-			vkCmdBindDescriptorSets(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(cmdBuffers[i], 0, 1, &vertexBuffer.buffer, offsets);
-			vkCmdBindIndexBuffer(cmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
-
-			VkViewport viewport = vks::initializers::viewport(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y, 0.0f, 1.0f);
-			vkCmdSetViewport(cmdBuffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = vks::initializers::rect2D((int32_t)ImGui::GetIO().DisplaySize.x, (int32_t)ImGui::GetIO().DisplaySize.y, 0, 0);
-			vkCmdSetScissor(cmdBuffers[i], 0, 1, &scissor);
-
-			// UI scale and translate via push constants
-			pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
-			pushConstBlock.translate = glm::vec2(-1.0f);
-			vkCmdPushConstants(cmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
-
-			// Render commands
-			ImDrawData* imDrawData = ImGui::GetDrawData();
-			int32_t vertexOffset = 0;
-			int32_t indexOffset = 0;
-			for (int32_t j = 0; j < imDrawData->CmdListsCount; j++) {
-				const ImDrawList* cmd_list = imDrawData->CmdLists[j];
-				for (int32_t k = 0; k < cmd_list->CmdBuffer.Size; k++) {
-					const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[k];
-					VkRect2D scissorRect;
-					scissorRect.offset.x = std::max((int32_t)(pcmd->ClipRect.x), 0);
-					scissorRect.offset.y = std::max((int32_t)(pcmd->ClipRect.y), 0);
-					scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
-					scissorRect.extent.height = (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y);
-					vkCmdSetScissor(cmdBuffers[i], 0, 1, &scissorRect);
-					vkCmdDrawIndexed(cmdBuffers[i], pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
-					indexOffset += pcmd->ElemCount;
-				}
-				vertexOffset += cmd_list->VtxBuffer.Size;
-			}
-
-			// Add empty subpasses if requested
-			if (createInfo.subpassCount > 1) {
-				for (uint32_t j = createInfo.targetSubpass+1; j < createInfo.subpassCount; j++) {
-					vkCmdNextSubpass(cmdBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
-				}
-			}
-
-			vkCmdEndRenderPass(cmdBuffers[i]);
-
-			if (vks::debugmarker::active) {
-				vks::debugmarker::endRegion(cmdBuffers[i]);
-			}
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffers[i]));
-		}
-	}
-
 	/** Update vertex and index buffer containing the imGui elements when required */
-	void UIOverlay::update()
+	bool UIOverlay::update()
 	{
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 		bool updateCmdBuffers = false;
 
-		if (!imDrawData) { return; };
+		if (!imDrawData) { return false; };
 
 		// Note: Alignment is done inside buffer creation
 		VkDeviceSize vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
 		VkDeviceSize indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
 
 		// Update buffers only if vertex or index count has been changed compared to current buffer size
+		if ((vertexBufferSize == 0) || (indexBufferSize == 0)) {
+			return false;
+		}
 
 		// Vertex buffer
 		if ((vertexBuffer.buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
@@ -542,35 +350,55 @@ namespace vks
 		vertexBuffer.flush();
 		indexBuffer.flush();
 
-		if (updateCmdBuffers) {
-			updateCommandBuffers();
-		}
+		return updateCmdBuffers;
 	}
 
-	void UIOverlay::resize(uint32_t width, uint32_t height, std::vector<VkFramebuffer> framebuffers)
+	void UIOverlay::draw(const VkCommandBuffer commandBuffer)
 	{
-		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2((float)(width), (float)(height));
-		createInfo.width = width;
-		createInfo.height = height;
-		createInfo.framebuffers = framebuffers;
-		updateCommandBuffers();
-	}
+		ImDrawData* imDrawData = ImGui::GetDrawData();
+		int32_t vertexOffset = 0;
+		int32_t indexOffset = 0;
 
-	/** Submit the overlay command buffers to a queue */
-	void UIOverlay::submit(VkQueue queue, uint32_t bufferindex, VkSubmitInfo submitInfo)
-	{
-		if (!visible) {
+		if ((!imDrawData) || (imDrawData->CmdListsCount == 0)) {
 			return;
 		}
 
-		submitInfo.pCommandBuffers = &cmdBuffers[bufferindex];
-		submitInfo.commandBufferCount = 1;
+		ImGuiIO& io = ImGui::GetIO();
 
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
+		pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
+		pushConstBlock.translate = glm::vec2(-1.0f);
+		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
 
-		VK_CHECK_RESULT(vkWaitForFences(createInfo.device->logicalDevice, 1, &fence, VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(createInfo.device->logicalDevice, 1, &fence));
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+
+		for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
+		{
+			const ImDrawList* cmd_list = imDrawData->CmdLists[i];
+			for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
+			{
+				const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
+				VkRect2D scissorRect;
+				scissorRect.offset.x = std::max((int32_t)(pcmd->ClipRect.x), 0);
+				scissorRect.offset.y = std::max((int32_t)(pcmd->ClipRect.y), 0);
+				scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
+				scissorRect.extent.height = (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y);
+				vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
+				vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
+				indexOffset += pcmd->ElemCount;
+			}
+			vertexOffset += cmd_list->VtxBuffer.Size;
+		}
+	}
+
+	void UIOverlay::resize(uint32_t width, uint32_t height)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2((float)(width), (float)(height));
 	}
 
 	bool UIOverlay::header(const char *caption)

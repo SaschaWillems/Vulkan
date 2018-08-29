@@ -128,8 +128,6 @@ protected:
 		VkSemaphore presentComplete;
 		// Command buffer submission and execution
 		VkSemaphore renderComplete;
-		// UI overlay submission and execution
-		VkSemaphore overlayComplete;
 	} semaphores;
 	std::vector<VkFence> waitFences;
 public: 
@@ -391,6 +389,7 @@ public:
 	void renderFrame();
 
 	void updateOverlay();
+	void drawUI(const VkCommandBuffer commandBuffer);
 
 	// Prepare the frame for workload submission
 	// - Acquires the next image from the swap chain 

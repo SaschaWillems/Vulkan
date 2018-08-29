@@ -34,10 +34,6 @@ namespace vks
 	{
 		vks::VulkanDevice *device;
 		VkQueue copyQueue;
-		VkRenderPass renderPass;
-		std::vector<VkFramebuffer> framebuffers;
-		VkFormat colorformat;
-		VkFormat depthformat;
 		uint32_t width;
 		uint32_t height;
 		std::vector<VkPipelineShaderStageCreateInfo> shaders;
@@ -50,7 +46,7 @@ namespace vks
 
 	class UIOverlay 
 	{
-	private:
+	public:
 		vks::Buffer vertexBuffer;
 		vks::Buffer indexBuffer;
 		int32_t vertexCount = 0;
@@ -60,11 +56,7 @@ namespace vks
 		VkDescriptorSetLayout descriptorSetLayout;
 		VkDescriptorSet descriptorSet;
 		VkPipelineLayout pipelineLayout;
-		VkPipelineCache pipelineCache;
 		VkPipeline pipeline;
-		VkRenderPass renderPass;
-		VkCommandPool commandPool;
-		VkFence fence;
 
 		VkDeviceMemory fontMemory = VK_NULL_HANDLE;
 		VkImage fontImage = VK_NULL_HANDLE;
@@ -79,22 +71,18 @@ namespace vks
 		UIOverlayCreateInfo createInfo = {};
 
 		void prepareResources();
-		void preparePipeline();
-		void prepareRenderPass();
-		void updateCommandBuffers();
 	public:
 		bool visible = true;
 		float scale = 1.0f;
 
-		std::vector<VkCommandBuffer> cmdBuffers;
-
 		UIOverlay(vks::UIOverlayCreateInfo createInfo);
 		~UIOverlay();
 
-		void update();
-		void resize(uint32_t width, uint32_t height, std::vector<VkFramebuffer> framebuffers);
+		void preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass);
 
-		void submit(VkQueue queue, uint32_t bufferindex, VkSubmitInfo submitInfo);
+		bool update();
+		void draw(const VkCommandBuffer commandBuffer);
+		void resize(uint32_t width, uint32_t height);
 
 		bool header(const char* caption);
 		bool checkBox(const char* caption, bool* value);
