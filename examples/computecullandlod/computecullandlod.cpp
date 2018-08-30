@@ -211,6 +211,8 @@ public:
 				}
 			}	
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));

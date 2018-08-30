@@ -104,6 +104,8 @@ public:
 				gear->draw(drawCmdBuffers[i], pipelineLayout);
 			}
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));

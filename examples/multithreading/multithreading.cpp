@@ -409,6 +409,9 @@ public:
 		// Execute render commands from the secondary command buffer
 		vkCmdExecuteCommands(primaryCommandBuffer, commandBuffers.size(), commandBuffers.data());
 
+		// TODO: Can't call commands in this secondary buffer
+		// drawUI(primaryCommandBuffer);
+
 		vkCmdEndRenderPass(primaryCommandBuffer);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffer));

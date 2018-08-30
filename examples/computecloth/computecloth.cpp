@@ -210,6 +210,8 @@ public:
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &compute.storageBuffers.output.buffer, offsets);
 			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
@@ -692,11 +694,11 @@ public:
 
 	void draw()
 	{
-    VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
-    computeSubmitInfo.commandBufferCount = 1;
-    computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[readSet];
+	VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
+	computeSubmitInfo.commandBufferCount = 1;
+	computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[readSet];
 
-    VK_CHECK_RESULT( vkQueueSubmit( compute.queue, 1, &computeSubmitInfo, compute.fence ) );
+	VK_CHECK_RESULT( vkQueueSubmit( compute.queue, 1, &computeSubmitInfo, compute.fence ) );
 
 		// Submit graphics commands
 		VulkanExampleBase::prepareFrame();

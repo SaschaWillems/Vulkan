@@ -83,7 +83,6 @@ public:
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
-	VkRenderPass uiRenderPass;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -101,7 +100,6 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.MSAA, nullptr);
 		vkDestroyPipeline(device, pipelines.MSAASampleShading, nullptr);
-		vkDestroyRenderPass(device, uiRenderPass, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -339,15 +337,6 @@ public:
 		renderPassInfo.pDependencies = dependencies.data();
 
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
-
-		// Create custom overlay render pass
-		colorReference.attachment = 1;
-		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		attachments[1].initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		subpass.pResolveAttachments = 0;
-		subpass.pDepthStencilAttachment = 0;
-
-		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &uiRenderPass));
 	}
 
 	// Frame buffer attachments must match with render pass setup, 
@@ -424,6 +413,8 @@ public:
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.example.vertices.buffer, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.example.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(drawCmdBuffers[i], models.example.indexCount, 1, 0, 0, 0);
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -741,15 +732,7 @@ public:
 	// UI overlay configuration needs to be adjusted for this example (renderpass setup, attachment count, etc.)
 	virtual void OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo)
 	{
-		createInfo.renderPass = uiRenderPass;
-		createInfo.framebuffers = frameBuffers;
-		createInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		createInfo.attachmentCount = 1;
-		createInfo.clearValues = {
-			{ { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ { 1.0f, 0 } },
-		};
+		createInfo.rasterizationSamples = sampleCount;
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

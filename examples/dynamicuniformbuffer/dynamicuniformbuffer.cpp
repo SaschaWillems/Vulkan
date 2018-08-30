@@ -112,7 +112,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Vulkan Example - Dynamic uniform buffers";
+		title = "Dynamic uniform buffers";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -30.0f));
 		camera.setRotation(glm::vec3(0.0f));
@@ -187,6 +187,8 @@ public:
 
 				vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 			}
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 

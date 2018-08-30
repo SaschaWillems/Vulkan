@@ -128,7 +128,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Hight dynamic range rendering";
+		title = "High dynamic range rendering";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.0f));
 		camera.setRotation(glm::vec3(0.0f, 180.0f, 0.0f));
@@ -261,6 +261,8 @@ public:
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.bloom[0]);
 				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 			}
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 

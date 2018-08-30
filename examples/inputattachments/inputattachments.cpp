@@ -88,8 +88,6 @@ public:
 	};
 	std::vector<Attachments> attachments;
 
-	VkRenderPass uiRenderPass;
-	
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Input attachments";
@@ -123,8 +121,6 @@ public:
 
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.attachmentWrite, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.attachmentRead, nullptr);
-
-		vkDestroyRenderPass(device, uiRenderPass, nullptr);
 
 		scene.destroy();
 		uniformBuffers.matrices.destroy();
@@ -329,11 +325,6 @@ public:
 		renderPassInfoCI.dependencyCount = static_cast<uint32_t>(dependencies.size());
 		renderPassInfoCI.pDependencies = dependencies.data();
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfoCI, nullptr, &renderPass));
-
-		// Create custom overlay render pass
-		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		attachments[0].initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfoCI, nullptr, &uiRenderPass));
 	}
 
 	void buildCommandBuffers()
@@ -400,6 +391,8 @@ public:
 
 				vks::debugmarker::endRegion(drawCmdBuffers[i]);
 			}
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -618,8 +611,6 @@ public:
 	// UI overlay configuration needs to be adjusted for this example (renderpass setup, attachment count, etc.)
 	virtual void OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo)
 	{
-		createInfo.renderPass = uiRenderPass;
-		createInfo.framebuffers = frameBuffers;
 		createInfo.targetSubpass = 1;
 		createInfo.subpassCount = 2;
 		createInfo.attachmentCount = 1;

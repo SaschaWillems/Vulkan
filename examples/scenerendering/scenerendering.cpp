@@ -640,6 +640,8 @@ public:
 
 			scene->render(drawCmdBuffers[i], wireframe);
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));

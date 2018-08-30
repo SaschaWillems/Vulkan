@@ -667,6 +667,8 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.composition);
 			vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));

@@ -633,6 +633,8 @@ public:
 			}
 
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			// End current debug marker region
