@@ -615,6 +615,12 @@ void VulkanExampleBase::updateOverlay()
 void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 {
 	if (settings.overlay) {
+
+		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
 		UIOverlay->draw(commandBuffer);
 	}
 }
