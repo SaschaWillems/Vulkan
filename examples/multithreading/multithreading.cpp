@@ -33,6 +33,8 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	bool displaySkybox = true;
+
 	// Vertex layout for the models
 	vks::VertexLayout vertexLayout = vks::VertexLayout({
 		vks::VERTEX_COMPONENT_POSITION,
@@ -318,25 +320,34 @@ public:
 
 		vkCmdBindPipeline(secondaryCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
 
-		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		if (displaySkybox) {
 
-		glm::mat4 mvp = matrices.projection * view;
+			glm::mat4 view = glm::mat4(1.0f);
+			view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+			view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+			view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		vkCmdPushConstants(
-			secondaryCommandBuffer,
-			pipelineLayout,
-			VK_SHADER_STAGE_VERTEX_BIT,
-			0,
-			sizeof(mvp),
-			&mvp);
+			glm::mat4 mvp = matrices.projection * view;
 
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(secondaryCommandBuffer, 0, 1, &models.skysphere.vertices.buffer, offsets);
-		vkCmdBindIndexBuffer(secondaryCommandBuffer, models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(secondaryCommandBuffer, models.skysphere.indexCount, 1, 0, 0, 0);
+			vkCmdPushConstants(
+				secondaryCommandBuffer,
+				pipelineLayout,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				0,
+				sizeof(mvp),
+				&mvp);
+
+			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindVertexBuffers(secondaryCommandBuffer, 0, 1, &models.skysphere.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(secondaryCommandBuffer, models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(secondaryCommandBuffer, models.skysphere.indexCount, 1, 0, 0, 0);
+		}
+
+		// With VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS, the primary command buffer's content has to be defined
+		// by secondary command buffers, which also applies to the UI overlay command buffer
+		if (settings.overlay) {
+			drawUI(secondaryCommandBuffer);
+		}
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffer));
 	}
@@ -633,6 +644,10 @@ public:
 		if (overlay->header("Statistics")) {
 			overlay->text("Active threads: %d", numThreads);
 		}
+		if (overlay->header("Settings")) {
+			overlay->checkBox("Skybox", &displaySkybox);
+		}
+
 	}
 };
 
