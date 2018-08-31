@@ -97,6 +97,7 @@ public:
 		camera.setRotation(glm::vec3(-12.75f, 380.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
+		UIOverlay.subpass = 1;
 	}
 
 	~VulkanExample()
@@ -606,19 +607,6 @@ public:
 		if (camera.updated) {
 			updateUniformBuffers();
 		}
-	}
-
-	// UI overlay configuration needs to be adjusted for this example (renderpass setup, attachment count, etc.)
-	virtual void OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo)
-	{
-		createInfo.targetSubpass = 1;
-		createInfo.subpassCount = 2;
-		createInfo.attachmentCount = 1;
-		createInfo.clearValues = {
-			{ { 0.0f, 0.0f, 0.0f, 0.0f } },
-			{ { 0.0f, 0.0f, 0.0f, 0.0f } },
-			{ { 1.0f, 0 } },
-		};
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

@@ -30,27 +30,21 @@
 
 namespace vks 
 {
-	struct UIOverlayCreateInfo 
-	{
-		vks::VulkanDevice *device;
-		VkQueue copyQueue;
-		uint32_t width;
-		uint32_t height;
-		std::vector<VkPipelineShaderStageCreateInfo> shaders;
-		VkSampleCountFlagBits rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		uint32_t targetSubpass = 0;
-		uint32_t subpassCount = 1;
-		std::vector<VkClearValue> clearValues = {};
-		uint32_t attachmentCount = 1;
-	};
-
 	class UIOverlay 
 	{
 	public:
+		vks::VulkanDevice *device;
+		VkQueue queue;
+
+		VkSampleCountFlagBits rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		uint32_t subpass = 0;
+
 		vks::Buffer vertexBuffer;
 		vks::Buffer indexBuffer;
 		int32_t vertexCount = 0;
 		int32_t indexCount = 0;
+
+		std::vector<VkPipelineShaderStageCreateInfo> shaders;
 
 		VkDescriptorPool descriptorPool;
 		VkDescriptorSetLayout descriptorSetLayout;
@@ -68,21 +62,20 @@ namespace vks
 			glm::vec2 translate;
 		} pushConstBlock;
 
-		UIOverlayCreateInfo createInfo = {};
-
-		void prepareResources();
-	public:
 		bool visible = true;
 		float scale = 1.0f;
 
-		UIOverlay(vks::UIOverlayCreateInfo createInfo);
+		UIOverlay();
 		~UIOverlay();
 
 		void preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass);
+		void prepareResources();
 
 		bool update();
 		void draw(const VkCommandBuffer commandBuffer);
 		void resize(uint32_t width, uint32_t height);
+
+		void freeResources();
 
 		bool header(const char* caption);
 		bool checkBox(const char* caption, bool* value);

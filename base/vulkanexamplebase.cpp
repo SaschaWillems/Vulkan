@@ -195,23 +195,14 @@ void VulkanExampleBase::prepare()
 	setupFrameBuffer();
 	settings.overlay = settings.overlay && (!benchmark.active);
 	if (settings.overlay) {
-		vks::UIOverlayCreateInfo overlayCreateInfo = {};
-		// Setup default overlay creation info
-		overlayCreateInfo.device = vulkanDevice;
-		overlayCreateInfo.copyQueue = queue;
-		overlayCreateInfo.width = width;
-		overlayCreateInfo.height = height;
-		// Virtual function call for example to customize overlay creation
-		OnSetupUIOverlay(overlayCreateInfo);
-		// Load default shaders if not specified by example
-		if (overlayCreateInfo.shaders.size() == 0) {
-			overlayCreateInfo.shaders = {
-				loadShader(getAssetPath() + "shaders/base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-				loadShader(getAssetPath() + "shaders/base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
-			};
-		}
-		UIOverlay = new vks::UIOverlay(overlayCreateInfo);
-		UIOverlay->preparePipeline(pipelineCache, renderPass);
+		UIOverlay.device = vulkanDevice;
+		UIOverlay.queue = queue;
+		UIOverlay.shaders = {
+			loadShader(getAssetPath() + "shaders/base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getAssetPath() + "shaders/base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
+		};
+		UIOverlay.prepareResources();
+		UIOverlay.preparePipeline(pipelineCache, renderPass);
 		updateOverlay();
 	}
 }
@@ -588,10 +579,10 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / lastFPS), lastFPS);
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 5.0f * UIOverlay->scale));
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 5.0f * UIOverlay.scale));
 #endif
-	ImGui::PushItemWidth(110.0f * UIOverlay->scale);
-	OnUpdateUIOverlay(UIOverlay);
+	ImGui::PushItemWidth(110.0f * UIOverlay.scale);
+	OnUpdateUIOverlay(&UIOverlay);
 	ImGui::PopItemWidth();
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	ImGui::PopStyleVar();
@@ -601,7 +592,7 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::PopStyleVar();
 	ImGui::Render();
 
-	if (UIOverlay->update()) {
+	if (UIOverlay.update()) {
 		buildCommandBuffers();
 	}
 
@@ -621,7 +612,7 @@ void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		UIOverlay->draw(commandBuffer);
+		UIOverlay.draw(commandBuffer);
 	}
 }
 
@@ -794,8 +785,8 @@ VulkanExampleBase::~VulkanExampleBase()
 		vkDestroyFence(device, fence, nullptr);
 	}
 
-	if (UIOverlay) {
-		delete UIOverlay;
+	if (settings.overlay) {
+		UIOverlay.freeResources();
 	}
 
 	delete vulkanDevice;
@@ -1156,7 +1147,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			break;
 		case KEY_F1:
 			if (settings.overlay) {
-				UIOverlay->visible = !UIOverlay->visible;
+				UIOverlay.visible = !UIOverlay.visible;
 			}
 			break;
 		case KEY_ESCAPE:
@@ -2144,7 +2135,7 @@ void VulkanExampleBase::windowResize()
 
 	if ((width > 0.0f) && (height > 0.0f)) {
 		if (settings.overlay) {
-			UIOverlay->resize(width, height);
+			UIOverlay.resize(width, height);
 		}
 	}
 
@@ -2232,5 +2223,4 @@ void VulkanExampleBase::setupSwapChain()
 	swapChain.create(&width, &height, settings.vsync);
 }
 
-void VulkanExampleBase::OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo) {}
 void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}

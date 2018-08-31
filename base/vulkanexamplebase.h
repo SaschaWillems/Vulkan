@@ -66,7 +66,6 @@ private:
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;
-	vks::UIOverlay *UIOverlay = nullptr;
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 	void handleMouseMove(int32_t x, int32_t y);
@@ -134,6 +133,8 @@ public:
 	bool prepared = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
+
+	vks::UIOverlay UIOverlay;
 
 	/** @brief Last frame time measured using a high performance timer (if available) */
 	float frameTimer = 1.0f;
@@ -399,8 +400,6 @@ public:
 	// Submit the frames' workload 
 	void submitFrame();
 
-	/** @brief (Virtual) Called before the UI overlay is created, can be used to do a custom setup e.g. with different renderpass */
-	virtual void OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo);
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);
 };

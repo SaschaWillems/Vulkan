@@ -87,11 +87,12 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Multisampling";
-		settings.overlay = true;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.setRotation(glm::vec3(0.0f, -90.0f, 0.0f));
 		camera.setTranslation(glm::vec3(2.5f, 2.5f, -7.5f));
+		settings.overlay = true;
+		UIOverlay.rasterizationSamples = sampleCount;
 	}
 
 	~VulkanExample()
@@ -727,12 +728,6 @@ public:
 		if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
 		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
 		return VK_SAMPLE_COUNT_1_BIT;
-	}
-
-	// UI overlay configuration needs to be adjusted for this example (renderpass setup, attachment count, etc.)
-	virtual void OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo)
-	{
-		createInfo.rasterizationSamples = sampleCount;
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
