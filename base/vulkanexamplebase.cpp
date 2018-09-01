@@ -203,7 +203,6 @@ void VulkanExampleBase::prepare()
 		};
 		UIOverlay.prepareResources();
 		UIOverlay.preparePipeline(pipelineCache, renderPass);
-		updateOverlay();
 	}
 }
 
@@ -592,8 +591,9 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::PopStyleVar();
 	ImGui::Render();
 
-	if (UIOverlay.update()) {
+	if (UIOverlay.update() || UIOverlay.updated) {
 		buildCommandBuffers();
+		UIOverlay.updated = false;
 	}
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -606,7 +606,6 @@ void VulkanExampleBase::updateOverlay()
 void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 {
 	if (settings.overlay) {
-
 		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);

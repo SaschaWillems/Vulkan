@@ -35,7 +35,15 @@ namespace vks
 		style.Colors[ImGuiCol_Header] = ImVec4(0.8f, 0.0f, 0.0f, 0.4f);
 		style.Colors[ImGuiCol_HeaderActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
 		style.Colors[ImGuiCol_HeaderHovered] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+		style.Colors[ImGuiCol_FrameBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
 		style.Colors[ImGuiCol_CheckMark] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
+		style.Colors[ImGuiCol_SliderGrab] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+		style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
+		style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(1.0f, 1.0f, 1.0f, 0.1f);
+		style.Colors[ImGuiCol_FrameBgActive] = ImVec4(1.0f, 1.0f, 1.0f, 0.2f);
+		style.Colors[ImGuiCol_Button] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+		style.Colors[ImGuiCol_ButtonHovered] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
+		style.Colors[ImGuiCol_ButtonActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
 		// Dimensions
 		ImGuiIO& io = ImGui::GetIO();
 		io.FontGlobalScale = scale;
@@ -334,12 +342,12 @@ namespace vks
 
 		ImGuiIO& io = ImGui::GetIO();
 
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+
 		pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
 		pushConstBlock.translate = glm::vec2(-1.0f);
 		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
@@ -392,7 +400,9 @@ namespace vks
 
 	bool UIOverlay::checkBox(const char *caption, bool *value)
 	{
-		return ImGui::Checkbox(caption, value);
+		bool res = ImGui::Checkbox(caption, value);
+		if (res) { updated = true; };
+		return res;
 	}
 
 	bool UIOverlay::checkBox(const char *caption, int32_t *value)
@@ -400,22 +410,29 @@ namespace vks
 		bool val = (*value == 1);
 		bool res = ImGui::Checkbox(caption, &val);
 		*value = val;
+		if (res) { updated = true; };
 		return res;
 	}
 
 	bool UIOverlay::inputFloat(const char *caption, float *value, float step, uint32_t precision)
 	{
-		return ImGui::InputFloat(caption, value, step, step * 10.0f, precision);
+		bool res = ImGui::InputFloat(caption, value, step, step * 10.0f, precision);
+		if (res) { updated = true; };
+		return res;
 	}
 
 	bool UIOverlay::sliderFloat(const char* caption, float* value, float min, float max)
 	{
-		return ImGui::SliderFloat(caption, value, min, max);
+		bool res = ImGui::SliderFloat(caption, value, min, max);
+		if (res) { updated = true; };
+		return res;
 	}
 
 	bool UIOverlay::sliderInt(const char* caption, int32_t* value, int32_t min, int32_t max)
 	{
-		return ImGui::SliderInt(caption, value, min, max);
+		bool res = ImGui::SliderInt(caption, value, min, max);
+		if (res) { updated = true; };
+		return res;
 	}
 
 	bool UIOverlay::comboBox(const char *caption, int32_t *itemindex, std::vector<std::string> items)
@@ -429,12 +446,16 @@ namespace vks
 			charitems.push_back(items[i].c_str());
 		}
 		uint32_t itemCount = static_cast<uint32_t>(charitems.size());
-		return ImGui::Combo(caption, itemindex, &charitems[0], itemCount, itemCount);
+		bool res = ImGui::Combo(caption, itemindex, &charitems[0], itemCount, itemCount);
+		if (res) { updated = true; };
+		return res;
 	}
 
 	bool UIOverlay::button(const char *caption)
 	{
-		return ImGui::Button(caption);
+		bool res = ImGui::Button(caption);
+		if (res) { updated = true; };
+		return res;
 	}
 
 	void UIOverlay::text(const char *formatstr, ...)

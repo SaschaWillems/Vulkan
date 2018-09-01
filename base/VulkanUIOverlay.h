@@ -63,6 +63,7 @@ namespace vks
 		} pushConstBlock;
 
 		bool visible = true;
+		bool updated = false;
 		float scale = 1.0f;
 
 		UIOverlay();
