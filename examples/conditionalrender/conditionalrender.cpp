@@ -38,7 +38,8 @@ public:
 
 	struct {
 		glm::mat4 projection;
-		glm::mat4 modelview;
+		glm::mat4 view;
+		glm::mat4 model;
 	} uboVS;
 
 	vks::Buffer uniformBuffer;
@@ -57,8 +58,8 @@ public:
 		settings.overlay = true;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 512.0f);
-		camera.setRotation(glm::vec3(-9.0f, -55.0f, 0.0f));
-		camera.setTranslation(glm::vec3(3.45f, 3.15f, -22.0f));
+		camera.setRotation(glm::vec3(-2.25f, -52.0f, 0.0f));
+		camera.setTranslation(glm::vec3(1.9f, -2.05f, -18.0f));
 		camera.rotationSpeed *= 0.25f;
 
 		/*
@@ -267,7 +268,8 @@ public:
 	void updateUniformBuffers()
 	{
 		uboVS.projection = camera.matrices.perspective;
-		uboVS.modelview = glm::scale(camera.matrices.view, glm::vec3(0.1f , -0.1f, 0.1f));
+		uboVS.view = glm::scale(camera.matrices.view, glm::vec3(0.1f , -0.1f, 0.1f));
+		uboVS.model = glm::translate(glm::mat4(1.0f), scene.dimensions.min);
 		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
 	}
 
@@ -373,6 +375,7 @@ public:
 			}
 			ImGui::NewLine();
 
+			ImGui::BeginChild("InnerRegion", ImVec2(200.0f, 400.0f), false);
 			for (auto node : scene.linearNodes) {
 				// Add visibility toggle checkboxes for all model nodes with a mesh
 				if (node->mesh) {
@@ -381,6 +384,7 @@ public:
 					}
 				}
 			}
+			ImGui::EndChild();
 
 		}
 	}
