@@ -168,7 +168,7 @@ public:
 
 	void loadAssets()
 	{
-		scene.loadFromFile(getAssetPath() + "models/Buggy.gltf", vulkanDevice, queue);
+		scene.loadFromFile(getAssetPath() + "models/gltf/glTF-Embedded/Buggy.gltf", vulkanDevice, queue);
 	}
 
 	void setupDescriptorSets()
