@@ -47,6 +47,7 @@ set(EXAMPLES
 	computenbody
 	computeparticles
 	computeshader
+	conditionalrender
 	conservativeraster
 	debugmarker
 	deferred
