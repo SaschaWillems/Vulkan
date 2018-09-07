@@ -91,7 +91,7 @@ public:
 				} pushBlock;
 				pushBlock.baseColorFactor = primitive->material.baseColorFactor;
 
-				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushBlock), &pushBlock);
+				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushBlock), &pushBlock);
 
 				/*
 					[POI] Setup the conditional rendering

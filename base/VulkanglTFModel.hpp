@@ -366,7 +366,7 @@ namespace vkglTF
 			VkBuffer buffer;
 			VkDeviceMemory memory;
 			VkDescriptorBufferInfo descriptor;
-			VkDescriptorSet descriptorSet;
+			VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 			void *mapped;
 		} uniformBuffer;
 
@@ -563,6 +563,8 @@ namespace vkglTF
 			for (auto node : nodes) {
 				delete node;
 			}
+			vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayout, nullptr);
+			vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
 		}
 
 		void loadNode(vkglTF::Node *parent, const tinygltf::Node &node, uint32_t nodeIndex, const tinygltf::Model &model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale)
