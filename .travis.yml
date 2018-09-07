@@ -18,7 +18,8 @@ matrix:
         apt:
           packages:
             - clang-5.0
-          sources: *sources   
+          sources:
+            - llvm-toolchain-trusty-5.0
 compiler:
   - clang
   - gcc
