@@ -67,7 +67,12 @@ public:
 	VkPipelineLayout pipelineLayout;
 
 	VkCommandBuffer primaryCommandBuffer;
-	VkCommandBuffer secondaryCommandBuffer;
+	
+	// Secondary scene command buffers used to store backgdrop and user interface
+	struct SecondaryCommandBuffers {
+		VkCommandBuffer background;
+		VkCommandBuffer ui;
+	} secondaryCommandBuffers;
 
 	// Number of animated objects to be renderer
 	// by using threads and secondary command buffers
@@ -152,14 +157,10 @@ public:
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &primaryCommandBuffer);
-		vkFreeCommandBuffers(device, cmdPool, 1, &secondaryCommandBuffer);
-
 		models.ufo.destroy();
 		models.skysphere.destroy();
 
-		for (auto& thread : threadData)
-		{
+		for (auto& thread : threadData) {
 			vkFreeCommandBuffers(device, thread.commandPool, thread.commandBuffer.size(), thread.commandBuffer.data());
 			vkDestroyCommandPool(device, thread.commandPool, nullptr);
 		}
@@ -186,10 +187,11 @@ public:
 				1);
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &primaryCommandBuffer));
 
-		// Create a secondary command buffer for rendering the star sphere
+		// Create additional secondary CBs for background and ui
 		cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffer));
-		
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers.background));
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers.ui));
+
 		threadData.resize(numThreads);
 
 		float maxX = std::floor(std::sqrt(numThreads * numObjectsPerThread));
@@ -303,53 +305,68 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
-	void updateSecondaryCommandBuffer(VkCommandBufferInheritanceInfo inheritanceInfo)
+	void updateSecondaryCommandBuffers(VkCommandBufferInheritanceInfo inheritanceInfo)
 	{
 		// Secondary command buffer for the sky sphere
 		VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
 		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 
-		VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCommandBuffer, &commandBufferBeginInfo));
-
 		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-		vkCmdSetViewport(secondaryCommandBuffer, 0, 1, &viewport);
-
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-		vkCmdSetScissor(secondaryCommandBuffer, 0, 1, &scissor);
 
-		vkCmdBindPipeline(secondaryCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
+		/*
+			Background
+		*/
 
-		if (displaySkybox) {
+		VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCommandBuffers.background, &commandBufferBeginInfo));
 
-			glm::mat4 view = glm::mat4(1.0f);
-			view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-			view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		vkCmdSetViewport(secondaryCommandBuffers.background, 0, 1, &viewport);
+		vkCmdSetScissor(secondaryCommandBuffers.background, 0, 1, &scissor);
 
-			glm::mat4 mvp = matrices.projection * view;
+		vkCmdBindPipeline(secondaryCommandBuffers.background, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
 
-			vkCmdPushConstants(
-				secondaryCommandBuffer,
-				pipelineLayout,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0,
-				sizeof(mvp),
-				&mvp);
+		glm::mat4 view = glm::mat4(1.0f);
+		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(secondaryCommandBuffer, 0, 1, &models.skysphere.vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(secondaryCommandBuffer, models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(secondaryCommandBuffer, models.skysphere.indexCount, 1, 0, 0, 0);
-		}
+		glm::mat4 mvp = matrices.projection * view;
 
-		// With VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS, the primary command buffer's content has to be defined
-		// by secondary command buffers, which also applies to the UI overlay command buffer
+		vkCmdPushConstants(
+			secondaryCommandBuffers.background,
+			pipelineLayout,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			0,
+			sizeof(mvp),
+			&mvp);
+
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(secondaryCommandBuffers.background, 0, 1, &models.skysphere.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(secondaryCommandBuffers.background, models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(secondaryCommandBuffers.background, models.skysphere.indexCount, 1, 0, 0, 0);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffers.background));
+
+		/*
+			User interface
+
+			With VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS, the primary command buffer's content has to be defined
+			by secondary command buffers, which also applies to the UI overlay command buffer
+		*/
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCommandBuffers.ui, &commandBufferBeginInfo));
+
+		vkCmdSetViewport(secondaryCommandBuffers.ui, 0, 1, &viewport);
+		vkCmdSetScissor(secondaryCommandBuffers.ui, 0, 1, &scissor);
+
+		vkCmdBindPipeline(secondaryCommandBuffers.ui, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
+
 		if (settings.overlay) {
-			drawUI(secondaryCommandBuffer);
+			drawUI(secondaryCommandBuffers.ui);
 		}
 
-		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffer));
+		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffers.ui));
 	}
 
 	// Updates the secondary command buffers using a thread pool 
@@ -357,6 +374,9 @@ public:
 	// lat submitted to the queue for rendering
 	void updateCommandBuffers(VkFramebuffer frameBuffer)
 	{
+		// Contains the list of secondary command buffers to be submitted
+		std::vector<VkCommandBuffer> commandBuffers;
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
@@ -387,12 +407,12 @@ public:
 		// Secondary command buffer also use the currently active framebuffer
 		inheritanceInfo.framebuffer = frameBuffer;
 
-		// Contains the list of secondary command buffers to be executed
-		std::vector<VkCommandBuffer> commandBuffers;
+		// Update secondary sene command buffers
+		updateSecondaryCommandBuffers(inheritanceInfo);
 
-		// Secondary command buffer with star background sphere
-		updateSecondaryCommandBuffer(inheritanceInfo);
-		commandBuffers.push_back(secondaryCommandBuffer);
+		if (displaySkybox) {
+			commandBuffers.push_back(secondaryCommandBuffers.background);
+		}
 
 		// Add a job to the thread's queue for each object to be rendered
 		for (uint32_t t = 0; t < numThreads; t++)
@@ -417,11 +437,13 @@ public:
 			}
 		}
 
+		// Render ui last
+		if (UIOverlay.visible) {
+			commandBuffers.push_back(secondaryCommandBuffers.ui);
+		}
+
 		// Execute render commands from the secondary command buffer
 		vkCmdExecuteCommands(primaryCommandBuffer, commandBuffers.size(), commandBuffers.data());
-
-		// TODO: Can't call commands in this secondary buffer
-		// drawUI(primaryCommandBuffer);
 
 		vkCmdEndRenderPass(primaryCommandBuffer);
 
