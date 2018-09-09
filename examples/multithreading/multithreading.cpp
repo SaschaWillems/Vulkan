@@ -614,15 +614,6 @@ public:
 
 	void draw()
 	{
-		VulkanExampleBase::prepareFrame();
-
-		updateCommandBuffers(frameBuffers[currentBuffer]);
-
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &primaryCommandBuffer;
-
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, renderFence));
-
 		// Wait for fence to signal that all command buffers are ready
 		VkResult fenceRes;
 		do {
@@ -631,6 +622,15 @@ public:
 		VK_CHECK_RESULT(fenceRes);
 		vkResetFences(device, 1, &renderFence);
 
+		updateCommandBuffers(frameBuffers[currentBuffer]);
+
+		VulkanExampleBase::prepareFrame();
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &primaryCommandBuffer;
+
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, renderFence));
+
 		VulkanExampleBase::submitFrame();
 	}
 
@@ -638,7 +638,7 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		// Create a fence for synchronization
-		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FLAGS_NONE);
+		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 		vkCreateFence(device, &fenceCreateInfo, NULL, &renderFence);
 		loadMeshes();
 		setupVertexDescriptions();
