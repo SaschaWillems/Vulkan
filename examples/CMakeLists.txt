@@ -62,6 +62,7 @@ set(EXAMPLES
 	hdr
 	imgui
 	indirectdraw
+	inlineuniformblocks
 	inputattachments
 	instancing
 	mesh
