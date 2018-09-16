@@ -302,7 +302,11 @@ Uses push descriptors apply the push constants concept to descriptor sets. Inste
 
 Renders a scene to to multiple views (layers) of a single framebuffer to simulate stereoscopic rendering in one pass. Broadcasting to the views is done in the vertex shader using ```gl_ViewIndex```.
 
-#### [04 - Debug markers (VK_EXT_debug_marker)](examples/debugmarker/)
+#### [04 - Conditional rendering (VK_EXT_conditional_rendering)](examples/conditionalrender)
+
+Demonstrates the use of VK_EXT_conditional_rendering to conditionally dispatch render commands based on values from a dedicated buffer. This allows e.g. visibility toggles without having to rebuild command buffers ([blog post](https://www.saschawillems.de/?p=3098)).
+
+#### [05 - Debug markers (VK_EXT_debug_marker)](examples/debugmarker/)
 
 Uses the VK_EXT_debug_marker extension to set debug markers, regions and to name Vulkan objects for advanced debugging in graphics debuggers like [RenderDoc](https://www.renderdoc.org). Details can be found in [this tutorial](https://www.saschawillems.de/?page_id=2017).
 
