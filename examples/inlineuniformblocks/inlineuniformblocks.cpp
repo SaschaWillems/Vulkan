@@ -194,7 +194,6 @@ public:
 		{
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayouts.scene));
@@ -235,10 +234,9 @@ public:
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (static_cast<uint32_t>(objects.size()) + 1)),
-			/* [POI] TODO */
-			// TODO: split scene and object 
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, (static_cast<uint32_t>(objects.size()) + 1) * sizeof(Object::Material)),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			/* [POI] Allocate inline uniform blocks */
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, static_cast<uint32_t>(objects.size()) * sizeof(Object::Material)),
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolCI = vks::initializers::descriptorPoolCreateInfo(poolSizes, static_cast<uint32_t>(objects.size()) + 1);
 
@@ -387,9 +385,53 @@ public:
 			updateUniformBuffers();
 	}
 
+	/*
+		[POI] Update descriptor sets at runtime
+	*/
+	void updateMaterials() {
+		// Setup random materials for every object in the scene
+		for (uint32_t i = 0; i < objects.size(); i++) {
+			objects[i].material.r = glm::clamp(rnd(), 0.005f, 1.0f);
+			objects[i].material.g = glm::clamp(rnd(), 0.005f, 1.0f);
+			objects[i].material.b = glm::clamp(rnd(), 0.005f, 1.0f);
+			objects[i].material.ambient = 0.05f;
+			objects[i].material.roughness = glm::clamp(rnd(), 0.005f, 1.0f);
+			objects[i].material.metallic = glm::clamp(rnd(), 0.005f, 1.0f);
+		}
+
+		for (auto &object : objects) {
+			/*
+				[POI] New structure that defines size and data of the inline uniform block needs to be chained into the write descriptor set
+				We will be using this inline uniform block to pass per-object material information to the fragment shader
+			*/
+			VkWriteDescriptorSetInlineUniformBlockEXT writeDescriptorSetInlineUniformBlock{};
+			writeDescriptorSetInlineUniformBlock.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+			writeDescriptorSetInlineUniformBlock.dataSize = sizeof(Object::Material);
+			// Uniform data for the inline block
+			writeDescriptorSetInlineUniformBlock.pData = &object.material;
+
+			/*
+				[POI] Update the object's inline uniform block
+			*/
+			VkWriteDescriptorSet writeDescriptorSet{};
+			writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
+			writeDescriptorSet.dstSet = object.descriptorSet;
+			writeDescriptorSet.dstBinding = 0;
+			writeDescriptorSet.descriptorCount = sizeof(Object::Material);
+			writeDescriptorSet.pNext = &writeDescriptorSetInlineUniformBlock;
+
+			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		}
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
+		if (overlay->button("Randomize")) {
+			updateMaterials();
+		}
 	}
+
 };
 
 VULKAN_EXAMPLE_MAIN()
