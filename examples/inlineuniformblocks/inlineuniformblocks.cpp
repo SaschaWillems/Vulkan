@@ -54,6 +54,14 @@ public:
 			float ambient;
 		} material;
 		VkDescriptorSet descriptorSet;
+		void setRandomMaterial() {
+			material.r = rnd();
+			material.g = rnd();
+			material.b = rnd();
+			material.ambient = 0.0025f;
+			material.roughness = glm::clamp(rnd(), 0.005f, 1.0f);
+			material.metallic = glm::clamp(rnd(), 0.005f, 1.0f);
+		}
 	};
 	std::array<Object, 16> objects;
 
@@ -116,7 +124,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+		clearValues[0].color = { { 0.15f, 0.15f, 0.15f, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -181,12 +189,7 @@ public:
 
 		// Setup random materials for every object in the scene
 		for (uint32_t i = 0; i < objects.size(); i++) {
-			objects[i].material.r = rnd();
-			objects[i].material.g = rnd();
-			objects[i].material.b = rnd();
-			objects[i].material.ambient = 0.05f;
-			objects[i].material.roughness = glm::clamp(rnd(), 0.005f, 1.0f);
-			objects[i].material.metallic = glm::clamp(rnd(), 0.005f, 1.0f);
+			objects[i].setRandomMaterial();
 		}
 	}
 
@@ -393,12 +396,7 @@ public:
 	void updateMaterials() {
 		// Setup random materials for every object in the scene
 		for (uint32_t i = 0; i < objects.size(); i++) {
-			objects[i].material.r = glm::clamp(rnd(), 0.005f, 1.0f);
-			objects[i].material.g = glm::clamp(rnd(), 0.005f, 1.0f);
-			objects[i].material.b = glm::clamp(rnd(), 0.005f, 1.0f);
-			objects[i].material.ambient = 0.05f;
-			objects[i].material.roughness = glm::clamp(rnd(), 0.005f, 1.0f);
-			objects[i].material.metallic = glm::clamp(rnd(), 0.005f, 1.0f);
+			objects[i].setRandomMaterial();
 		}
 
 		for (auto &object : objects) {
