@@ -25,7 +25,6 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
     + [Misc](#Misc)
 + [Credits and Attributions](#CreditsAttributions)
 + [Misc](#Misc)
-+ [Ports](#Ports)
 
 
 ## <a name="Cloning"></a> Cloning
@@ -338,6 +337,3 @@ Renders a Vulkan demo scene with logos and mascots. Not an actual example but mo
 
 ## <a name="CreditsAttributions"></a> Credits and Attributions
 See [CREDITS.md](CREDITS.md) for additional credits and attributions.
-
-## <a name="Ports"></a> Ports
-- [jvm, written in Kotlin](https://github.com/java-opengl-labs/Vulkan)
