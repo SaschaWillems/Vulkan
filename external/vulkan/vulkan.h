@@ -24,6 +24,10 @@
 #include "vulkan_android.h"
 #endif
 
+#ifdef VK_USE_PLATFORM_FUCHSIA
+#include <zircon/types.h>
+#include "vulkan_fuchsia.h"
+#endif
 
 #ifdef VK_USE_PLATFORM_IOS_MVK
 #include "vulkan_ios.h"
