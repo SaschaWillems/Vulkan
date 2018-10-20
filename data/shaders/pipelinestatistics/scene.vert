@@ -20,11 +20,6 @@ layout(push_constant) uniform PushConsts {
 	vec3 objPos;
 } pushConsts;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
-
 void main() 
 {
 	outNormal = inNormal;
@@ -34,8 +29,8 @@ void main()
 	vec3 worldPos = vec3(ubo.modelview * vec4(inPos + pushConsts.objPos, 1.0));
 	gl_Position =  ubo.projection /* ubo.modelview */ * vec4(worldPos, 1.0);
 	
-    vec4 pos = ubo.modelview * vec4(worldPos, 1.0);
-    outNormal = mat3(ubo.modelview) * inNormal;
-    outLightVec = ubo.lightPos.xyz - pos.xyz;
-    outViewVec = -pos.xyz;
+	vec4 pos = ubo.modelview * vec4(worldPos, 1.0);
+	outNormal = mat3(ubo.modelview) * inNormal;
+	outLightVec = ubo.lightPos.xyz - pos.xyz;
+	outViewVec = -pos.xyz;
 }

@@ -7,11 +7,6 @@ layout (location = 0) in vec4 inPos;
 
 layout (location = 0) out int outInstanceIndex;
 
-out gl_PerVertex 
-{
-	vec4 gl_Position;   
-};
-
 void main()
 {
 	outInstanceIndex = gl_InstanceIndex;
