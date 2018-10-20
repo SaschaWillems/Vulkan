@@ -159,8 +159,6 @@ public:
 		uint32_t mipLevels;
 	} texture;
 
-	bool regenerateNoise = true;
-
 	struct {
 		vks::Model cube;
 	} models;
@@ -307,6 +305,8 @@ public:
 		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		texture.descriptor.imageView = texture.view;
 		texture.descriptor.sampler = texture.sampler;
+
+		updateNoiseTexture();
 	}
 
 	// Generate randomized noise and upload it to the 3D texture using staging
@@ -384,9 +384,7 @@ public:
 
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		// Image barrier for optimal image
-
-		// The sub resource range describes the regions of the image we will be transition
+		// The sub resource range describes the regions of the image we will be transitioned
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		subresourceRange.baseMipLevel = 0;
@@ -437,7 +435,6 @@ public:
 		delete[] data;
 		vkFreeMemory(device, stagingMemory, nullptr);
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		regenerateNoise = false;
 	}
 
 	// Free all Vulkan resources used a texture object
@@ -789,7 +786,7 @@ public:
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		prepareNoiseTexture(256, 256, 256);
+		prepareNoiseTexture(128, 128, 128);
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
@@ -803,28 +800,15 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		if (regenerateNoise)
-		{
-			updateNoiseTexture();
-		}
-		if (!paused)
-			updateUniformBuffers(false);
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffers();
+		if (!paused || camera.updated)
+			updateUniformBuffers(camera.updated);
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (regenerateNoise) {
-				overlay->text("Generating new noise texture...");
-			} else {
-				if (overlay->button("Generate new texture")) {
-					regenerateNoise = true;
-				}
+			if (overlay->button("Generate new texture")) {
+				updateNoiseTexture();
 			}
 		}
 	}
