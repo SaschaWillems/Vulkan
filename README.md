@@ -4,7 +4,6 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BHXPMV6ZKPH9E)
 
----
 ## Table of Contents
 + [Cloning](#Cloning)
 + [Assets](#Assets)
@@ -24,7 +23,6 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
     + [Extensions](#Extensions)
     + [Misc](#Misc)
 + [Credits and Attributions](#CreditsAttributions)
-+ [Misc](#Misc)
 
 
 ## <a name="Cloning"></a> Cloning
