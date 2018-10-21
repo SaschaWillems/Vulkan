@@ -407,6 +407,8 @@ public:
 
 	void updateUniformBuffers()
 	{
+		camera.setPerspective(60.0f, ((float)width / 3.0f) / (float)height, 0.1f, 512.0f);
+
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.modelView = camera.matrices.view;
 
@@ -440,12 +442,16 @@ public:
 
 	virtual void render()
 	{
-		if (!prepared)
+		if (!prepared) {
 			return;
+		}
 		draw();
+		if (camera.updated) {
+			updateUniformBuffers();
+		}
 	}
 
-	virtual void viewChanged()
+	virtual void windowResized() 
 	{
 		updateUniformBuffers();
 	}
