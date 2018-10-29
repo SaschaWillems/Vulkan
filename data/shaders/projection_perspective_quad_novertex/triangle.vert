@@ -21,8 +21,35 @@ out gl_PerVertex
 };
 
 
+vec2 positions [4] = vec2[] (
+	vec2(-1.0,-1.0),
+	vec2(3.0,-1.0),
+	vec2(-1.0,3.0),
+	vec2(3.0,3.0)
+);
+//
+
+// Show All Quad, will be a triangle.
+//gl_Position = vec4(positions[gl_VertexIndex], 0.0f, 1.0f);
+vec2 positions2 [4] = vec2[] (
+	vec2(-0.33,-0.33),
+	vec2(1.0,-0.33),
+	vec2(-0.33,1.0),
+	vec2(1.0,1.0)
+);
+
+vec2 positions3 [4] = vec2[] (
+	vec2(-1.0,-1.0),
+	vec2(1.0,-1.0),
+	vec2(-1.0,1.0),
+	vec2(1.0,1.0)
+);
+
 void main() 
 {
 	outColor = inColor;
-	gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(inPos.xyz, 1.0);
+        vec2 outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+	//gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
+	//gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
+	gl_Position = vec4(positions3[gl_VertexIndex], 0.0f, 1.0f);
 }
