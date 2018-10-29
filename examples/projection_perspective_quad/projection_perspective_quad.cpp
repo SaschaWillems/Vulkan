@@ -16,6 +16,7 @@
 #include <string.h>
 #include <assert.h>
 #include <fstream>
+#include <math.h>
 #include <vector>
 #include <exception>
 
@@ -33,7 +34,21 @@
 // See "prepareVertices" for details on what's staging and on why to use it
 #define USE_STAGING true
 
-static  float fovY = 60.0f;
+static float fovY = 60.0f;
+static float left, right, bottom, top;
+static float aspect;
+
+// Better rename the global width, height => viewportWidth, viewportHeight;
+// And perspectiveWidth => width,  perspectiveHeight => height;
+static float perspectiveWidth;
+static float perspectiveHeight;
+
+static float near = 0.1f;
+static float far= 256.0f;
+static float Zeye = 5.0f;
+
+#define PI 3.14159265
+float DEG2RAD = PI / 180.0;
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -368,17 +383,35 @@ public:
 		//	This is a very complex topic and while it's fine for an example application to to small individual memory allocations that is not
 		//	what should be done a real-world application, where you should allocate large chunkgs of memory at once isntead.
 
-		// Setup vertices
+                aspect = (float)width/height;
+                float  tangent = tan(fovY/2*DEG2RAD);
+                perspectiveHeight = near * tangent;		 // half height of near plane
+                perspectiveWidth = perspectiveHeight * aspect;		  // half width of near plane
+
+                left = -perspectiveWidth;
+                right = perspectiveWidth;
+		top = -perspectiveHeight;
+		bottom = perspectiveHeight;
+
+	        float scale = 0.90;
+		float left_at_any_z = left*(-Zeye)/near*scale;
+		float right_at_any_z = right*(-Zeye)/near*scale;
+		float bottom_at_any_z = bottom*(-Zeye)/near*scale;
+		float top_at_any_z = top*(-Zeye)/near*scale;
+
+		// Setup vertices. Should Y plus -1?
 		std::vector<Vertex> vertexBuffer = 
 		{
-			{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
-			{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-			{ {  0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } }
+			{ { left_at_any_z, bottom_at_any_z, -Zeye}, { 1.0f, 0.0f, 0.0f } },
+			{ {right_at_any_z, bottom_at_any_z, -Zeye}, { 0.0f, 1.0f, 0.0f } },
+			{ {right_at_any_z, top_at_any_z, -Zeye}, { 0.0f, 0.0f, 1.0f } },
+			{ {left_at_any_z, top_at_any_z, -Zeye}, { 0.0f, 1.0f, 0.0f } }
 		};
+
 		uint32_t vertexBufferSize = static_cast<uint32_t>(vertexBuffer.size()) * sizeof(Vertex);
 
 		// Setup indices
-		std::vector<uint32_t> indexBuffer = { 0, 1, 2 };
+		std::vector<uint32_t> indexBuffer = { 0, 1, 2, 0, 2, 3};
 		indices.count = static_cast<uint32_t>(indexBuffer.size());
 		uint32_t indexBufferSize = indices.count * sizeof(uint32_t);
 
@@ -1047,10 +1080,10 @@ public:
 	void updateUniformBuffers()
 	{
 		// Update matrices
-		uboVS.projectionMatrix = glm::perspective(glm::radians(fovY), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projectionMatrix = glm::perspective(glm::radians(fovY), (float)width / (float)height, near, far);
 
-		uboVS.viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
+		//uboVS.viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
+		uboVS.viewMatrix =  glm::mat4(1.0f);
 		uboVS.modelMatrix = glm::mat4(1.0f);
 		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
