@@ -26,6 +26,54 @@ out gl_PerVertex
     vec4 gl_Position;   
 };
 
+
+/*
+		std::vector<Vertex> vertices =
+		{
+			{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {  1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
+		};
+*/
+//*************************1, works
+// below works full screen
+//
+vec2 positions [4] = vec2[] (
+	vec2(1.0,1.0),
+	vec2(-1.0,1.0),
+	vec2(-1.0,-1.0),
+	vec2(1.0,-1.0)
+);
+//gl_Position = vec4(positions[gl_VertexIndex], 0.0f, 1.0f);
+//outFragColor = vec4(diffuse * color.rgb + specular, 1.0);	
+
+
+//*************************2, works
+vec2 positions2 [4] = vec2[] (
+	vec2(3.0,3.0),
+	vec2(-3.0,3.0),
+	vec2(-3.0,-3.0),
+	vec2(3.0,-3.0)
+);
+//gl_Position = vec4(positions2[gl_VertexIndex], 0.0f, 3.0f);
+//outFragColor = vec4(diffuse * color.rgb + specular, 1.0);	
+
+
+//*************************3, works
+vec2 positions1 [4] = vec2[] (
+	vec2(-1.0,-1.0),
+	vec2(3.0,-1.0),
+	vec2(-1.0,3.0),
+	vec2(3.0,3.0)
+);
+//gl_Position = vec4(positions1[gl_VertexIndex], 0.0f, 1.0f);
+//outFragColor = texture(samplerColor, vec2(inUV.s, 1.0 - inUV.t));
+
+//*************************4, works
+//gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
+//outFragColor = texture(samplerColor, vec2(inUV.s, 1.0 - inUV.t));
+
 void main() 
 {
 	outUV = inUV;
@@ -33,9 +81,13 @@ void main()
 
 	vec3 worldPos = vec3(ubo.model * vec4(inPos, 1.0));
 
-	gl_Position = ubo.projection * ubo.model * vec4(inPos.xyz, 1.0);
+	//gl_Position = ubo.projection * ubo.model * vec4(inPos.xyz, 1.0);
 
-    vec4 pos = ubo.model * vec4(inPos, 1.0);
+        outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+	//gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
+	gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
+	//gl_Position = vec4(positions1[gl_VertexIndex], 0.0f, 1.0f);
+    	vec4 pos = ubo.model * vec4(inPos, 1.0);
 	outNormal = mat3(inverse(transpose(ubo.model))) * inNormal;
 	vec3 lightPos = vec3(0.0);
 	vec3 lPos = mat3(ubo.model) * lightPos.xyz;
