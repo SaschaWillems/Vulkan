@@ -37,10 +37,8 @@ static float fovY = 60.0f;
 static float left, right, bottom, top;
 static float aspect;
 
-// Better rename the global width, height => viewportWidth, viewportHeight;
-// And perspectiveWidth => width,  perspectiveHeight => height;
-static float perspectiveWidth;
-static float perspectiveHeight;
+static float width;
+static float height;
 
 static float near = 0.01f;
 static float far= 256.0f;
@@ -479,8 +477,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width = viewportWidth;
+		renderPassBeginInfo.renderArea.extent.height = viewportHeight;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -493,10 +491,10 @@ public:
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+			VkViewport viewport = vks::initializers::viewport((float)viewportWidth, (float)viewportHeight, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+			VkRect2D scissor = vks::initializers::rect2D(viewportWidth, viewportHeight, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -542,15 +540,15 @@ public:
 			{ {  1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
 		};
 */
-		aspect = (float)width/height;
+		aspect = (float)viewportWidth/viewportHeight;
 		float  tangent = tan(fovY/2*DEG2RAD);
-		perspectiveHeight = near * tangent; 	 // half height of near plane
-		perspectiveWidth = perspectiveHeight * aspect;		  // half width of near plane
+		height = near * tangent; 	 // half height of near plane
+		width = height * aspect;		  // half width of near plane
 		
-		left = -perspectiveWidth;
-		right = perspectiveWidth;
-		top = -perspectiveHeight;
-		bottom = perspectiveHeight;
+		left = -width;
+		right = width;
+		top = -height;
+		bottom = height;
 		
 		float scale = 1.00;
 		float left_at_any_z = left*(-Zeye)/near*scale;
@@ -809,7 +807,7 @@ public:
 	void updateUniformBuffers()
 	{
 		// Vertex shader
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, near, far);
+		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)viewportWidth / (float)viewportHeight, near, far);
 		//glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 

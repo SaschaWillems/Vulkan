@@ -38,10 +38,8 @@ static float fovY = 60.0f;
 static float left, right, bottom, top;
 static float aspect;
 
-// Better rename the global width, height => viewportWidth, viewportHeight;
-// And perspectiveWidth => width,  perspectiveHeight => height;
-static float perspectiveWidth;
-static float perspectiveHeight;
+static float width;
+static float height;
 
 static float near = 0.1f;
 static float far= 256.0f;
@@ -286,8 +284,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width = viewportWidth;
+		renderPassBeginInfo.renderArea.extent.height = viewportHeight;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 	
@@ -304,16 +302,16 @@ public:
 
 			// Update dynamic viewport state
 			VkViewport viewport = {};
-			viewport.height = (float)height;
-			viewport.width = (float)width;
+			viewport.height = (float)viewportHeight;
+			viewport.width = (float)viewportWidth;
 			viewport.minDepth = (float) 0.0f;
 			viewport.maxDepth = (float) 1.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			// Update dynamic scissor state
 			VkRect2D scissor = {};
-			scissor.extent.width = width;
-			scissor.extent.height = height;
+			scissor.extent.width = viewportWidth;
+			scissor.extent.height = viewportHeight;
 			scissor.offset.x = 0;
 			scissor.offset.y = 0;
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -383,15 +381,15 @@ public:
 		//	This is a very complex topic and while it's fine for an example application to to small individual memory allocations that is not
 		//	what should be done a real-world application, where you should allocate large chunkgs of memory at once isntead.
 
-                aspect = (float)width/height;
+                aspect = (float)viewportWidth/viewportHeight;
                 float  tangent = tan(fovY/2*DEG2RAD);
-                perspectiveHeight = near * tangent;		 // half height of near plane
-                perspectiveWidth = perspectiveHeight * aspect;		  // half width of near plane
+                height = near * tangent;		 // half height of near plane
+                width = height * aspect;		  // half width of near plane
 
-                left = -perspectiveWidth;
-                right = perspectiveWidth;
-		top = -perspectiveHeight;
-		bottom = perspectiveHeight;
+                left = -width;
+                right = width;
+		top = -height;
+		bottom = height;
 
 	        float scale = 0.90;
 		float left_at_any_z = left*(-Zeye)/near*scale;
@@ -660,7 +658,7 @@ public:
 		image.imageType = VK_IMAGE_TYPE_2D;
 		image.format = depthFormat;
 		// Use example's height and width
-		image.extent = { width, height, 1 };
+		image.extent = { viewportWidth, viewportHeight, 1 };
 		image.mipLevels = 1;
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -714,8 +712,8 @@ public:
 			frameBufferCreateInfo.renderPass = renderPass;
 			frameBufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 			frameBufferCreateInfo.pAttachments = attachments.data();
-			frameBufferCreateInfo.width = width;
-			frameBufferCreateInfo.height = height;
+			frameBufferCreateInfo.width = viewportWidth;
+			frameBufferCreateInfo.height = viewportHeight;
 			frameBufferCreateInfo.layers = 1;
 			// Create the framebuffer
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
@@ -1080,7 +1078,7 @@ public:
 	void updateUniformBuffers()
 	{
 		// Update matrices
-		uboVS.projectionMatrix = glm::perspective(glm::radians(fovY), (float)width / (float)height, near, far);
+		uboVS.projectionMatrix = glm::perspective(glm::radians(fovY), (float)viewportWidth / (float)viewportHeight, near, far);
 
 		//uboVS.viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 		uboVS.viewMatrix =  glm::mat4(1.0f);

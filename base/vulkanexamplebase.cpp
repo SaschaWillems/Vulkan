@@ -278,8 +278,8 @@ void VulkanExampleBase::renderLoop()
 		return;
 	}
 
-	destWidth = width;
-	destHeight = height;
+	destWidth = viewportWidth;
+	destHeight = viewportHeight;
 #if defined(_WIN32)
 	MSG msg;
 	bool quitMessageReceived = false;
@@ -560,7 +560,7 @@ void VulkanExampleBase::updateOverlay()
 
 	ImGuiIO& io = ImGui::GetIO();
 
-	io.DisplaySize = ImVec2((float)width, (float)height);
+	io.DisplaySize = ImVec2((float)viewportWidth, (float)viewportHeight);
 	io.DeltaTime = frameTimer;
 
 	io.MousePos = ImVec2(mousePos.x, mousePos.y);
@@ -606,8 +606,8 @@ void VulkanExampleBase::updateOverlay()
 void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 {
 	if (settings.overlay) {
-		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		const VkViewport viewport = vks::initializers::viewport((float)viewportWidth, (float)viewportHeight, 0.0f, 1.0f);
+		const VkRect2D scissor = vks::initializers::rect2D(viewportWidth, viewportHeight, 0, 0);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
@@ -678,11 +678,11 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		}
 		if ((args[i] == std::string("-w")) || (args[i] == std::string("-width"))) {
 			uint32_t w = strtol(args[i + 1], &numConvPtr, 10);
-			if (numConvPtr != args[i + 1]) { width = w; };
+			if (numConvPtr != args[i + 1]) { viewportWidth = w; };
 		}
 		if ((args[i] == std::string("-h")) || (args[i] == std::string("-height"))) {
 			uint32_t h = strtol(args[i + 1], &numConvPtr, 10);
-			if (numConvPtr != args[i + 1]) { height = h; };
+			if (numConvPtr != args[i + 1]) { viewportHeight = h; };
 		}
 		// Benchmark
 		if ((args[i] == std::string("-b")) || (args[i] == std::string("--benchmark"))) {
@@ -1050,7 +1050,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		dmScreenSettings.dmBitsPerPel = 32;
 		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
-		if ((width != (uint32_t)screenWidth) && (height != (uint32_t)screenHeight))
+		if ((viewportWidth != (uint32_t)screenWidth) && (viewportHeight != (uint32_t)screenHeight))
 		{
 			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 			{
@@ -1084,8 +1084,8 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	RECT windowRect;
 	windowRect.left = 0L;
 	windowRect.top = 0L;
-	windowRect.right = settings.fullscreen ? (long)screenWidth : (long)width;
-	windowRect.bottom = settings.fullscreen ? (long)screenHeight : (long)height;
+	windowRect.right = settings.fullscreen ? (long)screenWidth : (long)viewportWidth;
+	windowRect.bottom = settings.fullscreen ? (long)screenHeight : (long)viewportHeight;
 
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
@@ -1698,7 +1698,7 @@ static void PingCb(void *data, struct wl_shell_surface *shell_surface,
 }
 
 static void ConfigureCb(void *data, struct wl_shell_surface *shell_surface,
-		uint32_t edges, int32_t width, int32_t height)
+		uint32_t edges, int32_t viewportWidth, int32_t viewportHeight)
 {
 }
 
@@ -1749,14 +1749,14 @@ xcb_window_t VulkanExampleBase::setupWindow()
 
 	if (settings.fullscreen)
 	{
-		width = destWidth = screen->width_in_pixels;
-		height = destHeight = screen->height_in_pixels;
+		viewportWidth = destWidth = screen->width_in_pixels;
+		viewportHeight = destHeight = screen->height_in_pixels;
 	}
 
 	xcb_create_window(connection,
 		XCB_COPY_FROM_PARENT,
 		window, screen->root,
-		0, 0, width, height, 0,
+		0, 0, viewportWidth, viewportHeight, 0,
 		XCB_WINDOW_CLASS_INPUT_OUTPUT,
 		screen->root_visual,
 		value_mask, value_list);
@@ -1912,7 +1912,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 	case XCB_CONFIGURE_NOTIFY:
 	{
 		const xcb_configure_notify_event_t *cfgEvent = (const xcb_configure_notify_event_t *)event;
-		if ((prepared) && ((cfgEvent->width != width) || (cfgEvent->height != height)))
+		if ((prepared) && ((cfgEvent->width != viewportWidth) || (cfgEvent->height != viewportHeight)))
 		{
 				destWidth = cfgEvent->width;
 				destHeight = cfgEvent->height;
@@ -1963,7 +1963,7 @@ void VulkanExampleBase::setupDepthStencil()
 	image.pNext = NULL;
 	image.imageType = VK_IMAGE_TYPE_2D;
 	image.format = depthFormat;
-	image.extent = { width, height, 1 };
+	image.extent = { viewportWidth, viewportHeight, 1 };
 	image.mipLevels = 1;
 	image.arrayLayers = 1;
 	image.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -2016,8 +2016,8 @@ void VulkanExampleBase::setupFrameBuffer()
 	frameBufferCreateInfo.renderPass = renderPass;
 	frameBufferCreateInfo.attachmentCount = 2;
 	frameBufferCreateInfo.pAttachments = attachments;
-	frameBufferCreateInfo.width = width;
-	frameBufferCreateInfo.height = height;
+	frameBufferCreateInfo.width = viewportWidth;
+	frameBufferCreateInfo.height = viewportHeight;
 	frameBufferCreateInfo.layers = 1;
 
 	// Create frame buffers for every swap chain image
@@ -2118,8 +2118,8 @@ void VulkanExampleBase::windowResize()
 	vkDeviceWaitIdle(device);
 
 	// Recreate swap chain
-	width = destWidth;
-	height = destHeight;
+	viewportWidth = destWidth;
+	viewportHeight = destHeight;
 	setupSwapChain();
 
 	// Recreate the frame buffers
@@ -2132,9 +2132,9 @@ void VulkanExampleBase::windowResize()
 	}
 	setupFrameBuffer();
 
-	if ((width > 0.0f) && (height > 0.0f)) {
+	if ((viewportWidth > 0.0f) && (viewportHeight > 0.0f)) {
 		if (settings.overlay) {
-			UIOverlay.resize(width, height);
+			UIOverlay.resize(viewportWidth, viewportHeight);
 		}
 	}
 
@@ -2146,8 +2146,8 @@ void VulkanExampleBase::windowResize()
 
 	vkDeviceWaitIdle(device);
 
-	if ((width > 0.0f) && (height > 0.0f)) {
-		camera.updateAspectRatio((float)width / (float)height);
+	if ((viewportWidth > 0.0f) && (viewportHeight > 0.0f)) {
+		camera.updateAspectRatio((float)viewportWidth / (float)viewportHeight);
 	}
 
 	// Notify derived class
@@ -2209,7 +2209,7 @@ void VulkanExampleBase::initSwapchain()
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	swapChain.initSurface(view);
 #elif defined(_DIRECT2DISPLAY)
-	swapChain.initSurface(width, height);
+	swapChain.initSurface(viewportWidth, viewportHeight);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	swapChain.initSurface(display, surface);
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
@@ -2219,7 +2219,7 @@ void VulkanExampleBase::initSwapchain()
 
 void VulkanExampleBase::setupSwapChain()
 {
-	swapChain.create(&width, &height, settings.vsync);
+	swapChain.create(&viewportWidth, &viewportHeight, settings.vsync);
 }
 
 void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}

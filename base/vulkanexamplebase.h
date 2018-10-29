@@ -131,8 +131,8 @@ protected:
 	std::vector<VkFence> waitFences;
 public: 
 	bool prepared = false;
-	uint32_t width = 1280;
-	uint32_t height = 720;
+	uint32_t viewportWidth = 1280;
+	uint32_t viewportHeight = 720;
 
 	vks::UIOverlay UIOverlay;
 
