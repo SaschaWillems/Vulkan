@@ -78,6 +78,7 @@ set(EXAMPLES
 	pbrtexture
 	pipelines
 	pipelinestatistics
+	projection_perspective
 	pushconstants
 	pushdescriptors
 	radialblur
