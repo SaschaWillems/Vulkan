@@ -42,7 +42,7 @@ static float height;
 
 static float near = 0.01f;
 static float far= 256.0f;
-static float Zeye = 5.0f;
+static float Zeye = -5.0f;
 
 #define PI 3.14159265
 float DEG2RAD = PI / 180.0;
@@ -545,25 +545,25 @@ public:
 		height = near * tangent; 	 // half height of near plane
 		width = height * aspect;		  // half width of near plane
 		
-		left = -width;
-		right = width;
-		top = -height;
-		bottom = height;
+		left = width;
+		right = -width;
+		bottom = - height;
+		top = height;
 		
 		float scale = 1.00;
-		float left_at_any_z = left*(-Zeye)/near*scale;
-		float right_at_any_z = right*(-Zeye)/near*scale;
-		float bottom_at_any_z = bottom*(-Zeye)/near*scale;
-		float top_at_any_z = top*(-Zeye)/near*scale;
+		float left_at_any_z = left*(Zeye)/(-1*near)*scale;
+		float right_at_any_z = right*(Zeye)/(-1*near)*scale;
+		float bottom_at_any_z = bottom*(Zeye)/(-1*near)*scale;
+		float top_at_any_z = top*(Zeye)/(-1*near)*scale;
 		
 		// Setup vertices. Should Y plus -1?
 		// Setup vertices for a single uv-mapped quad made from two triangles
 		std::vector<Vertex> vertices =
 		{
-			{ {left_at_any_z, bottom_at_any_z, -Zeye}, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ {right_at_any_z, bottom_at_any_z, -Zeye}, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ {right_at_any_z, top_at_any_z, -Zeye}, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ {left_at_any_z, top_at_any_z, -Zeye}, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
+			{ {left_at_any_z, -bottom_at_any_z, Zeye}, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {right_at_any_z, -bottom_at_any_z, Zeye}, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {right_at_any_z, -top_at_any_z, Zeye}, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {left_at_any_z, -top_at_any_z, Zeye}, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
 		};
 
 		// Setup indices

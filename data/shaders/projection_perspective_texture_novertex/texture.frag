@@ -13,6 +13,7 @@ layout (location = 4) in vec3 inLightVec;
 
 layout (location = 0) out vec4 outFragColor;
 
+
 void main() 
 {
 	vec4 color = texture(samplerColor, inUV, inLodBias);
@@ -24,6 +25,7 @@ void main()
 	vec3 diffuse = max(dot(N, L), 0.0) * vec3(1.0);
 	float specular = pow(max(dot(R, V), 0.0), 16.0) * color.a;
 
-	//outFragColor = vec4(diffuse * color.rgb + specular, 1.0);	
-	outFragColor = texture(samplerColor, vec2(inUV.s, 1.0 - inUV.t));
+	//outFragColor = vec4(diffuse * color.rgb + specular, 1.0);
+	float scale = 1.0f;
+	outFragColor = texture(samplerColor, vec2(inUV.s*scale, scale*(1.0 - inUV.t)));
 }
