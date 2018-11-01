@@ -76,6 +76,13 @@ vec2 positions1 [4] = vec2[] (
 //outFragColor = texture(samplerColor, vec2(inUV.s, 1.0 - inUV.t));
 
 
+//Problems:
+/*
+gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
+gl_Position.x = gl_Position.x/3.0f;
+gl_Position.y = -gl_Position.y/3.0f;
+*/
+
 
 void main() 
 {
