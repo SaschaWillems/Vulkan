@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset><contributor><author></author><authoring_tool>FBX COLLADA exporter</authoring_tool><comments></comments></contributor><created>2018-10-31T06:49:37Z</created><keywords></keywords><modified>2018-10-31T06:49:37Z</modified><revision></revision><subject></subject><title></title><unit meter="1.000000" name="centimeter"></unit><up_axis>Y_UP</up_axis></asset>
+  <library_materials>
+    <material id="b0b0b0" name="b0b0b0">
+      <instance_effect url="#b0b0b0-fx"/>
+    </material>
+  </library_materials>
+  <library_effects>
+    <effect id="b0b0b0-fx" name="b0b0b0">
+      <profile_COMMON>
+        <technique sid="standard">
+          <phong>
+            <emission>
+              <color sid="emission">0.000000  0.000000 0.000000 1.000000</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0.000000  0.000000 0.000000 1.000000</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0.690196  0.690196 0.690196 1.000000</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.019922  0.019922 0.019922 1.000000</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">29.948882</float>
+            </shininess>
+            <reflective>
+              <color sid="reflective">0.000000  0.000000 0.000000 1.000000</color>
+            </reflective>
+            <reflectivity>
+              <float sid="reflectivity">1.000000</float>
+            </reflectivity>
+            <transparent opaque="RGB_ZERO">
+              <color sid="transparent">1.000000  1.000000 1.000000 1.000000</color>
+            </transparent>
+            <transparency>
+              <float sid="transparency">0.000000</float>
+            </transparency>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_geometries>
+    <geometry id="Plane-lib" name="PlaneMesh">
+      <mesh>
+        <source id="Plane-POSITION">
+          <float_array id="Plane-POSITION-array" count="12">
+-2.000000 -2.000000 -1.000000
+2.000000  -2.000000 -1.000000
+-2.000000 2.000000  -1.000000 
+2.000000 2.000000   -1.000000 
+</float_array>
+          <technique_common>
+            <accessor source="#Plane-POSITION-array" count="4" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Plane-Normal0">
+          <float_array id="Plane-Normal0-array" count="12">
+0.000000 1.000000 0.000000
+0.000000 1.000000 0.000000
+0.000000 1.000000 0.000000
+0.000000 1.000000 0.000000
+</float_array>
+          <technique_common>
+            <accessor source="#Plane-Normal0-array" count="4" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Plane-UV0">
+          <float_array id="Plane-UV0-array" count="8">
+0.000000 1.000000
+0.000000 0.000000
+1.000000 0.000000
+1.000000 1.000000
+</float_array>
+          <technique_common>
+            <accessor source="#Plane-UV0-array" count="4" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Plane-VERTEX">
+          <input semantic="POSITION" source="#Plane-POSITION"/>
+        </vertices>
+        <polylist count="1" material="b0b0b0"><input semantic="VERTEX" offset="0" source="#Plane-VERTEX"/><input semantic="NORMAL" offset="1" source="#Plane-Normal0"/><input semantic="TEXCOORD" offset="2" set="0" source="#Plane-UV0"/><vcount>4 </vcount><p> 0 0 0 2 1 1 3 2 2 1 3 3</p></polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Quad" name="Quad">
+      <node name="Plane" id="Plane" sid="Plane"><matrix sid="matrix">1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000</matrix><instance_geometry url="#Plane-lib"><bind_material><technique_common><instance_material symbol="b0b0b0" target="#b0b0b0"/></technique_common></bind_material></instance_geometry><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra></node>
+      <extra><technique profile="MAX3D"><frame_rate>29.970030</frame_rate></technique><technique profile="FCOLLADA"><start_time>0.000000</start_time><end_time>6.673333</end_time></technique></extra>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Quad"></instance_visual_scene>
+  </scene>
+</COLLADA>

@@ -66,6 +66,7 @@ vec2 positions1 [4] = vec2[] (
 	vec2(3.0,-1.0),
 	vec2(-1.0,3.0),
 	vec2(3.0,3.0)
+
 );
 //gl_Position = vec4(positions1[gl_VertexIndex], 0.0f, 1.0f);
 //outFragColor = texture(samplerColor, vec2(inUV.s, 1.0 - inUV.t));
@@ -73,6 +74,8 @@ vec2 positions1 [4] = vec2[] (
 //*************************4, works
 //gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
 //outFragColor = texture(samplerColor, vec2(inUV.s, 1.0 - inUV.t));
+
+
 
 void main() 
 {
@@ -85,8 +88,16 @@ void main()
 
         outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
 	//gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
+
 	gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
+
 	//gl_Position = vec4(positions1[gl_VertexIndex], 0.0f, 1.0f);
+
+
+	//gl_Position.x = gl_Position.x/3.0f;
+	//gl_Position.y = gl_Position.y/3.0f;
+
+	//gl_Position.y = - gl_Position.y;
     	vec4 pos = ubo.model * vec4(inPos, 1.0);
 	outNormal = mat3(inverse(transpose(ubo.model))) * inNormal;
 	vec3 lightPos = vec3(0.0);

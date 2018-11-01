@@ -97,11 +97,11 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -5.5f;
+		zoom = -0.0f;
 		zoomSpeed = 2.5f;
 		rotationSpeed = 0.5f;
-		rotation = { -0.5f, -112.75f, 0.0f };
-		cameraPos = { 0.1f, 1.1f, 0.0f };
+		rotation = { 0.0f, 00.0f, 0.0f };
+		cameraPos = { 0.0f, 0.0f, 0.0f };
 		title = "Model rendering";
 		settings.overlay = true;
 	}
@@ -144,8 +144,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width = viewportWidth;
+		renderPassBeginInfo.renderArea.extent.height = viewportHeight;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -158,10 +158,10 @@ public:
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+			VkViewport viewport = vks::initializers::viewport((float)viewportWidth, (float)viewportHeight, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+			VkRect2D scissor = vks::initializers::rect2D(viewportWidth, viewportHeight, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -355,7 +355,7 @@ public:
 
 	void loadAssets()
 	{
-		loadModel(getAssetPath() + "models/voyager/voyager.dae");
+		loadModel(getAssetPath() + "models/quad.dae");
 		if (deviceFeatures.textureCompressionBC) {
 			textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager_bc3_unorm.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
 		}
@@ -604,7 +604,7 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)viewportWidth / (float)viewportHeight, 0.1f, 256.0f);
 		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 
 		uboVS.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);

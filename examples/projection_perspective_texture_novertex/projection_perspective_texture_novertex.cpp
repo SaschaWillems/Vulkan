@@ -144,7 +144,8 @@ public:
 	void loadTexture()
 	{
 		// We use the Khronos texture format (https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/) 
-		std::string filename = getAssetPath() + "textures/metalplate01_rgba.ktx";
+		//std::string filename = getAssetPath() + "textures/metalplate01_rgba.ktx";
+		std::string filename = getAssetPath() + "textures/gorilla.ktx";
 		// Texture data contains 4 channels (RGBA) with unnormalized 8-bit values, this is the most commonly supported format
 		VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
 
@@ -548,16 +549,10 @@ public:
 		
 		left = -width;
 		right = width;
-		top = -height;
-		bottom = height;
+		top = height;
+		bottom = -height;
 		
-		float scale = 1.00;
-		float left_at_any_z = left*(-Zeye)/near*scale;
-		float right_at_any_z = right*(-Zeye)/near*scale;
-		float bottom_at_any_z = bottom*(-Zeye)/near*scale;
-		float top_at_any_z = top*(-Zeye)/near*scale;
-		
-		// Setup vertices. Should Y plus -1?
+		/*
 		// Setup vertices for a single uv-mapped quad made from two triangles
 		std::vector<Vertex> vertices =
 		{
@@ -566,9 +561,27 @@ public:
 			{ {right_at_any_z, top_at_any_z, -Zeye}, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
 			{ {left_at_any_z, top_at_any_z, -Zeye}, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
 		};
+		*/
+			
+			float scale = 1.00;
+			float left_at_any_z = left*(Zeye)/(-1*near)*scale;
+			float right_at_any_z = right*(Zeye)/(-1*near)*scale;
+			float bottom_at_any_z = bottom*(Zeye)/(-1*near)*scale;
+			float top_at_any_z = top*(Zeye)/(-1*near)*scale;
+
+
+		// Setup vertices for a single uv-mapped quad made from two triangles
+		std::vector<Vertex> vertices =
+		{
+			{ {left_at_any_z, bottom_at_any_z, Zeye}, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {right_at_any_z,bottom_at_any_z, Zeye}, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {right_at_any_z, top_at_any_z, Zeye}, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
+			{ {left_at_any_z, top_at_any_z, Zeye}, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } }
+		};
+
 
 		// Setup indices
-		std::vector<uint32_t> indices = { 0,1,2, 2,3,0 };
+		std::vector<uint32_t> indices = { 0,1,2 , 2,3,0 };
 		indexCount = static_cast<uint32_t>(indices.size());
 
 		// Create buffers
