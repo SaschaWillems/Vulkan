@@ -26,6 +26,7 @@ void main()
 	float specular = pow(max(dot(R, V), 0.0), 16.0) * color.a;
 
 	//outFragColor = vec4(diffuse * color.rgb + specular, 1.0);
-	float scale = 1.0f;
-	outFragColor = texture(samplerColor, vec2(inUV.s*scale, scale*(1.0 - inUV.t)));
+	float scale = 1.0;
+	float offset = 0.0; // texture coordinate doesnot care this offset at all. Can be 0.0, -5.0,5.0. The result are the same.
+	outFragColor = texture(samplerColor, vec2(inUV.s*scale+offset, scale*(1.0 - inUV.t)+offset));
 }

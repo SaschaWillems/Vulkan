@@ -61,11 +61,11 @@ vec2 positions2 [4] = vec2[] (
 
 
 //*************************3, works
-vec2 positions1 [4] = vec2[] (
+vec2 positions1 [3] = vec2[] (
 	vec2(-1.0,-1.0),
 	vec2(3.0,-1.0),
-	vec2(-1.0,3.0),
-	vec2(3.0,3.0)
+	vec2(-1.0,3.0)
+	//vec2(3.0,3.0)
 
 );
 //gl_Position = vec4(positions1[gl_VertexIndex], 0.0f, 1.0f);
@@ -78,9 +78,12 @@ vec2 positions1 [4] = vec2[] (
 
 //Problems:
 /*
+Bad:
 gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
 gl_Position.x = gl_Position.x/3.0f;
 gl_Position.y = -gl_Position.y/3.0f;
+gl_Position.y = -gl_Position.y;
+
 */
 
 
@@ -105,6 +108,7 @@ void main()
 	//gl_Position.y = gl_Position.y/3.0f;
 
 	//gl_Position.y = - gl_Position.y;
+
     	vec4 pos = ubo.model * vec4(inPos, 1.0);
 	outNormal = mat3(inverse(transpose(ubo.model))) * inNormal;
 	vec3 lightPos = vec3(0.0);
