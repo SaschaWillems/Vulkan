@@ -110,6 +110,7 @@ set(EXAMPLES
 	triangle
 	viewportarray
 	vulkanscene
+	vr_lens_distorter
 )
 
 buildExamples()
