@@ -33,19 +33,30 @@ struct Vertex {
 	float normal[3];
 };
 
+#undef far
+#undef near
 static float fovY = 60.0f;
 static float left, right, bottom, top;
 static float aspect;
-
 static float width;
 static float height;
-
-static float near = 0.01f;
-static float far= 256.0f;
-static float Zeye = -5.0f;
+float near;
+//near = 0.01f;
+float far;
+//far = 256.0f;
+float Zeye;
+//Zeye = -5.0f;
 
 #define PI 3.14159265
 float DEG2RAD = PI / 180.0;
+
+static void initGolbalData() {
+	near = 0.01;
+	//float far;
+	far = 256.0;
+	//float Zeye;
+	Zeye = -5.0;
+}
 
 
 class VulkanExample : public VulkanExampleBase
@@ -96,6 +107,7 @@ public:
 		rotation = { 0.0f, 0.0f, 0.0f };
 		title = "Texture loading";
 		settings.overlay = true;
+		initGolbalData();
 	}
 
 	~VulkanExample()
@@ -543,8 +555,8 @@ public:
 		*/
 		aspect = (float)viewportWidth/viewportHeight;
 		float  tangent = tan(fovY/2*DEG2RAD);
-		height = near * tangent; 	 // half height of near plane
-		width = height * aspect;		  // half width of near plane
+		height = near*tangent; 	 // half height of near plane
+		width = height*aspect;		  // half width of near plane
 		
 		left = -width;
 		right = width;
@@ -552,10 +564,10 @@ public:
 		top = height;
 		
 		float scale = 1.00;
-		float left_at_any_z = left*(Zeye)/(-1*near)*scale;
-		float right_at_any_z = right*(Zeye)/(-1*near)*scale;
-		float bottom_at_any_z = bottom*(Zeye)/(-1*near)*scale;
-		float top_at_any_z = top*(Zeye)/(-1*near)*scale;
+		float left_at_any_z = left*Zeye/(-1*near)*scale;
+		float right_at_any_z = right*Zeye/(-1*near)*scale;
+		float bottom_at_any_z = bottom*Zeye/(-1*near)*scale;
+		float top_at_any_z = top*Zeye/(-1*near)*scale;
 
 		// Setup vertices for a single uv-mapped quad made from two triangles
 		std::vector<Vertex> vertices =

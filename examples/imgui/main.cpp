@@ -525,7 +525,7 @@ public:
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 1.4f, -4.8f));
 		camera.setRotation(glm::vec3(4.5f, -380.0f, 0.0f));
-		camera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
+		camera.setPerspective(45.0f, (float)viewportWidth / (float)viewportHeight, 0.1f, 256.0f);
 	}
 
 	~VulkanExample()
@@ -555,8 +555,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width = viewportWidth;
+		renderPassBeginInfo.renderArea.extent.height = viewportHeight;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
@@ -573,10 +573,10 @@ public:
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+			VkViewport viewport = vks::initializers::viewport((float)viewportWidth, (float)viewportHeight, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+			VkRect2D scissor = vks::initializers::rect2D(viewportWidth, viewportHeight, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			// Render scene
@@ -761,7 +761,7 @@ public:
 	void prepareImGui()
 	{
 		imGui = new ImGUI(this);
-		imGui->init((float)width, (float)height);
+		imGui->init((float)viewportWidth, (float)viewportHeight);
 		imGui->initResources(renderPass, queue);
 	}
 
@@ -785,7 +785,7 @@ public:
 		// Update imGui
 		ImGuiIO& io = ImGui::GetIO();
 
-		io.DisplaySize = ImVec2((float)width, (float)height);
+		io.DisplaySize = ImVec2((float)viewportWidth, (float)viewportHeight);
 		io.DeltaTime = frameTimer;
 
 		io.MousePos = ImVec2(mousePos.x, mousePos.y);
