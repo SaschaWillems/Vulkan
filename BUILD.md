@@ -15,6 +15,11 @@ cmake -G "Visual Studio 14 2015 Win64"
 
 [![Build Status](https://travis-ci.org/SaschaWillems/Vulkan.svg?branch=master)](https://travis-ci.org/SaschaWillems/Vulkan)
 
+Download & install required packages:
+```shell
+sudo apt-get install libassimp-dev
+```
+
 Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler.
 
 Note that you need [assimp](https://github.com/assimp/assimp) in order to compile the examples for Linux. Either compile and install from the repository, or install libassimp-dev. The examples require at least version 3.2.
