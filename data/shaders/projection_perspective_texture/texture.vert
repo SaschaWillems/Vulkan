@@ -35,7 +35,8 @@ void main()
 
     gl_Position = ubo.projection * ubo.model * vec4(inPos.xyz, 1.0);
     // https://matthewwellings.com/blog/the-new-vulkan-coordinate-system/
-    gl_Position.y = -gl_Position.y;
+    //gl_Position.y = -gl_Position.y;
+	//gl_Position.xy = gl_Position.xy/3.0;
 
 
     vec4 pos = ubo.model * vec4(inPos, 1.0);
