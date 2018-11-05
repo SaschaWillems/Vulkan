@@ -60,16 +60,7 @@ vec2 positions2 [4] = vec2[] (
 //outFragColor = vec4(diffuse * color.rgb + specular, 1.0);	
 
 
-//*************************3, works
-vec2 positions1 [3] = vec2[] (
-	vec2(-1.0,-1.0),
-	vec2(3.0,-1.0),
-	vec2(-1.0,3.0)
-	//vec2(3.0,3.0)
 
-);
-//gl_Position = vec4(positions1[gl_VertexIndex], 0.0f, 1.0f);
-//outFragColor = texture(samplerColor, vec2(inUV.s, 1.0 - inUV.t));
 
 //*************************4, works
 //gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
@@ -87,6 +78,41 @@ gl_Position.y = -gl_Position.y;
 */
 
 
+//*************************3, works
+/*
+xy: -1, -1;in uv:  0, 0; out uv:  0, 1
+xy: 3, -1;in uv:  2, 0; out uv:  2, 1
+xy: -1, 3;in uv:  0, 2; out uv:  0, -1
+*/
+
+vec2 positions1 [3] = vec2[] (
+	vec2(-1.0,-1.0),
+	vec2(3.0,-1.0),
+	vec2(-1.0,3.0)
+	//vec2(3.0,3.0)
+);
+
+vec2 uv1 [3] = vec2[] (
+	vec2(0,0),
+	vec2(2,0),
+	vec2(0,2)
+	//vec2(3.0,3.0)
+);
+
+/*
+vec2 uv1 [3] = vec2[] (
+	vec2(0,1),
+	vec2(2,1),
+	vec2(0,-1)
+	//vec2(3.0,3.0)
+);
+*/
+
+//outUV = vec2(uv1[gl_VertexIndex]);
+//gl_Position = vec4(positions1[gl_VertexIndex], 0.0f, 1.0f);
+//outFragColor = texture(samplerColor, vec2(inUV.s, 1.0 - inUV.t));
+
+
 void main() 
 {
 	outUV = inUV;
@@ -95,19 +121,20 @@ void main()
 	vec3 worldPos = vec3(ubo.model * vec4(inPos, 1.0));
 
 	//gl_Position = ubo.projection * ubo.model * vec4(inPos.xyz, 1.0);
-
-        outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
 	//gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
 
-	gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
+        //outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+	//gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
 
-	//gl_Position = vec4(positions1[gl_VertexIndex], 0.0f, 1.0f);
+	outUV = vec2(uv1[gl_VertexIndex]);
+	gl_Position = vec4(positions1[gl_VertexIndex], 0.0f, 1.0f);
+	//gl_Position.y = - gl_Position.y;
 
 
 	//gl_Position.x = gl_Position.x/3.0f;
 	//gl_Position.y = gl_Position.y/3.0f;
 
-	//gl_Position.y = - gl_Position.y;
+
 
     	vec4 pos = ubo.model * vec4(inPos, 1.0);
 	outNormal = mat3(inverse(transpose(ubo.model))) * inNormal;
