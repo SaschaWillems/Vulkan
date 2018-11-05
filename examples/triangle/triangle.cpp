@@ -271,8 +271,8 @@ public:
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent.width = viewportWidth;
+		renderPassBeginInfo.renderArea.extent.height = viewportHeight;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 	
@@ -289,16 +289,16 @@ public:
 
 			// Update dynamic viewport state
 			VkViewport viewport = {};
-			viewport.height = (float)height;
-			viewport.width = (float)width;
+			viewport.height = (float)viewportHeight;
+			viewport.width = (float)viewportWidth;
 			viewport.minDepth = (float) 0.0f;
 			viewport.maxDepth = (float) 1.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
 			// Update dynamic scissor state
 			VkRect2D scissor = {};
-			scissor.extent.width = width;
-			scissor.extent.height = height;
+			scissor.extent.width = viewportWidth;
+			scissor.extent.height = viewportHeight;
 			scissor.offset.x = 0;
 			scissor.offset.y = 0;
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
@@ -627,7 +627,7 @@ public:
 		image.imageType = VK_IMAGE_TYPE_2D;
 		image.format = depthFormat;
 		// Use example's height and width
-		image.extent = { width, height, 1 };
+		image.extent = { viewportWidth, viewportHeight, 1 };
 		image.mipLevels = 1;
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -681,8 +681,8 @@ public:
 			frameBufferCreateInfo.renderPass = renderPass;
 			frameBufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 			frameBufferCreateInfo.pAttachments = attachments.data();
-			frameBufferCreateInfo.width = width;
-			frameBufferCreateInfo.height = height;
+			frameBufferCreateInfo.width = viewportWidth;
+			frameBufferCreateInfo.height = viewportHeight;
 			frameBufferCreateInfo.layers = 1;
 			// Create the framebuffer
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
@@ -1047,7 +1047,7 @@ public:
 	void updateUniformBuffers()
 	{
 		// Update matrices
-		uboVS.projectionMatrix = glm::perspective(glm::radians(fovY), (float)width / (float)height, 0.1f, 256.0f);
+		uboVS.projectionMatrix = glm::perspective(glm::radians(fovY), (float)viewportWidth / (float)viewportHeight, 0.1f, 256.0f);
 
 		uboVS.viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
 
