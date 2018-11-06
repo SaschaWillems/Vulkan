@@ -345,7 +345,7 @@ public:
 			framebufferCI.pAttachments = attachments;
 			framebufferCI.width = width;
 			framebufferCI.height = height;
-			framebufferCI.layers = 1;
+			framebufferCI.layers = 2;
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &framebufferCI, nullptr, &multiviewPass.frameBuffer));
 		}
 	}
