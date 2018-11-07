@@ -146,7 +146,7 @@ public:
 			imageCI.arrayLayers = multiviewLayerCount;
 			imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+			imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 			imageCI.flags = 0;
 			VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &multiviewPass.depth.image));
 
@@ -250,7 +250,7 @@ public:
 			attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachments[0].finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			// Depth attachment
 			attachments[1].format = depthFormat;
 			attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -602,6 +602,7 @@ public:
 			VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 			pipelineCI.pVertexInputState = &emptyInputState;
 			pipelineCI.layout = pipelineLayout;
+			pipelineCI.renderPass = renderPass;
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &viewDisplayPipelines[i]));
 		}
 
