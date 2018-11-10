@@ -231,7 +231,7 @@ public:
 		descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());
 		descriptorPoolCI.pPoolSizes = descriptorPoolSizes.data();
 		// Max. number of descriptor sets that can be allocted from this pool (one per object)
-		descriptorPoolCI.maxSets = static_cast<uint32_t>(descriptorPoolSizes.size());
+		descriptorPoolCI.maxSets = static_cast<uint32_t>(cubes.size());
 		
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
 
