@@ -717,8 +717,6 @@ public:
 			VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 			VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
 
-			VkImageMemoryBarrier imageMemoryBarrier = vks::initializers::imageMemoryBarrier();
-
 			// Transition destination image to transfer destination layout
 			vks::tools::insertImageMemoryBarrier(
 				copyCmd,

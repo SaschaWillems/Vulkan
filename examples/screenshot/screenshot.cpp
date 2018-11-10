@@ -283,8 +283,6 @@ public:
 		// Do the actual blit from the swapchain image to our host visible destination image
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		VkImageMemoryBarrier imageMemoryBarrier = vks::initializers::imageMemoryBarrier();
-		
 		// Transition destination image to transfer destination layout
 		vks::tools::insertImageMemoryBarrier(
 			copyCmd,
