@@ -735,7 +735,7 @@ public:
 
 	virtual void viewChanged()
 	{
-		compute.ubo.aspectRatio = (float)width / (float)height;
+		compute.ubo.aspectRatio = (float)viewportWidth / (float)viewportHeight;
 		updateUniformBuffers();
 	}
 };

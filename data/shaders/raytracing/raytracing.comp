@@ -83,7 +83,7 @@ float lightSpecular(vec3 normal, vec3 lightDir, float specularFactor)
 
 float sphereIntersect(in vec3 rayO, in vec3 rayD, in Sphere sphere)
 {
-	vec3 oc = rayO - sphere.pos;
+	vec3 oc = sphere.pos - rayO ;
 	float b = 2.0 * dot(oc, rayD);
 	float c = dot(oc, oc) - sphere.radius*sphere.radius;
 	float h = b*b - 4.0*c;
@@ -91,7 +91,7 @@ float sphereIntersect(in vec3 rayO, in vec3 rayD, in Sphere sphere)
 	{
 		return -1.0;
 	}
-	float t = (-b - sqrt(h)) / 2.0;
+	float t = (b - sqrt(h)) / 2.0;
 
 	return t;
 }
