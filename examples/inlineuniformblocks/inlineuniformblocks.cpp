@@ -208,7 +208,7 @@ public:
 		{
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 				/*
-					[POI] Setup inline uniform block for set 0 at binding 2 (see vertex shader)
+					[POI] Setup inline uniform block for set 1 at binding 0 (see fragment shader)
 					Descriptor count for an inline uniform block contains data sizes of the block (last parameter)
 				*/
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Object::Material)),
@@ -250,7 +250,7 @@ public:
 		*/
 		VkDescriptorPoolInlineUniformBlockCreateInfoEXT descriptorPoolInlineUniformBlockCreateInfo{};
 		descriptorPoolInlineUniformBlockCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT;
-		descriptorPoolInlineUniformBlockCreateInfo.maxInlineUniformBlockBindings = 1;
+		descriptorPoolInlineUniformBlockCreateInfo.maxInlineUniformBlockBindings = static_cast<uint32_t>(objects.size());
 		descriptorPoolCI.pNext = &descriptorPoolInlineUniformBlockCreateInfo;
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
