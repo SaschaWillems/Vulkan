@@ -25,6 +25,7 @@
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
+#define TINYGLTF_NO_STB_IMAGE_WRITE
 #include "tiny_gltf.h"
 
 #if defined(__ANDROID__)
@@ -812,23 +813,6 @@ namespace vkglTF
 				if (mat.additionalValues.find("alphaCutoff") != mat.additionalValues.end()) {
 					material.alphaCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
 				}
-				// Specular glossiness workflow (extension)
-				if (mat.extPBRValues.size() > 0) {
-					if (mat.extPBRValues.find("specularGlossinessTexture") != mat.extPBRValues.end()) {
-						material.specularGlossinessTexture = &textures[gltfModel.textures[mat.extPBRValues["specularGlossinessTexture"].TextureIndex()].source];
-					}
-					if (mat.extPBRValues.find("diffuseTexture") != mat.extPBRValues.end()) {
-						material.diffuseTexture = &textures[gltfModel.textures[mat.extPBRValues["diffuseTexture"].TextureIndex()].source];
-					}
-					//if (mat.values.find("glossinessFactor") != mat.values.end()) {
-					//	// TODO: Rename or explicit param
-					//	material.roughnessFactor = static_cast<float>(mat.values["glossinessFactor"].Factor());
-					//}
-					//if (mat.values.find("specularFactor") != mat.values.end()) {
-					//	// TODO: Rename or explicit param
-					//	material.metallicFactor = static_cast<float>(mat.values["specularFactor"].Factor());
-					//}
-				}
 
 				materials.push_back(material);
 			}
@@ -950,7 +934,7 @@ namespace vkglTF
 		{
 			tinygltf::Model gltfModel;
 			tinygltf::TinyGLTF gltfContext;
-			std::string error;
+			std::string error, warning;
 
 			this->device = device;
 
@@ -963,10 +947,10 @@ namespace vkglTF
 			AAsset_read(asset, fileData, size);
 			AAsset_close(asset);
 			std::string baseDir;
-			bool fileLoaded = gltfContext.LoadASCIIFromString(&gltfModel, &error, fileData, size, baseDir);
+			bool fileLoaded = gltfContext.LoadASCIIFromString(&gltfModel, &error, &warning, fileData, size, baseDir);
 			free(fileData);
 #else
-			bool fileLoaded = gltfContext.LoadASCIIFromFile(&gltfModel, &error, filename.c_str());
+			bool fileLoaded = gltfContext.LoadASCIIFromFile(&gltfModel, &error, &warning, filename);
 #endif
 			std::vector<uint32_t> indexBuffer;
 			std::vector<Vertex> vertexBuffer;
@@ -1083,7 +1067,7 @@ namespace vkglTF
 			std::vector<VkDescriptorPoolSize> poolSizes = {
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uboCount),
 			};
-			VkDescriptorPoolCreateInfo descriptorPoolCI = vks::initializers::descriptorPoolCreateInfo(poolSizes.size(), poolSizes.data(), uboCount);
+			VkDescriptorPoolCreateInfo descriptorPoolCI = vks::initializers::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), uboCount);
 			VK_CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &descriptorPoolCI, nullptr, &descriptorPool));
 
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
