@@ -55,9 +55,12 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
 
+	VkCommandPool commandPool;
+
 	// Single command buffer scenario
 	VkFence waitFence;
-	VkCommandPool commandPool;
+	VkSemaphore renderCompleteSemaphore;
+	VkSemaphore presentCompleteSemaphore;
 	VkCommandBuffer commandBuffer;
 
 	/// @todo: Multiple command buffers ("render ahead")
@@ -260,46 +263,6 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 	}
 
-	void draw()
-	{
-		// Acquire the next image from the swap chain
-		{
-			VkResult acquire = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-			if ((acquire == VK_ERROR_OUT_OF_DATE_KHR) || (acquire == VK_SUBOPTIMAL_KHR)) {
-				windowResize();
-			}
-			else {
-				VK_CHECK_RESULT(acquire);
-			}
-		}
-
-		// (Re-)record command buffer
-		if (!paused) {
-			recordCommandBuffer();
-		}
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFence));
-
-		// Present
-		{
-			VkResult present = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-			if (!((present == VK_SUCCESS) || (present == VK_SUBOPTIMAL_KHR))) {
-				if (present == VK_ERROR_OUT_OF_DATE_KHR) {
-					windowResize();
-					return;
-				}
-				else {
-					VK_CHECK_RESULT(present);
-				}
-			}
-		}
-	}
-
 	void loadAssets()
 	{
 		models.scene.loadFromFile(getAssetPath() + "models/samplescene.dae", vertexLayout, 0.35f, vulkanDevice, queue);
@@ -316,6 +279,11 @@ public:
 		// A fence is need to check for command buffer completion before we can recreate it
 		VkFenceCreateInfo fenceCI{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, VK_FENCE_CREATE_SIGNALED_BIT };
 		VK_CHECK_RESULT(vkCreateFence(device, &fenceCI, nullptr, &waitFence));
+
+		// Semaphores are used to order queue submissions
+		VkSemaphoreCreateInfo semaphoreCI { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, nullptr, 0 };
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentCompleteSemaphore));
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &renderCompleteSemaphore));
 
 		// Create a single command pool for the applications main thread
 		VkCommandPoolCreateInfo commandPoolCI{};
@@ -334,6 +302,54 @@ public:
 		setupDescriptors();
 		preparePipelines();
 		prepared = true;
+	}
+
+	void draw()
+	{
+		// Acquire the next image from the swap chain
+		{
+			VkResult acquire = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+			if ((acquire == VK_ERROR_OUT_OF_DATE_KHR) || (acquire == VK_SUBOPTIMAL_KHR)) {
+				windowResize();
+			}
+			else {
+				VK_CHECK_RESULT(acquire);
+			}
+		}
+
+		// (Re-)record command buffer
+		if (!paused) {
+			recordCommandBuffer();
+		}
+
+		// Submit the command buffer to the graphics queue
+		const VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pWaitDstStageMask = &waitStageMask;
+		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &renderCompleteSemaphore;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+		submitInfo.commandBufferCount = 1;
+
+		// Submit to queue
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFence));
+
+		// Present
+		{
+			VkResult present = swapChain.queuePresent(queue, currentBuffer, renderCompleteSemaphore);
+			if (!((present == VK_SUCCESS) || (present == VK_SUBOPTIMAL_KHR))) {
+				if (present == VK_ERROR_OUT_OF_DATE_KHR) {
+					windowResize();
+					return;
+				}
+				else {
+					VK_CHECK_RESULT(present);
+				}
+			}
+		}
 	}
 
 	virtual void render()
