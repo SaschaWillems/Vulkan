@@ -31,24 +31,27 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	enum RenderMode { 
+		SINGLE_CB_RECREATE = 0,
+		MULTIPLE_CB_STATIC = 1,
+	};
+	RenderMode renderMode;
 
-	// Vertex layout for the models
 	vks::VertexLayout vertexLayout = vks::VertexLayout({
 		vks::VERTEX_COMPONENT_POSITION,
 		vks::VERTEX_COMPONENT_NORMAL,
 		vks::VERTEX_COMPONENT_UV,
 		vks::VERTEX_COMPONENT_COLOR,
-		});
+	});
 
 	struct {
 		vks::Model scene;
 	} models;
 
-	struct UBOVS {
+	struct ShaderValues {
 		glm::mat4 projection;
 		glm::mat4 model;
-	} uboVS;
-	vks::Buffer uniformBuffer;
+	} shaderValues;
 
 	VkPipelineLayout pipelineLayout;
 	VkPipeline pipeline;
@@ -62,8 +65,23 @@ public:
 	VkSemaphore renderCompleteSemaphore;
 	VkSemaphore presentCompleteSemaphore;
 	VkCommandBuffer commandBuffer;
+	vks::Buffer uniformBuffer;
 
-	/// @todo: Multiple command buffers ("render ahead")
+	// Multiple command buffers scenario ("render ahead)
+	struct MultiCB {
+		const uint32_t renderAhead = 2;
+		// Synchronization primitives are used to limit render ahead
+		/// @todo: Naming, waitfence -> cbFence?
+		std::vector<VkFence> waitFences;
+		std::vector<VkSemaphore> renderCompleteSemaphores;
+		std::vector<VkSemaphore> presentCompleteSemaphores;
+		// Command buffers and uniform buffers are per swap chain image
+		std::vector<VkCommandBuffer> commandBuffers;
+		std::vector<vks::Buffer> uniformBuffers;
+		std::vector<VkDescriptorSet> descriptorSets;
+		uint32_t frameIndex = 0;
+	} multiCB;
+
 	/// @todo: Only update command buffer(s) if scene changed
 	/// @todo: dynamic scene with frustum culling (maybe terrain + simple trees)
 
@@ -90,13 +108,29 @@ public:
 		uniformBuffer.destroy();
 	}
 
+	void setRenderMode(RenderMode mode)
+	{
+		renderMode = mode;
+		vkDeviceWaitIdle(device);
+		switch (renderMode) {
+		case SINGLE_CB_RECREATE:			
+			std::cout << "Using single command buffer, recreating each frame" << std::endl;
+			break;
+		case MULTIPLE_CB_STATIC:
+			recordCommandBuffers();
+			std::cout << "Using multiple prebuilt static command buffers for each frame" << std::endl;
+			break;
+		}
+		updateUniformBuffers();
+	}
+
 	void setupDescriptors()
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 + static_cast<uint32_t>(swapChain.imageCount)),
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes.size(), poolSizes.data(), 1);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes.size(), poolSizes.data(), 1 + static_cast<uint32_t>(swapChain.imageCount));
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Layouts
@@ -113,10 +147,17 @@ public:
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 
 		// Descriptors
+		// Single CB
 		VkDescriptorSetAllocateInfo descriptorSetAI = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAI, &descriptorSet));
 		VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor);
 		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		// Multiple CB
+		for (auto i = 0; i < multiCB.descriptorSets.size(); i++) {
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAI, &multiCB.descriptorSets[i]));
+			VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(multiCB.descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &multiCB.uniformBuffers[i].descriptor);
+			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
@@ -172,31 +213,112 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		// Vertex shader uniform buffer block
+		/*
+			Single command buffer 
+		*/
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffer,
-			sizeof(uboVS)));
-
-		// Map persistent
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+			&uniformBuffer, 
+			sizeof(ShaderValues)));
 		VK_CHECK_RESULT(uniformBuffer.map());
+
+		/*
+			Multiple command buffers, one ubo per frame
+		*/
+		for (auto i = 0; i < multiCB.uniformBuffers.size(); i++) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&multiCB.uniformBuffers[i],
+				sizeof(ShaderValues)));
+			VK_CHECK_RESULT(multiCB.uniformBuffers[i].map());
+		}
 
 		updateUniformBuffers();
 	}
 
-	void updateUniformBuffers()
+	void loadAssets()
 	{
-		uboVS.projection = camera.matrices.perspective;
-		uboVS.model = camera.matrices.view;
-		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
+		models.scene.loadFromFile(getAssetPath() + "models/samplescene.dae", vertexLayout, 0.35f, vulkanDevice, queue);
 	}
 
+	void prepare()
+	{
+		VulkanExampleBase::prepare();
+
+		// Create a single command pool for the applications main thread
+		VkCommandPoolCreateInfo commandPoolCI{};
+		commandPoolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		/// @todo: Comment flags
+		commandPoolCI.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		commandPoolCI.queueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
+		VK_CHECK_RESULT(vkCreateCommandPool(device, &commandPoolCI, nullptr, &commandPool));
+
+		/*
+		Single command buffer, single thread
+		*/
+
+		// A fence is need to check for command buffer completion before we can recreate it
+		VkFenceCreateInfo fenceCI{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, VK_FENCE_CREATE_SIGNALED_BIT };
+		VK_CHECK_RESULT(vkCreateFence(device, &fenceCI, nullptr, &waitFence));
+
+		// Semaphores are used to order queue submissions
+		VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, nullptr, 0 };
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentCompleteSemaphore));
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &renderCompleteSemaphore));
+
+		// Create a single command buffer that is recorded every frame
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer));
+
+		/*
+		Multiple command buffers, render ahead, single thread
+		*/
+
+		multiCB.waitFences.resize(multiCB.renderAhead);
+		multiCB.presentCompleteSemaphores.resize(multiCB.renderAhead);
+		multiCB.renderCompleteSemaphores.resize(multiCB.renderAhead);
+		multiCB.commandBuffers.resize(swapChain.imageCount);
+		multiCB.uniformBuffers.resize(swapChain.imageCount);
+		multiCB.descriptorSets.resize(swapChain.imageCount);
+		// Command buffer execution fences
+		for (auto &waitFence : multiCB.waitFences) {
+			VkFenceCreateInfo fenceCI{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, VK_FENCE_CREATE_SIGNALED_BIT };
+			VK_CHECK_RESULT(vkCreateFence(device, &fenceCI, nullptr, &waitFence));
+		}
+		// Queue ordering semaphores
+		for (auto &semaphore : multiCB.presentCompleteSemaphores) {
+			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, nullptr, 0 };
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
+		}
+		for (auto &semaphore : multiCB.renderCompleteSemaphores) {
+			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, nullptr, 0 };
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
+		}
+		// Command buffers
+		{
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(multiCB.commandBuffers.size()));
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, multiCB.commandBuffers.data()));
+		}
+
+		loadAssets();
+		prepareUniformBuffers();
+		setupDescriptors();
+		preparePipelines();
+
+		setRenderMode(SINGLE_CB_RECREATE);
+
+		prepared = true;
+	}
+
+	/*
+		Single command buffer always rendering to the current framebuffer
+	*/
 	void recordCommandBuffer()
 	{
 		// A fence is used to wait until this command buffer has finished execution and is no longer in-flight
 		// Command buffers can only be re-recorded or destroyed if they are not in-flight
-
 		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFence, VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFence));
 
@@ -248,7 +370,7 @@ public:
 			pushConstants.data());
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &models.scene.vertices.buffer, offsets);
@@ -256,58 +378,98 @@ public:
 
 		vkCmdDrawIndexed(commandBuffer, models.scene.indexCount, 1, 0, 0, 0);
 
-		//drawUI(commandBuffer);
-
 		vkCmdEndRenderPass(commandBuffer);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 	}
 
-	void loadAssets()
+	/*
+		Multiple command buffers rendering to different framebuffers
+	*/
+	void recordCommandBuffers() 
 	{
-		models.scene.loadFromFile(getAssetPath() + "models/samplescene.dae", vertexLayout, 0.35f, vulkanDevice, queue);
+		VkClearValue clearValues[2];
+		clearValues[0].color = defaultClearColor;
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+
+		VkDeviceSize offsets[1] = { 0 };
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+
+		const float r = 7.5f;
+		const float sin_t = sin(glm::radians(timer * 360));
+		const float cos_t = cos(glm::radians(timer * 360));
+		const float y = 4.0f;
+		pushConstants[0] = glm::vec4(r * 1.1 * sin_t, y, r * 1.1 * cos_t, 1.0f);
+		pushConstants[1] = glm::vec4(-r * sin_t, y, -r * cos_t, 1.0f);
+		pushConstants[2] = glm::vec4(r * 0.85f * sin_t, y, -sin_t * 2.5f, 1.5f);
+		pushConstants[3] = glm::vec4(0.0f, y, r * 1.25f * cos_t, 1.5f);
+		pushConstants[4] = glm::vec4(r * 2.25f * cos_t, y, 0.0f, 1.25f);
+		pushConstants[5] = glm::vec4(r * 2.5f * cos_t, y, r * 2.5f * sin_t, 1.25f);
+
+		for (auto i = 0; i < swapChain.imageCount; i++) {
+			renderPassBeginInfo.framebuffer = frameBuffers[i];
+
+			VkCommandBuffer currentCB = multiCB.commandBuffers[i];
+
+			VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+			VK_CHECK_RESULT(vkBeginCommandBuffer(currentCB, &commandBufferBeginInfo));
+			vkCmdBeginRenderPass(currentCB, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdSetViewport(currentCB, 0, 1, &viewport);
+			vkCmdSetScissor(currentCB, 0, 1, &scissor);
+
+			vkCmdPushConstants(currentCB, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), pushConstants.data());
+			vkCmdBindPipeline(currentCB, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+			vkCmdBindDescriptorSets(currentCB, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &multiCB.descriptorSets[2], 0, nullptr);
+			vkCmdBindVertexBuffers(currentCB, 0, 1, &models.scene.vertices.buffer, offsets);
+			vkCmdBindIndexBuffer(currentCB, models.scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdDrawIndexed(currentCB, models.scene.indexCount, 1, 0, 0, 0);
+
+			vkCmdEndRenderPass(currentCB);
+			VK_CHECK_RESULT(vkEndCommandBuffer(currentCB));
+		}
 	}
 
-	void prepare()
+	void updateUniformBuffers()
 	{
-		VulkanExampleBase::prepare();
-
-		/*
-			Single command buffer, single thread scenario
-		*/
-
-		// A fence is need to check for command buffer completion before we can recreate it
-		VkFenceCreateInfo fenceCI{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, VK_FENCE_CREATE_SIGNALED_BIT };
-		VK_CHECK_RESULT(vkCreateFence(device, &fenceCI, nullptr, &waitFence));
-
-		// Semaphores are used to order queue submissions
-		VkSemaphoreCreateInfo semaphoreCI { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, nullptr, 0 };
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentCompleteSemaphore));
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &renderCompleteSemaphore));
-
-		// Create a single command pool for the applications main thread
-		VkCommandPoolCreateInfo commandPoolCI{};
-		commandPoolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		/// @todo: Comment flags
-		commandPoolCI.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		commandPoolCI.queueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
-		VK_CHECK_RESULT(vkCreateCommandPool(device, &commandPoolCI, nullptr, &commandPool));
-
-		// Create a single command buffer that is recorded every frame
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer));
-
-		loadAssets();
-		prepareUniformBuffers();
-		setupDescriptors();
-		preparePipelines();
-		prepared = true;
+		shaderValues.projection = camera.matrices.perspective;
+		shaderValues.model = camera.matrices.view;
+		switch (renderMode) {
+		case SINGLE_CB_RECREATE:
+			memcpy(uniformBuffer.mapped, &shaderValues, sizeof(ShaderValues));
+			break;
+		case MULTIPLE_CB_STATIC:
+			for (auto &ubo : multiCB.uniformBuffers) {
+				memcpy(ubo.mapped, &shaderValues, sizeof(ShaderValues));
+				break;
+			}
+		}
 	}
 
 	void draw()
 	{
-		// Acquire the next image from the swap chain
+		// Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
+		const VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+		switch (renderMode) {
+
+		/*
+			Render using a single command buffer that's recreated each frame
+		*/
+		case SINGLE_CB_RECREATE:
 		{
+			// Acquire the next image from the swap chain
 			VkResult acquire = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
 			if ((acquire == VK_ERROR_OUT_OF_DATE_KHR) || (acquire == VK_SUBOPTIMAL_KHR)) {
 				windowResize();
@@ -315,30 +477,29 @@ public:
 			else {
 				VK_CHECK_RESULT(acquire);
 			}
-		}
 
-		// (Re-)record command buffer
-		if (!paused) {
-			recordCommandBuffer();
-		}
+			memcpy(uniformBuffer.mapped, &shaderValues, sizeof(ShaderValues));
 
-		// Submit the command buffer to the graphics queue
-		const VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.pWaitDstStageMask = &waitStageMask;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &renderCompleteSemaphore;
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
-		submitInfo.commandBufferCount = 1;
+			// (Re-)record command buffer
+			if (!paused) {
+				recordCommandBuffer();
+			}
 
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFence));
+			// Submit the command buffer to the graphics queue
+			VkSubmitInfo submitInfo{};
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.pWaitDstStageMask = &waitStageMask;
+			submitInfo.pWaitSemaphores = &presentCompleteSemaphore;
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &renderCompleteSemaphore;
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pCommandBuffers = &commandBuffer;
+			submitInfo.commandBufferCount = 1;
 
-		// Present
-		{
+			// Submit to queue
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFence));
+
+			// Present
 			VkResult present = swapChain.queuePresent(queue, currentBuffer, renderCompleteSemaphore);
 			if (!((present == VK_SUCCESS) || (present == VK_SUBOPTIMAL_KHR))) {
 				if (present == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -349,6 +510,60 @@ public:
 					VK_CHECK_RESULT(present);
 				}
 			}
+
+			break;
+		}
+
+		/*
+			Render using multiple command buffers (per frame) with render ahead
+		*/
+		case MULTIPLE_CB_STATIC:
+		{
+			vkWaitForFences(device, 1, &multiCB.waitFences[multiCB.frameIndex], VK_TRUE, UINT64_MAX);
+			vkResetFences(device, 1, &multiCB.waitFences[multiCB.frameIndex]);
+
+			VkResult acquire = swapChain.acquireNextImage(multiCB.presentCompleteSemaphores[multiCB.frameIndex], &currentBuffer);
+			if ((acquire == VK_ERROR_OUT_OF_DATE_KHR) || (acquire == VK_SUBOPTIMAL_KHR)) {
+				windowResize();
+			}
+			else {
+				VK_CHECK_RESULT(acquire);
+			}
+
+			memcpy(multiCB.uniformBuffers[currentBuffer].mapped, &shaderValues, sizeof(ShaderValues));
+
+			// Submit the current command buffer to the graphics queue
+			VkSubmitInfo submitInfo{};
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.pWaitDstStageMask = &waitStageMask;
+			submitInfo.pWaitSemaphores = &multiCB.presentCompleteSemaphores[multiCB.frameIndex];
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &multiCB.renderCompleteSemaphores[multiCB.frameIndex];
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pCommandBuffers = &multiCB.commandBuffers[currentBuffer];
+			submitInfo.commandBufferCount = 1;
+
+			// Submit to queue
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, multiCB.waitFences[multiCB.frameIndex]));
+
+			// Present
+			VkResult present = swapChain.queuePresent(queue, currentBuffer, multiCB.renderCompleteSemaphores[multiCB.frameIndex]);
+			if (!((present == VK_SUCCESS) || (present == VK_SUBOPTIMAL_KHR))) {
+				if (present == VK_ERROR_OUT_OF_DATE_KHR) {
+					windowResize();
+					return;
+				}
+				else {
+					VK_CHECK_RESULT(present);
+				}
+			}
+
+			multiCB.frameIndex += 1;
+			multiCB.frameIndex %= multiCB.renderAhead;
+
+			break;
+		}
+
 		}
 	}
 
@@ -359,9 +574,25 @@ public:
 		}
 		draw();
 		if (camera.updated) {
-			updateUniformBuffers();
+			shaderValues.projection = camera.matrices.perspective;
+			shaderValues.model = camera.matrices.view;
 		}
 	}
+
+#if !defined(__ANDROID__)
+	virtual void keyPressed(uint32_t keyCode)
+	{
+		switch (keyCode)
+		{
+		case 0x31:
+			setRenderMode(SINGLE_CB_RECREATE);
+			break;
+		case 0x32:
+			setRenderMode(MULTIPLE_CB_STATIC);
+			break;
+		}		
+	}
+#endif
 };
 
 VULKAN_EXAMPLE_MAIN()
