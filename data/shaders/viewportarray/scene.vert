@@ -7,11 +7,6 @@ layout (location = 2) in vec3 inColor;
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
-
 void main() 
 {
 	outColor = inColor;

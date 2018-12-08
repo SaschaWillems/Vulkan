@@ -69,6 +69,9 @@ namespace vks
 {
 	namespace tools
 	{
+		/** @brief Disable message boxes on fatal errors */
+		extern bool errorModeSilent;
+
 		/** @brief Returns an error code as a string */
 		std::string errorString(VkResult errorCode);
 
@@ -111,7 +114,8 @@ namespace vks
 			VkImageSubresourceRange subresourceRange);
 
 		// Display error message and exit on fatal error
-		void exitFatal(std::string message, std::string caption);
+		void exitFatal(std::string message, int32_t exitCode);
+		void exitFatal(std::string message, VkResult resultCode);
 
 		// Load a SPIR-V shader (binary) 
 #if defined(__ANDROID__)

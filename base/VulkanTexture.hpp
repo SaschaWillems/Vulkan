@@ -92,7 +92,9 @@ namespace vks
 			// Textures are stored inside the apk on Android (compressed)
 			// So they need to be loaded via the asset manager
 			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
-			assert(asset);
+			if (!asset) {
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+			}
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
 
@@ -105,7 +107,7 @@ namespace vks
 			free(textureData);
 #else
 			if (!vks::tools::fileExists(filename)) {
-				vks::tools::exitFatal("Could not load texture from " + filename, "File not found");
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			}
 			gli::texture2d tex2D(gli::load(filename.c_str()));
 #endif		
@@ -318,7 +320,7 @@ namespace vks
 				// and can be directly used as textures
 				image = mappableImage;
 				deviceMemory = mappableMemory;
-				imageLayout = imageLayout;
+				this->imageLayout = imageLayout;
 
 				// Setup image memory barrier
 				vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
@@ -342,7 +344,7 @@ namespace vks
 			samplerCreateInfo.maxLod = (useStaging) ? (float)mipLevels : 0.0f;
 			// Only enable anisotropic filtering if enabled on the devicec
 			samplerCreateInfo.maxAnisotropy = device->enabledFeatures.samplerAnisotropy ? device->properties.limits.maxSamplerAnisotropy : 1.0f;
-			samplerCreateInfo.anisotropyEnable = VK_TRUE;
+			samplerCreateInfo.anisotropyEnable = device->enabledFeatures.samplerAnisotropy;
 			samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 			VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
@@ -570,7 +572,9 @@ namespace vks
 			// Textures are stored inside the apk on Android (compressed)
 			// So they need to be loaded via the asset manager
 			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
-			assert(asset);
+			if (!asset) {
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+			}
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
 
@@ -583,7 +587,7 @@ namespace vks
 			free(textureData);
 #else
 			if (!vks::tools::fileExists(filename)) {
-				vks::tools::exitFatal("Could not load texture from " + filename, "File not found");
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			}
 			gli::texture2d_array tex2DArray(gli::load(filename));
 #endif	
@@ -727,6 +731,7 @@ namespace vks
 			samplerCreateInfo.addressModeW = samplerCreateInfo.addressModeU;
 			samplerCreateInfo.mipLodBias = 0.0f;
 			samplerCreateInfo.maxAnisotropy = device->enabledFeatures.samplerAnisotropy ? device->properties.limits.maxSamplerAnisotropy : 1.0f;
+			samplerCreateInfo.anisotropyEnable = device->enabledFeatures.samplerAnisotropy;
 			samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
 			samplerCreateInfo.minLod = 0.0f;
 			samplerCreateInfo.maxLod = (float)mipLevels;
@@ -779,7 +784,9 @@ namespace vks
 			// Textures are stored inside the apk on Android (compressed)
 			// So they need to be loaded via the asset manager
 			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
-			assert(asset);
+			if (!asset) {
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+			}
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
 
@@ -792,7 +799,7 @@ namespace vks
 			free(textureData);
 #else
 			if (!vks::tools::fileExists(filename)) {
-				vks::tools::exitFatal("Could not load texture from " + filename, "File not found");
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			}
 			gli::texture_cube texCube(gli::load(filename));
 #endif	
@@ -939,6 +946,7 @@ namespace vks
 			samplerCreateInfo.addressModeW = samplerCreateInfo.addressModeU;
 			samplerCreateInfo.mipLodBias = 0.0f;
 			samplerCreateInfo.maxAnisotropy = device->enabledFeatures.samplerAnisotropy ? device->properties.limits.maxSamplerAnisotropy : 1.0f;
+			samplerCreateInfo.anisotropyEnable = device->enabledFeatures.samplerAnisotropy;
 			samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
 			samplerCreateInfo.minLod = 0.0f;
 			samplerCreateInfo.maxLod = (float)mipLevels;

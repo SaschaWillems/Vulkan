@@ -208,6 +208,7 @@ FakesAssemblies/
 
 # Android validation layer libraries
 android/layers/*/*.so
+android/**/jni/
 
 # Downloadable assets
 vulkan_asset_pack.*
@@ -215,3 +216,14 @@ data/textures/hdr/*.*
 data/readme.txt
 data/models/cerberus/*.*
 !data/textures/hdr/README.md
+
+*.args.json
+
+# Ignore VS project files
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Ignore macOS .DS_Store
+.DS_Store

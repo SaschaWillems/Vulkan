@@ -13,7 +13,8 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#elif defined(__ANDROID__)
+#include <ShellScalingAPI.h>
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 #include <android/native_activity.h>
 #include <android/asset_manager.h>
 #include <android_native_app_glue.h>
@@ -23,7 +24,7 @@
 #include <wayland-client.h>
 #elif defined(_DIRECT2DISPLAY)
 //
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 #include <xcb/xcb.h>
 #endif
 
@@ -37,18 +38,20 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <array>
+#include <numeric>
 
 #include "vulkan/vulkan.h"
 
 #include "keycodes.hpp"
 #include "VulkanTools.h"
 #include "VulkanDebug.h"
+#include "VulkanUIOverlay.h"
 
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
-#include "VulkanTextOverlay.hpp"
 #include "camera.hpp"
+#include "benchmark.hpp"
 
 class VulkanExampleBase
 {
@@ -57,7 +60,7 @@ private:
 	float fpsTimer = 0.0f;
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
-	/** brief Indicates that the view (position, rotation) has changed and */
+	/** brief Indicates that the view (position, rotation) has changed and buffers containing camera matrices need to be updated */
 	bool viewUpdated = false;
 	// Destination dimensions for resizing the window
 	uint32_t destWidth;
@@ -65,6 +68,7 @@ private:
 	bool resizing = false;
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
+	void handleMouseMove(int32_t x, int32_t y);
 protected:
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
@@ -86,7 +90,8 @@ protected:
 	*/
 	VkPhysicalDeviceFeatures enabledFeatures{};
 	/** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
-	std::vector<const char*> enabledExtensions;
+	std::vector<const char*> enabledDeviceExtensions;
+	std::vector<const char*> enabledInstanceExtensions;
 	/** @brief Logical device, application's view of the physical device (GPU) */
 	// todo: getter? should always point to VulkanDevice->device
 	VkDevice device;
@@ -122,18 +127,21 @@ protected:
 		VkSemaphore presentComplete;
 		// Command buffer submission and execution
 		VkSemaphore renderComplete;
-		// Text overlay submission and execution
-		VkSemaphore textOverlayComplete;
 	} semaphores;
+	std::vector<VkFence> waitFences;
 public: 
 	bool prepared = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
 
+	vks::UIOverlay UIOverlay;
+
 	/** @brief Last frame time measured using a high performance timer (if available) */
 	float frameTimer = 1.0f;
 	/** @brief Returns os specific base asset path (for shaders, models, textures) */
 	const std::string getAssetPath();
+
+	vks::Benchmark benchmark;
 
 	/** @brief Encapsulated physical and logical vulkan device */
 	vks::VulkanDevice *vulkanDevice;
@@ -146,6 +154,8 @@ public:
 		bool fullscreen = false;
 		/** @brief Set to true if v-sync will be forced for the swapchain */
 		bool vsync = false;
+		/** @brief Enable UI overlay */
+		bool overlay = false;
 	} settings;
 
 	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
@@ -162,9 +172,6 @@ public:
 	
 	bool paused = false;
 
-	bool enableTextOverlay = false;
-	VulkanTextOverlay *textOverlay;
-
 	// Use to adjust mouse rotation speed
 	float rotationSpeed = 1.0f;
 	// Use to adjust mouse zoom speed
@@ -178,6 +185,7 @@ public:
 
 	std::string title = "Vulkan Example";
 	std::string name = "vulkanExample";
+	uint32_t apiVersion = VK_API_VERSION_1_0;
 
 	struct 
 	{
@@ -186,18 +194,22 @@ public:
 		VkImageView view;
 	} depthStencil;
 
-	// Gamepad state (only one pad supported)
-	struct
-	{
+	struct {
 		glm::vec2 axisLeft = glm::vec2(0.0f);
 		glm::vec2 axisRight = glm::vec2(0.0f);
 	} gamePadState;
+
+	struct {
+		bool left = false;
+		bool right = false;
+		bool middle = false;
+	} mouseButtons;
 
 	// OS specific 
 #if defined(_WIN32)
 	HWND window;
 	HINSTANCE windowInstance;
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// true if application has focused, false if moved to background
 	bool focused = false;
 	struct TouchPos {
@@ -210,7 +222,7 @@ public:
 	/** @brief Product model and manufacturer of the Android device (via android.Product*) */
 	std::string androidProduct;
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    void* view;
+	void* view;
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;
@@ -222,19 +234,10 @@ public:
 	wl_surface *surface = nullptr;
 	wl_shell_surface *shell_surface = nullptr;
 	bool quit = false;
-	struct {
-		bool left = false;
-		bool right = false;
-		bool middle = false;
-	} mouseButtons;
+
 #elif defined(_DIRECT2DISPLAY)
 	bool quit = false;
-#elif defined(__linux__)
-	struct {
-		bool left = false;
-		bool right = false;
-		bool middle = false;
-	} mouseButtons;
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 	bool quit = false;
 	xcb_connection_t *connection;
 	xcb_screen_t *screen;
@@ -249,17 +252,18 @@ public:
 	virtual ~VulkanExampleBase();
 
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
-	void initVulkan();
+	bool initVulkan();
 
 #if defined(_WIN32)
 	void setupConsole(std::string title);
+	void setupDPIAwareness();
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
 	void handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
 	static void handleAppCommand(android_app* app, int32_t cmd);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    void* setupWindow(void* view);
+	void* setupWindow(void* view);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_shell_surface *setupWindow();
 	void initWaylandConnection();
@@ -304,7 +308,7 @@ public:
 
 #elif defined(_DIRECT2DISPLAY)
 //
-#elif defined(__linux__)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_window_t setupWindow();
 	void initxcbConnection();
 	void handleEvent(const xcb_generic_event_t *event);
@@ -322,9 +326,10 @@ public:
 	// Can be overriden in derived class to e.g. update uniform buffers 
 	// Containing view dependant matrices
 	virtual void viewChanged();
-	// Called if a key is pressed
 	/** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */
 	virtual void keyPressed(uint32_t);
+	/** @brief (Virtual) Called after th mouse cursor moved and before internal events (like camera rotation) is handled */
+	virtual void mouseMoved(double x, double y, bool &handled);
 	// Called when the window has been resized
 	// Can be overriden in derived class to recreate or rebuild resources attached to the frame buffer / swapchain
 	virtual void windowResized();
@@ -332,6 +337,8 @@ public:
 	// Called in case of an event where e.g. the framebuffer has to be rebuild and thus
 	// all command buffers that may reference this
 	virtual void buildCommandBuffers();
+
+	void createSynchronizationPrimitives();
 
 	// Creates a new (graphics) command pool object storing command buffers
 	void createCommandPool();
@@ -379,13 +386,11 @@ public:
 	// Start the main render loop
 	void renderLoop();
 
-    // Render one frame of a render loop on platforms that sync rendering
-    void renderFrame();
+	// Render one frame of a render loop on platforms that sync rendering
+	void renderFrame();
 
-	void updateTextOverlay();
-
-	/** @brief (Virtual) Called when the text overlay is updating, can be used to add custom text to the overlay */
-	virtual void getOverlayText(VulkanTextOverlay*);
+	void updateOverlay();
+	void drawUI(const VkCommandBuffer commandBuffer);
 
 	// Prepare the frame for workload submission
 	// - Acquires the next image from the swap chain 
@@ -393,9 +398,10 @@ public:
 	void prepareFrame();
 
 	// Submit the frames' workload 
-	// - Submits the text overlay (if enabled)
 	void submitFrame();
 
+	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
+	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);
 };
 
 // OS specific macros for the example main entry points
@@ -417,20 +423,17 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)									\
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->initVulkan();																	\
 	vulkanExample->setupWindow(hInstance, WndProc);													\
-	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\
 	return 0;																						\
 }																									
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 // Android entry point
-// A note on app_dummy(): This is required as the compiler may otherwise remove the main entry point of the application
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 void android_main(android_app* state)																\
 {																									\
-	app_dummy();																					\
 	vulkanExample = new VulkanExample();															\
 	state->userData = vulkanExample;																\
 	state->onAppCmd = VulkanExample::handleAppCommand;												\
@@ -452,7 +455,6 @@ int main(const int argc, const char *argv[])													    \
 	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };  				\
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->initVulkan();																	\
-	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\
@@ -467,14 +469,12 @@ int main(const int argc, const char *argv[])													    \
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->initVulkan();																	\
 	vulkanExample->setupWindow();					 												\
-	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\
 	return 0;																						\
 }
-#elif defined(__linux__)
-// Linux entry point
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 static void handleEvent(const xcb_generic_event_t *event)											\
@@ -490,7 +490,6 @@ int main(const int argc, const char *argv[])													    \
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->initVulkan();																	\
 	vulkanExample->setupWindow();					 												\
-	vulkanExample->initSwapchain();																	\
 	vulkanExample->prepare();																		\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\

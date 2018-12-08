@@ -184,6 +184,10 @@ namespace vks
 			free(meshData);
 #else
 			pScene = Importer.ReadFile(filename.c_str(), flags);
+			if (!pScene) {
+				std::string error = Importer.GetErrorString();
+				vks::tools::exitFatal(error + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+			}
 #endif
 
 			if (pScene)
@@ -314,7 +318,7 @@ namespace vks
 				// Vertex buffer
 				VK_CHECK_RESULT(device->createBuffer(
 					VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 					&vertexStaging,
 					vBufferSize,
 					vertexBuffer.data()));
@@ -322,7 +326,7 @@ namespace vks
 				// Index buffer
 				VK_CHECK_RESULT(device->createBuffer(
 					VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 					&indexStaging,
 					iBufferSize,
 					indexBuffer.data()));

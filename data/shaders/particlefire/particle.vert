@@ -1,8 +1,5 @@
 #version 450
 
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
-
 layout (location = 0) in vec4 inPos;
 layout (location = 1) in vec4 inColor;
 layout (location = 2) in float inAlpha;
@@ -44,6 +41,5 @@ void main ()
 	// Scale particle size depending on camera projection
 	vec4 eyePos = ubo.modelview * vec4(inPos.xyz, 1.0);
 	vec4 projectedCorner = ubo.projection * vec4(0.5 * spriteSize, 0.5 * spriteSize, eyePos.z, eyePos.w);
-	gl_PointSize = ubo.viewportDim.x * projectedCorner.x / projectedCorner.w;
-	
+	gl_PointSize = ubo.viewportDim.x * projectedCorner.x / projectedCorner.w;	
 }

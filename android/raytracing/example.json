@@ -1,7 +1,0 @@
-{
-  "apkname": "vulkanRaytracing",
-  "directories": {
-    "shaders": "raytracing"
-  },
-  "assets": {}
-}

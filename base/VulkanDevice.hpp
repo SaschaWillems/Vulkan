@@ -141,14 +141,6 @@ namespace vks
 				typeBits >>= 1;
 			}
 
-#if defined(__ANDROID__)
-			//todo : Exceptions are disabled by default on Android (need to add LOCAL_CPP_FEATURES += exceptions to Android.mk), so for now just return zero
-			if (memTypeFound)
-			{
-				*memTypeFound = false;
-			}
-			return 0;
-#else
 			if (memTypeFound)
 			{
 				*memTypeFound = false;
@@ -158,7 +150,6 @@ namespace vks
 			{
 				throw std::runtime_error("Could not find a matching memory type");
 			}
-#endif
 		}
 
 		/**
@@ -210,12 +201,7 @@ namespace vks
 				}
 			}
 
-#if defined(__ANDROID__)
-			//todo : Exceptions are disabled by default on Android (need to add LOCAL_CPP_FEATURES += exceptions to Android.mk), so for now just return zero
-			return 0;
-#else
 			throw std::runtime_error("Could not find a matching queue family index");
-#endif
 		}
 
 		/**
@@ -428,6 +414,9 @@ namespace vks
 			{
 				VK_CHECK_RESULT(buffer->map());
 				memcpy(buffer->mapped, data, size);
+				if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+					buffer->flush();
+
 				buffer->unmap();
 			}
 
@@ -451,7 +440,7 @@ namespace vks
 		void copyBuffer(vks::Buffer *src, vks::Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr)
 		{
 			assert(dst->size <= src->size);
-			assert(src->buffer && src->buffer);
+			assert(src->buffer);
 			VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 			VkBufferCopy bufferCopy{};
 			if (copyRegion == nullptr)

@@ -11,10 +11,13 @@ include_directories(external/glm)
 include_directories(external/gli)
 include_directories(external/assimp)
 include_directories(external/imgui)
+include_directories(external/tinygltf)
 include_directories(base)
 
 OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
 OPTION(USE_WAYLAND_WSI "Build the project using Wayland swapchain" OFF)
+
+set(RESOURCE_INSTALL_DIR "" CACHE PATH "Path to install resources to (leave empty for running uninstalled)")
 
 # Use FindVulkan module added with CMAKE 3.7
 if (NOT CMAKE_VERSION VERSION_LESS 3.7.0)
@@ -73,21 +76,16 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch-enum")
 endif()
 
-# Debug flags
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
-if(CMAKE_COMPILER_IS_GNUCXX)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wextra -Wundef")
-endif(CMAKE_COMPILER_IS_GNUCXX)
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 add_definitions(-std=c++11)
 
-file(GLOB SOURCE *.cpp base/*.cpp)
+file(GLOB SOURCE *.cpp )
 
 # Function for building single example
 function(buildExample EXAMPLE_NAME)
 	# Main
-	file(GLOB SOURCE *.cpp base/*.cpp ${EXAMPLE_NAME}/*.cpp)
+	file(GLOB SOURCE *.cpp ${BASE_HEADERS} ${EXAMPLE_NAME}/*.cpp)
 	SET(MAIN_CPP ${EXAMPLE_NAME}/${EXAMPLE_NAME}.cpp)
 	if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${EXAMPLE_NAME}/main.cpp)
 		SET(MAIN_CPP ${EXAMPLE_NAME}/main.cpp)
@@ -101,13 +99,17 @@ function(buildExample EXAMPLE_NAME)
 	set(SHADER_DIR data/shaders/${EXAMPLE_NAME})
 	file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.geom" "${SHADER_DIR}/*.tesc" "${SHADER_DIR}/*.tese")
 	source_group("Shaders" FILES ${SHADERS})
-	if(WIN32)	
+	if(WIN32)
 		add_executable(${EXAMPLE_NAME} WIN32 ${MAIN_CPP} ${SOURCE} ${SHADERS})
-		target_link_libraries(${EXAMPLE_NAME} ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WINLIBS})
+		target_link_libraries(${EXAMPLE_NAME} base ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WINLIBS})
 	else(WIN32)
 		add_executable(${EXAMPLE_NAME} ${MAIN_CPP} ${SOURCE} ${SHADERS})
-		target_link_libraries(${EXAMPLE_NAME} ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+		target_link_libraries(${EXAMPLE_NAME} base )
 	endif(WIN32)
+
+	if(RESOURCE_INSTALL_DIR)
+		install(TARGETS ${EXAMPLE_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
+	endif()
 endfunction(buildExample)
 
 # Build all examples
@@ -117,6 +119,13 @@ function(buildExamples)
 	endforeach(EXAMPLE)
 endfunction(buildExamples)
 
+if(RESOURCE_INSTALL_DIR)
+	add_definitions(-DVK_EXAMPLE_DATA_DIR=\"${RESOURCE_INSTALL_DIR}/\")
+	install(DIRECTORY data/ DESTINATION ${RESOURCE_INSTALL_DIR}/)
+else()
+	add_definitions(-DVK_EXAMPLE_DATA_DIR=\"${CMAKE_SOURCE_DIR}/data/\")
+endif()
+
 # Compiler specific stuff
 IF(MSVC)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
@@ -125,65 +134,10 @@ ENDIF(MSVC)
 IF(WIN32)
 	# Nothing here (yet)
 ELSE(WIN32)
-	link_libraries(${XCB_LIBRARIES} ${Vulkan_LIBRARY})
+	link_libraries(${XCB_LIBRARIES} ${Vulkan_LIBRARY} ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 ENDIF(WIN32)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 
-set(EXAMPLES 
-	bloom
-	computecullandlod
-	computenbody
-	computeparticles
-	computeshader
-	debugmarker
-	deferred
-	deferredmultisampling
-	deferredshadows
-	displacement
-	distancefieldfonts
-	dynamicuniformbuffer
-	gears
-	geometryshader
-	hdr
-	imgui
-	indirectdraw	
-	instancing
-	mesh
-	multisampling
-	multithreading
-	occlusionquery
-	offscreen
-	parallaxmapping
-	particlefire
-	pbrbasic
-	pbribl
-	pbrtexture
-	pipelines
-	pushconstants
-	radialblur
-	raytracing
-	scenerendering
-	screenshot
-	shadowmapping
-	shadowmappingomni
-	skeletalanimation
-	specializationconstants
-	sphericalenvmapping
-	ssao
-	subpasses
-	terraintessellation
-	tessellation
-	textoverlay
-	texture
-	texture3d
-	texturearray
-	texturecubemap
-	texturemipmapgen
-	texturesparseresidency
-	triangle
-	viewportarray
-	vulkanscene
-)
-
-buildExamples()
+add_subdirectory(base)
+add_subdirectory(examples)

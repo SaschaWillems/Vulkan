@@ -3,7 +3,7 @@
 * 
 * A swap chain is a collection of framebuffers used for rendering and presentation to the windowing system
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -12,16 +12,9 @@
 
 #include <stdlib.h>
 #include <string>
-#include <fstream>
 #include <assert.h>
 #include <stdio.h>
 #include <vector>
-#ifdef _WIN32
-#include <windows.h>
-#include <fcntl.h>
-#include <io.h>
-#else
-#endif
 
 #include <vulkan/vulkan.h>
 #include "VulkanTools.h"
@@ -80,106 +73,70 @@ public:
 	uint32_t imageCount;
 	std::vector<VkImage> images;
 	std::vector<SwapChainBuffer> buffers;
-	// Index of the deteced graphics and presenting device queue
 	/** @brief Queue family index of the detected graphics and presenting device queue */
 	uint32_t queueNodeIndex = UINT32_MAX;
 
-	// Creates an os specific surface
-	/**
-	* Create the surface object, an abstraction for the native platform window
-	*
-	* @pre Windows
-	* @param platformHandle HINSTANCE of the window to create the surface for
-	* @param platformWindow HWND of the window to create the surface for
-	*
-	* @pre Android 
-	* @param window A native platform window
-	*
-	* @pre Linux (XCB)
-	* @param connection xcb connection to the X Server
-	* @param window The xcb window to create the surface for
-	* @note Targets other than XCB ar not yet supported
-	*/
-	void initSurface(
-#ifdef _WIN32
-		void* platformHandle, void* platformWindow
-#else
-#ifdef __ANDROID__
-		ANativeWindow* window
-#else
-#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    void* view
-#else
-#ifdef _DIRECT2DISPLAY
-	uint32_t width, uint32_t height
-#else
-#ifdef VK_USE_PLATFORM_WAYLAND_KHR
-	wl_display *display, wl_surface *window
-#else
-	xcb_connection_t* connection, xcb_window_t window
+	/** @brief Creates the platform specific surface abstraction of the native platform window used for presentation */	
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+	void initSurface(void* platformHandle, void* platformWindow)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+	void initSurface(ANativeWindow* window)
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+	void initSurface(wl_display *display, wl_surface *window)
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+	void initSurface(xcb_connection_t* connection, xcb_window_t window)
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+	void initSurface(void* view)
+#elif defined(_DIRECT2DISPLAY)
+	void initSurface(uint32_t width, uint32_t height)
 #endif
-#endif
-#endif
-#endif
-#endif
-	)
 	{
 		VkResult err = VK_SUCCESS;
 
 		// Create the os-specific surface
-#ifdef _WIN32
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle;
 		surfaceCreateInfo.hwnd = (HWND)platformWindow;
 		err = vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#else
-#ifdef __ANDROID__
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.window = window;
 		err = vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
-#else
-#ifdef VK_USE_PLATFORM_IOS_MVK
-        VkIOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
-        surfaceCreateInfo.pNext = NULL;
-        surfaceCreateInfo.flags = 0;
-        surfaceCreateInfo.pView = view;
-        err = vkCreateIOSSurfaceMVK(instance, &surfaceCreateInfo, nullptr, &surface);
-#else
-#ifdef VK_USE_PLATFORM_MACOS_MVK
-        VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-        surfaceCreateInfo.pNext = NULL;
-        surfaceCreateInfo.flags = 0;
-        surfaceCreateInfo.pView = view;
-        err = vkCreateMacOSSurfaceMVK(instance, &surfaceCreateInfo, NULL, &surface);
-#else
-#if defined(_DIRECT2DISPLAY)
+#elif defined(VK_USE_PLATFORM_IOS_MVK)
+		VkIOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
+		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
+		surfaceCreateInfo.pNext = NULL;
+		surfaceCreateInfo.flags = 0;
+		surfaceCreateInfo.pView = view;
+		err = vkCreateIOSSurfaceMVK(instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+		VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
+		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
+		surfaceCreateInfo.pNext = NULL;
+		surfaceCreateInfo.flags = 0;
+		surfaceCreateInfo.pView = view;
+		err = vkCreateMacOSSurfaceMVK(instance, &surfaceCreateInfo, NULL, &surface);
+#elif defined(_DIRECT2DISPLAY)
 		createDirect2DisplaySurface(width, height);
-#else
-#ifdef VK_USE_PLATFORM_WAYLAND_KHR
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 		VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.display = display;
 		surfaceCreateInfo.surface = window;
 		err = vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#else
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
 		VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
 		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
 		surfaceCreateInfo.connection = connection;
 		surfaceCreateInfo.window = window;
 		err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 #endif
-#endif
-#endif
-#endif
-#endif
-#endif
 
 		if (err != VK_SUCCESS) {
-			vks::tools::exitFatal("Could not create surface!", "Fatal error");
+			vks::tools::exitFatal("Could not create surface!", err);
 		}
 
 		// Get available queue family properties
@@ -237,13 +194,13 @@ public:
 		// Exit if either a graphics or a presenting queue hasn't been found
 		if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX) 
 		{
-			vks::tools::exitFatal("Could not find a graphics and/or presenting queue!", "Fatal error");
+			vks::tools::exitFatal("Could not find a graphics and/or presenting queue!", -1);
 		}
 
 		// todo : Add support for separate graphics and presenting queue
 		if (graphicsQueueNodeIndex != presentQueueNodeIndex) 
 		{
-			vks::tools::exitFatal("Separate graphics and presenting queues are not supported yet!", "Fatal error");
+			vks::tools::exitFatal("Separate graphics and presenting queues are not supported yet!", -1);
 		}
 
 		queueNodeIndex = graphicsQueueNodeIndex;
@@ -434,11 +391,14 @@ public:
 		swapchainCI.clipped = VK_TRUE;
 		swapchainCI.compositeAlpha = compositeAlpha;
 
-		// Set additional usage flag for blitting from the swapchain images if supported
-		VkFormatProperties formatProps;
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, colorFormat, &formatProps);
-		if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) {
+		// Enable transfer source on swap chain images if supported
+		if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
 			swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		}
+
+		// Enable transfer destination on swap chain images if supported
+		if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+			swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
 
 		VK_CHECK_RESULT(fpCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain));
@@ -578,8 +538,8 @@ public:
 		VkDisplayModePropertiesKHR* pModeProperties;
 		bool foundMode = false;
 
-	   	for(uint32_t i = 0; i < displayPropertyCount;++i)
-	   	{
+		for(uint32_t i = 0; i < displayPropertyCount;++i)
+		{
 			display = pDisplayProperties[i].display;
 			uint32_t modeCount;
 			vkGetDisplayModePropertiesKHR(physicalDevice, display, &modeCount, NULL);
@@ -606,7 +566,7 @@ public:
 
 		if(!foundMode)
 		{
-			vks::tools::exitFatal("Can't find a display and a display mode!", "Fatal error");
+			vks::tools::exitFatal("Can't find a display and a display mode!", -1);
 			return;
 		}
 
@@ -643,13 +603,13 @@ public:
 
 		if(bestPlaneIndex == UINT32_MAX)
 		{
-			vks::tools::exitFatal("Can't find a plane for displaying!", "Fatal error");
+			vks::tools::exitFatal("Can't find a plane for displaying!", -1);
 			return;
 		}
 
 		VkDisplayPlaneCapabilitiesKHR planeCap;
 		vkGetDisplayPlaneCapabilitiesKHR(physicalDevice, displayMode, bestPlaneIndex, &planeCap);
-		VkDisplayPlaneAlphaFlagBitsKHR alphaMode;
+		VkDisplayPlaneAlphaFlagBitsKHR alphaMode = (VkDisplayPlaneAlphaFlagBitsKHR)0;
 
 		if (planeCap.supportedAlpha & VK_DISPLAY_PLANE_ALPHA_PER_PIXEL_PREMULTIPLIED_BIT_KHR)
 		{
@@ -657,12 +617,15 @@ public:
 		}
 		else if (planeCap.supportedAlpha & VK_DISPLAY_PLANE_ALPHA_PER_PIXEL_BIT_KHR)
 		{
-
 			alphaMode = VK_DISPLAY_PLANE_ALPHA_PER_PIXEL_BIT_KHR;
 		}
-		else
+		else if (planeCap.supportedAlpha & VK_DISPLAY_PLANE_ALPHA_GLOBAL_BIT_KHR)
 		{
 			alphaMode = VK_DISPLAY_PLANE_ALPHA_GLOBAL_BIT_KHR;
+		}
+		else if (planeCap.supportedAlpha & VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR)
+		{
+			alphaMode = VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR;
 		}
 
 		VkDisplaySurfaceCreateInfoKHR surfaceInfo{};
@@ -679,9 +642,8 @@ public:
 		surfaceInfo.imageExtent.height = height;
 
 		VkResult result = vkCreateDisplayPlaneSurfaceKHR(instance, &surfaceInfo, NULL, &surface);
-		if(result !=VK_SUCCESS)
-		{
-			vks::tools::exitFatal("Failed to create surface!", "Fatal error");
+		if (result !=VK_SUCCESS) {
+			vks::tools::exitFatal("Failed to create surface!", result);
 		}
 
 		delete[] pDisplays;
