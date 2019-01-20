@@ -13,6 +13,10 @@ function(buildExample EXAMPLE_NAME)
 		file(GLOB ADD_SOURCE "../external/imgui/*.cpp")
 		SET(SOURCE ${SOURCE} ${ADD_SOURCE})
 	ENDIF()
+	# wayland requires additional source files
+	IF(USE_WAYLAND_WSI)
+		SET(SOURCE ${SOURCE} ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h ${CMAKE_BINARY_DIR}/xdg-shell-protocol.c)
+	ENDIF()
 	# Add shaders
 	set(SHADER_DIR "../data/shaders/${EXAMPLE_NAME}")
 	file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.comp" "${SHADER_DIR}/*.geom" "${SHADER_DIR}/*.tesc" "${SHADER_DIR}/*.tese")

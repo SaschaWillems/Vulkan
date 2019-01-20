@@ -456,6 +456,8 @@ void VulkanExampleBase::renderLoop()
 			viewChanged();
 		}
 
+		while (!configured)
+			wl_display_dispatch(display);
 		while (wl_display_prepare_read(display) != 0)
 			wl_display_dispatch_pending(display);
 		wl_display_flush(display);
@@ -487,7 +489,7 @@ void VulkanExampleBase::renderLoop()
 			if (!settings.overlay)
 			{
 				std::string windowTitle = getWindowTitle();
-				wl_shell_surface_set_title(shell_surface, windowTitle.c_str());
+				xdg_toplevel_set_title(xdg_toplevel, windowTitle.c_str());
 			}
 			lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
 			fpsTimer = 0.0f;
@@ -800,14 +802,15 @@ VulkanExampleBase::~VulkanExampleBase()
 #if defined(_DIRECT2DISPLAY)
 
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-	wl_shell_surface_destroy(shell_surface);
+	xdg_toplevel_destroy(xdg_toplevel);
+	xdg_surface_destroy(xdg_surface);
 	wl_surface_destroy(surface);
 	if (keyboard)
 		wl_keyboard_destroy(keyboard);
 	if (pointer)
 		wl_pointer_destroy(pointer);
 	wl_seat_destroy(seat);
-	wl_shell_destroy(shell);
+	xdg_wm_base_destroy(shell);
 	wl_compositor_destroy(compositor);
 	wl_registry_destroy(registry);
 	wl_display_disconnect(display);
@@ -1631,6 +1634,15 @@ void VulkanExampleBase::seatCapabilities(wl_seat *seat, uint32_t caps)
 	}
 }
 
+static void xdg_wm_base_ping(void *data, struct xdg_wm_base *shell, uint32_t serial)
+{
+	xdg_wm_base_pong(shell, serial);
+}
+
+static const struct xdg_wm_base_listener xdg_wm_base_listener = {
+	xdg_wm_base_ping,
+};
+
 void VulkanExampleBase::registryGlobal(wl_registry *registry, uint32_t name,
 		const char *interface, uint32_t version)
 {
@@ -1639,10 +1651,11 @@ void VulkanExampleBase::registryGlobal(wl_registry *registry, uint32_t name,
 		compositor = (wl_compositor *) wl_registry_bind(registry, name,
 				&wl_compositor_interface, 3);
 	}
-	else if (strcmp(interface, "wl_shell") == 0)
+	else if (strcmp(interface, "xdg_wm_base") == 0)
 	{
-		shell = (wl_shell *) wl_registry_bind(registry, name,
-				&wl_shell_interface, 1);
+		shell = (xdg_wm_base *) wl_registry_bind(registry, name,
+				&xdg_wm_base_interface, 1);
+		xdg_wm_base_add_listener(shell, &xdg_wm_base_listener, nullptr);
 	}
 	else if (strcmp(interface, "wl_seat") == 0)
 	{
@@ -1691,34 +1704,70 @@ void VulkanExampleBase::initWaylandConnection()
 	}
 }
 
-static void PingCb(void *data, struct wl_shell_surface *shell_surface,
-		uint32_t serial)
+void VulkanExampleBase::setSize(int width, int height)
 {
-	wl_shell_surface_pong(shell_surface, serial);
+	if (width <= 0 || height <= 0)
+		return;
+
+	destWidth = width;
+	destHeight = height;
+
+	windowResize();
 }
 
-static void ConfigureCb(void *data, struct wl_shell_surface *shell_surface,
-		uint32_t edges, int32_t width, int32_t height)
+static void
+xdg_surface_handle_configure(void *data, struct xdg_surface *surface,
+			     uint32_t serial)
 {
+	VulkanExampleBase *base = (VulkanExampleBase *) data;
+
+	xdg_surface_ack_configure(surface, serial);
+	base->configured = true;
 }
 
-static void PopupDoneCb(void *data, struct wl_shell_surface *shell_surface)
+static const struct xdg_surface_listener xdg_surface_listener = {
+	xdg_surface_handle_configure,
+};
+
+
+static void
+xdg_toplevel_handle_configure(void *data, struct xdg_toplevel *toplevel,
+			      int32_t width, int32_t height,
+			      struct wl_array *states)
 {
+	VulkanExampleBase *base = (VulkanExampleBase *) data;
+
+	base->setSize(width, height);
 }
 
-wl_shell_surface *VulkanExampleBase::setupWindow()
+static void
+xdg_toplevel_handle_close(void *data, struct xdg_toplevel *xdg_toplevel)
+{
+	VulkanExampleBase *base = (VulkanExampleBase *) data;
+
+	base->quit = true;
+}
+
+
+static const struct xdg_toplevel_listener xdg_toplevel_listener = {
+	xdg_toplevel_handle_configure,
+	xdg_toplevel_handle_close,
+};
+
+
+struct xdg_surface *VulkanExampleBase::setupWindow()
 {
 	surface = wl_compositor_create_surface(compositor);
-	shell_surface = wl_shell_get_shell_surface(shell, surface);
+	xdg_surface = xdg_wm_base_get_xdg_surface(shell, surface);
 
-	static const struct wl_shell_surface_listener shell_surface_listener =
-	{ PingCb, ConfigureCb, PopupDoneCb };
+	xdg_surface_add_listener(xdg_surface, &xdg_surface_listener, this);
+	xdg_toplevel = xdg_surface_get_toplevel(xdg_surface);
+	xdg_toplevel_add_listener(xdg_toplevel, &xdg_toplevel_listener, this);
 
-	wl_shell_surface_add_listener(shell_surface, &shell_surface_listener, this);
-	wl_shell_surface_set_toplevel(shell_surface);
 	std::string windowTitle = getWindowTitle();
-	wl_shell_surface_set_title(shell_surface, windowTitle.c_str());
-	return shell_surface;
+	xdg_toplevel_set_title(xdg_toplevel, windowTitle.c_str());
+	wl_surface_commit(surface);
+	return xdg_surface;
 }
 
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
