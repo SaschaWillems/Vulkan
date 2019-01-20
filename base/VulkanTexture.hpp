@@ -386,8 +386,8 @@ namespace vks
 			void* buffer,
 			VkDeviceSize bufferSize,
 			VkFormat format,
-			uint32_t width,
-			uint32_t height,
+			uint32_t texWidth,
+			uint32_t texHeight,
 			vks::VulkanDevice *device,
 			VkQueue copyQueue,
 			VkFilter filter = VK_FILTER_LINEAR,
@@ -397,8 +397,8 @@ namespace vks
 			assert(buffer);
 
 			this->device = device;
-			width = width;
-			height = height;
+			width = texWidth;
+			height = texHeight;
 			mipLevels = 1;
 
 			VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
