@@ -94,7 +94,7 @@ endif()
 
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-set(CXXFLAGS -std=c++11)
+add_definitions(-std=c++11)
 
 file(GLOB SOURCE *.cpp )
 
