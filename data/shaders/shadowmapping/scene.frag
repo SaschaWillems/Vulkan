@@ -14,10 +14,9 @@ layout (location = 0) out vec4 outFragColor;
 
 #define ambient 0.1
 
-float textureProj(vec4 P, vec2 off)
+float textureProj(vec4 shadowCoord, vec2 off)
 {
 	float shadow = 1.0;
-	vec4 shadowCoord = P / P.w;
 	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) 
 	{
 		float dist = texture( shadowMap, shadowCoord.st + off ).r;

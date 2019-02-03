@@ -22,6 +22,7 @@
 #include "VulkanAndroid.h"
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <wayland-client.h>
+#include "xdg-shell-client-protocol.h"
 #elif defined(_DIRECT2DISPLAY)
 //
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
@@ -227,13 +228,15 @@ public:
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;
 	wl_compositor *compositor = nullptr;
-	wl_shell *shell = nullptr;
+	struct xdg_wm_base *shell = nullptr;
 	wl_seat *seat = nullptr;
 	wl_pointer *pointer = nullptr;
 	wl_keyboard *keyboard = nullptr;
 	wl_surface *surface = nullptr;
-	wl_shell_surface *shell_surface = nullptr;
+	struct xdg_surface *xdg_surface;
+	struct xdg_toplevel *xdg_toplevel;
 	bool quit = false;
+	bool configured = false;
 
 #elif defined(_DIRECT2DISPLAY)
 	bool quit = false;
@@ -265,8 +268,9 @@ public:
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	void* setupWindow(void* view);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-	wl_shell_surface *setupWindow();
+	struct xdg_surface *setupWindow();
 	void initWaylandConnection();
+	void setSize(int width, int height);
 	static void registryGlobalCb(void *data, struct wl_registry *registry,
 			uint32_t name, const char *interface, uint32_t version);
 	void registryGlobal(struct wl_registry *registry, uint32_t name,
