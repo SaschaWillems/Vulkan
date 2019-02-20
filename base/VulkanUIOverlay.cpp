@@ -59,6 +59,21 @@ namespace vks
 		// Create font texture
 		unsigned char* fontData;
 		int texWidth, texHeight;
+#if defined(__ANDROID__)
+		float scale = (float)vks::android::screenDensity / (float)ACONFIGURATION_DENSITY_MEDIUM;
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, "Roboto-Medium.ttf", AASSET_MODE_STREAMING);
+		if (asset) {
+			size_t size = AAsset_getLength(asset);
+			assert(size > 0);
+			char *fontAsset = new char[size];
+			AAsset_read(asset, fontAsset, size);
+			AAsset_close(asset);
+			io.Fonts->AddFontFromMemoryTTF(fontAsset, size, 14.0f * scale);
+			delete[] fontAsset;
+		}
+#else
+		io.Fonts->AddFontFromFileTTF("./../data/Roboto-Medium.ttf", 16.0f);
+#endif		
 		io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
 		VkDeviceSize uploadSize = texWidth*texHeight * 4 * sizeof(char);
 
