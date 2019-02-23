@@ -57,8 +57,6 @@
 class VulkanExampleBase
 {
 private:	
-	// fps timer (one second interval)
-	float fpsTimer = 0.0f;
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
 	/** brief Indicates that the view (position, rotation) has changed and buffers containing camera matrices need to be updated */
@@ -74,6 +72,7 @@ protected:
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
 	uint32_t lastFPS = 0;
+	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
 	// Physical device (GPU) that Vulkan will ise
