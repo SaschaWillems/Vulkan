@@ -250,7 +250,7 @@ void VulkanExampleBase::renderFrame()
 			timer -= 1.0f;
 		}
 	}
-	fpsTimer += (float)tDiff;
+	float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count();
 	if (fpsTimer > 1000.0f)
 	{
 		lastFPS = static_cast<uint32_t>((float)frameCounter * (1000.0f / fpsTimer));
@@ -260,8 +260,8 @@ void VulkanExampleBase::renderFrame()
 			SetWindowText(window, windowTitle.c_str());
 		}
 #endif
-		fpsTimer = 0.0f;
 		frameCounter = 0;
+		lastTimestamp = tEnd;
 	}
 	// TODO: Cap UI overlay update rates
 	updateOverlay();
@@ -280,6 +280,7 @@ void VulkanExampleBase::renderLoop()
 
 	destWidth = width;
 	destHeight = height;
+	lastTimestamp = std::chrono::high_resolution_clock::now();
 #if defined(_WIN32)
 	MSG msg;
 	bool quitMessageReceived = false;
@@ -347,12 +348,12 @@ void VulkanExampleBase::renderLoop()
 					timer -= 1.0f;
 				}
 			}
-			fpsTimer += (float)tDiff;
+			float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count();
 			if (fpsTimer > 1000.0f)
 			{
 				lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
-				fpsTimer = 0.0f;
 				frameCounter = 0;
+				lastTimestamp = tEnd;
 			}
 
 			// TODO: Cap UI overlay update rates/only issue when update requested
@@ -437,12 +438,12 @@ void VulkanExampleBase::renderLoop()
 				timer -= 1.0f;
 			}
 		}
-		fpsTimer += (float)tDiff;
+		float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count();
 		if (fpsTimer > 1000.0f)
 		{
 			lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
-			fpsTimer = 0.0f;
 			frameCounter = 0;
+			lastTimestamp = tEnd;
 		}
 		updateOverlay();
 	}
@@ -483,7 +484,7 @@ void VulkanExampleBase::renderLoop()
 				timer -= 1.0f;
 			}
 		}
-		fpsTimer += (float)tDiff;
+		float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count();
 		if (fpsTimer > 1000.0f)
 		{
 			if (!settings.overlay)
@@ -492,8 +493,8 @@ void VulkanExampleBase::renderLoop()
 				xdg_toplevel_set_title(xdg_toplevel, windowTitle.c_str());
 			}
 			lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
-			fpsTimer = 0.0f;
 			frameCounter = 0;
+			lastTimestamp = tEnd;
 		}
 		updateOverlay();
 	}
@@ -532,7 +533,7 @@ void VulkanExampleBase::renderLoop()
 				timer -= 1.0f;
 			}
 		}
-		fpsTimer += (float)tDiff;
+		float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count();
 		if (fpsTimer > 1000.0f)
 		{
 			if (!settings.overlay)
@@ -543,8 +544,8 @@ void VulkanExampleBase::renderLoop()
 					windowTitle.size(), windowTitle.c_str());
 			}
 			lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
-			fpsTimer = 0.0f;
 			frameCounter = 0;
+			lastTimestamp = tEnd;
 		}
 		updateOverlay();
 	}
