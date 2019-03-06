@@ -179,8 +179,6 @@ public:
 
 			if (info == "char")
 			{
-				std::string pair;
-
 				// char id
 				uint32_t charid = nextValuePair(&lineStream);
 				// Char properties
@@ -262,6 +260,8 @@ public:
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.bitmap);
 				vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 			}
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 

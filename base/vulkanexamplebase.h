@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <io.h>
+#include <ShellScalingAPI.h>
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 #include <android/native_activity.h>
 #include <android/asset_manager.h>
@@ -21,6 +22,7 @@
 #include "VulkanAndroid.h"
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <wayland-client.h>
+#include "xdg-shell-client-protocol.h"
 #elif defined(_DIRECT2DISPLAY)
 //
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
@@ -55,17 +57,14 @@
 class VulkanExampleBase
 {
 private:	
-	// fps timer (one second interval)
-	float fpsTimer = 0.0f;
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
-	/** brief Indicates that the view (position, rotation) has changed and */
+	/** brief Indicates that the view (position, rotation) has changed and buffers containing camera matrices need to be updated */
 	bool viewUpdated = false;
 	// Destination dimensions for resizing the window
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;
-	vks::UIOverlay *UIOverlay = nullptr;
 	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 	void handleMouseMove(int32_t x, int32_t y);
@@ -73,6 +72,7 @@ protected:
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
 	uint32_t lastFPS = 0;
+	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
 	// Physical device (GPU) that Vulkan will ise
@@ -127,13 +127,14 @@ protected:
 		VkSemaphore presentComplete;
 		// Command buffer submission and execution
 		VkSemaphore renderComplete;
-		// UI overlay submission and execution
-		VkSemaphore overlayComplete;
 	} semaphores;
+	std::vector<VkFence> waitFences;
 public: 
 	bool prepared = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
+
+	vks::UIOverlay UIOverlay;
 
 	/** @brief Last frame time measured using a high performance timer (if available) */
 	float frameTimer = 1.0f;
@@ -184,6 +185,7 @@ public:
 
 	std::string title = "Vulkan Example";
 	std::string name = "vulkanExample";
+	uint32_t apiVersion = VK_API_VERSION_1_0;
 
 	struct 
 	{
@@ -225,13 +227,15 @@ public:
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;
 	wl_compositor *compositor = nullptr;
-	wl_shell *shell = nullptr;
+	struct xdg_wm_base *shell = nullptr;
 	wl_seat *seat = nullptr;
 	wl_pointer *pointer = nullptr;
 	wl_keyboard *keyboard = nullptr;
 	wl_surface *surface = nullptr;
-	wl_shell_surface *shell_surface = nullptr;
+	struct xdg_surface *xdg_surface;
+	struct xdg_toplevel *xdg_toplevel;
 	bool quit = false;
+	bool configured = false;
 
 #elif defined(_DIRECT2DISPLAY)
 	bool quit = false;
@@ -250,10 +254,11 @@ public:
 	virtual ~VulkanExampleBase();
 
 	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
-	void initVulkan();
+	bool initVulkan();
 
 #if defined(_WIN32)
 	void setupConsole(std::string title);
+	void setupDPIAwareness();
 	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
 	void handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -262,8 +267,9 @@ public:
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	void* setupWindow(void* view);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-	wl_shell_surface *setupWindow();
+	struct xdg_surface *setupWindow();
 	void initWaylandConnection();
+	void setSize(int width, int height);
 	static void registryGlobalCb(void *data, struct wl_registry *registry,
 			uint32_t name, const char *interface, uint32_t version);
 	void registryGlobal(struct wl_registry *registry, uint32_t name,
@@ -335,6 +341,8 @@ public:
 	// all command buffers that may reference this
 	virtual void buildCommandBuffers();
 
+	void createSynchronizationPrimitives();
+
 	// Creates a new (graphics) command pool object storing command buffers
 	void createCommandPool();
 	// Setup default depth and stencil views
@@ -385,6 +393,7 @@ public:
 	void renderFrame();
 
 	void updateOverlay();
+	void drawUI(const VkCommandBuffer commandBuffer);
 
 	// Prepare the frame for workload submission
 	// - Acquires the next image from the swap chain 
@@ -394,8 +403,6 @@ public:
 	// Submit the frames' workload 
 	void submitFrame();
 
-	/** @brief (Virtual) Called before the UI overlay is created, can be used to do a custom setup e.g. with different renderpass */
-	virtual void OnSetupUIOverlay(vks::UIOverlayCreateInfo &createInfo);
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);
 };
@@ -426,12 +433,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)									\
 }																									
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 // Android entry point
-// A note on app_dummy(): This is required as the compiler may otherwise remove the main entry point of the application
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 void android_main(android_app* state)																\
 {																									\
-	app_dummy();																					\
 	vulkanExample = new VulkanExample();															\
 	state->userData = vulkanExample;																\
 	state->onAppCmd = VulkanExample::handleAppCommand;												\

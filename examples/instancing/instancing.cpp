@@ -28,7 +28,11 @@
 #define VERTEX_BUFFER_BIND_ID 0
 #define INSTANCE_BUFFER_BIND_ID 1
 #define ENABLE_VALIDATION false
+#if defined(__ANDROID__)
+#define INSTANCE_COUNT 4096
+#else
 #define INSTANCE_COUNT 8192
+#endif
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -192,6 +196,8 @@ public:
 
 			// Render instances
 			vkCmdDrawIndexed(drawCmdBuffers[i], models.rock.indexCount, INSTANCE_COUNT, 0, 0, 0);
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 

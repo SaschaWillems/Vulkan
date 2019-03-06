@@ -128,7 +128,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Hight dynamic range rendering";
+		title = "High dynamic range rendering";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.0f));
 		camera.setRotation(glm::vec3(0.0f, 180.0f, 0.0f));
@@ -194,8 +194,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };;
+		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -207,7 +206,6 @@ public:
 
 		VkViewport viewport;
 		VkRect2D scissor;
-		VkDeviceSize offsets[1] = { 0 };
 
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
@@ -263,6 +261,8 @@ public:
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.bloom[0]);
 				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 			}
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -818,8 +818,7 @@ public:
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/hdr/composition.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		pipelineCreateInfo.layout = pipelineLayouts.composition;
 		pipelineCreateInfo.renderPass = renderPass;
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizationState.cullMode = VK_CULL_MODE_NONE;
+		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		colorBlendState.attachmentCount = 1;
 		colorBlendState.pAttachments = blendAttachmentStates.data();
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.composition));
@@ -851,6 +850,7 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.bloom[1]));
 
 		// Object rendering pipelines 
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
 		// Vertex bindings an attributes for model rendering
 		// Binding description
@@ -871,7 +871,6 @@ public:
 		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
 		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
-		pipelineCreateInfo.renderPass = renderPass;
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
 		// Skybox pipeline (background cube)
@@ -900,7 +899,7 @@ public:
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		depthStencilState.depthTestEnable = VK_TRUE;
 		// Flip cull mode
-		rasterizationState.cullMode = VK_CULL_MODE_NONE;
+		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.reflect));
 	}
 

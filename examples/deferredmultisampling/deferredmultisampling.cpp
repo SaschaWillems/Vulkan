@@ -239,8 +239,7 @@ public:
 	void createAttachment(
 		VkFormat format,  
 		VkImageUsageFlagBits usage,
-		FrameBufferAttachment *attachment,
-		VkCommandBuffer layoutCmd)
+		FrameBufferAttachment *attachment)
 	{
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
@@ -300,8 +299,6 @@ public:
 	// blitted to our render target
 	void prepareOffscreenFramebuffer()
 	{
-		VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 		offScreenFrameBuf.width = this->width;
 		offScreenFrameBuf.height = this->height;
 
@@ -314,22 +311,19 @@ public:
 		createAttachment(
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&offScreenFrameBuf.position,
-			layoutCmd);
+			&offScreenFrameBuf.position);
 
 		// (World space) Normals
 		createAttachment(
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&offScreenFrameBuf.normal,
-			layoutCmd);
+			&offScreenFrameBuf.normal);
 
 		// Albedo (color)
 		createAttachment(
 			VK_FORMAT_R8G8B8A8_UNORM,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&offScreenFrameBuf.albedo,
-			layoutCmd);
+			&offScreenFrameBuf.albedo);
 
 		// Depth attachment
 
@@ -341,10 +335,7 @@ public:
 		createAttachment(
 			attDepthFormat,
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-			&offScreenFrameBuf.depth,
-			layoutCmd);
-
-		VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
+			&offScreenFrameBuf.depth);
 
 		// Set up separate renderpass with references
 		// to the color and depth attachments
@@ -458,14 +449,15 @@ public:
 	// Build command buffer for rendering the scene to the offscreen frame buffer attachments
 	void buildDeferredCommandBuffer()
 	{
-		if (offScreenCmdBuffer == VK_NULL_HANDLE)
-		{
+		if (offScreenCmdBuffer == VK_NULL_HANDLE) {
 			offScreenCmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
 		}
 
 		// Create a semaphore used to synchronize offscreen rendering and usage
-		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenSemaphore));
+		if (offscreenSemaphore == VK_NULL_HANDLE) {
+			VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenSemaphore));
+		}
 
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -546,7 +538,6 @@ public:
 			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.deferred, 0, 1, &descriptorSet, 0, NULL);
 
 			if (debugDisplay)
@@ -566,6 +557,8 @@ public:
 			// Final composition as full screen quad
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, useMSAA ? pipelines.deferred : pipelines.deferredNoMSAA);
 			vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -1048,19 +1041,9 @@ public:
 
 	void updateUniformBufferDeferredMatrices()
 	{
-		uboOffscreenVS.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
-		uboOffscreenVS.view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
-		uboOffscreenVS.model = glm::mat4(1.0f);
-		uboOffscreenVS.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.25f, 0.0f) + cameraPos);
-		uboOffscreenVS.model = glm::rotate(uboOffscreenVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboOffscreenVS.model = glm::rotate(uboOffscreenVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboOffscreenVS.model = glm::rotate(uboOffscreenVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
 		uboOffscreenVS.projection = camera.matrices.perspective;
 		uboOffscreenVS.view = camera.matrices.view;
 		uboOffscreenVS.model = glm::mat4(1.0f);
-
 		memcpy(uniformBuffers.vsOffscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
 	}
 

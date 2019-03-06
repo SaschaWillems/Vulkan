@@ -178,9 +178,11 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &compute.storageBuffer.buffer, offsets);
 			vkCmdDraw(drawCmdBuffers[i], numParticles, 1, 0, 0);
+			
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
+			
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 
@@ -691,10 +693,11 @@ public:
 		// Map for host access
 		VK_CHECK_RESULT(graphics.uniformBuffer.map());
 
+		updateComputeUniformBuffers();
 		updateGraphicsUniformBuffers();
 	}
 
-	void updateUniformBuffers()
+	void updateComputeUniformBuffers()
 	{
 		compute.ubo.deltaT = paused ? 0.0f : frameTimer * 0.05f;
 		compute.ubo.destX = sin(glm::radians(timer * 360.0f)) * 0.75f;
@@ -752,12 +755,10 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		updateUniformBuffers();
-	}
-
-	virtual void viewChanged()
-	{
-		updateGraphicsUniformBuffers();
+		updateComputeUniformBuffers();
+		if (camera.updated) {
+			updateGraphicsUniformBuffers();
+		}
 	}
 };
 

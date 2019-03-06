@@ -1,4 +1,4 @@
-file(GLOB BASE_SRC "*.cpp" "../external/imgui/imgui.cpp" "../external/imgui/imgui_draw.cpp")
+file(GLOB BASE_SRC "*.cpp" "../external/imgui/*.cpp")
 file(GLOB BASE_HEADERS "*.hpp")
 
 if(WIN32)

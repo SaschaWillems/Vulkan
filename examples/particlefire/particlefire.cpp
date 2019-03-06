@@ -106,7 +106,6 @@ public:
 		glm::mat4 model;
 		glm::mat4 normal;
 		glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-		glm::vec4 cameraPos;
 	} uboEnv;
 
 	struct {
@@ -211,6 +210,8 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.particles);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &particles.buffer, offsets);
 			vkCmdDraw(drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -709,7 +710,6 @@ public:
 		uboEnv.projection = uboVS.projection;
 		uboEnv.model = uboVS.model;
 		uboEnv.normal = glm::inverseTranspose(uboEnv.model);
-		uboEnv.cameraPos = glm::vec4(0.0, 0.0, zoom, 0.0);
 		memcpy(uniformBuffers.environment.mapped, &uboEnv, sizeof(uboEnv));
 	}
 

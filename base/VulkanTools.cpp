@@ -268,11 +268,14 @@ namespace vks
 			if (!errorModeSilent) {
 				MessageBox(NULL, message.c_str(), NULL, MB_OK | MB_ICONERROR);
 			}
-#elif defined(__ANDROID__)	
-			LOGE("Fatal error: %s", message.c_str());
+#elif defined(__ANDROID__)
+            LOGE("Fatal error: %s", message.c_str());
+			vks::android::showAlert(message.c_str());
 #endif
 			std::cerr << message << "\n";
+#if !defined(__ANDROID__)
 			exit(exitCode);
+#endif
 		}
 
 		void exitFatal(std::string message, VkResult resultCode)

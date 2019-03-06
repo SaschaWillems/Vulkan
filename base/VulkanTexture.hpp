@@ -320,7 +320,7 @@ namespace vks
 				// and can be directly used as textures
 				image = mappableImage;
 				deviceMemory = mappableMemory;
-				imageLayout = imageLayout;
+				this->imageLayout = imageLayout;
 
 				// Setup image memory barrier
 				vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
@@ -386,8 +386,8 @@ namespace vks
 			void* buffer,
 			VkDeviceSize bufferSize,
 			VkFormat format,
-			uint32_t width,
-			uint32_t height,
+			uint32_t texWidth,
+			uint32_t texHeight,
 			vks::VulkanDevice *device,
 			VkQueue copyQueue,
 			VkFilter filter = VK_FILTER_LINEAR,
@@ -397,8 +397,8 @@ namespace vks
 			assert(buffer);
 
 			this->device = device;
-			width = width;
-			height = height;
+			width = texWidth;
+			height = texHeight;
 			mipLevels = 1;
 
 			VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();

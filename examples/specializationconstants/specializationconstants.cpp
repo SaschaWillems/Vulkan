@@ -153,6 +153,8 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.textured);
 			vkCmdDrawIndexed(drawCmdBuffers[i], models.cube.indexCount, 1, 0, 0, 0);
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
@@ -405,6 +407,8 @@ public:
 
 	void updateUniformBuffers()
 	{
+		camera.setPerspective(60.0f, ((float)width / 3.0f) / (float)height, 0.1f, 512.0f);
+
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.modelView = camera.matrices.view;
 
@@ -438,12 +442,16 @@ public:
 
 	virtual void render()
 	{
-		if (!prepared)
+		if (!prepared) {
 			return;
+		}
 		draw();
+		if (camera.updated) {
+			updateUniformBuffers();
+		}
 	}
 
-	virtual void viewChanged()
+	virtual void windowResized() 
 	{
 		updateUniformBuffers();
 	}

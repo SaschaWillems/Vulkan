@@ -414,6 +414,9 @@ namespace vks
 			{
 				VK_CHECK_RESULT(buffer->map());
 				memcpy(buffer->mapped, data, size);
+				if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+					buffer->flush();
+
 				buffer->unmap();
 			}
 
@@ -437,7 +440,7 @@ namespace vks
 		void copyBuffer(vks::Buffer *src, vks::Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr)
 		{
 			assert(dst->size <= src->size);
-			assert(src->buffer && src->buffer);
+			assert(src->buffer);
 			VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 			VkBufferCopy bufferCopy{};
 			if (copyRegion == nullptr)

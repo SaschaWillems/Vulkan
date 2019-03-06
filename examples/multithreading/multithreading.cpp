@@ -27,12 +27,13 @@
 
 #include "VulkanModel.hpp"
 
-#define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	bool displaySkybox = true;
+
 	// Vertex layout for the models
 	vks::VertexLayout vertexLayout = vks::VertexLayout({
 		vks::VERTEX_COMPONENT_POSITION,
@@ -44,12 +45,6 @@ public:
 		vks::Model ufo;
 		vks::Model skysphere;
 	} models;
-
-	struct {
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
 
 	// Shared matrices used for thread push constant blocks
 	struct {
@@ -65,7 +60,12 @@ public:
 	VkPipelineLayout pipelineLayout;
 
 	VkCommandBuffer primaryCommandBuffer;
-	VkCommandBuffer secondaryCommandBuffer;
+	
+	// Secondary scene command buffers used to store backgdrop and user interface
+	struct SecondaryCommandBuffers {
+		VkCommandBuffer background;
+		VkCommandBuffer ui;
+	} secondaryCommandBuffers;
 
 	// Number of animated objects to be renderer
 	// by using threads and secondary command buffers
@@ -150,14 +150,10 @@ public:
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &primaryCommandBuffer);
-		vkFreeCommandBuffers(device, cmdPool, 1, &secondaryCommandBuffer);
-
 		models.ufo.destroy();
 		models.skysphere.destroy();
 
-		for (auto& thread : threadData)
-		{
+		for (auto& thread : threadData) {
 			vkFreeCommandBuffers(device, thread.commandPool, thread.commandBuffer.size(), thread.commandBuffer.data());
 			vkDestroyCommandPool(device, thread.commandPool, nullptr);
 		}
@@ -184,10 +180,11 @@ public:
 				1);
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &primaryCommandBuffer));
 
-		// Create a secondary command buffer for rendering the star sphere
+		// Create additional secondary CBs for background and ui
 		cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffer));
-		
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers.background));
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers.ui));
+
 		threadData.resize(numThreads);
 
 		float maxX = std::floor(std::sqrt(numThreads * numObjectsPerThread));
@@ -301,22 +298,26 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
-	void updateSecondaryCommandBuffer(VkCommandBufferInheritanceInfo inheritanceInfo)
+	void updateSecondaryCommandBuffers(VkCommandBufferInheritanceInfo inheritanceInfo)
 	{
 		// Secondary command buffer for the sky sphere
 		VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
 		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 
-		VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCommandBuffer, &commandBufferBeginInfo));
-
 		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-		vkCmdSetViewport(secondaryCommandBuffer, 0, 1, &viewport);
-
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-		vkCmdSetScissor(secondaryCommandBuffer, 0, 1, &scissor);
 
-		vkCmdBindPipeline(secondaryCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
+		/*
+			Background
+		*/
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCommandBuffers.background, &commandBufferBeginInfo));
+
+		vkCmdSetViewport(secondaryCommandBuffers.background, 0, 1, &viewport);
+		vkCmdSetScissor(secondaryCommandBuffers.background, 0, 1, &scissor);
+
+		vkCmdBindPipeline(secondaryCommandBuffers.background, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
 
 		glm::mat4 view = glm::mat4(1.0f);
 		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -326,7 +327,7 @@ public:
 		glm::mat4 mvp = matrices.projection * view;
 
 		vkCmdPushConstants(
-			secondaryCommandBuffer,
+			secondaryCommandBuffers.background,
 			pipelineLayout,
 			VK_SHADER_STAGE_VERTEX_BIT,
 			0,
@@ -334,11 +335,31 @@ public:
 			&mvp);
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(secondaryCommandBuffer, 0, 1, &models.skysphere.vertices.buffer, offsets);
-		vkCmdBindIndexBuffer(secondaryCommandBuffer, models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(secondaryCommandBuffer, models.skysphere.indexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(secondaryCommandBuffers.background, 0, 1, &models.skysphere.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(secondaryCommandBuffers.background, models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(secondaryCommandBuffers.background, models.skysphere.indexCount, 1, 0, 0, 0);
 
-		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffer));
+		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffers.background));
+
+		/*
+			User interface
+
+			With VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS, the primary command buffer's content has to be defined
+			by secondary command buffers, which also applies to the UI overlay command buffer
+		*/
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(secondaryCommandBuffers.ui, &commandBufferBeginInfo));
+
+		vkCmdSetViewport(secondaryCommandBuffers.ui, 0, 1, &viewport);
+		vkCmdSetScissor(secondaryCommandBuffers.ui, 0, 1, &scissor);
+
+		vkCmdBindPipeline(secondaryCommandBuffers.ui, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
+
+		if (settings.overlay) {
+			drawUI(secondaryCommandBuffers.ui);
+		}
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffers.ui));
 	}
 
 	// Updates the secondary command buffers using a thread pool 
@@ -346,11 +367,13 @@ public:
 	// lat submitted to the queue for rendering
 	void updateCommandBuffers(VkFramebuffer frameBuffer)
 	{
+		// Contains the list of secondary command buffers to be submitted
+		std::vector<VkCommandBuffer> commandBuffers;
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
 		clearValues[0].color = defaultClearColor;
-		clearValues[0].color = { {0.0f, 0.0f, 0.2f, 0.0f} };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -377,12 +400,12 @@ public:
 		// Secondary command buffer also use the currently active framebuffer
 		inheritanceInfo.framebuffer = frameBuffer;
 
-		// Contains the list of secondary command buffers to be executed
-		std::vector<VkCommandBuffer> commandBuffers;
+		// Update secondary sene command buffers
+		updateSecondaryCommandBuffers(inheritanceInfo);
 
-		// Secondary command buffer with star background sphere
-		updateSecondaryCommandBuffer(inheritanceInfo);
-		commandBuffers.push_back(secondaryCommandBuffer);
+		if (displaySkybox) {
+			commandBuffers.push_back(secondaryCommandBuffers.background);
+		}
 
 		// Add a job to the thread's queue for each object to be rendered
 		for (uint32_t t = 0; t < numThreads; t++)
@@ -407,6 +430,11 @@ public:
 			}
 		}
 
+		// Render ui last
+		if (UIOverlay.visible) {
+			commandBuffers.push_back(secondaryCommandBuffers.ui);
+		}
+
 		// Execute render commands from the secondary command buffer
 		vkCmdExecuteCommands(primaryCommandBuffer, commandBuffers.size(), commandBuffers.data());
 
@@ -415,53 +443,11 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffer));
 	}
 
-	void loadMeshes()
+	void loadAssets()
 	{
 		models.ufo.loadFromFile(getAssetPath() + "models/retroufo_red_lowpoly.dae", vertexLayout, 0.12f, vulkanDevice, queue);
 		models.skysphere.loadFromFile(getAssetPath() + "models/sphere.obj", vertexLayout, 1.0f, vulkanDevice, queue);
 		objectSphereDim = std::max(std::max(models.ufo.dim.size.x, models.ufo.dim.size.y), models.ufo.dim.size.z);
-	}
-
-	void setupVertexDescriptions()
-	{
-		// Binding description
-		vertices.bindingDescriptions.resize(1);
-		vertices.bindingDescriptions[0] =
-			vks::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				vertexLayout.stride(),
-				VK_VERTEX_INPUT_RATE_VERTEX);
-
-		// Attribute descriptions
-		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.resize(3);
-		// Location 0 : Position
-		vertices.attributeDescriptions[0] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				0);
-		// Location 1 : Normal
-		vertices.attributeDescriptions[1] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3);
-		// Location 3 : Color
-		vertices.attributeDescriptions[2] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 6);
-
-		vertices.inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = vertices.bindingDescriptions.size();
-		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = vertices.attributeDescriptions.size();
-		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
 	void setupPipelineLayout()
@@ -532,38 +518,48 @@ public:
 				dynamicStateEnables.size(),
 				0);
 
-		// Solid rendering pipeline
-		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
+		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
+		pipelineCI.pInputAssemblyState = &inputAssemblyState;
+		pipelineCI.pRasterizationState = &rasterizationState;
+		pipelineCI.pColorBlendState = &colorBlendState;
+		pipelineCI.pMultisampleState = &multisampleState;
+		pipelineCI.pViewportState = &viewportState;
+		pipelineCI.pDepthStencilState = &depthStencilState;
+		pipelineCI.pDynamicState = &dynamicState;
+		pipelineCI.stageCount = shaderStages.size();
+		pipelineCI.pStages = shaderStages.data();
+
+		// Vertex bindings and attributes
+		const std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
+			vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
+		};
+
+		const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position			
+			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normal
+			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 6),	// Location 2: Color
+		};
+		VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo();
+		vertexInputStateCI.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
+		vertexInputStateCI.pVertexBindingDescriptions = vertexInputBindings.data();
+		vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+		pipelineCI.pVertexInputState = &vertexInputStateCI;
+
+		// Object rendering pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/multithreading/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/multithreading/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vks::initializers::pipelineCreateInfo(
-				pipelineLayout,
-				renderPass,
-				0);
-
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
-		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-		pipelineCreateInfo.pRasterizationState = &rasterizationState;
-		pipelineCreateInfo.pColorBlendState = &colorBlendState;
-		pipelineCreateInfo.pMultisampleState = &multisampleState;
-		pipelineCreateInfo.pViewportState = &viewportState;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
-		pipelineCreateInfo.pStages = shaderStages.data();
-
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.phong));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.phong));
 
 		// Star sphere rendering pipeline
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		depthStencilState.depthWriteEnable = VK_FALSE;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/multithreading/starsphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/multithreading/starsphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.starsphere));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.starsphere));
 	}
 
 	void updateMatrices()
@@ -579,6 +575,14 @@ public:
 
 	void draw()
 	{
+		// Wait for fence to signal that all command buffers are ready
+		VkResult fenceRes;
+		do {
+			fenceRes = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
+		} while (fenceRes == VK_TIMEOUT);
+		VK_CHECK_RESULT(fenceRes);
+		vkResetFences(device, 1, &renderFence);
+
 		VulkanExampleBase::prepareFrame();
 
 		updateCommandBuffers(frameBuffers[currentBuffer]);
@@ -588,14 +592,6 @@ public:
 
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, renderFence));
 
-		// Wait for fence to signal that all command buffers are ready
-		VkResult fenceRes;
-		do {
-			fenceRes = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
-		} while (fenceRes == VK_TIMEOUT);
-		VK_CHECK_RESULT(fenceRes);
-		vkResetFences(device, 1, &renderFence);
-
 		VulkanExampleBase::submitFrame();
 	}
 
@@ -603,10 +599,9 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		// Create a fence for synchronization
-		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FLAGS_NONE);
-		vkCreateFence(device, &fenceCreateInfo, NULL, &renderFence);
-		loadMeshes();
-		setupVertexDescriptions();
+		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+		vkCreateFence(device, &fenceCreateInfo, nullptr, &renderFence);
+		loadAssets();
 		setupPipelineLayout();
 		preparePipelines();
 		prepareMultiThreadedRenderer();
@@ -631,6 +626,10 @@ public:
 		if (overlay->header("Statistics")) {
 			overlay->text("Active threads: %d", numThreads);
 		}
+		if (overlay->header("Settings")) {
+			overlay->checkBox("Skybox", &displaySkybox);
+		}
+
 	}
 };
 

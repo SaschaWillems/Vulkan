@@ -525,6 +525,8 @@ public:
 				vkCmdDrawIndexed(drawCmdBuffers[i], 6, LIGHT_COUNT, 0, 0, 0);
 			}
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
@@ -960,10 +962,9 @@ public:
 		// Shadow mapping pipeline
 		// The shadow mapping pipeline uses geometry shader instancing (invocations layout modifier) to output 
 		// shadow maps for multiple lights sources into the different shadow map layers in one single render pass
-		std::array<VkPipelineShaderStageCreateInfo, 3> shadowStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shadowStages;
 		shadowStages[0] = loadShader(getAssetPath() + "shaders/deferredshadows/shadow.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shadowStages[1] = loadShader(getAssetPath() + "shaders/deferredshadows/shadow.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		shadowStages[2] = loadShader(getAssetPath() + "shaders/deferredshadows/shadow.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);
+		shadowStages[1] = loadShader(getAssetPath() + "shaders/deferredshadows/shadow.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);
 
 		pipelineCreateInfo.pStages = shadowStages.data();
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shadowStages.size());

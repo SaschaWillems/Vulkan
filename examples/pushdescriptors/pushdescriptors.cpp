@@ -179,6 +179,8 @@ public:
 				vkCmdDrawIndexed(drawCmdBuffers[i], models.cube.indexCount, 1, 0, 0, 0);
 			}
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
@@ -340,7 +342,7 @@ public:
 
 		// Get device push descriptor properties (to display them)
 		PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2KHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR"));
-		if (!vkCmdPushDescriptorSetKHR) {
+		if (!vkGetPhysicalDeviceProperties2KHR) {
 			vks::tools::exitFatal("Could not get a valid function pointer for vkGetPhysicalDeviceProperties2KHR", -1);
 		}
 		VkPhysicalDeviceProperties2KHR deviceProps2{};
@@ -367,13 +369,17 @@ public:
 			return;
 		draw();
 		if (animate) {
+			cubes[0].rotation.x += 2.5f * frameTimer;
+			if (cubes[0].rotation.x > 360.0f)
+				cubes[0].rotation.x -= 360.0f;
+			cubes[1].rotation.y += 2.0f * frameTimer;
+			if (cubes[1].rotation.x > 360.0f)
+				cubes[1].rotation.x -= 360.0f;
 			updateCubeUniformBuffers();
 		}
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffers();
+		if (camera.updated) {
+			updateUniformBuffers();
+		}
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

@@ -30,40 +30,27 @@
 
 namespace vks 
 {
-	struct UIOverlayCreateInfo 
-	{
-		vks::VulkanDevice *device;
-		VkQueue copyQueue;
-		VkRenderPass renderPass;
-		std::vector<VkFramebuffer> framebuffers;
-		VkFormat colorformat;
-		VkFormat depthformat;
-		uint32_t width;
-		uint32_t height;
-		std::vector<VkPipelineShaderStageCreateInfo> shaders;
-		VkSampleCountFlagBits rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		uint32_t subpassCount = 1;
-		std::vector<VkClearValue> clearValues = {};
-		uint32_t attachmentCount = 1;
-	};
-
 	class UIOverlay 
 	{
-	private:
+	public:
+		vks::VulkanDevice *device;
+		VkQueue queue;
+
+		VkSampleCountFlagBits rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		uint32_t subpass = 0;
+
 		vks::Buffer vertexBuffer;
 		vks::Buffer indexBuffer;
 		int32_t vertexCount = 0;
 		int32_t indexCount = 0;
 
+		std::vector<VkPipelineShaderStageCreateInfo> shaders;
+
 		VkDescriptorPool descriptorPool;
 		VkDescriptorSetLayout descriptorSetLayout;
 		VkDescriptorSet descriptorSet;
 		VkPipelineLayout pipelineLayout;
-		VkPipelineCache pipelineCache;
 		VkPipeline pipeline;
-		VkRenderPass renderPass;
-		VkCommandPool commandPool;
-		VkFence fence;
 
 		VkDeviceMemory fontMemory = VK_NULL_HANDLE;
 		VkImage fontImage = VK_NULL_HANDLE;
@@ -75,25 +62,21 @@ namespace vks
 			glm::vec2 translate;
 		} pushConstBlock;
 
-		UIOverlayCreateInfo createInfo = {};
-
-		void prepareResources();
-		void preparePipeline();
-		void prepareRenderPass();
-		void updateCommandBuffers();
-	public:
 		bool visible = true;
+		bool updated = false;
 		float scale = 1.0f;
 
-		std::vector<VkCommandBuffer> cmdBuffers;
-
-		UIOverlay(vks::UIOverlayCreateInfo createInfo);
+		UIOverlay();
 		~UIOverlay();
 
-		void update();
-		void resize(uint32_t width, uint32_t height, std::vector<VkFramebuffer> framebuffers);
+		void preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass);
+		void prepareResources();
 
-		void submit(VkQueue queue, uint32_t bufferindex, VkSubmitInfo submitInfo);
+		bool update();
+		void draw(const VkCommandBuffer commandBuffer);
+		void resize(uint32_t width, uint32_t height);
+
+		void freeResources();
 
 		bool header(const char* caption);
 		bool checkBox(const char* caption, bool* value);

@@ -26,6 +26,7 @@
 #include <android_native_app_glue.h>
 #include <android/configuration.h>
 #include <memory>
+#include <string>
 
 // Missing from the NDK
 namespace std
@@ -169,6 +170,7 @@ namespace vks
 		void loadVulkanFunctions(VkInstance instance);
 		void freeVulkanLibrary();
 		void getDeviceConfig();
+		void showAlert(const char* message);
 	}
 }
 

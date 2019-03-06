@@ -13,6 +13,10 @@ function(buildExample EXAMPLE_NAME)
 		file(GLOB ADD_SOURCE "../external/imgui/*.cpp")
 		SET(SOURCE ${SOURCE} ${ADD_SOURCE})
 	ENDIF()
+	# wayland requires additional source files
+	IF(USE_WAYLAND_WSI)
+		SET(SOURCE ${SOURCE} ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h ${CMAKE_BINARY_DIR}/xdg-shell-protocol.c)
+	ENDIF()
 	# Add shaders
 	set(SHADER_DIR "../data/shaders/${EXAMPLE_NAME}")
 	file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.comp" "${SHADER_DIR}/*.geom" "${SHADER_DIR}/*.tesc" "${SHADER_DIR}/*.tese")
@@ -24,6 +28,8 @@ function(buildExample EXAMPLE_NAME)
 		add_executable(${EXAMPLE_NAME} ${MAIN_CPP} ${SOURCE} ${SHADERS})
 		target_link_libraries(${EXAMPLE_NAME} base )
 	endif(WIN32)
+
+	set_target_properties(${EXAMPLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 	if(RESOURCE_INSTALL_DIR)
 		install(TARGETS ${EXAMPLE_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -45,11 +51,13 @@ set(EXAMPLES
 	computenbody
 	computeparticles
 	computeshader
+	conditionalrender
 	conservativeraster
 	debugmarker
 	deferred
 	deferredmultisampling
 	deferredshadows
+	descriptorsets
 	displacement
 	distancefieldfonts
 	dynamicuniformbuffer
@@ -58,10 +66,13 @@ set(EXAMPLES
 	hdr
 	imgui
 	indirectdraw
+	inlineuniformblocks
+	inputattachments
 	instancing
 	mesh
 	multisampling
 	multithreading
+	multiview
 	occlusionquery
 	offscreen
 	parallaxmapping

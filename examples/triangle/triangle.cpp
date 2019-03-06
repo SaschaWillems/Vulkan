@@ -463,10 +463,6 @@ public:
 			VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &indices.memory));
 			VK_CHECK_RESULT(vkBindBufferMemory(device, indices.buffer, indices.memory, 0));
 
-			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
-			cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			cmdBufferBeginInfo.pNext = nullptr;
-
 			// Buffer copies have to be submitted to a queue, so we need a command buffer for them
 			// Note: Some devices offer a dedicated transfer queue (with only the transfer bit set) that may be faster when doing lots of copies
 			VkCommandBuffer copyCmd = getCommandBuffer(true);
@@ -791,7 +787,7 @@ public:
 	VkShaderModule loadSPIRVShader(std::string filename)
 	{
 		size_t shaderSize;
-		char* shaderCode;
+		char* shaderCode = NULL;
 
 #if defined(__ANDROID__)
 		// Load shader from compressed asset
@@ -1123,11 +1119,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 
 #elif defined(__ANDROID__)
 // Android entry point
-// A note on app_dummy(): This is required as the compiler may otherwise remove the main entry point of the application
 VulkanExample *vulkanExample;
 void android_main(android_app* state)
 {
-	app_dummy();
 	vulkanExample = new VulkanExample();
 	state->userData = vulkanExample;
 	state->onAppCmd = VulkanExample::handleAppCommand;

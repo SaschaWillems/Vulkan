@@ -109,83 +109,29 @@ public:
 		};
 	}
 
-	// Create an image memory barrier used to change the layout of an image and put it into an active command buffer
-	void setImageLayout(VkCommandBuffer cmdBuffer, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange)
-	{
-		// Create an image barrier object
-		VkImageMemoryBarrier imageMemoryBarrier = vks::initializers::imageMemoryBarrier();;
-		imageMemoryBarrier.oldLayout = oldImageLayout;
-		imageMemoryBarrier.newLayout = newImageLayout;
-		imageMemoryBarrier.image = image;
-		imageMemoryBarrier.subresourceRange = subresourceRange;
+	/*
+		Upload texture image data to the GPU
 
-		// Only sets masks for layouts used in this example
-		// For a more complete version that can be used with other layouts see vks::tools::setImageLayout
+		Vulkan offers two types of image tiling (memory layout):
 
-		// Source layouts (old)
-		switch (oldImageLayout)
-		{
-		case VK_IMAGE_LAYOUT_UNDEFINED:
-			// Only valid as initial layout, memory contents are not preserved
-			// Can be accessed directly, no source dependency required
-			imageMemoryBarrier.srcAccessMask = 0;
-			break;
-		case VK_IMAGE_LAYOUT_PREINITIALIZED:
-			// Only valid as initial layout for linear images, preserves memory contents
-			// Make sure host writes to the image have been finished
-			imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			// Old layout is transfer destination
-			// Make sure any writes to the image have been finished
-			imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			break;
-		}
+		Linear tiled images:
+			These are stored as is and can be copied directly to. But due to the linear nature they're not a good match for GPUs and format and feature support is very limited.
+			It's not advised to use linear tiled images for anything else than copying from host to GPU if buffer copies are not an option.
+			Linear tiling is thus only implemented for learning purposes, one should always prefer optimal tiled image.
+
+		Optimal tiled images:
+			These are stored in an implementation specific layout matching the capability of the hardware. They usually support more formats and features and are much faster.
+			Optimal tiled images are stored on the device and not accessible by the host. So they can't be written directly to (like liner tiled images) and always require 
+			some sort of data copy, either from a buffer or	a linear tiled image.
 		
-		// Target layouts (new)
-		switch (newImageLayout)
-		{
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			// Transfer source (copy, blit)
-			// Make sure any reads from the image have been finished
-			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			// Transfer destination (copy, blit)
-			// Make sure any writes to the image have been finished
-			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			break;
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			// Shader read (sampler, input attachment)
-			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			break;
-		}
-
-		// Put barrier on top of pipeline
-		VkPipelineStageFlags srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		VkPipelineStageFlags destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
-		// Put barrier inside setup command buffer
-		vkCmdPipelineBarrier(
-			cmdBuffer,
-			srcStageFlags, 
-			destStageFlags, 
-			VK_FLAGS_NONE, 
-			0, nullptr,
-			0, nullptr,
-			1, &imageMemoryBarrier);
-	}
-
+		In Short: Always use optimal tiled images for rendering.
+	*/
 	void loadTexture()
 	{
 		// We use the Khronos texture format (https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/) 
 		std::string filename = getAssetPath() + "textures/metalplate01_rgba.ktx";
 		// Texture data contains 4 channels (RGBA) with unnormalized 8-bit values, this is the most commonly supported format
 		VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
-
-		// Set to true to use linear tiled images 
-		// This is just for learning purposes and not suggested, as linear tiled images are pretty restricted and often only support a small set of features (e.g. no mips, etc.)
-		bool forceLinearTiling = false;
 
 #if defined(__ANDROID__)
 		// Textures are stored inside the apk on Android (compressed)
@@ -206,35 +152,32 @@ public:
 
 		assert(!tex2D.empty());
 
-		VkFormatProperties formatProperties;
-
 		texture.width = static_cast<uint32_t>(tex2D[0].extent().x);
 		texture.height = static_cast<uint32_t>(tex2D[0].extent().y);
 		texture.mipLevels = static_cast<uint32_t>(tex2D.levels());
 
-		// Get device properites for the requested texture format
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
-
-		// Only use linear tiling if requested (and supported by the device)
-		// Support for linear tiling is mostly limited, so prefer to use
-		// optimal tiling instead
-		// On most implementations linear tiling will only support a very
-		// limited amount of formats and features (mip maps, cubemaps, arrays, etc.)
+		// We prefer using staging to copy the texture data to a device local optimal image
 		VkBool32 useStaging = true;
 
 		// Only use linear tiling if forced
-		if (forceLinearTiling)
-		{
+		bool forceLinearTiling = false;
+		if (forceLinearTiling) {
 			// Don't use linear if format is not supported for (linear) shader sampling
+			// Get device properites for the requested texture format
+			VkFormatProperties formatProperties;
+			vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 			useStaging = !(formatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT);
 		}
 
 		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs = {};
 
-		if (useStaging)
-		{
+		if (useStaging) {
+			// Copy data to an optimal tiled image
+			// This loads the texture data into a host local buffer that is copied to the optimal tiled image on the device
+
 			// Create a host-visible staging buffer that contains the raw image data
+			// This buffer will be the data source for copying texture data to the optimal tiled image on the device
 			VkBuffer stagingBuffer;
 			VkDeviceMemory stagingMemory;
 
@@ -242,21 +185,18 @@ public:
 			bufferCreateInfo.size = tex2D.size();
 			// This buffer is used as a transfer source for the buffer copy
 			bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-			bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			
+			bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;		
 			VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
 
 			// Get memory requirements for the staging buffer (alignment, memory type bits)
 			vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
-
 			memAllocInfo.allocationSize = memReqs.size;
 			// Get memory type index for a host visible buffer
 			memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
 			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
 			VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
 
-			// Copy texture data into staging buffer
+			// Copy texture data into host local staging buffer
 			uint8_t *data;
 			VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
 			memcpy(data, tex2D.data(), tex2D.size());
@@ -266,8 +206,7 @@ public:
 			std::vector<VkBufferImageCopy> bufferCopyRegions;
 			uint32_t offset = 0;
 
-			for (uint32_t i = 0; i < texture.mipLevels; i++)
-			{
+			for (uint32_t i = 0; i < texture.mipLevels; i++) {
 				VkBufferImageCopy bufferCopyRegion = {};
 				bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				bufferCopyRegion.imageSubresource.mipLevel = i;
@@ -283,7 +222,7 @@ public:
 				offset += static_cast<uint32_t>(tex2D[i].size());
 			}
 
-			// Create optimal tiled target image
+			// Create optimal tiled target image on the device
 			VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 			imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 			imageCreateInfo.format = format;
@@ -296,22 +235,19 @@ public:
 			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			imageCreateInfo.extent = { texture.width, texture.height, 1 };
 			imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
 			VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image));
 
 			vkGetImageMemoryRequirements(device, texture.image, &memReqs);
-
 			memAllocInfo.allocationSize = memReqs.size;
 			memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
 			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &texture.deviceMemory));
 			VK_CHECK_RESULT(vkBindImageMemory(device, texture.image, texture.deviceMemory, 0));
 
 			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-			// Image barrier for optimal image
+			// Image memory barriers for the texture image
 
-			// The sub resource range describes the regions of the image we will be transition
+			// The sub resource range describes the regions of the image that will be transitioned using the memory barriers below
 			VkImageSubresourceRange subresourceRange = {};
 			// Image only contains color data
 			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -322,15 +258,26 @@ public:
 			// The 2D texture only has one layer
 			subresourceRange.layerCount = 1;
 
-			// Optimal image will be used as destination for the copy, so we must transfer from our
-			// initial undefined image layout to the transfer destination layout
-			setImageLayout(
+			// Transition the texture image layout to transfer target, so we can safely copy our buffer data to it.
+			VkImageMemoryBarrier imageMemoryBarrier = vks::initializers::imageMemoryBarrier();;
+			imageMemoryBarrier.image = texture.image;
+			imageMemoryBarrier.subresourceRange = subresourceRange;
+			imageMemoryBarrier.srcAccessMask = 0;
+			imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+			// Insert a memory dependency at the proper pipeline stages that will execute the image layout transition 
+			// Source pipeline stage is host write/read exection (VK_PIPELINE_STAGE_HOST_BIT)
+			// Destination pipeline stage is copy command exection (VK_PIPELINE_STAGE_TRANSFER_BIT)
+			vkCmdPipelineBarrier(
 				copyCmd,
-				texture.image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				subresourceRange);
+				VK_PIPELINE_STAGE_HOST_BIT,
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				0,
+				0, nullptr,
+				0, nullptr,
+				1, &imageMemoryBarrier);
 
 			// Copy mip levels from staging buffer
 			vkCmdCopyBufferToImage(
@@ -341,24 +288,35 @@ public:
 				static_cast<uint32_t>(bufferCopyRegions.size()),
 				bufferCopyRegions.data());
 
-			// Change texture image layout to shader read after all mip levels have been copied
-			texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			setImageLayout(
+			// Once the data has been uploaded we transfer to the texture image to the shader read layout, so it can be sampled from
+			imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			// Insert a memory dependency at the proper pipeline stages that will execute the image layout transition 
+			// Source pipeline stage stage is copy command exection (VK_PIPELINE_STAGE_TRANSFER_BIT)
+			// Destination pipeline stage fragment shader access (VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
+			vkCmdPipelineBarrier(
 				copyCmd,
-				texture.image,
-				VK_IMAGE_ASPECT_COLOR_BIT,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				texture.imageLayout,
-				subresourceRange);
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+				0,
+				0, nullptr,
+				0, nullptr,
+				1, &imageMemoryBarrier);
+
+			// Store current layout for later reuse
+			texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 
 			// Clean up staging resources
 			vkFreeMemory(device, stagingMemory, nullptr);
 			vkDestroyBuffer(device, stagingBuffer, nullptr);
-		}
-		else
-		{
+		} else {
+			// Copy data to a linear tiled image
+
 			VkImage mappableImage;
 			VkDeviceMemory mappableMemory;
 
@@ -376,69 +334,57 @@ public:
 			imageCreateInfo.extent = { texture.width, texture.height, 1 };
 			VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &mappableImage));
 
-			// Get memory requirements for this image 
-			// like size and alignment
+			// Get memory requirements for this image like size and alignment
 			vkGetImageMemoryRequirements(device, mappableImage, &memReqs);
 			// Set memory allocation size to required memory size
 			memAllocInfo.allocationSize = memReqs.size;
-
 			// Get memory type that can be mapped to host memory
 			memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-			// Allocate host memory
 			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &mappableMemory));
-
-			// Bind allocated image for use
 			VK_CHECK_RESULT(vkBindImageMemory(device, mappableImage, mappableMemory, 0));
 
-			// Get sub resource layout
-			// Mip map count, array layer, etc.
-			VkImageSubresource subRes = {};
-			subRes.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-			VkSubresourceLayout subResLayout;
-			void *data;
-
-			// Get sub resources layout 
-			// Includes row pitch, size offsets, etc.
-			vkGetImageSubresourceLayout(device, mappableImage, &subRes, &subResLayout);
-
 			// Map image memory
+			void *data;
 			VK_CHECK_RESULT(vkMapMemory(device, mappableMemory, 0, memReqs.size, 0, &data));
-
-			// Copy image data into memory
-			memcpy(data, tex2D[subRes.mipLevel].data(), tex2D[subRes.mipLevel].size());
-
+			// Copy image data of the first mip level into memory
+			memcpy(data, tex2D[0].data(), tex2D[0].size());
 			vkUnmapMemory(device, mappableMemory);
 
-			// Linear tiled images don't need to be staged
-			// and can be directly used as textures
+			// Linear tiled images don't need to be staged and can be directly used as textures
 			texture.image = mappableImage;
 			texture.deviceMemory = mappableMemory;
 			texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			
-			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 			// Setup image memory barrier transfer image to shader read layout
+			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 			// The sub resource range describes the regions of the image we will be transition
 			VkImageSubresourceRange subresourceRange = {};
-			// Image only contains color data
 			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			// Start at first mip level
 			subresourceRange.baseMipLevel = 0;
-			// Only one mip level, most implementations won't support more for linear tiled images
 			subresourceRange.levelCount = 1;
-			// The 2D texture only has one layer
 			subresourceRange.layerCount = 1;
 
-			setImageLayout(
-				copyCmd, 
-				texture.image,
-				VK_IMAGE_ASPECT_COLOR_BIT, 
-				VK_IMAGE_LAYOUT_PREINITIALIZED,
-				texture.imageLayout,
-				subresourceRange);
+			// Transition the texture image layout to shader read, so it can be sampled from
+			VkImageMemoryBarrier imageMemoryBarrier = vks::initializers::imageMemoryBarrier();;
+			imageMemoryBarrier.image = texture.image;
+			imageMemoryBarrier.subresourceRange = subresourceRange;
+			imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
+			imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			// Insert a memory dependency at the proper pipeline stages that will execute the image layout transition 
+			// Source pipeline stage is host write/read exection (VK_PIPELINE_STAGE_HOST_BIT)
+			// Destination pipeline stage fragment shader access (VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
+			vkCmdPipelineBarrier(
+				copyCmd,
+				VK_PIPELINE_STAGE_HOST_BIT,
+				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+				0,
+				0, nullptr,
+				0, nullptr,
+				1, &imageMemoryBarrier);
 
 			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 		}
@@ -461,14 +407,11 @@ public:
 		sampler.maxLod = (useStaging) ? (float)texture.mipLevels : 0.0f;
 		// Enable anisotropic filtering
 		// This feature is optional, so we must check if it's supported on the device
-		if (vulkanDevice->features.samplerAnisotropy)
-		{
+		if (vulkanDevice->features.samplerAnisotropy) {
 			// Use max. level of anisotropy for this example
 			sampler.maxAnisotropy = vulkanDevice->properties.limits.maxSamplerAnisotropy;
 			sampler.anisotropyEnable = VK_TRUE;
-		}
-		else
-		{
+		} else {
 			// The device does not support anisotropic filtering
 			sampler.maxAnisotropy = 1.0;
 			sampler.anisotropyEnable = VK_FALSE;
@@ -547,6 +490,8 @@ public:
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
+
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 

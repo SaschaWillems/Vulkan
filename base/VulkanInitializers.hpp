@@ -528,6 +528,15 @@ namespace vks
 			return pipelineCreateInfo;
 		}
 
+		inline VkGraphicsPipelineCreateInfo pipelineCreateInfo()
+		{
+			VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
+			pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			pipelineCreateInfo.basePipelineIndex = -1;
+			pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+			return pipelineCreateInfo;
+		}
+
 		inline VkComputePipelineCreateInfo computePipelineCreateInfo(
 			VkPipelineLayout layout, 
 			VkPipelineCreateFlags flags = 0)

@@ -1,7 +1,25 @@
-language: cpp
+language: gneric
 sudo: required
 os: linux
 dist: trusty
+matrix:
+  include:
+    - os: linux
+      env: COMPILER_NAME=gcc CXX=g++-7 CC=gcc-7
+      addons:
+        apt:
+          packages:
+            - g++-7
+          sources:
+            - ubuntu-toolchain-r-test
+    - os: linux
+      env: COMPILER_NAME=clang CXX=clang++-5.0 CC=clang-5.0
+      addons:
+        apt:
+          packages:
+            - clang-5.0
+          sources:
+            - llvm-toolchain-trusty-5.0
 compiler:
   - clang
   - gcc

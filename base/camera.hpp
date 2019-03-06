@@ -37,6 +37,8 @@ private:
 		{
 			matrices.view = transM * rotM;
 		}
+
+		updated = true;
 	};
 public:
 	enum CameraType { lookat, firstperson };
@@ -47,6 +49,8 @@ public:
 
 	float rotationSpeed = 1.0f;
 	float movementSpeed = 1.0f;
+
+	bool updated = false;
 
 	struct
 	{
@@ -120,6 +124,7 @@ public:
 
 	void update(float deltaTime)
 	{
+		updated = false;
 		if (type == CameraType::firstperson)
 		{
 			if (moving())

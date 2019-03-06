@@ -219,6 +219,8 @@ public:
 			// End capture of pipeline statistics
 			vkCmdEndQuery(drawCmdBuffers[i], queryPool, 0);
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
