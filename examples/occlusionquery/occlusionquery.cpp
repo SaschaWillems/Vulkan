@@ -273,6 +273,7 @@ public:
 
 	void draw()
 	{
+		updateUniformBuffers();
 		VulkanExampleBase::prepareFrame();
 
 		submitInfo.commandBufferCount = 1;
@@ -592,11 +593,6 @@ public:
 		if (!prepared)
 			return;
 		draw();
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffers();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
