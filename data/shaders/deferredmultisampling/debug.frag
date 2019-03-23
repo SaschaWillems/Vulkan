@@ -8,7 +8,7 @@ layout (location = 0) in vec3 inUV;
 
 layout (location = 0) out vec4 outFragColor;
 
-#define NUM_SAMPLES 8
+layout (constant_id = 0) const int NUM_SAMPLES = 8;
 
 vec4 resolve(sampler2DMS tex, ivec2 uv)
 {

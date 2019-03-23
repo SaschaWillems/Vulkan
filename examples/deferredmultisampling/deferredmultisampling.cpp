@@ -25,8 +25,6 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
-// todo: check if hardware supports sample number (or select max. supported)
-#define SAMPLE_COUNT VK_SAMPLE_COUNT_8_BIT
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -34,6 +32,7 @@ public:
 	bool debugDisplay = false;
 	bool useMSAA = true;
 	bool useSampleShading = true;
+	VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
 	struct {
 		struct {
@@ -267,7 +266,7 @@ public:
 		image.extent.depth = 1;
 		image.mipLevels = 1;
 		image.arrayLayers = 1;
-		image.samples = SAMPLE_COUNT;
+		image.samples = sampleCount;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
 		image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -345,7 +344,7 @@ public:
 		// Init attachment properties
 		for (uint32_t i = 0; i < 4; ++i)
 		{
-			attachmentDescs[i].samples = SAMPLE_COUNT;
+			attachmentDescs[i].samples = sampleCount;
 			attachmentDescs[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachmentDescs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachmentDescs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -440,6 +439,7 @@ public:
 		sampler.addressModeW = sampler.addressModeU;
 		sampler.mipLodBias = 0.0f;
 		sampler.maxAnisotropy = 1.0f;
+		sampler.minLod = 0.0f;
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
@@ -925,7 +925,7 @@ public:
 		specializationEntry.offset = 0;
 		specializationEntry.size = sizeof(uint32_t);
 		
-		uint32_t specializationData = SAMPLE_COUNT;
+		uint32_t specializationData = sampleCount;
 
 		VkSpecializationInfo specializationInfo;
 		specializationInfo.mapEntryCount = 1;
@@ -944,8 +944,10 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.deferredNoMSAA));
 
 		// Debug display pipeline
+		specializationData = sampleCount;
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/deferredmultisampling/debug.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/deferredmultisampling/debug.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[1].pSpecializationInfo = &specializationInfo;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.debug));
 		
 		// Offscreen scene rendering pipeline
@@ -956,7 +958,7 @@ public:
 
 		//rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 		//rasterizationState.lineWidth = 2.0f;
-		multisampleState.rasterizationSamples = SAMPLE_COUNT;
+		multisampleState.rasterizationSamples = sampleCount;
 		multisampleState.alphaToCoverageEnable = VK_TRUE;
 
 		// Separate render pass
@@ -1129,6 +1131,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		sampleCount = getMaxUsableSampleCount();
 		loadAssets();
 		setupVertexDescriptions();
 		prepareOffscreenFramebuffer();
@@ -1172,6 +1175,19 @@ public:
 				}
 			}
 		}
+	}
+
+	// Returns the maximum sample count usable by the platform
+	VkSampleCountFlagBits getMaxUsableSampleCount()
+	{
+		VkSampleCountFlags counts = std::min(deviceProperties.limits.framebufferColorSampleCounts, deviceProperties.limits.framebufferDepthSampleCounts);
+		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+		if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+		if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+		if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+		return VK_SAMPLE_COUNT_1_BIT;
 	}
 };
 
