@@ -73,6 +73,7 @@ set(EXAMPLES
 	multisampling
 	multithreading
 	multiview
+	negativeviewportheight
 	occlusionquery
 	offscreen
 	parallaxmapping
