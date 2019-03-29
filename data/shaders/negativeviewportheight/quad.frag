@@ -8,5 +8,4 @@ layout (location = 0) out vec4 outColor;
 void main() 
 {
 	outColor = texture(samplerColor, inUV);
-	outColor.rgb *= vec3(inUV, 0.0f);
 }

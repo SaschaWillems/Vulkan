@@ -1,5 +1,7 @@
 /*
-* Vulkan Example - Using VK_KHR_MAINTENANCE1 for negative viewport heights
+* Vulkan Example - Using negative viewport heights for changing Vulkan's coordinate system
+*
+* Note: Requires a device that supports VK_KHR_MAINTENANCE1
 *
 * Copyright (C) by Sascha Willems - www.saschawillems.de
 *
@@ -37,7 +39,7 @@ public:
 	vks::Texture2D texture;
 
 	VkPipelineLayout pipelineLayout;
-	VkPipeline pipeline;
+	VkPipeline pipeline = VK_NULL_HANDLE;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
 
@@ -51,7 +53,7 @@ public:
 	{
 		title = "Negative Viewport height";
 		settings.overlay = true;
-		// VK_KHR_MAINTENANCE1 is required for using negative viewport heights
+		// [POI] VK_KHR_MAINTENANCE1 is required for using negative viewport heights
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 	}
 
@@ -89,12 +91,14 @@ public:
 
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
+			// [POI] Viewport setup
 			VkViewport viewport{};
 			if (negativeViewport) {
-				// When using a negative viewport height, the origin needs to be adjusted too
 				viewport.x = offsetx;
+				// [POI] When using a negative viewport height, the origin needs to be adjusted too
 				viewport.y = (float)height - offsety;
 				viewport.width = (float)width;
+				// [POI] Flip the sign of the viewport's height
 				viewport.height = -(float)height;
 			}
 			else {
@@ -129,7 +133,7 @@ public:
 	{
 		texture.loadFromFile(getAssetPath() + "textures/texture_orientation_test_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 
-		// Create two quads with different Y orientations 
+		// [POI] Create two quads with different Y orientations 
 
 		struct Vertex {
 			float pos[3];
@@ -157,8 +161,8 @@ public:
 
 		const VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, memoryPropertyFlags, &quad.verticesYUp, verticesYPos.size() * sizeof(Vertex), verticesYPos.data()));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, memoryPropertyFlags, &quad.verticesYDown, verticesYNeg.size() * sizeof(Vertex), verticesYNeg.data()));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, memoryPropertyFlags, &quad.verticesYUp, sizeof(Vertex) * 4, verticesYPos.data()));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, memoryPropertyFlags, &quad.verticesYDown,  sizeof(Vertex) * 4, verticesYNeg.data()));
 
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, memoryPropertyFlags, &quad.indices, indices.size() * sizeof(uint32_t), indices.data()));
 	}
@@ -184,14 +188,12 @@ public:
 		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
 	}
 
-	void recreatePipeline()
-	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-		preparePipelines();
-	}
-
 	void preparePipelines()
 	{
+		if (pipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+		}
+
 		const std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
@@ -201,8 +203,6 @@ public:
 		VkPipelineViewportStateCreateInfo viewportStateCI = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
-
-		//VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI{};
 		rasterizationStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -296,11 +296,11 @@ public:
 		if (overlay->header("Pipeline")) {
 			overlay->text("Winding order");
 			if (overlay->comboBox("##windingorder", &windingOrder, { "clock wise", "counter clock wise" })) {
-				recreatePipeline();
+				preparePipelines();
 			}
 			overlay->text("Cull mode");
 			if (overlay->comboBox("##cullmode", &cullMode, { "none", "front face", "back face" })) {
-				recreatePipeline();
+				preparePipelines();
 			}
 		}
 	}
