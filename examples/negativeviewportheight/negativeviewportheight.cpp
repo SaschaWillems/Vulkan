@@ -54,6 +54,13 @@ public:
 		vks::Buffer verticesYDown;
 		vks::Buffer indicesCCW;
 		vks::Buffer indicesCW;
+		void destroy() 
+		{
+			verticesYUp.destroy();
+			verticesYDown.destroy();
+			indicesCCW.destroy();
+			indicesCW.destroy();
+		}
 	} quad;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
@@ -71,6 +78,7 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 		textures.CW.destroy();
 		textures.CCW.destroy();
+		quad.destroy();
 	}
 
 	void buildCommandBuffers()
