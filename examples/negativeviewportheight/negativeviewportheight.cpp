@@ -29,7 +29,7 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	bool negativeViewport;
+	bool negativeViewport = true;
 	int32_t offsety = 0;
 	int32_t offsetx = 0;
 	int32_t windingOrder = 1;
