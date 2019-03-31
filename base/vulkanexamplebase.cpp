@@ -998,7 +998,7 @@ void VulkanExampleBase::setupConsole(std::string title)
 
 void VulkanExampleBase::setupDPIAwareness()
 {
-	using SetProcessDpiAwarenessFunc = HRESULT(*)(PROCESS_DPI_AWARENESS);
+	typedef HRESULT *(__stdcall *SetProcessDpiAwarenessFunc)(PROCESS_DPI_AWARENESS);
 
 	HMODULE shCore = LoadLibraryA("Shcore.dll");
 	if (shCore)
