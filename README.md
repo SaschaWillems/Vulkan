@@ -335,6 +335,10 @@ Demonstrates the use of VK_EXT_conditional_rendering to conditionally dispatch r
 
 Uses the VK_EXT_debug_marker extension to set debug markers, regions and to name Vulkan objects for advanced debugging in graphics debuggers like [RenderDoc](https://www.renderdoc.org). Details can be found in [this tutorial](https://www.saschawillems.de/tutorials/vulkan/vk_ext_debug_marker).
 
+#### [07 - Negative viewport height (VK_KHR_Maintenance1 or Vulkan 1.1)](examples/negativeviewportheight/)
+
+Shows how to render a scene using a negative viewport height, making the Vulkan render setup more similar to other APIs like OpenGL. Also has several options for changing relevant pipeline state, and displaying meshes with OpenGL or Vulkan style coordinates. Details can be found in [this tutorial](https://www.saschawillems.de/tutorials/vulkan/flipping-viewport).
+
 ### <a name="Misc"></a> Misc
 
 #### [01 - Vulkan Gears](examples/gears/)
