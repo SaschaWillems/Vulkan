@@ -115,6 +115,8 @@ public:
 		timerSpeed *= 0.25f;
 		title = "Offscreen rendering";
 		settings.overlay = true;
+		// The scene shader uses a clipping plane, so this feature has to be enabled
+		enabledFeatures.shaderClipDistance = VK_TRUE;
 	}
 
 	~VulkanExample()
