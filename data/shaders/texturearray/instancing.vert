@@ -1,6 +1,6 @@
 #version 450
 
-layout (location = 0) in vec4 inPos;
+layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec2 inUV;
 
 struct Instance
@@ -22,5 +22,5 @@ void main()
 {
 	outUV = vec3(inUV, ubo.instance[gl_InstanceIndex].arrayIndex.x);
 	mat4 modelView = ubo.view * ubo.instance[gl_InstanceIndex].model;
-	gl_Position = ubo.projection * modelView * inPos;
+	gl_Position = ubo.projection * modelView * vec4(inPos, 1.0);
 }
