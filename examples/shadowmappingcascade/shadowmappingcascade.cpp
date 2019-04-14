@@ -1,6 +1,6 @@
 /*
 	Vulkan Example - Cascaded shadow mapping for directional light sources
-	Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+	Copyright by Sascha Willems - www.saschawillems.de
 	This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
@@ -118,8 +118,6 @@ public:
 	// Resources of the depth map generation pass
 	struct DepthPass {
 		VkRenderPass renderPass;
-		VkCommandBuffer commandBuffer;
-		VkSemaphore semaphore;
 		VkPipelineLayout pipelineLayout;
 		VkPipeline pipeline;
 		vks::Buffer uniformBuffer;
@@ -203,9 +201,6 @@ public:
 		depthPass.uniformBuffer.destroy();
 		uniformBuffers.VS.destroy();
 		uniformBuffers.FS.destroy();
-
-		vkFreeCommandBuffers(device, cmdPool, 1, &depthPass.commandBuffer);
-		vkDestroySemaphore(device, depthPass.semaphore, nullptr);
 	}
 
 	virtual void getEnabledFeatures()
@@ -270,11 +265,6 @@ public:
 		VkFormat depthFormat;
 		vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
 
-		depthPass.commandBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
-		// Create a semaphore used to synchronize depth map generation and use
-		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &depthPass.semaphore));
-
 		/*
 			Depth map renderpass
 		*/
@@ -303,17 +293,17 @@ public:
 
 		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependencies[0].dstSubpass = 0;
-		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-		dependencies[0].srcAccessMask = 0;
-		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 		dependencies[1].srcSubpass = 0;
 		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
 		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -404,96 +394,101 @@ public:
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &depth.sampler));
 	}
-
-	/*
-		Build the command buffer for rendering the depth map cascades
-		Uses multiple passes with each pass rendering the scene to the cascade's depth image layer
-		Could be optimized using a geometry shader (and layered frame buffer) on devices that support geometry shaders
-	*/
-	void buildDepthPassCommandBuffer()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[1];
-		clearValues[0].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = depthPass.renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = SHADOWMAP_DIM;
-		renderPassBeginInfo.renderArea.extent.height = SHADOWMAP_DIM;
-		renderPassBeginInfo.clearValueCount = 1;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(depthPass.commandBuffer, &cmdBufInfo));
-
-		VkViewport viewport = vks::initializers::viewport((float)SHADOWMAP_DIM, (float)SHADOWMAP_DIM, 0.0f, 1.0f);
-		vkCmdSetViewport(depthPass.commandBuffer, 0, 1, &viewport);
-
-		VkRect2D scissor = vks::initializers::rect2D(SHADOWMAP_DIM, SHADOWMAP_DIM, 0, 0);
-		vkCmdSetScissor(depthPass.commandBuffer, 0, 1, &scissor);
-
-		// One pass per cascade
-		// The layer that this pass renders too is defined by the cascade's image view (selected via the cascade's decsriptor set)
-		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
-			renderPassBeginInfo.framebuffer = cascades[i].frameBuffer;
-			vkCmdBeginRenderPass(depthPass.commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdBindPipeline(depthPass.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPass.pipeline);
-			renderScene(depthPass.commandBuffer, depthPass.pipelineLayout, cascades[i].descriptorSet, i);
-			vkCmdEndRenderPass(depthPass.commandBuffer);
-		}
-
-		VK_CHECK_RESULT(vkEndCommandBuffer(depthPass.commandBuffer));
-	}
-
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
+		VkDeviceSize offsets[1] = { 0 };
 
 		for (int32_t i = 0; i < drawCmdBuffers.size(); i++) {
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
+			
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			/*
+				Generate depth map cascades
 
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+				Uses multiple passes with each pass rendering the scene to the cascade's depth image layer
+				Could be optimized using a geometry shader (and layered frame buffer) on devices that support geometry shaders
+			*/
+			{
+				VkClearValue clearValues[1];
+				clearValues[0].depthStencil = { 1.0f, 0 };
 
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+				renderPassBeginInfo.renderPass = depthPass.renderPass;
+				renderPassBeginInfo.renderArea.offset.x = 0;
+				renderPassBeginInfo.renderArea.offset.y = 0;
+				renderPassBeginInfo.renderArea.extent.width = SHADOWMAP_DIM;
+				renderPassBeginInfo.renderArea.extent.height = SHADOWMAP_DIM;
+				renderPassBeginInfo.clearValueCount = 1;
+				renderPassBeginInfo.pClearValues = clearValues;
 
-			// Visualize shadow map cascade
-			if (displayDepthMap) {
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debugShadowMap);
-				PushConstBlock pushConstBlock = {};
-				pushConstBlock.cascadeIndex = displayDepthMapCascadeIndex;
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
-				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
+				VkViewport viewport = vks::initializers::viewport((float)SHADOWMAP_DIM, (float)SHADOWMAP_DIM, 0.0f, 1.0f);
+				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+
+				VkRect2D scissor = vks::initializers::rect2D(SHADOWMAP_DIM, SHADOWMAP_DIM, 0, 0);
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+
+				// One pass per cascade
+				// The layer that this pass renders to is defined by the cascade's image view (selected via the cascade's decsriptor set)
+				for (uint32_t j = 0; j < SHADOW_MAP_CASCADE_COUNT; j++) {
+					renderPassBeginInfo.framebuffer = cascades[j].frameBuffer;
+					vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, depthPass.pipeline);
+					renderScene(drawCmdBuffers[i], depthPass.pipelineLayout, cascades[j].descriptorSet, j);
+					vkCmdEndRenderPass(drawCmdBuffers[i]);
+				}
 			}
 
-			// Render shadowed scene
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, (filterPCF) ? pipelines.sceneShadowPCF : pipelines.sceneShadow);
-			renderScene(drawCmdBuffers[i], pipelineLayout, descriptorSet);
+			/*
+				Note: Explicit synchronization is not required between the render pass, as this is done implicit via sub pass dependencies
+			*/
 
-			drawUI(drawCmdBuffers[i]);
+			/*
+				Scene rendering using depth cascades for shadow mapping
+			*/
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			{
+				VkClearValue clearValues[2];
+				clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
+				clearValues[1].depthStencil = { 1.0f, 0 };
+
+				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+				renderPassBeginInfo.renderPass = renderPass;
+				renderPassBeginInfo.framebuffer = frameBuffers[i];
+				renderPassBeginInfo.renderArea.offset.x = 0;
+				renderPassBeginInfo.renderArea.offset.y = 0;
+				renderPassBeginInfo.renderArea.extent.width = width;
+				renderPassBeginInfo.renderArea.extent.height = height;
+				renderPassBeginInfo.clearValueCount = 2;
+				renderPassBeginInfo.pClearValues = clearValues;
+
+				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+
+				VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+
+				// Visualize shadow map cascade
+				if (displayDepthMap) {
+					vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debugShadowMap);
+					PushConstBlock pushConstBlock = {};
+					pushConstBlock.cascadeIndex = displayDepthMapCascadeIndex;
+					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+					vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
+				}
+
+				// Render shadowed scene
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, (filterPCF) ? pipelines.sceneShadowPCF : pipelines.sceneShadow);
+				renderScene(drawCmdBuffers[i], pipelineLayout, descriptorSet);
+
+				drawUI(drawCmdBuffers[i]);
+
+				vkCmdEndRenderPass(drawCmdBuffers[i]);
+			}
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
@@ -852,21 +847,9 @@ public:
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
-
-		// Depth map generation
-		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-		submitInfo.pSignalSemaphores = &depthPass.semaphore;
-
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &depthPass.commandBuffer;
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		// Scene rendering
-		submitInfo.pWaitSemaphores = &depthPass.semaphore;;
-		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
 		VulkanExampleBase::submitFrame();
 	}
 
@@ -881,7 +864,6 @@ public:
 		setupLayoutsAndDescriptors();
 		preparePipelines();
 		buildCommandBuffers();
-		buildDepthPassCommandBuffer();
 		prepared = true;
 	}
 
@@ -890,17 +872,11 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		if (!paused) {
+		if (!paused || camera.updated) {
 			updateLight();
 			updateCascades();
 			updateUniformBuffers();
 		}
-	}
-
-	virtual void viewChanged()
-	{
-		updateCascades();
-		updateUniformBuffers();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
