@@ -1,7 +1,5 @@
 #version 450
 
-layout (location = 0) in vec3 inPos;
-
 layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
@@ -9,16 +7,11 @@ layout (binding = 0) uniform UBO
 	mat4 model;
 } ubo;
 
-layout (location = 0) out vec3 outUVW;
-
-out gl_PerVertex 
-{
-	vec4 gl_Position;
-};
+layout (location = 0) out vec2 outUV;
 
 void main() 
 {
-	outUVW = inPos;
-	gl_Position = ubo.projection * ubo.model * vec4(inPos.xyz, 1.0);
+	outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+	gl_Position = vec4(outUV.xy * 2.0f - 1.0f, 0.0f, 1.0f);
 }
 

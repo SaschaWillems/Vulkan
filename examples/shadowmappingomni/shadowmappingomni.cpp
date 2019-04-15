@@ -78,7 +78,7 @@ public:
 	struct {
 		VkPipeline scene;
 		VkPipeline offscreen;
-		VkPipeline cubeMap;
+		VkPipeline cubemapDisplay;
 	} pipelines;
 
 	struct {
@@ -154,7 +154,7 @@ public:
 		// Pipelibes
 		vkDestroyPipeline(device, pipelines.scene, nullptr);
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
-		vkDestroyPipeline(device, pipelines.cubeMap, nullptr);
+		vkDestroyPipeline(device, pipelines.cubemapDisplay, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayouts.scene, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayouts.offscreen, nullptr);
@@ -552,10 +552,12 @@ public:
 
 				if (displayCubeMap)
 				{
-					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.cubeMap);
+					// Display all six sides of the shadow cube map
+					// Note: Visualization of the different faces is done in the fragment shader, see cubemapdisplay.frag
+					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.cubemapDisplay);
 					vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.skybox.vertices.buffer, offsets);
 					vkCmdBindIndexBuffer(drawCmdBuffers[i], models.skybox.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-					vkCmdDrawIndexed(drawCmdBuffers[i], models.skybox.indexCount, 1, 0, 0, 0);
+					vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 				}
 				else
 				{
@@ -752,15 +754,16 @@ public:
 		// Cube map display pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapomni/cubemapdisplay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapomni/cubemapdisplay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.cubeMap));
+		VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
+		pipelineCreateInfo.pVertexInputState = &emptyInputState;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.cubemapDisplay));
 
 		// Offscreen pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapomni/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapomni/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
 		pipelineCreateInfo.renderPass = offscreenPass.renderPass;
+		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreen));
 	}
 
