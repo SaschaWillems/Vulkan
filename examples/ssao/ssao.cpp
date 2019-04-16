@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Screen space ambient occlusion example
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -143,11 +143,6 @@ public:
 	// One sampler for the frame buffer color attachments
 	VkSampler colorSampler;
 
-	VkCommandBuffer offScreenCmdBuffer = VK_NULL_HANDLE;
-
-	// Semaphore used to synchronize between offscreen and final scene rendering
-	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
-
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Screen space ambient occlusion";
@@ -202,9 +197,6 @@ public:
 		uniformBuffers.ssaoKernel.destroy();
 		uniformBuffers.ssaoParams.destroy();
 
-		// Misc
-		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
-		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 		textures.ssaoNoise.destroy();
 	}
 
@@ -344,18 +336,18 @@ public:
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[0].dstSubpass = 0;
-			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 			dependencies[1].srcSubpass = 0;
 			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 			VkRenderPassCreateInfo renderPassInfo = {};
@@ -514,112 +506,6 @@ public:
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &colorSampler));
 	}
 
-	// Build command buffer for rendering the scene to the offscreen frame buffer attachments
-	void buildDeferredCommandBuffer()
-	{
-		VkDeviceSize offsets[1] = { 0 };
-
-		if (offScreenCmdBuffer == VK_NULL_HANDLE)
-		{
-			offScreenCmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
-		}
-
-		// Create a semaphore used to synchronize offscreen rendering and usage
-		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &offscreenSemaphore));
-
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		// Clear values for all attachments written in the fragment sahder
-		std::vector<VkClearValue> clearValues(4);
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-		clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-		clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-		clearValues[3].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass =  frameBuffers.offscreen.renderPass;
-		renderPassBeginInfo.framebuffer = frameBuffers.offscreen.frameBuffer;
-		renderPassBeginInfo.renderArea.extent.width = frameBuffers.offscreen.width;
-		renderPassBeginInfo.renderArea.extent.height = frameBuffers.offscreen.height;
-		renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-		renderPassBeginInfo.pClearValues = clearValues.data();
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(offScreenCmdBuffer, &cmdBufInfo));
-
-		/*
-			First pass: Fill G-Buffer components (positions+depth, normals, albedo) using MRT
-		*/
-
-		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		VkViewport viewport = vks::initializers::viewport((float)frameBuffers.offscreen.width, (float)frameBuffers.offscreen.height, 0.0f, 1.0f);
-		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
-
-		VkRect2D scissor = vks::initializers::rect2D(frameBuffers.offscreen.width, frameBuffers.offscreen.height, 0, 0);
-		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
-
-		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
-
-		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.gBuffer, 0, 1, &descriptorSets.floor, 0, NULL);
-		vkCmdBindVertexBuffers(offScreenCmdBuffer, 0, 1, &models.scene.vertices.buffer, offsets);
-		vkCmdBindIndexBuffer(offScreenCmdBuffer, models.scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(offScreenCmdBuffer, models.scene.indexCount, 1, 0, 0, 0);
-
-		vkCmdEndRenderPass(offScreenCmdBuffer);
-
-		/*
-			Second pass: SSAO generation
-		*/
-
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		renderPassBeginInfo.framebuffer = frameBuffers.ssao.frameBuffer;
-		renderPassBeginInfo.renderPass = frameBuffers.ssao.renderPass;
-		renderPassBeginInfo.renderArea.extent.width = frameBuffers.ssao.width;
-		renderPassBeginInfo.renderArea.extent.height = frameBuffers.ssao.height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues.data();
-
-		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		viewport = vks::initializers::viewport((float)frameBuffers.ssao.width, (float)frameBuffers.ssao.height, 0.0f, 1.0f);
-		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
-		scissor = vks::initializers::rect2D(frameBuffers.ssao.width, frameBuffers.ssao.height, 0, 0);
-		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
-
-		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.ssao, 0, 1, &descriptorSets.ssao, 0, NULL);
-		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ssao);
-		vkCmdDraw(offScreenCmdBuffer, 3, 1, 0, 0);
-
-		vkCmdEndRenderPass(offScreenCmdBuffer);
-
-		/*
-			Third pass: SSAO blur
-		*/
-
-		renderPassBeginInfo.framebuffer = frameBuffers.ssaoBlur.frameBuffer;
-		renderPassBeginInfo.renderPass = frameBuffers.ssaoBlur.renderPass;
-		renderPassBeginInfo.renderArea.extent.width = frameBuffers.ssaoBlur.width;
-		renderPassBeginInfo.renderArea.extent.height = frameBuffers.ssaoBlur.height;
-
-		vkCmdBeginRenderPass(offScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		viewport = vks::initializers::viewport((float)frameBuffers.ssaoBlur.width, (float)frameBuffers.ssaoBlur.height, 0.0f, 1.0f);
-		vkCmdSetViewport(offScreenCmdBuffer, 0, 1, &viewport);
-		scissor = vks::initializers::rect2D(frameBuffers.ssaoBlur.width, frameBuffers.ssaoBlur.height, 0, 0);
-		vkCmdSetScissor(offScreenCmdBuffer, 0, 1, &scissor);
-
-		vkCmdBindDescriptorSets(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.ssaoBlur, 0, 1, &descriptorSets.ssaoBlur, 0, NULL);
-		vkCmdBindPipeline(offScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ssaoBlur);
-		vkCmdDraw(offScreenCmdBuffer, 3, 1, 0, 0);
-
-		vkCmdEndRenderPass(offScreenCmdBuffer);
-
-		VK_CHECK_RESULT(vkEndCommandBuffer(offScreenCmdBuffer));
-	}
-
 	void loadAssets()
 	{
 		vks::ModelCreateInfo modelCreateInfo;
@@ -633,43 +519,140 @@ public:
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
+		VkDeviceSize offsets[1] = { 0 };
 
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = VulkanExampleBase::frameBuffers[i];
-
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			/*
+				Offscreen SSAO generation
+			*/
+			{
+				// Clear values for all attachments written in the fragment sahder
+				std::vector<VkClearValue> clearValues(4);
+				clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+				clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+				clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+				clearValues[3].depthStencil = { 1.0f, 0 };
 
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+				renderPassBeginInfo.renderPass = frameBuffers.offscreen.renderPass;
+				renderPassBeginInfo.framebuffer = frameBuffers.offscreen.frameBuffer;
+				renderPassBeginInfo.renderArea.extent.width = frameBuffers.offscreen.width;
+				renderPassBeginInfo.renderArea.extent.height = frameBuffers.offscreen.height;
+				renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+				renderPassBeginInfo.pClearValues = clearValues.data();
 
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+				/*
+					First pass: Fill G-Buffer components (positions+depth, normals, albedo) using MRT
+				*/
 
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.composition, 0, 1, &descriptorSets.composition, 0, NULL);
+				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			// Final composition pass
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.composition);
-			vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
+				VkViewport viewport = vks::initializers::viewport((float)frameBuffers.offscreen.width, (float)frameBuffers.offscreen.height, 0.0f, 1.0f);
+				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 
-			drawUI(drawCmdBuffers[i]);
+				VkRect2D scissor = vks::initializers::rect2D(frameBuffers.offscreen.width, frameBuffers.offscreen.height, 0, 0);
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
+
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.gBuffer, 0, 1, &descriptorSets.floor, 0, NULL);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.scene.vertices.buffer, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(drawCmdBuffers[i], models.scene.indexCount, 1, 0, 0, 0);
+
+				vkCmdEndRenderPass(drawCmdBuffers[i]);
+
+				/*
+					Second pass: SSAO generation
+				*/
+
+				clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+				clearValues[1].depthStencil = { 1.0f, 0 };
+
+				renderPassBeginInfo.framebuffer = frameBuffers.ssao.frameBuffer;
+				renderPassBeginInfo.renderPass = frameBuffers.ssao.renderPass;
+				renderPassBeginInfo.renderArea.extent.width = frameBuffers.ssao.width;
+				renderPassBeginInfo.renderArea.extent.height = frameBuffers.ssao.height;
+				renderPassBeginInfo.clearValueCount = 2;
+				renderPassBeginInfo.pClearValues = clearValues.data();
+
+				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				viewport = vks::initializers::viewport((float)frameBuffers.ssao.width, (float)frameBuffers.ssao.height, 0.0f, 1.0f);
+				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+				scissor = vks::initializers::rect2D(frameBuffers.ssao.width, frameBuffers.ssao.height, 0, 0);
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.ssao, 0, 1, &descriptorSets.ssao, 0, NULL);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ssao);
+				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
+
+				vkCmdEndRenderPass(drawCmdBuffers[i]);
+
+				/*
+					Third pass: SSAO blur
+				*/
+
+				renderPassBeginInfo.framebuffer = frameBuffers.ssaoBlur.frameBuffer;
+				renderPassBeginInfo.renderPass = frameBuffers.ssaoBlur.renderPass;
+				renderPassBeginInfo.renderArea.extent.width = frameBuffers.ssaoBlur.width;
+				renderPassBeginInfo.renderArea.extent.height = frameBuffers.ssaoBlur.height;
+
+				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				viewport = vks::initializers::viewport((float)frameBuffers.ssaoBlur.width, (float)frameBuffers.ssaoBlur.height, 0.0f, 1.0f);
+				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+				scissor = vks::initializers::rect2D(frameBuffers.ssaoBlur.width, frameBuffers.ssaoBlur.height, 0, 0);
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.ssaoBlur, 0, 1, &descriptorSets.ssaoBlur, 0, NULL);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ssaoBlur);
+				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
+
+				vkCmdEndRenderPass(drawCmdBuffers[i]);
+			}
+
+			/*
+				Note: Explicit synchronization is not required between the render pass, as this is done implicit via sub pass dependencies
+			*/
+
+			/*
+				Final render pass: Scene rendering with applied radial blur
+			*/
+			{
+				std::vector<VkClearValue> clearValues(2);
+				clearValues[0].color = defaultClearColor;
+				clearValues[1].depthStencil = { 1.0f, 0 };
+
+				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+				renderPassBeginInfo.renderPass = renderPass;
+				renderPassBeginInfo.framebuffer = VulkanExampleBase::frameBuffers[i];
+				renderPassBeginInfo.renderArea.extent.width = width;
+				renderPassBeginInfo.renderArea.extent.height = height;
+				renderPassBeginInfo.clearValueCount = 2;
+				renderPassBeginInfo.pClearValues = clearValues.data();
+
+				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+
+				VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.composition, 0, 1, &descriptorSets.composition, 0, NULL);
+
+				// Final composition pass
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.composition);
+				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
+
+				drawUI(drawCmdBuffers[i]);
+
+				vkCmdEndRenderPass(drawCmdBuffers[i]);
+			}
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
@@ -966,20 +949,9 @@ public:
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
-
-		// Offscreen rendering
-		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-		submitInfo.pSignalSemaphores = &offscreenSemaphore;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &offScreenCmdBuffer;
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		// Scene rendering
-		submitInfo.pWaitSemaphores = &offscreenSemaphore;
-		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
 		VulkanExampleBase::submitFrame();
 	}
 
@@ -993,7 +965,6 @@ public:
 		setupLayoutsAndDescriptors();
 		preparePipelines();
 		buildCommandBuffers();
-		buildDeferredCommandBuffer(); 
 		prepared = true;
 	}
 
