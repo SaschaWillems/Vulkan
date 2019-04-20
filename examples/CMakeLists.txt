@@ -74,6 +74,7 @@ set(EXAMPLES
 	multithreading
 	multiview
 	negativeviewportheight
+	nv_ray_tracing_basic
 	occlusionquery
 	offscreen
 	parallaxmapping
