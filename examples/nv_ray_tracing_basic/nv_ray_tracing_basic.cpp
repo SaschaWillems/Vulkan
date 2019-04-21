@@ -16,7 +16,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <gli/gli.hpp>
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
@@ -28,14 +27,13 @@
 // Ray tracing acceleration structure
 struct AccelerationStructure {
 	VkDeviceMemory memory;
-	VkAccelerationStructureInfoNV accelerationStructureInfo;
 	VkAccelerationStructureNV accelerationStructure;
 	uint64_t handle;
 };
 
 // Ray tracing geometry instance
 struct GeometryInstance {
-	float transform[12];
+	glm::mat3x4 transform;
 	uint32_t instanceId : 24;
 	uint32_t mask : 8;
 	uint32_t instanceOffset : 24;
@@ -52,6 +50,7 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	PFN_vkCreateAccelerationStructureNV vkCreateAccelerationStructureNV;
+	PFN_vkDestroyAccelerationStructureNV vkDestroyAccelerationStructureNV;
 	PFN_vkBindAccelerationStructureMemoryNV vkBindAccelerationStructureMemoryNV;
 	PFN_vkGetAccelerationStructureHandleNV vkGetAccelerationStructureHandleNV;
 	PFN_vkGetAccelerationStructureMemoryRequirementsNV vkGetAccelerationStructureMemoryRequirementsNV;
@@ -104,11 +103,19 @@ public:
 
 	~VulkanExample()
 	{
+		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
+		vkDestroyImageView(device, storageImage.view, nullptr);
+		vkDestroyImage(device, storageImage.image, nullptr);
+		vkFreeMemory(device, storageImage.memory, nullptr);
+		vkFreeMemory(device, bottomLevelAS.memory, nullptr);
+		vkFreeMemory(device, topLevelAS.memory, nullptr);
+		vkDestroyAccelerationStructureNV(device, bottomLevelAS.accelerationStructure, nullptr);
+		vkDestroyAccelerationStructureNV(device, topLevelAS.accelerationStructure, nullptr);
 		vertexBuffer.destroy();
 		indexBuffer.destroy();
+		shaderBindingTable.destroy();
 		ubo.destroy();
 	}
 
@@ -298,16 +305,17 @@ public:
 			Create the top-level acceleration structure that contains geometry instance information
 		*/
 
-		// Single instance with a 3x3 transform matrix for the ray traced triangle
+		// Single instance with a 3x4 transform matrix for the ray traced triangle
 		vks::Buffer instanceBuffer;
-		const float transform[12] = {
+
+		glm::mat3x4 transform = {
 			1.0f, 0.0f, 0.0f, 0.0f,
 			0.0f, 1.0f, 0.0f, 0.0f,
 			0.0f, 0.0f, 1.0f, 0.0f,
 		};
 
 		GeometryInstance instance{};
-		std::memcpy(instance.transform, transform, sizeof(transform));
+		instance.transform = transform;
 		instance.instanceId = 0;
 		instance.mask = 0xff;
 		instance.instanceOffset = 0;
@@ -399,6 +407,7 @@ public:
 		vulkanDevice->flushCommandBuffer(cmdBuffer, queue);
 
 		scratchBuffer.destroy();
+		instanceBuffer.destroy();
 	}
 
 	VkDeviceSize copyShaderIdentifier(uint8_t* data, const uint8_t* shaderHandleStorage, uint32_t groupIndex) {
@@ -691,6 +700,7 @@ public:
 
 		// Get VK_NV_ray_tracing related function pointers
 		vkCreateAccelerationStructureNV = reinterpret_cast<PFN_vkCreateAccelerationStructureNV>(vkGetDeviceProcAddr(device, "vkCreateAccelerationStructureNV"));
+		vkDestroyAccelerationStructureNV = reinterpret_cast<PFN_vkDestroyAccelerationStructureNV>(vkGetDeviceProcAddr(device, "vkDestroyAccelerationStructureNV"));
 		vkBindAccelerationStructureMemoryNV = reinterpret_cast<PFN_vkBindAccelerationStructureMemoryNV>(vkGetDeviceProcAddr(device, "vkBindAccelerationStructureMemoryNV"));
 		vkGetAccelerationStructureHandleNV = reinterpret_cast<PFN_vkGetAccelerationStructureHandleNV>(vkGetDeviceProcAddr(device, "vkGetAccelerationStructureHandleNV"));
 		vkGetAccelerationStructureMemoryRequirementsNV = reinterpret_cast<PFN_vkGetAccelerationStructureMemoryRequirementsNV>(vkGetDeviceProcAddr(device, "vkGetAccelerationStructureMemoryRequirementsNV"));
