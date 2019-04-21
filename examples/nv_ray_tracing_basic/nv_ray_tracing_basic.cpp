@@ -314,20 +314,20 @@ public:
 			0.0f, 0.0f, 1.0f, 0.0f,
 		};
 
-		GeometryInstance instance{};
-		instance.transform = transform;
-		instance.instanceId = 0;
-		instance.mask = 0xff;
-		instance.instanceOffset = 0;
-		instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
-		instance.accelerationStructureHandle = bottomLevelAS.handle;
+		GeometryInstance geometryInstance{};
+		geometryInstance.transform = transform;
+		geometryInstance.instanceId = 0;
+		geometryInstance.mask = 0xff;
+		geometryInstance.instanceOffset = 0;
+		geometryInstance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
+		geometryInstance.accelerationStructureHandle = bottomLevelAS.handle;
 
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&instanceBuffer,
-			sizeof(instance),
-			&instance));
+			sizeof(GeometryInstance),
+			&geometryInstance));
 
 		createTopLevelAccelerationStructure();
 
