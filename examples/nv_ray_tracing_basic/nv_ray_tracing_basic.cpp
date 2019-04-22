@@ -22,8 +22,6 @@
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
 
-#define ENABLE_VALIDATION false
-
 // Ray tracing acceleration structure
 struct AccelerationStructure {
 	VkDeviceMemory memory;
@@ -42,9 +40,9 @@ struct GeometryInstance {
 };
 
 // Indices for the different ray tracing shader types used in this example
-#define SHADER_INDEX_RAYGEN 0
-#define SHADER_INDEX_MISS 1
-#define SHADER_INDEX_CLOSEST_HIT 2
+#define INDEX_RAYGEN 0
+#define INDEX_MISS 1
+#define INDEX_CLOSEST_HIT 2
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -87,7 +85,7 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "VK_NV_ray_tracing";
 		settings.overlay = true;
@@ -436,9 +434,9 @@ public:
 		auto* data = static_cast<uint8_t*>(shaderBindingTable.mapped);
 		// Copy the shader identifiers to the shader binding table
 		VkDeviceSize offset = 0;
-		data += copyShaderIdentifier(data, shaderHandleStorage, SHADER_INDEX_RAYGEN);
-		data += copyShaderIdentifier(data, shaderHandleStorage, SHADER_INDEX_MISS);
-		data += copyShaderIdentifier(data, shaderHandleStorage, SHADER_INDEX_CLOSEST_HIT);
+		data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_RAYGEN);
+		data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_MISS);
+		data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_CLOSEST_HIT);
 		shaderBindingTable.unmap();
 	}
 
@@ -529,10 +527,14 @@ public:
 
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
+		const uint32_t shaderIndexRaygen = 0;
+		const uint32_t shaderIndexMiss = 1;
+		const uint32_t shaderIndexClosestHit = 2;
+
 		std::array<VkPipelineShaderStageCreateInfo, 3> shaderStages;
-		shaderStages[SHADER_INDEX_RAYGEN] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_basic/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);			
-		shaderStages[SHADER_INDEX_MISS] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_basic/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
-		shaderStages[SHADER_INDEX_CLOSEST_HIT] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_basic/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+		shaderStages[shaderIndexRaygen] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_basic/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
+		shaderStages[shaderIndexMiss] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_basic/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+		shaderStages[shaderIndexClosestHit] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_basic/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
 
 		/*
 			Setup ray tracing shader groups
@@ -548,13 +550,13 @@ public:
 		}
 
 		// Links shaders and types to ray tracing shader groups
-		groups[SHADER_INDEX_RAYGEN].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-		groups[SHADER_INDEX_RAYGEN].generalShader = SHADER_INDEX_RAYGEN;		
-		groups[SHADER_INDEX_MISS].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-		groups[SHADER_INDEX_MISS].generalShader = SHADER_INDEX_MISS;
-		groups[SHADER_INDEX_CLOSEST_HIT].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-		groups[SHADER_INDEX_CLOSEST_HIT].generalShader = VK_SHADER_UNUSED_NV;
-		groups[SHADER_INDEX_CLOSEST_HIT].closestHitShader = SHADER_INDEX_CLOSEST_HIT;
+		groups[INDEX_RAYGEN].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+		groups[INDEX_RAYGEN].generalShader = shaderIndexRaygen;
+		groups[INDEX_MISS].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+		groups[INDEX_MISS].generalShader = shaderIndexMiss;
+		groups[INDEX_CLOSEST_HIT].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+		groups[INDEX_CLOSEST_HIT].generalShader = VK_SHADER_UNUSED_NV;
+		groups[INDEX_CLOSEST_HIT].closestHitShader = shaderIndexClosestHit;
 
 		VkRayTracingPipelineCreateInfoNV rayPipelineInfo{};
 		rayPipelineInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
@@ -603,9 +605,9 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
 
 			// Calculate shader binding offsets, which is pretty straight forward in our example 
-			VkDeviceSize bindingOffsetRayGenShader = 0;
-			VkDeviceSize bindingOffsetMissShader = rayTracingProperties.shaderGroupHandleSize;
-			VkDeviceSize bindingOffsetHitShader = rayTracingProperties.shaderGroupHandleSize * 2;
+			VkDeviceSize bindingOffsetRayGenShader = rayTracingProperties.shaderGroupHandleSize * INDEX_RAYGEN;
+			VkDeviceSize bindingOffsetMissShader = rayTracingProperties.shaderGroupHandleSize * INDEX_MISS;
+			VkDeviceSize bindingOffsetHitShader = rayTracingProperties.shaderGroupHandleSize * INDEX_CLOSEST_HIT;
 			VkDeviceSize bindingStride = rayTracingProperties.shaderGroupHandleSize;
 
 			vkCmdTraceRaysNV(drawCmdBuffers[i],
