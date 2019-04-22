@@ -248,7 +248,7 @@ public:
 #endif
 
 	// Default ctor
-	VulkanExampleBase(bool enableValidation);
+	VulkanExampleBase(bool enableValidation = false);
 
 	// dtor
 	virtual ~VulkanExampleBase();
