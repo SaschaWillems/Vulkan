@@ -259,8 +259,11 @@ public:
 	void createScene()
 	{
 		// Instead of a simple triangle, we'll be loading a more complex scene for this example
-		scene.loadFromFile(getAssetPath() + "models/vulkanscene_shadow.dae", vertexLayout, 0.25f, vulkanDevice, queue);
-		//scene.loadFromFile(getAssetPath() + "models/Mini_Diorama_01.dae", vertexLayout, 0.25f, vulkanDevice, queue);		
+		vks::ModelCreateInfo modelCI{};
+		modelCI.scale = glm::vec3(0.25f);
+		// The shaders are accessing the vertex and index buffers of the scene, so the proper usage flag has to be set
+		modelCI.memoryPropertyFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		scene.loadFromFile(getAssetPath() + "models/vulkanscene_shadow.dae", vertexLayout, &modelCI, vulkanDevice, queue);
 
 		/*
 			Create the bottom level acceleration structure containing the actual scene geometry
