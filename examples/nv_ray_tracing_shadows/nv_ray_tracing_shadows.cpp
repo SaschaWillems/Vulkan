@@ -606,7 +606,7 @@ public:
 		rayPipelineInfo.pGroups = groups.data();
 		rayPipelineInfo.maxRecursionDepth = 2;
 		rayPipelineInfo.layout = pipelineLayout;
-		VK_CHECK_RESULT(vkCreateRayTracingPipelinesNV(device, nullptr, 1, &rayPipelineInfo, nullptr, &pipeline));
+		VK_CHECK_RESULT(vkCreateRayTracingPipelinesNV(device, VK_NULL_HANDLE, 1, &rayPipelineInfo, nullptr, &pipeline));
 	}
 
 	/*
