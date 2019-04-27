@@ -263,8 +263,6 @@ public:
 		// The shaders are accessing the vertex and index buffers of the scene, so the proper usage flag has to be set
 		modelCI.memoryPropertyFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		scene.loadFromFile(getAssetPath() + "models/reflection_test.dae", vertexLayout, &modelCI, vulkanDevice, queue);
-		//scene.loadFromFile(getAssetPath() + "models/Mini_Diorama_01.dae", vertexLayout, &modelCI, vulkanDevice, queue);
-
 
 		/*
 			Create the bottom level acceleration structure containing the actual scene geometry
