@@ -11,7 +11,6 @@ struct RayPayload {
 
 layout(location = 0) rayPayloadInNV RayPayload rayPayload;
 
-layout(location = 2) rayPayloadNV bool shadowed;
 hitAttributeNV vec3 attribs;
 
 layout(binding = 0, set = 0) uniform accelerationStructureNV topLevelAS;
