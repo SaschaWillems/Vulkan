@@ -364,32 +364,6 @@ namespace vks
 		}
 #endif
 
-		VkShaderModule loadShaderGLSL(const char *fileName, VkDevice device, VkShaderStageFlagBits stage)
-		{
-			std::string shaderSrc = readTextFile(fileName);
-			const char *shaderCode = shaderSrc.c_str();
-			size_t size = strlen(shaderCode);
-			assert(size > 0);
-
-			VkShaderModule shaderModule;
-			VkShaderModuleCreateInfo moduleCreateInfo;
-			moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			moduleCreateInfo.pNext = NULL;
-			moduleCreateInfo.codeSize = 3 * sizeof(uint32_t) + size + 1;
-			moduleCreateInfo.pCode = (uint32_t*)malloc(moduleCreateInfo.codeSize);
-			moduleCreateInfo.flags = 0;
-
-			// Magic SPV number
-			((uint32_t *)moduleCreateInfo.pCode)[0] = 0x07230203;
-			((uint32_t *)moduleCreateInfo.pCode)[1] = 0;
-			((uint32_t *)moduleCreateInfo.pCode)[2] = stage;
-			memcpy(((uint32_t *)moduleCreateInfo.pCode + 3), shaderCode, size + 1);
-
-			VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
-
-			return shaderModule;
-		}
-
 		bool fileExists(const std::string &filename)
 		{
 			std::ifstream f(filename.c_str());

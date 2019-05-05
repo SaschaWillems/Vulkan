@@ -124,10 +124,6 @@ namespace vks
 		VkShaderModule loadShader(const char *fileName, VkDevice device);
 #endif
 
-		// Load a GLSL shader (text)
-		// Note: GLSL support requires vendor-specific extensions to be enabled and is not a core-feature of Vulkan
-		VkShaderModule loadShaderGLSL(const char *fileName, VkDevice device, VkShaderStageFlagBits stage);
-
 		/** @brief Checks if a file exists */
 		bool fileExists(const std::string &filename);
 	}
