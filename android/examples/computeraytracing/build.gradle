@@ -4,7 +4,7 @@ apply from: '../gradle/outputfilename.gradle'
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "de.saschawillems.vulkanRaytracing"
+        applicationId "de.saschawillems.vulkanComputeRaytracing"
         minSdkVersion 19
         targetSdkVersion 26
         versionCode 1
@@ -49,8 +49,8 @@ task copyTask << {
     }
 
     copy {
-       from '../../../data/shaders/raytracing'
-       into 'assets/shaders/raytracing'
+       from '../../../data/shaders/computeraytracing'
+       into 'assets/shaders/computeraytracing'
        include '*.*'
     }
 

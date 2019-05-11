@@ -229,7 +229,7 @@ Attraction based 2D GPU particle system using compute shaders. Particle data is 
 
 N-body simulation based particle system with multiple attractors and particle-to-particle interaction using two passes separating particle movement calculation and final integration. Shared compute shader memory is used to speed up compute calculations.
 
-#### [04 - Ray tracing](examples/raytracing/)
+#### [04 - Ray tracing](examples/computeraytracing/)
 
 Simple GPU ray tracer with shadows and reflections using a compute shader. No scene geometry is rendered in the graphics pass.
 

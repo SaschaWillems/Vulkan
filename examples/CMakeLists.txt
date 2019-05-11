@@ -50,6 +50,7 @@ set(EXAMPLES
 	computeheadless
 	computenbody
 	computeparticles
+	computeraytracing
 	computeshader
 	conditionalrender
 	conservativeraster
@@ -89,7 +90,6 @@ set(EXAMPLES
 	pushconstants
 	pushdescriptors
 	radialblur
-	raytracing
 	renderheadless
 	scenerendering
 	screenshot
