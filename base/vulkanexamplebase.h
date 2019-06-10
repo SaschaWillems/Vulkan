@@ -1,7 +1,7 @@
 /*
 * Vulkan Example base class
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -83,17 +83,14 @@ protected:
 	VkPhysicalDeviceFeatures deviceFeatures;
 	// Stores all available memory (type) properties for the physical device
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
-	/**
-	* Set of physical device features to be enabled for this example (must be set in the derived constructor)
-	*
-	* @note By default no phyiscal device features are enabled
-	*/
+	/** @brief Set of physical device features to be enabled for this example (must be set in the derived constructor) */
 	VkPhysicalDeviceFeatures enabledFeatures{};
 	/** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
 	std::vector<const char*> enabledDeviceExtensions;
 	std::vector<const char*> enabledInstanceExtensions;
+	/** @brief Optional pNext structure for passing extension structures to device creation */
+	void* deviceCreatepNextChain = nullptr;
 	/** @brief Logical device, application's view of the physical device (GPU) */
-	// todo: getter? should always point to VulkanDevice->device
 	VkDevice device;
 	// Handle to the device graphics queue that command buffers are submitted to
 	VkQueue queue;
