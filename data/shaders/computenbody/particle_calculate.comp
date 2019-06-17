@@ -62,6 +62,9 @@ void main()
 			vec3 len = other.xyz - position.xyz;
 			acceleration.xyz += GRAVITY * len * other.w / pow(dot(len, len) + SOFTEN, POWER);
 		}
+
+		memoryBarrierShared();
+		barrier();
 	}
 
 	particles[index].vel.xyz += ubo.deltaT * acceleration.xyz;
