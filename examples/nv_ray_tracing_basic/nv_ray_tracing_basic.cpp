@@ -246,12 +246,12 @@ public:
 	{
 		// Setup vertices for a single uv-mapped quad made from two triangles
 		struct Vertex {
-			float pos[4];
+			float pos[3];
 		};
 		std::vector<Vertex> vertices = {
-			{ {  1.0f,  1.0f, 0.0f, 1.0f } },
-			{ { -1.0f,  1.0f, 0.0f, 1.0f } },
-			{ {  0.0f, -1.0f, 0.0f, 1.0f } }
+			{ {  1.0f,  1.0f, 0.0f } },
+			{ { -1.0f,  1.0f, 0.0f } },
+			{ {  0.0f, -1.0f, 0.0f } }
 		};
 
 		// Setup indices
@@ -286,7 +286,7 @@ public:
 		geometry.geometry.triangles.vertexOffset = 0;
 		geometry.geometry.triangles.vertexCount = static_cast<uint32_t>(vertices.size());
 		geometry.geometry.triangles.vertexStride = sizeof(Vertex);
-		geometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+		geometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
 		geometry.geometry.triangles.indexData = indexBuffer.buffer;
 		geometry.geometry.triangles.indexOffset = 0;
 		geometry.geometry.triangles.indexCount = indexCount;
@@ -385,6 +385,7 @@ public:
 		/*
 			Build top-level acceleration structure
 		*/
+		buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
 		buildInfo.pGeometries = 0;
 		buildInfo.geometryCount = 0;
 		buildInfo.instanceCount = 1;
