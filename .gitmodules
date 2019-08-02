@@ -4,3 +4,6 @@
 [submodule "external/gli"]
 	path = external/gli
 	url = https://github.com/g-truc/gli
+[submodule "external/ktx"]
+	path = external/ktx
+	url = https://github.com/KhronosGroup/KTX-Software

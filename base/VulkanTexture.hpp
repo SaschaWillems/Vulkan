@@ -1,7 +1,7 @@
 /*
 * Vulkan texture loader
 *
-* Copyright(C) 2016-2017 by Sascha Willems - www.saschawillems.de
+* Copyright(C) by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license(MIT) (http://opensource.org/licenses/MIT)
 */
@@ -15,7 +15,8 @@
 
 #include "vulkan/vulkan.h"
 
-#include <gli/gli.hpp>
+#include <ktx.h>
+#include <ktxvulkan.h>
 
 #include "VulkanTools.h"
 #include "VulkanDevice.hpp"
@@ -39,11 +40,8 @@ namespace vks
 		uint32_t mipLevels;
 		uint32_t layerCount;
 		VkDescriptorImageInfo descriptor;
-
-		/** @brief Optional sampler to use with this texture */
 		VkSampler sampler;
 
-		/** @brief Update image descriptor from current sampler, view and image layout */
 		void updateDescriptor()
 		{
 			descriptor.sampler = sampler;
@@ -51,7 +49,6 @@ namespace vks
 			descriptor.imageLayout = imageLayout;
 		}
 
-		/** @brief Release all Vulkan resources held by this texture */
 		void destroy()
 		{
 			vkDestroyImageView(device->logicalDevice, view, nullptr);
@@ -62,6 +59,35 @@ namespace vks
 			}
 			vkFreeMemory(device->logicalDevice, deviceMemory, nullptr);
 		}
+
+		ktxResult loadKTXFile(std::string filename, ktxTexture **target)
+		{
+			ktxResult result = KTX_SUCCESS;
+#if defined(__ANDROID__)
+			// Textures are stored inside the apk on Android (compressed)
+			// So they need to be loaded via the asset manager
+			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+			if (!asset) {
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+			}
+			size_t size = AAsset_getLength(asset);
+			assert(size > 0);
+
+			void *textureData = malloc(size);
+			AAsset_read(asset, textureData, size);
+			AAsset_close(asset);
+
+			result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, target);
+
+			free(textureData);
+#else
+			if (!vks::tools::fileExists(filename)) {
+				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+			}
+			result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, target);			
+#endif		
+			return result;
+		}
 	};
 
 	/** @brief 2D texture */
@@ -70,7 +96,7 @@ namespace vks
 		/**
 		* Load a 2D texture including all mip levels
 		*
-		* @param filename File to load (supports .ktx and .dds)
+		* @param filename File to load (supports .ktx)
 		* @param format Vulkan format of the image data stored in the file
 		* @param device Vulkan device to create the texture on
 		* @param copyQueue Queue used for the texture staging copy commands (must support transfer)
@@ -88,35 +114,17 @@ namespace vks
 			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
 			bool forceLinear = false)
 		{
-#if defined(__ANDROID__)
-			// Textures are stored inside the apk on Android (compressed)
-			// So they need to be loaded via the asset manager
-			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
-			if (!asset) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
-			}
-			size_t size = AAsset_getLength(asset);
-			assert(size > 0);
-
-			void *textureData = malloc(size);
-			AAsset_read(asset, textureData, size);
-			AAsset_close(asset);
-
-			gli::texture2d tex2D(gli::load((const char*)textureData, size));
-
-			free(textureData);
-#else
-			if (!vks::tools::fileExists(filename)) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
-			}
-			gli::texture2d tex2D(gli::load(filename.c_str()));
-#endif		
-			assert(!tex2D.empty());
+			ktxTexture* ktxTexture;
+			ktxResult result = loadKTXFile(filename, &ktxTexture);
+			assert(result == KTX_SUCCESS);
 
 			this->device = device;
-			width = static_cast<uint32_t>(tex2D[0].extent().x);
-			height = static_cast<uint32_t>(tex2D[0].extent().y);
-			mipLevels = static_cast<uint32_t>(tex2D.levels());
+			width = ktxTexture->baseWidth;
+			height = ktxTexture->baseHeight;
+			mipLevels = ktxTexture->numLevels;
+
+			ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
+			ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
 			// Get device properites for the requested texture format
 			VkFormatProperties formatProperties;
@@ -142,7 +150,7 @@ namespace vks
 				VkDeviceMemory stagingMemory;
 
 				VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
-				bufferCreateInfo.size = tex2D.size();
+				bufferCreateInfo.size = ktxTextureSize;
 				// This buffer is used as a transfer source for the buffer copy
 				bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 				bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -162,28 +170,28 @@ namespace vks
 				// Copy texture data into staging buffer
 				uint8_t *data;
 				VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **)&data));
-				memcpy(data, tex2D.data(), tex2D.size());
+				memcpy(data, ktxTextureData, ktxTextureSize);
 				vkUnmapMemory(device->logicalDevice, stagingMemory);
 
 				// Setup buffer copy regions for each mip level
 				std::vector<VkBufferImageCopy> bufferCopyRegions;
-				uint32_t offset = 0;
 
 				for (uint32_t i = 0; i < mipLevels; i++)
 				{
+					ktx_size_t offset;
+					assert(ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset) == KTX_SUCCESS);
+
 					VkBufferImageCopy bufferCopyRegion = {};
 					bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 					bufferCopyRegion.imageSubresource.mipLevel = i;
 					bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 					bufferCopyRegion.imageSubresource.layerCount = 1;
-					bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2D[i].extent().x);
-					bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2D[i].extent().y);
+					bufferCopyRegion.imageExtent.width = ktxTexture->baseWidth >> i;
+					bufferCopyRegion.imageExtent.height = ktxTexture->baseHeight >> i;
 					bufferCopyRegion.imageExtent.depth = 1;
 					bufferCopyRegion.bufferOffset = offset;
 
 					bufferCopyRegions.push_back(bufferCopyRegion);
-
-					offset += static_cast<uint32_t>(tex2D[i].size());
 				}
 
 				// Create optimal tiled target image
@@ -312,7 +320,7 @@ namespace vks
 				VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, mappableMemory, 0, memReqs.size, 0, &data));
 
 				// Copy image data into memory
-				memcpy(data, tex2D[subRes.mipLevel].data(), tex2D[subRes.mipLevel].size());
+				memcpy(data, ktxTextureData, ktxTextureSize);
 
 				vkUnmapMemory(device->logicalDevice, mappableMemory);
 
@@ -327,6 +335,8 @@ namespace vks
 
 				device->flushCommandBuffer(copyCmd, copyQueue);
 			}
+
+			ktxTexture_Destroy(ktxTexture);
 
 			// Create a defaultsampler
 			VkSamplerCreateInfo samplerCreateInfo = {};
@@ -552,7 +562,7 @@ namespace vks
 		/**
 		* Load a 2D texture array including all mip levels
 		*
-		* @param filename File to load (supports .ktx and .dds)
+		* @param filename File to load (supports .ktx)
 		* @param format Vulkan format of the image data stored in the file
 		* @param device Vulkan device to create the texture on
 		* @param copyQueue Queue used for the texture staging copy commands (must support transfer)
@@ -568,36 +578,18 @@ namespace vks
 			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
 			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
-#if defined(__ANDROID__)
-			// Textures are stored inside the apk on Android (compressed)
-			// So they need to be loaded via the asset manager
-			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
-			if (!asset) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
-			}
-			size_t size = AAsset_getLength(asset);
-			assert(size > 0);
-
-			void *textureData = malloc(size);
-			AAsset_read(asset, textureData, size);
-			AAsset_close(asset);
-
-			gli::texture2d_array tex2DArray(gli::load((const char*)textureData, size));
-
-			free(textureData);
-#else
-			if (!vks::tools::fileExists(filename)) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
-			}
-			gli::texture2d_array tex2DArray(gli::load(filename));
-#endif	
-			assert(!tex2DArray.empty());
+			ktxTexture* ktxTexture;
+			ktxResult result = loadKTXFile(filename, &ktxTexture);
+			assert(result == KTX_SUCCESS);
 
 			this->device = device;
-			width = static_cast<uint32_t>(tex2DArray.extent().x);
-			height = static_cast<uint32_t>(tex2DArray.extent().y);
-			layerCount = static_cast<uint32_t>(tex2DArray.layers());
-			mipLevels = static_cast<uint32_t>(tex2DArray.levels());
+			width = ktxTexture->baseWidth;
+			height = ktxTexture->baseHeight;
+			layerCount = ktxTexture->numLayers;
+			mipLevels = ktxTexture->numLevels;
+
+			ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
+			ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
 			VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 			VkMemoryRequirements memReqs;
@@ -607,7 +599,7 @@ namespace vks
 			VkDeviceMemory stagingMemory;
 
 			VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
-			bufferCreateInfo.size = tex2DArray.size();
+			bufferCreateInfo.size = ktxTextureSize;
 			// This buffer is used as a transfer source for the buffer copy
 			bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -627,31 +619,30 @@ namespace vks
 			// Copy texture data into staging buffer
 			uint8_t *data;
 			VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **)&data));
-			memcpy(data, tex2DArray.data(), static_cast<size_t>(tex2DArray.size()));
+			memcpy(data, ktxTextureData, ktxTextureSize);
 			vkUnmapMemory(device->logicalDevice, stagingMemory);
 
 			// Setup buffer copy regions for each layer including all of it's miplevels
 			std::vector<VkBufferImageCopy> bufferCopyRegions;
-			size_t offset = 0;
 
 			for (uint32_t layer = 0; layer < layerCount; layer++)
 			{
 				for (uint32_t level = 0; level < mipLevels; level++)
 				{
+					ktx_size_t offset;
+					assert(ktxTexture_GetImageOffset(ktxTexture, level, layer, 0, &offset) == KTX_SUCCESS);
+
 					VkBufferImageCopy bufferCopyRegion = {};
 					bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 					bufferCopyRegion.imageSubresource.mipLevel = level;
 					bufferCopyRegion.imageSubresource.baseArrayLayer = layer;
 					bufferCopyRegion.imageSubresource.layerCount = 1;
-					bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(tex2DArray[layer][level].extent().x);
-					bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(tex2DArray[layer][level].extent().y);
+					bufferCopyRegion.imageExtent.width = ktxTexture->baseWidth >> level;
+					bufferCopyRegion.imageExtent.height = ktxTexture->baseHeight >> level;
 					bufferCopyRegion.imageExtent.depth = 1;
 					bufferCopyRegion.bufferOffset = offset;
 
 					bufferCopyRegions.push_back(bufferCopyRegion);
-
-					// Increase offset into staging buffer for next level / face
-					offset += tex2DArray[layer][level].size();
 				}
 			}
 
@@ -750,6 +741,7 @@ namespace vks
 			VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
 
 			// Clean up staging resources
+			ktxTexture_Destroy(ktxTexture);
 			vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 			vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
 
@@ -764,7 +756,7 @@ namespace vks
 		/**
 		* Load a cubemap texture including all mip levels from a single file
 		*
-		* @param filename File to load (supports .ktx and .dds)
+		* @param filename File to load (supports .ktx)
 		* @param format Vulkan format of the image data stored in the file
 		* @param device Vulkan device to create the texture on
 		* @param copyQueue Queue used for the texture staging copy commands (must support transfer)
@@ -780,35 +772,17 @@ namespace vks
 			VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
 			VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		{
-#if defined(__ANDROID__)
-			// Textures are stored inside the apk on Android (compressed)
-			// So they need to be loaded via the asset manager
-			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
-			if (!asset) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
-			}
-			size_t size = AAsset_getLength(asset);
-			assert(size > 0);
-
-			void *textureData = malloc(size);
-			AAsset_read(asset, textureData, size);
-			AAsset_close(asset);
-
-			gli::texture_cube texCube(gli::load((const char*)textureData, size));
-
-			free(textureData);
-#else
-			if (!vks::tools::fileExists(filename)) {
-				vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
-			}
-			gli::texture_cube texCube(gli::load(filename));
-#endif	
-			assert(!texCube.empty());
+			ktxTexture* ktxTexture;
+			ktxResult result = loadKTXFile(filename, &ktxTexture);
+			assert(result == KTX_SUCCESS);
 
 			this->device = device;
-			width = static_cast<uint32_t>(texCube.extent().x);
-			height = static_cast<uint32_t>(texCube.extent().y);
-			mipLevels = static_cast<uint32_t>(texCube.levels());
+			width = ktxTexture->baseWidth;
+			height = ktxTexture->baseHeight;
+			mipLevels = ktxTexture->numLevels;
+
+			ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
+			ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
 			VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 			VkMemoryRequirements memReqs;
@@ -818,7 +792,7 @@ namespace vks
 			VkDeviceMemory stagingMemory;
 
 			VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
-			bufferCreateInfo.size = texCube.size();
+			bufferCreateInfo.size = ktxTextureSize;
 			// This buffer is used as a transfer source for the buffer copy
 			bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -838,31 +812,30 @@ namespace vks
 			// Copy texture data into staging buffer
 			uint8_t *data;
 			VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **)&data));
-			memcpy(data, texCube.data(), texCube.size());
+			memcpy(data, ktxTextureData, ktxTextureSize);
 			vkUnmapMemory(device->logicalDevice, stagingMemory);
 
 			// Setup buffer copy regions for each face including all of it's miplevels
 			std::vector<VkBufferImageCopy> bufferCopyRegions;
-			size_t offset = 0;
 
 			for (uint32_t face = 0; face < 6; face++)
 			{
 				for (uint32_t level = 0; level < mipLevels; level++)
 				{
+					ktx_size_t offset;
+					assert(ktxTexture_GetImageOffset(ktxTexture, level, 0, face, &offset) == KTX_SUCCESS);
+
 					VkBufferImageCopy bufferCopyRegion = {};
 					bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 					bufferCopyRegion.imageSubresource.mipLevel = level;
 					bufferCopyRegion.imageSubresource.baseArrayLayer = face;
 					bufferCopyRegion.imageSubresource.layerCount = 1;
-					bufferCopyRegion.imageExtent.width = static_cast<uint32_t>(texCube[face][level].extent().x);
-					bufferCopyRegion.imageExtent.height = static_cast<uint32_t>(texCube[face][level].extent().y);
+					bufferCopyRegion.imageExtent.width = ktxTexture->baseWidth >> level;
+					bufferCopyRegion.imageExtent.height = ktxTexture->baseHeight >> level;
 					bufferCopyRegion.imageExtent.depth = 1;
 					bufferCopyRegion.bufferOffset = offset;
 
 					bufferCopyRegions.push_back(bufferCopyRegion);
-
-					// Increase offset into staging buffer for next level / face
-					offset += texCube[face][level].size();
 				}
 			}
 
@@ -965,6 +938,7 @@ namespace vks
 			VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
 
 			// Clean up staging resources
+			ktxTexture_Destroy(ktxTexture);
 			vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 			vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
 
