@@ -22,6 +22,8 @@
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
 #include "VulkanBuffer.hpp"
+#include <ktx.h>
+#include <ktxvulkan.h>
 
 #define ENABLE_VALIDATION false
 
