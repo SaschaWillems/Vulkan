@@ -320,7 +320,7 @@ namespace vks
 				VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, mappableMemory, 0, memReqs.size, 0, &data));
 
 				// Copy image data into memory
-				memcpy(data, ktxTextureData, ktxTextureSize);
+				memcpy(data, ktxTextureData, memReqs.size);
 
 				vkUnmapMemory(device->logicalDevice, mappableMemory);
 
