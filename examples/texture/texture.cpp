@@ -219,7 +219,7 @@ public:
 			uint32_t offset = 0;
 
 			for (uint32_t i = 0; i < texture.mipLevels; i++) {
-				// Calculate offset into staging buffer for the current mip lavel
+				// Calculate offset into staging buffer for the current mip level
 				ktx_size_t offset;
 				assert(ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset) == KTX_SUCCESS);
 				// Setup a buffer image copy structure for the current mip level
