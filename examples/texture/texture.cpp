@@ -222,7 +222,7 @@ public:
 				// Calculate offset into staging buffer for the current mip lavel
 				ktx_size_t offset;
 				assert(ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset) == KTX_SUCCESS);
-				// Setup a buffer image copy structure for the current mip lavel
+				// Setup a buffer image copy structure for the current mip level
 				VkBufferImageCopy bufferCopyRegion = {};
 				bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				bufferCopyRegion.imageSubresource.mipLevel = i;
