@@ -20,7 +20,7 @@ void main()
 	lightColor[3] = vec3(1.0, 0.0, 1.0);
 	lightColor[4] = vec3(0.0, 1.0, 1.0);
 	lightColor[5] = vec3(1.0, 1.0, 0.0);
-	
+
 	vec3 diffuse = vec3(0.0);
 	// Just some very basic attenuation
 	for (int i = 0; i < lightCount; ++i)
@@ -33,5 +33,5 @@ void main()
 		diffuse += lightColor[i] * distFactor;		
 	}
 			
-	outFragColor.rgb = diffuse;			
+	outFragColor = vec4(diffuse, 1.0);	
 }

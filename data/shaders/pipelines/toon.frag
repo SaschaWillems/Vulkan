@@ -32,5 +32,5 @@ void main()
 	shade = intensity < 0.25 ? 0.5 : shade;
 	shade = intensity < 0.1 ? 0.25 : shade;
 
-	outFragColor.rgb = inColor * 3.0 * shade;
+	outFragColor. = vec4(inColor * 3.0 * shade, 1.0);
 }

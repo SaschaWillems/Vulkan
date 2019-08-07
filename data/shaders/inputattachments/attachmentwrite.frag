@@ -17,7 +17,7 @@ void main()
 	shade = intensity < 0.25 ? 0.5 : shade;
 	shade = intensity < 0.1 ? 0.25 : shade;
 
-	outColor.rgb = inColor * 3.0 * shade;
+	outColor = vec4(inColor * 3.0 * shade, 1.0);
 
 	// Depth attachment does not need to be explicitly written
 }

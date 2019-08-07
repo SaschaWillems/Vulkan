@@ -14,5 +14,5 @@ void main()
 
 	vec4 color = texture(samplerColorMap, inUV);
 	
-	outFragColor.rgb = vec3(clamp(max(dot(N,L), 0.0), 0.2, 1.0)) * color.rgb * 1.5;
+	outFragColor = vec4((clamp(max(dot(N,L), 0.0), 0.2, 1.0)) * color.rgb * 1.5, 1.0);
 }

@@ -21,13 +21,13 @@ void main()
 	if (ubo.attachmentIndex == 0) {
 		// Read color from previous color input attachment
 		vec3 color = subpassLoad(inputColor).rgb;
-		outColor.rgb = brightnessContrast(color, ubo.brightnessContrast[0], ubo.brightnessContrast[1]);
+		outColor = vec4(brightnessContrast(color, ubo.brightnessContrast[0], ubo.brightnessContrast[1]), 1.0);
 	}
 
 	// Visualize depth input range
 	if (ubo.attachmentIndex == 1) {
 		// Read depth from previous depth input attachment
 		float depth = subpassLoad(inputDepth).r;
-		outColor.rgb = vec3((depth - ubo.range[0]) * 1.0 / (ubo.range[1] - ubo.range[0]));
+		outColor = vec4(vec3((depth - ubo.range[0]) * 1.0 / (ubo.range[1] - ubo.range[0])), 1.0);
 	}
 }
