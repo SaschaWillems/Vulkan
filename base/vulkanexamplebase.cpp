@@ -250,7 +250,7 @@ void VulkanExampleBase::renderFrame()
 			timer -= 1.0f;
 		}
 	}
-	float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count();
+	float fpsTimer = (float)(std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count());
 	if (fpsTimer > 1000.0f)
 	{
 		lastFPS = static_cast<uint32_t>((float)frameCounter * (1000.0f / fpsTimer));
@@ -621,26 +621,26 @@ void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 void VulkanExampleBase::prepareFrame()
 {
 	// Acquire the next image from the swap chain
-	VkResult err = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+	VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-	if ((err == VK_ERROR_OUT_OF_DATE_KHR) || (err == VK_SUBOPTIMAL_KHR)) {
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
 		windowResize();
 	}
 	else {
-		VK_CHECK_RESULT(err);
+		VK_CHECK_RESULT(result);
 	}
 }
 
 void VulkanExampleBase::submitFrame()
 {
-	VkResult res = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-	if (!((res == VK_SUCCESS) || (res == VK_SUBOPTIMAL_KHR))) {
-		if (res == VK_ERROR_OUT_OF_DATE_KHR) {
+	VkResult result = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			// Swap chain is no longer compatible with the surface and needs to be recreated
 			windowResize();
 			return;
 		} else {
-			VK_CHECK_RESULT(res);
+			VK_CHECK_RESULT(result);
 		}
 	}
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
