@@ -383,6 +383,7 @@ public:
 		/*
 			Build top-level acceleration structure
 		*/
+		buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
 		buildInfo.pGeometries = 0;
 		buildInfo.geometryCount = 0;
 		buildInfo.instanceCount = 1;

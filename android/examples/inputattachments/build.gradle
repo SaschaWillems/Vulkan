@@ -40,7 +40,7 @@ android {
     }
 }
 
-task copyTask << {
+task copyTask {
     copy {
         from '../../common/res/drawable'
         into "src/main/res/drawable"
