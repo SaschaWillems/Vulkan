@@ -577,13 +577,17 @@ public:
 	
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.MSAA));
 
-		// MSAA with sample shading pipeline
-		// Sample shading enables per-sample shading to avoid shader aliasing and smooth out e.g. high frequency texture maps
-		// Note: This will trade performance for are more stable image
-		multisampleState.sampleShadingEnable = VK_TRUE;				// Enable per-sample shading (instead of per-fragment)
-		multisampleState.minSampleShading = 0.25f;					// Minimum fraction for sample shading
-		
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.MSAASampleShading));
+
+		if (vulkanDevice->features.sampleRateShading)
+		{
+			// MSAA with sample shading pipeline
+			// Sample shading enables per-sample shading to avoid shader aliasing and smooth out e.g. high frequency texture maps
+			// Note: This will trade performance for are more stable image
+			multisampleState.sampleShadingEnable = VK_TRUE;				// Enable per-sample shading (instead of per-fragment)
+			multisampleState.minSampleShading = 0.25f;					// Minimum fraction for sample shading
+
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.MSAASampleShading));
+		}
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
