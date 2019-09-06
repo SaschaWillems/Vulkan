@@ -374,9 +374,14 @@ public:
 		samplerCreateInfo.minLod = 0.0f;
 		// Both particle textures have the same number of mip maps
 		samplerCreateInfo.maxLod = float(textures.particles.fire.mipLevels);
-		// Enable anisotropic filtering
-		samplerCreateInfo.maxAnisotropy = 8.0f;
-		samplerCreateInfo.anisotropyEnable = VK_TRUE;
+
+		if (vulkanDevice->features.samplerAnisotropy)
+		{
+			// Enable anisotropic filtering
+			samplerCreateInfo.maxAnisotropy = 8.0f;
+			samplerCreateInfo.anisotropyEnable = VK_TRUE;
+		}
+
 		// Use a different border color (than the normal texture loader) for additive blending
 		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		VK_CHECK_RESULT(vkCreateSampler(device, &samplerCreateInfo, nullptr, &textures.particles.sampler));
