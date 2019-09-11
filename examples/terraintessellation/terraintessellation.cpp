@@ -363,7 +363,7 @@ public:
 			// Terrain
 			if (deviceFeatures.pipelineStatisticsQuery) {
 				// Begin pipeline statistics query		
-				vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, VK_QUERY_CONTROL_PRECISE_BIT);
+				vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, 0);
 			}
 			// Render
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.terrain);
