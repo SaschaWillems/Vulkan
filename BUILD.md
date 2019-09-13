@@ -26,7 +26,15 @@ Note that you need [assimp](https://github.com/assimp/assimp) in order to compil
 
 ## <img src="./images/androidlogo.png" alt="" height="32px"> [Android](android/)
 
-Building on Android is done using [Android Studio](https://developer.android.com/studio/) (Google's own and free Android IDE) and requires a device that supports Vulkan. Please see the [Android readme](./android/README.md) for details on how to build and run the samples.
+Building on Android is done using the [Gradle Build Tool](https://gradle.org/). Put the ```bin``` directory of it somewhere in your path and from the root of the repository run:
+
+```
+cd android
+gradle assembleDebug
+```
+This will build all samples and output the apks to ```android\examples\bin```.
+
+If you want to build and install on a connected device or emulator image, run ```gradle installDebug``` instead.
 
 ## <img src="./images/applelogo.png" alt="" height="32px"> [iOS and macOS](xcode/)
 

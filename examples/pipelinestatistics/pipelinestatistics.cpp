@@ -201,7 +201,7 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 
 			// Start capture of pipeline statistics
-			vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, VK_QUERY_CONTROL_PRECISE_BIT);
+			vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, 0);
 
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
