@@ -174,7 +174,8 @@ namespace vks
 				for (uint32_t i = 0; i < mipLevels; i++)
 				{
 					ktx_size_t offset;
-					assert(ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset) == KTX_SUCCESS);
+					KTX_error_code result = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
+					assert(result = KTX_SUCCESS);
 
 					VkBufferImageCopy bufferCopyRegion = {};
 					bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -625,7 +626,8 @@ namespace vks
 				for (uint32_t level = 0; level < mipLevels; level++)
 				{
 					ktx_size_t offset;
-					assert(ktxTexture_GetImageOffset(ktxTexture, level, layer, 0, &offset) == KTX_SUCCESS);
+					KTX_error_code result = ktxTexture_GetImageOffset(ktxTexture, level, layer, 0, &offset);
+					assert(result = KTX_SUCCESS);
 
 					VkBufferImageCopy bufferCopyRegion = {};
 					bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -818,7 +820,8 @@ namespace vks
 				for (uint32_t level = 0; level < mipLevels; level++)
 				{
 					ktx_size_t offset;
-					assert(ktxTexture_GetImageOffset(ktxTexture, level, 0, face, &offset) == KTX_SUCCESS);
+					KTX_error_code result = ktxTexture_GetImageOffset(ktxTexture, level, 0, face, &offset);
+					assert(result = KTX_SUCCESS);
 
 					VkBufferImageCopy bufferCopyRegion = {};
 					bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
