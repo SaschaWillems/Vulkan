@@ -121,6 +121,7 @@ namespace vks
 #if defined(__ANDROID__)
 		VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device);
 #else
+		VkShaderModule loadShaderFromBuffer(const char *shaderCode, size_t size, VkDevice device);
 		VkShaderModule loadShader(const char *fileName, VkDevice device);
 #endif
 

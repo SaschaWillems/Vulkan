@@ -300,6 +300,20 @@ namespace vks
 			return fileContent;
 		}
 
+		std::string readBinaryFile(const char *fileName)
+		{
+			std::string fileContent;
+			std::ifstream fileStream(fileName, std::ios::binary | std::ios::in);
+			if (!fileStream.is_open()) {
+				printf("File %s not found\n", fileName);
+				return "";
+			}
+			fileContent.assign((std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>());
+			fileStream.close();
+      printf("fileContent.size()=%d\n", fileContent.size());
+			return fileContent;
+		}
+
 #if defined(__ANDROID__)
 		// Android shaders are stored as assets in the apk
 		// So they need to be loaded via the asset manager
@@ -330,38 +344,31 @@ namespace vks
 			return shaderModule;
 		}
 #else
+		VkShaderModule loadShaderFromBuffer(const char *shaderCode, size_t size, VkDevice device)
+		{
+			VkShaderModule shaderModule;
+			VkShaderModuleCreateInfo moduleCreateInfo{};
+			moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			moduleCreateInfo.codeSize = size;
+			moduleCreateInfo.pCode = (uint32_t*)shaderCode;
+
+			VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
+
+			return shaderModule;
+
+		}
+
 		VkShaderModule loadShader(const char *fileName, VkDevice device)
 		{
-			std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
-
-			if (is.is_open())
-			{
-				size_t size = is.tellg();
-				is.seekg(0, std::ios::beg);
-				char* shaderCode = new char[size];
-				is.read(shaderCode, size);
-				is.close();
-
-				assert(size > 0);
-
-				VkShaderModule shaderModule;
-				VkShaderModuleCreateInfo moduleCreateInfo{};
-				moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-				moduleCreateInfo.codeSize = size;
-				moduleCreateInfo.pCode = (uint32_t*)shaderCode;
-
-				VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
-
-				delete[] shaderCode;
-
-				return shaderModule;
-			}
-			else
+			std::string shaderCode = readBinaryFile(fileName);
+			if (shaderCode.size()==0)
 			{
 				std::cerr << "Error: Could not open shader file \"" << fileName << "\"" << std::endl;
 				return VK_NULL_HANDLE;
 			}
+			return loadShaderFromBuffer(shaderCode.c_str(), shaderCode.size(), device);
 		}
+
 #endif
 
 		bool fileExists(const std::string &filename)
