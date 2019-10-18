@@ -1,9 +1,7 @@
 /*
 * Vulkan examples debug wrapper
 * 
-* Appendix for VK_EXT_Debug_Report can be found at https://github.com/KhronosGroup/Vulkan-Docs/blob/1.0-VK_EXT_debug_report/doc/specs/vulkan/appendices/debug_report.txt
-*
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -15,25 +13,6 @@ namespace vks
 {
 	namespace debug
 	{
-#if !defined(__ANDROID__)
-		// On desktop the LunarG loaders exposes a meta layer that contains all layers
-		int32_t validationLayerCount = 1;
-		const char *validationLayerNames[] = {
-			"VK_LAYER_LUNARG_standard_validation"
-		};
-#else
-		// On Android we need to explicitly select all layers
-		int32_t validationLayerCount = 6;
-		const char *validationLayerNames[] = {
-			"VK_LAYER_GOOGLE_threading",
-			"VK_LAYER_LUNARG_parameter_validation",
-			"VK_LAYER_LUNARG_object_tracker",
-			"VK_LAYER_LUNARG_core_validation",
-			"VK_LAYER_LUNARG_swapchain",
-			"VK_LAYER_GOOGLE_unique_objects"
-		};
-#endif
-
 		PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallback = VK_NULL_HANDLE;
 		PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallback = VK_NULL_HANDLE;
 		PFN_vkDebugReportMessageEXT dbgBreakCallback = VK_NULL_HANDLE;
