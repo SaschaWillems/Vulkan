@@ -74,7 +74,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
 		bool validationLayerPresent = false;
-		for each (VkLayerProperties layer in instanceLayerProperties) {
+		for (VkLayerProperties layer : instanceLayerProperties) {
 			if (strcmp(layer.layerName, validationLayerName) == 0) {
 				validationLayerPresent = true;
 				break;
