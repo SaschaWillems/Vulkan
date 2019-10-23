@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Compute shader N-body simulation using two passes and shared compute shader memory
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -81,8 +81,6 @@ public:
 		VkDescriptorSet descriptorSetBlur;
 		struct computeUBO {							// Compute shader uniform block object
 			float deltaT;							//		Frame delta time
-			float destX;							//		x position of the attractor
-			float destY;							//		y position of the attractor
 			int32_t particleCount;
 		} ubo;
 	} compute;
@@ -682,8 +680,6 @@ public:
 	void updateComputeUniformBuffers()
 	{
 		compute.ubo.deltaT = paused ? 0.0f : frameTimer * 0.05f;
-		compute.ubo.destX = sin(glm::radians(timer * 360.0f)) * 0.75f;
-		compute.ubo.destY = 0.0f;
 		memcpy(compute.uniformBuffer.mapped, &compute.ubo, sizeof(compute.ubo));
 	}
 
