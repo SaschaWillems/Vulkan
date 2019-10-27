@@ -17,8 +17,6 @@ layout (local_size_x = 256) in;
 layout (binding = 1) uniform UBO 
 {
 	float deltaT;
-	float destX;
-	float destY;
 	int particleCount;
 } ubo;
 
