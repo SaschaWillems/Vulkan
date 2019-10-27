@@ -19,7 +19,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 #include "VulkanBuffer.hpp"
 
@@ -34,10 +33,6 @@ class VulkanExample : public VulkanExampleBase
 public:
 	bool debugDisplay = false;
 
-	struct {
-		vks::Texture2D colorMap;
-	} textures;
-	
 	// Vertex layout for the models
 	vks::VertexLayout vertexLayout = vks::VertexLayout({
 		vks::VERTEX_COMPONENT_POSITION,
@@ -123,9 +118,6 @@ public:
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-
-		// Textures
-		textures.colorMap.destroy();
 
 		// Frame buffer
 
@@ -453,20 +445,6 @@ public:
 	{
 		models.plane.loadFromFile(getAssetPath() + "models/plane.obj", vertexLayout, 0.5f, vulkanDevice, queue);
 		models.example.loadFromFile(getAssetPath() + "models/chinesedragon.dae", vertexLayout, 0.3f, vulkanDevice, queue);
-
-		// Textures
-		if (vulkanDevice->features.textureCompressionBC) {
-			textures.colorMap.loadFromFile(getAssetPath() + "textures/darkmetal_bc3_unorm.ktx", VK_FORMAT_BC3_UNORM_BLOCK, vulkanDevice, queue);
-		}
-		else if (vulkanDevice->features.textureCompressionASTC_LDR) {
-			textures.colorMap.loadFromFile(getAssetPath() + "textures/darkmetal_astc_8x8_unorm.ktx", VK_FORMAT_ASTC_8x8_UNORM_BLOCK, vulkanDevice, queue);
-		}
-		else if (vulkanDevice->features.textureCompressionETC2) {
-			textures.colorMap.loadFromFile(getAssetPath() + "textures/darkmetal_etc2_unorm.ktx", VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK, vulkanDevice, queue);
-		}
-		else {
-			vks::tools::exitFatal("Device does not support any compressed texture format!", VK_ERROR_FEATURE_NOT_PRESENT);
-		}
 	}
 
 	void generateQuad()
@@ -591,12 +569,6 @@ public:
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
 				&offscreenPass.descriptor),
-			// Binding 2 : Fragment shader texture sampler
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.mirror,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				2,
-				&textures.colorMap.descriptor)
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -625,7 +597,6 @@ public:
 		allocInfo.pSetLayouts = &descriptorSetLayouts.shaded;
 
 		// Model
-		// No texture
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.model));
 
 		std::vector<VkWriteDescriptorSet> modelWriteDescriptorSets =
