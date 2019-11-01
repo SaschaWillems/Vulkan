@@ -414,7 +414,6 @@ public:
 	VkDeviceSize copyShaderIdentifier(uint8_t* data, const uint8_t* shaderHandleStorage, uint32_t groupIndex) {
 		const uint32_t shaderGroupHandleSize = rayTracingProperties.shaderGroupHandleSize;
 		memcpy(data, shaderHandleStorage + groupIndex * shaderGroupHandleSize, shaderGroupHandleSize);
-		data += shaderGroupHandleSize;
 		return shaderGroupHandleSize;
 	}
 
