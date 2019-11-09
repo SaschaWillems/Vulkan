@@ -244,7 +244,7 @@ public:
 	*/
 	void createScene()
 	{
-		// Setup vertices for a single uv-mapped quad made from two triangles
+		// Setup vertices for a single triangle
 		struct Vertex {
 			float pos[3];
 		};
