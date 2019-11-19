@@ -351,10 +351,10 @@ namespace vks
 
 				VkBufferCopy copyRegion{};
 
-				copyRegion.size = vertices.size;
+				copyRegion.size = vBufferSize;
 				vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, vertices.buffer, 1, &copyRegion);
 
-				copyRegion.size = indices.size;
+				copyRegion.size = iBufferSize;
 				vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indices.buffer, 1, &copyRegion);
 
 				device->flushCommandBuffer(copyCmd, copyQueue);
