@@ -355,7 +355,11 @@ public:
 		// Present the current buffer to the swap chain
 		// Pass the semaphore signaled by the command buffer submission from the submit info as the wait semaphore for swap chain presentation
 		// This ensures that the image is not presented to the windowing system until all commands have been submitted
-		VK_CHECK_RESULT(swapChain.queuePresent(queue, currentBuffer, renderCompleteSemaphore));
+		VkResult present = swapChain.queuePresent(queue, currentBuffer, renderCompleteSemaphore);
+		if (!((present == VK_SUCCESS) || (present == VK_SUBOPTIMAL_KHR))) {
+			VK_CHECK_RESULT(present);
+		}
+
 	}
 
 	// Prepare vertex and index buffers for an indexed triangle
