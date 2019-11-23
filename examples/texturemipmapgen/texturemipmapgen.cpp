@@ -305,7 +305,7 @@ public:
 
 			// Prepare current mip level as image blit source for next level
 			vks::tools::insertImageMemoryBarrier(
-				copyCmd,
+				blitCmd,
 				texture.image,
 				VK_ACCESS_TRANSFER_WRITE_BIT,
 				VK_ACCESS_TRANSFER_READ_BIT,
