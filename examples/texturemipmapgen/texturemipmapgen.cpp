@@ -319,7 +319,7 @@ public:
 		// After the loop, all mip layers are in TRANSFER_SRC layout, so transition all to SHADER_READ
 		subresourceRange.levelCount = texture.mipLevels;
 		vks::tools::insertImageMemoryBarrier(
-			copyCmd,
+			blitCmd,
 			texture.image,
 			VK_ACCESS_TRANSFER_READ_BIT,
 			VK_ACCESS_SHADER_READ_BIT,
