@@ -122,7 +122,19 @@ public:
 		else {
 			splitScreen = false;
 		}
-		enabledFeatures.textureCompressionBC = VK_TRUE;
+		// Enable texture compression features. We already fail in loadAssets()
+		// below if none are supported, so just enable whatever exists.
+		if (deviceFeatures.textureCompressionBC) {
+			enabledFeatures.textureCompressionBC = VK_TRUE;
+		}
+
+		if (deviceFeatures.textureCompressionETC2) {
+			enabledFeatures.textureCompressionETC2 = VK_TRUE;
+		}
+
+		if (deviceFeatures.textureCompressionASTC_LDR) {
+			enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
+		}
 	}
 
 	void loadAssets()
