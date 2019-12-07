@@ -34,7 +34,6 @@ class VulkanExample : public VulkanExampleBase
 public:
 	struct Texture {
 		VkImage image;
-		VkImageLayout imageLayout;
 		VkDeviceMemory deviceMemory;
 		VkImageView view;
 		uint32_t width, height;
@@ -109,7 +108,14 @@ public:
 		models.tunnel.destroy();
 	}
 
-	void loadTexture(std::string filename, VkFormat format, bool forceLinearTiling)
+	virtual void getEnabledFeatures()
+	{
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		}
+	}
+
+	void loadTexture(std::string fileName, VkFormat format, bool forceLinearTiling)
 	{
 		ktxResult result;
 		ktxTexture* ktxTexture;
@@ -136,6 +142,9 @@ public:
 		result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
 #endif		
 		assert(result == KTX_SUCCESS);
+
+		VkFormatProperties formatProperties;
+
 
 		VkFormatProperties formatProperties;
 
@@ -208,11 +217,15 @@ public:
 		subresourceRange.layerCount = 1;
 
 		// Optimal image will be used as destination for the copy, so we must transfer from our initial undefined image layout to the transfer destination layout
-		vks::tools::setImageLayout(
+		vks::tools::insertImageMemoryBarrier(
 			copyCmd,
 			texture.image,
+			0,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			subresourceRange);
 
 		// Copy the first mip of the chain, remaining mips will be generated
@@ -228,12 +241,15 @@ public:
 		vkCmdCopyBufferToImage(copyCmd, stagingBuffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
 
 		// Transition first mip level to transfer source for read during blit
-		texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		vks::tools::setImageLayout(
+		vks::tools::insertImageMemoryBarrier(
 			copyCmd,
 			texture.image,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_ACCESS_TRANSFER_READ_BIT,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			subresourceRange);
 
 		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
@@ -276,15 +292,17 @@ public:
 			mipSubRange.levelCount = 1;
 			mipSubRange.layerCount = 1;
 
-			// Transiton current mip level to transfer dest
-			vks::tools::setImageLayout(
+			// Prepare current mip level as image blit destination
+			vks::tools::insertImageMemoryBarrier(
 				blitCmd,
 				texture.image,
+				0,
+				VK_ACCESS_TRANSFER_WRITE_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				mipSubRange,
 				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				VK_PIPELINE_STAGE_HOST_BIT);
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				mipSubRange);
 
 			// Blit from previous level
 			vkCmdBlitImage(
@@ -297,24 +315,30 @@ public:
 				&imageBlit,
 				VK_FILTER_LINEAR);
 
-			// Transiton current mip level to transfer source for read in next iteration
-			vks::tools::setImageLayout(
+			// Prepare current mip level as image blit source for next level
+			vks::tools::insertImageMemoryBarrier(
 				blitCmd,
 				texture.image,
+				VK_ACCESS_TRANSFER_WRITE_BIT,
+				VK_ACCESS_TRANSFER_READ_BIT,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				mipSubRange,
-				VK_PIPELINE_STAGE_HOST_BIT,
-				VK_PIPELINE_STAGE_TRANSFER_BIT);
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				mipSubRange);
 		}
 
 		// After the loop, all mip layers are in TRANSFER_SRC layout, so transition all to SHADER_READ
 		subresourceRange.levelCount = texture.mipLevels;
-		vks::tools::setImageLayout(
+		vks::tools::insertImageMemoryBarrier(
 			blitCmd,
 			texture.image,
+			VK_ACCESS_TRANSFER_READ_BIT,
+			VK_ACCESS_SHADER_READ_BIT,
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			texture.imageLayout,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 			subresourceRange);
 
 		VulkanExampleBase::flushCommandBuffer(blitCmd, queue, true);
@@ -543,34 +567,17 @@ public:
 
 	void setupDescriptorSet()
 	{
-		VkDescriptorSetAllocateInfo allocInfo = 
-			vks::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
-
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout,1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+		VkDescriptorImageInfo textureDescriptor = vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, texture.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 
-		// Binding 0: Vertex shader uniform buffer
-		writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(
-			descriptorSet,
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			0,
-			&uniformBufferVS.descriptor));
-
-		// Binding 1: Sampled image
-		VkDescriptorImageInfo textureDescriptor = 
-			vks::initializers::descriptorImageInfo(
-				VK_NULL_HANDLE,				 
-				texture.view, 
-				texture.imageLayout);
-		writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(
-			descriptorSet,
-			VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-			1,
-			&textureDescriptor));
+			// Binding 0: Vertex shader uniform buffer
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBufferVS.descriptor),
+			// Binding 1: Sampled image
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, &textureDescriptor)
+		};
 
 		// Binding 2: Sampler array
 		std::vector<VkDescriptorImageInfo> samplerDescriptors;
@@ -587,7 +594,6 @@ public:
 		samplerDescriptorWrite.dstBinding = 2;
 		samplerDescriptorWrite.dstArrayElement = 0;
 		writeDescriptorSets.push_back(samplerDescriptorWrite);
-
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 

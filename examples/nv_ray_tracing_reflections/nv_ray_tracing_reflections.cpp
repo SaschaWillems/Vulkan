@@ -196,6 +196,7 @@ public:
 
 		VkAccelerationStructureMemoryRequirementsInfoNV memoryRequirementsInfo{};
 		memoryRequirementsInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+		memoryRequirementsInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
 		memoryRequirementsInfo.accelerationStructure = bottomLevelAS.accelerationStructure;
 
 		VkMemoryRequirements2 memoryRequirements2{};
@@ -233,6 +234,7 @@ public:
 
 		VkAccelerationStructureMemoryRequirementsInfoNV memoryRequirementsInfo{};
 		memoryRequirementsInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+		memoryRequirementsInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
 		memoryRequirementsInfo.accelerationStructure = topLevelAS.accelerationStructure;
 
 		VkMemoryRequirements2 memoryRequirements2{};
@@ -325,7 +327,7 @@ public:
 		// Acceleration structure build requires some scratch space to store temporary information
 		VkAccelerationStructureMemoryRequirementsInfoNV memoryRequirementsInfo{};
 		memoryRequirementsInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
-		memoryRequirementsInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
+		memoryRequirementsInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
 
 		VkMemoryRequirements2 memReqBottomLevelAS;
 		memoryRequirementsInfo.accelerationStructure = bottomLevelAS.accelerationStructure;

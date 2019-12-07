@@ -262,8 +262,7 @@ public:
 	*/
 	void prepareDepthPass()
 	{
-		VkFormat depthFormat;
-		vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
+		VkFormat depthFormat = vulkanDevice->getSupportedDepthFormat(true);
 
 		/*
 			Depth map renderpass

@@ -68,15 +68,16 @@ subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 subresourceRange.levelCount = 1;
 subresourceRange.layerCount = 1;
 
-vkTools::setImageLayout(
+vks::tools::insertImageMemoryBarrier(
   copyCmd,
   texture.image,
-  VK_IMAGE_ASPECT_COLOR_BIT,
+  VK_ACCESS_TRANSFER_WRITE_BIT,
+  VK_ACCESS_TRANSFER_READ_BIT,
   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-  subresourceRange,
   VK_PIPELINE_STAGE_TRANSFER_BIT,
-  VK_PIPELINE_STAGE_HOST_BIT);
+  VK_PIPELINE_STAGE_TRANSFER_BIT,
+  subresourceRange);
 ```
 
 ### Generating the mip-chain
@@ -119,16 +120,17 @@ Before we can blit to this mip level, we need to transition it's image layout to
   mipSubRange.levelCount = 1;
   mipSubRange.layerCount = 1;
 
-  // Transiton current mip level to transfer dest
-  vkTools::setImageLayout(
+  // Prepare current mip level as image blit destination
+  vks::tools::insertImageMemoryBarrier(
     blitCmd,
     texture.image,
-    VK_IMAGE_ASPECT_COLOR_BIT,
+    0,
+    VK_ACCESS_TRANSFER_WRITE_BIT,
     VK_IMAGE_LAYOUT_UNDEFINED,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    mipSubRange,
     VK_PIPELINE_STAGE_TRANSFER_BIT,
-    VK_PIPELINE_STAGE_HOST_BIT);
+    VK_PIPELINE_STAGE_TRANSFER_BIT,
+    mipSubRange);
 ``` 
 Note that we set the ```baseMipLevel``` member of the subresource range so the image memory barrier will only affect the one mip level we want to copy to.
 
@@ -150,15 +152,17 @@ Now that the mip level we want to copy from and the one we'll copy to have are i
 After the blit is done we can use this mip level as a base for the next level, so we transition the layout from ```TRANSFER_DST_OPTIMAL``` to ```TRANSFER_SRC_OPTIMAL``` so we can use this level as transfer source for the next level:
 
 ```cpp
-  vkTools::setImageLayout(
-    blitCmd,
+  // Prepare current mip level as image blit source for next level
+  vks::tools::insertImageMemoryBarrier(
+    copyCmd,
     texture.image,
-    VK_IMAGE_ASPECT_COLOR_BIT,
+    VK_ACCESS_TRANSFER_WRITE_BIT,
+    VK_ACCESS_TRANSFER_READ_BIT,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    mipSubRange,
     VK_PIPELINE_STAGE_TRANSFER_BIT,
-    VK_PIPELINE_STAGE_HOST_BIT);
+    VK_PIPELINE_STAGE_TRANSFER_BIT,
+    mipSubRange);
 }
 ```
 
@@ -167,15 +171,16 @@ Once the loop is done we need to transition all mip levels of the image to their
 
 ```cpp
   subresourceRange.levelCount = texture.mipLevels;
-  vkTools::setImageLayout(
-    blitCmd,
+  vks::tools::insertImageMemoryBarrier(
+    copyCmd,
     texture.image,
-    VK_IMAGE_ASPECT_COLOR_BIT,
+    VK_ACCESS_TRANSFER_READ_BIT,
+    VK_ACCESS_SHADER_READ_BIT,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;,
-    subresourceRange,
+    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     VK_PIPELINE_STAGE_TRANSFER_BIT,
-    VK_PIPELINE_STAGE_HOST_BIT);
+    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+    subresourceRange);
 ```  
 
 Submitting that command buffer will result in an image with a complete mip-chain and all mip levels being transitioned to the proper image layout for shader reads.

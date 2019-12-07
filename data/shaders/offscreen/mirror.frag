@@ -1,7 +1,6 @@
 #version 450
 
 layout (binding = 1) uniform sampler2D samplerColor;
-layout (binding = 2) uniform sampler2D samplerColorMap;
 
 layout (location = 0) in vec2 inUV;
 layout (location = 1) in vec4 inPos;
@@ -21,8 +20,7 @@ void main()
 	// For demonstration purposes only
 	const float blurSize = 1.0 / 512.0;	
 
-	vec4 color = texture(samplerColorMap, inUV);
-	outFragColor = color * 0.25;
+	outFragColor = vec4(vec3(0.0), 1.);
 
 	if (gl_FrontFacing) 
 	{
@@ -35,6 +33,6 @@ void main()
 				reflection += texture(samplerColor, vec2(projCoord.s + x * blurSize, projCoord.t + y * blurSize)) / 49.0;
 			}
 		}
-		outFragColor += reflection * 1.5 * (color.r);
+		outFragColor += reflection;
 	};
 }
