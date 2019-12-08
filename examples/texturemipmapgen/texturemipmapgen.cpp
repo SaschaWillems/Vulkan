@@ -6,8 +6,6 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-// todo: Fallback for sampler selection on devices that don't support shaderSampledImageArrayDynamicIndexing
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,13 +17,14 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <gli/gli.hpp>
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
 #include "VulkanModel.hpp"
+#include <ktx.h>
+#include <ktxvulkan.h>
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -116,31 +115,38 @@ public:
 		}
 	}
 
-	void loadTexture(std::string fileName, VkFormat format, bool forceLinearTiling)
+	void loadTexture(std::string filename, VkFormat format, bool forceLinearTiling)
 	{
+		ktxResult result;
+		ktxTexture* ktxTexture;
+
 #if defined(__ANDROID__)
 		// Textures are stored inside the apk on Android (compressed)
 		// So they need to be loaded via the asset manager
-		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, fileName.c_str(), AASSET_MODE_STREAMING);
-		assert(asset);
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+		if (!asset) {
+			vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+		}
 		size_t size = AAsset_getLength(asset);
 		assert(size > 0);
 
-		void *textureData = malloc(size);
+		ktx_uint8_t *textureData = new ktx_uint8_t[size];
 		AAsset_read(asset, textureData, size);
 		AAsset_close(asset);
-
-		gli::texture2d tex2D(gli::load((const char*)textureData, size));
+		result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+		delete[] textureData;
 #else
-		gli::texture2d tex2D(gli::load(fileName));
-#endif
+		if (!vks::tools::fileExists(filename)) {
+			vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+		}
+		result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+#endif		
+		assert(result == KTX_SUCCESS);
 
-		assert(!tex2D.empty());
-
-		VkFormatProperties formatProperties;
-
-		texture.width = static_cast<uint32_t>(tex2D[0].extent().x);
-		texture.height = static_cast<uint32_t>(tex2D[0].extent().y);
+		texture.width = ktxTexture->baseWidth;
+		texture.height = ktxTexture->baseHeight;
+		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
+		ktx_size_t ktxTextureSize = ktxTexture_GetImageSize(ktxTexture, 0);
 
 		// calculate num of mip maps
 		// numLevels = 1 + floor(log2(max(w, h, d)))
@@ -148,8 +154,8 @@ public:
 		texture.mipLevels = floor(log2(std::max(texture.width, texture.height))) + 1;
 
 		// Get device properites for the requested texture format
+		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
-
 		// Mip-chain generation requires support for blit source and destination
 		assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT);
 		assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT);
@@ -162,7 +168,7 @@ public:
 		VkDeviceMemory stagingMemory;
 
 		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
-		bufferCreateInfo.size = tex2D.size();
+		bufferCreateInfo.size = ktxTextureSize;
 		// This buffer is used as a transfer source for the buffer copy
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;		
@@ -176,7 +182,7 @@ public:
 		// Copy texture data into staging buffer
 		uint8_t *data;
 		VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
-		memcpy(data, tex2D.data(), tex2D.size());
+		memcpy(data, ktxTextureData, ktxTextureSize);
 		vkUnmapMemory(device, stagingMemory);
 
 		// Create optimal tiled target image
@@ -246,6 +252,7 @@ public:
 		// Clean up staging resources
 		vkFreeMemory(device, stagingMemory, nullptr);
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		ktxTexture_Destroy(ktxTexture);
 
 		// Generate the mip chain
 		// ---------------------------------------------------------------

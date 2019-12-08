@@ -17,7 +17,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <gli/gli.hpp>
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
@@ -25,6 +24,8 @@
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 #include "frustum.hpp"
+#include <ktx.h>
+#include <ktxvulkan.h>
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -396,25 +397,32 @@ public:
 		HeightMap(std::string filename, uint32_t patchsize, AAssetManager* assetManager)
 #else
 		HeightMap(std::string filename, uint32_t patchsize)
-#endif
+#endif		
 		{
+			ktxResult result;
+			ktxTexture* ktxTexture;
 #if defined(__ANDROID__)
-			AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 			assert(asset);
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
-			void *textureData = malloc(size);
+			ktx_uint8_t* textureData = new ktx_uint8_t[size];
 			AAsset_read(asset, textureData, size);
 			AAsset_close(asset);
-			gli::texture2d heightTex(gli::load((const char*)textureData, size));
-			free(textureData);
+			result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+			delete[] textureData;
+
 #else
-			gli::texture2d heightTex(gli::load(filename));
+			result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
 #endif
-			dim = static_cast<uint32_t>(heightTex.extent().x);
+			assert(result == KTX_SUCCESS);
+			ktx_size_t ktxSize = ktxTexture_GetImageSize(ktxTexture, 0);
+			ktx_uint8_t* ktxImage = ktxTexture_GetData(ktxTexture);
+			dim = ktxTexture->baseWidth;
 			heightdata = new uint16_t[dim * dim];
-			memcpy(heightdata, heightTex.data(), heightTex.size());
+			memcpy(heightdata, ktxImage, ktxSize);
 			this->scale = dim / patchsize;
+			ktxTexture_Destroy(ktxTexture);
 		};
 
 		~HeightMap()

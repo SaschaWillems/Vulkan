@@ -17,13 +17,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <gli/gli.hpp>
-
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
+#include <ktx.h>
+#include <ktxvulkan.h>
 
 #define ENABLE_VALIDATION false
 
@@ -127,28 +127,38 @@ public:
 
 	void loadCubemap(std::string filename, VkFormat format, bool forceLinearTiling)
 	{
+		ktxResult result;
+		ktxTexture* ktxTexture;
+
 #if defined(__ANDROID__)
 		// Textures are stored inside the apk on Android (compressed)
 		// So they need to be loaded via the asset manager
 		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
-		assert(asset);
+		if (!asset) {
+			vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+		}
 		size_t size = AAsset_getLength(asset);
 		assert(size > 0);
 
-		void *textureData = malloc(size);
+		ktx_uint8_t *textureData = new ktx_uint8_t[size];
 		AAsset_read(asset, textureData, size);
 		AAsset_close(asset);
-
-		gli::texture_cube texCube(gli::load((const char*)textureData, size));
+		result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+		delete[] textureData;
 #else
-		gli::texture_cube texCube(gli::load(filename));
-#endif
+		if (!vks::tools::fileExists(filename)) {
+			vks::tools::exitFatal("Could not load texture from " + filename + "\n\nThe file may be part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+		}
+		result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+#endif		
+		assert(result == KTX_SUCCESS);
 
-		assert(!texCube.empty());
-
-		cubeMap.width = texCube.extent().x;
-		cubeMap.height = texCube.extent().y;
-		cubeMap.mipLevels = texCube.levels();
+		// Get properties required for using and upload texture data from the ktx texture object
+		cubeMap.width = ktxTexture->baseWidth;
+		cubeMap.height = ktxTexture->baseHeight;
+		cubeMap.mipLevels = ktxTexture->numLevels;
+		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
+		ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
 		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -158,7 +168,7 @@ public:
 		VkDeviceMemory stagingMemory;
 
 		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
-		bufferCreateInfo.size = texCube.size();
+		bufferCreateInfo.size = ktxTextureSize;
 		// This buffer is used as a transfer source for the buffer copy
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -176,7 +186,7 @@ public:
 		// Copy texture data into staging buffer
 		uint8_t *data;
 		VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
-		memcpy(data, texCube.data(), texCube.size());
+		memcpy(data, ktxTextureData, ktxTextureSize);
 		vkUnmapMemory(device, stagingMemory);
 
 		// Create optimal tiled target image
@@ -215,20 +225,19 @@ public:
 		{
 			for (uint32_t level = 0; level < cubeMap.mipLevels; level++)
 			{
+				// Calculate offset into staging buffer for the current mip level and face
+				ktx_size_t offset;
+				assert(ktxTexture_GetImageOffset(ktxTexture, level, 0, face, &offset) == KTX_SUCCESS);
 				VkBufferImageCopy bufferCopyRegion = {};
 				bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				bufferCopyRegion.imageSubresource.mipLevel = level;
 				bufferCopyRegion.imageSubresource.baseArrayLayer = face;
 				bufferCopyRegion.imageSubresource.layerCount = 1;
-				bufferCopyRegion.imageExtent.width = texCube[face][level].extent().x;
-				bufferCopyRegion.imageExtent.height = texCube[face][level].extent().y;
+				bufferCopyRegion.imageExtent.width = ktxTexture->baseWidth >> level;
+				bufferCopyRegion.imageExtent.height = ktxTexture->baseHeight >> level;
 				bufferCopyRegion.imageExtent.depth = 1;
 				bufferCopyRegion.bufferOffset = offset;
-
 				bufferCopyRegions.push_back(bufferCopyRegion);
-
-				// Increase offset into staging buffer for next level / face
-				offset += texCube[face][level].size();
 			}
 		}
 
@@ -306,6 +315,7 @@ public:
 		// Clean up staging resources
 		vkFreeMemory(device, stagingMemory, nullptr);
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		ktxTexture_Destroy(ktxTexture);
 	}
 
 	void loadTextures()

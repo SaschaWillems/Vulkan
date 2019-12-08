@@ -1,10 +1,10 @@
-file(GLOB BASE_SRC "*.cpp" "../external/imgui/*.cpp")
+file(GLOB BASE_SRC "*.cpp" "*.hpp" "../external/imgui/*.cpp")
 file(GLOB BASE_HEADERS "*.hpp")
 
 if(WIN32)
     add_library(base STATIC ${BASE_SRC})
-    target_link_libraries(base ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WINLIBS})
+    target_link_libraries(base ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WINLIBS} ktx)
  else(WIN32)
     add_library(base STATIC ${BASE_SRC})
-    target_link_libraries(base ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${XCB_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    target_link_libraries(base ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${XCB_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ktx)
 endif(WIN32)

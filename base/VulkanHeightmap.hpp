@@ -1,18 +1,19 @@
 /*
 * Heightmap terrain generator
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 #include <glm/glm.hpp>
 #include <glm/glm.hpp>
-#include <gli/gli.hpp>
 
 #include "vulkan/vulkan.h"
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
+#include <ktx.h>
+#include <ktxvulkan.h>
 
 namespace vks 
 {
@@ -75,27 +76,31 @@ namespace vks
 			assert(device);
 			assert(copyQueue != VK_NULL_HANDLE);
 
+			ktxResult result;
+			ktxTexture* ktxTexture;
 #if defined(__ANDROID__)
-			AAsset* asset = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_STREAMING);
+			AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 			assert(asset);
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
 			void *textureData = malloc(size);
 			AAsset_read(asset, textureData, size);
 			AAsset_close(asset);
-			gli::texture2d heightTex(gli::load((const char*)textureData, size));
+			result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, target);
 			free(textureData);
 #else
-			gli::texture2d heightTex(gli::load(filename));
+			result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
 #endif
-			dim = static_cast<uint32_t>(heightTex.extent().x);
+			assert(result == KTX_SUCCESS);
+			ktx_size_t ktxSize = ktxTexture_GetImageSize(ktxTexture, 0);
+			ktx_uint8_t* ktxImage = ktxTexture_GetData(ktxTexture);
+			dim = ktxTexture->baseWidth;
 			heightdata = new uint16_t[dim * dim];
-			memcpy(heightdata, heightTex.data(), heightTex.size());
+			memcpy(heightdata, ktxImage, ktxSize);
 			this->scale = dim / patchsize;
-			this->heightScale = scale.y;
+			ktxTexture_Destroy(ktxTexture);
 
 			// Generate vertices
-
 			Vertex * vertices = new Vertex[patchsize * patchsize * 4];
 
 			const float wx = 2.0f;
