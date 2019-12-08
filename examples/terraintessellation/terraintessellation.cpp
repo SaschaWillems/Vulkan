@@ -406,11 +406,11 @@ public:
 			assert(asset);
 			size_t size = AAsset_getLength(asset);
 			assert(size > 0);
-			void *textureData = malloc(size);
+			ktx_uint8_t* textureData = new ktx_uint8_t[size];
 			AAsset_read(asset, textureData, size);
 			AAsset_close(asset);
-			result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, target);
-			free(textureData);
+			result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+			delete[] textureData;
 
 #else
 			result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);

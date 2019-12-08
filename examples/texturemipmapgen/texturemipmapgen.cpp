@@ -115,7 +115,7 @@ public:
 		}
 	}
 
-	void loadTexture(std::string fileName, VkFormat format, bool forceLinearTiling)
+	void loadTexture(std::string filename, VkFormat format, bool forceLinearTiling)
 	{
 		ktxResult result;
 		ktxTexture* ktxTexture;
@@ -143,11 +143,6 @@ public:
 #endif		
 		assert(result == KTX_SUCCESS);
 
-		VkFormatProperties formatProperties;
-
-
-		VkFormatProperties formatProperties;
-
 		texture.width = ktxTexture->baseWidth;
 		texture.height = ktxTexture->baseHeight;
 		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
@@ -159,8 +154,8 @@ public:
 		texture.mipLevels = floor(log2(std::max(texture.width, texture.height))) + 1;
 
 		// Get device properites for the requested texture format
+		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
-
 		// Mip-chain generation requires support for blit source and destination
 		assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT);
 		assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT);
