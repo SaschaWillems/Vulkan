@@ -675,7 +675,7 @@ public:
 			if (overlay->checkBox("Radial blur", &blur)) {
 				buildCommandBuffers();
 			}
-			if (overlay->checkBox("Dsiplay render target", &displayTexture)) {
+			if (overlay->checkBox("Display render target", &displayTexture)) {
 				buildCommandBuffers();
 			}
 		}
