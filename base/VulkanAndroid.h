@@ -31,12 +31,12 @@
 // Missing from the NDK
 namespace std
 {
-	template<typename T, typename... Args>
-	std::unique_ptr<T> make_unique(Args&&... args)
-	{
-		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-	}
-}
+    template <typename T, typename... Args>
+    std::unique_ptr<T> make_unique(Args&&... args)
+    {
+        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+}  // namespace std
 
 // Global reference to android application object
 extern android_app* androidApp;
@@ -155,29 +155,27 @@ extern PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
 
 namespace vks
 {
-	namespace android
-	{
-		/* @brief Touch control thresholds from Android NDK samples */
-		const int32_t DOUBLE_TAP_TIMEOUT = 300 * 1000000;
-		const int32_t TAP_TIMEOUT = 180 * 1000000;
-		const int32_t DOUBLE_TAP_SLOP = 100;
-		const int32_t TAP_SLOP = 8;
+    namespace android
+    {
+        /* @brief Touch control thresholds from Android NDK samples */
+        const int32_t DOUBLE_TAP_TIMEOUT = 300 * 1000000;
+        const int32_t TAP_TIMEOUT = 180 * 1000000;
+        const int32_t DOUBLE_TAP_SLOP = 100;
+        const int32_t TAP_SLOP = 8;
 
-		/** @brief Density of the device screen (in DPI) */
-		extern int32_t screenDensity;
+        /** @brief Density of the device screen (in DPI) */
+        extern int32_t screenDensity;
 
-		bool loadVulkanLibrary();
-		void loadVulkanFunctions(VkInstance instance);
-		void freeVulkanLibrary();
-		void getDeviceConfig();
-		void showAlert(const char* message);
-	}
-}
+        bool loadVulkanLibrary();
+        void loadVulkanFunctions(VkInstance instance);
+        void freeVulkanLibrary();
+        void getDeviceConfig();
+        void showAlert(const char* message);
+    }  // namespace android
+}  // namespace vks
 
 #endif
 
-#endif // VULKANANDROID_HPP
+#endif  // VULKANANDROID_HPP
 
-
-#endif // VULKANANDROID_H
- 
+#endif  // VULKANANDROID_H

@@ -9,7 +9,7 @@
 #pragma once
 
 #if defined(_WIN32)
-#define KEY_ESCAPE VK_ESCAPE 
+#define KEY_ESCAPE VK_ESCAPE
 #define KEY_F1 VK_F1
 #define KEY_F2 VK_F2
 #define KEY_F3 VK_F3
