@@ -32,6 +32,7 @@ public:
 	uint32_t readSet = 0;
 	uint32_t indexCount;
 	bool simulateWind = false;
+    bool specializedComputeQueue = false;
 
 	vks::Texture2D textureCloth;
 
@@ -157,25 +158,27 @@ public:
 
     void addGraphicsToComputeBarriers(VkCommandBuffer commandBuffer) 
     {
-        VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
-		bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-		bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-		bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
-		bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
-		bufferBarrier.size = VK_WHOLE_SIZE;
+        if (specializedComputeQueue) {
+            VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
+            bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+            bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+            bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
+            bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
+            bufferBarrier.size = VK_WHOLE_SIZE;
 
-        std::vector<VkBufferMemoryBarrier> bufferBarriers;
-        bufferBarrier.buffer = compute.storageBuffers.input.buffer;
-		bufferBarriers.push_back(bufferBarrier);
-		bufferBarrier.buffer = compute.storageBuffers.output.buffer;
-		bufferBarriers.push_back(bufferBarrier);
-        vkCmdPipelineBarrier(commandBuffer,
-		    VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-		    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-		    VK_FLAGS_NONE,
-		    0, nullptr,
-		    static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
-		    0, nullptr);
+            std::vector<VkBufferMemoryBarrier> bufferBarriers;
+            bufferBarrier.buffer = compute.storageBuffers.input.buffer;
+            bufferBarriers.push_back(bufferBarrier);
+            bufferBarrier.buffer = compute.storageBuffers.output.buffer;
+            bufferBarriers.push_back(bufferBarrier);
+            vkCmdPipelineBarrier(commandBuffer,
+                VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_FLAGS_NONE,
+                0, nullptr,
+                static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
+                0, nullptr);
+        }
     } 
 
     void addComputeToComputeBarriers(VkCommandBuffer commandBuffer) 
@@ -201,27 +204,29 @@ public:
 			0, nullptr);
     } 
 
-    void addComputeToGraphicsBarriers(VkCommandBuffer commandBuffer) 
+    void addComputeToGraphicsBarriers(VkCommandBuffer commandBuffer)
     {
-        VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
-		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-		bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-		bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
-		bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
-		bufferBarrier.size = VK_WHOLE_SIZE;
-        std::vector<VkBufferMemoryBarrier> bufferBarriers;
-        bufferBarrier.buffer = compute.storageBuffers.input.buffer;
-		bufferBarriers.push_back(bufferBarrier);
-		bufferBarrier.buffer = compute.storageBuffers.output.buffer;
-		bufferBarriers.push_back(bufferBarrier);
-		vkCmdPipelineBarrier(
-			commandBuffer,
-			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-			VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-			VK_FLAGS_NONE,
-			0, nullptr,
-			static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
-			0, nullptr);
+        if (specializedComputeQueue) {
+            VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
+            bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+            bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+            bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
+            bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
+            bufferBarrier.size = VK_WHOLE_SIZE;
+            std::vector<VkBufferMemoryBarrier> bufferBarriers;
+            bufferBarrier.buffer = compute.storageBuffers.input.buffer;
+            bufferBarriers.push_back(bufferBarrier);
+            bufferBarrier.buffer = compute.storageBuffers.output.buffer;
+            bufferBarriers.push_back(bufferBarrier);
+            vkCmdPipelineBarrier(
+                commandBuffer,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                VK_FLAGS_NONE,
+                0, nullptr,
+                static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
+                0, nullptr);
+        }
     } 
 
     void buildCommandBuffers()
@@ -740,7 +745,7 @@ public:
         static bool firstDraw = true;
         VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
         // FIXME find a better way to do this (without using fences, which is much slower)
-        VkPipelineStageFlags computeWaitDstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+        VkPipelineStageFlags computeWaitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
         if (!firstDraw) {
             computeSubmitInfo.waitSemaphoreCount = 1;
             computeSubmitInfo.pWaitSemaphores = &compute.semaphores.ready;
@@ -759,7 +764,7 @@ public:
 		VulkanExampleBase::prepareFrame();
 
         VkPipelineStageFlags waitDstStageMask[2] = {
-            submitPipelineStages, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT
+            submitPipelineStages, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
         };
         VkSemaphore waitSemaphores[2] = {
             semaphores.presentComplete, compute.semaphores.complete
@@ -783,6 +788,12 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+        // Make sure the code works properly both with different queues families for graphics and compute and the same queue family
+#ifdef DEBUG_FORCE_SHARED_GRAPHICS_COMPUTE_QUEUE
+        vulkanDevice->queueFamilyIndices.compute = vulkanDevice->queueFamilyIndices.graphics;
+#endif
+        // Check whether the compute queue family is distinct from the graphics queue family
+        specializedComputeQueue = vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute;
 		loadAssets();
 		prepareStorageBuffers();
 		prepareUniformBuffers();
