@@ -451,7 +451,6 @@ namespace vks
 			pipelineDepthStencilStateCreateInfo.depthTestEnable = depthTestEnable;
 			pipelineDepthStencilStateCreateInfo.depthWriteEnable = depthWriteEnable;
 			pipelineDepthStencilStateCreateInfo.depthCompareOp = depthCompareOp;
-			pipelineDepthStencilStateCreateInfo.front = pipelineDepthStencilStateCreateInfo.back;
 			pipelineDepthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
 			return pipelineDepthStencilStateCreateInfo;
 		}
