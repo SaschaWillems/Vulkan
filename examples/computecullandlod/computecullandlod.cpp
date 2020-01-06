@@ -614,12 +614,7 @@ public:
 
 	void prepareCompute()
 	{
-		// Create a compute capable device queue
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.pNext = NULL;
-		queueCreateInfo.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
-		queueCreateInfo.queueCount = 1;
+		// Get a compute capable device queue
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.compute, 0, &compute.queue);
 
 		// Create compute pipeline
