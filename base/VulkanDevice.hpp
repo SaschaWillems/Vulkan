@@ -416,7 +416,7 @@ namespace vks
 			VK_CHECK_RESULT(vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &buffer->memory));
 
 			buffer->alignment = memReqs.alignment;
-			buffer->size = memAlloc.allocationSize;
+			buffer->size = size;
 			buffer->usageFlags = usageFlags;
 			buffer->memoryPropertyFlags = memoryPropertyFlags;
 
