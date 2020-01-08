@@ -1,4 +1,4 @@
-#version 420
+#version 450
 
 #define LIGHT_COUNT 3
 
