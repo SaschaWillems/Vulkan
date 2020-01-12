@@ -172,7 +172,7 @@ public:
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &model.vertices.buffer, offsets);
 			// Bind mesh index buffer
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			// Render mesh vertex buffer using it's indices
+			// Render mesh vertex buffer using its indices
 			vkCmdDrawIndexed(drawCmdBuffers[i], model.indices.count, 1, 0, 0, 0);
 
 			drawUI(drawCmdBuffers[i]);

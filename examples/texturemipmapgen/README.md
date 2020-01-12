@@ -112,7 +112,7 @@ Setup for the destination mip level (1), with the dimensions for the blit destin
   imageBlit.dstOffsets[1].z = 1;
 ```
 
-Before we can blit to this mip level, we need to transition it's image layout to ```TRANSFER_DST```:
+Before we can blit to this mip level, we need to transition its image layout to ```TRANSFER_DST```:
 ```cpp
   VkImageSubresourceRange mipSubRange = {};
   mipSubRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

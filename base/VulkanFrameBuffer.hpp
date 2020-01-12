@@ -108,7 +108,7 @@ namespace vks
 		}
 
 		/**
-		* Destroy and free Vulkan resources used for the framebuffer and all of it's attachments
+		* Destroy and free Vulkan resources used for the framebuffer and all of its attachments
 		*/
 		~Framebuffer()
 		{

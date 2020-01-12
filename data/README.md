@@ -1,6 +1,6 @@
 # Additional asset pack
 
-Newer assets (textures and models) will no longer be added to the repository in order to keep it's size down. Especially HDR assets tend to be much larger than most of the ldr textures and compressing them is problematic due to the multi-platform target of the examples (Not all platforms support compressed HDR texture formats).
+Newer assets (textures and models) will no longer be added to the repository in order to keep its size down. Especially HDR assets tend to be much larger than most of the ldr textures and compressing them is problematic due to the multi-platform target of the examples (Not all platforms support compressed HDR texture formats).
 
 So these are provided as a separate download required to run some of the newer examples.
 

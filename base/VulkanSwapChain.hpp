@@ -272,7 +272,7 @@ public:
 	}
 
 	/** 
-	* Create the swapchain and get it's images with given width and height
+	* Create the swapchain and get its images with given width and height
 	* 
 	* @param width Pointer to the width of the swapchain (may be adjusted to fit the requirements of the swapchain)
 	* @param height Pointer to the height of the swapchain (may be adjusted to fit the requirements of the swapchain)
