@@ -68,8 +68,8 @@ public:
 			vks::Buffer output;
 		} storageBuffers;
 		struct Semaphores {
-			VkSemaphore ready{ nullptr };
-			VkSemaphore complete{ nullptr };
+			VkSemaphore ready{ 0L };
+			VkSemaphore complete{ 0L };
 		} semaphores;
 		vks::Buffer uniformBuffer;
 		VkQueue queue;
