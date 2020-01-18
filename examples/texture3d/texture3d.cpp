@@ -130,7 +130,7 @@ public:
 		T frequency = (T)1;
 		T amplitude = (T)1;
 		T max = (T)0;  
-		for (int32_t i = 0; i < octaves; i++)
+		for (uint32_t i = 0; i < octaves; i++)
 		{
 			sum += perlinNoise.noise(x * frequency, y * frequency, z * frequency) * amplitude;
 			max += amplitude;
@@ -325,15 +325,14 @@ public:
 		PerlinNoise<float> perlinNoise;
 		FractalNoise<float> fractalNoise(perlinNoise);
 
-		const int32_t noiseType = rand() % 2;
 		const float noiseScale = static_cast<float>(rand() % 10) + 4.0f;
 
 #pragma omp parallel for
-		for (int32_t z = 0; z < texture.depth; z++)
+		for (uint32_t z = 0; z < texture.depth; z++)
 		{
 			for (uint32_t y = 0; y < texture.height; y++)
 			{
-				for (int32_t x = 0; x < texture.width; x++)
+				for (uint32_t x = 0; x < texture.width; x++)
 				{
 					float nx = (float)x / (float)texture.width;
 					float ny = (float)y / (float)texture.height;
