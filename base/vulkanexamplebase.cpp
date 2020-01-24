@@ -1263,6 +1263,13 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			}
 		}
 		break;
+	case WM_GETMINMAXINFO:
+	{
+		LPMINMAXINFO minMaxInfo = (LPMINMAXINFO)lParam;
+		minMaxInfo->ptMinTrackSize.x = 64;
+		minMaxInfo->ptMinTrackSize.y = 64;
+		break;
+	}
 	case WM_ENTERSIZEMOVE:
 		resizing = true;
 		break;
