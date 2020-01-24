@@ -35,9 +35,6 @@
 #endif
 #define SHADOWMAP_FILTER VK_FILTER_LINEAR
 
-// Offscreen frame buffer properties
-#define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -239,8 +236,6 @@ public:
 	{
 		offscreenPass.width = SHADOWMAP_DIM;
 		offscreenPass.height = SHADOWMAP_DIM;
-
-		VkFormat fbColorFormat = FB_COLOR_FORMAT;
 
 		// For shadow mapping we only need a depth attachment
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
@@ -656,7 +651,7 @@ public:
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&uniformBuffers.debug,
-			sizeof(uboVSscene)));
+			sizeof(uboVSquad)));
 
 		// Offscreen vertex shader uniform buffer block
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(

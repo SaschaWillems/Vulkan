@@ -60,7 +60,6 @@ void main()
 	vec3 V = normalize(inViewVec);
 	vec3 R = normalize(-reflect(L, N));
 	vec3 diffuse = max(dot(N, L), ambient) * inColor;
-//	vec3 specular = pow(max(dot(R, V), 0.0), 50.0) * vec3(0.75);
 
 	outFragColor = vec4(diffuse * shadow, 1.0);
 
