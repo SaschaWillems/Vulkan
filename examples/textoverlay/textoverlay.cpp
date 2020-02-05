@@ -64,7 +64,6 @@ private:
 	VkPipeline pipeline;
 	VkRenderPass renderPass;
 	VkCommandPool commandPool;
-	std::vector<VkCommandBuffer> cmdBuffers;
 	std::vector<VkFramebuffer*> frameBuffers;
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
@@ -78,6 +77,8 @@ public:
 	enum TextAlign { alignLeft, alignCenter, alignRight };
 
 	bool visible = true;
+
+	std::vector<VkCommandBuffer> cmdBuffers;
 
 	TextOverlay(
 		vks::VulkanDevice *vulkanDevice,
@@ -622,24 +623,6 @@ public:
 			VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffers[i]));
 		}
 	}
-
-	// Submit the text command buffers to a queue
-	// Does a queue wait idle
-	void submit(VkQueue queue, uint32_t bufferindex)
-	{
-		if (!visible)
-		{
-			return;
-		}
-
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &cmdBuffers[bufferindex];
-
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
-	}
-
 };
 
 /*
@@ -936,15 +919,19 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
+		std::vector<VkCommandBuffer> commandBuffers = {
+			drawCmdBuffers[currentBuffer]
+		};
+		if (textOverlay->visible) {
+			commandBuffers.push_back(textOverlay->cmdBuffers[currentBuffer]);
+		}
+
 		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
+		submitInfo.pCommandBuffers = commandBuffers.data();
 
 		// Submit to queue
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		// Submit text overlay to queue
-		textOverlay->submit(queue, currentBuffer);
 
 		VulkanExampleBase::submitFrame();
 	}
