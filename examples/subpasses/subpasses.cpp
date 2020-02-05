@@ -33,7 +33,6 @@
 #include "VulkanTexture.hpp"
 #include "VulkanModel.hpp"
 
-#define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
 #define NUM_LIGHTS 64
@@ -112,13 +111,15 @@ public:
 
 	// G-Buffer framebuffer attachments
 	struct FrameBufferAttachment {
-		VkImage image;
-		VkDeviceMemory mem;
-		VkImageView view;
+		VkImage image = VK_NULL_HANDLE;
+		VkDeviceMemory mem = VK_NULL_HANDLE;
+		VkImageView view = VK_NULL_HANDLE;
 		VkFormat format;
 	};
 	struct Attachments {
 		FrameBufferAttachment position, normal, albedo;
+		int32_t width;
+		int32_t height;
 	} attachments;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
@@ -140,19 +141,6 @@ public:
 	{
 		// Clean up used Vulkan resources 
 		// Note : Inherited destructor cleans up resources stored in base class
-
-		vkDestroyImageView(device, attachments.position.view, nullptr);
-		vkDestroyImage(device, attachments.position.image, nullptr);
-		vkFreeMemory(device, attachments.position.mem, nullptr);
-
-		vkDestroyImageView(device, attachments.normal.view, nullptr);
-		vkDestroyImage(device, attachments.normal.image, nullptr);
-		vkFreeMemory(device, attachments.normal.mem, nullptr);
-
-		vkDestroyImageView(device, attachments.albedo.view, nullptr);
-		vkDestroyImage(device, attachments.albedo.image, nullptr);
-		vkFreeMemory(device, attachments.albedo.mem, nullptr);
-
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
 		vkDestroyPipeline(device, pipelines.composition, nullptr);
 		vkDestroyPipeline(device, pipelines.transparent, nullptr);
@@ -164,6 +152,10 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.composition, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.transparent, nullptr);
+
+		clearAttachment(&attachments.position);
+		clearAttachment(&attachments.normal);
+		clearAttachment(&attachments.albedo);
 
 		textures.glass.destroy();
 		models.scene.destroy();
@@ -191,9 +183,20 @@ public:
 		}
 	};
 
+	void clearAttachment(FrameBufferAttachment* attachment)
+	{
+		vkDestroyImageView(device, attachment->view, nullptr);
+		vkDestroyImage(device, attachment->image, nullptr);
+		vkFreeMemory(device, attachment->mem, nullptr);
+	}
+
 	// Create a frame buffer attachment
 	void createAttachment(VkFormat format, VkImageUsageFlags usage, FrameBufferAttachment *attachment)
 	{
+		if (attachment->image != VK_NULL_HANDLE) {
+			clearAttachment(attachment);
+		}
+
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
 
@@ -215,14 +218,15 @@ public:
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
 		image.imageType = VK_IMAGE_TYPE_2D;
 		image.format = format;
-		image.extent.width = width;
-		image.extent.height = height;
+		image.extent.width = attachments.width;
+		image.extent.height = attachments.height;
 		image.extent.depth = 1;
 		image.mipLevels = 1;
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image.usage = usage | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;	// VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT flag is required for input attachments;
+		// VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT flag is required for input attachments
+		image.usage = usage | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;	
 		image.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
@@ -256,15 +260,37 @@ public:
 		createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.albedo);			// Albedo (color)
 	}
 
-	// Override framebuffer setup from base class
-	// Deferred components will be used as frame buffer attachments
+	// Override framebuffer setup from base class, will automatically be called upon setup and if a window is resized
 	void setupFrameBuffer()
 	{
+		// If the window is resized, all the framebuffers/attachments used in our composition passes need to be recreated
+		if (attachments.width != width || attachments.height != height) {
+			attachments.width = width;
+			attachments.height = height;
+			createGBufferAttachments();
+			// Since the framebuffers/attachments are referred in the descriptor sets, these need to be updated too
+			// Composition pass
+			std::vector< VkDescriptorImageInfo> descriptorImageInfos = {
+				vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.position.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+				vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.normal.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+				vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.albedo.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+			};
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+			for (size_t i = 0; i < descriptorImageInfos.size(); i++) {
+				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, i, &descriptorImageInfos[i]));
+			}
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+			// Forward pass
+			writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets.transparent, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &descriptorImageInfos[0]),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
+
 		VkImageView attachments[5];
 
 		VkFramebufferCreateInfo frameBufferCreateInfo = {};
 		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		frameBufferCreateInfo.pNext = NULL;
 		frameBufferCreateInfo.renderPass = renderPass;
 		frameBufferCreateInfo.attachmentCount = 5;
 		frameBufferCreateInfo.pAttachments = attachments;
@@ -288,6 +314,9 @@ public:
 	// Override render pass setup from base class
 	void setupRenderPass()
 	{
+		attachments.width = width;
+		attachments.height = height;
+
 		createGBufferAttachments(); 
 
 		std::array<VkAttachmentDescription, 5> attachments{};
@@ -483,7 +512,7 @@ public:
 
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.scene, 0, NULL);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.scene.vertices.buffer, offsets);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.scene.vertices.buffer, offsets);
 				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(drawCmdBuffers[i], models.scene.indexCount, 1, 0, 0, 0);
 
@@ -513,7 +542,7 @@ public:
 
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.transparent);
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.transparent, 0, 1, &descriptorSets.transparent, 0, NULL);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.transparent.vertices.buffer, offsets);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.transparent.vertices.buffer, offsets);
 				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.transparent.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(drawCmdBuffers[i], models.transparent.indexCount, 1, 0, 0, 0);
 
@@ -552,7 +581,7 @@ public:
 		// Binding description
 		vertices.bindingDescriptions = {
 			vks::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				vertexLayout.stride(),
 				VK_VERTEX_INPUT_RATE_VERTEX),
 		};
@@ -560,29 +589,13 @@ public:
 		// Attribute descriptions
 		vertices.attributeDescriptions = {
 			// Location 0: Position
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				0),
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),
 			// Location 1: Color
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3),
+			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),
 			// Location 2: Normal
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 6),
+			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 6),
 			// Location 3: UV
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
-				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 9),
+			vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 9),
 		};
 
 		vertices.inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
@@ -796,49 +809,19 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.composition));
 
 		// Image descriptors for the offscreen color attachments
-		VkDescriptorImageInfo texDescriptorPosition =
-			vks::initializers::descriptorImageInfo(
-				VK_NULL_HANDLE,
-				attachments.position.view,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-		VkDescriptorImageInfo texDescriptorNormal =
-			vks::initializers::descriptorImageInfo(
-				VK_NULL_HANDLE,
-				attachments.normal.view,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-		VkDescriptorImageInfo texDescriptorAlbedo =
-			vks::initializers::descriptorImageInfo(
-				VK_NULL_HANDLE,
-				attachments.albedo.view,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VkDescriptorImageInfo texDescriptorPosition = vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.position.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VkDescriptorImageInfo texDescriptorNormal = vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.normal.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VkDescriptorImageInfo texDescriptorAlbedo = vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.albedo.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0: Position texture target
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.composition,
-				VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-				0,
-				&texDescriptorPosition),
+			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, &texDescriptorPosition),
 			// Binding 1: Normals texture target
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.composition,
-				VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-				1,
-				&texDescriptorNormal),
+			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &texDescriptorNormal),
 			// Binding 2: Albedo texture target
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.composition,
-				VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-				2,
-				&texDescriptorAlbedo),
+			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2, &texDescriptorAlbedo),
 			// Binding 4: Fragment shader lights
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.composition,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				3,
-				&uniformBuffers.lights.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &uniformBuffers.lights.descriptor),
 		};
 
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
