@@ -881,7 +881,7 @@ bool VulkanExampleBase::initVulkan()
 		{
 			char* endptr;
 			uint32_t index = strtol(args[i + 1], &endptr, 10);
-			if (endptr != args[i + 1]) 
+			if (endptr != args[i + 1])
 			{ 
 				if (index > gpuCount - 1)
 				{
@@ -900,11 +900,11 @@ bool VulkanExampleBase::initVulkan()
 		{
 			uint32_t gpuCount = 0;
 			VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr));
-			if (gpuCount == 0) 
+			if (gpuCount == 0)
 			{
 				std::cerr << "No Vulkan devices found!" << std::endl;
 			}
-			else 
+			else
 			{
 				// Enumerate devices
 				std::cout << "Available Vulkan devices" << std::endl;
@@ -984,7 +984,7 @@ bool VulkanExampleBase::initVulkan()
 		androidProduct += std::string(prop);
 	};
 	LOGD("androidProduct = %s", androidProduct.c_str());
-#endif	
+#endif
 
 	return true;
 }
@@ -1329,13 +1329,13 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						vulkanExample->mousePos.x = AMotionEvent_getX(event, 0);
 						vulkanExample->mousePos.y = AMotionEvent_getY(event, 0);
 						break;
-					}					
+					}
 					case AMOTION_EVENT_ACTION_MOVE: {
 						bool handled = false;
 						if (vulkanExample->settings.overlay) {
 							ImGuiIO& io = ImGui::GetIO();
 							handled = io.WantCaptureMouse;
-						}					
+						}
 						if (!handled) {
 							int32_t eventX = AMotionEvent_getX(event, 0);
 							int32_t eventY = AMotionEvent_getY(event, 0);
@@ -1940,7 +1940,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				if (settings.overlay) {
 					settings.overlay = !settings.overlay;
 				}
-				break;				
+				break;
 		}
 	}
 	break;	
@@ -1960,7 +1960,7 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				break;
 			case KEY_D:
 				camera.keys.right = false;
-				break;			
+				break;
 			case KEY_ESCAPE:
 				quit = true;
 				break;

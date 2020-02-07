@@ -56,7 +56,7 @@
 
 class VulkanExampleBase
 {
-private:	
+private:
 	// Get window title with example name, device, et.
 	std::string getWindowTitle();
 	/** brief Indicates that the view (position, rotation) has changed and buffers containing camera matrices need to be updated */
@@ -182,8 +182,7 @@ public:
 	std::string name = "vulkanExample";
 	uint32_t apiVersion = VK_API_VERSION_1_0;
 
-	struct 
-	{
+	struct {
 		VkImage image;
 		VkDeviceMemory mem;
 		VkImageView view;
