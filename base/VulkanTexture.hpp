@@ -182,8 +182,8 @@ namespace vks
 					bufferCopyRegion.imageSubresource.mipLevel = i;
 					bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 					bufferCopyRegion.imageSubresource.layerCount = 1;
-					bufferCopyRegion.imageExtent.width = ktxTexture->baseWidth >> i;
-					bufferCopyRegion.imageExtent.height = ktxTexture->baseHeight >> i;
+					bufferCopyRegion.imageExtent.width = std::max(1u, ktxTexture->baseWidth >> i);
+					bufferCopyRegion.imageExtent.height = std::max(1u, ktxTexture->baseHeight >> i);
 					bufferCopyRegion.imageExtent.depth = 1;
 					bufferCopyRegion.bufferOffset = offset;
 
