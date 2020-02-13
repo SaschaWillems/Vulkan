@@ -21,10 +21,14 @@ void main ()
 {
 	// Sample depth from deferred depth buffer and discard if obscured
 	float depth = subpassLoad(samplerPositionDepth).a;
+
+	// Save the sampled texture color before discarding.
+	// This is to avoid implicit derivatives in non-uniform control flow.
+	vec4 sampledColor = texture(samplerTexture, inUV);
 	if ((depth != 0.0) && (linearDepth(gl_FragCoord.z) > depth))
 	{
 		discard;
 	};
 
-	outColor = texture(samplerTexture, inUV);
+	outColor = sampledColor;
 }

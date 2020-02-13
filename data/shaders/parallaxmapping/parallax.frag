@@ -123,17 +123,21 @@ void main(void)
 				break;
 		}
 
+		// Perform sampling before (potentially) discarding.
+		// This is to avoid implicit derivatives in non-uniform control flow.
+		vec3 normalHeightMapLod = textureLod(sNormalHeightMap, uv, 0.0).rgb;
+		vec3 color = texture(sColorMap, uv).rgb;
+
 		// Discard fragments at texture border
 		if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
 			discard;
 		}
 
-		vec3 N = normalize(textureLod(sNormalHeightMap, uv, 0.0).rgb * 2.0 - 1.0);
+		vec3 N = normalize(normalHeightMapLod * 2.0 - 1.0);
 		vec3 L = normalize(inTangentLightPos - inTangentFragPos);
 		vec3 R = reflect(-L, N);
 		vec3 H = normalize(L + V);  
    
-		vec3 color = texture(sColorMap, uv).rgb;
 		vec3 ambient = 0.2 * color;
 		vec3 diffuse = max(dot(L, N), 0.0) * color;
 		vec3 specular = vec3(0.15) * pow(max(dot(N, H), 0.0), 32.0);
