@@ -89,7 +89,7 @@ Loads a cube map texture from disk containing six different faces. All faces and
 
 #### [09 - Texture arrays](examples/texturearray/)
 
-Loads a 2D texture array containing multiple 2D texture slices (each with it's own mip chain) and renders multiple meshes each sampling from a different layer of the texture. 2D texture arrays don't do any interpolation between the slices.
+Loads a 2D texture array containing multiple 2D texture slices (each with its own mip chain) and renders multiple meshes each sampling from a different layer of the texture. 2D texture arrays don't do any interpolation between the slices.
 
 #### [10 - 3D textures](examples/texture3d/)
 
@@ -117,7 +117,7 @@ Implements a simple CPU based particle system. Particle data is stored in host m
 
 #### [16 - Stencil buffer](examples/stencilbuffer/)
 
-Uses the stencil buffer and it's compare functionality for rendering a 3D model with dynamic outlines.
+Uses the stencil buffer and its compare functionality for rendering a 3D model with dynamic outlines.
 
 ### <a name="Advanced"></a> Advanced
 
@@ -239,7 +239,7 @@ Mass-spring based cloth system on the GPU using a compute shader to calculate an
 
 #### [06 - Cull and LOD](examples/computecullandlod/)
 
-Purely GPU based frustum visibility culling and level-of-detail system. A compute shader is used to modify draw commands stored in an indirect draw commands buffer to toggle model visibility and select it's level-of-detail based on camera distance, no calculations have to be done on and synced with the CPU.
+Purely GPU based frustum visibility culling and level-of-detail system. A compute shader is used to modify draw commands stored in an indirect draw commands buffer to toggle model visibility and select its level-of-detail based on camera distance, no calculations have to be done on and synced with the CPU.
 
 ### <a name="GeometryShader"></a> Geometry Shader
 

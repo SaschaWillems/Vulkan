@@ -424,7 +424,7 @@ public:
 		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.storageBuffers.output.buffer, 1, &copyRegion);
 		// Add an initial release barrier to the graphics queue, 
 		// so that when the compute command buffer executes for the first time
-		// it doesn't complain about a lack of a corresponding "release" to it's "acquire"
+		// it doesn't complain about a lack of a corresponding "release" to its "acquire"
 		addGraphicsToComputeBarriers(copyCmd);
 		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 

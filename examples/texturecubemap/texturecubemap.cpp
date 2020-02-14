@@ -217,7 +217,7 @@ public:
 
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		// Setup buffer copy regions for each face including all of it's miplevels
+		// Setup buffer copy regions for each face including all of its miplevels
 		std::vector<VkBufferImageCopy> bufferCopyRegions;
 		uint32_t offset = 0;
 

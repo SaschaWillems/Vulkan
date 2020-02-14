@@ -6,7 +6,7 @@
 
 /*
 	This example implements projective cascaded shadow mapping. This technique splits up the camera frustum into
-	multiple frustums with each getting it's own full-res shadow map, implemented as a layered depth-only image.
+	multiple frustums with each getting its own full-res shadow map, implemented as a layered depth-only image.
 	The shader then selects the proper shadow map layer depending on what split of the frustum the depth value
 	to compare fits into.
 

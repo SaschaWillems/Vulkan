@@ -707,7 +707,7 @@ public:
 		attachments[0].format = swapChain.colorFormat;									// Use the color format selected by the swapchain
 		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;									// We don't use multi sampling in this example
 		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;							// Clear this attachment at the start of the render pass
-		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;							// Keep it's contents after the render pass is finished (for displaying it)
+		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;							// Keep its contents after the render pass is finished (for displaying it)
 		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;					// We don't use stencil, so don't care for load
 		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;				// Same for store
 		attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;						// Layout at render pass start. Initial doesn't matter, so we use undefined
@@ -785,7 +785,7 @@ public:
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 	}
 
-	// Vulkan loads it's shaders from an immediate binary representation called SPIR-V
+	// Vulkan loads its shaders from an immediate binary representation called SPIR-V
 	// Shaders are compiled offline from e.g. GLSL using the reference glslang compiler
 	// This function loads such a shader from a binary file and returns a shader module structure
 	VkShaderModule loadSPIRVShader(std::string filename)

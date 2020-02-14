@@ -1,7 +1,7 @@
 /*
 * Vulkan device class
 *
-* Encapsulates a physical Vulkan device and it's logical representation
+* Encapsulates a physical Vulkan device and its logical representation
 *
 * Copyright (C) by Sascha Willems - www.saschawillems.de
 *
