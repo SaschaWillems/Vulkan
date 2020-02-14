@@ -105,7 +105,7 @@ Uses input attachments to read framebuffer contents from a previous sub pass at 
 
 #### [13 - Sub passes](examples/subpasses/)
 
-Advanced example that sses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass. 
+Advanced example that uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass. 
 
 #### [14 - Offscreen rendering](examples/offscreen/)
 
