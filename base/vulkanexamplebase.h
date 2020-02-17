@@ -135,8 +135,6 @@ public:
 
 	/** @brief Last frame time measured using a high performance timer (if available) */
 	float frameTimer = 1.0f;
-	/** @brief Returns os specific base asset path (for shaders, models, textures) */
-	const std::string getAssetPath();
 
 	vks::Benchmark benchmark;
 

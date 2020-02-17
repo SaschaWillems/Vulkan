@@ -365,9 +365,9 @@ public:
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, ASSET_PATH "shaders/computeheadless/headless.comp.spv", device);
+			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, (getAssetPath() + "shaders/computeheadless/headless.comp.spv".c_str(), device);
 #else
-			shaderStage.module = vks::tools::loadShader(ASSET_PATH "shaders/computeheadless/headless.comp.spv", device);
+			shaderStage.module = vks::tools::loadShader((getAssetPath() + "shaders/computeheadless/headless.comp.spv").c_str(), device);
 #endif
 			shaderStage.pName = "main";
 			shaderStage.pSpecializationInfo = &specializationInfo;

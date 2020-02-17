@@ -59,11 +59,7 @@
 }
 #endif
 
-#if defined(__ANDROID__)
-#define ASSET_PATH ""
-#else
-#define ASSET_PATH "./../data/"
-#endif
+const std::string getAssetPath();
 
 namespace vks
 {

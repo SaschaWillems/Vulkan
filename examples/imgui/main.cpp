@@ -329,8 +329,8 @@ public:
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		shaderStages[0] = example->loadShader(example->getAssetPath() + "shaders/imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = example->loadShader(example->getAssetPath() + "shaders/imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = example->loadShader(getAssetPath() + "shaders/imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = example->loadShader(getAssetPath() + "shaders/imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}

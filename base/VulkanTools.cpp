@@ -8,6 +8,17 @@
 
 #include "VulkanTools.h"
 
+const std::string getAssetPath()
+{
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+	return "";
+#elif defined(VK_EXAMPLE_DATA_DIR)
+	return VK_EXAMPLE_DATA_DIR;
+#else
+	return "./../data/";
+#endif
+}
+
 namespace vks
 {
 	namespace tools
