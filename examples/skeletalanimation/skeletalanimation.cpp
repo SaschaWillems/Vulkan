@@ -367,8 +367,8 @@ public:
 
 	struct {
 		glm::mat4 projection;
-		glm::mat4 model;
 		glm::mat4 view;
+		glm::mat4 model;
 		glm::mat4 bones[MAX_BONES];
 		glm::vec4 lightPos = glm::vec4(0.0f, -250.0f, 250.0f, 1.0);
 		glm::vec4 viewPos;
@@ -376,8 +376,8 @@ public:
 
 	struct {
 		glm::mat4 projection;
-		glm::mat4 model;
 		glm::mat4 view;
+		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0, 0.0f, -25.0f, 1.0);
 		glm::vec4 viewPos;
 		glm::vec2 uvOffset;
@@ -405,13 +405,13 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -150.0f;
-		zoomSpeed = 2.5f;
-		rotationSpeed = 0.5f;
-		rotation = { -182.5f, -38.5f, 180.0f };
 		title = "Skeletal animation (GPU skinning)";
-		cameraPos = { 0.0f, 0.0f, 12.0f };
 		settings.overlay = true;
+		camera.type = Camera::CameraType::lookat;
+		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 512.0f);
+		camera.setRotation(glm::vec3(-182.5f, -38.5f, 180.0f));
+		camera.setRotation(glm::vec3(0.0f, 135.0f, 0.0f));
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -20.0f));
 	}
 
 	~VulkanExample()
@@ -933,27 +933,20 @@ public:
 	{
 		if (viewChanged)
 		{
-			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1024.0f);
+			const glm::vec3 scale = glm::vec3(0.0025f);
 
-			glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			viewMatrix = glm::scale(viewMatrix, glm::vec3(0.025f));
+			uboVS.projection = camera.matrices.perspective;
+			uboVS.view = camera.matrices.view;
+			uboVS.viewPos = glm::vec4(camera.position, 0.0f) * glm::vec4(-1.0f);
+			uboVS.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			uboVS.model = glm::scale(uboVS.model, scale);
 
-			uboVS.view = viewMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(cameraPos.x, -cameraPos.z, cameraPos.y) * 100.0f);
-			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			uboVS.view = glm::rotate(uboVS.view, glm::radians(rotation.z), glm::vec3(0.0f, 1.0f, 0.0f));
-			uboVS.view = glm::rotate(uboVS.view, glm::radians(-rotation.y), glm::vec3(0.0f, 0.0f, 1.0f));
-
-			uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
-
-			uboFloor.projection = uboVS.projection;
-			uboFloor.view = viewMatrix;
-			uboFloor.model = glm::translate(glm::mat4(1.0f), glm::vec3(cameraPos.x, -cameraPos.z, cameraPos.y) * 100.0f);
-			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(rotation.z), glm::vec3(0.0f, 1.0f, 0.0f));
-			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(-rotation.y), glm::vec3(0.0f, 0.0f, 1.0f));
-			uboFloor.model = glm::translate(uboFloor.model, glm::vec3(0.0f, 0.0f, -1800.0f));
-			uboFloor.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
+			uboFloor.projection = camera.matrices.perspective;
+			uboFloor.view = camera.matrices.view;
+			uboFloor.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 4.5f, 0.0f));
+			uboFloor.model = glm::rotate(uboFloor.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			uboFloor.model = glm::scale(uboFloor.model, scale);
+			uboFloor.viewPos = glm::vec4(camera.position, 0.0f) * glm::vec4(-1.0f);
 		}
 
 		// Update bones
