@@ -598,8 +598,8 @@ public:
 			shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 			shaderStages[1].pName = "main";
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-			shaderStages[0].module = vks::tools::loadShader(androidapp->activity->assetManager, (getAssetPath() + "shaders/renderheadless/triangle.vert.spv".c_str(), device);
-			shaderStages[1].module = vks::tools::loadShader(androidapp->activity->assetManager, (getAssetPath() + "shaders/renderheadless/triangle.frag.spv".c_str(), device);
+			shaderStages[0].module = vks::tools::loadShader(androidapp->activity->assetManager, (getAssetPath() + "shaders/renderheadless/triangle.vert.spv").c_str(), device);
+			shaderStages[1].module = vks::tools::loadShader(androidapp->activity->assetManager, (getAssetPath() + "shaders/renderheadless/triangle.frag.spv").c_str(), device);
 #else
 			shaderStages[0].module = vks::tools::loadShader((getAssetPath() + "shaders/renderheadless/triangle.vert.spv").c_str(), device);
 			shaderStages[1].module = vks::tools::loadShader((getAssetPath() + "shaders/renderheadless/triangle.frag.spv").c_str(), device);

@@ -7,8 +7,8 @@ layout (location = 2) in vec2 inUV;
 layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
-	mat4 model;
 	mat4 view;
+	mat4 model;
 	vec4 lightPos;	
 	vec4 viewPos;
 	vec2 uvOffset;
@@ -30,7 +30,7 @@ void main()
 	vec4 pos = vec4(inPos, 1.0);
 	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(pos);
 	
-	outNormal = mat3(ubo.model) * inNormal;
+	outNormal = inNormal;
 	outLightVec = ubo.lightPos.xyz - pos.xyz;
 	outViewVec = ubo.viewPos.xyz - pos.xyz;			
 }

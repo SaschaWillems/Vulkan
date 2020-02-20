@@ -43,7 +43,7 @@ void main()
 	gl_Position = ubo.projection * ubo.view * ubo.model * boneTransform * vec4(inPos.xyz, 1.0);
 
 	vec4 pos = ubo.model * vec4(inPos, 1.0);
-	outNormal = mat3(inverse(transpose(ubo.model * boneTransform))) * inNormal;
+	outNormal = mat3(boneTransform) * inNormal;
 	outLightVec = ubo.lightPos.xyz - pos.xyz;
 	outViewVec = ubo.viewPos.xyz - pos.xyz;		
 }
