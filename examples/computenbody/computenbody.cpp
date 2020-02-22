@@ -752,13 +752,7 @@ public:
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
 
 		// Create a command buffer for compute operations
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-			vks::initializers::commandBufferAllocateInfo(
-				compute.commandPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1);	
-
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffer));
+		compute.commandBuffer = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, compute.commandPool);
 
 		// Semaphore for compute & graphics sync
 		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
