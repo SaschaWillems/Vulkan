@@ -49,6 +49,7 @@ public:
 
 	// Resources for the graphics part of the example
 	struct {
+		uint32_t queueFamilyIndex;					// Used to check if compute and graphics queue families differ and require additional barriers
 		vks::Buffer uniformBuffer;					// Contains scene matrices
 		VkDescriptorSetLayout descriptorSetLayout;	// Particle system rendering shader binding layout
 		VkDescriptorSet descriptorSet;				// Particle system rendering shader bindings
@@ -64,6 +65,7 @@ public:
 
 	// Resources for the compute part of the example
 	struct {
+		uint32_t queueFamilyIndex;					// Used to check if compute and graphics queue families differ and require additional barriers
 		vks::Buffer storageBuffer;					// (Shader) storage buffer object containing the particles
 		vks::Buffer uniformBuffer;					// Uniform buffer object containing particle system parameters
 		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
@@ -162,8 +164,33 @@ public:
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
-			// Draw the particle system using the update vertex buffer
+			// Acquire barrier
+			if (graphics.queueFamilyIndex != compute.queueFamilyIndex)
+			{
+				VkBufferMemoryBarrier buffer_barrier =
+				{
+					VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+					nullptr,
+					0,
+					VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+					compute.queueFamilyIndex,
+					graphics.queueFamilyIndex,
+					compute.storageBuffer.buffer,
+					0,
+					compute.storageBuffer.size 
+				};
 
+				vkCmdPipelineBarrier(
+					drawCmdBuffers[i],
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+					0,
+					0, nullptr,
+					1, &buffer_barrier,
+					0, nullptr);
+			}
+
+			// Draw the particle system using the update vertex buffer
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
@@ -173,7 +200,7 @@ public:
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipeline);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, NULL);
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, nullptr);
 
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &compute.storageBuffer.buffer, offsets);
@@ -182,6 +209,32 @@ public:
 			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
+
+			// Release barrier
+			if (graphics.queueFamilyIndex != compute.queueFamilyIndex)
+			{
+				VkBufferMemoryBarrier buffer_barrier =
+				{
+					VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+					nullptr,
+					VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+					0,
+					graphics.queueFamilyIndex,
+					compute.queueFamilyIndex,
+					compute.storageBuffer.buffer,
+					0,
+					compute.storageBuffer.size
+				};
+
+				vkCmdPipelineBarrier(
+					drawCmdBuffers[i],
+					VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					0,
+					0, nullptr,
+					1, &buffer_barrier,
+					0, nullptr);
+			}
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
@@ -193,6 +246,32 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffer, &cmdBufInfo));
+
+		// Acquire barrier
+		if (graphics.queueFamilyIndex != compute.queueFamilyIndex)
+		{
+			VkBufferMemoryBarrier buffer_barrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				0,
+				VK_ACCESS_SHADER_WRITE_BIT,
+				graphics.queueFamilyIndex,
+				compute.queueFamilyIndex,
+				compute.storageBuffer.buffer,
+				0,
+				compute.storageBuffer.size 
+			};
+
+			vkCmdPipelineBarrier(
+				compute.commandBuffer,
+				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				0,
+				0, nullptr,
+				1, &buffer_barrier,
+				0, nullptr);
+		}
 
 		// First pass: Calculate particle movement
 		// -------------------------------------------------------------------------------------------------------
@@ -223,6 +302,32 @@ public:
 		// -------------------------------------------------------------------------------------------------------
 		vkCmdBindPipeline(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineIntegrate);
 		vkCmdDispatch(compute.commandBuffer, numParticles / 256, 1, 1);
+
+		// Release barrier
+		if (graphics.queueFamilyIndex != compute.queueFamilyIndex)
+		{
+			VkBufferMemoryBarrier buffer_barrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				VK_ACCESS_SHADER_WRITE_BIT,
+				0,
+				compute.queueFamilyIndex,
+				graphics.queueFamilyIndex,
+				compute.storageBuffer.buffer,
+				0,
+				compute.storageBuffer.size
+			};
+
+			vkCmdPipelineBarrier(
+				compute.commandBuffer,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+				0,
+				0, nullptr,
+				1, &buffer_barrier,
+				0, nullptr);
+		}
 
 		vkEndCommandBuffer(compute.commandBuffer);
 	}
@@ -310,11 +415,36 @@ public:
 			&compute.storageBuffer,
 			storageBufferSize);
 
-		// Copy to staging buffer
+		// Copy from staging buffer to storage buffer
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		VkBufferCopy copyRegion = {};
 		copyRegion.size = storageBufferSize;
 		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.storageBuffer.buffer, 1, &copyRegion);
+		// Execute a transfer barrier to the compute queue, if necessary
+		if (graphics.queueFamilyIndex != compute.queueFamilyIndex)
+		{
+			VkBufferMemoryBarrier buffer_barrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+				0,
+				graphics.queueFamilyIndex,
+				compute.queueFamilyIndex,
+				compute.storageBuffer.buffer,
+				0,
+				compute.storageBuffer.size 
+			};
+
+			vkCmdPipelineBarrier(
+				copyCmd,
+				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				0,
+				0, nullptr,
+				1, &buffer_barrier,
+				0, nullptr);
+		}
 		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 
 		stagingBuffer.destroy();
@@ -411,7 +541,7 @@ public:
 			vks::initializers::writeDescriptorSet(graphics.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.gradient.descriptor),
 			vks::initializers::writeDescriptorSet(graphics.descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &graphics.uniformBuffer.descriptor),
 		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
@@ -520,12 +650,7 @@ public:
 		// The VulkanDevice::createLogicalDevice functions finds a compute capable queue and prefers queue families that only support compute
 		// Depending on the implementation this may result in different queue family indices for graphics and computes,
 		// requiring proper synchronization (see the memory barriers in buildComputeCommandBuffer)
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.pNext = NULL;
-		queueCreateInfo.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
-		queueCreateInfo.queueCount = 1;
-		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.compute, 0, &compute.queue);
+		vkGetDeviceQueue(device, compute.queueFamilyIndex, 0, &compute.queue);
 
 		// Create compute pipeline
 		// Compute pipelines are created separate from graphics pipelines even if they use the same queue (family index)
@@ -581,7 +706,7 @@ public:
 				&compute.uniformBuffer.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
 
 		// Create pipelines
 		VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
@@ -622,18 +747,12 @@ public:
 		// Separate command pool as queue family for compute may be different than graphics
 		VkCommandPoolCreateInfo cmdPoolInfo = {};
 		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		cmdPoolInfo.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
+		cmdPoolInfo.queueFamilyIndex = compute.queueFamilyIndex;
 		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
 
 		// Create a command buffer for compute operations
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-			vks::initializers::commandBufferAllocateInfo(
-				compute.commandPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1);	
-
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffer));
+		compute.commandBuffer = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, compute.commandPool);
 
 		// Semaphore for compute & graphics sync
 		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
@@ -648,6 +767,57 @@ public:
 
 		// Build a single command buffer containing the compute dispatch commands
 		buildComputeCommandBuffer();
+
+		// If graphics and compute queue family indices differ, acquire and immediately release the storage buffer, so that the initial acquire from the graphics command buffers are matched up properly
+		if (graphics.queueFamilyIndex != compute.queueFamilyIndex)
+		{			
+			// Create a transient command buffer for setting up the initial buffer transfer state
+			VkCommandBuffer transferCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, compute.commandPool, true);
+
+			VkBufferMemoryBarrier acquire_buffer_barrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				0,
+				VK_ACCESS_SHADER_WRITE_BIT,
+				graphics.queueFamilyIndex,
+				compute.queueFamilyIndex,
+				compute.storageBuffer.buffer,
+				0,
+				compute.storageBuffer.size
+			};
+			vkCmdPipelineBarrier(
+				transferCmd,
+				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				0,
+				0, nullptr,
+				1, &acquire_buffer_barrier,
+				0, nullptr);
+
+			VkBufferMemoryBarrier release_buffer_barrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				VK_ACCESS_SHADER_WRITE_BIT,
+				0,
+				compute.queueFamilyIndex,
+				graphics.queueFamilyIndex,
+				compute.storageBuffer.buffer,
+				0,
+				compute.storageBuffer.size
+			};
+			vkCmdPipelineBarrier(
+				transferCmd,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+				0,
+				0, nullptr,
+				1, &release_buffer_barrier,
+				0, nullptr);
+
+			vulkanDevice->flushCommandBuffer(transferCmd, compute.queue, compute.commandPool);
+		}
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -729,6 +899,10 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
+		// We will be using the queue family indices to check if graphics and compute queue families differ
+		// If that's the case, we need additional barriers for acquiring and releasing resources
+		graphics.queueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
+		compute.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
 		loadAssets();
 		setupDescriptorPool();
 		prepareGraphics();
