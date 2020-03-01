@@ -312,7 +312,18 @@ private:
 			bool hasUV = aMesh->HasTextureCoords(0);
 			bool hasColor = aMesh->HasVertexColors(0);
 			bool hasNormals = aMesh->HasNormals();
-
+			
+			uint32_t currentVertexsCount = vertices.size();
+			// Indices
+			for (uint32_t f = 0; f < aMesh->mNumFaces; f++)
+			{
+				for (uint32_t j = 0; j < 3; j++)
+				{
+					indices.push_back(aMesh->mFaces[f].mIndices[j] + currentVertexsCount);
+				}
+			}
+			
+			
 			for (uint32_t v = 0; v < aMesh->mNumVertices; v++)
 			{
 				Vertex vertex;
@@ -325,15 +336,7 @@ private:
 				vertices.push_back(vertex);
 			}
 
-			// Indices
-			for (uint32_t f = 0; f < aMesh->mNumFaces; f++)
-			{
-				for (uint32_t j = 0; j < 3; j++)
-				{
-					indices.push_back(aMesh->mFaces[f].mIndices[j]);
-				}
-			}
-
+		
 			indexBase += aMesh->mNumFaces * 3;
 		}
 
