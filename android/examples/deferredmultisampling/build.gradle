@@ -4,7 +4,7 @@ apply from: '../gradle/outputfilename.gradle'
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "de.saschawillems.vulkanDeferredmulitsampling"
+        applicationId "de.saschawillems.vulkanDeferredmultisampling"
         minSdkVersion 19
         targetSdkVersion 26
         versionCode 1
