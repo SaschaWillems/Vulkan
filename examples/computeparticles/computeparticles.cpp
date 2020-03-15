@@ -110,7 +110,6 @@ public:
 		vkDestroyPipeline(device, compute.pipeline, nullptr);
 		vkDestroySemaphore(device, compute.semaphore, nullptr);
 		vkDestroyCommandPool(device, compute.commandPool, nullptr);
-		vkDestroyCommandPool(device, compute.commandPool, nullptr);
 
 		textures.particle.destroy();
 		textures.gradient.destroy();
