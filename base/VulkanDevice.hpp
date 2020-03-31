@@ -300,8 +300,8 @@ namespace vks
 			deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
 		
 			// If a pNext(Chain) has been passed, we need to add it to the device creation info
+			VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 			if (pNextChain) {
-				VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 				physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 				physicalDeviceFeatures2.features = enabledFeatures;
 				physicalDeviceFeatures2.pNext = pNextChain;
