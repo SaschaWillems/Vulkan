@@ -5,6 +5,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BHXPMV6ZKPH9E)
 
 ## Table of Contents
++ [Official Khronos Vulkan Samples](#Khronossamples)
 + [Cloning](#Cloning)
 + [Assets](#Assets)
 + [Building](#Building)
@@ -24,6 +25,13 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
     + [Misc](#Misc)
 + [Credits and Attributions](#CreditsAttributions)
 
+## <a name="Khronossamples"></a> Official Khronos Vulkan Samples
+
+Khronos recently made an official Vulkan Samples repository available to the public ([press release](https://www.khronos.org/blog/vulkan-releases-unified-samples-repository?utm_source=Khronos%20Blog&utm_medium=Twitter&utm_campaign=Vulkan%20Repository)). 
+
+You can find this repository at https://github.com/KhronosGroup/Vulkan-Samples
+
+As I've been involved with getting the official repository up and running, I'll be mostly contributing to that repository from now, but may still add samples that don't fit there in here and I'll of course continue to maintain these samples.
 
 ## <a name="Cloning"></a> Cloning
 This repository contains submodules for external dependencies, so when doing a fresh clone you need to clone recursively:
