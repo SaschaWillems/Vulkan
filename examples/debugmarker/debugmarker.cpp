@@ -6,6 +6,12 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
+/*
+ * Note: This sample is deprecated!
+ * An updated version using VK_EXT_debug_utils along with an in-depth tutorial is available in the pfficial Khronos Vulkan Samples repository at 
+ * https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/extensions/debug_utils.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
