@@ -313,6 +313,8 @@ private:
 			bool hasColor = aMesh->HasVertexColors(0);
 			bool hasNormals = aMesh->HasNormals();
 
+			const uint32_t vertexOffset = static_cast<uint32_t>(vertices.size());
+
 			for (uint32_t v = 0; v < aMesh->mNumVertices; v++)
 			{
 				Vertex vertex;
@@ -330,7 +332,7 @@ private:
 			{
 				for (uint32_t j = 0; j < 3; j++)
 				{
-					indices.push_back(aMesh->mFaces[f].mIndices[j]);
+					indices.push_back(vertexOffset + aMesh->mFaces[f].mIndices[j]);
 				}
 			}
 
