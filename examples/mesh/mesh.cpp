@@ -38,17 +38,26 @@
 
 #define ENABLE_VALIDATION false
 
+// Contains everything required to render a glTF model in Vulkan
+// This class is very simplified but retains the basic glTF structure
+class VulkanglTFModel 
+{
+	// The vertex layout for the samples' model
+	struct Vertex {
+		glm::vec3 pos;
+		glm::vec3 normal;
+		glm::vec2 uv;
+		glm::vec3 color;
+	};
+
+
+};
+
 class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool wireframe = false;
 
-	struct {
-		vks::Texture2D colorMap;
-	} textures;
-
-	// Vertex layout used in this example
-	// This must fit input locations of the vertex shader used to render the model
 	struct Vertex {
 		glm::vec3 pos;
 		glm::vec3 normal;
@@ -58,27 +67,42 @@ public:
 
 	struct ModelNode;
 
-	// Represents a single mesh-based node in the glTF scene graph
-	// This is simplified as much as possible to make this sample easy to understand
-	struct ModelNode {
-		ModelNode* parent;
+	// A primitive contains the data for a single draw call
+	struct Primitive {
 		uint32_t firstIndex;
 		uint32_t indexCount;
-		glm::mat4 matrix;
+		int32_t materialIndex;
+	};
+
+	// Contains the node's geometry and can be made up of an arbitrary number of primitives
+	struct Mesh {
+		std::vector<Primitive> primitives;
+	};
+
+	// A node represents an object in the glTF scene graph
+	struct ModelNode {
+		ModelNode* parent;
 		std::vector<ModelNode> children;
+		Mesh mesh;
+		glm::mat4 matrix;
 	};
 
 	// Represents a glTF material used to access e.g. the texture to choose for a mesh
-	// Only includes the most basic properties required for this sample
 	struct ModelMaterial {
 		glm::vec4 baseColorFactor = glm::vec4(1.0f);
 		uint32_t baseColorTextureIndex;
 	};
 
+	// @todo
+	struct ModelImage {
+		vks::Texture2D texture;
+		VkDescriptorSet descriptorSet;
+	};
+
 	// Contains all Vulkan resources required to represent vertex and index buffers for a model
 	// This is for demonstration and learning purposes, the other examples use a model loader class for easy access
 	struct Model {
-		std::vector<vks::Texture2D> images;
+		std::vector<ModelImage> images;
 		// Textures in glTF are indices used by material to select an image (and optionally samplers)
 		std::vector<uint32_t> textures;
 		std::vector<ModelMaterial> materials;
@@ -119,7 +143,11 @@ public:
 
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+
+	struct DescriptorSetLayouts {
+		VkDescriptorSetLayout matrices;
+		VkDescriptorSetLayout textures;
+	} descriptorSetLayouts;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -128,8 +156,9 @@ public:
 		rotationSpeed = 0.5f;
 		rotation = { -0.5f, -112.75f, 0.0f };
 		cameraPos = { 0.1f, 1.1f, 0.0f };
-		title = "Model rendering";
+		title = "glTF model rendering";
 		settings.overlay = true;
+		//@todo: Use camera
 	}
 
 	~VulkanExample()
@@ -142,11 +171,11 @@ public:
 		}
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
 
 		model.destroy(device);
 
-		textures.colorMap.destroy();
 		uniformBuffers.scene.destroy();
 	}
 
@@ -175,33 +204,20 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
+		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
-			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+			// Bind scene matrices descriptor to set 0
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.solid);
-
 			drawglTFModel(drawCmdBuffers[i]);
-
-			/*
-			VkDeviceSize offsets[1] = { 0 };
-			// Bind mesh vertex buffer
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &model.vertices.buffer, offsets);
-			// Bind mesh index buffer
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			// Render mesh vertex buffer using its indices
-			vkCmdDrawIndexed(drawCmdBuffers[i], model.indices.count, 1, 0, 0, 0);
-			*/
-
 			drawUI(drawCmdBuffers[i]);
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
@@ -210,8 +226,15 @@ public:
 
 	void drawglTFNode(VkCommandBuffer commandBuffer, ModelNode node)
 	{
-		if (node.indexCount > 0) {
-			vkCmdDrawIndexed(commandBuffer, node.indexCount, 1, node.firstIndex, 0, 0);
+		if (node.mesh.primitives.size() > 0) {
+			for (Primitive& primitive : node.mesh.primitives) {
+				if (primitive.indexCount > 0) {
+					// @todo: link mat to node
+					uint32_t texture = model.textures[model.materials[primitive.materialIndex].baseColorTextureIndex];
+					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &model.images[texture].descriptorSet, 0, nullptr);
+					vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+				}
+			}
 		}
 		for (auto& child : node.children) {
 			drawglTFNode(commandBuffer, child);
@@ -262,7 +285,8 @@ public:
 				buffer = &glTFImage.image[0];
 				bufferSize = glTFImage.image.size();
 			}
-			model.images[i].fromBuffer(buffer, bufferSize, VK_FORMAT_R8G8B8A8_UNORM, glTFImage.width, glTFImage.height, vulkanDevice, queue);
+			// Load texture from image buffer
+			model.images[i].texture.fromBuffer(buffer, bufferSize, VK_FORMAT_R8G8B8A8_UNORM, glTFImage.width, glTFImage.height, vulkanDevice, queue);
 		}
 	}
 
@@ -334,12 +358,12 @@ public:
 		// In glTF this is done via accessors and buffer views
 		if (glTFNode.mesh > -1) {
 			const tinygltf::Mesh mesh = glTFModel.meshes[glTFNode.mesh];
-			uint32_t indexStart = static_cast<uint32_t>(indexBuffer.size());
-			uint32_t vertexStart = static_cast<uint32_t>(vertexBuffer.size());
-			uint32_t indexCount = 0;
 			// Iterate through all primitives of this node's mesh
 			for (size_t i = 0; i < mesh.primitives.size(); i++) {
-				const tinygltf::Primitive& primitive = mesh.primitives[i];
+				const tinygltf::Primitive& glTFPrimitive = mesh.primitives[i];
+				uint32_t firstIndex = static_cast<uint32_t>(indexBuffer.size());
+				uint32_t vertexStart = static_cast<uint32_t>(vertexBuffer.size());
+				uint32_t indexCount = 0;
 				// Vertices
 				{
 					const float* positionBuffer = nullptr;
@@ -348,22 +372,22 @@ public:
 					size_t vertexCount = 0;
 
 					// Get buffer data for vertex normals
-					if (primitive.attributes.find("POSITION") != primitive.attributes.end()) {
-						const tinygltf::Accessor& accessor = glTFModel.accessors[primitive.attributes.find("POSITION")->second];
+					if (glTFPrimitive.attributes.find("POSITION") != glTFPrimitive.attributes.end()) {
+						const tinygltf::Accessor& accessor = glTFModel.accessors[glTFPrimitive.attributes.find("POSITION")->second];
 						const tinygltf::BufferView& view = glTFModel.bufferViews[accessor.bufferView];
 						positionBuffer = reinterpret_cast<const float*>(&(glTFModel.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 						vertexCount = accessor.count;
 					}
 					// Get buffer data for vertex normals
-					if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
-						const tinygltf::Accessor& accessor = glTFModel.accessors[primitive.attributes.find("NORMAL")->second];
+					if (glTFPrimitive.attributes.find("NORMAL") != glTFPrimitive.attributes.end()) {
+						const tinygltf::Accessor& accessor = glTFModel.accessors[glTFPrimitive.attributes.find("NORMAL")->second];
 						const tinygltf::BufferView& view = glTFModel.bufferViews[accessor.bufferView];
 						normalsBuffer = reinterpret_cast<const float*>(&(glTFModel.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 					}
 					// Get buffer data for vertex texture coordinates
 					// glTF supports multiple sets, we only load the first one
-					if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
-						const tinygltf::Accessor& accessor = glTFModel.accessors[primitive.attributes.find("TEXCOORD_0")->second];
+					if (glTFPrimitive.attributes.find("TEXCOORD_0") != glTFPrimitive.attributes.end()) {
+						const tinygltf::Accessor& accessor = glTFModel.accessors[glTFPrimitive.attributes.find("TEXCOORD_0")->second];
 						const tinygltf::BufferView& view = glTFModel.bufferViews[accessor.bufferView];
 						texCoordsBuffer = reinterpret_cast<const float*>(&(glTFModel.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 					}
@@ -374,17 +398,21 @@ public:
 						vert.pos = glm::vec4(glm::make_vec3(&positionBuffer[v * 3]), 1.0f);
 						vert.normal = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f)));
 						vert.uv = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f);
+						vert.color = glm::vec3(1.0f);
+						// Flip Y-Axis
+						vert.pos.y *= -1.0f;
 						vertexBuffer.push_back(vert);
 					}
 				}
 				// Indices
 				{
-					const tinygltf::Accessor& accessor = glTFModel.accessors[primitive.indices];
+					const tinygltf::Accessor& accessor = glTFModel.accessors[glTFPrimitive.indices];
 					const tinygltf::BufferView& bufferView = glTFModel.bufferViews[accessor.bufferView];
 					const tinygltf::Buffer& buffer = glTFModel.buffers[bufferView.buffer];
 
 					indexCount += static_cast<uint32_t>(accessor.count);
 
+					// glTF supports different component types of indices
 					switch (accessor.componentType) {
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
 						uint32_t* buf = new uint32_t[accessor.count];
@@ -415,9 +443,12 @@ public:
 						return;
 					}
 				}
+				Primitive primitive{};
+				primitive.firstIndex = firstIndex;
+				primitive.indexCount = indexCount;
+				primitive.materialIndex = glTFPrimitive.material;
+				node.mesh.primitives.push_back(primitive);
 			}
-			node.firstIndex = indexStart;
-			node.indexCount = indexCount;
 		}
 
 		if (parent) {
@@ -548,76 +579,54 @@ public:
 	void loadAssets()
 	{
 		loadglTF(getAssetPath() + "models/voyager/voyager.gltf");
-		textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager_rgba_unorm.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);		
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
-		// Example uses one ubo and one combined image sampler
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
+		/*
+			This sample uses separate descriptor sets (and layouts) for the matrices and materials (textures)
+		*/
+
+		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
+			// One combined image sampler per model image/texture
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(model.images.size())),
 		};
-
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(
-				static_cast<uint32_t>(poolSizes.size()),
-				poolSizes.data(),
-				1);
-
+		// One set for matrices and one per model image/texture
+		const uint32_t maxSetCount = static_cast<uint32_t>(model.images.size()) + 1;
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxSetCount);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-		{
-			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::descriptorSetLayoutBinding(
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0),
-			// Binding 1 : Fragment shader combined sampler
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				1),
-		};
+		// Descriptor set layout for passing matrices
+		VkDescriptorSetLayoutBinding setLayoutBinding = vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
+		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(&setLayoutBinding, 1);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayouts.matrices));
+		// Descriptor set layout for passing material textures
+		setLayoutBinding = vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayouts.textures));
+		// Pipeline layout using both descriptor sets (set 0 = matrices, set 1 = material)
+		std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayouts.matrices, descriptorSetLayouts.textures };
+		VkPipelineLayoutCreateInfo pipelineLayoutCI= vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				static_cast<uint32_t>(setLayoutBindings.size()));
-
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
-
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(
-				&descriptorSetLayout,
-				1);
-
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-	}
-
-	void setupDescriptorSet()
-	{
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+		// Descriptor set for scene matrices
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.matrices, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
-			// Binding 1 : Color map 
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.colorMap.descriptor)
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+		VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor);
+		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		// Descriptor sets for materials
+		for (auto& image : model.images) {
+			const VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.textures, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &image.descriptorSet));
+			VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(image.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &image.texture.descriptor);
+			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
 	{
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE, 0);
+		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentStateCI = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
 		VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentStateCI);
 		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -717,10 +726,8 @@ public:
 		VulkanExampleBase::prepare();
 		loadAssets();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
 	}
