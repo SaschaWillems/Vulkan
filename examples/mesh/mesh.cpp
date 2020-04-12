@@ -41,13 +41,13 @@
 #define ENABLE_VALIDATION false
 
 // Contains everything required to render a glTF model in Vulkan
-// This class is very simplified but retains the basic glTF structure
+// This class is heavily simplified (compared to glTF's feature set) but retains the basic glTF structure
 class VulkanglTFModel 
 {
 public:
 	// The class requires some Vulkan objects so it can create it's own resources
 	vks::VulkanDevice* vulkanDevice;
-	VkQueue copyQueue;
+	VkQueue copyQueue;	
 
 	// The vertex layout for the samples' model
 	struct Vertex {
@@ -321,6 +321,40 @@ public:
 		}
 	}
 
+	/*
+		glTF rendering functions
+	*/
+	
+	// Draw a single node including child nodes (if present)
+	void drawglTFNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFModel::Node node)
+	{
+		if (node.mesh.primitives.size() > 0) {
+			for (VulkanglTFModel::Primitive& primitive : node.mesh.primitives) {
+				if (primitive.indexCount > 0) {
+					// Get the texture index for this primitive
+					VulkanglTFModel::Texture texture = textures[materials[primitive.materialIndex].baseColorTextureIndex];
+					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &images[texture.imageIndex].descriptorSet, 0, nullptr);
+					vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+				}
+			}
+		}
+		for (auto& child : node.children) {
+			drawglTFNode(commandBuffer, pipelineLayout, child);
+		}
+	}
+
+	// Draw the glTF scene starting at the top-level-nodes
+	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout)
+	{
+		// All vertices and indices are stored in single buffers, so we only need to bind once 
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		// Render all nodes at top-level
+		for (auto& node : nodes) {
+			drawglTFNode(commandBuffer, pipelineLayout, node);
+		}
+	}
 
 };
 
@@ -423,44 +457,13 @@ public:
 			// Bind scene matrices descriptor to set 0
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.solid);
-			drawglTFModel(drawCmdBuffers[i]);
+			glTFModel.draw(drawCmdBuffers[i], pipelineLayout);
 			drawUI(drawCmdBuffers[i]);
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
-	/*
-		glTF rendering functions
-	*/
-	void drawglTFNode(VkCommandBuffer commandBuffer, VulkanglTFModel::Node node)
-	{
-		if (node.mesh.primitives.size() > 0) {
-			for (VulkanglTFModel::Primitive& primitive : node.mesh.primitives) {
-				if (primitive.indexCount > 0) {
-					// @todo: link mat to node
-					VulkanglTFModel::Texture texture = glTFModel.textures[glTFModel.materials[primitive.materialIndex].baseColorTextureIndex];
-					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &glTFModel.images[texture.imageIndex].descriptorSet, 0, nullptr);
-					vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
-				}
-			}
-		}
-		for (auto& child : node.children) {
-			drawglTFNode(commandBuffer, child);
-		}
-	}
-
-	void drawglTFModel(VkCommandBuffer commandBuffer) 
-	{
-		// All vertices and indices are stored in single buffers, so we only need to bind once 
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &glTFModel.vertices.buffer, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, glTFModel.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-		for (auto& node : glTFModel.nodes) {
-			drawglTFNode(commandBuffer, node);
-		}
-	}
-	
 	// @todo
 	void loadglTF(std::string filename)
 	{
@@ -486,6 +489,7 @@ public:
 		bool fileLoaded = gltfContext.LoadASCIIFromFile(&glTFInput, &error, &warning, filename);
 #endif
 
+		// Pass some Vulkan resources required for setup and rendering to the glTF model loading class
 		glTFModel.vulkanDevice = vulkanDevice;
 		glTFModel.copyQueue = queue;
 
@@ -508,6 +512,10 @@ public:
 			return;
 		}
 
+		// Create and upload vertex and index buffer
+		// We will be using one single vertex buffer and one single index buffer for the whole glTF scene
+		// Primitives (of the glTF model) will then index into these using index offsets
+
 		size_t vertexBufferSize = vertexBuffer.size() * sizeof(VulkanglTFModel::Vertex);
 		size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 		glTFModel.indices.count = static_cast<uint32_t>(indexBuffer.size());
@@ -517,8 +525,7 @@ public:
 			VkDeviceMemory memory;
 		} vertexStaging, indexStaging;
 
-		// Create staging buffers
-		// Vertex data
+		// Create host visible staging buffers (source)
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -535,15 +542,13 @@ public:
 			&indexStaging.memory,
 			indexBuffer.data()));
 
-		// Create device local buffers
-		// Vertex buffer
+		// Create device local buffers (targat)
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			vertexBufferSize,
 			&glTFModel.vertices.buffer,
 			&glTFModel.vertices.memory));
-		// Index buffer
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -553,7 +558,6 @@ public:
 
 		// Copy data from staging buffers (host) do device local buffer (gpu)
 		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 		VkBufferCopy copyRegion = {};
 
 		copyRegion.size = vertexBufferSize;
@@ -574,6 +578,7 @@ public:
 
 		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 
+		// Free staging resources
 		vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
 		vkFreeMemory(device, vertexStaging.memory, nullptr);
 		vkDestroyBuffer(device, indexStaging.buffer, nullptr);
