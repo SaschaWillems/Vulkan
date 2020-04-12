@@ -1,10 +1,19 @@
 /*
 * Vulkan Example - Model loading and rendering
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2020 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
+
+/*
+ * Shows how to load and display a simple mesh from a glTF file
+ * Note that this isn't a complete glTF loader and only basic functions are shown here
+ * This means only linear nodes (no parent<->child tree), no animations, no skins, etc.
+ * For details on how glTF 2.0 works, see the official spec at https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
+ * 
+ * If you are looking for a complete glTF implementation, check out https://github.com/SaschaWillems/Vulkan-glTF-PBR/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,16 +27,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <assimp/Importer.hpp> 
-#include <assimp/scene.h>     
-#include <assimp/postprocess.h>
-#include <assimp/cimport.h>
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+#include "tiny_gltf.h"
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
 
-#define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
 class VulkanExample : public VulkanExampleBase
@@ -39,12 +47,6 @@ public:
 		vks::Texture2D colorMap;
 	} textures;
 
-	struct {
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
-
 	// Vertex layout used in this example
 	// This must fit input locations of the vertex shader used to render the model
 	struct Vertex {
@@ -54,9 +56,33 @@ public:
 		glm::vec3 color;
 	};
 
+	struct ModelNode;
+
+	// Represents a single mesh-based node in the glTF scene graph
+	// This is simplified as much as possible to make this sample easy to understand
+	struct ModelNode {
+		ModelNode* parent;
+		uint32_t firstIndex;
+		uint32_t indexCount;
+		glm::mat4 matrix;
+		std::vector<ModelNode> children;
+	};
+
+	// Represents a glTF material used to access e.g. the texture to choose for a mesh
+	// Only includes the most basic properties required for this sample
+	struct ModelMaterial {
+		glm::vec4 baseColorFactor = glm::vec4(1.0f);
+		uint32_t baseColorTextureIndex;
+	};
+
 	// Contains all Vulkan resources required to represent vertex and index buffers for a model
 	// This is for demonstration and learning purposes, the other examples use a model loader class for easy access
 	struct Model {
+		std::vector<vks::Texture2D> images;
+		// Textures in glTF are indices used by material to select an image (and optionally samplers)
+		std::vector<uint32_t> textures;
+		std::vector<ModelMaterial> materials;
+		std::vector<ModelNode> nodes;
 		struct {
 			VkBuffer buffer;
 			VkDeviceMemory memory;
@@ -157,16 +183,16 @@ public:
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
 			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
 			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.solid);
 
+			drawglTFModel(drawCmdBuffers[i]);
+
+			/*
 			VkDeviceSize offsets[1] = { 0 };
 			// Bind mesh vertex buffer
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &model.vertices.buffer, offsets);
@@ -174,238 +200,355 @@ public:
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 			// Render mesh vertex buffer using its indices
 			vkCmdDrawIndexed(drawCmdBuffers[i], model.indices.count, 1, 0, 0, 0);
+			*/
 
 			drawUI(drawCmdBuffers[i]);
-
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
-	// Load a model from file using the ASSIMP model loader and generate all resources required to render the model
-	void loadModel(std::string filename)
+	void drawglTFNode(VkCommandBuffer commandBuffer, ModelNode node)
 	{
-		// Load the model from file using ASSIMP
+		if (node.indexCount > 0) {
+			vkCmdDrawIndexed(commandBuffer, node.indexCount, 1, node.firstIndex, 0, 0);
+		}
+		for (auto& child : node.children) {
+			drawglTFNode(commandBuffer, child);
+		}
+	}
 
-		const aiScene* scene;
-		Assimp::Importer Importer;		
+	void drawglTFModel(VkCommandBuffer commandBuffer) 
+	{
+		// All vertices and indices are stored in single buffers, so we only need to bind once 
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		for (auto& node : model.nodes) {
+			drawglTFNode(commandBuffer, node);
+		}
+	}
+	
+	/*
+		Load images from the glTF file
+		Textures can be stored inside the glTF (which is the case for the sample model), so instead of directly
+		loading them from disk, we fetch them from the glTF loader and upload the buffers
+	*/
+	void loadglTFImages(tinygltf::Model& glTFModel)
+	{
+		model.images.resize(glTFModel.images.size());
+		for (size_t i = 0; i < glTFModel.images.size(); i++) {
+			tinygltf::Image& glTFImage = glTFModel.images[i];
+			// Get the image data from the glTF loader
+			unsigned char* buffer = nullptr;
+			VkDeviceSize bufferSize = 0;
+			bool deleteBuffer = false;
+			// We convert RGB-only images to RGBA, as most devices don't support RGB-formats in Vulkan
+			if (glTFImage.component == 3) {
+				bufferSize = glTFImage.width * glTFImage.height * 4;
+				buffer = new unsigned char[bufferSize];
+				unsigned char* rgba = buffer;
+				unsigned char* rgb = &glTFImage.image[0];
+				for (size_t i = 0; i < glTFImage.width * glTFImage.height; ++i) {
+					for (int32_t j = 0; j < 3; ++j) {
+						rgba[j] = rgb[j];
+					}
+					rgba += 4;
+					rgb += 3;
+				}
+				deleteBuffer = true;
+			}
+			else {
+				buffer = &glTFImage.image[0];
+				bufferSize = glTFImage.image.size();
+			}
+			model.images[i].fromBuffer(buffer, bufferSize, VK_FORMAT_R8G8B8A8_UNORM, glTFImage.width, glTFImage.height, vulkanDevice, queue);
+		}
+	}
 
-		// Flags for loading the mesh
-		static const int assimpFlags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices;
+	/*
+		Load texture information
+		These nodes store the index of the image used by a material that sources this texture
+	*/
+	void loadglTFTextures(tinygltf::Model& glTFModel)
+	{
+		model.textures.resize(glTFModel.textures.size());
+		for (size_t i = 0; i < glTFModel.textures.size(); i++) {
+			model.textures[i] = glTFModel.textures[i].source;
+		}
+	}
+
+	/*
+		Load Materials from the glTF file
+		Materials contain basic properties like colors and references to the textures used by that material
+		We only read the most basic properties required for our sample
+	*/
+	void loadglTFMaterials(const tinygltf::Model& glTFModel)
+	{
+		model.materials.resize(glTFModel.materials.size());
+		for (size_t i = 0; i < glTFModel.materials.size(); i++) {
+			tinygltf::Material glTFMaterial = glTFModel.materials[i];
+			// Get the base color factor
+			if (glTFMaterial.values.find("baseColorFactor") != glTFMaterial.values.end()) {
+				model.materials[i].baseColorFactor = glm::make_vec4(glTFMaterial.values["baseColorFactor"].ColorFactor().data());
+			}
+			// Get base color texture index
+			if (glTFMaterial.values.find("baseColorTexture") != glTFMaterial.values.end()) {
+				model.materials[i].baseColorTextureIndex = glTFMaterial.values["baseColorTexture"].TextureIndex();
+			}
+		}
+	}
+
+	// Load a single glTF node
+	// glTF scenes are made up of nodes that contain mesh data
+	// This is the most basic way of loading a glTF node that ignores parent->child relations and nested matrices
+	void loadglTFNode(ModelNode* parent, const tinygltf::Node& glTFNode, const tinygltf::Model& glTFModel, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer)
+	{
+		ModelNode node{};
+		node.matrix = glm::mat4(1.0f);
+
+		// Get the local node matrix
+		// It's either made up from translation, rotation, scale or a 4x4 matrix
+		if (glTFNode.translation.size() == 3) {
+			node.matrix = glm::translate(node.matrix, glm::vec3(glm::make_vec3(glTFNode.translation.data())));
+		}
+		if (glTFNode.rotation.size() == 4) {
+			glm::quat q = glm::make_quat(glTFNode.rotation.data());
+			node.matrix *= glm::mat4(q);
+		}
+		if (glTFNode.scale.size() == 3) {
+			node.matrix = glm::scale(node.matrix, glm::vec3(glm::make_vec3(glTFNode.translation.data())));
+		}
+		if (glTFNode.matrix.size() == 16) {
+			node.matrix = glm::make_mat4x4(glTFNode.matrix.data());
+		};
+
+		// Load node's children 
+		if (glTFNode.children.size() > 0) {
+			for (size_t i = 0; i < glTFNode.children.size(); i++) {
+				loadglTFNode(&node, glTFModel.nodes[glTFNode.children[i]], glTFModel, indexBuffer, vertexBuffer);
+			}
+		}
+
+		// If the node contains mesh data, we load vertices and indices from the the buffers
+		// In glTF this is done via accessors and buffer views
+		if (glTFNode.mesh > -1) {
+			const tinygltf::Mesh mesh = glTFModel.meshes[glTFNode.mesh];
+			uint32_t indexStart = static_cast<uint32_t>(indexBuffer.size());
+			uint32_t vertexStart = static_cast<uint32_t>(vertexBuffer.size());
+			uint32_t indexCount = 0;
+			// Iterate through all primitives of this node's mesh
+			for (size_t i = 0; i < mesh.primitives.size(); i++) {
+				const tinygltf::Primitive& primitive = mesh.primitives[i];
+				// Vertices
+				{
+					const float* positionBuffer = nullptr;
+					const float* normalsBuffer = nullptr;
+					const float* texCoordsBuffer = nullptr;
+					size_t vertexCount = 0;
+
+					// Get buffer data for vertex normals
+					if (primitive.attributes.find("POSITION") != primitive.attributes.end()) {
+						const tinygltf::Accessor& accessor = glTFModel.accessors[primitive.attributes.find("POSITION")->second];
+						const tinygltf::BufferView& view = glTFModel.bufferViews[accessor.bufferView];
+						positionBuffer = reinterpret_cast<const float*>(&(glTFModel.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+						vertexCount = accessor.count;
+					}
+					// Get buffer data for vertex normals
+					if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
+						const tinygltf::Accessor& accessor = glTFModel.accessors[primitive.attributes.find("NORMAL")->second];
+						const tinygltf::BufferView& view = glTFModel.bufferViews[accessor.bufferView];
+						normalsBuffer = reinterpret_cast<const float*>(&(glTFModel.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+					}
+					// Get buffer data for vertex texture coordinates
+					// glTF supports multiple sets, we only load the first one
+					if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
+						const tinygltf::Accessor& accessor = glTFModel.accessors[primitive.attributes.find("TEXCOORD_0")->second];
+						const tinygltf::BufferView& view = glTFModel.bufferViews[accessor.bufferView];
+						texCoordsBuffer = reinterpret_cast<const float*>(&(glTFModel.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+					}
+
+					// Append data to model's vertex buffer
+					for (size_t v = 0; v < vertexCount; v++) {
+						Vertex vert{};
+						vert.pos = glm::vec4(glm::make_vec3(&positionBuffer[v * 3]), 1.0f);
+						vert.normal = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f)));
+						vert.uv = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f);
+						vertexBuffer.push_back(vert);
+					}
+				}
+				// Indices
+				{
+					const tinygltf::Accessor& accessor = glTFModel.accessors[primitive.indices];
+					const tinygltf::BufferView& bufferView = glTFModel.bufferViews[accessor.bufferView];
+					const tinygltf::Buffer& buffer = glTFModel.buffers[bufferView.buffer];
+
+					indexCount += static_cast<uint32_t>(accessor.count);
+
+					switch (accessor.componentType) {
+					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+						uint32_t* buf = new uint32_t[accessor.count];
+						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint32_t));
+						for (size_t index = 0; index < accessor.count; index++) {
+							indexBuffer.push_back(buf[index] + vertexStart);
+						}
+						break;
+					}
+					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+						uint16_t* buf = new uint16_t[accessor.count];
+						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint16_t));
+						for (size_t index = 0; index < accessor.count; index++) {
+							indexBuffer.push_back(buf[index] + vertexStart);
+						}
+						break;
+					}
+					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+						uint8_t* buf = new uint8_t[accessor.count];
+						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint8_t));
+						for (size_t index = 0; index < accessor.count; index++) {
+							indexBuffer.push_back(buf[index] + vertexStart);
+						}
+						break;
+					}
+					default:
+						std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
+						return;
+					}
+				}
+			}
+			node.firstIndex = indexStart;
+			node.indexCount = indexCount;
+		}
+
+		if (parent) {
+			parent->children.push_back(node);
+		}
+		else {
+			model.nodes.push_back(node);
+		}
+	}
+
+	// @todo
+	void loadglTF(std::string filename)
+	{
+		tinygltf::Model gltfModel;
+		tinygltf::TinyGLTF gltfContext;
+		std::string error, warning;
+
+		this->device = device;
 
 #if defined(__ANDROID__)
-		// Meshes are stored inside the apk on Android (compressed)
-		// So they need to be loaded via the asset manager
-
+		// On Android all assets are packed with the apk in a compressed form, so we need to open them using the asset manager
 		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
 		assert(asset);
 		size_t size = AAsset_getLength(asset);
-
 		assert(size > 0);
-
-		void *meshData = malloc(size);
-		AAsset_read(asset, meshData, size);
+		char* fileData = new char[size];
+		AAsset_read(asset, fileData, size);
 		AAsset_close(asset);
-
-		scene = Importer.ReadFileFromMemory(meshData, size, assimpFlags);
-
-		free(meshData);
+		std::string baseDir;
+		bool fileLoaded = gltfContext.LoadASCIIFromString(&gltfModel, &error, &warning, fileData, size, baseDir);
+		free(fileData);
 #else
-		scene = Importer.ReadFile(filename.c_str(), assimpFlags);
+		bool fileLoaded = gltfContext.LoadASCIIFromFile(&gltfModel, &error, &warning, filename);
 #endif
-
-		// Generate vertex buffer from ASSIMP scene data
-		float scale = 1.0f;
+		std::vector<uint32_t> indexBuffer;
 		std::vector<Vertex> vertexBuffer;
 
-		// Iterate through all meshes in the file and extract the vertex components
-		for (uint32_t m = 0; m < scene->mNumMeshes; m++)
-		{
-			for (uint32_t v = 0; v < scene->mMeshes[m]->mNumVertices; v++)
-			{
-				Vertex vertex;
-
-				// Use glm make_* functions to convert ASSIMP vectors to glm vectors
-				vertex.pos = glm::make_vec3(&scene->mMeshes[m]->mVertices[v].x) * scale;
-				vertex.normal = glm::make_vec3(&scene->mMeshes[m]->mNormals[v].x);
-				// Texture coordinates and colors may have multiple channels, we only use the first [0] one
-				vertex.uv = glm::make_vec2(&scene->mMeshes[m]->mTextureCoords[0][v].x);
-				// Mesh may not have vertex colors
-				vertex.color = (scene->mMeshes[m]->HasVertexColors(0)) ? glm::make_vec3(&scene->mMeshes[m]->mColors[0][v].r) : glm::vec3(1.0f);
-
-				// Vulkan uses a right-handed NDC (contrary to OpenGL), so simply flip Y-Axis
-				vertex.pos.y *= -1.0f;
-
-				vertexBuffer.push_back(vertex);
+		if (fileLoaded) {
+			loadglTFImages(gltfModel);
+			loadglTFMaterials(gltfModel);
+			loadglTFTextures(gltfModel);
+			const tinygltf::Scene& scene = gltfModel.scenes[0];
+			for (size_t i = 0; i < scene.nodes.size(); i++) {
+				const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
+				loadglTFNode(nullptr, node, gltfModel, indexBuffer, vertexBuffer);
 			}
 		}
+		else {
+			// TODO: throw
+			std::cerr << "Could not load gltf file: " << error << std::endl;
+			return;
+		}
+
 		size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
-
-		// Generate index buffer from ASSIMP scene data
-		std::vector<uint32_t> indexBuffer;
-		for (uint32_t m = 0; m < scene->mNumMeshes; m++)
-		{
-			uint32_t indexBase = static_cast<uint32_t>(indexBuffer.size());
-			for (uint32_t f = 0; f < scene->mMeshes[m]->mNumFaces; f++)
-			{
-				// We assume that all faces are triangulated
-				for (uint32_t i = 0; i < 3; i++)
-				{
-					indexBuffer.push_back(scene->mMeshes[m]->mFaces[f].mIndices[i] + indexBase);
-				}
-			}
-		}
 		size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 		model.indices.count = static_cast<uint32_t>(indexBuffer.size());
 
-		// Static mesh should always be device local
+		//assert((vertexBufferSize > 0) && (indexBufferSize > 0));
 
-		bool useStaging = true;
+		struct StagingBuffer {
+			VkBuffer buffer;
+			VkDeviceMemory memory;
+		} vertexStaging, indexStaging;
 
-		if (useStaging)
-		{
-			struct {
-				VkBuffer buffer;
-				VkDeviceMemory memory;
-			} vertexStaging, indexStaging;
+		// Create staging buffers
+		// Vertex data
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			vertexBufferSize,
+			&vertexStaging.buffer,
+			&vertexStaging.memory,
+			vertexBuffer.data()));
+		// Index data
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			indexBufferSize,
+			&indexStaging.buffer,
+			&indexStaging.memory,
+			indexBuffer.data()));
 
-			// Create staging buffers
-			// Vertex data
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				vertexBufferSize,
-				&vertexStaging.buffer,
-				&vertexStaging.memory,
-				vertexBuffer.data()));
-			// Index data
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				indexBufferSize,
-				&indexStaging.buffer,
-				&indexStaging.memory,
-				indexBuffer.data()));
+		// Create device local buffers
+		// Vertex buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			vertexBufferSize,
+			&model.vertices.buffer,
+			&model.vertices.memory));
+		// Index buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			indexBufferSize,
+			&model.indices.buffer,
+			&model.indices.memory));
 
-			// Create device local buffers
-			// Vertex buffer
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				vertexBufferSize,
-				&model.vertices.buffer,
-				&model.vertices.memory));
-			// Index buffer
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				indexBufferSize,
-				&model.indices.buffer,
-				&model.indices.memory));
+		// Copy data from staging buffers (host) do device local buffer (gpu)
+		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-			// Copy from staging buffers
-			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkBufferCopy copyRegion = {};
 
-			VkBufferCopy copyRegion = {};
+		copyRegion.size = vertexBufferSize;
+		vkCmdCopyBuffer(
+			copyCmd,
+			vertexStaging.buffer,
+			model.vertices.buffer,
+			1,
+			&copyRegion);
 
-			copyRegion.size = vertexBufferSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				vertexStaging.buffer,
-				model.vertices.buffer,
-				1,
-				&copyRegion);
+		copyRegion.size = indexBufferSize;
+		vkCmdCopyBuffer(
+			copyCmd,
+			indexStaging.buffer,
+			model.indices.buffer,
+			1,
+			&copyRegion);
 
-			copyRegion.size = indexBufferSize;
-			vkCmdCopyBuffer(
-				copyCmd,
-				indexStaging.buffer,
-				model.indices.buffer,
-				1,
-				&copyRegion);
+		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
 
-			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
-
-			vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
-			vkFreeMemory(device, vertexStaging.memory, nullptr);
-			vkDestroyBuffer(device, indexStaging.buffer, nullptr);
-			vkFreeMemory(device, indexStaging.memory, nullptr);
-		}
-		else
-		{
-			// Vertex buffer
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-				vertexBufferSize,
-				&model.vertices.buffer,
-				&model.vertices.memory,
-				vertexBuffer.data()));
-			// Index buffer
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-				indexBufferSize,
-				&model.indices.buffer,
-				&model.indices.memory,
-				indexBuffer.data()));
-		}
+		vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
+		vkFreeMemory(device, vertexStaging.memory, nullptr);
+		vkDestroyBuffer(device, indexStaging.buffer, nullptr);
+		vkFreeMemory(device, indexStaging.memory, nullptr);
 	}
 
 	void loadAssets()
 	{
-		loadModel(getAssetPath() + "models/voyager/voyager.dae");
+		loadglTF(getAssetPath() + "models/voyager/voyager.gltf");
 		textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager_rgba_unorm.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);		
-	}
-
-	void setupVertexDescriptions()
-	{
-		// Binding description
-		vertices.bindingDescriptions.resize(1);
-		vertices.bindingDescriptions[0] =
-			vks::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				sizeof(Vertex),
-				VK_VERTEX_INPUT_RATE_VERTEX);
-
-		// Attribute descriptions
-		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.resize(4);
-		// Location 0 : Position
-		vertices.attributeDescriptions[0] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, pos));
-		// Location 1 : Normal
-		vertices.attributeDescriptions[1] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, normal));
-		// Location 2 : Texture coordinates
-		vertices.attributeDescriptions[2] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32G32_SFLOAT,
-				offsetof(Vertex, uv));
-		// Location 3 : Color
-		vertices.attributeDescriptions[3] =
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, color));
-
-		vertices.inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
-		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
-		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
 	}
 
 	void setupDescriptorPool()
@@ -473,84 +616,56 @@ public:
 
 	void preparePipelines()
 	{
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(
-				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-				0,
-				VK_FALSE);
-
-		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vks::initializers::pipelineRasterizationStateCreateInfo(
-				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_BACK_BIT,
-				VK_FRONT_FACE_CLOCKWISE,
-				0);
-
-		VkPipelineColorBlendAttachmentState blendAttachmentState =
-			vks::initializers::pipelineColorBlendAttachmentState(
-				0xf,
-				VK_FALSE);
-
-		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vks::initializers::pipelineColorBlendStateCreateInfo(
-				1,
-				&blendAttachmentState);
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE,
-				VK_TRUE,
-				VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		VkPipelineViewportStateCreateInfo viewportState =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vks::initializers::pipelineMultisampleStateCreateInfo(
-				VK_SAMPLE_COUNT_1_BIT,
-				0);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE, 0);
+		VkPipelineColorBlendAttachmentState blendAttachmentStateCI = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentStateCI);
+		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		VkPipelineViewportStateCreateInfo viewportStateCI = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+		const std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
+		// Vertex input bindings and attributes
+		const std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
+			vks::initializers::vertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
 		};
-		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(
-				dynamicStateEnables.data(),
-				static_cast<uint32_t>(dynamicStateEnables.size()),
-				0);
+		const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)),	// Location 0: Position	
+			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)),	// Location 1: Normal
+			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, uv)),		// Location 2: Texture coordinates
+			vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)),	// Location 3: Color
+		};
+		VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo();
+		vertexInputStateCI.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
+		vertexInputStateCI.pVertexBindingDescriptions = vertexInputBindings.data();
+		vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+		const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
+			loadShader(getAssetPath() + "shaders/mesh/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getAssetPath() + "shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+		};
+
+		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
+		pipelineCI.pVertexInputState = &vertexInputStateCI;
+		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+		pipelineCI.pRasterizationState = &rasterizationStateCI;
+		pipelineCI.pColorBlendState = &colorBlendStateCI;
+		pipelineCI.pMultisampleState = &multisampleStateCI;
+		pipelineCI.pViewportState = &viewportStateCI;
+		pipelineCI.pDepthStencilState = &depthStencilStateCI;
+		pipelineCI.pDynamicState = &dynamicStateCI;
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+		pipelineCI.pStages = shaderStages.data();
 
 		// Solid rendering pipeline
-		// Load shaders
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/mesh/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/mesh/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vks::initializers::pipelineCreateInfo(
-				pipelineLayout,
-				renderPass,
-				0);
-
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
-		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-		pipelineCreateInfo.pRasterizationState = &rasterizationState;
-		pipelineCreateInfo.pColorBlendState = &colorBlendState;
-		pipelineCreateInfo.pMultisampleState = &multisampleState;
-		pipelineCreateInfo.pViewportState = &viewportState;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCreateInfo.pStages = shaderStages.data();
-
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.solid));
 
 		// Wire frame rendering pipeline
 		if (deviceFeatures.fillModeNonSolid) {
-			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-			rasterizationState.lineWidth = 1.0f;
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.wireframe));
+			rasterizationStateCI.polygonMode = VK_POLYGON_MODE_LINE;
+			rasterizationStateCI.lineWidth = 1.0f;
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.wireframe));
 		}
 	}
 
@@ -601,7 +716,6 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
-		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
