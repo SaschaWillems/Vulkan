@@ -390,14 +390,14 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -5.5f;
-		zoomSpeed = 2.5f;
-		rotationSpeed = 0.5f;
-		rotation = { -0.5f, -112.75f, 0.0f };
-		cameraPos = { 0.1f, 1.1f, 0.0f };
 		title = "glTF model rendering";
+		camera.type = Camera::CameraType::lookat;
+		camera.movementSpeed = 2.5f;
+		camera.rotationSpeed = 0.5f;
+		camera.setPosition(glm::vec3(0.1f, 1.1f, -20.0f));
+		camera.setRotation(glm::vec3(-0.5f, -112.75f, 0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
-		//@todo: Use camera
 	}
 
 	~VulkanExample()
@@ -705,14 +705,8 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
-		uboVS.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.model = camera.matrices.view;
 		memcpy(uniformBuffers.scene.mapped, &uboVS, sizeof(uboVS));
 	}
 
