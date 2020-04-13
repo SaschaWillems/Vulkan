@@ -122,6 +122,21 @@ public:
 	std::vector<Material> materials;
 	std::vector<Node> nodes;
 
+	~VulkanglTFModel()
+	{
+		// Release all Vulkan resources allocated for the model
+		vkDestroyBuffer(vulkanDevice->logicalDevice, vertices.buffer, nullptr);
+		vkFreeMemory(vulkanDevice->logicalDevice, vertices.memory, nullptr);
+		vkDestroyBuffer(vulkanDevice->logicalDevice, indices.buffer, nullptr);
+		vkFreeMemory(vulkanDevice->logicalDevice, indices.memory, nullptr);
+		for (Image image : images) {
+			vkDestroyImageView(vulkanDevice->logicalDevice, image.texture.view, nullptr);
+			vkDestroyImage(vulkanDevice->logicalDevice, image.texture.image, nullptr);
+			vkDestroySampler(vulkanDevice->logicalDevice, image.texture.sampler, nullptr);
+			vkFreeMemory(vulkanDevice->logicalDevice, image.texture.deviceMemory, nullptr);
+		}
+	}
+
 	/*
 		glTF loading functions
 
@@ -324,7 +339,7 @@ public:
 	*/
 	
 	// Draw a single node including child nodes (if present)
-	void drawglTFNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFModel::Node node)
+	void drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFModel::Node node)
 	{
 		if (node.mesh.primitives.size() > 0) {
 			// Pass the node's matrix via push constanst
@@ -348,7 +363,7 @@ public:
 			}
 		}
 		for (auto& child : node.children) {
-			drawglTFNode(commandBuffer, pipelineLayout, child);
+			drawNode(commandBuffer, pipelineLayout, child);
 		}
 	}
 
@@ -361,7 +376,7 @@ public:
 		vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 		// Render all nodes at top-level
 		for (auto& node : nodes) {
-			drawglTFNode(commandBuffer, pipelineLayout, node);
+			drawNode(commandBuffer, pipelineLayout, node);
 		}
 	}
 
