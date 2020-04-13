@@ -9,7 +9,7 @@
 /*
  * Shows how to load and display a simple mesh from a glTF file
  * Note that this isn't a complete glTF loader and only basic functions are shown here
- * This means only linear nodes (no parent<->child tree), no animations, no skins, etc.
+ * This means no complex materials, no animations, no skins, etc.
  * For details on how glTF 2.0 works, see the official spec at https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
  *
  * Other samples will load models using a dedicated model loader with more features (see base/VulkanglTFModel.hpp)
@@ -203,7 +203,7 @@ public:
 			node.matrix *= glm::mat4(q);
 		}
 		if (inputNode.scale.size() == 3) {
-			node.matrix = glm::scale(node.matrix, glm::vec3(glm::make_vec3(inputNode.translation.data())));
+			node.matrix = glm::scale(node.matrix, glm::vec3(glm::make_vec3(inputNode.scale.data())));
 		}
 		if (inputNode.matrix.size() == 16) {
 			node.matrix = glm::make_mat4x4(inputNode.matrix.data());
@@ -261,8 +261,6 @@ public:
 						vert.normal = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f)));
 						vert.uv = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f);
 						vert.color = glm::vec3(1.0f);
-						// Flip Y-Axis
-						vert.pos.y *= -1.0f;
 						vertexBuffer.push_back(vert);
 					}
 				}
@@ -329,10 +327,21 @@ public:
 	void drawglTFNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFModel::Node node)
 	{
 		if (node.mesh.primitives.size() > 0) {
+			// Pass the node's matrix via push constanst
+			// Traverse the node hierarchy to the top-most parent to get the final matrix of the current node
+			glm::mat4 nodeMatrix = node.matrix;
+			VulkanglTFModel::Node* currentParent = node.parent;
+			while (currentParent) {
+				nodeMatrix = currentParent->matrix * nodeMatrix;
+				currentParent = currentParent->parent;
+			}
+			// Pass the final matrix to the vertex shader using push constants
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &nodeMatrix);
 			for (VulkanglTFModel::Primitive& primitive : node.mesh.primitives) {
 				if (primitive.indexCount > 0) {
 					// Get the texture index for this primitive
 					VulkanglTFModel::Texture texture = textures[materials[primitive.materialIndex].baseColorTextureIndex];
+					// Bind the descriptor for the current primitive's texture
 					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &images[texture.imageIndex].descriptorSet, 0, nullptr);
 					vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
 				}
@@ -392,6 +401,7 @@ public:
 	{
 		title = "glTF model rendering";
 		camera.type = Camera::CameraType::lookat;
+		camera.flipY = true;
 		camera.movementSpeed = 2.5f;
 		camera.rotationSpeed = 0.5f;
 		camera.setPosition(glm::vec3(0.1f, 1.1f, -20.0f));
@@ -507,7 +517,6 @@ public:
 			}
 		}
 		else {
-			// TODO: throw
 			std::cerr << "Could not load gltf file: " << error << std::endl;
 			return;
 		}
@@ -616,6 +625,11 @@ public:
 		// Pipeline layout using both descriptor sets (set 0 = matrices, set 1 = material)
 		std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayouts.matrices, descriptorSetLayouts.textures };
 		VkPipelineLayoutCreateInfo pipelineLayoutCI= vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
+		// We will use push constants to push the local matrices of a primitive to the vertex shader
+		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4), 0);
+		// Push constant ranges are part of the pipeline layout
+		pipelineLayoutCI.pushConstantRangeCount = 1;
+		pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 
 		// Descriptor set for scene matrices
