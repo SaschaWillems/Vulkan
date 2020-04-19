@@ -90,7 +90,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
 
-void VulkanExampleBase::drawFrame()
+void VulkanExampleBase::renderFrame()
 {
 	VulkanExampleBase::prepareFrame();
 	submitInfo.commandBufferCount = 1;
@@ -236,7 +236,7 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 	return shaderStage;
 }
 
-void VulkanExampleBase::renderFrame()
+void VulkanExampleBase::nextFrame()
 {
 	auto tStart = std::chrono::high_resolution_clock::now();
 	if (viewUpdated)
@@ -308,7 +308,7 @@ void VulkanExampleBase::renderLoop()
 			}
 		}
 		if (prepared && !IsIconic(window)) {
-			renderFrame();
+			nextFrame();
 		}
 	}
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
