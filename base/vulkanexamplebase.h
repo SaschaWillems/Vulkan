@@ -39,6 +39,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <numeric>
+#include <array>
 
 #include "vulkan/vulkan.h"
 
