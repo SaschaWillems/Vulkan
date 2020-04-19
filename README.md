@@ -103,9 +103,9 @@ Loads a 2D texture array containing multiple 2D texture slices (each with its ow
 
 Generates a 3D texture on the cpu (using perlin noise), uploads it to the device and samples it to render an animation. 3D textures store volumetric data and interpolate in all three dimensions.
 
-#### [11 - Model rendering](examples/mesh/)
+#### [11 - glTF scene loading and rendering](examples/gltfscene/)
 
-Loads a 3D model and texture maps from a common file format (using [assimp](https://github.com/assimp/assimp)), uploads the vertex and index buffer data to video memory, sets up a matching vertex layout and renders the 3D model.
+Shows how to load the scene from a [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The structure of the glTF 2.0 scene is converted into data structures required to render the scene with Vulkan.
 
 #### [12 - Input attachments](examples/inputattachments)
 

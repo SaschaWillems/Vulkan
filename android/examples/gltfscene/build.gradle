@@ -4,7 +4,7 @@ apply from: '../gradle/outputfilename.gradle'
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "de.saschawillems.vulkanMesh"
+        applicationId "de.saschawillems.vulkanglTFScene"
         minSdkVersion 19
         targetSdkVersion 26
         versionCode 1
@@ -49,14 +49,14 @@ task copyTask {
     }
 
     copy {
-       from '../../../data/shaders/mesh'
-       into 'assets/shaders/mesh'
+       from '../../../data/shaders/gltfscene'
+       into 'assets/shaders/gltfscene'
        include '*.*'
     }
 
     copy {
-       from '../../../data/models/voyager'
-       into 'assets/models/voyager'
+       from '../../../data/models/FlightHelmet/glTF'
+       into 'assets/models/FlightHelmet/glTF'
        include '*.*'
     }
 
