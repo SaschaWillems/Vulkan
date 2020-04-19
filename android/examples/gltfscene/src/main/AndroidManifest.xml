@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.saschawillems.vulkanMesh">
+    package="de.saschawillems.vulkanglTFScene">
 
     <application
-        android:label="Vulkan model rendering"
+        android:label="Vulkan glTF scene rendering"
         android:icon="@drawable/icon"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity android:name="de.saschawillems.vulkanSample.VulkanActivity"

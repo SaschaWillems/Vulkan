@@ -64,13 +64,13 @@ set(EXAMPLES
 	dynamicuniformbuffer
 	gears
 	geometryshader
+	gltfscene
 	hdr
 	imgui
 	indirectdraw
 	inlineuniformblocks
 	inputattachments
 	instancing
-	mesh
 	multisampling
 	multithreading
 	multiview

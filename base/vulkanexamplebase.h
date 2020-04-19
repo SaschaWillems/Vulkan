@@ -38,8 +38,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <string>
-#include <array>
 #include <numeric>
+#include <array>
 
 #include "vulkan/vulkan.h"
 
@@ -57,17 +57,20 @@
 class VulkanExampleBase
 {
 private:
-	// Get window title with example name, device, et.
 	std::string getWindowTitle();
-	/** brief Indicates that the view (position, rotation) has changed and buffers containing camera matrices need to be updated */
 	bool viewUpdated = false;
-	// Destination dimensions for resizing the window
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;
-	// Called if the window is resized and some resources have to be recreatesd
 	void windowResize();
 	void handleMouseMove(int32_t x, int32_t y);
+	void nextFrame();
+	void updateOverlay();
+	void createPipelineCache();
+	void createCommandPool();
+	void createSynchronizationPrimitives();
+	void initSwapchain();
+	void setupSwapChain();
 protected:
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
@@ -241,13 +244,9 @@ public:
 	xcb_intern_atom_reply_t *atom_wm_delete_window;
 #endif
 
-	// Default ctor
 	VulkanExampleBase(bool enableValidation = false);
-
-	// dtor
 	virtual ~VulkanExampleBase();
-
-	// Setup the vulkan instance, enable required extensions and connect to the physical device (GPU)
+	/** @brief Setup the vulkan instance, enable required extensions and connect to the physical device (GPU) */
 	bool initVulkan();
 
 #if defined(_WIN32)
@@ -310,92 +309,59 @@ public:
 	void initxcbConnection();
 	void handleEvent(const xcb_generic_event_t *event);
 #endif
-	/**
-	* Create the application wide Vulkan instance
-	*
-	* @note Virtual, can be overriden by derived example class for custom instance creation
-	*/
+	/** @brief (Virtual) Creates the application wide Vulkan instance */
 	virtual VkResult createInstance(bool enableValidation);
-
-	// Pure virtual render function (override in derived class)
+	/** @brief (Pure virtual) Render function to be implemented by the sample application */
 	virtual void render() = 0;
-	// Called when view change occurs
-	// Can be overriden in derived class to e.g. update uniform buffers 
-	// Containing view dependant matrices
+	/** @brief (Virtual) Called when the camera view has changed */
 	virtual void viewChanged();
 	/** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */
 	virtual void keyPressed(uint32_t);
-	/** @brief (Virtual) Called after th mouse cursor moved and before internal events (like camera rotation) is handled */
+	/** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera rotation) is handled */
 	virtual void mouseMoved(double x, double y, bool &handled);
-	// Called when the window has been resized
-	// Can be overriden in derived class to recreate or rebuild resources attached to the frame buffer / swapchain
+	/** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
 	virtual void windowResized();
-	// Pure virtual function to be overriden by the dervice class
-	// Called in case of an event where e.g. the framebuffer has to be rebuild and thus
-	// all command buffers that may reference this
+	/** @brief (Virtual) Called when resources have been recreated that require a rebuild of the command buffers (e.g. frame buffer), to be implemente by the sample application */
 	virtual void buildCommandBuffers();
-
-	void createSynchronizationPrimitives();
-
-	// Creates a new (graphics) command pool object storing command buffers
-	void createCommandPool();
-	// Setup default depth and stencil views
+	/** @brief (Virtual) Setup default depth and stencil views */
 	virtual void setupDepthStencil();
-	// Create framebuffers for all requested swap chain images
-	// Can be overriden in derived class to setup a custom framebuffer (e.g. for MSAA)
+	/** @brief (Virtual) Setup default framebuffers for all requested swapchain images */
 	virtual void setupFrameBuffer();
-	// Setup a default render pass
-	// Can be overriden in derived class to setup a custom render pass (e.g. for MSAA)
+	/** @brief (Virtual) Setup a default renderpass */
 	virtual void setupRenderPass();
-
 	/** @brief (Virtual) Called after the physical device features have been read, can be used to set features to enable on the device */
 	virtual void getEnabledFeatures();
 
-	// Connect and prepare the swap chain
-	void initSwapchain();
-	// Create swap chain images
-	void setupSwapChain();
-
-	// Check if command buffers are valid (!= VK_NULL_HANDLE)
+	/** @brief Checks if command buffers are valid (!= VK_NULL_HANDLE) */
 	bool checkCommandBuffers();
-	// Create command buffers for drawing commands
+	/** @brief Creates the per-frame command buffers */
 	void createCommandBuffers();
-	// Destroy all command buffers and set their handles to VK_NULL_HANDLE
-	// May be necessary during runtime if options are toggled 
+	/** @brief Destroy all command buffers and set their handles to VK_NULL_HANDLE */
 	void destroyCommandBuffers();
 
-	// Command buffer creation
-	// Creates and returns a new command buffer
+	/** @brief Creates and returns a new command buffer */
 	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin);
-	// End the command buffer, submit it to the queue and free (if requested)
-	// Note : Waits for the queue to become idle
+	/** @brief End the command buffer, submit it to the queue and free (if requested) */
 	void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free);
 
-	// Create a cache pool for rendering pipelines
-	void createPipelineCache();
-
-	// Prepare commonly used Vulkan functions
+	/** @brief Prepares all Vulkan resources and functions required to run the sample */
 	virtual void prepare();
 
-	// Load a SPIR-V shader
+	/** @brief Loads a SPIR-V shader file for the given shader stage */
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 	
-	// Start the main render loop
+	/** @brief Entry point for the main render loop */
 	void renderLoop();
 
-	// Render one frame of a render loop on platforms that sync rendering
-	void renderFrame();
-
-	void updateOverlay();
+	/** @brief Adds the drawing commands for the ImGui overlay to the given command buffer */
 	void drawUI(const VkCommandBuffer commandBuffer);
 
-	// Prepare the frame for workload submission
-	// - Acquires the next image from the swap chain 
-	// - Sets the default wait and signal semaphores
+	/** Prepare the next frame for workload sumbission by acquiring the next swap chain image */
 	void prepareFrame();
-
-	// Submit the frames' workload 
+	/** @brief Presents the current image to the swap chain */
 	void submitFrame();
+	/** @brief (Virtual) Default image acquire + submission and command buffer submission function */
+	virtual void renderFrame();
 
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);
