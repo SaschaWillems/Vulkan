@@ -227,3 +227,10 @@ data/models/cerberus/*.*
 
 # Ignore macOS .DS_Store
 .DS_Store
+
+# Assets that are part of the asset pack and should not be stored in the repo
+data/models/**/*.gltf
+data/models/**/*.bin
+data/models/**/*.glb
+data/models/**/*.png
+data/models/**/*.jpg
