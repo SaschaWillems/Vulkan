@@ -1,13 +1,13 @@
 /*
-* Vulkan Example - Model loading and rendering
+* Vulkan Example - glTF scene loading and rendering
 *
-* Copyright (C) 2016-2020 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 /*
- * Shows how to load and display a simple mesh from a glTF file
+ * Shows how to load and display a simple scene from a glTF file
  * Note that this isn't a complete glTF loader and only basic functions are shown here
  * This means no complex materials, no animations, no skins, etc.
  * For details on how glTF 2.0 works, see the official spec at https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
@@ -389,15 +389,14 @@ public:
 
 	VulkanglTFModel glTFModel;
 
-	struct {
-		vks::Buffer scene;
-	} uniformBuffers;
-
-	struct {
-		glm::mat4 projection;
-		glm::mat4 model;
-		glm::vec4 lightPos = glm::vec4(25.0f, 5.0f, 5.0f, 1.0f);
-	} uboVS;
+	struct ShaderData {
+		vks::Buffer buffer;
+		struct Values {
+			glm::mat4 projection;
+			glm::mat4 model;
+			glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, -5.0f, 1.0f);
+		} values;
+	} shaderData;
 
 	struct Pipelines {
 		VkPipeline solid;
@@ -417,10 +416,8 @@ public:
 		title = "glTF model rendering";
 		camera.type = Camera::CameraType::lookat;
 		camera.flipY = true;
-		camera.movementSpeed = 2.5f;
-		camera.rotationSpeed = 0.5f;
-		camera.setPosition(glm::vec3(0.1f, 1.1f, -10.0f));
-		camera.setRotation(glm::vec3(-0.5f, -112.75f, 0.0f));
+		camera.setPosition(glm::vec3(0.0f, -0.1f, -1.0f));
+		camera.setRotation(glm::vec3(0.0f, -135.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
 	}
@@ -438,7 +435,7 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
 
-		uniformBuffers.scene.destroy();
+		shaderData.buffer.destroy();
 	}
 
 	virtual void getEnabledFeatures()
@@ -486,8 +483,7 @@ public:
 		}
 	}
 
-	// @todo
-	void loadglTF(std::string filename)
+	void loadglTFFile(std::string filename)
 	{
 		tinygltf::Model glTFInput;
 		tinygltf::TinyGLTF gltfContext;
@@ -608,7 +604,7 @@ public:
 
 	void loadAssets()
 	{
-		loadglTF(getAssetPath() + "models/voyager/voyager.gltf");
+		loadglTFFile(getAssetPath() + "models/FlightHelmet/glTF/FlightHelmet.gltf");
 	}
 
 	void setupDescriptors()
@@ -647,7 +643,7 @@ public:
 		// Descriptor set for scene matrices
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.matrices, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor);
+		VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor);
 		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
 		// Descriptor sets for materials
 		for (auto& image : glTFModel.images) {
@@ -720,20 +716,20 @@ public:
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.scene,
-			sizeof(uboVS)));
+			&shaderData.buffer,
+			sizeof(shaderData.values)));
 		
 		// Map persistent
-		VK_CHECK_RESULT(uniformBuffers.scene.map());
+		VK_CHECK_RESULT(shaderData.buffer.map());
 
 		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = camera.matrices.perspective;
-		uboVS.model = camera.matrices.view;
-		memcpy(uniformBuffers.scene.mapped, &uboVS, sizeof(uboVS));
+		shaderData.values.projection = camera.matrices.perspective;
+		shaderData.values.model = camera.matrices.view;
+		memcpy(shaderData.buffer.mapped, &shaderData.values, sizeof(shaderData.values));
 	}
 
 	void prepare()
@@ -749,7 +745,7 @@ public:
 
 	virtual void render()
 	{
-		drawFrame();
+		renderFrame();
 		if (camera.updated) {
 			updateUniformBuffers();
 		}
