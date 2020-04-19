@@ -319,6 +319,9 @@ public:
 
 	// Pure virtual render function (override in derived class)
 	virtual void render() = 0;
+	/** @brief (Virtual) Default image acquire and command buffer submission function */
+	virtual void drawFrame();
+
 	// Called when view change occurs
 	// Can be overriden in derived class to e.g. update uniform buffers 
 	// Containing view dependant matrices

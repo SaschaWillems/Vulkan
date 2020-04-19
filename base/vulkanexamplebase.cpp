@@ -90,6 +90,15 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
 
+void VulkanExampleBase::drawFrame()
+{
+	VulkanExampleBase::prepareFrame();
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+	VulkanExampleBase::submitFrame();
+}
+
 std::string VulkanExampleBase::getWindowTitle()
 {
 	std::string device(deviceProperties.deviceName);
@@ -298,7 +307,7 @@ void VulkanExampleBase::renderLoop()
 				break;
 			}
 		}
-		if (!IsIconic(window)) {
+		if (prepared && !IsIconic(window)) {
 			renderFrame();
 		}
 	}
