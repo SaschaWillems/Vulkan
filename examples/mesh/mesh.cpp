@@ -419,7 +419,7 @@ public:
 		camera.flipY = true;
 		camera.movementSpeed = 2.5f;
 		camera.rotationSpeed = 0.5f;
-		camera.setPosition(glm::vec3(0.1f, 1.1f, -20.0f));
+		camera.setPosition(glm::vec3(0.1f, 1.1f, -10.0f));
 		camera.setRotation(glm::vec3(-0.5f, -112.75f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
@@ -437,9 +437,6 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
-
-		// @todo
-		//model.destroy(device);
 
 		uniformBuffers.scene.destroy();
 	}
@@ -739,20 +736,6 @@ public:
 		memcpy(uniformBuffers.scene.mapped, &uboVS, sizeof(uboVS));
 	}
 
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be sumitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
-	}
-
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
@@ -766,11 +749,10 @@ public:
 
 	virtual void render()
 	{
-		if (!prepared)
-			return;
-		draw();
-		if (camera.updated)
+		drawFrame();
+		if (camera.updated) {
 			updateUniformBuffers();
+		}
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
