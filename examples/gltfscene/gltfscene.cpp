@@ -32,6 +32,9 @@
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
+#ifdef VK_USE_PLATFORM_ANDROID_KHR
+#define TINYGLTF_ANDROID_LOAD_FROM_ASSETS
+#endif
 #include "tiny_gltf.h"
 
 #include <vulkan/vulkan.h>
@@ -494,19 +497,10 @@ public:
 
 #if defined(__ANDROID__)
 		// On Android all assets are packed with the apk in a compressed form, so we need to open them using the asset manager
-		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, filename.c_str(), AASSET_MODE_STREAMING);
-		assert(asset);
-		size_t size = AAsset_getLength(asset);
-		assert(size > 0);
-		char* fileData = new char[size];
-		AAsset_read(asset, fileData, size);
-		AAsset_close(asset);
-		std::string baseDir;
-		bool fileLoaded = gltfContext.LoadASCIIFromString(&glTFInput, &error, &warning, fileData, size, baseDir);
-		free(fileData);
-#else
-		bool fileLoaded = gltfContext.LoadASCIIFromFile(&glTFInput, &error, &warning, filename);
+		// We let tinygltf handle this, by passing the asset manager of our app
+		tinygltf::asset_manager = androidApp->activity->assetManager;
 #endif
+		bool fileLoaded = gltfContext.LoadASCIIFromFile(&glTFInput, &error, &warning, filename);
 
 		// Pass some Vulkan resources required for setup and rendering to the glTF model loading class
 		glTFModel.vulkanDevice = vulkanDevice;
@@ -527,6 +521,9 @@ public:
 		}
 		else {
 			std::cerr << "Could not load gltf file: " << error << std::endl;
+#ifdef VK_USE_PLATFORM_ANDROID_KHR
+			LOGE("Could not load glTF file from %s: %s", filename.c_str(), error.c_str());
+#endif
 			return;
 		}
 
