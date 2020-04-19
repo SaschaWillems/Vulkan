@@ -520,10 +520,7 @@ public:
 			}
 		}
 		else {
-			std::cerr << "Could not load gltf file: " << error << std::endl;
-#ifdef VK_USE_PLATFORM_ANDROID_KHR
-			LOGE("Could not load glTF file from %s: %s", filename.c_str(), error.c_str());
-#endif
+			vks::tools::exitFatal("Could not open the glTF file\n\nThe file is part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
 			return;
 		}
 
