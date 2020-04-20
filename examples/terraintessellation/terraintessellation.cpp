@@ -305,16 +305,6 @@ public:
 		textures.terrainArray.descriptor.sampler = textures.terrainArray.sampler;
 	}
 
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
-	}
-
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();

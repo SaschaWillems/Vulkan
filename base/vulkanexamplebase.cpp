@@ -110,18 +110,6 @@ std::string VulkanExampleBase::getWindowTitle()
 	return windowTitle;
 }
 
-bool VulkanExampleBase::checkCommandBuffers()
-{
-	for (auto& cmdBuffer : drawCmdBuffers)
-	{
-		if (cmdBuffer == VK_NULL_HANDLE)
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
 void VulkanExampleBase::createCommandBuffers()
 {
 	// Create one command buffer for each swap chain image and reuse for rendering

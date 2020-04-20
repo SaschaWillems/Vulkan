@@ -135,13 +135,6 @@ public:
 
 	void buildCommandBuffers()
 	{
-		// Destroy command buffers if already present
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];

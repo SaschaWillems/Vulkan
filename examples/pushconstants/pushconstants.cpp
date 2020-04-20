@@ -91,16 +91,6 @@ public:
 		uniformBuffer.destroy();
 	}
 
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
-	}
-
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -457,7 +447,7 @@ public:
 		draw();
 		if (!paused)
 		{
-			reBuildCommandBuffers();
+			buildCommandBuffers();
 		}
 	}
 

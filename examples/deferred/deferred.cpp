@@ -529,16 +529,6 @@ public:
 		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/stonefloor01_normal" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
 	}
 
-	void reBuildCommandBuffers()
-	{
-		if (!checkCommandBuffers())
-		{
-			destroyCommandBuffers();
-			createCommandBuffers();
-		}
-		buildCommandBuffers();
-	}
-
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
