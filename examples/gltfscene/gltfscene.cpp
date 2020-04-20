@@ -569,7 +569,7 @@ public:
 			&glTFModel.indices.memory));
 
 		// Copy data from staging buffers (host) do device local buffer (gpu)
-		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		VkBufferCopy copyRegion = {};
 
 		copyRegion.size = vertexBufferSize;
@@ -588,7 +588,7 @@ public:
 			1,
 			&copyRegion);
 
-		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
 		// Free staging resources
 		vkDestroyBuffer(device, vertexStaging.buffer, nullptr);

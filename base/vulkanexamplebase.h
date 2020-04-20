@@ -334,11 +334,6 @@ public:
 	/** @brief (Virtual) Called after the physical device features have been read, can be used to set features to enable on the device */
 	virtual void getEnabledFeatures();
 
-	/** @brief Creates and returns a new command buffer */
-	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin);
-	/** @brief End the command buffer, submit it to the queue and free (if requested) */
-	void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free);
-
 	/** @brief Prepares all Vulkan resources and functions required to run the sample */
 	virtual void prepare();
 

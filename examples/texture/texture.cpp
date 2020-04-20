@@ -255,7 +255,7 @@ public:
 			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &texture.deviceMemory));
 			VK_CHECK_RESULT(vkBindImageMemory(device, texture.image, texture.deviceMemory, 0));
 
-			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 			// Image memory barriers for the texture image
 
@@ -321,7 +321,7 @@ public:
 			// Store current layout for later reuse
 			texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+			vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
 			// Clean up staging resources
 			vkFreeMemory(device, stagingMemory, nullptr);
@@ -368,7 +368,7 @@ public:
 			texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			// Setup image memory barrier transfer image to shader read layout
-			VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 			// The sub resource range describes the regions of the image we will be transition
 			VkImageSubresourceRange subresourceRange = {};
@@ -398,7 +398,7 @@ public:
 				0, nullptr,
 				1, &imageMemoryBarrier);
 
-			VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+			vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 		}
 
 		ktxTexture_Destroy(ktxTexture);

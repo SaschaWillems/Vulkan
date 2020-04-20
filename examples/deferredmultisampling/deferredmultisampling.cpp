@@ -450,7 +450,7 @@ public:
 	void buildDeferredCommandBuffer()
 	{
 		if (offScreenCmdBuffer == VK_NULL_HANDLE) {
-			offScreenCmdBuffer = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
+			offScreenCmdBuffer = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
 		}
 
 		// Create a semaphore used to synchronize offscreen rendering and usage
