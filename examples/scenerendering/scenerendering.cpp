@@ -822,7 +822,7 @@ public:
 
 	void loadScene()
 	{
-		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
+		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
 		scene = new Scene(vulkanDevice, queue);
 
 #if defined(__ANDROID__)

@@ -71,6 +71,8 @@ private:
 	void createSynchronizationPrimitives();
 	void initSwapchain();
 	void setupSwapChain();
+	void createCommandBuffers();
+	void destroyCommandBuffers();
 protected:
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
@@ -331,18 +333,6 @@ public:
 	virtual void setupRenderPass();
 	/** @brief (Virtual) Called after the physical device features have been read, can be used to set features to enable on the device */
 	virtual void getEnabledFeatures();
-
-	/** @brief Checks if command buffers are valid (!= VK_NULL_HANDLE) */
-	bool checkCommandBuffers();
-	/** @brief Creates the per-frame command buffers */
-	void createCommandBuffers();
-	/** @brief Destroy all command buffers and set their handles to VK_NULL_HANDLE */
-	void destroyCommandBuffers();
-
-	/** @brief Creates and returns a new command buffer */
-	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin);
-	/** @brief End the command buffer, submit it to the queue and free (if requested) */
-	void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free);
 
 	/** @brief Prepares all Vulkan resources and functions required to run the sample */
 	virtual void prepare();

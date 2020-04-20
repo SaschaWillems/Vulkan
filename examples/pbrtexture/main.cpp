@@ -719,14 +719,14 @@ public:
 			fbufCreateInfo.layers = 1;
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offscreen.framebuffer));
 
-			VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			VkCommandBuffer layoutCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 			vks::tools::setImageLayout(
 				layoutCmd,
 				offscreen.image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
+			vulkanDevice->flushCommandBuffer(layoutCmd, queue, true);
 		}
 
 		// Descriptors
@@ -1114,14 +1114,14 @@ public:
 			fbufCreateInfo.layers = 1;
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offscreen.framebuffer));
 
-			VkCommandBuffer layoutCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			VkCommandBuffer layoutCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 			vks::tools::setImageLayout(
 				layoutCmd,
 				offscreen.image,
 				VK_IMAGE_ASPECT_COLOR_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			VulkanExampleBase::flushCommandBuffer(layoutCmd, queue, true);
+			vulkanDevice->flushCommandBuffer(layoutCmd, queue, true);
 		}
 
 		// Descriptors
