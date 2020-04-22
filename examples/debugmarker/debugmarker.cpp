@@ -240,9 +240,8 @@ public:
 	{
 		title = "Debugging with VK_EXT_debug_marker";
 		settings.overlay = true;
-		zoomSpeed = 2.5f;
-		rotationSpeed = 0.5f;
 		camera.setRotation(glm::vec3(-4.35f, 16.25f, 0.0f));
+		camera.setRotationSpeed(0.5f);
 		camera.setPosition(glm::vec3(0.1f, 1.1f, -8.5f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 	}

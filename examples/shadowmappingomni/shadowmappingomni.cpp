@@ -120,7 +120,6 @@ public:
 		camera.setPerspective(45.0f, (float)width / (float)height, zNear, zFar);
 		camera.setRotation(glm::vec3(-20.5f, -673.0f, 0.0f));
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -175.0f));
-		zoomSpeed = 10.0f;
 		timerSpeed *= 0.25f;
 	}
 

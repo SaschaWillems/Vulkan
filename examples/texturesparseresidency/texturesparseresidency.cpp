@@ -890,7 +890,7 @@ public:
 	{
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.model = camera.matrices.view;
-		uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
+		uboVS.viewPos = camera.viewPos;
 
 		VK_CHECK_RESULT(uniformBufferVS.map());
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
