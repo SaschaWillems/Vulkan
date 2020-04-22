@@ -58,7 +58,7 @@ public:
 
 	struct UboVS {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		float gradientPos = 0.0f;
 	} uboScene;
 
@@ -107,10 +107,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -10.0f;
-		rotation = { -16.25f, -28.75f, 0.0f };
-		timerSpeed *= 0.5f;
 		title = "Full screen radial blur effect";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -10.0f));
+		camera.setRotation(glm::vec3(-16.25f, -28.75f, 0.0f));
+		camera.setPerspective(45.0f, (float)width / (float)height, 1.0f, 256.0f);
+		timerSpeed *= 0.5f;
 		settings.overlay = true;
 	}
 
@@ -615,15 +617,10 @@ public:
 	void updateUniformBuffersScene()
 	{
 		uboScene.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 1.0f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
-		uboScene.model = glm::mat4(1.0f);
-		uboScene.model = viewMatrix * glm::translate(uboScene.model, cameraPos);
-		uboScene.model = glm::rotate(uboScene.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboScene.model = glm::rotate(uboScene.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboScene.model = glm::rotate(uboScene.model, glm::radians(timer * 360.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboScene.model = glm::rotate(uboScene.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		camera.setRotation(camera.rotation + glm::vec3(0.0f, frameTimer * 10.0f, 0.0f));
+		uboScene.projection = camera.matrices.perspective;
+		uboScene.modelView = camera.matrices.view;
+		// split into model view for separating rotation
 		if (!paused)
 		{
 			uboScene.gradientPos += frameTimer * 0.1f;

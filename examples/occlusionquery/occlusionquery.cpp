@@ -49,7 +49,7 @@ public:
 
 	struct UBOVS {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		glm::vec4 lightPos = glm::vec4(10.0f, 10.0f, 10.0f, 1.0f);
 		float visible;
 	} uboVS;
@@ -84,11 +84,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -35.0f;
-		zoomSpeed = 2.5f;
-		rotationSpeed = 0.5f;
-		rotation = { 0.0, -123.75, 0.0 };
 		title = "Occlusion queries";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -35.0f));
+		camera.setRotation(glm::vec3(0.0f, -123.75f, 0.0f));
+		camera.setRotationSpeed(0.5f);
+		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
 		settings.overlay = true;
 	}
 
@@ -543,19 +544,10 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Vertex shader
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
-		glm::mat4 rotMatrix = glm::mat4(1.0f);
-		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		rotMatrix = glm::rotate(rotMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		uboVS.model = viewMatrix * rotMatrix;
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.modelView = camera.matrices.view;
 
 		uint8_t *pData;
-
 		// Occluder
 		uboVS.visible = 1.0f;
 		memcpy(uniformBuffers.occluder.mapped, &uboVS, sizeof(uboVS));
@@ -563,13 +555,13 @@ public:
 		// Teapot
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[0] > 0) ? 1.0f : 0.0f;
-		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f));
+		uboVS.modelView = camera.matrices.view * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f));
 		memcpy(uniformBuffers.teapot.mapped, &uboVS, sizeof(uboVS));
 
 		// Sphere
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[1] > 0) ? 1.0f : 0.0f;
-		uboVS.model = viewMatrix * rotMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 10.0f));
+		uboVS.modelView = camera.matrices.view * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 10.0f));
 		memcpy(uniformBuffers.sphere.mapped, &uboVS, sizeof(uboVS));
 	}
 

@@ -63,7 +63,7 @@ public:
 
 	struct UBOTessEval {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		glm::vec4 lightPos = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
 		float tessAlpha = 1.0f;
 		float tessStrength = 0.1f;
@@ -80,9 +80,11 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -1.25f;
-		rotation = glm::vec3(-20.0f, 45.0f, 0.0f);
 		title = "Tessellation shader displacement";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -1.25f));
+		camera.setRotation(glm::vec3(-20.0f, 45.0f, 0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
 	}
 
@@ -445,19 +447,9 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Tessellation eval
-		glm::mat4 viewMatrix = glm::mat4(1.0f);
-		uboTessEval.projection = glm::perspective(glm::radians(45.0f), (float)(width) / (float)height, 0.1f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
-
-		uboTessEval.model = glm::mat4(1.0f);
-		uboTessEval.model = viewMatrix * glm::translate(uboTessEval.model, glm::vec3(0, 0, 0));
-		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		uboTessEval.projection = camera.matrices.perspective;
+		uboTessEval.modelView = camera.matrices.view;
 		uboTessEval.lightPos.y = -0.5f - uboTessEval.tessStrength;
-
 		memcpy(uniformBuffers.tessEval.mapped, &uboTessEval, sizeof(uboTessEval));
 
 		// Tessellation control

@@ -87,7 +87,7 @@ public:
 
 	struct UBOVS {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 	} uboVS;
 
 	struct UBOFS {
@@ -111,8 +111,11 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -2.0f;
 		title = "Distance field font rendering";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -2.0f));
+		camera.setRotation(glm::vec3(0.0f));
+		camera.setPerspective(splitScreen ? 30.0f : 45.0f, (float)width / (float)(height * ((splitScreen) ? 0.5f : 1.0f)), 1.0f, 256.0f);
 		settings.overlay = true;
 	}
 
@@ -606,17 +609,8 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Vertex shader
-		glm::mat4 viewMatrix = glm::mat4(1.0f);
-		uboVS.projection = glm::perspective(glm::radians(splitScreen ? 30.0f : 45.0f), (float)width / (float)(height * ((splitScreen) ? 0.5f : 1.0f)), 0.001f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, splitScreen ? zoom : zoom - 2.0f));
-
-		uboVS.model = glm::mat4(1.0f);
-		uboVS.model = viewMatrix * glm::translate(uboVS.model, cameraPos);
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.modelView = camera.matrices.view;
 		memcpy(uniformBuffers.vs.mapped, &uboVS, sizeof(uboVS));
 	}
 
@@ -677,6 +671,7 @@ public:
 				updateFontSettings();
 			}
 			if (overlay->checkBox("Splitscreen", &splitScreen)) {
+				camera.setPerspective(splitScreen ? 30.0f : 45.0f, (float)width / (float)(height * ((splitScreen) ? 0.5f : 1.0f)), 1.0f, 256.0f);
 				buildCommandBuffers();
 				updateUniformBuffers();
 			}

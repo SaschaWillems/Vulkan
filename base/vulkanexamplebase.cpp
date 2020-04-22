@@ -336,20 +336,18 @@ void VulkanExampleBase::renderLoop()
 				// Rotate
 				if (std::abs(gamePadState.axisLeft.x) > deadZone)
 				{
-					rotation.y += gamePadState.axisLeft.x * 0.5f * rotationSpeed;
 					camera.rotate(glm::vec3(0.0f, gamePadState.axisLeft.x * 0.5f, 0.0f));
 					updateView = true;
 				}
 				if (std::abs(gamePadState.axisLeft.y) > deadZone)
 				{
-					rotation.x -= gamePadState.axisLeft.y * 0.5f * rotationSpeed;
 					camera.rotate(glm::vec3(gamePadState.axisLeft.y * 0.5f, 0.0f, 0.0f));
 					updateView = true;
 				}
 				// Zoom
 				if (std::abs(gamePadState.axisRight.y) > deadZone)
 				{
-					zoom -= gamePadState.axisRight.y * 0.01f * zoomSpeed;
+					camera.translate(glm::vec3(0.0f, 0.0f, gamePadState.axisRight.y * 0.01f));
 					updateView = true;
 				}
 				if (updateView)
@@ -1180,8 +1178,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	case WM_MOUSEWHEEL:
 	{
 		short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-		zoom += (float)wheelDelta * 0.005f * zoomSpeed;
-		camera.translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f * zoomSpeed));
+		camera.translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f));
 		viewUpdated = true;
 		break;
 	}
@@ -1292,14 +1289,11 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 							int32_t eventX = AMotionEvent_getX(event, 0);
 							int32_t eventY = AMotionEvent_getY(event, 0);
 
-							float deltaX = (float)(vulkanExample->touchPos.y - eventY) * vulkanExample->rotationSpeed * 0.5f;
-							float deltaY = (float)(vulkanExample->touchPos.x - eventX) * vulkanExample->rotationSpeed * 0.5f;
+							float deltaX = (float)(vulkanExample->touchPos.y - eventY) * vulkanExample->camera.rotationSpeed * 0.5f;
+							float deltaY = (float)(vulkanExample->touchPos.x - eventX) * vulkanExample->camera.rotationSpeed * 0.5f;
 
 							vulkanExample->camera.rotate(glm::vec3(deltaX, 0.0f, 0.0f));
 							vulkanExample->camera.rotate(glm::vec3(0.0f, -deltaY, 0.0f));
-
-							vulkanExample->rotation.x += deltaX;
-							vulkanExample->rotation.y -= deltaY;
 
 							vulkanExample->viewChanged();
 
@@ -1494,8 +1488,7 @@ void VulkanExampleBase::pointerAxis(wl_pointer *pointer, uint32_t time,
 	switch (axis)
 	{
 	case REL_X:
-		zoom += d * 0.005f * zoomSpeed;
-		camera.translate(glm::vec3(0.0f, 0.0f, d * 0.005f * zoomSpeed));
+		camera.translate(glm::vec3(0.0f, 0.0f, d * 0.005f));
 		viewUpdated = true;
 		break;
 	default:
@@ -2184,19 +2177,14 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 	}
 
 	if (mouseButtons.left) {
-		rotation.x += dy * 1.25f * rotationSpeed;
-		rotation.y -= dx * 1.25f * rotationSpeed;
 		camera.rotate(glm::vec3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
 		viewUpdated = true;
 	}
 	if (mouseButtons.right) {
-		zoom += dy * .005f * zoomSpeed;
-		camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f * zoomSpeed));
+		camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f));
 		viewUpdated = true;
 	}
 	if (mouseButtons.middle) {
-		cameraPos.x -= dx * 0.01f;
-		cameraPos.y -= dy * 0.01f;
 		camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
 		viewUpdated = true;
 	}

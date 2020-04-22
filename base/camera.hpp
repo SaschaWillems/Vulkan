@@ -42,6 +42,8 @@ private:
 			matrices.view = transM * rotM;
 		}
 
+		viewPos = glm::vec4(position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+
 		updated = true;
 	};
 public:
@@ -50,6 +52,7 @@ public:
 
 	glm::vec3 rotation = glm::vec3();
 	glm::vec3 position = glm::vec3();
+	glm::vec4 viewPos = glm::vec4();
 
 	float rotationSpeed = 1.0f;
 	float movementSpeed = 1.0f;
@@ -113,7 +116,7 @@ public:
 	{
 		this->rotation = rotation;
 		updateViewMatrix();
-	};
+	}
 
 	void rotate(glm::vec3 delta)
 	{
@@ -131,6 +134,16 @@ public:
 	{
 		this->position += delta;
 		updateViewMatrix();
+	}
+
+	void setRotationSpeed(float rotationSpeed)
+	{
+		this->rotationSpeed = rotationSpeed;
+	}
+
+	void setMovementSpeed(float movementSpeed)
+	{
+		this->movementSpeed = movementSpeed;
 	}
 
 	void update(float deltaTime)

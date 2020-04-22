@@ -122,11 +122,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -32.5f;
-		zoomSpeed = 2.5f;
-		rotationSpeed = 0.5f;
-		rotation = { 0.0f, 37.5f, 0.0f };
 		title = "Multi threaded command buffer";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, -0.0f, -32.5f));
+		camera.setRotation(glm::vec3(0.0f));
+		camera.setRotationSpeed(0.5f);
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
 		// Get number of max. concurrrent threads
 		numThreads = std::thread::hardware_concurrency();
@@ -319,12 +320,8 @@ public:
 
 		vkCmdBindPipeline(secondaryCommandBuffers.background, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.starsphere);
 
-		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::rotate(view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		view = glm::rotate(view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		view = glm::rotate(view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		glm::mat4 mvp = matrices.projection * view;
+		glm::mat4 mvp = matrices.projection * matrices.view;
+		mvp[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 		vkCmdPushConstants(
 			secondaryCommandBuffers.background,
@@ -564,12 +561,8 @@ public:
 
 	void updateMatrices()
 	{
-		matrices.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		matrices.view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		matrices.view = glm::rotate(matrices.view, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		matrices.projection = camera.matrices.perspective;
+		matrices.view = camera.matrices.view;
 		frustum.update(matrices.projection * matrices.view);
 	}
 

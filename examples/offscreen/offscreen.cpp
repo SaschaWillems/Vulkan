@@ -56,6 +56,7 @@ public:
 
 	struct UBO {
 		glm::mat4 projection;
+		glm::mat4 view;
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	} uboShared;
@@ -99,16 +100,18 @@ public:
 		VkDescriptorImageInfo descriptor;
 	} offscreenPass;
 
-	glm::vec3 meshPos = glm::vec3(0.0f, -1.5f, 0.0f);
-	glm::vec3 meshRot = glm::vec3(0.0f);
+	glm::vec3 modelPosition = glm::vec3(0.0f, -1.5f, 0.0f);
+	glm::vec3 modelRotation = glm::vec3(0.0f);
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -6.0f;
-		rotation = { -2.5f, 0.0f, 0.0f };
-		cameraPos = { 0.0f, 1.0f, 0.0f };
-		timerSpeed *= 0.25f;
 		title = "Offscreen rendering";
+		timerSpeed *= 0.25f;
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 1.0f, -6.0f));
+		camera.setRotation(glm::vec3(-2.5f, 0.0f, 0.0f));
+		camera.setRotationSpeed(0.5f);
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
 		// The scene shader uses a clipping plane, so this feature has to be enabled
 		enabledFeatures.shaderClipDistance = VK_TRUE;
@@ -777,47 +780,34 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Mesh
-		uboShared.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
+		uboShared.projection = camera.matrices.perspective;
+		uboShared.view = camera.matrices.view;
 
-		uboShared.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
-		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.y + meshRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		uboShared.model = glm::translate(uboShared.model, meshPos);
-
+		// Model
+		uboShared.model = glm::mat4(1.0f);
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(modelRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboShared.model = glm::translate(uboShared.model, modelPosition);
 		memcpy(uniformBuffers.vsShared.mapped, &uboShared, sizeof(uboShared));
 
 		// Mirror
-		uboShared.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
-		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		uboShared.model = glm::mat4(1.0f);
 		memcpy(uniformBuffers.vsMirror.mapped, &uboShared, sizeof(uboShared));
 
 		// Debug quad
+		// @todo: Full screen triangle in VS
 		uboShared.projection = glm::ortho(4.0f, 0.0f, 0.0f, 4.0f*(float)height / (float)width, -1.0f, 1.0f);
 		uboShared.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-
 		memcpy(uniformBuffers.vsDebugQuad.mapped, &uboShared, sizeof(uboShared));
 	}
 
 	void updateUniformBufferOffscreen()
 	{
-		uboShared.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
-		uboShared.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
-		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.y + meshRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboShared.model = glm::rotate(uboShared.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		uboShared.projection = camera.matrices.perspective;
+		uboShared.view = camera.matrices.view;
+		uboShared.model = glm::mat4(1.0f);
+		uboShared.model = glm::rotate(uboShared.model, glm::radians(modelRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		uboShared.model = glm::scale(uboShared.model, glm::vec3(1.0f, -1.0f, 1.0f));
-		uboShared.model = glm::translate(uboShared.model, meshPos);
-
+		uboShared.model = glm::translate(uboShared.model, modelPosition);
 		memcpy(uniformBuffers.vsOffScreen.mapped, &uboShared, sizeof(uboShared));
 	}
 
@@ -857,7 +847,7 @@ public:
 		draw();
 		if (!paused)
 		{
-			meshRot.y += frameTimer * 10.0f;
+			modelRotation.y += frameTimer * 10.0f;
 			updateUniformBuffers();
 			updateUniformBufferOffscreen();
 		}

@@ -50,7 +50,7 @@ public:
 	
 	struct UBOVS {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		glm::vec4 lightPos = glm::vec4(0.0, 0.0, -2.0, 1.0);
 	} uboVS;
 
@@ -68,12 +68,13 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -30.0;
-		zoomSpeed = 2.5f;
-		rotationSpeed = 0.5f;
-		timerSpeed *= 0.5f;
-		rotation = { -32.5, 45.0, 0.0 };
 		title = "Push constants";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -30.0f));
+		camera.setRotation(glm::vec3(-32.5f, 45.0f, 0.0f));
+		camera.setRotationSpeed(0.5f);
+		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
+		timerSpeed *= 0.5f;
 		settings.overlay = true;
 	}
 
@@ -394,16 +395,8 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Vertex shader
-		glm::mat4 viewMatrix = glm::mat4(1.0f);
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 2.0f, zoom));
-
-		uboVS.model = viewMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.modelView = camera.matrices.view;
 		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
 	}
 

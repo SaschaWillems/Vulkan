@@ -48,12 +48,12 @@ public:
 
 	struct {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 	} uboVS;
 
 	struct {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		glm::vec2 viewportDim;
 	} uboGS;
 
@@ -73,9 +73,11 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -8.0f;
-		rotation = glm::vec3(0.0f, -25.0f, 0.0f);
 		title = "Geometry shader normal debugging";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -8.0f));
+		camera.setRotation(glm::vec3(0.0f, -25.0f, 0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
 		settings.overlay = true;
 	}
 
@@ -409,17 +411,12 @@ public:
 	void updateUniformBuffers()
 	{
 		// Vertex shader
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
-		glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-		uboVS.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.modelView = camera.matrices.view;
 		memcpy(uniformBuffers.VS.mapped, &uboVS, sizeof(uboVS));
-
 		// Geometry shader
-		uboGS.model = uboVS.model;
-		uboGS.projection = uboVS.projection;
+		uboGS.projection = camera.matrices.perspective;
+		uboGS.modelView = camera.matrices.view;
 		uboGS.viewportDim = glm::vec2(width, height);
 		memcpy(uniformBuffers.GS.mapped, &uboGS, sizeof(uboGS));
 	}

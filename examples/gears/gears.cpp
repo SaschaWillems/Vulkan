@@ -44,10 +44,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -16.0f;
-		rotation = glm::vec3(-23.75f, 41.25f, 21.0f);
+		title = "Vulkan gears";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 2.5f, -16.0f));
+		camera.setRotation(glm::vec3(-23.75f, 41.25f, 21.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.001f, 256.0f);
 		timerSpeed *= 0.25f;
-		title = "Rotating gears";
 		settings.overlay = true;
 	}
 
@@ -321,10 +323,9 @@ public:
 
 	void updateUniformBuffers()
 	{
-		glm::mat4 perspective = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
 		for (auto& gear : gears)
 		{
-			gear->updateUniformBuffer(perspective, rotation, zoom, timer * 360.0f);
+			gear->updateUniformBuffer(camera.matrices.perspective, camera.matrices.view, timer * 360.0f);
 		}
 	}
 

@@ -177,7 +177,7 @@ public:
 
 	struct UboVS {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		glm::vec4 viewPos;
 		float depth = 0.0f;
 	} uboVS;
@@ -192,9 +192,11 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -2.5f;
-		rotation = { 0.0f, 15.0f, 0.0f };
 		title = "3D textures";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+		camera.setRotation(glm::vec3(0.0f, 15.0f, 0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
 		srand((unsigned int)time(NULL));
 	}
@@ -749,7 +751,7 @@ public:
 			&uniformBufferVS,
 			sizeof(uboVS),
 			&uboVS));
-
+		VK_CHECK_RESULT(uniformBufferVS.map());
 		updateUniformBuffers();
 	}
 
@@ -757,15 +759,9 @@ public:
 	{
 		if (viewchanged)
 		{
-			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
-			glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
-			uboVS.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
-			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-			uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
+			uboVS.projection = camera.matrices.perspective;
+			uboVS.modelView = camera.matrices.view;
+			uboVS.viewPos = camera.viewPos;
 		}
 		else
 		{
@@ -773,10 +769,7 @@ public:
 			if (uboVS.depth > 1.0f)
 				uboVS.depth = uboVS.depth - 1.0f;
 		}
-
-		VK_CHECK_RESULT(uniformBufferVS.map());
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
-		uniformBufferVS.unmap();
 	}
 
 	void prepare()

@@ -96,14 +96,14 @@ public:
 
 	struct UBOVS {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		glm::vec2 viewportDim;
 		float pointSize = PARTICLE_SIZE;
 	} uboVS;
 
 	struct UBOEnv {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		glm::mat4 normal;
 		glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 	} uboEnv;
@@ -127,11 +127,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -75.0f;
-		rotation = { -15.0f, 45.0f, 0.0f };
 		title = "CPU based particle system";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -75.0f));
+		camera.setRotation(glm::vec3(-15.0f, 45.0f, 0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
 		settings.overlay = true;
-		zoomSpeed *= 1.5f;
 		timerSpeed *= 8.0f;
 		rndEngine.seed(benchmark.active ? 0 : (unsigned)time(nullptr));
 	}
@@ -697,24 +698,16 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Vertex shader
-		glm::mat4 viewMatrix = glm::mat4(1.0f);
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
-
-		uboVS.model = glm::mat4(1.0f);
-		uboVS.model = viewMatrix * glm::translate(uboVS.model, glm::vec3(0.0f, 15.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		// Particle system fire
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.modelView = camera.matrices.view;
 		uboVS.viewportDim = glm::vec2((float)width, (float)height);
 		memcpy(uniformBuffers.fire.mapped, &uboVS, sizeof(uboVS));
 
 		// Environment
-		uboEnv.projection = uboVS.projection;
-		uboEnv.model = uboVS.model;
-		uboEnv.normal = glm::inverseTranspose(uboEnv.model);
+		uboEnv.projection = camera.matrices.perspective;
+		uboEnv.modelView = camera.matrices.view;
+		uboEnv.normal = glm::inverseTranspose(uboEnv.modelView);
 		memcpy(uniformBuffers.environment.mapped, &uboEnv, sizeof(uboEnv));
 	}
 

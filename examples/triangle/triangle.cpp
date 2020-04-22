@@ -113,8 +113,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -2.5f;
 		title = "Vulkan Example - Basic indexed triangle";
+		// Setup a default look-at camera
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+		camera.setRotation(glm::vec3(0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
 		// Values not set here are initialized in the base class constructor
 	}
 
@@ -1048,15 +1052,10 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Update matrices
-		uboVS.projectionMatrix = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-
-		uboVS.viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
+		// Pass matrices to the shaders 
+		uboVS.projectionMatrix = camera.matrices.perspective;
+		uboVS.viewMatrix = camera.matrices.view;
 		uboVS.modelMatrix = glm::mat4(1.0f);
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// Map uniform buffer and update it
 		uint8_t *pData;

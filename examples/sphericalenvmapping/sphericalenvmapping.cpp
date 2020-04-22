@@ -73,11 +73,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -0.9f;
-		rotationSpeed = 0.75f;
-		zoomSpeed = 0.25f;
-		rotation = glm::vec3(-25.0f, 23.75f, 0.0f);
 		title = "Spherical Environment Mapping";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -0.9f));
+		camera.setRotation(glm::vec3(-25.0f, 23.75f, 0.0f));
+		camera.setRotationSpeed(0.75f);
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
 	}
 
@@ -371,21 +372,10 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 256.0f);
-
-		uboVS.view = glm::lookAt(
-			glm::vec3(0, 0, -zoom),
-			glm::vec3(0, 0, 0),
-			glm::vec3(0, 1, 0)
-			);
-
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.view = camera.matrices.view;
 		uboVS.model = glm::mat4(1.0f);
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
 		uboVS.normal = glm::inverseTranspose(uboVS.view * uboVS.model);
-
 		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
 	}
 

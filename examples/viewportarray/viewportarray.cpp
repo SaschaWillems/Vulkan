@@ -61,7 +61,7 @@ public:
 		camera.type = Camera::CameraType::firstperson;
 		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
 		camera.setTranslation(glm::vec3(7.0f, 3.2f, 0.0f));
-		camera.movementSpeed = 5.0f;
+		camera.setMovementSpeed(5.0f);
 		settings.overlay = true;
 	}
 
@@ -312,9 +312,9 @@ public:
 		float bottom = -wd2;
 
 		glm::vec3 camFront;
-		camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
-		camFront.y = sin(glm::radians(rotation.x));
-		camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
+		camFront.x = -cos(glm::radians(camera.rotation.x)) * sin(glm::radians(camera.rotation.y));
+		camFront.y = sin(glm::radians(camera.rotation.x));
+		camFront.z = cos(glm::radians(camera.rotation.x)) * cos(glm::radians(camera.rotation.y));
 		camFront = glm::normalize(camFront);
 		glm::vec3 camRight = glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f)));
 

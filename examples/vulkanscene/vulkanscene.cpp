@@ -90,10 +90,12 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -3.75f;
-		rotationSpeed = 0.5f;
-		rotation = glm::vec3(15.0f, 0.f, 0.0f);
-		title = "Vulkan Demo Scene - (c) 2016 by Sascha Willems";
+		title = "Vulkan Demo Scene - (c) by Sascha Willems";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -3.75f));
+		camera.setRotation(glm::vec3(15.0f, 0.0f, 0.0f));
+		camera.setRotationSpeed(0.5f);
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
 	}
 
@@ -381,42 +383,26 @@ public:
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&uniformData.meshVS,
 			sizeof(uboVS));
-
+		VK_CHECK_RESULT(uniformData.meshVS.map());
 		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f);
-
-		uboVS.view = glm::lookAt(
-			glm::vec3(0, 0, -zoom),
-			cameraPos,
-			glm::vec3(0, 1, 0)
-			);
-
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.view = camera.matrices.view;
 		uboVS.model = glm::mat4(1.0f);
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
 		uboVS.normal = glm::inverseTranspose(uboVS.view * uboVS.model);
-
 		uboVS.lightPos = lightPos;
-
-		VK_CHECK_RESULT(uniformData.meshVS.map());
 		memcpy(uniformData.meshVS.mapped, &uboVS, sizeof(uboVS));
-		uniformData.meshVS.unmap();
 	}
 
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
-
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
 		VulkanExampleBase::submitFrame();
 	}
 

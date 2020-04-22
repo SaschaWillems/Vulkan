@@ -66,7 +66,7 @@ public:
 
 	struct UBOTessEval {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		float tessAlpha = 1.0f;
 	} uboTessEval;
 
@@ -83,10 +83,11 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -6.5f;
-		rotation = glm::vec3(-350.0f, 60.0f, 0.0f);
-		cameraPos = glm::vec3(-3.0f, 2.3f, 0.0f);
 		title = "Tessellation shader (PN Triangles)";
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(-3.0f, 2.3f, -6.5f));
+		camera.setRotation(glm::vec3(-350.0f, 60.0f, 0.0f));
+		camera.setPerspective(45.0f, (float)(width * ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
 	}
 
@@ -453,20 +454,10 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Tessellation eval
-		glm::mat4 viewMatrix = glm::mat4(1.0f);
-		uboTessEval.projection = glm::perspective(glm::radians(45.0f), (float)(width* ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.1f, 256.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(0.0f, 0.0f, zoom));
-
-		uboTessEval.model = glm::mat4(1.0f);
-		uboTessEval.model = viewMatrix * glm::translate(uboTessEval.model, cameraPos);
-		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboTessEval.model = glm::rotate(uboTessEval.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+		uboTessEval.projection = camera.matrices.perspective;
+		uboTessEval.modelView = camera.matrices.view;
 		// Tessellation evaulation uniform block
 		memcpy(uniformBuffers.tessEval.mapped, &uboTessEval, sizeof(uboTessEval));
-
 		// Tessellation control uniform block
 		memcpy(uniformBuffers.tessControl.mapped, &uboTessControl, sizeof(uboTessControl));
 	}
@@ -522,6 +513,7 @@ public:
 					buildCommandBuffers();
 				}
 				if (overlay->checkBox("Splitscreen", &splitScreen)) {
+					camera.setPerspective(45.0f, (float)(width * ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.1f, 256.0f);
 					updateUniformBuffers();
 					buildCommandBuffers();
 				}

@@ -160,8 +160,6 @@ public:
 
 	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
 
-	float zoom = 0;
-
 	static std::vector<const char*> args;
 
 	// Defines a frame rate independent timer value clamped from -1.0...1.0
@@ -169,18 +167,9 @@ public:
 	float timer = 0.0f;
 	// Multiplier for speeding up (or slowing down) the global timer
 	float timerSpeed = 0.25f;
-	
 	bool paused = false;
 
-	// Use to adjust mouse rotation speed
-	float rotationSpeed = 1.0f;
-	// Use to adjust mouse zoom speed
-	float zoomSpeed = 1.0f;
-
 	Camera camera;
-
-	glm::vec3 rotation = glm::vec3();
-	glm::vec3 cameraPos = glm::vec3();
 	glm::vec2 mousePos;
 
 	std::string title = "Vulkan Example";
