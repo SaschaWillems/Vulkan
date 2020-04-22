@@ -165,6 +165,14 @@ public:
 		vkDestroySampler(device, textures.particles.sampler, nullptr);
 	}
 
+	virtual void getEnabledFeatures()
+	{
+		// Enable anisotropic filtering if supported
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		};
+	}
+
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -461,12 +469,12 @@ public:
 			vks::initializers::descriptorImageInfo(
 				textures.particles.sampler,
 				textures.particles.smoke.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		VkDescriptorImageInfo texDescriptorFire =
 			vks::initializers::descriptorImageInfo(
 				textures.particles.sampler,
 				textures.particles.fire.view,
-				VK_IMAGE_LAYOUT_GENERAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
