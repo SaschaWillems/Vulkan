@@ -403,7 +403,6 @@ public:
 	VkDeviceSize copyShaderIdentifier(uint8_t* data, const uint8_t* shaderHandleStorage, uint32_t groupIndex) {
 		const uint32_t shaderGroupHandleSize = rayTracingProperties.shaderGroupHandleSize;
 		memcpy(data, shaderHandleStorage + groupIndex * shaderGroupHandleSize, shaderGroupHandleSize);
-		data += shaderGroupHandleSize;
 		return shaderGroupHandleSize;
 	}
 
@@ -425,7 +424,6 @@ public:
 		VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesNV(device, pipeline, 0, NUM_SHADER_GROUPS, sbtSize, shaderHandleStorage));
 		auto* data = static_cast<uint8_t*>(shaderBindingTable.mapped);
 		// Copy the shader identifiers to the shader binding table
-		VkDeviceSize offset = 0;
 		data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_RAYGEN);
 		data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_MISS);
 		data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_CLOSEST_HIT);
