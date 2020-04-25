@@ -534,11 +534,22 @@ namespace vkglTF
 					return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, joint0) });
 				case VertexComponent::Weight0:
 					return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, weight0) });
+				default:
+					return VkVertexInputAttributeDescription({});
 			}
+		}
+		static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(uint32_t binding, const std::vector<VertexComponent> components) {
+			std::vector<VkVertexInputAttributeDescription> result;
+			uint32_t location = 0;
+			for (VertexComponent component : components) {
+				result.push_back(Vertex::inputAttributeDescription(binding, location, component));
+				location++;
+			}
+			return result;
 		}
 	};
 
-	typedef enum FileLoadingFlags {
+	enum FileLoadingFlags {
 		None = 0x00000000,
 		PreTransformVertices = 0x00000001,
 		PreMultiplyVertexColors = 0x00000002,
