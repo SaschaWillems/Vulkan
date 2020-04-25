@@ -538,9 +538,10 @@ namespace vkglTF
 		}
 	};
 
-	typedef enum FileLoadingFlags { 
-		None = 0, 
-		PreTransformVertices = 1, 
+	typedef enum FileLoadingFlags {
+		None = 0,
+		PreTransformVertices = 1,
+		PreMultiplyVertexColors = 2
 	};
 
 	/*
@@ -1040,14 +1041,24 @@ namespace vkglTF
 				return;
 			}
 
-			// Pre-transform all vertices by the node matrix hierarchy if requested
-			if (fileLoadingFlags & FileLoadingFlags::PreTransformVertices) {
+			// Pre-Calculations for requested features
+			if ((fileLoadingFlags & FileLoadingFlags::PreTransformVertices) || (fileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors)) {
+				const bool preTransform = fileLoadingFlags & FileLoadingFlags::PreTransformVertices;
+				const bool preMultiplyColor = fileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors;
 				for (Node* node : linearNodes) {
-					const glm::mat4 localMatrix = node->getMatrix();
 					if (node->mesh) {
+						const glm::mat4 localMatrix = node->getMatrix();
 						for (Primitive* primitive : node->mesh->primitives) {
 							for (uint32_t i = 0; i < primitive->vertexCount; i++) {
-								vertexBuffer[primitive->firstVertex + i].pos = glm::vec3(localMatrix * glm::vec4(vertexBuffer[primitive->firstVertex + i].pos, 1.0f));
+								Vertex& vertex = vertexBuffer[primitive->firstVertex + i];
+								// Pre-transform vertex positions by node-hierarchy
+								if (preTransform) {
+									vertex.pos = glm::vec3(localMatrix * glm::vec4(vertex.pos, 1.0f));
+								}
+								// Pre-Multiply vertex colors with material base color
+								if (preMultiplyColor) {
+									vertex.color = primitive->material.baseColorFactor * vertex.color;
+								}
 							}
 						}
 					}
