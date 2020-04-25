@@ -541,7 +541,8 @@ namespace vkglTF
 	typedef enum FileLoadingFlags {
 		None = 0,
 		PreTransformVertices = 1,
-		PreMultiplyVertexColors = 2
+		PreMultiplyVertexColors = 2,
+		FlipY = 3
 	};
 
 	/*
@@ -1042,9 +1043,10 @@ namespace vkglTF
 			}
 
 			// Pre-Calculations for requested features
-			if ((fileLoadingFlags & FileLoadingFlags::PreTransformVertices) || (fileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors)) {
+			if ((fileLoadingFlags & FileLoadingFlags::PreTransformVertices) || (fileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors) || (fileLoadingFlags & FileLoadingFlags::FlipY)) {
 				const bool preTransform = fileLoadingFlags & FileLoadingFlags::PreTransformVertices;
 				const bool preMultiplyColor = fileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors;
+				const bool flipY = fileLoadingFlags & FileLoadingFlags::FlipY;
 				for (Node* node : linearNodes) {
 					if (node->mesh) {
 						const glm::mat4 localMatrix = node->getMatrix();
@@ -1054,6 +1056,10 @@ namespace vkglTF
 								// Pre-transform vertex positions by node-hierarchy
 								if (preTransform) {
 									vertex.pos = glm::vec3(localMatrix * glm::vec4(vertex.pos, 1.0f));
+								}
+								// Flip Y-Axis of vertex positions
+								if (preTransform) {
+									vertex.pos.y *= -1.0f;
 								}
 								// Pre-Multiply vertex colors with material base color
 								if (preMultiplyColor) {
