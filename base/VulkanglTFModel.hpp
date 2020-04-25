@@ -539,10 +539,10 @@ namespace vkglTF
 	};
 
 	typedef enum FileLoadingFlags {
-		None = 0,
-		PreTransformVertices = 1,
-		PreMultiplyVertexColors = 2,
-		FlipY = 3
+		None = 0x00000000,
+		PreTransformVertices = 0x00000001,
+		PreMultiplyVertexColors = 0x00000002,
+		FlipY = 0x00000004
 	};
 
 	/*
@@ -1058,7 +1058,7 @@ namespace vkglTF
 									vertex.pos = glm::vec3(localMatrix * glm::vec4(vertex.pos, 1.0f));
 								}
 								// Flip Y-Axis of vertex positions
-								if (preTransform) {
+								if (flipY) {
 									vertex.pos.y *= -1.0f;
 								}
 								// Pre-Multiply vertex colors with material base color
