@@ -517,6 +517,8 @@ namespace vkglTF
 		glm::vec4 color;
 		glm::vec4 joint0;
 		glm::vec4 weight0;
+		static VkVertexInputBindingDescription vertexInputBindingDescription;
+		static std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
 		static VkVertexInputBindingDescription inputBindingDescription(uint32_t binding) {
 			return VkVertexInputBindingDescription({ binding, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX });
 		}
@@ -545,6 +547,18 @@ namespace vkglTF
 				result.push_back(Vertex::inputAttributeDescription(binding, location, component));
 				location++;
 			}
+			return result;
+		}
+		/** @brief Returns the default pipeline vertex input state create info structure for the requested vertex components */
+		static VkPipelineVertexInputStateCreateInfo getPipelineVertexInputState(const std::vector<VertexComponent> components) {
+			Vertex::vertexInputBindingDescription = Vertex::inputBindingDescription(0);
+			Vertex::vertexInputAttributeDescriptions = Vertex::inputAttributeDescriptions(0, components);
+			VkPipelineVertexInputStateCreateInfo result{};
+			result.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+			result.vertexBindingDescriptionCount = 1;
+			result.pVertexBindingDescriptions = &Vertex::vertexInputBindingDescription;
+			result.vertexAttributeDescriptionCount = static_cast<uint32_t>(Vertex::vertexInputAttributeDescriptions.size());
+			result.pVertexAttributeDescriptions = Vertex::vertexInputAttributeDescriptions.data();
 			return result;
 		}
 	};
