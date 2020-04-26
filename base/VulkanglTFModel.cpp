@@ -354,6 +354,7 @@ vkglTF::Node::~Node() {
 
 VkVertexInputBindingDescription vkglTF::Vertex::vertexInputBindingDescription;
 std::vector<VkVertexInputAttributeDescription> vkglTF::Vertex::vertexInputAttributeDescriptions;
+VkPipelineVertexInputStateCreateInfo vkglTF::Vertex::pipelineVertexInputStateCreateInfo;
 
 VkVertexInputBindingDescription vkglTF::Vertex::inputBindingDescription(uint32_t binding) {
 	return VkVertexInputBindingDescription({ binding, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX });
@@ -389,16 +390,15 @@ std::vector<VkVertexInputAttributeDescription> vkglTF::Vertex::inputAttributeDes
 }
 
 /** @brief Returns the default pipeline vertex input state create info structure for the requested vertex components */
-VkPipelineVertexInputStateCreateInfo vkglTF::Vertex::getPipelineVertexInputState(const std::vector<VertexComponent> components) {
+VkPipelineVertexInputStateCreateInfo* vkglTF::Vertex::getPipelineVertexInputState(const std::vector<VertexComponent> components) {
 	vertexInputBindingDescription = Vertex::inputBindingDescription(0);
 	Vertex::vertexInputAttributeDescriptions = Vertex::inputAttributeDescriptions(0, components);
-	VkPipelineVertexInputStateCreateInfo result{};
-	result.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	result.vertexBindingDescriptionCount = 1;
-	result.pVertexBindingDescriptions = &Vertex::vertexInputBindingDescription;
-	result.vertexAttributeDescriptionCount = static_cast<uint32_t>(Vertex::vertexInputAttributeDescriptions.size());
-	result.pVertexAttributeDescriptions = Vertex::vertexInputAttributeDescriptions.data();
-	return result;
+	pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
+	pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = &Vertex::vertexInputBindingDescription;
+	pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(Vertex::vertexInputAttributeDescriptions.size());
+	pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = Vertex::vertexInputAttributeDescriptions.data();
+	return &pipelineVertexInputStateCreateInfo;
 }
 
 /*
