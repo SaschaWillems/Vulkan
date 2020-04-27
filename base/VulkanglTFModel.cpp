@@ -591,7 +591,7 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 					return;
 				}
 			}
-			Primitive *newPrimitive = new Primitive(indexStart, indexCount, materials[primitive.material]);
+			Primitive *newPrimitive = new Primitive(indexStart, indexCount, primitive.material > -1 ? materials[primitive.material] : materials.back());
 			newPrimitive->firstVertex = vertexStart;
 			newPrimitive->vertexCount = vertexCount;
 			newPrimitive->setDimensions(posMin, posMax);
@@ -692,6 +692,9 @@ void vkglTF::Model::loadMaterials(tinygltf::Model &gltfModel)
 
 		materials.push_back(material);
 	}
+	// Push a default material at the end of the list for meshes with no material assigned
+	materials.push_back(Material());
+
 }
 
 void vkglTF::Model::loadAnimations(tinygltf::Model &gltfModel)
