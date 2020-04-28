@@ -7,19 +7,16 @@ layout (location = 2) in vec3 inColor;
 layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
-	mat4 modelview;
+	mat4 view;
+	mat4 model;
+	vec4 color;
 	vec4 lightPos;
 } ubo;
 
 layout (location = 0) out vec3 outColor;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
-
 void main() 
 {
-	outColor = inColor;
-	gl_Position = ubo.projection * ubo.modelview * vec4(inPos.xyz, 1.0);
+	outColor = inColor * ubo.color.rgb;
+	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos.xyz, 1.0);
 }

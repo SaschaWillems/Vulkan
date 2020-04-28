@@ -57,19 +57,19 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'plane_z.3ds'
+       include 'plane_z.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'teapot.3ds'
+       include 'teapot.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'sphere.3ds'
+       include 'sphere.gltf'
     }
 
 
