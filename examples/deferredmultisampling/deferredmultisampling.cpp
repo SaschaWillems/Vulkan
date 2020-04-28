@@ -199,8 +199,6 @@ public:
 		uniformBuffers.vsFullScreen.destroy();
 		uniformBuffers.fsLights.destroy();
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
-
 		vkDestroyRenderPass(device, offScreenFrameBuf.renderPass, nullptr);
 
 		textures.model.colorMap.destroy();
