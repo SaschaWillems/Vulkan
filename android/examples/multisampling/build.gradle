@@ -49,7 +49,7 @@ task copyTask {
     }
 
     copy {
-       from '../../../data/shaders/mesh'
+       from '../../../data/shaders/multisampling'
        into 'assets/shaders/mesh'
        include '*.*'
     }
