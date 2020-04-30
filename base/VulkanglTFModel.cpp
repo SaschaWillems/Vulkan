@@ -878,10 +878,12 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 						// Pre-transform vertex positions by node-hierarchy
 						if (preTransform) {
 							vertex.pos = glm::vec3(localMatrix * glm::vec4(vertex.pos, 1.0f));
+							vertex.normal = glm::normalize(glm::vec3(localMatrix * glm::vec4(vertex.normal, 1.0f)));
 						}
 						// Flip Y-Axis of vertex positions
 						if (flipY) {
 							vertex.pos.y *= -1.0f;
+							vertex.normal.y *= -1.0f;
 						}
 						// Pre-Multiply vertex colors with material base color
 						if (preMultiplyColor) {
