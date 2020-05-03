@@ -59,22 +59,26 @@ namespace vkglTF
 		glTF material class
 	*/
 	struct Material {
+		vks::VulkanDevice* device;
 		enum AlphaMode { ALPHAMODE_OPAQUE, ALPHAMODE_MASK, ALPHAMODE_BLEND };
 		AlphaMode alphaMode = ALPHAMODE_OPAQUE;
 		float alphaCutoff = 1.0f;
 		float metallicFactor = 1.0f;
 		float roughnessFactor = 1.0f;
 		glm::vec4 baseColorFactor = glm::vec4(1.0f);
-		vkglTF::Texture* baseColorTexture;
-		vkglTF::Texture* metallicRoughnessTexture;
-		vkglTF::Texture* normalTexture;
-		vkglTF::Texture* occlusionTexture;
-		vkglTF::Texture* emissiveTexture;
+		vkglTF::Texture* baseColorTexture = nullptr;
+		vkglTF::Texture* metallicRoughnessTexture = nullptr;
+		vkglTF::Texture* normalTexture = nullptr;
+		vkglTF::Texture* occlusionTexture = nullptr;
+		vkglTF::Texture* emissiveTexture = nullptr;
 
 		vkglTF::Texture* specularGlossinessTexture;
 		vkglTF::Texture* diffuseTexture;
 
 		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+
+		Material(vks::VulkanDevice* device) : device(device) {};
+		void createDescriptorSet(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout);
 	};
 
 	/*
@@ -217,6 +221,10 @@ namespace vkglTF
 		FlipY = 0x00000004
 	};
 
+	enum RenderFlags {
+		BindImages = 0x00000001
+	};
+
 	/*
 		glTF model loading and rendering class
 	*/
@@ -224,7 +232,8 @@ namespace vkglTF
 
 		vks::VulkanDevice* device;
 		VkDescriptorPool descriptorPool;
-		VkDescriptorSetLayout descriptorSetLayout;
+		VkDescriptorSetLayout descriptorSetLayoutUbo;
+		VkDescriptorSetLayout descriptorSetLayoutImage;
 
 		struct Vertices {
 			VkBuffer buffer;
@@ -263,8 +272,8 @@ namespace vkglTF
 		void loadMaterials(tinygltf::Model& gltfModel);
 		void loadAnimations(tinygltf::Model& gltfModel);
 		void loadFromFile(std::string filename, vks::VulkanDevice* device, VkQueue transferQueue, uint32_t fileLoadingFlags = vkglTF::FileLoadingFlags::None, float scale = 1.0f);
-		void drawNode(Node* node, VkCommandBuffer commandBuffer);
-		void draw(VkCommandBuffer commandBuffer);
+		void drawNode(Node* node, VkCommandBuffer commandBuffer, uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, uint32_t bindImageSet = 1);
+		void draw(VkCommandBuffer commandBuffer, uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, uint32_t bindImageSet = 1);
 		void getNodeDimensions(Node* node, glm::vec3& min, glm::vec3& max);
 		void getSceneDimensions();
 		void updateAnimation(uint32_t index, float time);
