@@ -860,7 +860,7 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	}
 	else {
 		// TODO: throw
-		std::cerr << "Could not load gltf file: " << error << std::endl;
+		vks::tools::exitFatal("Could not load glTF file \"" + filename + "\": " + error, -1);
 		return;
 	}
 
