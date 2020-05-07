@@ -1010,8 +1010,10 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	}
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uboCount },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageCount }
 	};
+	if (imageCount > 0) {
+		poolSizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageCount });
+	}
 	VkDescriptorPoolCreateInfo descriptorPoolCI{};
 	descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
