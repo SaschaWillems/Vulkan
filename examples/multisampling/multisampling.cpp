@@ -21,9 +21,8 @@
 #include "vulkanexamplebase.h"
 #include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
-#include "VulkanModel.hpp"
+#include "VulkanglTFModel.h"
 
-#define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
 struct {
@@ -45,28 +44,14 @@ public:
 	bool useSampleShading = false;
 	VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
-	struct {
-		vks::Texture2D colorMap;
-	} textures;
-
-	// Vertex layout for the models
-	vks::VertexLayout vertexLayout = vks::VertexLayout({
-		vks::VERTEX_COMPONENT_POSITION,
-		vks::VERTEX_COMPONENT_NORMAL,
-		vks::VERTEX_COMPONENT_UV,
-		vks::VERTEX_COMPONENT_COLOR,
-	});
-
-	struct {
-		vks::Model example;
-	} models;
+	vkglTF::Model model;
 
 	vks::Buffer uniformBuffer;
 
 	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
-		glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 5.0f, 1.0f);
+		glm::vec4 lightPos = glm::vec4(5.0f, -5.0f, 5.0f, 1.0f);
 	} uboVS;
 
 	struct {
@@ -98,8 +83,6 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		models.example.destroy();
-
 		// Destroy MSAA target
 		vkDestroyImage(device, multisampleTarget.color.image, nullptr);
 		vkDestroyImageView(device, multisampleTarget.color.view, nullptr);
@@ -107,8 +90,6 @@ public:
 		vkDestroyImage(device, multisampleTarget.depth.image, nullptr);
 		vkDestroyImageView(device, multisampleTarget.depth.view, nullptr);
 		vkFreeMemory(device, multisampleTarget.depth.memory, nullptr);
-
-		textures.colorMap.destroy();
 
 		uniformBuffer.destroy();
 	}
@@ -392,11 +373,7 @@ public:
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, useSampleShading ? pipelines.MSAASampleShading : pipelines.MSAA);
-
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.example.vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.example.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], models.example.indexCount, 1, 0, 0, 0);
+			model.draw(drawCmdBuffers[i], vkglTF::RenderFlags::BindImages, pipelineLayout);
 
 			drawUI(drawCmdBuffers[i]);
 
@@ -408,8 +385,7 @@ public:
 
 	void loadAssets()
 	{
-		models.example.loadFromFile(getAssetPath() + "models/voyager/voyager.dae", vertexLayout, 1.0f, vulkanDevice, queue);
-		textures.colorMap.loadFromFile(getAssetPath() + "models/voyager/voyager_rgba_unorm.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		model.loadFromFile(getAssetPath() + "models/voyager.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
 	}
 
 	void setupDescriptorPool()
@@ -432,112 +408,50 @@ public:
 
 	void setupDescriptorSetLayout()
 	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-		{
+		const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::descriptorSetLayoutBinding(
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0),
-			// Binding 1 : Fragment shader combined sampler
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 		};
-
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				setLayoutBindings.size());
-
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(
-				&descriptorSetLayout,
-				1);
-
+		// Layout uses set 0 for passing vertex shader ubo and set 1 for fragment shader images (taken from glTF model)
+		const std::vector<VkDescriptorSetLayout> setLayouts = {
+			descriptorSetLayout,
+			vkglTF::descriptorSetLayoutImage,
+		};
+		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), 2);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
 	{
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
-
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(
-			descriptorSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&uniformBuffer.descriptor),
-			// Binding 1 : Color map 
-			vks::initializers::writeDescriptorSet(
-				descriptorSet,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&textures.colorMap.descriptor)
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 		};
-
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
 	{
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(
-				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-				0,
-				VK_FALSE);
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vks::initializers::pipelineRasterizationStateCreateInfo(
-				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_BACK_BIT,
-				VK_FRONT_FACE_CLOCKWISE,
-				0);
-
-		VkPipelineColorBlendAttachmentState blendAttachmentState =
-			vks::initializers::pipelineColorBlendAttachmentState(
-				0xf,
-				VK_FALSE);
-
-		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vks::initializers::pipelineColorBlendStateCreateInfo(
-				1,
-				&blendAttachmentState);
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE,
-				VK_TRUE,
-				VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		VkPipelineViewportStateCreateInfo viewportState =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(
-				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
-				0);
-
+		// Setup multi sampling
 		VkPipelineMultisampleStateCreateInfo multisampleState{};
 		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		// Number of samples to use for rasterization
+		multisampleState.rasterizationSamples = sampleCount;
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCI.pInputAssemblyState = &inputAssemblyState;
@@ -549,43 +463,23 @@ public:
 		pipelineCI.pDynamicState = &dynamicState;
 		pipelineCI.stageCount = shaderStages.size();
 		pipelineCI.pStages = shaderStages.data();
-
-		// Vertex bindings and attributes used by all pipelines
-		std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-			vks::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
-		};
-		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position			
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normal
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),		// Location 2: Texture coordinates
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),	// Location 3: Color
-		};
-
-		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-		vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
-		pipelineCI.pVertexInputState = &vertexInputState;
+		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color });
 
 		// MSAA rendering pipeline
 		shaderStages[0] = loadShader(getAssetPath() + "shaders/multisampling/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getAssetPath() + "shaders/multisampling/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		// Setup multi sampling
-		multisampleState.rasterizationSamples = sampleCount;		// Number of samples to use for rasterization
-	
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.MSAA));
-
 
 		if (vulkanDevice->features.sampleRateShading)
 		{
 			// MSAA with sample shading pipeline
 			// Sample shading enables per-sample shading to avoid shader aliasing and smooth out e.g. high frequency texture maps
 			// Note: This will trade performance for are more stable image
-			multisampleState.sampleShadingEnable = VK_TRUE;				// Enable per-sample shading (instead of per-fragment)
-			multisampleState.minSampleShading = 0.25f;					// Minimum fraction for sample shading
-
+			
+			// Enable per-sample shading (instead of per-fragment)
+			multisampleState.sampleShadingEnable = VK_TRUE;
+			// Minimum fraction for sample shading
+			multisampleState.minSampleShading = 0.25f;
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.MSAASampleShading));
 		}
 	}

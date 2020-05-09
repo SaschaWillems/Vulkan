@@ -50,14 +50,14 @@ task copyTask {
 
     copy {
        from '../../../data/shaders/multisampling'
-       into 'assets/shaders/mesh'
+       into 'assets/shaders/multisampling'
        include '*.*'
     }
 
     copy {
-       from '../../../data/models/voyager'
-       into 'assets/models/voyager'
-       include '*.*'
+       from '../../../data/models'
+       into 'assets/models'
+       include 'voyager.gltf'
     }
 
 
