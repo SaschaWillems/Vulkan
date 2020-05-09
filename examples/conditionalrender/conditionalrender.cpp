@@ -191,7 +191,7 @@ public:
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayout));
 
 		std::array<VkDescriptorSetLayout, 2> setLayouts = {
-			descriptorSetLayout, scene.descriptorSetLayout
+			descriptorSetLayout, vkglTF::descriptorSetLayoutUbo
 		};
 		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), 2);
 		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec4) * 2,	0);

@@ -193,7 +193,7 @@ public:
 		// Layout uses set 0 for passing tessellation shader ubos and set 1 for fragment shader images (taken from glTF model)
 		const std::vector<VkDescriptorSetLayout> setLayouts = {
 			descriptorSetLayout,
-			model.descriptorSetLayoutImage,
+			vkglTF::descriptorSetLayoutImage,
 		};
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), 2);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
