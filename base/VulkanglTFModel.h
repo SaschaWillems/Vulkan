@@ -30,6 +30,9 @@
 
 namespace vkglTF
 {
+	extern VkDescriptorSetLayout descriptorSetLayoutImage;
+	extern VkDescriptorSetLayout descriptorSetLayoutUbo;
+
 	struct Node;
 
 	/*
@@ -232,8 +235,6 @@ namespace vkglTF
 
 		vks::VulkanDevice* device;
 		VkDescriptorPool descriptorPool;
-		VkDescriptorSetLayout descriptorSetLayoutUbo;
-		VkDescriptorSetLayout descriptorSetLayoutImage;
 
 		struct Vertices {
 			VkBuffer buffer;

@@ -12,6 +12,9 @@
 
 #include "VulkanglTFModel.h"
 
+VkDescriptorSetLayout vkglTF::descriptorSetLayoutImage = VK_NULL_HANDLE;
+VkDescriptorSetLayout vkglTF::descriptorSetLayoutUbo = VK_NULL_HANDLE;
+
 /*
 	glTF texture loading class
 */
@@ -443,8 +446,14 @@ vkglTF::Model::~Model()
 	for (auto node : nodes) {
 		delete node;
 	}
-	vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayoutUbo, nullptr);
-	vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayoutImage, nullptr);
+	if (descriptorSetLayoutUbo != VK_NULL_HANDLE) {
+		vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayoutUbo, nullptr);
+		descriptorSetLayoutUbo = VK_NULL_HANDLE;
+	}
+	if (descriptorSetLayoutImage != VK_NULL_HANDLE) {
+		vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayoutImage, nullptr);
+		descriptorSetLayoutImage = VK_NULL_HANDLE;
+	}
 	vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
 }
 
@@ -1023,14 +1032,17 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 
 	// Descriptors for per-node uniform buffers
 	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
-		};
-		VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
-		descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		descriptorLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-		descriptorLayoutCI.pBindings = setLayoutBindings.data();
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device->logicalDevice, &descriptorLayoutCI, nullptr, &descriptorSetLayoutUbo));
+		// Layout is global, so only create if it hasn't already been created before
+		if (descriptorSetLayoutUbo == VK_NULL_HANDLE) {
+			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+			};
+			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
+			descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			descriptorLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+			descriptorLayoutCI.pBindings = setLayoutBindings.data();
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device->logicalDevice, &descriptorLayoutCI, nullptr, &descriptorSetLayoutUbo));
+		}
 		for (auto node : nodes) {
 			prepareNodeDescriptor(node, descriptorSetLayoutUbo);
 		}
@@ -1038,17 +1050,20 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 
 	// Descriptors for per-material images
 	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-		};
-		VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
-		descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		descriptorLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-		descriptorLayoutCI.pBindings = setLayoutBindings.data();
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device->logicalDevice, &descriptorLayoutCI, nullptr, &descriptorSetLayoutImage));
+		// Layout is global, so only create if it hasn't already been created before
+		if (descriptorSetLayoutImage == VK_NULL_HANDLE) {
+			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+			};
+			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
+			descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			descriptorLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+			descriptorLayoutCI.pBindings = setLayoutBindings.data();
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device->logicalDevice, &descriptorLayoutCI, nullptr, &descriptorSetLayoutImage));
+		}
 		for (auto& material : materials) {
 			if (material.baseColorTexture != nullptr) {
-				material.createDescriptorSet(descriptorPool, descriptorSetLayoutImage);
+				material.createDescriptorSet(descriptorPool, vkglTF::descriptorSetLayoutImage);
 			}
 		}
 	}
