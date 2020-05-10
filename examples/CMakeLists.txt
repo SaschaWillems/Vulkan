@@ -65,6 +65,7 @@ set(EXAMPLES
 	gears
 	geometryshader
 	gltfscene
+	gltfskinning
 	hdr
 	imgui
 	indirectdraw
