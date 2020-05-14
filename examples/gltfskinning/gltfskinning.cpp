@@ -655,6 +655,60 @@ public:
 		}
 	}
 
+	void updateAnimation(uint32_t index, float time)
+	{
+		if (index > static_cast<uint32_t>(animations.size()) - 1) {
+			std::cout << "No animation with index " << index << std::endl;
+			return;
+		}
+		Animation& animation = animations[index];
+
+		bool updated = false;
+		for (auto& channel : animation.channels) {
+			AnimationSampler& sampler = animation.samplers[channel.samplerIndex];
+			if (sampler.inputs.size() > sampler.outputsVec4.size()) {
+				continue;
+			}
+
+			for (size_t i = 0; i < sampler.inputs.size() - 1; i++) {
+				if ((time >= sampler.inputs[i]) && (time <= sampler.inputs[i + 1])) {
+					float u = std::max(0.0f, time - sampler.inputs[i]) / (sampler.inputs[i + 1] - sampler.inputs[i]);
+					if (u <= 1.0f) {
+						if (channel.path == "translation") {
+							glm::vec4 trans = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], u);
+							channel.node->translation = glm::vec3(trans);
+							updated = true;
+						}
+						if (channel.path == "rotation") {
+							glm::quat q1;
+							q1.x = sampler.outputsVec4[i].x;
+							q1.y = sampler.outputsVec4[i].y;
+							q1.z = sampler.outputsVec4[i].z;
+							q1.w = sampler.outputsVec4[i].w;
+							glm::quat q2;
+							q2.x = sampler.outputsVec4[i + 1].x;
+							q2.y = sampler.outputsVec4[i + 1].y;
+							q2.z = sampler.outputsVec4[i + 1].z;
+							q2.w = sampler.outputsVec4[i + 1].w;
+							channel.node->rotation = glm::normalize(glm::slerp(q1, q2, u));
+							updated = true;
+						}
+						if (channel.path == "scale") {
+							glm::vec4 trans = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], u);
+							channel.node->scale = glm::vec3(trans);
+							updated = true;
+						}
+					}
+				}
+			}
+		}
+		if (updated) {
+			for (auto& node : nodes) {
+				updateJoints(node);
+			}
+		}
+	}
+
 	/*
 		glTF rendering functions
 	*/
@@ -713,6 +767,7 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool wireframe = false;
+	float animationTimer = 0.0f;
 
 	VulkanglTFModel glTFModel;
 
@@ -1084,6 +1139,16 @@ public:
 		renderFrame();
 		if (camera.updated) {
 			updateUniformBuffers();
+		}
+		// @todo: poi
+		if (!paused) {
+			if (glTFModel.animations.size() > 0) {
+				animationTimer += frameTimer * 0.75f;
+				if (animationTimer > glTFModel.animations[0].end) {
+					animationTimer -= glTFModel.animations[0].end;
+				}
+				glTFModel.updateAnimation(0, animationTimer);
+			}
 		}
 	}
 

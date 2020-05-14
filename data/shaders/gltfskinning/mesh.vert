@@ -28,15 +28,13 @@ layout (location = 2) out vec2 outUV;
 layout (location = 3) out vec3 outViewVec;
 layout (location = 4) out vec3 outLightVec;
 
-layout (location = 5) out vec4 outColVis;
-
 void main() 
 {
 	outNormal = inNormal;
 	outColor = inColor;
 	outUV = inUV;
 
-	// Calculated skinned matrix from vertice's weights and joint indices
+	// Calculate skinned matrix from weights and joint indices of the current vertex
 	mat4 skinMat = 
 		inJointWeights.x * jointMatrices[int(inJointIndices.x)] +
 		inJointWeights.y * jointMatrices[int(inJointIndices.y)] +
@@ -50,6 +48,4 @@ void main()
 	vec3 lPos = mat3(uboScene.view) * uboScene.lightPos.xyz;
 	outLightVec = lPos - pos.xyz;
 	outViewVec = -pos.xyz;
-
-	outColVis = inJointWeights;
 }
