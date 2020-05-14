@@ -160,6 +160,38 @@ public:
 	};
 
 	/*
+		glTF animation channel
+		// @todo: Comment
+	*/
+	struct AnimationChannel {
+		std::string path;
+		Node* node;
+		uint32_t samplerIndex;
+	};
+
+	/*
+		glTF animation sampler
+		// @todo: Comment
+	*/
+	struct AnimationSampler {
+		std::string interpolation;
+		std::vector<float> inputs;
+		std::vector<glm::vec4> outputsVec4;
+	};
+
+	/*
+		glTF animation
+		// @todo: Comment
+	*/
+	struct Animation {
+		std::string name;
+		std::vector<AnimationSampler> samplers;
+		std::vector<AnimationChannel> channels;
+		float start = std::numeric_limits<float>::max();
+		float end = std::numeric_limits<float>::min();
+	};
+
+	/*
 		Model data
 	*/
 	std::vector<Image> images;
@@ -167,6 +199,7 @@ public:
 	std::vector<Material> materials;
 	std::vector<Node*> nodes;
 	std::vector<Skin> skins;
+	std::vector<Animation> animations;
 
 	// POI: @todo: document	
 	struct MeshData {
@@ -328,6 +361,89 @@ public:
 			VK_CHECK_RESULT(skins[i].ssbo.map());
 
 			// @todo: destroy;
+		}
+	}
+
+	// @todo: Helper for getting buffer
+
+	// @todo: comment
+	void loadAnimations(tinygltf::Model& input)
+	{
+		animations.resize(input.animations.size());
+
+		for (size_t i = 0; i < input.animations.size(); i++) {
+			// @todo; source...Animation etc.?
+			tinygltf::Animation srcAnimation = input.animations[i];
+			animations[i].name = srcAnimation.name;
+
+			// Samplers
+			// @todo: Link to specs
+			animations[i].samplers.resize(srcAnimation.samplers.size());
+			for (size_t j = 0; j < srcAnimation.samplers.size(); j++) {
+				tinygltf::AnimationSampler srcSampler = srcAnimation.samplers[j];
+				AnimationSampler& dstSampler = animations[i].samplers[j];
+				// Interpolation type
+				dstSampler.interpolation = srcSampler.interpolation;
+
+				// Read sampler input time values
+				{
+					const tinygltf::Accessor& accessor = input.accessors[srcSampler.input];
+					const tinygltf::BufferView& bufferView = input.bufferViews[accessor.bufferView];
+					const tinygltf::Buffer& buffer = input.buffers[bufferView.buffer];
+					const void* dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
+					const float* buf = static_cast<const float*>(dataPtr);
+					for (size_t index = 0; index < accessor.count; index++) {
+						dstSampler.inputs.push_back(buf[index]);
+					}
+					for (auto input : animations[i].samplers[j].inputs) {
+						if (input < animations[i].start) {
+							animations[i].start = input;
+						};
+						if (input > animations[i].end) {
+							animations[i].end = input;
+						}
+					}
+				}
+
+				// Read sampler output Translate/rotate/scale values 
+				{
+					const tinygltf::Accessor& accessor = input.accessors[srcSampler.output];
+					const tinygltf::BufferView& bufferView = input.bufferViews[accessor.bufferView];
+					const tinygltf::Buffer& buffer = input.buffers[bufferView.buffer];
+					const void* dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
+					switch (accessor.type) {
+					case TINYGLTF_TYPE_VEC3: {
+						const glm::vec3* buf = static_cast<const glm::vec3*>(dataPtr);
+						for (size_t index = 0; index < accessor.count; index++) {
+							dstSampler.outputsVec4.push_back(glm::vec4(buf[index], 0.0f));
+						}
+						break;
+					}
+					case TINYGLTF_TYPE_VEC4: {
+						const glm::vec4* buf = static_cast<const glm::vec4*>(dataPtr);
+						for (size_t index = 0; index < accessor.count; index++) {
+							dstSampler.outputsVec4.push_back(buf[index]);
+						}
+						break;
+					}
+					default: {
+						std::cout << "unknown type" << std::endl;
+						break;
+					}
+					}
+				}
+			}
+
+			// Channels
+			animations[i].channels.resize(srcAnimation.channels.size());
+			for (size_t j = 0; j < srcAnimation.channels.size(); j++) {
+				tinygltf::AnimationChannel srcChannel = srcAnimation.channels[j];
+				AnimationChannel& dstChannel = animations[i].channels[j];
+				// Target channel is either rotation, translation or scale
+				dstChannel.path = srcChannel.target_path;
+				dstChannel.samplerIndex = srcChannel.sampler;
+				dstChannel.node = nodeFromIndex(srcChannel.target_node);
+			}
 		}
 	}
 
@@ -628,8 +744,8 @@ public:
 		title = "glTF vertex skinning";
 		camera.type = Camera::CameraType::lookat;
 		camera.flipY = true;
-		camera.setPosition(glm::vec3(0.0f, -0.1f, -1.0f));
-		camera.setRotation(glm::vec3(0.0f, -135.0f, 0.0f));
+		camera.setPosition(glm::vec3(0.0f, 0.75f, -2.0f));
+		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
 	}
@@ -728,6 +844,7 @@ public:
 				glTFModel.loadNode(node, glTFInput, nullptr, scene.nodes[i], indexBuffer, vertexBuffer);
 			}
 			glTFModel.loadSkins(glTFInput);
+			glTFModel.loadAnimations(glTFInput);
 			// Calculate initial pose
 			// @todo: Ugly code
 			// @todo: Linear nodes?
@@ -787,23 +904,10 @@ public:
 		// Copy data from staging buffers (host) do device local buffer (gpu)
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		VkBufferCopy copyRegion = {};
-
 		copyRegion.size = vertexBufferSize;
-		vkCmdCopyBuffer(
-			copyCmd,
-			vertexStaging.buffer,
-			glTFModel.vertices.buffer,
-			1,
-			&copyRegion);
-
+		vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, glTFModel.vertices.buffer, 1, &copyRegion);
 		copyRegion.size = indexBufferSize;
-		vkCmdCopyBuffer(
-			copyCmd,
-			indexStaging.buffer,
-			glTFModel.indices.buffer,
-			1,
-			&copyRegion);
-
+		vkCmdCopyBuffer(copyCmd, indexStaging.buffer, glTFModel.indices.buffer, 1, &copyRegion);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
 		// Free staging resources
@@ -950,19 +1054,10 @@ public:
 		}
 	}
 
-	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&shaderData.buffer,
-			sizeof(shaderData.values)));
-		
-		// Map persistent
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &shaderData.buffer, sizeof(shaderData.values)));		
 		VK_CHECK_RESULT(shaderData.buffer.map());
-
 		updateUniformBuffers();
 	}
 
