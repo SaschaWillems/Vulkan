@@ -18,7 +18,7 @@ layout(push_constant) uniform PushConsts {
 	mat4 model;
 } primitive;
 
-layout(std430, set = 2, binding = 0) readonly buffer JointMatrices {
+layout(std430, set = 1, binding = 0) readonly buffer JointMatrices {
 	mat4 jointMatrices[];
 };
 
@@ -43,8 +43,9 @@ void main()
 
 	gl_Position = uboScene.projection * uboScene.view * primitive.model * skinMat * vec4(inPos.xyz, 1.0);
 	
+	outNormal = normalize(transpose(inverse(mat3(uboScene.view * primitive.model * skinMat))) * inNormal);
+
 	vec4 pos = uboScene.view * vec4(inPos, 1.0);
-	outNormal = mat3(uboScene.view) * inNormal;
 	vec3 lPos = mat3(uboScene.view) * uboScene.lightPos.xyz;
 	outLightVec = lPos - pos.xyz;
 	outViewVec = -pos.xyz;
