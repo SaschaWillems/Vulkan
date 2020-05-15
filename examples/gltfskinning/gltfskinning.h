@@ -199,7 +199,6 @@ public:
 	void loadAnimations(tinygltf::Model& input);
 	void loadNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, VulkanglTFModel::Node* parent, uint32_t nodeIndex, std::vector<uint32_t>& indexBuffer, std::vector<VulkanglTFModel::Vertex>& vertexBuffer);
 	glm::mat4 getNodeMatrix(VulkanglTFModel::Node* node);
-	glm::mat4 getNodeMatrix2(VulkanglTFModel::Node* node);
 	void updateJoints(VulkanglTFModel::Node* node);
 	void updateAnimation(float deltaTime);
 	void drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFModel::Node node);

@@ -30,7 +30,6 @@
 
 */
 
-
 /*
 	Get a node's local matrix from the current translation, rotation and scale values
 	These are calculated from the current animation an need to be calculated dynamically
@@ -59,7 +58,7 @@ VulkanglTFModel::~VulkanglTFModel()
 /*
 	glTF loading functions
 
-	The following functions take a glTF input model loaded via tinyglTF and convert all required data into our own structure
+	The following functions take a glTF input model loaded via tinyglTF and converts all required data into our own structures
 */
 
 void VulkanglTFModel::loadImages(tinygltf::Model& input)
@@ -441,31 +440,22 @@ void VulkanglTFModel::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 /*
 	glTF vertex skinning functions
 */
+
+// @todo: Comment
 glm::mat4 VulkanglTFModel::getNodeMatrix(VulkanglTFModel::Node* node) {
-	// Pass the node's matrix via push constanst
 	// Traverse the node hierarchy to the top-most parent to get the final matrix of the current node
-	glm::mat4 nodeMatrix = node->matrix;
+	glm::mat4 nodeMatrix = node->getLocalMatrix();
 	VulkanglTFModel::Node* currentParent = node->parent;
 	while (currentParent) {
-		nodeMatrix = currentParent->matrix * nodeMatrix;
+		nodeMatrix = currentParent->getLocalMatrix() * nodeMatrix;
 		currentParent = currentParent->parent;
 	}
 	return nodeMatrix;
 }
 
-glm::mat4 VulkanglTFModel::getNodeMatrix2(VulkanglTFModel::Node* node) {
-	glm::mat4 m = node->getLocalMatrix();
-	VulkanglTFModel::Node* p = node->parent;
-	while (p) {
-		m = p->getLocalMatrix() * m;
-		p = p->parent;
-	}
-	return m;
-}
-
 void VulkanglTFModel::updateJoints(VulkanglTFModel::Node* node) {
 	if (node->skin > -1) {
-		glm::mat4 m = getNodeMatrix2(node);
+		glm::mat4 m = getNodeMatrix(node);
 		// Update joint matrices
 		glm::mat4 inverseTransform = glm::inverse(m);
 		Skin skin = skins[node->skin];
@@ -474,7 +464,7 @@ void VulkanglTFModel::updateJoints(VulkanglTFModel::Node* node) {
 		std::vector<glm::mat4> jointMatrices(numJoints);
 		// @todo: bail out if model has more joints than shader can handle
 		for (size_t i = 0; i < numJoints; i++) {
-			jointMatrices[i] = getNodeMatrix2(skin.joints[i]) * skin.inverseBindMatrices[i];
+			jointMatrices[i] = getNodeMatrix(skin.joints[i]) * skin.inverseBindMatrices[i];
 			jointMatrices[i] = inverseTransform * jointMatrices[i];
 		}
 		// Update ssbo
