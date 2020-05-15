@@ -164,9 +164,7 @@ public:
 				unsigned char* rgba = buffer;
 				unsigned char* rgb = &glTFImage.image[0];
 				for (size_t i = 0; i < glTFImage.width * glTFImage.height; ++i) {
-					for (int32_t j = 0; j < 3; ++j) {
-						rgba[j] = rgb[j];
-					}
+					memcpy(rgba, rgb, sizeof(unsigned char) * 3);
 					rgba += 4;
 					rgb += 3;
 				}
@@ -178,6 +176,9 @@ public:
 			}
 			// Load texture from image buffer
 			images[i].texture.fromBuffer(buffer, bufferSize, VK_FORMAT_R8G8B8A8_UNORM, glTFImage.width, glTFImage.height, vulkanDevice, copyQueue);
+			if (deleteBuffer) {
+				delete buffer;
+			}
 		}
 	}
 
