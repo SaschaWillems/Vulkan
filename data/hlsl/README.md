@@ -41,7 +41,7 @@ Shaders written to mirror the GLSL versions at `eddd724`. There have been change
 | inputattachments           | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | instancing                 | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | mesh                       | &#9745;           | &#9745;           | &#10060;          | &#9745;
-| multisampling              | &#9745;           | &#9745;           | &#9745;           | &#10060;
+| multisampling              | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | multithreading             | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | multiview                  | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | negativeviewportheight     | &#9745;           | &#9745;           | &#9745;           | &#9745;
