@@ -11,7 +11,7 @@ Tested on Ubuntu 18.04 + GeForce RTX 2080 Ti
 Shaders written to mirror the GLSL versions at `eddd724`. There have been changes made to the GLSL shaders since then, which will need to be updated.
 
 
-| Name                       | GLSL @`eddd724e7` | HLSL @`eddd724e7` | GLSL @`10a1ecaf7` | HLSL @`eddd724e7`
+| Name                       | GLSL @`eddd724e7` | HLSL @`eddd724e7` | GLSL @`10a1ecaf7` | HLSL @`10a1ecaf7`
 |----------------------------|-------------------|-------------------|-------------------|-------------------
 | bloom                      | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | computecloth               | &#9745;           | &#9745;           | &#9745;           | &#9745;
