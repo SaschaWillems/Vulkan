@@ -33,7 +33,7 @@ Shaders written to mirror the GLSL versions at `eddd724`. There have been change
 | dynamicuniformbuffer       | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | gears                      | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | geometryshader             | &#9745;           | &#9745;           | &#9745;           | &#9745;
-| gltfscene                  | -                 | -                 | &#9745;           | &#10060;
+| gltfscene                  | -                 | -                 | &#9745;           | &#9745;
 | hdr                        | &#9745;           | &#10060;          | &#9745;           | &#10060;
 | imgui                      | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | indirectdraw               | &#9745;           | &#9745;           | &#9745;           | &#9745;
