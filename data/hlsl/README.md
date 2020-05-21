@@ -18,7 +18,7 @@ Shaders written to mirror the GLSL versions at `eddd724`. There have been change
 | computecullandlod          | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | computeheadless            | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | computenbody               | &#9745;           | &#9745;           | &#9745;           | &#9745;
-| computeparticles           | &#9745;           | &#10060;          | &#9745;           | &#10060;
+| computeparticles           | &#9745;           | &#10060;          | &#9745;           | &#9745;
 | computeraytracing          | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | computeshader              | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | conditionalrender          | &#9745;           | &#9745;           | &#9745;           | &#9745;
