@@ -10,8 +10,8 @@ struct VSInput
 struct UBO
 {
 	float4x4 projection;
-	float4x4 model;
 	float4x4 view;
+	float4x4 model;
 	float4 lightPos;
 	float4 viewPos;
 	float2 uvOffset;
@@ -35,7 +35,7 @@ VSOutput main(VSInput input)
 	float4 pos = float4(input.Pos, 1.0);
 	output.Pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model, pos)));
 
-	output.Normal = mul((float3x3)ubo.model, input.Normal);
+	output.Normal = input.Normal;
 	output.LightVec = ubo.lightPos.xyz - pos.xyz;
 	output.ViewVec = ubo.viewPos.xyz - pos.xyz;
 	return output;

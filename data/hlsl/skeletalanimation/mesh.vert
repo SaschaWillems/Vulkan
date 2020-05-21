@@ -48,7 +48,7 @@ VSOutput main(VSInput input)
 	output.Pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model, mul(boneTransform, float4(input.Pos.xyz, 1.0)))));
 
 	float4 pos = mul(ubo.model, float4(input.Pos, 1.0));
-	output.Normal = mul((float3x3)mul(ubo.model, boneTransform), input.Normal);
+	output.Normal = mul((float3x3)(boneTransform), input.Normal);
 	output.LightVec = ubo.lightPos.xyz - pos.xyz;
 	output.ViewVec = ubo.viewPos.xyz - pos.xyz;
 	return output;

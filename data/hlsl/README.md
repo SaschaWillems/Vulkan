@@ -66,7 +66,7 @@ Shaders written to mirror the GLSL versions at `eddd724`. There have been change
 | shadowmapping              | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | shadowmappingcascade       | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | shadowmappingomni          | &#9745;           | &#9745;           | &#9745;           | &#9745;
-| skeletalanimation          | &#9745;           | &#9745;           | &#9745;           | &#10060;
+| skeletalanimation          | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | specializationconstants    | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | sphericalenvmapping        | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | ssao                       | &#9745;           | &#9745;           | &#9745;           | &#9745;
