@@ -78,7 +78,7 @@ Shaders written to mirror the GLSL versions at `eddd724`. There have been change
 | texture                    | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | texture3d                  | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | texturearray               | &#9745;           | &#9745;           | &#9745;           | &#9745;
-| texturecubemap             | &#9745;           | &#10060;          | &#9745;           | &#10060;
+| texturecubemap             | &#9745;           | &#10060;          | &#9745;           | &#9745;
 | texturemipmapgen           | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | texturesparseresidency     | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | triangle                   | &#9745;           | &#9745;           | &#9745;           | &#9745;

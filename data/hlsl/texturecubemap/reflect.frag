@@ -3,6 +3,16 @@
 TextureCube textureColor : register(t1);
 SamplerState samplerColor : register(s1);
 
+struct UBO
+{
+	float4x4 projection;
+	float4x4 model;
+	float4x4 invModel;
+	float lodBias;
+};
+
+cbuffer ubo : register(b0) { UBO ubo; }
+
 struct VSOutput
 {
 [[vk::location(0)]] float3 Pos : POSITION0;
@@ -16,7 +26,9 @@ float4 main(VSOutput input) : SV_TARGET
 {
 	float3 cI = normalize (input.ViewVec);
 	float3 cR = reflect (cI, normalize(input.Normal));
-	cR.x *= -1;
+
+	cR = mul(ubo.invModel, float4(cR, 0.0)).xyz;
+	cR.x *= -1.0;
 
 	float4 color = textureColor.SampleLevel(samplerColor, cR, input.LodBias);
 

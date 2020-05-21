@@ -9,9 +9,8 @@ struct VSInput
 struct UBO
 {
 	float4x4 projection;
-	float4x4 view;
 	float4x4 model;
-	float3 camPos;
+	float4x4 invModel;
 	float lodBias;
 };
 
@@ -30,14 +29,14 @@ struct VSOutput
 VSOutput main(VSInput input)
 {
 	VSOutput output = (VSOutput)0;
-	output.Pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model, float4(input.Pos.xyz, 1.0))));
+	output.Pos = mul(ubo.projection, mul(ubo.model, float4(input.Pos.xyz, 1.0)));
 
 	output.WorldPos = mul(ubo.model, float4(input.Pos, 1.0)).xyz;
-	output.Normal = -mul((float3x3)ubo.model, input.Normal);
+	output.Normal = mul((float3x3)ubo.model, input.Normal);
 	output.LodBias = ubo.lodBias;
 
 	float3 lightPos = float3(0.0f, -5.0f, 5.0f);
 	output.LightVec = lightPos.xyz - output.WorldPos.xyz;
-	output.ViewVec = output.WorldPos - ubo.camPos;
+	output.ViewVec = -output.WorldPos;
 	return output;
 }
