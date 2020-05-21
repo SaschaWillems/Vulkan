@@ -9,6 +9,7 @@ struct VSInput
 struct UBO
 {
 	float4x4 projection;
+	float4x4 view;
 	float4x4 model;
 };
 
@@ -25,7 +26,7 @@ VSOutput main(VSInput input)
 {
 	VSOutput output = (VSOutput)0;
 	output.UV = input.UV;
-	output.ProjCoord = mul(ubo.projection, mul(ubo.model, float4(input.Pos.xyz, 1.0)));
+	output.ProjCoord = mul(ubo.projection, mul(ubo.view, mul(ubo.model, float4(input.Pos.xyz, 1.0))));
 	output.Pos = output.ProjCoord;
 	return output;
 }

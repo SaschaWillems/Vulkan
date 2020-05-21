@@ -49,7 +49,7 @@ Shaders written to mirror the GLSL versions at `eddd724`. There have been change
 | nv_ray_tracing_reflections | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | nv_ray_tracing_shadows     | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | occlusionquery             | &#9745;           | &#9745;           | &#9745;           | &#9745;
-| offscreen                  | &#9745;           | &#9745;           | &#9745;           | &#10060;
+| offscreen                  | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | parallaxmapping            | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | particlefire               | &#9745;           | &#9745;           | &#9745;           | &#9745;
 | pbrbasic                   | &#9745;           | &#9745;           | &#9745;           | &#9745;

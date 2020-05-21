@@ -10,6 +10,7 @@ struct VSInput
 struct UBO
 {
 	float4x4 projection;
+	float4x4 view;
 	float4x4 model;
 	float4 lightPos;
 };
@@ -31,8 +32,8 @@ VSOutput main(VSInput input)
 	VSOutput output = (VSOutput)0;
 	output.Normal = input.Normal;
 	output.Color = input.Color;
-	output.Pos = mul(ubo.projection, mul(ubo.model, input.Pos));
-	output.EyePos = mul(ubo.model, input.Pos).xyz;
+	output.Pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model, input.Pos)));
+	output.EyePos = mul(ubo.view, mul(ubo.model, input.Pos)).xyz;
 	output.LightVec = normalize(ubo.lightPos.xyz - output.EyePos);
 
 	// Clip against reflection plane
