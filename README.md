@@ -1,6 +1,6 @@
 # Vulkan C++ examples and demos
 
-A comprehensive collection of open source C++ examples for [Vulkan®](https://www.khronos.org/vulkan/), the new graphics and compute API from Khronos.
+A comprehensive collection of open source C++ examples for [Vulkan®](https://www.khronos.org/vulkan/), the new generation graphics and compute API from Khronos.
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BHXPMV6ZKPH9E)
 
@@ -9,6 +9,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 + [Cloning](#Cloning)
 + [Assets](#Assets)
 + [Building](#Building)
++ [Shaders](#Shaders)
 + [Examples](#Examples)
     + [Basics](#Basics)
     + [Advanced](#Advanced)
@@ -59,6 +60,10 @@ from the root of the repository after cloning or see [this](data/README.md) for 
 The repository contains everything required to compile and build the examples on <img src="./images/windowslogo.png" alt="" height="22px" valign="bottom"> Windows, <img src="./images/linuxlogo.png" alt="" height="24px" valign="bottom"> Linux, <img src="./images/androidlogo.png" alt="" height="24px" valign="bottom"> Android, <img src="./images/applelogo.png" alt="" valign="bottom" height="24px"> iOS and macOS (using MoltenVK) using a C++ compiler that supports C++11.
 
 See [BUILD.md](BUILD.md) for details on how to build for the different platforms.
+
+## <a name="Shaders"></a> Shaders
+
+Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](data/shaders) but thanks to an external contribution you'll also find [HLSL](data/hlsl) shader sources.
 
 ## <a name="Examples"></a> Examples
 
