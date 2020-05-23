@@ -1,0 +1,272 @@
+// Copyright 2020 Google LLC
+
+// Shader is looseley based on the ray tracing coding session by Inigo Quilez (www.iquilezles.org)
+
+RWTexture2D<float4> resultImage : register(u0);
+
+#define EPSILON 0.0001
+#define MAXLEN 1000.0
+#define SHADOW 0.5
+#define RAYBOUNCES 2
+#define REFLECTIONS true
+#define REFLECTIONSTRENGTH 0.4
+#define REFLECTIONFALLOFF 0.5
+
+struct Camera
+{
+	float3 pos;
+	float3 lookat;
+	float fov;
+};
+
+struct UBO
+{
+	float3 lightPos;
+	float aspectRatio;
+	float4 fogColor;
+	Camera camera;
+	float4x4 rotMat;
+};
+
+cbuffer ubo : register(b1) { UBO ubo; }
+
+struct Sphere
+{
+	float3 pos;
+	float radius;
+	float3 diffuse;
+	float specular;
+	int id;
+};
+
+struct Plane
+{
+	float3 normal;
+	float distance;
+	float3 diffuse;
+	float specular;
+	int id;
+};
+
+StructuredBuffer<Sphere> spheres : register(t2);
+StructuredBuffer<Plane> planes : register(t3);
+
+void reflectRay(inout float3 rayD, in float3 mormal)
+{
+	rayD = rayD + 2.0 * -dot(mormal, rayD) * mormal;
+}
+
+// Lighting =========================================================
+
+float lightDiffuse(float3 normal, float3 lightDir)
+{
+	return clamp(dot(normal, lightDir), 0.1, 1.0);
+}
+
+float lightSpecular(float3 normal, float3 lightDir, float specularFactor)
+{
+	float3 viewVec = normalize(ubo.camera.pos);
+	float3 halfVec = normalize(lightDir + viewVec);
+	return pow(clamp(dot(normal, halfVec), 0.0, 1.0), specularFactor);
+}
+
+// Sphere ===========================================================
+
+float sphereIntersect(in float3 rayO, in float3 rayD, in Sphere sphere)
+{
+	float3 oc = rayO - sphere.pos;
+	float b = 2.0 * dot(oc, rayD);
+	float c = dot(oc, oc) - sphere.radius*sphere.radius;
+	float h = b*b - 4.0*c;
+	if (h < 0.0)
+	{
+		return -1.0;
+	}
+	float t = (-b - sqrt(h)) / 2.0;
+
+	return t;
+}
+
+float3 sphereNormal(in float3 pos, in Sphere sphere)
+{
+	return (pos - sphere.pos) / sphere.radius;
+}
+
+// Plane ===========================================================
+
+float planeIntersect(float3 rayO, float3 rayD, Plane plane)
+{
+	float d = dot(rayD, plane.normal);
+
+	if (d == 0.0)
+		return 0.0;
+
+	float t = -(plane.distance + dot(rayO, plane.normal)) / d;
+
+	if (t < 0.0)
+		return 0.0;
+
+	return t;
+}
+
+
+int intersect(in float3 rayO, in float3 rayD, inout float resT)
+{
+	int id = -1;
+
+	uint spheresLength;
+	uint spheresStride;
+	spheres.GetDimensions(spheresLength, spheresStride);
+
+	int i;
+	for (i = 0; i < spheresLength; i++)
+	{
+		float tSphere = sphereIntersect(rayO, rayD, spheres[i]);
+		if ((tSphere > EPSILON) && (tSphere < resT))
+		{
+			id = spheres[i].id;
+			resT = tSphere;
+		}
+	}
+
+	uint planesLength;
+	uint planesStride;
+	planes.GetDimensions(planesLength, planesStride);
+
+	for (i = 0; i < planesLength; i++)
+	{
+		float tplane = planeIntersect(rayO, rayD, planes[i]);
+		if ((tplane > EPSILON) && (tplane < resT))
+		{
+			id = planes[i].id;
+			resT = tplane;
+		}
+	}
+
+	return id;
+}
+
+float calcShadow(in float3 rayO, in float3 rayD, in int objectId, inout float t)
+{
+	uint spheresLength;
+	uint spheresStride;
+	spheres.GetDimensions(spheresLength, spheresStride);
+
+	for (int i = 0; i < spheresLength; i++)
+	{
+		if (spheres[i].id == objectId)
+			continue;
+		float tSphere = sphereIntersect(rayO, rayD, spheres[i]);
+		if ((tSphere > EPSILON) && (tSphere < t))
+		{
+			t = tSphere;
+			return SHADOW;
+		}
+	}
+	return 1.0;
+}
+
+float3 fog(in float t, in float3 color)
+{
+	return lerp(color, ubo.fogColor.rgb, clamp(sqrt(t*t)/20.0, 0.0, 1.0));
+}
+
+float3 renderScene(inout float3 rayO, inout float3 rayD, inout int id)
+{
+	float3 color = float3(0, 0, 0);
+	float t = MAXLEN;
+
+	// Get intersected object ID
+	int objectID = intersect(rayO, rayD, t);
+
+	if (objectID == -1)
+	{
+		return color;
+	}
+
+	float3 pos = rayO + t * rayD;
+	float3 lightVec = normalize(ubo.lightPos - pos);
+	float3 normal;
+
+	// Planes
+
+	// Spheres
+
+	uint planesLength;
+	uint planesStride;
+	planes.GetDimensions(planesLength, planesStride);
+
+	int i;
+	for (i = 0; i < planesLength; i++)
+	{
+		if (objectID == planes[i].id)
+		{
+			normal = planes[i].normal;
+			float diffuse = lightDiffuse(normal, lightVec);
+			float specular = lightSpecular(normal, lightVec, planes[i].specular);
+			color = diffuse * planes[i].diffuse + specular;
+		}
+	}
+
+	uint spheresLength;
+	uint spheresStride;
+	spheres.GetDimensions(spheresLength, spheresStride);
+
+	for (i = 0; i < spheresLength; i++)
+	{
+		if (objectID == spheres[i].id)
+		{
+			normal = sphereNormal(pos, spheres[i]);
+			float diffuse = lightDiffuse(normal, lightVec);
+			float specular = lightSpecular(normal, lightVec, spheres[i].specular);
+			color = diffuse * spheres[i].diffuse + specular;
+		}
+	}
+
+	if (id == -1)
+		return color;
+
+	id = objectID;
+
+	// Shadows
+	t = length(ubo.lightPos - pos);
+	color *= calcShadow(pos, lightVec, id, t);
+
+	// Fog
+	color = fog(t, color);
+
+	// Reflect ray for next render pass
+	reflectRay(rayD, normal);
+	rayO = pos;
+
+	return color;
+}
+
+[numthreads(16, 16, 1)]
+void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
+{
+	int2 dim;
+	resultImage.GetDimensions(dim.x, dim.y);
+	float2 uv = float2(GlobalInvocationID.xy) / dim;
+
+	float3 rayO = ubo.camera.pos;
+	float3 rayD = normalize(float3((-1.0 + 2.0 * uv) * float2(ubo.aspectRatio, 1.0), -1.0));
+
+	// Basic color path
+	int id = 0;
+	float3 finalColor = renderScene(rayO, rayD, id);
+
+	// Reflection
+	if (REFLECTIONS)
+	{
+		float reflectionStrength = REFLECTIONSTRENGTH;
+		for (int i = 0; i < RAYBOUNCES; i++)
+		{
+			float3 reflectionColor = renderScene(rayO, rayD, id);
+			finalColor = (1.0 - reflectionStrength) * finalColor + reflectionStrength * lerp(reflectionColor, finalColor, 1.0 - reflectionStrength);
+			reflectionStrength *= REFLECTIONFALLOFF;
+		}
+	}
+
+	resultImage[int2(GlobalInvocationID.xy)] = float4(finalColor, 0.0);
+}

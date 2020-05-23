@@ -58,6 +58,7 @@ public:
 	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 modelview;
+		glm::mat4 inverseModelview;
 	} uboVS;
 
 	struct UBOParams {
@@ -603,7 +604,7 @@ public:
 			models.objects.push_back(model);
 		}
 		// Load HDR cube map
-		textures.envmap.loadFromFile(getAssetPath() + "textures/hdr/uffizi_cube.ktx", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);			
+		textures.envmap.loadFromFile(getAssetPath() + "textures/hdr/uffizi_cube.ktx", VK_FORMAT_R16G16B16A16_SFLOAT, vulkanDevice, queue);
 	}
 
 	void setupDescriptorPool()
@@ -613,7 +614,7 @@ public:
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6)
 		};
 		uint32_t numDescriptorSets = 4;
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = 
+		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), numDescriptorSets);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
@@ -621,12 +622,12 @@ public:
 	void setupDescriptorSetLayout()
 	{
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
 		};
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo = 
+		VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo =
 			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutInfo, nullptr, &descriptorSetLayouts.models));
@@ -691,7 +692,7 @@ public:
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
-		// Bloom filter 
+		// Bloom filter
 		allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.bloomFilter, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.bloomFilter));
 
@@ -744,7 +745,7 @@ public:
 
 		VkPipelineColorBlendStateCreateInfo colorBlendState =
 			vks::initializers::pipelineColorBlendStateCreateInfo(
-				1, 
+				1,
 				&blendAttachmentState);
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
@@ -839,7 +840,7 @@ public:
 		dir = 0;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.bloom[1]));
 
-		// Object rendering pipelines 
+		// Object rendering pipelines
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
 		// Vertex bindings an attributes for model rendering
@@ -922,6 +923,7 @@ public:
 	{
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.modelview = camera.matrices.view;
+		uboVS.inverseModelview = glm::inverse(camera.matrices.view);
 		memcpy(uniformBuffers.matrices.mapped, &uboVS, sizeof(uboVS));
 	}
 
