@@ -1,0 +1,28 @@
+// Copyright 2020 Google LLC
+
+struct Particle
+{
+	float4 pos;
+	float4 vel;
+};
+
+// Binding 0 : Position storage buffer
+RWStructuredBuffer<Particle> particles : register(u0);
+
+struct UBO
+{
+	float deltaT;
+	int particleCount;
+};
+
+cbuffer ubo : register(b1) { UBO ubo; }
+
+[numthreads(256, 1, 1)]
+void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
+{
+	int index = int(GlobalInvocationID.x);
+	float4 position = particles[index].pos;
+	float4 velocity = particles[index].vel;
+	position += ubo.deltaT * velocity;
+	particles[index].pos = position;
+}
