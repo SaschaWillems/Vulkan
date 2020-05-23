@@ -56,23 +56,16 @@ public:
 	vks::VulkanDevice* vulkanDevice;
 	VkQueue copyQueue;	
 
-	struct Vertex {
-		glm::vec3 pos;
-		glm::vec3 normal;
-		glm::vec2 uv;
-		glm::vec3 color;
-		// Contains indices of the joints that effect this vertex
-		glm::vec4 jointIndices;
-		// Contains the weights that define how strongly this vertex is affected by above joints
-		glm::vec4 jointWeights;
-	};
+	/*
+		Base glTF structures, see gltfscene sample for details
+	*/
 
-	struct {
+	struct Vertices {
 		VkBuffer buffer;
 		VkDeviceMemory memory;
 	} vertices;
 	
-	struct {
+	struct Indices {
 		int count;
 		VkBuffer buffer;
 		VkDeviceMemory memory;
@@ -120,15 +113,28 @@ public:
 		glm::mat4 getLocalMatrix();
 	};
 
-	// A skin contains the joints and matrices applied during vertex skinning 
-	// @todo: Add link to spec
+	struct Vertex {
+		glm::vec3 pos;
+		glm::vec3 normal;
+		glm::vec2 uv;
+		glm::vec3 color;
+		// Contains indices of the joints that effect this vertex
+		glm::vec4 jointIndices;
+		// Contains the weights that define how strongly this vertex is affected by above joints
+		glm::vec4 jointWeights;
+	};
+
+	/*
+		Skin structure
+		Spec: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#skins
+	*/
+
 	struct Skin {
 		std::string name;
 		Node* skeletonRoot = nullptr;
 		std::vector<glm::mat4> inverseBindMatrices;
 		std::vector<Node*> joints;
-		// POI: Store joint matrices in an SSBO
-		// @todo: proper comment
+		// The join matrices for this skin are stored in an shader storage buffer
 		std::vector<glm::mat4> jointMatrices;
 		vks::Buffer ssbo;
 		VkDescriptorSet descriptorSet;
@@ -136,29 +142,22 @@ public:
 
 
 	/*
-		glTF animation channel
-		// @todo: Comment
+		Animation related structures
+		Spec: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#animations
 	*/
+
 	struct AnimationChannel {
 		std::string path;
 		Node* node;
 		uint32_t samplerIndex;
 	};
 
-	/*
-		glTF animation sampler
-		// @todo: Comment
-	*/
 	struct AnimationSampler {
 		std::string interpolation;
 		std::vector<float> inputs;
 		std::vector<glm::vec4> outputsVec4;
 	};
 
-	/*
-		glTF animation
-		// @todo: Comment
-	*/
 	struct Animation {
 		std::string name;
 		std::vector<AnimationSampler> samplers;
@@ -172,20 +171,8 @@ public:
 	std::vector<Texture> textures;
 	std::vector<Material> materials;
 	std::vector<Node*> nodes;
-	
-	// Store skins and animations
 	std::vector<Skin> skins;
 	std::vector<Animation> animations;
-
-	// POI: @todo: document	
-	struct MeshData {
-		glm::mat4 jointMatrix[32]{};
-	};
-	struct ShaderData {
-		vks::Buffer buffer;
-	} shaderData;
-	VkDescriptorSet descriptorSet;
-	std::vector<MeshData> meshdata;
 
 	uint32_t activeAnimation = 0;
 
