@@ -7,17 +7,13 @@
 */
 
 /*
- * Shows how to load and display a simple scene from a glTF file
- * Note that this isn't a complete glTF loader and only basic functions are shown here
- * This means no complex materials, no animations, no skins, etc.
- * For details on how glTF 2.0 works, see the official spec at https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
+ * Shows how to load and display an animated scene from a glTF file using vertex skinning
+ * See the accompanying README.md for a short tutorial on the data structures and functions required for vertex skinning
  *
- * Other samples will load models using a dedicated model loader with more features (see base/VulkanglTFModel.hpp)
+ * For details on how glTF 2.0 works, see the official spec at https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
  *
  * If you are looking for a complete glTF implementation, check out https://github.com/SaschaWillems/Vulkan-glTF-PBR/
  */
-
- // @todo: add link to https://github.com/KhronosGroup/glTF-Tutorials/blob/master/gltfTutorial/gltfTutorial_020_Skins.md
 
 #include "gltfskinning.h"
 
@@ -460,7 +456,6 @@ void VulkanglTFModel::updateJoints(VulkanglTFModel::Node* node) {
 		glm::mat4 inverseTransform = glm::inverse(m);
 		Skin skin = skins[node->skin];
 		size_t numJoints = (uint32_t)skin.joints.size();
-		// @todo: linkt to skin spec gltf https://github.com/KhronosGroup/glTF-Tutorials/blob/master/gltfTutorial/gltfTutorial_020_Skins.md#the-joint-matrices
 		std::vector<glm::mat4> jointMatrices(numJoints);
 		// @todo: bail out if model has more joints than shader can handle
 		for (size_t i = 0; i < numJoints; i++) {

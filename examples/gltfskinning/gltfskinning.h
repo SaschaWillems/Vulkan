@@ -7,20 +7,13 @@
 */
 
 /*
- * This is based on the glTF scene example and only the parts that show added functionality are commented
-
- * @todo: Rework comments
- * Shows how to load and display a simple scene from a glTF file
- * Note that this isn't a complete glTF loader and only basic functions are shown here
- * This means no complex materials, no animations, no skins, etc.
+ * Shows how to load and display an animated scene from a glTF file using vertex skinning
+ * See the accompanying README.md for a short tutorial on the data structures and functions required for vertex skinning
+ *
  * For details on how glTF 2.0 works, see the official spec at https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
  *
- * Other samples will load models using a dedicated model loader with more features (see base/VulkanglTFModel.hpp)
- * 
  * If you are looking for a complete glTF implementation, check out https://github.com/SaschaWillems/Vulkan-glTF-PBR/
  */
-
- // @todo: add link to https://github.com/KhronosGroup/glTF-Tutorials/blob/master/gltfTutorial/gltfTutorial_020_Skins.md
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,7 +119,6 @@ public:
 
 	/*
 		Skin structure
-		Spec: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#skins
 	*/
 
 	struct Skin {
@@ -143,19 +135,18 @@ public:
 
 	/*
 		Animation related structures
-		Spec: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#animations
 	*/
-
-	struct AnimationChannel {
-		std::string path;
-		Node* node;
-		uint32_t samplerIndex;
-	};
 
 	struct AnimationSampler {
 		std::string interpolation;
 		std::vector<float> inputs;
 		std::vector<glm::vec4> outputsVec4;
+	};
+
+	struct AnimationChannel {
+		std::string path;
+		Node* node;
+		uint32_t samplerIndex;
 	};
 
 	struct Animation {
