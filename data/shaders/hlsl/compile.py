@@ -35,13 +35,7 @@ for root, dirs, files in os.walk(dir_path):
     for file in files:
         if file.endswith(".vert") or file.endswith(".frag") or file.endswith(".comp") or file.endswith(".geom") or file.endswith(".tesc") or file.endswith(".tese") or file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss"):
             hlsl_file = os.path.join(root, file)
-
-            spv_out = os.path.abspath(os.path.join(dir_path, "..", "glsl", os.path.relpath(hlsl_file, dir_path) + ".spv"))
-
-            # Make the spv directory if it does not already exist
-            spv_dir = os.path.dirname(spv_out)
-            if not os.path.exists(spv_dir):
-                os.makedirs(spv_dir)
+            spv_out = hlsl_file + ".spv"
 
             profile = ''
             if(hlsl_file.find('.vert') != -1):
