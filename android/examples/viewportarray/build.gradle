@@ -43,14 +43,14 @@ task copyTask {
     }
 
     copy {
-        from '../../../data/shaders/base'
-        into "assets/shaders/base"
+        from '../../../data/shaders/glsl/base'
+        into 'assets/shaders/glsl/base'
         include '*.spv'
     }
 
     copy {
-       from '../../../data/shaders/viewportarray'
-       into 'assets/shaders/viewportarray'
+       from '../../../data/shaders/glsl/viewportarray'
+       into 'assets/shaders/glsl/viewportarray'
        include '*.*'
     }
 

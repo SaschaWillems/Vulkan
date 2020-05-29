@@ -19,6 +19,11 @@ const std::string getAssetPath()
 #endif
 }
 
+const std::string getShadersPath()
+{
+	return getAssetPath() + "shaders/glsl/";
+}
+
 namespace vks
 {
 	namespace tools
@@ -152,7 +157,7 @@ namespace vks
 				break;
 
 			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-				// Image is a transfer source 
+				// Image is a transfer source
 				// Make sure any reads from the image have been finished
 				imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 				break;

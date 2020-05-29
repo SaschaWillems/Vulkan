@@ -54,7 +54,7 @@ public:
 		vks::Buffer verticesYDown;
 		vks::Buffer indicesCCW;
 		vks::Buffer indicesCW;
-		void destroy() 
+		void destroy()
 		{
 			verticesYUp.destroy();
 			verticesYDown.destroy();
@@ -157,7 +157,7 @@ public:
 		textures.CW.loadFromFile(getAssetPath() + "textures/texture_orientation_cw_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 		textures.CCW.loadFromFile(getAssetPath() + "textures/texture_orientation_ccw_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 
-		// [POI] Create two quads with different Y orientations 
+		// [POI] Create two quads with different Y orientations
 
 		struct Vertex {
 			float pos[3];
@@ -166,7 +166,7 @@ public:
 
 		const float ar = (float)height / (float)width;
 
-		// OpenGL style (y points upwards) 
+		// OpenGL style (y points upwards)
 		std::vector<Vertex> verticesYPos = {
 			{ -1.0f * ar,  1.0f, 1.0f, 0.0f, 1.0f },
 			{ -1.0f * ar, -1.0f, 1.0f, 0.0f, 0.0f },
@@ -209,10 +209,10 @@ public:
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
 
 		VkDescriptorSetAllocateInfo descriptorSetAI = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		
+
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAI, &descriptorSets.CW));
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAI, &descriptorSets.CCW));
-		
+
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(descriptorSets.CW, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textures.CW.descriptor),
 			vks::initializers::writeDescriptorSet(descriptorSets.CCW, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textures.CCW.descriptor)
@@ -248,7 +248,7 @@ public:
 			vks::initializers::vertexInputBindingDescription(0, sizeof(float) * 5, VK_VERTEX_INPUT_RATE_VERTEX),
 		};
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),				// Position			
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),				// Position
 			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3),	// uv
 		};
 		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
@@ -269,8 +269,8 @@ public:
 		pipelineCreateInfoCI.pDynamicState = &dynamicStateCI;
 
 		const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-			loadShader(getAssetPath() + "shaders/negativeviewportheight/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getAssetPath() + "shaders/negativeviewportheight/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+			loadShader(getShadersPath() + "negativeviewportheight/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "negativeviewportheight/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
 		pipelineCreateInfoCI.stageCount = static_cast<uint32_t>(shaderStages.size());

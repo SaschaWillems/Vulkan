@@ -1,6 +1,6 @@
 ## HLSL Shaders
 
-This directory contains a fork of the shaders found in [data/shaders](https://github.com/SaschaWillems/Vulkan/tree/master/data/shaders), re-written in HLSL.
+This directory contains a fork of the shaders found in [data/shaders/glsl](https://github.com/SaschaWillems/Vulkan/tree/master/data/shaders/glsl), re-written in HLSL.
 These can be compiled with [DXC](https://github.com/microsoft/DirectXShaderCompiler) using the `compile.py` script.
 
 ### Known issues

@@ -19,8 +19,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <assimp/Importer.hpp> 
-#include <assimp/scene.h>     
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/cimport.h>
 
@@ -96,7 +96,7 @@ struct BoneInfo
 	};
 };
 
-class SkinnedMesh 
+class SkinnedMesh
 {
 public:
 	// Bone related stuff
@@ -113,7 +113,7 @@ public:
 	// Bone transformations
 	std::vector<aiMatrix4x4> boneTransforms;
 
-	// Modifier for the animation 
+	// Modifier for the animation
 	float animationSpeed = 0.75f;
 	// Currently active animation
 	aiAnimation* pAnimation;
@@ -416,7 +416,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.skinning, nullptr);
 		vkDestroyPipeline(device, pipelines.texture, nullptr);
@@ -434,14 +434,14 @@ public:
 		delete(skinnedMesh);
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Enable anisotropic filtering if supported
 		if (deviceFeatures.samplerAnisotropy) {
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
 		}
-		// Enable texture compression  
+		// Enable texture compression
 		if (deviceFeatures.textureCompressionBC) {
 			enabledFeatures.textureCompressionBC = VK_TRUE;
 		}
@@ -510,7 +510,7 @@ public:
 		}
 	}
 
-	// Load a mesh based on data read via assimp 
+	// Load a mesh based on data read via assimp
 	void loadMesh()
 	{
 		skinnedMesh = new SkinnedMesh();
@@ -541,12 +541,12 @@ public:
 
 		// Setup bones
 		// One vertex bone info structure per vertex
-		uint32_t vertexCount(0);		
+		uint32_t vertexCount(0);
 		for (uint32_t m = 0; m < skinnedMesh->scene->mNumMeshes; m++) {
 			vertexCount += skinnedMesh->scene->mMeshes[m]->mNumVertices;
 		};
 		skinnedMesh->bones.resize(vertexCount);
-		// Store global inverse transform matrix of root node 
+		// Store global inverse transform matrix of root node
 		skinnedMesh->globalInverseTransform = skinnedMesh->scene->mRootNode->mTransformation;
 		skinnedMesh->globalInverseTransform.Inverse();
 		// Load bones (weights and IDs)
@@ -750,7 +750,7 @@ public:
 				1);
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		
+
 		VkDescriptorImageInfo texDescriptor =
 			vks::initializers::descriptorImageInfo(
 				textures.colorMap.sampler,
@@ -765,7 +765,7 @@ public:
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformBuffers.mesh.descriptor),
-			// Binding 1 : Color map 
+			// Binding 1 : Color map
 			vks::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -790,7 +790,7 @@ public:
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformBuffers.floor.descriptor));
-		// Binding 1 : Color map 
+		// Binding 1 : Color map
 		writeDescriptorSets.push_back(
 			vks::initializers::writeDescriptorSet(
 				descriptorSets.floor,
@@ -878,11 +878,11 @@ public:
 		// Attribute descriptions
 		// Describes memory layout and shader positions
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),						// Location 0: Position		
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),		// Location 1: Normal		
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),			// Location 2: Texture coordinates		
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),		// Location 3: Color		
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 4, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float) * 11),	// Location 4: Bone weights		
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),						// Location 0: Position
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),		// Location 1: Normal
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),			// Location 2: Texture coordinates
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),		// Location 3: Color
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 4, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float) * 11),	// Location 4: Bone weights
 			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 5, VK_FORMAT_R32G32B32A32_SINT, sizeof(float) * 15),		// Location 5: Bone IDs
 		};
 
@@ -895,13 +895,13 @@ public:
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
 		// Skinned mesh rendering pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/skeletalanimation/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/skeletalanimation/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "skeletalanimation/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "skeletalanimation/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skinning));
 
 		// Environment rendering pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/skeletalanimation/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "skeletalanimation/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "skeletalanimation/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.texture));
 	}
 

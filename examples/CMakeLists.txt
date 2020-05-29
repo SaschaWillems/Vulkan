@@ -18,7 +18,7 @@ function(buildExample EXAMPLE_NAME)
 		SET(SOURCE ${SOURCE} ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h ${CMAKE_BINARY_DIR}/xdg-shell-protocol.c)
 	ENDIF()
 	# Add shaders
-	set(SHADER_DIR "../data/shaders/${EXAMPLE_NAME}")
+	set(SHADER_DIR "../data/shaders/glsl/${EXAMPLE_NAME}")
 	file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.comp" "${SHADER_DIR}/*.geom" "${SHADER_DIR}/*.tesc" "${SHADER_DIR}/*.tese" "${SHADER_DIR}/*.mesh" "${SHADER_DIR}/*.task" "${SHADER_DIR}/*.rgen" "${SHADER_DIR}/*.rchit" "${SHADER_DIR}/*.rmiss")
 	source_group("Shaders" FILES ${SHADERS})
 	if(WIN32)
