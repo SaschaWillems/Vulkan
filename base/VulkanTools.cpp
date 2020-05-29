@@ -19,11 +19,6 @@ const std::string getAssetPath()
 #endif
 }
 
-const std::string getShadersPath()
-{
-	return getAssetPath() + "shaders/glsl/";
-}
-
 namespace vks
 {
 	namespace tools

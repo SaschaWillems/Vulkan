@@ -591,6 +591,11 @@ public:
 
 			pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
+			// TODO: There is no command line arguments parsing (nor Android settings) for this
+			// example, so we have no way of picking between GLSL or HLSL shaders.
+			// Hard-code to glsl for now.
+			const std::string shadersPath = getAssetPath() + "/shaders/glsl/renderheadless";
+
 			shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
 			shaderStages[0].pName = "main";
@@ -598,11 +603,11 @@ public:
 			shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 			shaderStages[1].pName = "main";
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-			shaderStages[0].module = vks::tools::loadShader(androidapp->activity->assetManager, (getShadersPath() + "renderheadless/triangle.vert.spv").c_str(), device);
-			shaderStages[1].module = vks::tools::loadShader(androidapp->activity->assetManager, (getShadersPath() + "renderheadless/triangle.frag.spv").c_str(), device);
+			shaderStages[0].module = vks::tools::loadShader(androidapp->activity->assetManager, (shadersPath + "triangle.vert.spv").c_str(), device);
+			shaderStages[1].module = vks::tools::loadShader(androidapp->activity->assetManager, (shadersPath + "triangle.frag.spv").c_str(), device);
 #else
-			shaderStages[0].module = vks::tools::loadShader((getShadersPath() + "renderheadless/triangle.vert.spv").c_str(), device);
-			shaderStages[1].module = vks::tools::loadShader((getShadersPath() + "renderheadless/triangle.frag.spv").c_str(), device);
+			shaderStages[0].module = vks::tools::loadShader((shadersPath + "triangle.vert.spv").c_str(), device);
+			shaderStages[1].module = vks::tools::loadShader((shadersPath + "triangle.frag.spv").c_str(), device);
 #endif
 			shaderModules = { shaderStages[0].module, shaderStages[1].module };
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));

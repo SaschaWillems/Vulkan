@@ -60,7 +60,6 @@
 #endif
 
 const std::string getAssetPath();
-const std::string getShadersPath();
 
 namespace vks
 {

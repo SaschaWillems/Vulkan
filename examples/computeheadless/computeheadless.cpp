@@ -361,13 +361,18 @@ public:
 			VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
 			VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(SpecializationData), &specializationData);
 
+			// TODO: There is no command line arguments parsing (nor Android settings) for this
+			// example, so we have no way of picking between GLSL or HLSL shaders.
+			// Hard-code to glsl for now.
+			const std::string shadersPath = getAssetPath() + "/shaders/glsl/computeheadless";
+
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, (getShadersPath() + "computeheadless/headless.comp.spv").c_str(), device);
+			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, (shadersPath + "headless.comp.spv").c_str(), device);
 #else
-			shaderStage.module = vks::tools::loadShader((getShadersPath() + "computeheadless/headless.comp.spv").c_str(), device);
+			shaderStage.module = vks::tools::loadShader((shadersPath + "headless.comp.spv").c_str(), device);
 #endif
 			shaderStage.pName = "main";
 			shaderStage.pSpecializationInfo = &specializationInfo;

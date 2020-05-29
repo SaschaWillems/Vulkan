@@ -129,6 +129,11 @@ void VulkanExampleBase::destroyCommandBuffers()
 	vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.size()), drawCmdBuffers.data());
 }
 
+std::string VulkanExampleBase::getShadersPath() const
+{
+	return getAssetPath() + "shaders/" + shaderDir + "/";
+}
+
 void VulkanExampleBase::createPipelineCache()
 {
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -641,6 +646,18 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		if ((args[i] == std::string("-h")) || (args[i] == std::string("-height"))) {
 			uint32_t h = strtol(args[i + 1], &numConvPtr, 10);
 			if (numConvPtr != args[i + 1]) { height = h; };
+		}
+		// Select between glsl and hlsl shaders
+		if ((args[i] == std::string("-s")) || (args[i] == std::string("--shaders"))) {
+			std::string type;
+			if (args.size() > i + 1) {
+				type = args[i + 1];
+			}
+			if (type == "glsl" || type == "hlsl") {
+				shaderDir = type;
+			} else {
+				std::cerr << args[i] << " must be one of 'glsl' or 'hlsl'" << std::endl;
+			}
 		}
 		// Benchmark
 		if ((args[i] == std::string("-b")) || (args[i] == std::string("--benchmark"))) {
