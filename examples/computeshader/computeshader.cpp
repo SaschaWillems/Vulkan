@@ -632,7 +632,7 @@ public:
 		VulkanExampleBase::submitFrame();
 
 		// Submit compute commands
-		// Use a fence to ensure that compute command buffer has finished executin before using it again
+		// Use a fence to ensure that the compute command buffer has finished executing before using it again
 		vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
 		vkResetFences(device, 1, &compute.fence);
 
