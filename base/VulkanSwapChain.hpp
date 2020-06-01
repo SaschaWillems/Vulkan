@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <vector>
+#include <algorithm>
 
 #include <vulkan/vulkan.h>
 #include "VulkanTools.h"
@@ -222,24 +223,22 @@ public:
 		}
 		else
 		{
-			// iterate over the list of available surface format and
-			// check for the presence of VK_FORMAT_B8G8R8A8_UNORM
-			bool found_B8G8R8A8_UNORM = false;
-			for (auto&& surfaceFormat : surfaceFormats)
-			{
-				if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM)
-				{
-					colorFormat = surfaceFormat.format;
-					colorSpace = surfaceFormat.colorSpace;
-					found_B8G8R8A8_UNORM = true;
-					break;
-				}
-			}
-
-			// in case VK_FORMAT_B8G8R8A8_UNORM is not available
-			// select the first available color format
-			if (!found_B8G8R8A8_UNORM)
-			{
+			// Check for the presence of VK_FORMAT_B8G8R8A8_UNORM
+			auto found_unorm = std::find_if(
+				std::cbegin(surfaceFormats),
+				std::cend(surfaceFormats),
+				[](const VkSurfaceFormatKHR& surfaceFormat){
+					return surfaceFormat.format == VK_FORMAT_B8G8R8_UNORM;
+				});
+			
+			if (found_unorm != std::cend(surfaceFormats)) {
+				colorFormat = found_unorm->format;
+				colorSpace = found_unorm->colorSpace;
+			} else {
+				// in case VK_FORMAT_B8G8R8A8_UNORM is not available
+				// select the first available color format
+				// SAFETY: Index operation here is safe because we have asserted previously
+				// that surfaceFormats will be larger than 0.
 				colorFormat = surfaceFormats[0].format;
 				colorSpace = surfaceFormats[0].colorSpace;
 			}
@@ -358,17 +357,23 @@ public:
 		// Find a supported composite alpha format (not all devices support alpha opaque)
 		VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 		// Simply select the first composite alpha format available
-		std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
+		static const std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
 			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 			VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
 			VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
 			VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
 		};
-		for (auto& compositeAlphaFlag : compositeAlphaFlags) {
-			if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag) {
-				compositeAlpha = compositeAlphaFlag;
-				break;
-			};
+
+		auto findCompositeAlphaFlag = std::find_if(
+			std::cbegin(compositeAlphaFlags),
+			std::cend(compositeAlphaFlags),
+			[&](const VkCompositeAlphaFlagBitsKHR& compositeAlphaFlag) {
+				return compositeAlphaFlag & surfCaps.supportedCompositeAlpha;
+			}
+		);
+
+		if (findCompositeAlphaFlag != std::cend(compositeAlphaFlags)) {
+			compositeAlpha = *findCompositeAlphaFlag;
 		}
 
 		VkSwapchainCreateInfoKHR swapchainCI = {};
