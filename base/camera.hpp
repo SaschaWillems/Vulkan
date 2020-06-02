@@ -15,8 +15,9 @@
 class Camera
 {
 private:
-	float fov;
-	float znear, zfar;
+	float fov = 0.0f;
+	float znear = 0.0f;
+	float zfar = 0.0f;
 
 	void updateViewMatrix()
 	{
@@ -74,16 +75,18 @@ public:
 		bool down = false;
 	} keys;
 
-	bool moving()
+	bool moving() const
 	{
 		return keys.left || keys.right || keys.up || keys.down;
 	}
 
-	float getNearClip() { 
+	float getNearClip() const 
+	{ 
 		return znear;
 	}
 
-	float getFarClip() {
+	float getFarClip() const 
+	{
 		return zfar;
 	}
 

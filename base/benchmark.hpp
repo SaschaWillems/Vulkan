@@ -18,7 +18,7 @@ namespace vks
 {
 	class Benchmark {
 	private:
-		FILE *stream;
+		FILE *stream = nullptr;
 		VkPhysicalDeviceProperties deviceProps;
 	public:
 		bool active = false;
@@ -36,8 +36,12 @@ namespace vks
 			this->deviceProps = deviceProps;
 #if defined(_WIN32)
 			AttachConsole(ATTACH_PARENT_PROCESS);
-			freopen_s(&stream, "CONOUT$", "w+", stdout);
-			freopen_s(&stream, "CONOUT$", "w+", stderr);
+			if (freopen_s(&stream, "CONOUT$", "w+", stdout)) {
+				std::cerr << "Unable to redirect stdout to file" << "\n";
+			}
+			if (freopen_s(&stream, "CONOUT$", "w+", stderr)) {
+				std::cerr << "Unable to redirect stdout to file" << "\n";
+			}
 #endif
 			std::cout << std::fixed << std::setprecision(3);
 

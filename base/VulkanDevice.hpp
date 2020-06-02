@@ -13,6 +13,7 @@
 #include <exception>
 #include <assert.h>
 #include <algorithm>
+
 #include "vulkan/vulkan.h"
 #include "VulkanTools.h"
 #include "VulkanBuffer.hpp"
@@ -53,14 +54,14 @@ namespace vks
 		} queueFamilyIndices;
 
 		/**  @brief Typecast to VkDevice */
-		operator VkDevice() { return logicalDevice; };
+		operator VkDevice() const { return logicalDevice; };
 
 		/**
 		* Default constructor
 		*
 		* @param physicalDevice Physical device that is to be used
 		*/
-		VulkanDevice(VkPhysicalDevice physicalDevice)
+		explicit VulkanDevice(VkPhysicalDevice physicalDevice)
 		{
 			assert(physicalDevice);
 			this->physicalDevice = physicalDevice;
@@ -81,16 +82,16 @@ namespace vks
 
 			// Get list of supported extensions
 			uint32_t extCount = 0;
-			vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, nullptr);
+			VK_CHECK_RESULT(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, nullptr));
 			if (extCount > 0)
 			{
 				std::vector<VkExtensionProperties> extensions(extCount);
 				if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
 				{
-					for (auto ext : extensions)
-					{
-						supportedExtensions.push_back(ext.extensionName);
-					}
+					supportedExtensions.reserve(extensions.size());
+					std::transform(extensions.cbegin(), extensions.cend(),
+					std::back_inserter(supportedExtensions),
+					[](const VkExtensionProperties& ext){ return ext.extensionName;});
 				}
 			}
 		}
@@ -123,7 +124,7 @@ namespace vks
 		*
 		* @throw Throws an exception if memTypeFound is null and no memory type could be found that supports the requested properties
 		*/
-		uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr)
+		uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const
 		{
 			for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
 			{
@@ -161,7 +162,7 @@ namespace vks
 		*
 		* @throw Throws an exception if no queue family index could be found that supports the requested flags
 		*/
-		uint32_t getQueueFamilyIndex(VkQueueFlagBits queueFlags)
+		uint32_t getQueueFamilyIndex(VkQueueFlagBits queueFlags) const
 		{
 			// Dedicated queue for compute
 			// Try to find a queue family index that supports compute but not graphics
@@ -172,7 +173,6 @@ namespace vks
 					if ((queueFamilyProperties[i].queueFlags & queueFlags) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
 					{
 						return i;
-						break;
 					}
 				}
 			}
@@ -186,7 +186,6 @@ namespace vks
 					if ((queueFamilyProperties[i].queueFlags & queueFlags) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
 					{
 						return i;
-						break;
 					}
 				}
 			}
@@ -197,7 +196,6 @@ namespace vks
 				if (queueFamilyProperties[i].queueFlags & queueFlags)
 				{
 					return i;
-					break;
 				}
 			}
 

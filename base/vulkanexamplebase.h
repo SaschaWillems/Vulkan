@@ -59,8 +59,8 @@ class VulkanExampleBase
 private:
 	std::string getWindowTitle();
 	bool viewUpdated = false;
-	uint32_t destWidth;
-	uint32_t destHeight;
+	uint32_t destWidth = 0;
+	uint32_t destHeight = 0;
 	bool resizing = false;
 	void windowResize();
 	void handleMouseMove(int32_t x, int32_t y);
@@ -144,7 +144,7 @@ public:
 	vks::Benchmark benchmark;
 
 	/** @brief Encapsulated physical and logical vulkan device */
-	vks::VulkanDevice *vulkanDevice;
+	vks::VulkanDevice *vulkanDevice = nullptr;
 
 	/** @brief Example settings that can be changed e.g. by command line arguments */
 	struct Settings {
@@ -201,8 +201,8 @@ public:
 	// true if application has focused, false if moved to background
 	bool focused = false;
 	struct TouchPos {
-		int32_t x;
-		int32_t y;
+		int32_t x = 0;
+		int32_t y = 0;
 	} touchPos;
 	bool touchDown = false;
 	double touchTimer = 0.0;
@@ -210,7 +210,7 @@ public:
 	/** @brief Product model and manufacturer of the Android device (via android.Product*) */
 	std::string androidProduct;
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-	void* view;
+	void* view = nullptr;
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;
@@ -229,10 +229,10 @@ public:
 	bool quit = false;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	bool quit = false;
-	xcb_connection_t *connection;
-	xcb_screen_t *screen;
+	xcb_connection_t *connection = nullptr;
+	xcb_screen_t *screen = nullptr;
 	xcb_window_t window;
-	xcb_intern_atom_reply_t *atom_wm_delete_window;
+	xcb_intern_atom_reply_t *atom_wm_delete_window = nullptr;
 #endif
 
 	VulkanExampleBase(bool enableValidation = false);

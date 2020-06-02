@@ -52,10 +52,10 @@ typedef struct _SwapChainBuffers {
 class VulkanSwapChain
 {
 private: 
-	VkInstance instance;
-	VkDevice device;
-	VkPhysicalDevice physicalDevice;
-	VkSurfaceKHR surface;
+	VkInstance instance = VK_NULL_HANDLE;
+	VkDevice device = VK_NULL_HANDLE;
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+	VkSurfaceKHR surface = VK_NULL_HANDLE;
 	// Function pointers
 	PFN_vkGetPhysicalDeviceSurfaceSupportKHR fpGetPhysicalDeviceSurfaceSupportKHR;
 	PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fpGetPhysicalDeviceSurfaceCapabilitiesKHR; 
@@ -67,11 +67,11 @@ private:
 	PFN_vkAcquireNextImageKHR fpAcquireNextImageKHR;
 	PFN_vkQueuePresentKHR fpQueuePresentKHR;
 public:
-	VkFormat colorFormat;
-	VkColorSpaceKHR colorSpace;
+	VkFormat colorFormat = VK_FORMAT_UNDEFINED;
+	VkColorSpaceKHR colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 	/** @brief Handle to the current swap chain, required for recreation */
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;	
-	uint32_t imageCount;
+	uint32_t imageCount = 0;
 	std::vector<VkImage> images;
 	std::vector<SwapChainBuffer> buffers;
 	/** @brief Queue family index of the detected graphics and presenting device queue */
@@ -225,13 +225,12 @@ public:
 		{
 			// Check for the presence of VK_FORMAT_B8G8R8A8_UNORM
 			auto found_unorm = std::find_if(
-				std::cbegin(surfaceFormats),
-				std::cend(surfaceFormats),
+				surfaceFormats.cbegin(), surfaceFormats.cend(),
 				[](const VkSurfaceFormatKHR& surfaceFormat){
 					return surfaceFormat.format == VK_FORMAT_B8G8R8_UNORM;
 				});
 			
-			if (found_unorm != std::cend(surfaceFormats)) {
+			if (found_unorm != surfaceFormats.cend()) {
 				colorFormat = found_unorm->format;
 				colorSpace = found_unorm->colorSpace;
 			} else {
@@ -365,14 +364,14 @@ public:
 		};
 
 		auto findCompositeAlphaFlag = std::find_if(
-			std::cbegin(compositeAlphaFlags),
-			std::cend(compositeAlphaFlags),
+			compositeAlphaFlags.cbegin(),
+			compositeAlphaFlags.cend(),
 			[&](const VkCompositeAlphaFlagBitsKHR& compositeAlphaFlag) {
 				return compositeAlphaFlag & surfCaps.supportedCompositeAlpha;
 			}
 		);
 
-		if (findCompositeAlphaFlag != std::cend(compositeAlphaFlags)) {
+		if (findCompositeAlphaFlag != compositeAlphaFlags.cend()) {
 			compositeAlpha = *findCompositeAlphaFlag;
 		}
 

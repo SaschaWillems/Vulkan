@@ -44,11 +44,9 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #endif
 
-	if (enabledInstanceExtensions.size() > 0) {
-		for (auto enabledExtension : enabledInstanceExtensions) {
-			instanceExtensions.push_back(enabledExtension);
-		}
-	}
+	instanceExtensions.reserve(enabledInstanceExtensions.size());
+    std::copy(enabledInstanceExtensions.cbegin(), enabledInstanceExtensions.cend(),
+              std::back_inserter(instanceExtensions));
 
 	VkInstanceCreateInfo instanceCreateInfo = {};
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -612,7 +610,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		std::string msg = "Could not locate asset path in \"" + getAssetPath() + "\" !";
 		MessageBox(NULL, msg.c_str(), "Fatal error", MB_OK | MB_ICONERROR);
 #else
-		std::cerr << "Error: Could not find asset path in " << getAssetPath() << std::endl;
+		std::cerr << "Error: Could not find asset path in " << getAssetPath() << "\n";
 #endif
 		exit(-1);
 	}
@@ -620,7 +618,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 
 	settings.validation = enableValidation;
 
-	char* numConvPtr;
+	char* numConvPtr = nullptr;
 
 	// Parse command line arguments
 	for (size_t i = 0; i < args.size(); i++)
@@ -654,7 +652,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 				if (numConvPtr != args[i + 1]) {
 					benchmark.warmup = num;
 				} else {
-					std::cerr << "Warmup time for benchmark mode must be specified as a number!" << std::endl;
+					std::cerr << "Warmup time for benchmark mode must be specified as a number!" << "\n";
 				}
 			}
 		}
@@ -666,7 +664,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 					benchmark.duration = num;
 				}
 				else {
-					std::cerr << "Benchmark run duration must be specified as a number!" << std::endl;
+					std::cerr << "Benchmark run duration must be specified as a number!" << "\n";
 				}
 			}
 		}
@@ -674,7 +672,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		if ((args[i] == std::string("-bf")) || (args[i] == std::string("--benchfilename"))) {
 			if (args.size() > i + 1) {
 				if (args[i + 1][0] == '-') {
-					std::cerr << "Filename for benchmark results must not start with a hyphen!" << std::endl;
+					std::cerr << "Filename for benchmark results must not start with a hyphen!" << "\n";
 				} else {
 					benchmark.filename = args[i + 1];
 				}
@@ -835,11 +833,11 @@ bool VulkanExampleBase::initVulkan()
 			{ 
 				if (index > gpuCount - 1)
 				{
-					std::cerr << "Selected device index " << index << " is out of range, reverting to device 0 (use -listgpus to show available Vulkan devices)" << std::endl;
+					std::cerr << "Selected device index " << index << " is out of range, reverting to device 0 (use -listgpus to show available Vulkan devices)" << "\n";
 				} 
 				else
 				{
-					std::cout << "Selected Vulkan device " << index << std::endl;
+					std::cout << "Selected Vulkan device " << index << "\n";
 					selectedDevice = index;
 				}
 			};
@@ -848,25 +846,15 @@ bool VulkanExampleBase::initVulkan()
 		// List available GPUs
 		if (args[i] == std::string("-listgpus"))
 		{
-			uint32_t gpuCount = 0;
-			VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr));
-			if (gpuCount == 0)
-			{
-				std::cerr << "No Vulkan devices found!" << std::endl;
-			}
-			else
-			{
-				// Enumerate devices
-				std::cout << "Available Vulkan devices" << std::endl;
-				std::vector<VkPhysicalDevice> devices(gpuCount);
-				VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, devices.data()));
-				for (uint32_t i = 0; i < gpuCount; i++) {
-					VkPhysicalDeviceProperties deviceProperties;
-					vkGetPhysicalDeviceProperties(devices[i], &deviceProperties);
-					std::cout << "Device [" << i << "] : " << deviceProperties.deviceName << std::endl;
-					std::cout << " Type: " << vks::tools::physicalDeviceTypeString(deviceProperties.deviceType) << std::endl;
-					std::cout << " API: " << (deviceProperties.apiVersion >> 22) << "." << ((deviceProperties.apiVersion >> 12) & 0x3ff) << "." << (deviceProperties.apiVersion & 0xfff) << std::endl;
-				}
+			// Enumerate devices
+			std::cout << "Available Vulkan devices" << "\n";
+			VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data()));
+			for (uint32_t gpu_index = 0; gpu_index < gpuCount; gpu_index++) {
+				VkPhysicalDeviceProperties deviceProperties;
+				vkGetPhysicalDeviceProperties(physicalDevices[gpu_index], &deviceProperties);
+				std::cout << "Device [" << gpu_index << "] : " << deviceProperties.deviceName << "\n";
+				std::cout << " Type: " << vks::tools::physicalDeviceTypeString(deviceProperties.deviceType) << "\n";
+				std::cout << " API: " << (deviceProperties.apiVersion >> 22) << "." << ((deviceProperties.apiVersion >> 12) & 0x3ff) << "." << (deviceProperties.apiVersion & 0xfff) << "\n";
 			}
 		}
 	}
@@ -945,9 +933,13 @@ void VulkanExampleBase::setupConsole(std::string title)
 {
 	AllocConsole();
 	AttachConsole(GetCurrentProcessId());
-	FILE *stream;
-	freopen_s(&stream, "CONOUT$", "w+", stdout);
-	freopen_s(&stream, "CONOUT$", "w+", stderr);
+	FILE *stream = nullptr;
+	if (freopen_s(&stream, "CONOUT$", "w+", stdout)) {
+		std::cerr << "unable to reassign stdout" << "\n";
+	}
+	if (freopen_s(&stream, "CONOUT$", "w+", stderr)) {
+		std::cerr << "unable to reassign stderr" << "\n";
+	}
 	SetConsoleTitle(TEXT(title.c_str()));
 }
 
@@ -1075,7 +1067,6 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		printf("Could not create window!\n");
 		fflush(stdout);
 		return nullptr;
-		exit(1);
 	}
 
 	ShowWindow(window, SW_SHOW);
@@ -1256,7 +1247,6 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						};
 
 						return 1;
-						break;
 					}
 					case AMOTION_EVENT_ACTION_DOWN: {
 						// Detect double tap
@@ -1677,7 +1667,7 @@ static void
 xdg_surface_handle_configure(void *data, struct xdg_surface *surface,
 			     uint32_t serial)
 {
-	VulkanExampleBase *base = (VulkanExampleBase *) data;
+	VulkanExampleBase *base = static_cast<VulkanExampleBase *>(data);
 
 	xdg_surface_ack_configure(surface, serial);
 	base->configured = true;
@@ -1693,7 +1683,7 @@ xdg_toplevel_handle_configure(void *data, struct xdg_toplevel *toplevel,
 			      int32_t width, int32_t height,
 			      struct wl_array *states)
 {
-	VulkanExampleBase *base = (VulkanExampleBase *) data;
+	VulkanExampleBase *base = static_cast<VulkanExampleBase *>(data);
 
 	base->setSize(width, height);
 }
@@ -1701,7 +1691,7 @@ xdg_toplevel_handle_configure(void *data, struct xdg_toplevel *toplevel,
 static void
 xdg_toplevel_handle_close(void *data, struct xdg_toplevel *xdg_toplevel)
 {
-	VulkanExampleBase *base = (VulkanExampleBase *) data;
+	VulkanExampleBase *base = static_cast<VulkanExampleBase *>(data);
 
 	base->quit = true;
 }
@@ -2210,6 +2200,8 @@ void VulkanExampleBase::initSwapchain()
 	swapChain.initSurface(display, surface);
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	swapChain.initSurface(connection, window);
+#else
+	std::cerr << "Swapchain is unable to be initialized. Is this platform supported?" << "\n";
 #endif
 }
 
