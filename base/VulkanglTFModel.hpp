@@ -779,7 +779,7 @@ namespace vkglTF
 							break;
 						}
 						default:
-							std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
+							std::cerr << "Index component type " << accessor.componentType << " not supported!" << "\n";
 							return;
 						}
 					}
@@ -959,7 +959,7 @@ namespace vkglTF
 							break;
 						}
 						default: {
-							std::cout << "unknown type" << std::endl;
+							std::cout << "unknown type" << "\n";
 							break;
 						}
 						}
@@ -982,7 +982,7 @@ namespace vkglTF
 						channel.path = AnimationChannel::PathType::SCALE;
 					}
 					if (source.target_path == "weights") {
-						std::cout << "weights not yet supported, skipping channel" << std::endl;
+						std::cout << "weights not yet supported, skipping channel" << "\n";
 						continue;
 					}
 					channel.samplerIndex = source.sampler;
@@ -1049,7 +1049,7 @@ namespace vkglTF
 			}
 			else {
 				// TODO: throw
-				std::cerr << "Could not load gltf file: " << error << std::endl;
+				std::cerr << "Could not load gltf file: " << error << "\n";
 				return;
 			}
 
@@ -1236,7 +1236,7 @@ namespace vkglTF
 		void updateAnimation(uint32_t index, float time) 
 		{
 			if (index > static_cast<uint32_t>(animations.size()) - 1) {
-				std::cout << "No animation with index " << index << std::endl;
+				std::cout << "No animation with index " << index << "\n";
 				return;
 			}
 			Animation &animation = animations[index];
