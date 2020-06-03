@@ -612,7 +612,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		std::string msg = "Could not locate asset path in \"" + getAssetPath() + "\" !";
 		MessageBox(NULL, msg.c_str(), "Fatal error", MB_OK | MB_ICONERROR);
 #else
-		std::cerr << "Error: Could not find asset path in " << getAssetPath() << std::endl;
+		std::cerr << "Error: Could not find asset path in " << getAssetPath() << "\n";
 #endif
 		exit(-1);
 	}
@@ -654,7 +654,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 				if (numConvPtr != args[i + 1]) {
 					benchmark.warmup = num;
 				} else {
-					std::cerr << "Warmup time for benchmark mode must be specified as a number!" << std::endl;
+					std::cerr << "Warmup time for benchmark mode must be specified as a number!" << "\n";
 				}
 			}
 		}
@@ -666,7 +666,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 					benchmark.duration = num;
 				}
 				else {
-					std::cerr << "Benchmark run duration must be specified as a number!" << std::endl;
+					std::cerr << "Benchmark run duration must be specified as a number!" << "\n";
 				}
 			}
 		}
@@ -674,7 +674,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		if ((args[i] == std::string("-bf")) || (args[i] == std::string("--benchfilename"))) {
 			if (args.size() > i + 1) {
 				if (args[i + 1][0] == '-') {
-					std::cerr << "Filename for benchmark results must not start with a hyphen!" << std::endl;
+					std::cerr << "Filename for benchmark results must not start with a hyphen!" << "\n";
 				} else {
 					benchmark.filename = args[i + 1];
 				}
@@ -835,11 +835,11 @@ bool VulkanExampleBase::initVulkan()
 			{ 
 				if (index > gpuCount - 1)
 				{
-					std::cerr << "Selected device index " << index << " is out of range, reverting to device 0 (use -listgpus to show available Vulkan devices)" << std::endl;
+					std::cerr << "Selected device index " << index << " is out of range, reverting to device 0 (use -listgpus to show available Vulkan devices)" << "\n";
 				} 
 				else
 				{
-					std::cout << "Selected Vulkan device " << index << std::endl;
+					std::cout << "Selected Vulkan device " << index << "\n";
 					selectedDevice = index;
 				}
 			};
@@ -852,20 +852,20 @@ bool VulkanExampleBase::initVulkan()
 			VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr));
 			if (gpuCount == 0)
 			{
-				std::cerr << "No Vulkan devices found!" << std::endl;
+				std::cerr << "No Vulkan devices found!" << "\n";
 			}
 			else
 			{
 				// Enumerate devices
-				std::cout << "Available Vulkan devices" << std::endl;
+				std::cout << "Available Vulkan devices" << "\n";
 				std::vector<VkPhysicalDevice> devices(gpuCount);
 				VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, devices.data()));
 				for (uint32_t i = 0; i < gpuCount; i++) {
 					VkPhysicalDeviceProperties deviceProperties;
 					vkGetPhysicalDeviceProperties(devices[i], &deviceProperties);
-					std::cout << "Device [" << i << "] : " << deviceProperties.deviceName << std::endl;
-					std::cout << " Type: " << vks::tools::physicalDeviceTypeString(deviceProperties.deviceType) << std::endl;
-					std::cout << " API: " << (deviceProperties.apiVersion >> 22) << "." << ((deviceProperties.apiVersion >> 12) & 0x3ff) << "." << (deviceProperties.apiVersion & 0xfff) << std::endl;
+					std::cout << "Device [" << i << "] : " << deviceProperties.deviceName << "\n";
+					std::cout << " Type: " << vks::tools::physicalDeviceTypeString(deviceProperties.deviceType) << "\n";
+					std::cout << " API: " << (deviceProperties.apiVersion >> 22) << "." << ((deviceProperties.apiVersion >> 12) & 0x3ff) << "." << (deviceProperties.apiVersion & 0xfff) << "\n";
 				}
 			}
 		}
