@@ -28,6 +28,7 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool displayNormals = true;
+	float normalsLineWidth = 1.0f;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
@@ -49,18 +50,10 @@ public:
 	struct {
 		glm::mat4 projection;
 		glm::mat4 modelView;
-	} uboVS;
+		float lineWidth;
+	} ubo;
 
-	struct {
-		glm::mat4 projection;
-		glm::mat4 modelView;
-		glm::vec2 viewportDim;
-	} uboGS;
-
-	struct {
-		vks::Buffer VS;
-		vks::Buffer GS;
-	} uniformBuffers;
+	vks::Buffer uniformBuffer;
 
 	struct {
 		VkPipeline solid;
@@ -93,8 +86,7 @@ public:
 
 		models.object.destroy();
 
-		uniformBuffers.GS.destroy();
-		uniformBuffers.VS.destroy();
+		uniformBuffer.destroy();
 	}
 
 	// Enable physical device features required for this example				
@@ -142,7 +134,7 @@ public:
 			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdSetLineWidth(drawCmdBuffers[i], 1.0f);
+			vkCmdSetLineWidth(drawCmdBuffers[i], normalsLineWidth);
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
@@ -225,14 +217,14 @@ public:
 		// Example uses two ubos
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				poolSizes.size(), 
 				poolSizes.data(),
-				2);
+				1);
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
@@ -241,16 +233,11 @@ public:
 	{
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
 		{
-			// Binding 0 : Vertex shader ubo
+			// Binding 0 : Vertex and geometry shader ubo
 			vks::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT,
 				0),
-			// Binding 1 : Geometry shader ubo
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_GEOMETRY_BIT,
-				1)
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
@@ -280,18 +267,12 @@ public:
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
-			// Binding 0 : Vertex shader shader ubo
+			// Binding 0 : Vertex/geometry shader shader ubo
 			vks::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
-				&uniformBuffers.VS.descriptor),
-			// Binding 1 : Geometry shader ubo
-			vks::initializers::writeDescriptorSet(
-				descriptorSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				1,
-				&uniformBuffers.GS.descriptor)
+				&uniformBuffer.descriptor),
 		};
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -387,38 +368,25 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Vertex shader uniform buffer block
+		// Vertex/geometry shader uniform buffer block
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.VS,
-			sizeof(uboVS)));
-
-		// Geometry shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.GS,
-			sizeof(uboGS)));
+			&uniformBuffer,
+			sizeof(ubo)));
 
 		// Map persistent
-		VK_CHECK_RESULT(uniformBuffers.VS.map());
-		VK_CHECK_RESULT(uniformBuffers.GS.map());
+		VK_CHECK_RESULT(uniformBuffer.map());
 
 		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
 	{
-		// Vertex shader
-		uboVS.projection = camera.matrices.perspective;
-		uboVS.modelView = camera.matrices.view;
-		memcpy(uniformBuffers.VS.mapped, &uboVS, sizeof(uboVS));
-		// Geometry shader
-		uboGS.projection = camera.matrices.perspective;
-		uboGS.modelView = camera.matrices.view;
-		uboGS.viewportDim = glm::vec2(width, height);
-		memcpy(uniformBuffers.GS.mapped, &uboGS, sizeof(uboGS));
+		ubo.projection = camera.matrices.perspective;
+		ubo.modelView = camera.matrices.view;
+		ubo.lineWidth = normalsLineWidth;
+		memcpy(uniformBuffer.mapped, &ubo, sizeof(ubo));
 	}
 
 	void draw()
@@ -465,6 +433,10 @@ public:
 	{
 		if (overlay->header("Settings")) {
 			if (overlay->checkBox("Display normals", &displayNormals)) {
+				buildCommandBuffers();
+			}
+			if (overlay->sliderFloat("Normal vector size", &normalsLineWidth, 1.0f, 15.0f)) {
+				updateUniformBuffers();
 				buildCommandBuffers();
 			}
 		}
