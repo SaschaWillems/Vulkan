@@ -85,7 +85,7 @@ public:
 					node->mesh->uniformBuffer.descriptorSet
 				};
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, static_cast<uint32_t>(descriptorsets.size()), descriptorsets.data(), 0, NULL);
-				
+
 				struct PushBlock {
 					glm::vec4 baseColorFactor;
 				} pushBlock;
@@ -152,7 +152,7 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-				
+
 			const VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &scene.vertices.buffer, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -244,8 +244,8 @@ public:
 		pipelineCreateInfoCI.pDynamicState = &dynamicStateCI;
 
 		const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-			loadShader(getAssetPath() + "shaders/conditionalrender/model.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getAssetPath() + "shaders/conditionalrender/model.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+			loadShader(getShadersPath() + "conditionalrender/model.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "conditionalrender/model.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
 		pipelineCreateInfoCI.stageCount = static_cast<uint32_t>(shaderStages.size());

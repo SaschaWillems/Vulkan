@@ -31,7 +31,7 @@
 
 // Offscreen frame buffer properties
 #define FB_DIM TEX_DIM
-#define FB_COLOR_FORMAT VK_FORMAT_R32_SFLOAT 
+#define FB_COLOR_FORMAT VK_FORMAT_R32_SFLOAT
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -64,7 +64,7 @@ public:
 		glm::mat4 model;
 	} uboVSquad;
 
-	glm::vec4 lightPos = glm::vec4(0.0f, -25.0f, 0.0f, 1.0); 
+	glm::vec4 lightPos = glm::vec4(0.0f, -25.0f, 0.0f, 1.0);
 
 	struct UBO {
 		glm::mat4 projection;
@@ -82,7 +82,7 @@ public:
 	} pipelines;
 
 	struct {
-		VkPipelineLayout scene; 
+		VkPipelineLayout scene;
 		VkPipelineLayout offscreen;
 	} pipelineLayouts;
 
@@ -125,7 +125,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		// Cube map
@@ -173,7 +173,7 @@ public:
 	{
 		shadowCubeMap.width = TEX_DIM;
 		shadowCubeMap.height = TEX_DIM;
-		
+
 		// 32 bit float format for higher precision
 		VkFormat format = VK_FORMAT_R32_SFLOAT;
 
@@ -301,9 +301,9 @@ public:
 
 		vks::tools::setImageLayout(
 			layoutCmd,
-			offscreenPass.color.image, 
-			VK_IMAGE_ASPECT_COLOR_BIT, 
-			VK_IMAGE_LAYOUT_UNDEFINED, 
+			offscreenPass.color.image,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 		colorImageView.image = offscreenPass.color.image;
@@ -333,7 +333,7 @@ public:
 
 		vks::tools::setImageLayout(
 			layoutCmd,
-			offscreenPass.depth.image, 
+			offscreenPass.depth.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
@@ -477,7 +477,7 @@ public:
 			1,
 			&copyRegion);
 
-		// Transform framebuffer color attachment back 
+		// Transform framebuffer color attachment back
 		vks::tools::setImageLayout(
 			commandBuffer,
 			offscreenPass.color.image,
@@ -573,7 +573,7 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}	
+	}
 
 	void loadAssets()
 	{
@@ -624,7 +624,7 @@ public:
 
 		// 3D scene
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
-		// Image descriptor for the cube map 
+		// Image descriptor for the cube map
 		VkDescriptorImageInfo texDescriptor =
 			vks::initializers::descriptorImageInfo(
 				shadowCubeMap.sampler,
@@ -718,8 +718,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapomni/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapomni/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "shadowmapomni/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "shadowmapomni/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayouts.scene, renderPass, 0);
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
@@ -737,7 +737,7 @@ public:
 			vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
 		};
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),				// Position			
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),				// Position
 			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3),	// Texture coordinates
 			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 5),	// Color
 			vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),	// Normal
@@ -751,15 +751,15 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.scene));
 
 		// Cube map display pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapomni/cubemapdisplay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapomni/cubemapdisplay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "shadowmapomni/cubemapdisplay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "shadowmapomni/cubemapdisplay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 		pipelineCreateInfo.pVertexInputState = &emptyInputState;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.cubemapDisplay));
 
 		// Offscreen pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmapomni/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmapomni/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "shadowmapomni/offscreen.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "shadowmapomni/offscreen.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		pipelineCreateInfo.layout = pipelineLayouts.offscreen;
 		pipelineCreateInfo.renderPass = offscreenPass.renderPass;
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
@@ -769,7 +769,7 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Offscreen vertex shader uniform buffer 
+		// Offscreen vertex shader uniform buffer
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
