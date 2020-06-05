@@ -862,8 +862,8 @@ void VulkanExample::preparePipelines()
 	vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
 	const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-		loadShader(getAssetPath() + "shaders/gltfskinning/skinnedmodel.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-		loadShader(getAssetPath() + "shaders/gltfskinning/skinnedmodel.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+		loadShader(getShadersPath() + "shaders/gltfskinning/skinnedmodel.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+		loadShader(getShadersPath() + "shaders/gltfskinning/skinnedmodel.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 	};
 
 	VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
