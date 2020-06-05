@@ -71,9 +71,9 @@ public:
 		} ubo;
 	} compute;
 
-	// SSBO sphere declaration 
+	// SSBO sphere declaration
 	struct Sphere {									// Shader uses std140 layout (so we only use vec4 instead of vec3)
-		glm::vec3 pos;								
+		glm::vec3 pos;
 		float radius;
 		glm::vec3 diffuse;
 		float specular;
@@ -166,9 +166,9 @@ public:
 
 		tex->imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		vks::tools::setImageLayout(
-			layoutCmd, 
+			layoutCmd,
 			tex->image,
-			VK_IMAGE_ASPECT_COLOR_BIT, 
+			VK_IMAGE_ASPECT_COLOR_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			tex->imageLayout);
 
@@ -500,8 +500,8 @@ public:
 		// Display pipeline
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/computeraytracing/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/computeraytracing/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "computeraytracing/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "computeraytracing/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(
@@ -626,7 +626,7 @@ public:
 				compute.pipelineLayout,
 				0);
 
-		computePipelineCreateInfo.stage = loadShader(getAssetPath() + "shaders/computeraytracing/raytracing.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
+		computePipelineCreateInfo.stage = loadShader(getShadersPath() + "computeraytracing/raytracing.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
 		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipeline));
 
 		// Separate command pool as queue family for compute may be different than graphics
@@ -711,7 +711,7 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSet();
 		prepareCompute();
-		buildCommandBuffers(); 
+		buildCommandBuffers();
 		prepared = true;
 	}
 

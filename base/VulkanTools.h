@@ -113,7 +113,7 @@ namespace vks
 		void exitFatal(std::string message, int32_t exitCode);
 		void exitFatal(std::string message, VkResult resultCode);
 
-		// Load a SPIR-V shader (binary) 
+		// Load a SPIR-V shader (binary)
 #if defined(__ANDROID__)
 		VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device);
 #else

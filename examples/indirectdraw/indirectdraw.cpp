@@ -1,5 +1,5 @@
 /*
-* Vulkan Example - Indirect drawing 
+* Vulkan Example - Indirect drawing
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
@@ -9,7 +9,7 @@
 * Use a device local buffer that stores draw commands for instanced rendering of different meshes stored
 * in the same buffer.
 *
-* Indirect drawing offloads draw command generation and offers the ability to update them on the GPU 
+* Indirect drawing offloads draw command generation and offers the ability to update them on the GPU
 * without the CPU having to touch the buffer again, also reducing the number of drawcalls.
 *
 * The example shows how to setup and fill such a buffer on the CPU side, stages it to the device and
@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h> 
+#include <time.h>
 #include <vector>
 #include <random>
 
@@ -149,7 +149,7 @@ public:
 		uniformData.scene.destroy();
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Example uses multi draw indirect if available
@@ -160,7 +160,7 @@ public:
 		if (deviceFeatures.samplerAnisotropy) {
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
 		}
-		// Enable texture compression  
+		// Enable texture compression
 		if (deviceFeatures.textureCompressionBC) {
 			enabledFeatures.textureCompressionBC = VK_TRUE;
 		}
@@ -211,7 +211,7 @@ public:
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.plants.vertices.buffer, offsets);
 			// Binding point 1 : Instance data buffer
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], INSTANCE_BUFFER_BIND_ID, 1, &instanceBuffer.buffer, offsets);
-			
+
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.plants.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			// If the multi draw feature is supported:
@@ -296,7 +296,7 @@ public:
 		vertices.bindingDescriptions[1] =
 			vks::initializers::vertexInputBindingDescription(
 				INSTANCE_BUFFER_BIND_ID,
-				sizeof(InstanceData), 
+				sizeof(InstanceData),
 				// Input rate for the data passed to shader
 				// Step for each instance rendered
 				VK_VERTEX_INPUT_RATE_INSTANCE);
@@ -370,7 +370,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses one ubo 
+		// Example uses one ubo
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
@@ -440,13 +440,13 @@ public:
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				0,
 				&uniformData.scene.descriptor),
-			// Binding 1: Plants texture array combined 
+			// Binding 1: Plants texture array combined
 			vks::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				1,
 				&textures.plants.descriptor),
-			// Binding 2: Ground texture combined 
+			// Binding 2: Ground texture combined
 			vks::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -526,19 +526,19 @@ public:
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		// Indirect (and instanced) pipeline for the plants
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/indirectdraw/indirectdraw.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/indirectdraw/indirectdraw.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "indirectdraw/indirectdraw.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "indirectdraw/indirectdraw.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.plants));
 
 		// Ground
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/indirectdraw/ground.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/indirectdraw/ground.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "indirectdraw/ground.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "indirectdraw/ground.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		//rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.ground));
 
 		// Skysphere
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/indirectdraw/skysphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/indirectdraw/skysphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "indirectdraw/skysphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "indirectdraw/skysphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		//rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skysphere));
 	}
@@ -557,7 +557,7 @@ public:
 			indirectCmd.firstInstance = m * OBJECT_INSTANCE_COUNT;
 			indirectCmd.firstIndex = modelPart.indexBase;
 			indirectCmd.indexCount = modelPart.indexCount;
-			
+
 			indirectCommands.push_back(indirectCmd);
 
 			m++;

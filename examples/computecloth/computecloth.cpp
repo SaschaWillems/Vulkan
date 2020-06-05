@@ -142,7 +142,7 @@ public:
 		vkDestroyCommandPool(device, compute.commandPool, nullptr);
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		if (deviceFeatures.samplerAnisotropy) {
@@ -156,7 +156,7 @@ public:
 		modelSphere.loadFromFile(getAssetPath() + "models/geosphere.obj", vertexLayout, compute.ubo.sphereRadius * 0.05f, vulkanDevice, queue);
 	}
 
-	void addGraphicsToComputeBarriers(VkCommandBuffer commandBuffer) 
+	void addGraphicsToComputeBarriers(VkCommandBuffer commandBuffer)
 	{
 		if (specializedComputeQueue) {
 			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
@@ -179,9 +179,9 @@ public:
 				static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
 				0, nullptr);
 		}
-	} 
+	}
 
-	void addComputeToComputeBarriers(VkCommandBuffer commandBuffer) 
+	void addComputeToComputeBarriers(VkCommandBuffer commandBuffer)
 	{
 		VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
 		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -202,7 +202,7 @@ public:
 			0, nullptr,
 			static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
 			0, nullptr);
-	} 
+	}
 
 	void addComputeToGraphicsBarriers(VkCommandBuffer commandBuffer)
 	{
@@ -227,7 +227,7 @@ public:
 				static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
 				0, nullptr);
 		}
-	} 
+	}
 
 	void buildCommandBuffers()
 	{
@@ -386,7 +386,7 @@ public:
 		VkDeviceSize storageBufferSize = particleBuffer.size() * sizeof(Particle);
 
 		// Staging
-		// SSBO won't be changed on the host after upload so copy to device local memory 
+		// SSBO won't be changed on the host after upload so copy to device local memory
 
 		vks::Buffer stagingBuffer;
 
@@ -415,7 +415,7 @@ public:
 		copyRegion.size = storageBufferSize;
 		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.storageBuffers.input.buffer, 1, &copyRegion);
 		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.storageBuffers.output.buffer, 1, &copyRegion);
-		// Add an initial release barrier to the graphics queue, 
+		// Add an initial release barrier to the graphics queue,
 		// so that when the compute command buffer executes for the first time
 		// it doesn't complain about a lack of a corresponding "release" to its "acquire"
 		addGraphicsToComputeBarriers(copyCmd);
@@ -489,7 +489,7 @@ public:
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &graphics.pipelineLayout));
 
 		// Set
-		VkDescriptorSetAllocateInfo allocInfo = 
+		VkDescriptorSetAllocateInfo allocInfo =
 			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &graphics.descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &graphics.descriptorSet));
 
@@ -533,8 +533,8 @@ public:
 		// Rendering pipeline
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/computecloth/cloth.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/computecloth/cloth.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "computecloth/cloth.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "computecloth/cloth.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(
@@ -542,7 +542,7 @@ public:
 				renderPass,
 				0);
 
-		// Input attributes	
+		// Input attributes
 
 		// Binding description
 		std::vector<VkVertexInputBindingDescription> inputBindings = {
@@ -590,8 +590,8 @@ public:
 		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssemblyState.primitiveRestartEnable = VK_FALSE;
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/computecloth/sphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/computecloth/sphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "computecloth/sphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "computecloth/sphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &graphics.pipelines.sphere));
 	}
 
@@ -626,7 +626,7 @@ public:
 		VkDescriptorSetAllocateInfo allocInfo =
 			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayout, 1);
 
-		// Create two descriptor sets with input and output buffers switched 
+		// Create two descriptor sets with input and output buffers switched
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets[0]));
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets[1]));
 
@@ -642,9 +642,9 @@ public:
 
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, NULL);
 
-		// Create pipeline		
+		// Create pipeline
 		VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
-		computePipelineCreateInfo.stage = loadShader(getAssetPath() + "shaders/computecloth/cloth.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
+		computePipelineCreateInfo.stage = loadShader(getShadersPath() + "computecloth/cloth.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
 		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipeline));
 
 		// Separate command pool as queue family for compute may be different than graphics
@@ -656,7 +656,7 @@ public:
 
 		// Create a command buffer for compute operations
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-			vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 2);	
+			vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 2);
 
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffers[0]));
 
@@ -679,7 +679,7 @@ public:
 			&compute.uniformBuffer,
 			sizeof(compute.ubo));
 		VK_CHECK_RESULT(compute.uniformBuffer.map());
-	
+
 		// Initial values
 		float dx = cloth.size.x / (cloth.gridsize.x - 1);
 		float dy = cloth.size.y / (cloth.gridsize.y - 1);

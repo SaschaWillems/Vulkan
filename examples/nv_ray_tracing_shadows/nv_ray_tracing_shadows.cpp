@@ -561,10 +561,10 @@ public:
 		const uint32_t shaderIndexClosestHit = 3;
 
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
-		shaderStages[shaderIndexRaygen] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_shadows/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
-		shaderStages[shaderIndexMiss] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_shadows/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
-		shaderStages[shaderIndexShadowMiss] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_shadows/shadow.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
-		shaderStages[shaderIndexClosestHit] = loadShader(getAssetPath() + "shaders/nv_ray_tracing_shadows/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+		shaderStages[shaderIndexRaygen] = loadShader(getShadersPath() + "nv_ray_tracing_shadows/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
+		shaderStages[shaderIndexMiss] = loadShader(getShadersPath() + "nv_ray_tracing_shadows/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+		shaderStages[shaderIndexShadowMiss] = loadShader(getShadersPath() + "nv_ray_tracing_shadows/shadow.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+		shaderStages[shaderIndexClosestHit] = loadShader(getShadersPath() + "nv_ray_tracing_shadows/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
 
 		/*
 			Setup ray tracing shader groups
@@ -586,7 +586,7 @@ public:
 		// Scene miss shader group
 		groups[INDEX_MISS].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
 		groups[INDEX_MISS].generalShader = shaderIndexMiss;
-		// Shadow miss shader group 
+		// Shadow miss shader group
 		groups[INDEX_SHADOW_MISS].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
 		groups[INDEX_SHADOW_MISS].generalShader = shaderIndexShadowMiss;
 		// Scene closest hit shader group
@@ -645,7 +645,7 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
 
-			// Calculate shader binding offsets, which is pretty straight forward in our example 
+			// Calculate shader binding offsets, which is pretty straight forward in our example
 			VkDeviceSize bindingOffsetRayGenShader = rayTracingProperties.shaderGroupHandleSize * INDEX_RAYGEN;
 			VkDeviceSize bindingOffsetMissShader = rayTracingProperties.shaderGroupHandleSize * INDEX_MISS;
 			VkDeviceSize bindingOffsetHitShader = rayTracingProperties.shaderGroupHandleSize * INDEX_CLOSEST_HIT;

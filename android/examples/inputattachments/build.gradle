@@ -48,14 +48,14 @@ task copyTask {
     }
 
     copy {
-        from '../../../data/shaders/base'
-        into "assets/shaders/base"
+        from '../../../data/shaders/glsl/base'
+        into 'assets/shaders/glsl/base'
         include '*.spv'
     }
 
     copy {
-       from '../../../data/shaders/inputattachments'
-       into 'assets/shaders/inputattachments'
+       from '../../../data/shaders/glsl/inputattachments'
+       into 'assets/shaders/glsl/inputattachments'
        include '*.*'
     }
 
@@ -64,7 +64,7 @@ task copyTask {
        into 'assets/models'
        include 'treasure_smooth.dae'
     }
-    
+
 }
 
 preBuild.dependsOn copyTask
