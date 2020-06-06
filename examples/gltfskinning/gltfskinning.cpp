@@ -51,6 +51,10 @@ VulkanglTFModel::~VulkanglTFModel()
 		vkDestroySampler(vulkanDevice->logicalDevice, image.texture.sampler, nullptr);
 		vkFreeMemory(vulkanDevice->logicalDevice, image.texture.deviceMemory, nullptr);
 	}
+	for (Skin skin : skins)
+	{
+		skin.ssbo.destroy();
+	}
 }
 
 /*
@@ -668,6 +672,7 @@ VulkanExample::~VulkanExample()
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
+	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.jointMatrices, nullptr);
 
 	shaderData.buffer.destroy();
 }
