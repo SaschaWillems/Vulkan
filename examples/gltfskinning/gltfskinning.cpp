@@ -230,7 +230,7 @@ void VulkanglTFModel::loadAnimations(tinygltf::Model &input)
 			AnimationSampler &         dstSampler  = animations[i].samplers[j];
 			dstSampler.interpolation               = glTFSampler.interpolation;
 
-			// Read sampler input time values
+			// Read sampler keyframe input time values
 			{
 				const tinygltf::Accessor &  accessor   = input.accessors[glTFSampler.input];
 				const tinygltf::BufferView &bufferView = input.bufferViews[accessor.bufferView];
@@ -241,6 +241,7 @@ void VulkanglTFModel::loadAnimations(tinygltf::Model &input)
 				{
 					dstSampler.inputs.push_back(buf[index]);
 				}
+				// Adjust animation's start and end times 
 				for (auto input : animations[i].samplers[j].inputs)
 				{
 					if (input < animations[i].start)
@@ -254,7 +255,7 @@ void VulkanglTFModel::loadAnimations(tinygltf::Model &input)
 				}
 			}
 
-			// Read sampler output Translate/rotate/scale values
+			// Read sampler keyframe output translate/rotate/scale values
 			{
 				const tinygltf::Accessor &  accessor   = input.accessors[glTFSampler.output];
 				const tinygltf::BufferView &bufferView = input.bufferViews[accessor.bufferView];
