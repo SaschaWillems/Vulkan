@@ -172,19 +172,17 @@ void VulkanglTFModel::loadSkins(tinygltf::Model& input)
 			const tinygltf::Buffer& buffer = input.buffers[bufferView.buffer];
 			skins[i].inverseBindMatrices.resize(accessor.count);
 			memcpy(skins[i].inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::mat4));
+
+			// Store inverse bind matrices for this skin in a shader storage buffer object
+			// To keep this sample simple, we create a host visible shader storage buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&skins[i].ssbo,
+				sizeof(glm::mat4) * skins[i].inverseBindMatrices.size(),
+				skins[i].inverseBindMatrices.data()));
+			VK_CHECK_RESULT(skins[i].ssbo.map());
 		}
-
-		// Store inverse bind matrices for this skin in a shader storage buffer object
-		// To keep this sample simple, we create a host visible shader storage buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&skins[i].ssbo,
-			sizeof(glm::mat4) * skins[i].inverseBindMatrices.size(),
-			skins[i].inverseBindMatrices.data()));
-		VK_CHECK_RESULT(skins[i].ssbo.map());
-
-		// @todo: destroy;
 	}
 }
 
@@ -194,22 +192,19 @@ void VulkanglTFModel::loadAnimations(tinygltf::Model& input)
 	animations.resize(input.animations.size());
 
 	for (size_t i = 0; i < input.animations.size(); i++) {
-		// @todo; source...Animation etc.?
-		tinygltf::Animation srcAnimation = input.animations[i];
-		animations[i].name = srcAnimation.name;
+		tinygltf::Animation glTFAnimation = input.animations[i];
+		animations[i].name = glTFAnimation.name;
 
 		// Samplers
-		// @todo: Link to specs
-		animations[i].samplers.resize(srcAnimation.samplers.size());
-		for (size_t j = 0; j < srcAnimation.samplers.size(); j++) {
-			tinygltf::AnimationSampler srcSampler = srcAnimation.samplers[j];
+		animations[i].samplers.resize(glTFAnimation.samplers.size());
+		for (size_t j = 0; j < glTFAnimation.samplers.size(); j++) {
+			tinygltf::AnimationSampler glTFSampler = glTFAnimation.samplers[j];
 			AnimationSampler& dstSampler = animations[i].samplers[j];
-			// Interpolation type
-			dstSampler.interpolation = srcSampler.interpolation;
+			dstSampler.interpolation = glTFSampler.interpolation;
 
 			// Read sampler input time values
 			{
-				const tinygltf::Accessor& accessor = input.accessors[srcSampler.input];
+				const tinygltf::Accessor& accessor = input.accessors[glTFSampler.input];
 				const tinygltf::BufferView& bufferView = input.bufferViews[accessor.bufferView];
 				const tinygltf::Buffer& buffer = input.buffers[bufferView.buffer];
 				const void* dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
@@ -229,7 +224,7 @@ void VulkanglTFModel::loadAnimations(tinygltf::Model& input)
 
 			// Read sampler output Translate/rotate/scale values 
 			{
-				const tinygltf::Accessor& accessor = input.accessors[srcSampler.output];
+				const tinygltf::Accessor& accessor = input.accessors[glTFSampler.output];
 				const tinygltf::BufferView& bufferView = input.bufferViews[accessor.bufferView];
 				const tinygltf::Buffer& buffer = input.buffers[bufferView.buffer];
 				const void* dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
@@ -257,14 +252,13 @@ void VulkanglTFModel::loadAnimations(tinygltf::Model& input)
 		}
 
 		// Channels
-		animations[i].channels.resize(srcAnimation.channels.size());
-		for (size_t j = 0; j < srcAnimation.channels.size(); j++) {
-			tinygltf::AnimationChannel srcChannel = srcAnimation.channels[j];
+		animations[i].channels.resize(glTFAnimation.channels.size());
+		for (size_t j = 0; j < glTFAnimation.channels.size(); j++) {
+			tinygltf::AnimationChannel glTFChannel = glTFAnimation.channels[j];
 			AnimationChannel& dstChannel = animations[i].channels[j];
-			// Target channel is either rotation, translation or scale
-			dstChannel.path = srcChannel.target_path;
-			dstChannel.samplerIndex = srcChannel.sampler;
-			dstChannel.node = nodeFromIndex(srcChannel.target_node);
+			dstChannel.path = glTFChannel.target_path;
+			dstChannel.samplerIndex = glTFChannel.sampler;
+			dstChannel.node = nodeFromIndex(glTFChannel.target_node);
 		}
 	}
 }
