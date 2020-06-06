@@ -49,8 +49,8 @@ task copyTask {
     }
 
     copy {
-       from '../../../data/shaders/gltfskinning'
-       into 'assets/shaders/gltfskinning'
+       from '../../../data/shaders/glsl/gltfskinning'
+       into 'assets/shaders/glsl/gltfskinning'
        include '*.*'
     }
 
