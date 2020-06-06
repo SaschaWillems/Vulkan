@@ -241,7 +241,7 @@ void VulkanglTFModel::loadAnimations(tinygltf::Model &input)
 				{
 					dstSampler.inputs.push_back(buf[index]);
 				}
-				// Adjust animation's start and end times 
+				// Adjust animation's start and end times
 				for (auto input : animations[i].samplers[j].inputs)
 				{
 					if (input < animations[i].start)
@@ -534,59 +534,51 @@ void VulkanglTFModel::updateAnimation(float deltaTime)
 		animation.currentTime -= animation.end;
 	}
 
-	bool updated = false;
 	for (auto &channel : animation.channels)
 	{
 		AnimationSampler &sampler = animation.samplers[channel.samplerIndex];
-		if (sampler.inputs.size() > sampler.outputsVec4.size())
-		{
-			continue;
-		}
-
 		for (size_t i = 0; i < sampler.inputs.size() - 1; i++)
 		{
+			if (sampler.interpolation != "LINEAR")
+			{
+				std::cout << "This sample only supports linear interpolations\n";
+				continue;
+			}
+
+			// Get the input keyframe values for the current time stamp
 			if ((animation.currentTime >= sampler.inputs[i]) && (animation.currentTime <= sampler.inputs[i + 1]))
 			{
-				float u = std::max(0.0f, animation.currentTime - sampler.inputs[i]) / (sampler.inputs[i + 1] - sampler.inputs[i]);
-				if (u <= 1.0f)
+				float a = (animation.currentTime - sampler.inputs[i]) / (sampler.inputs[i + 1] - sampler.inputs[i]);
+				if (channel.path == "translation")
 				{
-					if (channel.path == "translation")
-					{
-						glm::vec4 trans           = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], u);
-						channel.node->translation = glm::vec3(trans);
-						updated                   = true;
-					}
-					if (channel.path == "rotation")
-					{
-						glm::quat q1;
-						q1.x = sampler.outputsVec4[i].x;
-						q1.y = sampler.outputsVec4[i].y;
-						q1.z = sampler.outputsVec4[i].z;
-						q1.w = sampler.outputsVec4[i].w;
-						glm::quat q2;
-						q2.x                   = sampler.outputsVec4[i + 1].x;
-						q2.y                   = sampler.outputsVec4[i + 1].y;
-						q2.z                   = sampler.outputsVec4[i + 1].z;
-						q2.w                   = sampler.outputsVec4[i + 1].w;
-						channel.node->rotation = glm::normalize(glm::slerp(q1, q2, u));
-						updated                = true;
-					}
-					if (channel.path == "scale")
-					{
-						glm::vec4 trans     = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], u);
-						channel.node->scale = glm::vec3(trans);
-						updated             = true;
-					}
+					channel.node->translation = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], a);
+				}
+				if (channel.path == "rotation")
+				{
+					glm::quat q1;
+					q1.x = sampler.outputsVec4[i].x;
+					q1.y = sampler.outputsVec4[i].y;
+					q1.z = sampler.outputsVec4[i].z;
+					q1.w = sampler.outputsVec4[i].w;
+
+					glm::quat q2;
+					q2.x = sampler.outputsVec4[i + 1].x;
+					q2.y = sampler.outputsVec4[i + 1].y;
+					q2.z = sampler.outputsVec4[i + 1].z;
+					q2.w = sampler.outputsVec4[i + 1].w;
+
+					channel.node->rotation = glm::normalize(glm::slerp(q1, q2, a));
+				}
+				if (channel.path == "scale")
+				{
+					channel.node->scale = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], a);
 				}
 			}
 		}
 	}
-	if (updated)
+	for (auto &node : nodes)
 	{
-		for (auto &node : nodes)
-		{
-			updateJoints(node);
-		}
+		updateJoints(node);
 	}
 }
 
