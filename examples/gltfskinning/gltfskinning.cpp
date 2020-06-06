@@ -497,13 +497,11 @@ void VulkanglTFModel::updateJoints(VulkanglTFModel::Node *node)
 {
 	if (node->skin > -1)
 	{
-		glm::mat4 m = getNodeMatrix(node);
-		// Update joint matrices
-		glm::mat4              inverseTransform = glm::inverse(m);
+		// Update the joint matrices
+		glm::mat4              inverseTransform = glm::inverse(getNodeMatrix(node));
 		Skin                   skin             = skins[node->skin];
 		size_t                 numJoints        = (uint32_t) skin.joints.size();
 		std::vector<glm::mat4> jointMatrices(numJoints);
-		// @todo: bail out if model has more joints than shader can handle
 		for (size_t i = 0; i < numJoints; i++)
 		{
 			jointMatrices[i] = getNodeMatrix(skin.joints[i]) * skin.inverseBindMatrices[i];
