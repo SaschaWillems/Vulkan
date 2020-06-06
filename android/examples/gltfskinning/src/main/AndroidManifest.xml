@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.saschawillems.vulkanSkeletalanimation">
+    package="de.saschawillems.vulkanglTFSkinning">
 
     <application
-        android:label="Vulkan skeletal animation"
+        android:label="glTF skinned animation"
         android:icon="@drawable/icon"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity android:name="de.saschawillems.vulkanSample.VulkanActivity"
