@@ -162,9 +162,14 @@ Uses a dynamic floating point cube map to implement shadowing for a point light 
 
 Generating a complete mip-chain at runtime instead of loading it from a file, by blitting from one mip level, starting with the actual texture image, down to the next smaller size until the lower 1x1 pixel end of the mip chain.
 
-#### [08 - Skeletal animation](examples/skeletalanimation/)
+#### [11 - glTF scene loading and rendering](examples/gltfscene/)
 
-Loads and renders an animated skinned 3D model. Skinning is done on the GPU by passing per-vertex bone weights and translation matrices.
+Shows how to load the scene from a [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The structure of the glTF 2.0 scene is converted into data structures required to render the scene with Vulkan.
+
+
+#### [08 - glTF vertex skinning](examples/gltfskinning/)
+
+Rendering an animated [glTF 2.0](https://github.com/KhronosGroup/glTF) scene using GPU vertex skinning.
 
 #### [09 - Capturing screenshots](examples/screenshot/)
 

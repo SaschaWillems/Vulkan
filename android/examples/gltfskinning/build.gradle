@@ -4,7 +4,7 @@ apply from: '../gradle/outputfilename.gradle'
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "de.saschawillems.vulkanSkeletalanimation"
+        applicationId "de.saschawillems.vulkanglTFSkinning"
         minSdkVersion 19
         targetSdkVersion 26
         versionCode 1
@@ -44,38 +44,20 @@ task copyTask {
 
     copy {
         from '../../../data/shaders/glsl/base'
-        into 'assets/shaders/glsl/base'
+        into "assets/shaders/glsl/base"
         include '*.spv'
     }
 
     copy {
-       from '../../../data/shaders/glsl/skeletalanimation'
-       into 'assets/shaders/glsl/skeletalanimation'
+       from '../../../data/shaders/glsl/gltfskinning'
+       into 'assets/shaders/glsl/gltfskinning'
        include '*.*'
     }
 
     copy {
-       from '../../../data/models'
-       into 'assets/models'
-       include 'goblin.dae'
-    }
-
-    copy {
-       from '../../../data/models'
-       into 'assets/models'
-       include 'plane_z.obj'
-    }
-
-    copy {
-       from '../../../data/textures'
-       into 'assets/textures'
-       include 'trail*.ktx'
-    }
-
-    copy {
-       from '../../../data/textures'
-       into 'assets/textures'
-       include 'goblin*.ktx'
+       from '../../../data/models/CesiumMan/glTF'
+       into 'assets/models/CesiumMan/glTF'
+       include '*.*'
     }
 
 

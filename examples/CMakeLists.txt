@@ -8,6 +8,9 @@ function(buildExample EXAMPLE_NAME)
 	if(EXISTS ${EXAMPLE_FOLDER}/main.cpp)
 		SET(MAIN_CPP ${EXAMPLE_FOLDER}/main.cpp)
 	ENDIF()
+	if(EXISTS ${EXAMPLE_FOLDER}/${EXAMPLE_NAME}.h)
+		SET(MAIN_HEADER ${EXAMPLE_FOLDER}/${EXAMPLE_NAME}.h)
+	ENDIF()
 	# imgui example requires additional source files
 	IF(${EXAMPLE_NAME} STREQUAL "imgui")
 		file(GLOB ADD_SOURCE "../external/imgui/*.cpp")
@@ -25,10 +28,10 @@ function(buildExample EXAMPLE_NAME)
 	source_group("Shaders\\GLSL" FILES ${SHADERS_GLSL})
 	source_group("Shaders\\HLSL" FILES ${SHADERS_HLSL})
 	if(WIN32)
-		add_executable(${EXAMPLE_NAME} WIN32 ${MAIN_CPP} ${SOURCE} ${SHADERS_GLSL} ${SHADERS_HLSL})
+		add_executable(${EXAMPLE_NAME} WIN32 ${MAIN_CPP} ${SOURCE} ${MAIN_HEADER} ${SHADERS_GLSL} ${SHADERS_HLSL})
 		target_link_libraries(${EXAMPLE_NAME} base ${Vulkan_LIBRARY} ${ASSIMP_LIBRARIES} ${WINLIBS})
 	else(WIN32)
-		add_executable(${EXAMPLE_NAME} ${MAIN_CPP} ${SOURCE} ${SHADERS_GLSL} ${SHADERS_HLSL})
+		add_executable(${EXAMPLE_NAME} ${MAIN_CPP} ${SOURCE} ${MAIN_HEADER} ${SHADERS_GLSL} ${SHADERS_HLSL})
 		target_link_libraries(${EXAMPLE_NAME} base )
 	endif(WIN32)
 
@@ -68,6 +71,7 @@ set(EXAMPLES
 	gears
 	geometryshader
 	gltfscene
+	gltfskinning
 	hdr
 	imgui
 	indirectdraw
@@ -99,7 +103,6 @@ set(EXAMPLES
 	shadowmapping
 	shadowmappingomni
 	shadowmappingcascade
-	skeletalanimation
 	specializationconstants
 	sphericalenvmapping
 	ssao
