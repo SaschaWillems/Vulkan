@@ -187,7 +187,7 @@ public:
 	{
 		enabledFeatures.samplerAnisotropy = deviceFeatures.samplerAnisotropy;
 		// Depth clamp to avoid near plane clipping
-		enabledFeatures.depthClamp = deviceFeatures.depthClamp;		
+		enabledFeatures.depthClamp = deviceFeatures.depthClamp;
 	}
 
 	/*
@@ -366,7 +366,7 @@ public:
 		VkDeviceSize offsets[1] = { 0 };
 
 		for (int32_t i = 0; i < drawCmdBuffers.size(); i++) {
-			
+
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			/*
@@ -466,7 +466,7 @@ public:
 		models.tree.loadFromFile(getAssetPath() + "models/oaktree.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
-	void setupLayoutsAndDescriptors() 
+	void setupLayoutsAndDescriptors()
 	{
 		/*
 			Descriptor pool
@@ -563,7 +563,7 @@ public:
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-		
+
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCI.pInputAssemblyState = &inputAssemblyState;
 		pipelineCI.pRasterizationState = &rasterizationState;
@@ -577,8 +577,8 @@ public:
 
 		// Shadow map cascade debug quad display
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmappingcascade/debugshadowmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmappingcascade/debugshadowmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "shadowmappingcascade/debugshadowmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "shadowmappingcascade/debugshadowmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Empty vertex input state
 		VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 		pipelineCI.pVertexInputState = &emptyInputState;
@@ -589,8 +589,8 @@ public:
 			Shadow mapped scene rendering
 		*/
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmappingcascade/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmappingcascade/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "shadowmappingcascade/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "shadowmappingcascade/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Use specialization constants to select between horizontal and vertical blur
 		uint32_t enablePCF = 0;
 		VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
@@ -603,8 +603,8 @@ public:
 		/*
 			Depth map generation
 		*/
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/shadowmappingcascade/depthpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/shadowmappingcascade/depthpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "shadowmappingcascade/depthpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "shadowmappingcascade/depthpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// No blend attachment states (no color attachments used)
 		colorBlendState.attachmentCount = 0;
 		depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
@@ -652,7 +652,7 @@ public:
 	void updateCascades()
 	{
 		float cascadeSplits[SHADOW_MAP_CASCADE_COUNT];
-	
+
 		float nearClip = camera.getNearClip();
 		float farClip = camera.getFarClip();
 		float clipRange = farClip - nearClip;

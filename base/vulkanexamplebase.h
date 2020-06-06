@@ -73,7 +73,11 @@ private:
 	void setupSwapChain();
 	void createCommandBuffers();
 	void destroyCommandBuffers();
+	std::string shaderDir = "glsl";
 protected:
+	// Returns the path to the root of the glsl or hlsl shader directory.
+	std::string getShadersPath() const;
+
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
 	uint32_t lastFPS = 0;
@@ -131,7 +135,7 @@ protected:
 		VkSemaphore renderComplete;
 	} semaphores;
 	std::vector<VkFence> waitFences;
-public: 
+public:
 	bool prepared = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
@@ -193,7 +197,7 @@ public:
 		bool middle = false;
 	} mouseButtons;
 
-	// OS specific 
+	// OS specific
 #if defined(_WIN32)
 	HWND window;
 	HINSTANCE windowInstance;
@@ -328,7 +332,7 @@ public:
 
 	/** @brief Loads a SPIR-V shader file for the given shader stage */
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
-	
+
 	/** @brief Entry point for the main render loop */
 	void renderLoop();
 
@@ -369,7 +373,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)									\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\
 	return 0;																						\
-}																									
+}
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 // Android entry point
 #define VULKAN_EXAMPLE_MAIN()																		\

@@ -8,10 +8,10 @@
 * Summary:
 * Implements a deferred rendering setup with a forward transparency pass using sub passes
 *
-* Sub passes allow reading from the previous framebuffer (in the same render pass) at 
+* Sub passes allow reading from the previous framebuffer (in the same render pass) at
 * the same pixel position.
-* 
-* This is a feature that was especially designed for tile-based-renderers 
+*
+* This is a feature that was especially designed for tile-based-renderers
 * (mostly mobile GPUs) and is a new optomization feature in Vulkan for those GPU types.
 *
 */
@@ -129,7 +129,7 @@ public:
 		camera.movementSpeed = 5.0f;
 #ifndef __ANDROID__
 		camera.rotationSpeed = 0.25f;
-#endif  
+#endif
 		camera.setPosition(glm::vec3(-3.2f, 1.0f, 5.9f));
 		camera.setRotation(glm::vec3(0.5f, 210.05f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
@@ -139,7 +139,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
 		vkDestroyPipeline(device, pipelines.composition, nullptr);
@@ -164,14 +164,14 @@ public:
 		uniformBuffers.lights.destroy();
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Enable anisotropic filtering if supported
 		if (deviceFeatures.samplerAnisotropy) {
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
 		}
-		// Enable texture compression  
+		// Enable texture compression
 		if (deviceFeatures.textureCompressionBC) {
 			enabledFeatures.textureCompressionBC = VK_TRUE;
 		}
@@ -226,7 +226,7 @@ public:
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
 		// VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT flag is required for input attachments
-		image.usage = usage | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;	
+		image.usage = usage | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 		image.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
@@ -255,8 +255,8 @@ public:
 	// Create color attachments for the G-Buffer components
 	void createGBufferAttachments()
 	{
-		createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.position);	// (World space) Positions		
-		createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.normal);		// (World space) Normals		
+		createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.position);	// (World space) Positions
+		createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.normal);		// (World space) Normals
 		createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.albedo);			// Albedo (color)
 	}
 
@@ -317,7 +317,7 @@ public:
 		attachments.width = width;
 		attachments.height = height;
 
-		createGBufferAttachments(); 
+		createGBufferAttachments();
 
 		std::array<VkAttachmentDescription, 5> attachments{};
 		// Color attachment
@@ -701,7 +701,7 @@ public:
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
 			vks::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE, 
+				VK_TRUE,
 				VK_TRUE,
 				VK_COMPARE_OP_LESS_OR_EQUAL);
 
@@ -755,9 +755,9 @@ public:
 		colorBlendState.pAttachments = blendAttachmentStates.data();
 
 		// Offscreen scene rendering pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/subpasses/gbuffer.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/subpasses/gbuffer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-	
+		shaderStages[0] = loadShader(getShadersPath() + "subpasses/gbuffer.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "subpasses/gbuffer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.offscreen));
 	}
 
@@ -767,17 +767,17 @@ public:
 		// Descriptor set layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
 		{
-			// Binding 0: Position input attachment 
+			// Binding 0: Position input attachment
 			vks::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
 				0),
-			// Binding 1: Normal input attachment 
+			// Binding 1: Normal input attachment
 			vks::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
 				1),
-			// Binding 2: Albedo input attachment 
+			// Binding 2: Albedo input attachment
 			vks::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -797,7 +797,7 @@ public:
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.composition));
 
 		// Pipeline layout
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = 
+		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
 			vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.composition, 1);
 
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.composition));
@@ -853,9 +853,9 @@ public:
 			vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-		
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/subpasses/composition.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/subpasses/composition.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+		shaderStages[0] = loadShader(getShadersPath() + "subpasses/composition.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "subpasses/composition.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Use specialization constants to pass number of lights to the shader
 		VkSpecializationMapEntry specializationEntry{};
@@ -937,8 +937,8 @@ public:
 		pipelineCreateInfo.layout = pipelineLayouts.transparent;
 		pipelineCreateInfo.subpass = 2;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/subpasses/transparent.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/subpasses/transparent.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "subpasses/transparent.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "subpasses/transparent.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.transparent));
 	}
@@ -995,7 +995,7 @@ public:
 		{
 			light.position = glm::vec4(rndDist(rndGen) * 6.0f, 0.25f + std::abs(rndDist(rndGen)) * 4.0f, rndDist(rndGen) * 6.0f, 1.0f);
 			light.color = colors[rndCol(rndGen)];
-			light.radius = 1.0f + std::abs(rndDist(rndGen));			
+			light.radius = 1.0f + std::abs(rndDist(rndGen));
 		}
 	}
 

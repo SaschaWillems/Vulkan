@@ -119,7 +119,7 @@ public:
 	}
 
 	~VulkanExample()
-	{		
+	{
 		vkDestroyPipeline(device, pipeline, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
@@ -169,7 +169,7 @@ public:
 
 			Material mat = materials[materialIndex];
 
-//#define SINGLE_ROW 1	
+//#define SINGLE_ROW 1
 #ifdef SINGLE_ROW
 			mat.params.metallic = 1.0;
 
@@ -289,8 +289,8 @@ public:
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal });
 
 		// PBR pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pbrbasic/pbr.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pbrbasic/pbr.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "pbrbasic/pbr.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "pbrbasic/pbr.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Enable depth test and write
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		depthStencilState.depthTestEnable = VK_TRUE;

@@ -102,7 +102,7 @@ public:
 		}
 	}
 
-	// Setup a query pool for storing pipeline statistics 
+	// Setup a query pool for storing pipeline statistics
 	void setupQueryPool()
 	{
 		pipelineStatNames = {
@@ -329,14 +329,14 @@ public:
 
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 		shaderStages.resize(tessellation ? 4 : 2);
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pipelinestatistics/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pipelinestatistics/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "pipelinestatistics/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "pipelinestatistics/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		if (tessellation) {
 			inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 			pipelineCI.pTessellationState = &tessellationState;
-			shaderStages[2] = loadShader(getAssetPath() + "shaders/pipelinestatistics/scene.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-			shaderStages[3] = loadShader(getAssetPath() + "shaders/pipelinestatistics/scene.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+			shaderStages[2] = loadShader(getShadersPath() + "pipelinestatistics/scene.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+			shaderStages[3] = loadShader(getShadersPath() + "pipelinestatistics/scene.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 		}
 
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());

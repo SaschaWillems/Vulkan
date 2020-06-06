@@ -90,7 +90,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
 		if (pipelines.wireframe != VK_NULL_HANDLE) {
@@ -106,7 +106,7 @@ public:
 		textures.colorHeightMap.destroy();
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Tessellation shader support is required for this example
@@ -284,13 +284,13 @@ public:
 		{
 			// Binding 0 : Tessellation control shader ubo
 			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
-				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, 
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
 				0),
 			// Binding 1 : Tessellation evaluation shader ubo
 			vks::initializers::descriptorSetLayoutBinding(
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, 
+				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
 				1),
 			// Binding 2 : Combined color (rgb) and height (alpha) map
 			vks::initializers::descriptorSetLayoutBinding(
@@ -386,10 +386,10 @@ public:
 		// Tessellation pipeline
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/displacement/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/displacement/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		shaderStages[2] = loadShader(getAssetPath() + "shaders/displacement/displacement.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader(getAssetPath() + "shaders/displacement/displacement.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "displacement/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "displacement/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[2] = loadShader(getShadersPath() + "displacement/displacement.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = loadShader(getShadersPath() + "displacement/displacement.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(

@@ -31,7 +31,7 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	enum RenderMode { 
+	enum RenderMode {
 		SINGLE_CB_RECREATE = 0,
 		MULTIPLE_CB_STATIC = 1,
 	};
@@ -128,7 +128,7 @@ public:
 		renderMode = mode;
 		vkDeviceWaitIdle(device);
 		switch (renderMode) {
-		case SINGLE_CB_RECREATE:			
+		case SINGLE_CB_RECREATE:
 			std::cout << "Using single command buffer, recreating each frame" << std::endl;
 			break;
 		case MULTIPLE_CB_STATIC:
@@ -193,9 +193,9 @@ public:
 
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
 			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0 : Position
-			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1 : Normal			
+			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1 : Normal
 			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),		// Location 3 : UV
-			vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8)		// Location 3 : Cpöpr
+			vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8)		// Location 3 : Cpï¿½pr
 		};
 
 		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
@@ -206,8 +206,8 @@ public:
 
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-			loadShader(getAssetPath() + "shaders/pushconstants/lights.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getAssetPath() + "shaders/pushconstants/lights.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+			loadShader(getShadersPath() + "pushconstants/lights.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "pushconstants/lights.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
@@ -228,11 +228,11 @@ public:
 	void prepareUniformBuffers()
 	{
 		/*
-			Single command buffer 
+			Single command buffer
 		*/
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&singleCB.uniformBuffer,
 			sizeof(ShaderValues)));
 		VK_CHECK_RESULT(singleCB.uniformBuffer.map());
@@ -242,7 +242,7 @@ public:
 		*/
 		for (auto i = 0; i < multiCB.uniformBuffers.size(); i++) {
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				&multiCB.uniformBuffers[i],
 				sizeof(ShaderValues)));
@@ -404,7 +404,7 @@ public:
 	/*
 		Multiple command buffers rendering to different framebuffers
 	*/
-	void recordCommandBuffers() 
+	void recordCommandBuffers()
 	{
 		VkClearValue clearValues[2];
 		clearValues[0].color = defaultClearColor;
@@ -592,7 +592,7 @@ public:
 		case 0x32:
 			setRenderMode(MULTIPLE_CB_STATIC);
 			break;
-		}		
+		}
 	}
 #endif
 };

@@ -138,16 +138,16 @@ public:
 	}
 
 	void setupDescriptorSetLayout()
-	{	
+	{
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0)
 		};
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo = 
+		VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo =
 			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), 1);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutInfo, nullptr, &descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo = 
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo =
 			vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout));
 	}
@@ -189,8 +189,8 @@ public:
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Color, vkglTF::VertexComponent::Normal });
 
 		// Toon render and stencil fill pass
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/stencilbuffer/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/stencilbuffer/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "stencilbuffer/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "stencilbuffer/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 		depthStencilState.stencilTestEnable = VK_TRUE;
 		depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
@@ -209,8 +209,8 @@ public:
 		depthStencilState.back.passOp = VK_STENCIL_OP_REPLACE;
 		depthStencilState.front = depthStencilState.back;
 		depthStencilState.depthTestEnable = VK_FALSE;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/stencilbuffer/outline.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/stencilbuffer/outline.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "stencilbuffer/outline.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "stencilbuffer/outline.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.outline));
 	}
 

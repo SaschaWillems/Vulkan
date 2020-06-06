@@ -1,6 +1,6 @@
 # Vulkan C++ examples and demos
 
-A comprehensive collection of open source C++ examples for [Vulkan®](https://www.khronos.org/vulkan/), the new graphics and compute API from Khronos.
+A comprehensive collection of open source C++ examples for [Vulkan®](https://www.khronos.org/vulkan/), the new generation graphics and compute API from Khronos.
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BHXPMV6ZKPH9E)
 
@@ -9,6 +9,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 + [Cloning](#Cloning)
 + [Assets](#Assets)
 + [Building](#Building)
++ [Shaders](#Shaders)
 + [Examples](#Examples)
     + [Basics](#Basics)
     + [Advanced](#Advanced)
@@ -27,7 +28,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 
 ## <a name="Khronossamples"></a> Official Khronos Vulkan Samples
 
-Khronos recently made an official Vulkan Samples repository available to the public ([press release](https://www.khronos.org/blog/vulkan-releases-unified-samples-repository?utm_source=Khronos%20Blog&utm_medium=Twitter&utm_campaign=Vulkan%20Repository)). 
+Khronos recently made an official Vulkan Samples repository available to the public ([press release](https://www.khronos.org/blog/vulkan-releases-unified-samples-repository?utm_source=Khronos%20Blog&utm_medium=Twitter&utm_campaign=Vulkan%20Repository)).
 
 You can find this repository at https://github.com/KhronosGroup/Vulkan-Samples
 
@@ -38,7 +39,7 @@ This repository contains submodules for external dependencies, so when doing a f
 
 ```
 git clone --recursive https://github.com/SaschaWillems/Vulkan.git
-``` 
+```
 
 Existing repositories can be updated manually:
 
@@ -59,6 +60,10 @@ from the root of the repository after cloning or see [this](data/README.md) for 
 The repository contains everything required to compile and build the examples on <img src="./images/windowslogo.png" alt="" height="22px" valign="bottom"> Windows, <img src="./images/linuxlogo.png" alt="" height="24px" valign="bottom"> Linux, <img src="./images/androidlogo.png" alt="" height="24px" valign="bottom"> Android, <img src="./images/applelogo.png" alt="" valign="bottom" height="24px"> iOS and macOS (using MoltenVK) using a C++ compiler that supports C++11.
 
 See [BUILD.md](BUILD.md) for details on how to build for the different platforms.
+
+## <a name="Shaders"></a> Shaders
+
+Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](data/shaders/glsl) but thanks to an external contribution you'll also find [HLSL](data/shaders/hlsl) shader sources.
 
 ## <a name="Examples"></a> Examples
 
@@ -113,7 +118,7 @@ Uses input attachments to read framebuffer contents from a previous sub pass at 
 
 #### [13 - Sub passes](examples/subpasses/)
 
-Advanced example that uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass. 
+Advanced example that uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass.
 
 #### [14 - Offscreen rendering](examples/offscreen/)
 
@@ -139,7 +144,7 @@ Implements multisample anti-aliasing (MSAA) using a renderpass with multisampled
 
 #### [03 - High dynamic range](examples/hdr/)
 
-Implements a high dynamic range rendering pipeline using 16/32 bit floating point precision for all internal formats, textures and calculations, including a bloom pass, manual exposure and tone mapping. 
+Implements a high dynamic range rendering pipeline using 16/32 bit floating point precision for all internal formats, textures and calculations, including a bloom pass, manual exposure and tone mapping.
 
 #### [04 - Shadow mapping](examples/shadowmapping/)
 
@@ -159,7 +164,7 @@ Generating a complete mip-chain at runtime instead of loading it from a file, by
 
 #### [08 - Skeletal animation](examples/skeletalanimation/)
 
-Loads and renders an animated skinned 3D model. Skinning is done on the GPU by passing per-vertex bone weights and translation matrices. 
+Loads and renders an animated skinned 3D model. Skinning is done on the GPU by passing per-vertex bone weights and translation matrices.
 
 #### [09 - Capturing screenshots](examples/screenshot/)
 
@@ -273,7 +278,7 @@ Renders a terrain using tessellation shaders for height displacement (based on a
 
 Uses curved PN-triangles ([paper](http://alex.vlachos.com/graphics/CurvedPNTriangles.pdf)) for adding details to a low-polygon model.
 
-### <a name="Headless"></a> Headless 
+### <a name="Headless"></a> Headless
 
 Examples that run one-time tasks and don't make use of visual output (no window system integration). These can be run in environments where no user interface is available ([blog entry](https://www.saschawillems.de/tutorials/vulkan/headless_examples)).
 
@@ -315,7 +320,7 @@ Implements multiple texture mapping methods to simulate depth based on texture i
 
 #### [04 - Spherical environment mapping](examples/sphericalenvmapping/)
 
-Uses a spherical material capture texture array defining environment lighting and reflection information to fake complex lighting. 
+Uses a spherical material capture texture array defining environment lighting and reflection information to fake complex lighting.
 
 ### <a name="Extensions"></a> Extensions
 

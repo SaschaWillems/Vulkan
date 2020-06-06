@@ -39,7 +39,7 @@ public:
 	struct {
 		vks::Buffer tessControl, tessEval;
 	} uniformBuffers;
-	
+
 	struct UBOTessControl {
 		float tessLevel = 3.0f;
 	} uboTessControl;
@@ -56,7 +56,7 @@ public:
 		VkPipeline solidPassThrough;
 		VkPipeline wirePassThrough = VK_NULL_HANDLE;
 	} pipelines;
-	
+
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -73,7 +73,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
 		if (pipelines.wire != VK_NULL_HANDLE) {
@@ -91,7 +91,7 @@ public:
 		uniformBuffers.tessEval.destroy();
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Example uses tessellation shaders
@@ -227,10 +227,9 @@ public:
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
 
 		// Tessellation pipelines
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/tessellation/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/tessellation/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		shaderStages[2] = loadShader(getAssetPath() + "shaders/tessellation/pntriangles.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader(getAssetPath() + "shaders/tessellation/pntriangles.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "tessellation/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[2] = loadShader(getShadersPath() + "tessellation/pntriangles.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = loadShader(getShadersPath() + "tessellation/pntriangles.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCI =  vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCI.pInputAssemblyState = &inputAssemblyState;
@@ -257,8 +256,8 @@ public:
 
 		// Pass through pipelines
 		// Load pass through tessellation shaders (Vert and frag are reused)
-		shaderStages[2] = loadShader(getAssetPath() + "shaders/tessellation/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader(getAssetPath() + "shaders/tessellation/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[2] = loadShader(getShadersPath() + "tessellation/passthrough.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = loadShader(getShadersPath() + "tessellation/passthrough.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
 		// Solid
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
@@ -324,7 +323,7 @@ public:
 		preparePipelines();
 		setupDescriptorPool();
 		setupDescriptorSet();
-		buildCommandBuffers(); 
+		buildCommandBuffers();
 		prepared = true;
 	}
 

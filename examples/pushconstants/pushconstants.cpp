@@ -47,7 +47,7 @@ public:
 	} models;
 
 	vks::Buffer uniformBuffer;
-	
+
 	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 modelView;
@@ -80,7 +80,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
 
@@ -223,7 +223,7 @@ public:
 
 	void setupDescriptorPool()
 	{
-		// Example uses one ubo 
+		// Example uses one ubo
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
@@ -266,7 +266,7 @@ public:
 		// 6 * 4 * 4 = 96 bytes
 		// Spec requires a minimum of 128 bytes, bigger values
 		// need to be checked against maxPushConstantsSize
-		// But even at only 128 bytes, lots of stuff can fit 
+		// But even at only 128 bytes, lots of stuff can fit
 		// inside push constants
 		VkPushConstantRange pushConstantRange =
 			vks::initializers::pushConstantRange(
@@ -355,8 +355,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/pushconstants/lights.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/pushconstants/lights.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "pushconstants/lights.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "pushconstants/lights.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(
@@ -419,7 +419,7 @@ public:
 		VulkanExampleBase::prepare();
 
 		// Check requested push constant size against hardware limit
-		// Specs require 128 bytes, so if the device complies our push constant buffer should always fit into memory		
+		// Specs require 128 bytes, so if the device complies our push constant buffer should always fit into memory
 		assert(sizeof(pushConstants) <= vulkanDevice->properties.limits.maxPushConstantsSize);
 
 		loadAssets();

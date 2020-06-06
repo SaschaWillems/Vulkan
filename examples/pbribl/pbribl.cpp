@@ -211,7 +211,7 @@ public:
 
 			Material mat = materials[materialIndex];
 
-#define SINGLE_ROW 1	
+#define SINGLE_ROW 1
 #ifdef SINGLE_ROW
 			uint32_t objcount = 10;
 			for (uint32_t x = 0; x < objcount; x++) {
@@ -360,13 +360,13 @@ public:
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV });
 
 		// Skybox pipeline (background cube)
-		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "pbribl/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "pbribl/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.skybox));
 
 		// PBR pipeline
-		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/pbribl.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/pbribl.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "pbribl/pbribl.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "pbribl/pbribl.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// Enable depth test and write
 		depthStencilState.depthWriteEnable = VK_TRUE;
 		depthStencilState.depthTestEnable = VK_TRUE;
@@ -483,7 +483,7 @@ public:
 		framebufferCI.width = dim;
 		framebufferCI.height = dim;
 		framebufferCI.layers = 1;
-		
+
 		VkFramebuffer framebuffer;
 		VK_CHECK_RESULT(vkCreateFramebuffer(device, &framebufferCI, nullptr, &framebuffer));
 
@@ -535,8 +535,8 @@ public:
 		pipelineCI.pVertexInputState = &emptyInputState;
 
 		// Look-up-table (from BRDF) pipeline
-		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/genbrdflut.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/genbrdflut.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "pbribl/genbrdflut.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "pbribl/genbrdflut.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipeline pipeline;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
@@ -564,7 +564,7 @@ public:
 		vulkanDevice->flushCommandBuffer(cmdBuf, queue);
 
 		vkQueueWaitIdle(queue);
-		
+
 		// todo: cleanup
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelinelayout, nullptr);
@@ -811,8 +811,8 @@ public:
 		pipelineCI.renderPass = renderpass;
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV });
 
-		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/irradiancecube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "pbribl/irradiancecube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipeline pipeline;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
@@ -923,7 +923,7 @@ public:
 					1,
 					&copyRegion);
 
-				// Transform framebuffer color attachment back 
+				// Transform framebuffer color attachment back
 				vks::tools::setImageLayout(
 					cmdBuf,
 					offscreen.image,
@@ -1191,8 +1191,8 @@ public:
 		pipelineCI.renderPass = renderpass;
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV });
 
-		shaderStages[0] = loadShader(getAssetPath() +  "shaders/pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() +  "shaders/pbribl/prefilterenvmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "pbribl/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "pbribl/prefilterenvmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VkPipeline pipeline;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
@@ -1229,7 +1229,7 @@ public:
 
 		VkViewport viewport = vks::initializers::viewport((float)dim, (float)dim, 0.0f, 1.0f);
 		VkRect2D scissor = vks::initializers::rect2D(dim, dim, 0, 0);
-		
+
 		vkCmdSetViewport(cmdBuf, 0, 1, &viewport);
 		vkCmdSetScissor(cmdBuf, 0, 1, &scissor);
 
@@ -1270,10 +1270,10 @@ public:
 				vkCmdEndRenderPass(cmdBuf);
 
 				vks::tools::setImageLayout(
-					cmdBuf, 
-					offscreen.image, 
-					VK_IMAGE_ASPECT_COLOR_BIT, 
-					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+					cmdBuf,
+					offscreen.image,
+					VK_IMAGE_ASPECT_COLOR_BIT,
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
 				// Copy region for transfer from framebuffer to cube face
@@ -1304,7 +1304,7 @@ public:
 					1,
 					&copyRegion);
 
-				// Transform framebuffer color attachment back 
+				// Transform framebuffer color attachment back
 				vks::tools::setImageLayout(
 					cmdBuf,
 					offscreen.image,

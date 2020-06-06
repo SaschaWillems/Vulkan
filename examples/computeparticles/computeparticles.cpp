@@ -183,6 +183,15 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipeline);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, NULL);
 
+			glm::vec2 screendim = glm::vec2((float)width, (float)height);
+			vkCmdPushConstants(
+					drawCmdBuffers[i],
+					graphics.pipelineLayout,
+					VK_SHADER_STAGE_VERTEX_BIT,
+					0,
+					sizeof(glm::vec2),
+					&screendim);
+
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &compute.storageBuffer.buffer, offsets);
 			vkCmdDraw(drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
@@ -262,7 +271,7 @@ public:
 		vkCmdDispatch(compute.commandBuffer, PARTICLE_COUNT / 256, 1, 1);
 
 		// Add barrier to ensure that compute shader has finished writing to the buffer
-		// Without this the (rendering) vertex shader may display incomplete results (partial data from last frame) 
+		// Without this the (rendering) vertex shader may display incomplete results (partial data from last frame)
 		if (graphics.queueFamilyIndex != compute.queueFamilyIndex)
 		{
 			VkBufferMemoryBarrier buffer_barrier =
@@ -308,7 +317,7 @@ public:
 		VkDeviceSize storageBufferSize = particleBuffer.size() * sizeof(Particle);
 
 		// Staging
-		// SSBO won't be changed on the host after upload so copy to device local memory 
+		// SSBO won't be changed on the host after upload so copy to device local memory
 
 		vks::Buffer stagingBuffer;
 
@@ -438,6 +447,15 @@ public:
 				&graphics.descriptorSetLayout,
 				1);
 
+		VkPushConstantRange pushConstantRange =
+			vks::initializers::pushConstantRange(
+				VK_SHADER_STAGE_VERTEX_BIT,
+				sizeof(glm::vec2),
+				0);
+
+		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &graphics.pipelineLayout));
 	}
 
@@ -521,8 +539,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/computeparticles/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/computeparticles/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "computeparticles/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "computeparticles/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(
@@ -632,9 +650,9 @@ public:
 
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, NULL);
 
-		// Create pipeline		
+		// Create pipeline
 		VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
-		computePipelineCreateInfo.stage = loadShader(getAssetPath() + "shaders/computeparticles/particle.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
+		computePipelineCreateInfo.stage = loadShader(getShadersPath() + "computeparticles/particle.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
 		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipeline));
 
 		// Separate command pool as queue family for compute may be different than graphics
@@ -785,7 +803,7 @@ public:
 	}
 
 	void prepare()
-	{	
+	{
 		VulkanExampleBase::prepare();
 		// We will be using the queue family indices to check if graphics and compute queue families differ
 		// If that's the case, we need additional barriers for acquiring and releasing resources
@@ -818,7 +836,7 @@ public:
 					timer = 0.f;
 			}
 		}
-		
+
 		updateUniformBuffers();
 	}
 

@@ -75,7 +75,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.MSAA, nullptr);
 		vkDestroyPipeline(device, pipelines.MSAASampleShading, nullptr);
@@ -94,7 +94,7 @@ public:
 		uniformBuffer.destroy();
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Enable sample rate shading filtering if supported
@@ -103,7 +103,7 @@ public:
 		}
 	}
 
-	// Creates a multi sample render target (image and view) that is used to resolve 
+	// Creates a multi sample render target (image and view) that is used to resolve
 	// into the visible frame buffer target in the render pass
 	void setupMultisampleTarget()
 	{
@@ -185,7 +185,7 @@ public:
 		{
 			memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		}
-		
+
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &multisampleTarget.depth.memory));
 		vkBindImageMemory(device, multisampleTarget.depth.image, multisampleTarget.depth.memory, 0);
 
@@ -204,8 +204,8 @@ public:
 		VK_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &multisampleTarget.depth.view));
 	}
 
-	// Setup a render pass for using a multi sampled attachment 
-	// and a resolve attachment that the msaa image is resolved 
+	// Setup a render pass for using a multi sampled attachment
+	// and a resolve attachment that the msaa image is resolved
 	// to at the end of the render pass
 	void setupRenderPass()
 	{
@@ -304,8 +304,8 @@ public:
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 	}
 
-	// Frame buffer attachments must match with render pass setup, 
-	// so we need to adjust frame buffer creation to cover our 
+	// Frame buffer attachments must match with render pass setup,
+	// so we need to adjust frame buffer creation to cover our
 	// multisample target
 	void setupFrameBuffer()
 	{
@@ -466,8 +466,8 @@ public:
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color });
 
 		// MSAA rendering pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/multisampling/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/multisampling/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "multisampling/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "multisampling/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.MSAA));
 
 		if (vulkanDevice->features.sampleRateShading)
