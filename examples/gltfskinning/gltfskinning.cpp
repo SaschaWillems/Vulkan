@@ -17,19 +17,19 @@
 
 #include "gltfskinning.h"
 
-/*
+ /*
 
-	glTF model class
+	 glTF model class
 
-	Contains everything required to render a skinned glTF model in Vulkan
-	This class is simplified compared to glTF's feature set but retains the basic glTF structure required for this sample
+	 Contains everything required to render a skinned glTF model in Vulkan
+	 This class is simplified compared to glTF's feature set but retains the basic glTF structure required for this sample
 
-*/
+ */
 
-/*
-	Get a node's local matrix from the current translation, rotation and scale values
-	These are calculated from the current animation an need to be calculated dynamically
-*/
+ /*
+	 Get a node's local matrix from the current translation, rotation and scale values
+	 These are calculated from the current animation an need to be calculated dynamically
+ */
 glm::mat4 VulkanglTFModel::Node::getLocalMatrix() {
 	return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) * matrix;
 }
@@ -88,7 +88,7 @@ void VulkanglTFModel::loadImages(tinygltf::Model& input)
 		// Load texture from image buffer
 		images[i].texture.fromBuffer(buffer, bufferSize, VK_FORMAT_R8G8B8A8_UNORM, glTFImage.width, glTFImage.height, vulkanDevice, copyQueue);
 		if (deleteBuffer) {
-			delete buffer;
+			delete[] buffer;
 		}
 	}
 }
@@ -145,8 +145,7 @@ VulkanglTFModel::Node* VulkanglTFModel::nodeFromIndex(uint32_t index) {
 	return nodeFound;
 }
 
-// @todo: comment
-// @todo: Add link to spec
+// POI: Load the skins from the glTF model
 void VulkanglTFModel::loadSkins(tinygltf::Model& input)
 {
 	skins.resize(input.skins.size());
@@ -159,7 +158,6 @@ void VulkanglTFModel::loadSkins(tinygltf::Model& input)
 		skins[i].skeletonRoot = nodeFromIndex(glTFSkin.skeleton);
 
 		// Find joint nodes
-		// @todo: reference vs pointer
 		for (int jointIndex : glTFSkin.joints) {
 			Node* node = nodeFromIndex(jointIndex);
 			if (node) {
@@ -190,9 +188,7 @@ void VulkanglTFModel::loadSkins(tinygltf::Model& input)
 	}
 }
 
-// @todo: Helper for getting buffer
-
-// @todo: comment
+// POI: Load the animations from the glTF model
 void VulkanglTFModel::loadAnimations(tinygltf::Model& input)
 {
 	animations.resize(input.animations.size());
@@ -284,16 +280,13 @@ void VulkanglTFModel::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 	// Get the local node matrix
 	// It's either made up from translation, rotation, scale or a 4x4 matrix
 	if (inputNode.translation.size() == 3) {
-		//			node->matrix = glm::translate(node->matrix, glm::vec3(glm::make_vec3(inputNode.translation.data())));
 		node->translation = glm::make_vec3(inputNode.translation.data());
 	}
 	if (inputNode.rotation.size() == 4) {
 		glm::quat q = glm::make_quat(inputNode.rotation.data());
-		//			node->matrix *= glm::mat4(q);
 		node->rotation = glm::mat4(q);
 	}
 	if (inputNode.scale.size() == 3) {
-		//			node->matrix = glm::scale(node->matrix, glm::vec3(glm::make_vec3(inputNode.scale.data())));
 		node->scale = glm::make_vec3(inputNode.scale.data());
 	}
 	if (inputNode.matrix.size() == 16) {
@@ -348,7 +341,7 @@ void VulkanglTFModel::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 					texCoordsBuffer = reinterpret_cast<const float*>(&(input.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 				}
 
-				// Get buffer data required for vertex skinning
+				// POI: Get buffer data required for vertex skinning
 				// Get vertex joint indices
 				if (glTFPrimitive.attributes.find("JOINTS_0") != glTFPrimitive.attributes.end()) {
 					const tinygltf::Accessor& accessor = input.accessors[glTFPrimitive.attributes.find("JOINTS_0")->second];
@@ -420,8 +413,6 @@ void VulkanglTFModel::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 			primitive.indexCount = indexCount;
 			primitive.materialIndex = glTFPrimitive.material;
 			node->mesh.primitives.push_back(primitive);
-			// @todo
-			//node->mesh.createUniformBuffer(vulkanDevice);
 		}
 	}
 
@@ -437,9 +428,8 @@ void VulkanglTFModel::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 	glTF vertex skinning functions
 */
 
-// @todo: Comment
+// POI: Traverse the node hierarchy to the top-most parent to get the local matrix of the given node
 glm::mat4 VulkanglTFModel::getNodeMatrix(VulkanglTFModel::Node* node) {
-	// Traverse the node hierarchy to the top-most parent to get the final matrix of the current node
 	glm::mat4 nodeMatrix = node->getLocalMatrix();
 	VulkanglTFModel::Node* currentParent = node->parent;
 	while (currentParent) {
@@ -449,6 +439,7 @@ glm::mat4 VulkanglTFModel::getNodeMatrix(VulkanglTFModel::Node* node) {
 	return nodeMatrix;
 }
 
+// POI: Update the joint matrices from the current animation frame and pass them to the GPU
 void VulkanglTFModel::updateJoints(VulkanglTFModel::Node* node) {
 	if (node->skin > -1) {
 		glm::mat4 m = getNodeMatrix(node);
@@ -471,9 +462,10 @@ void VulkanglTFModel::updateJoints(VulkanglTFModel::Node* node) {
 	}
 }
 
+// POI: Update the current animation
 void VulkanglTFModel::updateAnimation(float deltaTime)
 {
-	if (activeAnimation> static_cast<uint32_t>(animations.size()) - 1) {
+	if (activeAnimation > static_cast<uint32_t>(animations.size()) - 1) {
 		std::cout << "No animation with index " << activeAnimation << std::endl;
 		return;
 	}
@@ -597,8 +589,6 @@ VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 
 VulkanExample::~VulkanExample()
 {
-	// Clean up used Vulkan resources 
-	// Note : Inherited destructor cleans up resources stored in base class
 	vkDestroyPipeline(device, pipelines.solid, nullptr);
 	if (pipelines.wireframe != VK_NULL_HANDLE) {
 		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
@@ -624,7 +614,6 @@ void VulkanExample::buildCommandBuffers()
 	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 	VkClearValue clearValues[2];
-	clearValues[0].color = defaultClearColor;
 	clearValues[0].color = { { 0.25f, 0.25f, 0.25f, 1.0f } };;
 	clearValues[1].depthStencil = { 1.0f, 0 };
 
@@ -848,13 +837,15 @@ void VulkanExample::preparePipelines()
 		vks::initializers::vertexInputBindingDescription(0, sizeof(VulkanglTFModel::Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
 	};
 	const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-		vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, pos)),
-		vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, normal)),
-		vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, uv)),
-		vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, color)),
-		vks::initializers::vertexInputAttributeDescription(0, 4, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VulkanglTFModel::Vertex, jointIndices)),
-		vks::initializers::vertexInputAttributeDescription(0, 5, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VulkanglTFModel::Vertex, jointWeights)),
+		{ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, pos) },
+		{ 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, normal) },
+		{ 2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, uv) },
+		{ 3, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, color) },
+		// POI: Per-Vertex Joint indices and weights are passed to the vertex shader
+		{ 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VulkanglTFModel::Vertex, jointIndices) },
+		{ 5, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VulkanglTFModel::Vertex, jointWeights) },
 	};
+
 	VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo();
 	vertexInputStateCI.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
 	vertexInputStateCI.pVertexBindingDescriptions = vertexInputBindings.data();
@@ -925,7 +916,7 @@ void VulkanExample::render()
 	if (camera.updated) {
 		updateUniformBuffers();
 	}
-	// @todo: poi
+	// POI: Advance animation
 	if (!paused) {
 		glTFModel.updateAnimation(frameTimer);
 	}

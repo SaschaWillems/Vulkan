@@ -126,12 +126,10 @@ public:
 		Node* skeletonRoot = nullptr;
 		std::vector<glm::mat4> inverseBindMatrices;
 		std::vector<Node*> joints;
-		// The join matrices for this skin are stored in an shader storage buffer
-		std::vector<glm::mat4> jointMatrices;
+		// The joint matrices for this skin are stored in an shader storage buffer
 		vks::Buffer ssbo;
 		VkDescriptorSet descriptorSet;
 	};
-
 
 	/*
 		Animation related structures
