@@ -364,7 +364,7 @@ public:
 			// TODO: There is no command line arguments parsing (nor Android settings) for this
 			// example, so we have no way of picking between GLSL or HLSL shaders.
 			// Hard-code to glsl for now.
-			const std::string shadersPath = getAssetPath() + "/shaders/glsl/computeheadless";
+			const std::string shadersPath = getAssetPath() + "shaders/glsl/computeheadless/";
 
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
