@@ -20,21 +20,26 @@ struct Vertex
 {
   vec3 pos;
   vec3 normal;
-  vec3 color;
   vec2 uv;
-  float _pad0;
+  vec4 color;
+  vec4 _pad0; 
+  vec4 _pad1;
 };
 
 Vertex unpack(uint index)
 {
-	vec4 d0 = vertices.v[3 * index + 0];
-	vec4 d1 = vertices.v[3 * index + 1];
-	vec4 d2 = vertices.v[3 * index + 2];
+	// Unpack the vertices from the SSBO using the glTF vertex structure
+	// 5 means that the SSBO contains 5 times the vertexFormat size set in the triangle geometry components
+
+	vec4 d0 = vertices.v[5 * index + 0];
+	vec4 d1 = vertices.v[5 * index + 1];
+	vec4 d2 = vertices.v[5 * index + 2];
 
 	Vertex v;
 	v.pos = d0.xyz;
 	v.normal = vec3(d0.w, d1.x, d1.y);
-	v.color = vec3(d1.z, d1.w, d2.x);
+	v.color = vec4(d2.x, d2.y, d2.z, 1.0);
+
 	return v;
 }
 
@@ -53,7 +58,7 @@ void main()
 	// Basic lighting
 	vec3 lightVector = normalize(cam.lightPos.xyz);
 	float dot_product = max(dot(lightVector, normal), 0.2);
-	hitValue = v0.color * vec3(dot_product);
+	hitValue = v0.color.rgb * vec3(dot_product);
  
 	// Shadow casting
 	float tmin = 0.001;

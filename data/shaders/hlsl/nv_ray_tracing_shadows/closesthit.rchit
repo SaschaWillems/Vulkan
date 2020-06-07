@@ -26,21 +26,26 @@ struct Vertex
 {
   float3 pos;
   float3 normal;
-  float3 color;
   float2 uv;
-  float _pad0;
+  float4 color;
+  float4 _pad0; 
+  float4 _pad1;
 };
 
 Vertex unpack(uint index)
 {
-	float4 d0 = vertices[3 * index + 0];
-	float4 d1 = vertices[3 * index + 1];
-	float4 d2 = vertices[3 * index + 2];
+	// Unpack the vertices from the SSBO using the glTF vertex structure
+	// 5 means that the SSBO contains 5 times the vertexFormat size set in the triangle geometry components
+
+	float4 d0 = vertices[5 * index + 0];
+	float4 d1 = vertices[5 * index + 1];
+	float4 d2 = vertices[5 * index + 2];
 
 	Vertex v;
 	v.pos = d0.xyz;
 	v.normal = float3(d0.w, d1.x, d1.y);
-	v.color = float3(d1.z, d1.w, d2.x);
+	v.color = float4(d2.x, d2.y, d2.z, 1.0);
+
 	return v;
 }
 
@@ -61,7 +66,7 @@ void main(in InPayload inPayload, inout InOutPayload inOutPayload, in float3 att
 	// Basic lighting
 	float3 lightVector = normalize(cam.lightPos.xyz);
 	float dot_product = max(dot(lightVector, normal), 0.2);
-	inPayload.hitValue = v0.color * dot_product;
+	inPayload.hitValue = v0.color.rgb * dot_product;
 
 	RayDesc rayDesc;
 	rayDesc.Origin = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
