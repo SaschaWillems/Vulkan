@@ -21,20 +21,13 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanModel.hpp"
+#include "VulkanglTFModel.h"
 
 #define ENABLE_VALIDATION false
 
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	// Vertex layout for the models
-	vks::VertexLayout vertexLayout = vks::VertexLayout({
-		vks::VERTEX_COMPONENT_POSITION,
-		vks::VERTEX_COMPONENT_NORMAL,
-		vks::VERTEX_COMPONENT_COLOR,
-	});
-
 	struct MultiviewPass {
 		struct FrameBufferAttachment {
 			VkImage image;
@@ -50,7 +43,7 @@ public:
 		std::vector<VkFence> waitFences;
 	} multiviewPass;
 
-	vks::Model scene;
+	vkglTF::Model scene;
 
 	struct UBO {
 		glm::mat4 projection[2];
@@ -119,8 +112,6 @@ public:
 		for (auto& pipeline : viewDisplayPipelines) {
 			vkDestroyPipeline(device, pipeline, nullptr);
 		}
-
-		scene.destroy();
 
 		uniformBuffer.destroy();
 	}
@@ -439,12 +430,8 @@ public:
 				vkCmdSetScissor(multiviewPass.commandBuffers[i], 0, 1, &scissor);
 
 				vkCmdBindDescriptorSets(multiviewPass.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-
-				VkDeviceSize offsets[1] = { 0 };
-				vkCmdBindVertexBuffers(multiviewPass.commandBuffers[i], 0, 1, &scene.vertices.buffer, offsets);
-				vkCmdBindIndexBuffer(multiviewPass.commandBuffers[i], scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdBindPipeline(multiviewPass.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-				vkCmdDrawIndexed(multiviewPass.commandBuffers[i], scene.indexCount, 1, 0, 0, 0);
+				scene.draw(multiviewPass.commandBuffers[i]);
 
 				vkCmdEndRenderPass(multiviewPass.commandBuffers[i]);
 				VK_CHECK_RESULT(vkEndCommandBuffer(multiviewPass.commandBuffers[i]));
@@ -454,7 +441,7 @@ public:
 
 	void loadAssets()
 	{
-		scene.loadFromFile(getAssetPath() + "models/sampleroom.dae", vertexLayout, 0.25f, vulkanDevice, queue);
+		scene.loadFromFile(getAssetPath() + "models/sampleroom.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY);
 	}
 
 	void prepareDescriptors()
@@ -532,7 +519,7 @@ public:
 		*/
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE);
+		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
 		VkPipelineColorBlendStateCreateInfo colorBlendStateCI =	vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -541,23 +528,7 @@ public:
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 
-		std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-			vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
-		};
-		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position
-			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normals
-			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 6),	// Location 2: Color
-
-		};
-		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-		vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, multiviewPass.renderPass);
-		pipelineCI.pVertexInputState = &vertexInputState;
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 		pipelineCI.pRasterizationState = &rasterizationStateCI;
 		pipelineCI.pColorBlendState = &colorBlendStateCI;
@@ -565,6 +536,7 @@ public:
 		pipelineCI.pViewportState = &viewportStateCI;
 		pipelineCI.pDepthStencilState = &depthStencilStateCI;
 		pipelineCI.pDynamicState = &dynamicStateCI;
+		pipelineCI.pVertexInputState  = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Color});
 
 		/*
 			Load shaders
@@ -590,6 +562,8 @@ public:
 		specializationInfo.mapEntryCount = 1;
 		specializationInfo.pMapEntries = &specializationMapEntry;
 		specializationInfo.pData = &multiviewArrayLayer;
+
+		rasterizationStateCI.cullMode = VK_CULL_MODE_FRONT_BIT;
 
 		/*
 			Separate pipelines per eye (view) using specialization constants to set view array layer to sample from
