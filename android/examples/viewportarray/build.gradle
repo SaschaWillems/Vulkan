@@ -57,7 +57,7 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'sampleroom.dae'
+       include 'sampleroom.gltf'
     }
 
 
