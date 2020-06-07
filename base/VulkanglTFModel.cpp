@@ -1,3 +1,4 @@
+
 /*
 * Vulkan glTF model and texture loading class based on tinyglTF (https://github.com/syoyo/tinygltf)
 *
@@ -14,6 +15,7 @@
 
 VkDescriptorSetLayout vkglTF::descriptorSetLayoutImage = VK_NULL_HANDLE;
 VkDescriptorSetLayout vkglTF::descriptorSetLayoutUbo = VK_NULL_HANDLE;
+VkMemoryPropertyFlags vkglTF::memoryPropertyFlags = 0;
 
 /*
 	glTF texture loading class
@@ -942,6 +944,7 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 	size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 	indices.count = static_cast<uint32_t>(indexBuffer.size());
+	vertices.count = static_cast<uint32_t>(vertexBuffer.size());
 
 	assert((vertexBufferSize > 0) && (indexBufferSize > 0));
 
@@ -971,14 +974,14 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	// Create device local buffers
 	// Vertex buffer
 	VK_CHECK_RESULT(device->createBuffer(
-		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+	    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | memoryPropertyFlags,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		vertexBufferSize,
 		&vertices.buffer,
 		&vertices.memory));
 	// Index buffer
 	VK_CHECK_RESULT(device->createBuffer(
-		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+	    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | memoryPropertyFlags,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		indexBufferSize,
 		&indices.buffer,

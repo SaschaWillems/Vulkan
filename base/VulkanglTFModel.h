@@ -32,6 +32,7 @@ namespace vkglTF
 {
 	extern VkDescriptorSetLayout descriptorSetLayoutImage;
 	extern VkDescriptorSetLayout descriptorSetLayoutUbo;
+    extern VkMemoryPropertyFlags memoryPropertyFlags;
 
 	struct Node;
 
@@ -237,6 +238,7 @@ namespace vkglTF
 		VkDescriptorPool descriptorPool;
 
 		struct Vertices {
+			int count;
 			VkBuffer buffer;
 			VkDeviceMemory memory;
 		} vertices;
