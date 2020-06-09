@@ -595,9 +595,8 @@ public:
 		groups[INDEX_CLOSEST_HIT].closestHitShader = shaderIndexClosestHit;
 		// Shadow closest hit shader group
 		groups[INDEX_SHADOW_HIT].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-		groups[INDEX_SHADOW_HIT].generalShader = VK_SHADER_UNUSED_NV;
 		// Reuse shadow miss shader
-		groups[INDEX_SHADOW_HIT].closestHitShader = shaderIndexShadowMiss;
+		groups[INDEX_SHADOW_HIT].generalShader = shaderIndexClosestHit;
 
 		VkRayTracingPipelineCreateInfoNV rayPipelineInfo{};
 		rayPipelineInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
