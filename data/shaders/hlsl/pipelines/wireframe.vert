@@ -3,7 +3,7 @@
 struct VSInput
 {
 [[vk::location(0)]] float4 Pos : POSITION0;
-[[vk::location(3)]] float3 Color : COLOR0;
+[[vk::location(2)]] float3 Color : COLOR0;
 };
 
 struct UBO

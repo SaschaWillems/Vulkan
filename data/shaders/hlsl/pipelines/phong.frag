@@ -7,9 +7,8 @@ struct VSOutput
 {
 [[vk::location(0)]] float3 Normal : NORMAL0;
 [[vk::location(1)]] float3 Color : COLOR0;
-[[vk::location(2)]] float2 UV : TEXCOORD0;
-[[vk::location(3)]] float3 ViewVec : TEXCOORD1;
-[[vk::location(4)]] float3 LightVec : TEXCOORD2;
+[[vk::location(2)]] float3 ViewVec : TEXCOORD1;
+[[vk::location(3)]] float3 LightVec : TEXCOORD2;
 };
 
 float4 main(VSOutput input) : SV_TARGET
