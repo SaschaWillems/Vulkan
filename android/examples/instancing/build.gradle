@@ -57,19 +57,13 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'rock01.dae'
+       include 'rock01.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'sphere.obj'
-    }
-
-    copy {
-       from '../../../data/models'
-       into 'assets/models'
-       include 'cube.obj'
+       include 'lavaplanet.gltf'
     }
 
     copy {

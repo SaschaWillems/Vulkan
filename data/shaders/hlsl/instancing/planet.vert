@@ -31,7 +31,7 @@ VSOutput main(VSInput input)
 {
 	VSOutput output = (VSOutput)0;
 	output.Color = input.Color;
-	output.UV = input.UV * float2(10.0, 6.0);
+	output.UV = input.UV;
 	output.Pos = mul(ubo.projection, mul(ubo.modelview, float4(input.Pos.xyz, 1.0)));
 
 	float4 pos = mul(ubo.modelview, float4(input.Pos, 1.0));
