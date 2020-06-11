@@ -57,31 +57,31 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'plants.dae'
+       include 'plants.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'plane_circle.dae'
+       include 'plane_circle.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'skysphere.dae'
+       include 'sphere.gltf'
     }
 
     copy {
        from '../../../data/textures'
        into 'assets/textures'
-       include 'texturearray_plants*.ktx'
+       include 'texturearray_plants_rgba.ktx'
     }
 
     copy {
        from '../../../data/textures'
        into 'assets/textures'
-       include 'ground_dry*.ktx'
+       include 'ground_dry_rgba.ktx'
     }
 
 

@@ -12,14 +12,9 @@ layout (binding = 0) uniform UBO
 
 layout (location = 0) out vec2 outUV;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
-
 void main() 
 {
-	outUV = vec2(inUV.s, 1.0-inUV.t);
+	outUV = inUV;
 	// Skysphere always at center, only use rotation part of modelview matrix
 	gl_Position = ubo.projection * mat4(mat3(ubo.modelview)) * vec4(inPos.xyz, 1.0);
 }

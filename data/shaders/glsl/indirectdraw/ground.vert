@@ -12,29 +12,10 @@ layout (binding = 0) uniform UBO
 	mat4 modelview;
 } ubo;
 
-layout (location = 0) out vec3 outNormal;
-layout (location = 1) out vec3 outColor;
-layout (location = 2) out vec2 outUV;
-layout (location = 3) out vec3 outViewVec;
-layout (location = 4) out vec3 outLightVec;
-
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
+layout (location = 0) out vec2 outUV;
 
 void main() 
 {
-	outColor = inColor;
 	outUV = inUV * 32.0;
-	outNormal = inNormal;
-
-	vec4 pos = vec4(inPos.xyz, 1.0);
-
-	gl_Position = ubo.projection * ubo.modelview * pos;
-	
-	vec4 wPos = ubo.modelview * vec4(pos.xyz, 1.0); 
-	vec4 lPos = vec4(0.0, -5.0, 0.0, 1.0);
-	outLightVec = lPos.xyz - pos.xyz;
-	outViewVec = -pos.xyz;	
+	gl_Position = ubo.projection * ubo.modelview * vec4(inPos.xyz, 1.0);
 }

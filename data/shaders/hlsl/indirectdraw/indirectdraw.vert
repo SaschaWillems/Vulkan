@@ -35,7 +35,6 @@ VSOutput main(VSInput input)
 	VSOutput output = (VSOutput)0;
 	output.Color = input.Color;
 	output.UV = float3(input.UV, input.instanceTexIndex);
-	output.UV.y = 1.0 - output.UV.y;
 
 	float4x4 mx, my, mz;
 

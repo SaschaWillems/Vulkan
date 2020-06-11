@@ -36,7 +36,7 @@
 #include "vulkanexamplebase.h"
 #include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
-#include "VulkanModel.hpp"
+#include "VulkanglTFModel.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define INSTANCE_BUFFER_BIND_ID 1
@@ -61,25 +61,11 @@ public:
 		vks::Texture2D ground;
 	} textures;
 
-	// Vertex layout for the models
-	vks::VertexLayout vertexLayout = vks::VertexLayout({
-		vks::VERTEX_COMPONENT_POSITION,
-		vks::VERTEX_COMPONENT_NORMAL,
-		vks::VERTEX_COMPONENT_UV,
-		vks::VERTEX_COMPONENT_COLOR,
-	});
-
 	struct {
-		vks::Model plants;
-		vks::Model ground;
-		vks::Model skysphere;
+		vkglTF::Model plants;
+		vkglTF::Model ground;
+		vkglTF::Model skysphere;
 	} models;
-
-	struct {
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
 
 	// Per-instance data block
 	struct InstanceData {
@@ -139,9 +125,6 @@ public:
 		vkDestroyPipeline(device, pipelines.skysphere, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		models.plants.destroy();
-		models.ground.destroy();
-		models.skysphere.destroy();
 		textures.plants.destroy();
 		textures.ground.destroy();
 		instanceBuffer.destroy();
@@ -159,16 +142,6 @@ public:
 		// Enable anisotropic filtering if supported
 		if (deviceFeatures.samplerAnisotropy) {
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
-		}
-		// Enable texture compression
-		if (deviceFeatures.textureCompressionBC) {
-			enabledFeatures.textureCompressionBC = VK_TRUE;
-		}
-		else if (deviceFeatures.textureCompressionASTC_LDR) {
-			enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
-		}
-		else if (deviceFeatures.textureCompressionETC2) {
-			enabledFeatures.textureCompressionETC2 = VK_TRUE;
 		}
 	};
 
@@ -205,7 +178,14 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
-			// Plants
+			// Skysphere
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skysphere);
+			models.skysphere.draw(drawCmdBuffers[i]);
+			// Ground
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ground);
+			models.ground.draw(drawCmdBuffers[i]);
+
+			// [POI] Instanced multi draw rendering of the plants
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.plants);
 			// Binding point 0 : Mesh vertex buffer
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.plants.vertices.buffer, offsets);
@@ -230,17 +210,6 @@ public:
 				}
 			}
 
-			// Ground
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ground);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.ground.vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.ground.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], models.ground.indexCount, 1, 0, 0, 0);
-			// Skysphere
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skysphere);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.skysphere.vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.skysphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], models.skysphere.indexCount, 1, 0, 0, 0);
-
 			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -251,270 +220,73 @@ public:
 
 	void loadAssets()
 	{
-		models.plants.loadFromFile(getAssetPath() + "models/plants.dae", vertexLayout, 0.0025f, vulkanDevice, queue);
-		models.ground.loadFromFile(getAssetPath() + "models/plane_circle.dae", vertexLayout, PLANT_RADIUS + 1.0f, vulkanDevice, queue);
-		models.skysphere.loadFromFile(getAssetPath() + "models/skysphere.dae", vertexLayout, 512.0f / 10.0f, vulkanDevice, queue);
-
-		// Textures
-		std::string texFormatSuffix;
-		VkFormat texFormat;
-		// Get supported compressed texture format
-		if (vulkanDevice->features.textureCompressionBC) {
-			texFormatSuffix = "_bc3_unorm";
-			texFormat = VK_FORMAT_BC3_UNORM_BLOCK;
-		}
-		else if (vulkanDevice->features.textureCompressionASTC_LDR) {
-			texFormatSuffix = "_astc_8x8_unorm";
-			texFormat = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
-		}
-		else if (vulkanDevice->features.textureCompressionETC2) {
-			texFormatSuffix = "_etc2_unorm";
-			texFormat = VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
-		}
-		else {
-			vks::tools::exitFatal("Device does not support any compressed texture format!", VK_ERROR_FEATURE_NOT_PRESENT);
-		}
-
-		textures.plants.loadFromFile(getAssetPath() + "textures/texturearray_plants" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
-		textures.ground.loadFromFile(getAssetPath() + "textures/ground_dry" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
-	}
-
-	void setupVertexDescriptions()
-	{
-		// Binding description
-		vertices.bindingDescriptions.resize(2);
-
-		// Mesh vertex buffer (description) at binding point 0
-		vertices.bindingDescriptions[0] =
-			vks::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
-				vertexLayout.stride(),
-				// Input rate for the data passed to shader
-				// Step for each vertex rendered
-				VK_VERTEX_INPUT_RATE_VERTEX);
-
-		vertices.bindingDescriptions[1] =
-			vks::initializers::vertexInputBindingDescription(
-				INSTANCE_BUFFER_BIND_ID,
-				sizeof(InstanceData),
-				// Input rate for the data passed to shader
-				// Step for each instance rendered
-				VK_VERTEX_INPUT_RATE_INSTANCE);
-
-		// Attribute descriptions
-		// Describes memory layout and shader positions
-		vertices.attributeDescriptions.clear();
-
-		// Per-Vertex attributes
-		// Location 0 : Position
-		vertices.attributeDescriptions.push_back(
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				0,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				0)
-			);
-		// Location 1 : Normal
-		vertices.attributeDescriptions.push_back(
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				1,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 3)
-			);
-		// Location 2 : Texture coordinates
-		vertices.attributeDescriptions.push_back(
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				2,
-				VK_FORMAT_R32G32_SFLOAT,
-				sizeof(float) * 6)
-			);
-		// Location 3 : Color
-		vertices.attributeDescriptions.push_back(
-			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
-				3,
-				VK_FORMAT_R32G32B32_SFLOAT,
-				sizeof(float) * 8)
-			);
-
-		// Instanced attributes
-		// Location 4: Position
-		vertices.attributeDescriptions.push_back(
-			vks::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, pos))
-			);
-		// Location 5: Rotation
-		vertices.attributeDescriptions.push_back(
-			vks::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, rot))
-			);
-		// Location 6: Scale
-		vertices.attributeDescriptions.push_back(
-			vks::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 6, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, scale))
-			);
-		// Location 7: Texture array layer index
-		vertices.attributeDescriptions.push_back(
-			vks::initializers::vertexInputAttributeDescription(
-				INSTANCE_BUFFER_BIND_ID, 7, VK_FORMAT_R32_SINT, offsetof(InstanceData, texIndex))
-			);
-
-		vertices.inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
-		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
-		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
+		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+		models.plants.loadFromFile(getAssetPath() + "models/plants.gltf", vulkanDevice, queue, glTFLoadingFlags);
+		models.ground.loadFromFile(getAssetPath() + "models/plane_circle.gltf", vulkanDevice, queue, glTFLoadingFlags);
+		models.skysphere.loadFromFile(getAssetPath() + "models/sphere.gltf", vulkanDevice, queue, glTFLoadingFlags);
+		textures.plants.loadFromFile(getAssetPath() + "textures/texturearray_plants_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		textures.ground.loadFromFile(getAssetPath() + "textures/ground_dry_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void setupDescriptorPool()
 	{
-		// Example uses one ubo
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
+		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2),
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(
-				static_cast<uint32_t>(poolSizes.size()),
-				poolSizes.data(),
-				2);
-
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
 	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-		{
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0: Vertex shader uniform buffer
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			// Binding 1: Fragment shader combined sampler (plants texture array)
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 			// Binding 1: Fragment shader combined sampler (ground texture)
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
 		};
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				static_cast<uint32_t>(setLayoutBindings.size()));
-
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(
-				&descriptorSetLayout,
-				1);
-
+		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSet()
 	{
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
-
+		VkDescriptorSetAllocateInfo allocInfo =vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(
-			descriptorSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&uniformData.scene.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformData.scene.descriptor),
 			// Binding 1: Plants texture array combined
-			vks::initializers::writeDescriptorSet(
-				descriptorSet,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&textures.plants.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.plants.descriptor),
 			// Binding 2: Ground texture combined
-			vks::initializers::writeDescriptorSet(
-				descriptorSet,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				2,
-				&textures.ground.descriptor)
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textures.ground.descriptor)
 		};
-
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
 	{
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(
-				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-				0,
-				VK_FALSE);
-
-		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vks::initializers::pipelineRasterizationStateCreateInfo(
-				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
-				VK_FRONT_FACE_CLOCKWISE,
-				0);
-
-		VkPipelineColorBlendAttachmentState blendAttachmentState =
-			vks::initializers::pipelineColorBlendAttachmentState(
-				0xf,
-				VK_FALSE);
-
-		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vks::initializers::pipelineColorBlendStateCreateInfo(
-				1,
-				&blendAttachmentState);
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE,
-				VK_TRUE,
-				VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		VkPipelineViewportStateCreateInfo viewportState =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vks::initializers::pipelineMultisampleStateCreateInfo(
-				VK_SAMPLE_COUNT_1_BIT,
-				0);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(
-				dynamicStateEnables.data(),
-				static_cast<uint32_t>(dynamicStateEnables.size()),
-				0);
-
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vks::initializers::pipelineCreateInfo(
-				pipelineLayout,
-				renderPass,
-				0);
-
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+		std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -525,21 +297,67 @@ public:
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
+		// This example uses two different input states, one for the instanced part and one for non-instanced rendering
+		VkPipelineVertexInputStateCreateInfo inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
+		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+
+		// Vertex input bindings
+		// The instancing pipeline uses a vertex input state with two bindings
+		bindingDescriptions = {
+		    // Binding point 0: Mesh vertex layout description at per-vertex rate
+		    vks::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, sizeof(vkglTF::Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
+		    // Binding point 1: Instanced data at per-instance rate
+		    vks::initializers::vertexInputBindingDescription(INSTANCE_BUFFER_BIND_ID, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
+		};
+
+		// Vertex attribute bindings
+		// Note that the shader declaration for per-vertex and per-instance attributes is the same, the different input rates are only stored in the bindings:
+		// instanced.vert:
+		//	layout (location = 0) in vec3 inPos;		Per-Vertex
+		//	...
+		//	layout (location = 4) in vec3 instancePos;	Per-Instance
+		attributeDescriptions = {
+		    // Per-vertex attributees
+		    // These are advanced for each vertex fetched by the vertex shader
+		    vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),								// Location 0: Position
+		    vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),				// Location 1: Normal
+		    vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),					// Location 2: Texture coordinates
+		    vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),				// Location 3: Color
+		    // Per-Instance attributes
+		    // These are fetched for each instance rendered
+		    vks::initializers::vertexInputAttributeDescription(INSTANCE_BUFFER_BIND_ID, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, pos)),	// Location 4: Position
+		    vks::initializers::vertexInputAttributeDescription(INSTANCE_BUFFER_BIND_ID, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, rot)),	// Location 5: Rotation
+		    vks::initializers::vertexInputAttributeDescription(INSTANCE_BUFFER_BIND_ID, 6, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, scale)),		// Location 6: Scale
+		    vks::initializers::vertexInputAttributeDescription(INSTANCE_BUFFER_BIND_ID, 7, VK_FORMAT_R32_SINT, offsetof(InstanceData, texIndex)),		// Location 7: Texture array layer index
+		};
+		inputState.pVertexBindingDescriptions = bindingDescriptions.data();
+		inputState.pVertexAttributeDescriptions = attributeDescriptions.data();
+		inputState.vertexBindingDescriptionCount   = static_cast<uint32_t>(bindingDescriptions.size());
+		inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+
+		pipelineCreateInfo.pVertexInputState = &inputState;
+
 		// Indirect (and instanced) pipeline for the plants
 		shaderStages[0] = loadShader(getShadersPath() + "indirectdraw/indirectdraw.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "indirectdraw/indirectdraw.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.plants));
 
+		// Only use non-instanced vertex attributes for models rendered without instancing
+		inputState.vertexBindingDescriptionCount = 1;
+		inputState.vertexAttributeDescriptionCount = 4;
+
 		// Ground
 		shaderStages[0] = loadShader(getShadersPath() + "indirectdraw/ground.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "indirectdraw/ground.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		//rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.ground));
 
 		// Skysphere
 		shaderStages[0] = loadShader(getShadersPath() + "indirectdraw/skysphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "indirectdraw/skysphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		//rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
+		depthStencilState.depthWriteEnable = VK_FALSE;
+		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skysphere));
 	}
 
@@ -548,19 +366,24 @@ public:
 	{
 		indirectCommands.clear();
 
-		// Create on indirect command for each mesh in the scene
+		// Create on indirect command for node in the scene with a mesh attached to it
 		uint32_t m = 0;
-		for (auto& modelPart : models.plants.parts)
+		for (auto &node : models.plants.nodes)
 		{
-			VkDrawIndexedIndirectCommand indirectCmd{};
-			indirectCmd.instanceCount = OBJECT_INSTANCE_COUNT;
-			indirectCmd.firstInstance = m * OBJECT_INSTANCE_COUNT;
-			indirectCmd.firstIndex = modelPart.indexBase;
-			indirectCmd.indexCount = modelPart.indexCount;
+			if (node->mesh)
+			{
+				VkDrawIndexedIndirectCommand indirectCmd{};
+				indirectCmd.instanceCount = OBJECT_INSTANCE_COUNT;
+				indirectCmd.firstInstance = m * OBJECT_INSTANCE_COUNT;
+				// @todo: Multiple primitives
+				// A glTF node may consist of multiple primitives, so we may have to do multiple commands per mesh
+				indirectCmd.firstIndex = node->mesh->primitives[0]->firstIndex;
+				indirectCmd.indexCount = node->mesh->primitives[0]->indexCount;
 
-			indirectCommands.push_back(indirectCmd);
+				indirectCommands.push_back(indirectCmd);
 
-			m++;
+				m++;
+			}
 		}
 
 		indirectDrawCount = static_cast<uint32_t>(indirectCommands.size());
@@ -600,9 +423,9 @@ public:
 		std::uniform_real_distribution<float> uniformDist(0.0f, 1.0f);
 
 		for (uint32_t i = 0; i < objectCount; i++) {
-			instanceData[i].rot = glm::vec3(0.0f, float(M_PI) * uniformDist(rndEngine), 0.0f);
 			float theta = 2 * float(M_PI) * uniformDist(rndEngine);
 			float phi = acos(1 - 2 * uniformDist(rndEngine));
+			instanceData[i].rot = glm::vec3(0.0f, float(M_PI) * uniformDist(rndEngine), 0.0f);
 			instanceData[i].pos = glm::vec3(sin(phi) * cos(theta), 0.0f, cos(phi)) * PLANT_RADIUS;
 			instanceData[i].scale = 1.0f + uniformDist(rndEngine) * 2.0f;
 			instanceData[i].texIndex = i / OBJECT_INSTANCE_COUNT;
@@ -671,7 +494,6 @@ public:
 		loadAssets();
 		prepareIndirectData();
 		prepareInstanceData();
-		setupVertexDescriptions();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
@@ -688,11 +510,10 @@ public:
 			return;
 		}
 		draw();
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffer(true);
+		if (camera.updated)
+		{
+			updateUniformBuffer(true);
+		}
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
