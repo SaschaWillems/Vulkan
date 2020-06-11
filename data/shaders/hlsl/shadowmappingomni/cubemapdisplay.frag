@@ -6,7 +6,7 @@ SamplerState shadowCubeMapSampler : register(s1);
 float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 {
 	float4 outFragColor = float4(0, 0, 0, 0);
-	outFragColor.rgb = float3(0.0, 0.0, 0.2);
+	outFragColor.rgb = float3(0.05, 0.05, 0.05);
 
 	float3 samplePos = float3(0, 0, 0);
 

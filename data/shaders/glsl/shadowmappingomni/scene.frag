@@ -35,6 +35,6 @@ void main()
 
 	// Check if fragment is in shadow
     float shadow = (dist <= sampledDist + EPSILON) ? 1.0 : SHADOW_OPACITY;
-    		
+
 	outFragColor.rgb *= shadow;
 }

@@ -8,7 +8,7 @@ layout (location = 0) out vec4 outFragColor;
 
 void main() 
 {
-	outFragColor.rgb = vec3(0.0, 0.0, 0.2);
+	outFragColor.rgb = vec3(0.05);
 	
 	vec3 samplePos = vec3(0.0f);
 	
