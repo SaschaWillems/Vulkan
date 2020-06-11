@@ -57,19 +57,19 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'retroufo.dae'
+       include 'retroufo.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'retroufo_glow.dae'
+       include 'retroufo_glow.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'cube.obj'
+       include 'cube.gltf'
     }
 
     copy {
