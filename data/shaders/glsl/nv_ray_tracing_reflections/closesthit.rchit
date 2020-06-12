@@ -14,12 +14,13 @@ layout(location = 0) rayPayloadInNV RayPayload rayPayload;
 hitAttributeNV vec3 attribs;
 
 layout(binding = 0, set = 0) uniform accelerationStructureNV topLevelAS;
-layout(binding = 2, set = 0) uniform CameraProperties 
+layout(binding = 2, set = 0) uniform UBO 
 {
 	mat4 viewInverse;
 	mat4 projInverse;
 	vec4 lightPos;
-} cam;
+	int vertexSize;
+} ubo;
 layout(binding = 3, set = 0) buffer Vertices { vec4 v[]; } vertices;
 layout(binding = 4, set = 0) buffer Indices { uint i[]; } indices;
 
@@ -36,11 +37,12 @@ struct Vertex
 Vertex unpack(uint index)
 {
 	// Unpack the vertices from the SSBO using the glTF vertex structure
-	// 5 means that the SSBO contains 5 times the vertexFormat size set in the triangle geometry components
+	// The multiplier is the size of the vertex divided by four float components (=16 bytes)
+	const int m = ubo.vertexSize / 16;
 
-	vec4 d0 = vertices.v[5 * index + 0];
-	vec4 d1 = vertices.v[5 * index + 1];
-	vec4 d2 = vertices.v[5 * index + 2];
+	vec4 d0 = vertices.v[m * index + 0];
+	vec4 d1 = vertices.v[m * index + 1];
+	vec4 d2 = vertices.v[m * index + 2];
 
 	Vertex v;
 	v.pos = d0.xyz;
@@ -63,7 +65,7 @@ void main()
 	vec3 normal = normalize(v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z);
 
 	// Basic lighting
-	vec3 lightVector = normalize(cam.lightPos.xyz);
+	vec3 lightVector = normalize(ubo.lightPos.xyz);
 	float dot_product = max(dot(lightVector, normal), 0.6);
 	rayPayload.color = v0.color.rgb * vec3(dot_product);
 	rayPayload.distance = gl_RayTmaxNV;
