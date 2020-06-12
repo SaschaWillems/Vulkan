@@ -18,8 +18,8 @@ layout (binding = 4) uniform UBO
 {
 	Light lights[6];
 	vec4 viewPos;
+	int displayDebugTarget;
 } ubo;
-
 
 void main() 
 {
@@ -28,6 +28,28 @@ void main()
 	vec3 normal = texture(samplerNormal, inUV).rgb;
 	vec4 albedo = texture(samplerAlbedo, inUV);
 	
+	// Debug display
+	if (ubo.displayDebugTarget > 0) {
+		switch (ubo.displayDebugTarget) {
+			case 1: 
+				outFragcolor.rgb = fragPos;
+				break;
+			case 2: 
+				outFragcolor.rgb = normal;
+				break;
+			case 3: 
+				outFragcolor.rgb = albedo.rgb;
+				break;
+			case 4: 
+				outFragcolor.rgb = albedo.aaa;
+				break;
+		}		
+		outFragcolor.a = 1.0;
+		return;
+	}
+
+	// Render-target composition
+
 	#define lightCount 6
 	#define ambient 0.0
 	
