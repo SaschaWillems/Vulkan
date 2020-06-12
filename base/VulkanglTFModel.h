@@ -199,7 +199,7 @@ namespace vkglTF
 	/*
 		glTF default vertex layout with easy Vulkan mapping functions
 	*/
-	enum class VertexComponent { Position, Normal, UV, Color, Joint0, Weight0 };
+	enum class VertexComponent { Position, Normal, UV, Color, Tangent, Joint0, Weight0 };
 
 	struct Vertex {
 		glm::vec3 pos;
@@ -208,6 +208,7 @@ namespace vkglTF
 		glm::vec4 color;
 		glm::vec4 joint0;
 		glm::vec4 weight0;
+		glm::vec4 tangent;
 		static VkVertexInputBindingDescription vertexInputBindingDescription;
 		static std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
 		static VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo;

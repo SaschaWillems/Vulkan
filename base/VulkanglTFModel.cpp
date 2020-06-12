@@ -402,6 +402,8 @@ VkVertexInputAttributeDescription vkglTF::Vertex::inputAttributeDescription(uint
 			return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv) });
 		case VertexComponent::Color:
 			return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, color) });
+		case VertexComponent::Tangent:
+			return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, tangent)} );
 		case VertexComponent::Joint0:
 			return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, joint0) });
 		case VertexComponent::Weight0:
@@ -521,6 +523,7 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 				const float *bufferNormals = nullptr;
 				const float *bufferTexCoords = nullptr;
 				const float* bufferColors = nullptr;
+				const float *bufferTangents = nullptr;
 				uint32_t numColorComponents;
 				const uint16_t *bufferJoints = nullptr;
 				const float *bufferWeights = nullptr;
@@ -545,12 +548,21 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 					const tinygltf::BufferView &uvView = model.bufferViews[uvAccessor.bufferView];
 					bufferTexCoords = reinterpret_cast<const float *>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
 				}
-				if (primitive.attributes.find("COLOR_0") != primitive.attributes.end()) {
+
+				if (primitive.attributes.find("COLOR_0") != primitive.attributes.end())
+				{
 					const tinygltf::Accessor& colorAccessor = model.accessors[primitive.attributes.find("COLOR_0")->second];
 					const tinygltf::BufferView& colorView = model.bufferViews[colorAccessor.bufferView];
 					// Color buffer are either of type vec3 or vec4
 					numColorComponents = colorAccessor.type == TINYGLTF_PARAMETER_TYPE_FLOAT_VEC3 ? 3 : 4;
 					bufferColors = reinterpret_cast<const float*>(&(model.buffers[colorView.buffer].data[colorAccessor.byteOffset + colorView.byteOffset]));
+				}
+
+				if (primitive.attributes.find("TANGENT") != primitive.attributes.end())
+				{
+					const tinygltf::Accessor &tangentAccessor = model.accessors[primitive.attributes.find("TANGENT")->second];
+					const tinygltf::BufferView &tangentView = model.bufferViews[tangentAccessor.bufferView];
+					bufferTangents = reinterpret_cast<const float *>(&(model.buffers[tangentView.buffer].data[tangentAccessor.byteOffset + tangentView.byteOffset]));
 				}
 
 				// Skinning
@@ -587,6 +599,7 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 					else {
 						vert.color = glm::vec4(1.0f);
 					}
+					vert.tangent = bufferTangents ? glm::vec4(glm::make_vec4(&bufferTangents[v * 4])) : glm::vec4(0.0f);
 					vert.joint0 = hasSkin ? glm::vec4(glm::make_vec4(&bufferJoints[v * 4])) : glm::vec4(0.0f);
 					vert.weight0 = hasSkin ? glm::make_vec4(&bufferWeights[v * 4]) : glm::vec4(0.0f);
 					vertexBuffer.push_back(vert);
