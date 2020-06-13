@@ -717,19 +717,19 @@ public:
 		uboComposition.lights[1].color = glm::vec3(1.0f, 0.0f, 0.0f);
 		uboComposition.lights[1].radius = 15.0f;
 		// Blue
-		uboComposition.lights[2].position = glm::vec4(2.0f, 1.0f, 0.0f, 0.0f);
+		uboComposition.lights[2].position = glm::vec4(2.0f, -1.0f, 0.0f, 0.0f);
 		uboComposition.lights[2].color = glm::vec3(0.0f, 0.0f, 2.5f);
 		uboComposition.lights[2].radius = 5.0f;
 		// Yellow
-		uboComposition.lights[3].position = glm::vec4(0.0f, 0.9f, 0.5f, 0.0f);
+		uboComposition.lights[3].position = glm::vec4(0.0f, -0.9f, 0.5f, 0.0f);
 		uboComposition.lights[3].color = glm::vec3(1.0f, 1.0f, 0.0f);
 		uboComposition.lights[3].radius = 2.0f;
 		// Green
-		uboComposition.lights[4].position = glm::vec4(0.0f, 0.5f, 0.0f, 0.0f);
+		uboComposition.lights[4].position = glm::vec4(0.0f, -0.5f, 0.0f, 0.0f);
 		uboComposition.lights[4].color = glm::vec3(0.0f, 1.0f, 0.2f);
 		uboComposition.lights[4].radius = 5.0f;
 		// Yellow
-		uboComposition.lights[5].position = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+		uboComposition.lights[5].position = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
 		uboComposition.lights[5].color = glm::vec3(1.0f, 0.7f, 0.3f);
 		uboComposition.lights[5].radius = 25.0f;
 

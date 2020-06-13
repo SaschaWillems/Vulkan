@@ -20,11 +20,6 @@ layout (location = 2) out vec3 outColor;
 layout (location = 3) out vec3 outWorldPos;
 layout (location = 4) out vec3 outTangent;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
-
 void main() 
 {
 	vec4 tmpPos = inPos + ubo.instancePos[gl_InstanceIndex];
@@ -35,8 +30,6 @@ void main()
 
 	// Vertex position in world space
 	outWorldPos = vec3(ubo.model * tmpPos);
-	// GL to Vulkan coord space
-	outWorldPos.y = -outWorldPos.y;
 	
 	// Normal in world space
 	mat3 mNormal = transpose(inverse(mat3(ubo.model)));
