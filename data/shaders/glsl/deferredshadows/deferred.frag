@@ -3,8 +3,6 @@
 layout (binding = 1) uniform sampler2D samplerposition;
 layout (binding = 2) uniform sampler2D samplerNormal;
 layout (binding = 3) uniform sampler2D samplerAlbedo;
-// Depth from the light's point of view
-//layout (binding = 5) uniform sampler2DShadow samplerShadowMap;
 layout (binding = 5) uniform sampler2DArray samplerShadowMap;
 
 layout (location = 0) in vec2 inUV;
@@ -29,6 +27,7 @@ layout (binding = 4) uniform UBO
 	vec4 viewPos;
 	Light lights[LIGHT_COUNT];
 	int useShadows;
+	int debugDisplayTarget;
 } ubo;
 
 float textureProj(vec4 P, float layer, vec2 offset)
@@ -71,6 +70,23 @@ float filterPCF(vec4 sc, float layer)
 	return shadowFactor / count;
 }
 
+vec3 shadow(vec3 fragcolor, vec3 fragpos) {
+	for(int i = 0; i < LIGHT_COUNT; ++i)
+	{
+		vec4 shadowClip	= ubo.lights[i].viewMatrix * vec4(fragpos, 1.0);
+
+		float shadowFactor;
+		#ifdef USE_PCF
+			shadowFactor= filterPCF(shadowClip, i);
+		#else
+			shadowFactor = textureProj(shadowClip, i, vec2(0.0));
+		#endif
+
+		fragcolor *= shadowFactor;
+	}
+	return fragcolor;
+}
+
 void main() 
 {
 	// Get G-Buffer values
@@ -78,13 +94,34 @@ void main()
 	vec3 normal = texture(samplerNormal, inUV).rgb;
 	vec4 albedo = texture(samplerAlbedo, inUV);
 
+	// Debug display
+	if (ubo.debugDisplayTarget > 0) {
+		switch (ubo.debugDisplayTarget) {
+			case 1: 
+				outFragColor.rgb = shadow(vec3(1.0), fragPos).rgb;
+				break;
+			case 2: 
+				outFragColor.rgb = fragPos;
+				break;
+			case 3: 
+				outFragColor.rgb = normal;
+				break;
+			case 4: 
+				outFragColor.rgb = albedo.rgb;
+				break;
+			case 5: 
+				outFragColor.rgb = albedo.aaa;
+				break;
+		}		
+		outFragColor.a = 1.0;
+		return;
+	}
+
 	// Ambient part
 	vec3 fragcolor  = albedo.rgb * AMBIENT_LIGHT;
 
 	vec3 N = normalize(normal);
 		
-	float shadow = 0.0;
-
 	for(int i = 0; i < LIGHT_COUNT; ++i)
 	{
 		// Vector to light
@@ -124,20 +161,8 @@ void main()
 	// Shadow calculations in a separate pass
 	if (ubo.useShadows > 0)
 	{
-		for(int i = 0; i < LIGHT_COUNT; ++i)
-		{
-			vec4 shadowClip	= ubo.lights[i].viewMatrix * vec4(fragPos, 1.0);
-
-			float shadowFactor;
-			#ifdef USE_PCF
-				shadowFactor= filterPCF(shadowClip, i);
-			#else
-				shadowFactor = textureProj(shadowClip, i, vec2(0.0));
-			#endif
-
-			fragcolor *= shadowFactor;
-		}
+		fragcolor = shadow(fragcolor, fragPos);
 	}
 
-	outFragColor.rgb = fragcolor;
+	outFragColor = vec4(fragcolor, 1.0);
 }

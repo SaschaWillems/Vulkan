@@ -37,7 +37,6 @@ VSOutput main(VSInput input, uint InstanceIndex : SV_InstanceID)
 	output.Pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model, tmpPos)));
 
 	output.UV = input.UV;
-	output.UV.y = 1.0 - output.UV.y;
 
 	// Vertex position in world space
 	output.WorldPos = mul(ubo.model, tmpPos).xyz;
