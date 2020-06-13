@@ -32,12 +32,9 @@ void main()
 	gl_Position = ubo.projection * ubo.view * ubo.model * tmpPos;
 	
 	outUV = inUV;
-	outUV.t = 1.0 - outUV.t;
 
 	// Vertex position in world space
 	outWorldPos = vec3(ubo.model * tmpPos);
-	// GL to Vulkan coord space
-	outWorldPos.y = -outWorldPos.y;
 	
 	// Normal in world space
 	mat3 mNormal = transpose(inverse(mat3(ubo.model)));

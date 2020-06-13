@@ -445,9 +445,8 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 			// Final composition as full screen quad
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.deferred);
-			// Final composition as full screen quad
 			// Note: Also used for debug display if debugDisplayTarget > 0
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.deferred);
 			vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 
 			drawUI(drawCmdBuffers[i]);
