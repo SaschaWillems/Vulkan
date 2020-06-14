@@ -32,16 +32,15 @@ VSOutput main(VSInput input)
 {
 	VSOutput output = (VSOutput)0;
 	output.Pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model, float4(input.Pos, 1.0f))));
-	output.TangentFragPos = mul(ubo.model, float4(input.Pos, 1.0)).xyz;
 	output.UV = input.UV;
 
-	float3 N = normalize(mul((float3x3)ubo.model, input.Normal));
-	float3 T = normalize(mul((float3x3)ubo.model, input.Tangent.xyz));
+	float3 N = normalize(input.Normal);
+	float3 T = normalize(input.Tangent.xyz);
 	float3 B = normalize(cross(N, T));
-	float3x3 TBN = transpose(float3x3(T, B, N));
+	float3x3 TBN = float3x3(T, B, N);
 
 	output.TangentLightPos = mul(TBN, ubo.lightPos.xyz);
 	output.TangentViewPos  = mul(TBN, ubo.cameraPos.xyz);
-	output.TangentFragPos  = mul(TBN, output.TangentFragPos);
+	output.TangentFragPos  = mul(TBN, mul(ubo.model, float4(input.Pos, 1.0)).xyz);
 	return output;
 }

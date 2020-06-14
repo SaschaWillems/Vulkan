@@ -257,7 +257,7 @@ public:
 		// Vertex shader
 		ubos.vertexShader.projection = camera.matrices.perspective;
 		ubos.vertexShader.view = camera.matrices.view;
-		ubos.vertexShader.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.2));
+		ubos.vertexShader.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
 
 		if (!paused) {
 			ubos.vertexShader.lightPos.x = sin(glm::radians(timer * 360.0f)) * 1.5f;
