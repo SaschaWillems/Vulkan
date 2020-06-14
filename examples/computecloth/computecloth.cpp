@@ -21,7 +21,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
-#include "VulkanModel.hpp"
+#include "VulkanglTFModel.h"
 
 #define ENABLE_VALIDATION false
 
@@ -35,13 +35,7 @@ public:
 	bool specializedComputeQueue = false;
 
 	vks::Texture2D textureCloth;
-
-	vks::VertexLayout vertexLayout = vks::VertexLayout({
-		vks::VERTEX_COMPONENT_POSITION,
-		vks::VERTEX_COMPONENT_UV,
-		vks::VERTEX_COMPONENT_NORMAL,
-	});
-	vks::Model modelSphere;
+	vkglTF::Model modelSphere;
 
 	// Resources for the graphics part of the example
 	struct {
@@ -57,7 +51,7 @@ public:
 		struct graphicsUBO {
 			glm::mat4 projection;
 			glm::mat4 view;
-			glm::vec4 lightPos = glm::vec4(-1.0f, 2.0f, -1.0f, 1.0f);
+			glm::vec4 lightPos = glm::vec4(-2.0f, 4.0f, -2.0f, 1.0f);
 		} ubo;
 	} graphics;
 
@@ -87,7 +81,7 @@ public:
 			float restDistH;
 			float restDistV;
 			float restDistD;
-			float sphereRadius = 0.5f;
+			float sphereRadius = 1.0f;
 			glm::vec4 spherePos = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 			glm::vec4 gravity = glm::vec4(0.0f, 9.8f, 0.0f, 0.0f);
 			glm::ivec2 particleCount;
@@ -106,7 +100,7 @@ public:
 
 	struct Cloth {
 		glm::uvec2 gridsize = glm::uvec2(60, 60);
-		glm::vec2 size = glm::vec2(2.5f, 2.5f);
+		glm::vec2 size = glm::vec2(5.0f);
 	} cloth;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
@@ -115,7 +109,7 @@ public:
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-30.0f, -45.0f, 0.0f));
-		camera.setTranslation(glm::vec3(0.0f, 0.0f, -3.5f));
+		camera.setTranslation(glm::vec3(0.0f, 0.0f, -5.0f));
 		settings.overlay = true;
 	}
 
@@ -128,7 +122,6 @@ public:
 		vkDestroyPipelineLayout(device, graphics.pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, graphics.descriptorSetLayout, nullptr);
 		textureCloth.destroy();
-		modelSphere.destroy();
 
 		// Compute
 		compute.storageBuffers.input.destroy();
@@ -152,8 +145,9 @@ public:
 
 	void loadAssets()
 	{
+		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+		modelSphere.loadFromFile(getAssetPath() + "models/sphere.gltf", vulkanDevice, queue, glTFLoadingFlags);
 		textureCloth.loadFromFile(getAssetPath() + "textures/vulkan_cloth_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
-		modelSphere.loadFromFile(getAssetPath() + "models/geosphere.obj", vertexLayout, compute.ubo.sphereRadius * 0.05f, vulkanDevice, queue);
 	}
 
 	void addGraphicsToComputeBarriers(VkCommandBuffer commandBuffer)
@@ -272,9 +266,7 @@ public:
 			if (sceneSetup == 0) {
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelines.sphere);
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, NULL);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], modelSphere.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &modelSphere.vertices.buffer, offsets);
-				vkCmdDrawIndexed(drawCmdBuffers[i], modelSphere.indexCount, 1, 0, 0, 0);
+				modelSphere.draw(drawCmdBuffers[i]);
 			}
 
 			// Render cloth
@@ -536,11 +528,7 @@ public:
 		shaderStages[0] = loadShader(getShadersPath() + "computecloth/cloth.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "computecloth/cloth.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vks::initializers::pipelineCreateInfo(
-				graphics.pipelineLayout,
-				renderPass,
-				0);
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(graphics.pipelineLayout, renderPass);
 
 		// Input attributes
 
@@ -574,18 +562,10 @@ public:
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 		pipelineCreateInfo.renderPass = renderPass;
-
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &graphics.pipelines.cloth));
 
 		// Sphere rendering pipeline
-		inputBindings = {
-			vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX)
-		};
-		inputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),
-			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3),
-			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 5)
-		};
+		pipelineCreateInfo.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Normal });
 		inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(inputAttributes.size());
 		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssemblyState.primitiveRestartEnable = VK_FALSE;
