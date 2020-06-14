@@ -23,44 +23,6 @@ struct VSOutput
 [[vk::location(3)]] float3 TangentFragPos : TEXCOORD3;
 };
 
-float2 parallax_uv(float2 uv, float3 view_dir, int type)
-{
-	if (type == 2) {
-		// Parallax mapping
-		float depth = 1.0 - textureNormalHeightMap.SampleLevel(samplerNormalHeightMap, uv, 0.0).a;
-		float2 p = view_dir.xy * (depth * (ubo.heightScale * 0.5) + ubo.parallaxBias) / view_dir.z;
-		return uv - p;
-	} else {
-		float layer_depth = 1.0 / ubo.numLayers;
-		float cur_layer_depth = 0.0;
-		float2 delta_uv = view_dir.xy * ubo.heightScale / (view_dir.z * ubo.numLayers);
-		float2 cur_uv = uv;
-
-		float depth_from_tex = 1.0 - textureNormalHeightMap.SampleLevel(samplerNormalHeightMap, cur_uv, 0.0).a;
-
-		for (int i = 0; i < 32; i++) {
-			cur_layer_depth += layer_depth;
-			cur_uv -= delta_uv;
-			depth_from_tex = 1.0 - textureNormalHeightMap.SampleLevel(samplerNormalHeightMap, cur_uv, 0.0).a;
-			if (depth_from_tex < cur_layer_depth) {
-				break;
-			}
-		}
-
-		if (type == 3) {
-			// Steep parallax mapping
-			return cur_uv;
-		} else {
-			// Parallax occlusion mapping
-			float2 prev_uv = cur_uv + delta_uv;
-			float next = depth_from_tex - cur_layer_depth;
-			float prev = 1.0 - textureNormalHeightMap.SampleLevel(samplerNormalHeightMap, prev_uv, 0.0).a - cur_layer_depth + layer_depth;
-			float weight = next / (next - prev);
-			return lerp(cur_uv, prev_uv, weight);
-		}
-	}
-}
-
 float2 parallaxMapping(float2 uv, float3 viewDir)
 {
 	float height = 1.0 - textureNormalHeightMap.SampleLevel(samplerNormalHeightMap, uv, 0.0).a;

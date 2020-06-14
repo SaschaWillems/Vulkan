@@ -5,8 +5,7 @@ struct VSInput
 [[vk::location(0)]] float3 Pos : POSITION0;
 [[vk::location(1)]] float2 UV : TEXCOORD0;
 [[vk::location(2)]] float3 Normal : NORMAL0;
-[[vk::location(3)]] float3 Tangent : TEXCOORD1;
-[[vk::location(4)]] float3 BiTangent : TEXCOORD2;
+[[vk::location(3)]] float4 Tangent : TEXCOORD1;
 };
 
 struct UBO
@@ -36,9 +35,9 @@ VSOutput main(VSInput input)
 	output.TangentFragPos = mul(ubo.model, float4(input.Pos, 1.0)).xyz;
 	output.UV = input.UV;
 
-	float3 T = normalize(mul((float3x3)ubo.model, input.Tangent));
-	float3 B = normalize(mul((float3x3)ubo.model, input.BiTangent));
 	float3 N = normalize(mul((float3x3)ubo.model, input.Normal));
+	float3 T = normalize(mul((float3x3)ubo.model, input.Tangent.xyz));
+	float3 B = normalize(cross(N, T));
 	float3x3 TBN = transpose(float3x3(T, B, N));
 
 	output.TangentLightPos = mul(TBN, ubo.lightPos.xyz);
