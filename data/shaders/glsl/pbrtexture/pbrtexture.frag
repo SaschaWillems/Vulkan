@@ -3,6 +3,7 @@
 layout (location = 0) in vec3 inWorldPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inUV;
+layout (location = 3) in vec4 inTangent;
 
 layout (binding = 0) uniform UBO {
 	mat4 projection;
@@ -113,27 +114,21 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
 	return color;
 }
 
-// See http://www.thetenthplanet.de/archives/1180
-vec3 perturbNormal()
+vec3 calculateNormal()
 {
 	vec3 tangentNormal = texture(normalMap, inUV).xyz * 2.0 - 1.0;
 
-	vec3 q1 = dFdx(inWorldPos);
-	vec3 q2 = dFdy(inWorldPos);
-	vec2 st1 = dFdx(inUV);
-	vec2 st2 = dFdy(inUV);
-
 	vec3 N = normalize(inNormal);
-	vec3 T = normalize(q1 * st2.t - q2 * st1.t);
-	vec3 B = -normalize(cross(N, T));
+	vec3 T = normalize(inTangent.xyz);
+	vec3 B = normalize(cross(N, T));
 	mat3 TBN = mat3(T, B, N);
-
 	return normalize(TBN * tangentNormal);
 }
 
 void main()
 {		
-	vec3 N = perturbNormal();
+	vec3 N = calculateNormal();
+
 	vec3 V = normalize(ubo.camPos - inWorldPos);
 	vec3 R = reflect(-V, N); 
 
