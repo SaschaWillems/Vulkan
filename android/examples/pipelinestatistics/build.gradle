@@ -57,12 +57,6 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'cube.obj'
-    }
-
-    copy {
-       from '../../../data/models'
-       into 'assets/models'
        include 'sphere.gltf'
     }
 
