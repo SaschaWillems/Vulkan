@@ -15,5 +15,4 @@ void main(void)
 {
 	gl_Position = ubo.mvp * vec4(inPos, 1.0);
 	outUV = inUV;
-	outUV.t = 1.0 - outUV.t;
 }
