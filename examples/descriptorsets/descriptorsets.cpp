@@ -55,7 +55,7 @@ public:
 	struct Models {
 		vks::Model cube;
 	} models;
-	
+
 	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
 
@@ -126,7 +126,7 @@ public:
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.cube.vertices.buffer, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.cube.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			/* 
+			/*
 				[POI] Render cubes with separate descriptor sets
 			*/
 			for (auto cube : cubes) {
@@ -158,7 +158,7 @@ public:
 		/*
 
 			Descriptor set layout
-			
+
 			The layout describes the shader bindings and types used for a certain descriptor layout and as such must match the shader bindings
 
 			Shader bindings used in this example:
@@ -185,7 +185,7 @@ public:
 		setLayoutBindings[0].descriptorCount = 1;
 
 		/*
-			Binding 1: Combined image sampler (used to pass per object texture information) 
+			Binding 1: Combined image sampler (used to pass per object texture information)
 		*/
 		setLayoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		setLayoutBindings[1].binding = 1;
@@ -198,7 +198,7 @@ public:
 		descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		descriptorLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
 		descriptorLayoutCI.pBindings = setLayoutBindings.data();
-		
+
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayout));
 
 		/*
@@ -232,7 +232,7 @@ public:
 		descriptorPoolCI.pPoolSizes = descriptorPoolSizes.data();
 		// Max. number of descriptor sets that can be allocted from this pool (one per object)
 		descriptorPoolCI.maxSets = static_cast<uint32_t>(cubes.size());
-		
+
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
 
 		/*
@@ -293,7 +293,7 @@ public:
 	void preparePipelines()
 	{
 		/*
-			[POI] Create a pipeline layout used for our graphics pipeline 
+			[POI] Create a pipeline layout used for our graphics pipeline
 		*/
 		VkPipelineLayoutCreateInfo pipelineLayoutCI{};
 		pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -318,7 +318,7 @@ public:
 			vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
 		};
 		const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position			
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position
 			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normal
 			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),		// Location 2: UV
 			vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),	// Location 3: Color
@@ -340,8 +340,8 @@ public:
 		pipelineCreateInfoCI.pDynamicState = &dynamicStateCI;
 
 		const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-			loadShader(getAssetPath() + "shaders/descriptorsets/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getAssetPath() + "shaders/descriptorsets/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+			loadShader(getShadersPath() + "descriptorsets/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "descriptorsets/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
 		pipelineCreateInfoCI.stageCount = static_cast<uint32_t>(shaderStages.size());

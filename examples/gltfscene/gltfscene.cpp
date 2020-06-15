@@ -13,7 +13,7 @@
  * For details on how glTF 2.0 works, see the official spec at https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
  *
  * Other samples will load models using a dedicated model loader with more features (see base/VulkanglTFModel.hpp)
- * 
+ *
  * If you are looking for a complete glTF implementation, check out https://github.com/SaschaWillems/Vulkan-glTF-PBR/
  */
 
@@ -45,12 +45,12 @@
 
 // Contains everything required to render a glTF model in Vulkan
 // This class is heavily simplified (compared to glTF's feature set) but retains the basic glTF structure
-class VulkanglTFModel 
+class VulkanglTFModel
 {
 public:
 	// The class requires some Vulkan objects so it can create it's own resources
 	vks::VulkanDevice* vulkanDevice;
-	VkQueue copyQueue;	
+	VkQueue copyQueue;
 
 	// The vertex layout for the samples' model
 	struct Vertex {
@@ -65,7 +65,7 @@ public:
 		VkBuffer buffer;
 		VkDeviceMemory memory;
 	} vertices;
-	
+
 	// Single index buffer for all primitives
 	struct {
 		int count;
@@ -73,7 +73,7 @@ public:
 		VkDeviceMemory memory;
 	} indices;
 
-	// The following structures roughly represent the glTF scene structure 
+	// The following structures roughly represent the glTF scene structure
 	// To keep things simple, they only contain those properties that are required for this sample
 	struct Node;
 
@@ -164,9 +164,7 @@ public:
 				unsigned char* rgba = buffer;
 				unsigned char* rgb = &glTFImage.image[0];
 				for (size_t i = 0; i < glTFImage.width * glTFImage.height; ++i) {
-					for (int32_t j = 0; j < 3; ++j) {
-						rgba[j] = rgb[j];
-					}
+					memcpy(rgba, rgb, sizeof(unsigned char) * 3);
 					rgba += 4;
 					rgb += 3;
 				}
@@ -178,6 +176,9 @@ public:
 			}
 			// Load texture from image buffer
 			images[i].texture.fromBuffer(buffer, bufferSize, VK_FORMAT_R8G8B8A8_UNORM, glTFImage.width, glTFImage.height, vulkanDevice, copyQueue);
+			if (deleteBuffer) {
+				delete buffer;
+			}
 		}
 	}
 
@@ -227,7 +228,7 @@ public:
 			node.matrix = glm::make_mat4x4(inputNode.matrix.data());
 		};
 
-		// Load node's children 
+		// Load node's children
 		if (inputNode.children.size() > 0) {
 			for (size_t i = 0; i < inputNode.children.size(); i++) {
 				loadNode(input.nodes[inputNode.children[i]], input , &node, indexBuffer, vertexBuffer);
@@ -340,7 +341,7 @@ public:
 	/*
 		glTF rendering functions
 	*/
-	
+
 	// Draw a single node including child nodes (if present)
 	void drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFModel::Node node)
 	{
@@ -373,7 +374,7 @@ public:
 	// Draw the glTF scene starting at the top-level-nodes
 	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout)
 	{
-		// All vertices and indices are stored in single buffers, so we only need to bind once 
+		// All vertices and indices are stored in single buffers, so we only need to bind once
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
 		vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -427,7 +428,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.solid, nullptr);
 		if (pipelines.wireframe != VK_NULL_HANDLE) {
@@ -665,7 +666,7 @@ public:
 			vks::initializers::vertexInputBindingDescription(0, sizeof(VulkanglTFModel::Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
 		};
 		const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, pos)),	// Location 0: Position	
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, pos)),	// Location 0: Position
 			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, normal)),// Location 1: Normal
 			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, uv)),	// Location 2: Texture coordinates
 			vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFModel::Vertex, color)),	// Location 3: Color
@@ -677,8 +678,8 @@ public:
 		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
 		const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-			loadShader(getAssetPath() + "shaders/gltfscene/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getAssetPath() + "shaders/gltfscene/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+			loadShader(getShadersPath() + "gltfscene/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "gltfscene/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
@@ -713,7 +714,7 @@ public:
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&shaderData.buffer,
 			sizeof(shaderData.values)));
-		
+
 		// Map persistent
 		VK_CHECK_RESULT(shaderData.buffer.map());
 

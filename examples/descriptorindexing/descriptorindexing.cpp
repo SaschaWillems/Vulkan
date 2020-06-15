@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h> 
+#include <time.h>
 #include <vector>
 #include <random>
 
@@ -69,7 +69,7 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -7.5f));
 		camera.setRotation(glm::vec3(-35.0f, 0.0f, 0.0f));
 		camera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
-		
+
 		/*
 			[POI] Enable required extensions
 		*/
@@ -182,7 +182,7 @@ public:
 			{ {  scale,  scale, -scale }, { 1.0f, 0.0f }, faceTextureIndex[1] },
 			{ {  scale, -scale, -scale }, { 1.0f, 1.0f }, faceTextureIndex[1] },
 			{ {  scale, -scale,  scale }, { 0.0f, 1.0f }, faceTextureIndex[1] },
-	
+
 			{ { -scale, -scale, -scale }, { 0.0f, 0.0f }, faceTextureIndex[2] },
 			{ {  scale, -scale, -scale }, { 1.0f, 0.0f }, faceTextureIndex[2] },
 			{ {  scale,  scale, -scale }, { 1.0f, 1.0f }, faceTextureIndex[2] },
@@ -192,7 +192,7 @@ public:
 			{ { -scale, -scale,  scale }, { 1.0f, 0.0f }, faceTextureIndex[3] },
 			{ { -scale,  scale,  scale }, { 1.0f, 1.0f }, faceTextureIndex[3] },
 			{ { -scale,  scale, -scale }, { 0.0f, 1.0f }, faceTextureIndex[3] },
-		
+
 			{ {  scale,  scale,  scale }, { 0.0f, 0.0f }, faceTextureIndex[4] },
 			{ { -scale,  scale,  scale }, { 1.0f, 0.0f }, faceTextureIndex[4] },
 			{ { -scale,  scale, -scale }, { 1.0f, 1.0f }, faceTextureIndex[4] },
@@ -262,8 +262,8 @@ public:
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			/*
-				[POI] 
-				
+				[POI]
+
 				Binding 1 contains a texture array that is dynamically non-uniform sampled from
 
 				FS:
@@ -273,8 +273,8 @@ public:
 		};
 
 		/*
-			[POI] 
-			
+			[POI]
+
 			The fragment shader will be using an unsized array, which has to be marked with a certain flag
 
 			FS:
@@ -284,7 +284,7 @@ public:
 		setLayoutBindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
 		setLayoutBindingFlags.bindingCount = 2;
 		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags = {
-			0,													
+			0,
 			VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
 		};
 		setLayoutBindingFlags.pBindingFlags = descriptorBindingFlags.data();
@@ -351,7 +351,7 @@ public:
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
-		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE); 
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
 		VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 		VkPipelineViewportStateCreateInfo viewportStateCI = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
@@ -375,8 +375,8 @@ public:
 		// Instacing pipeline
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/descriptorindexing/descriptorindexing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/descriptorindexing/descriptorindexing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "descriptorindexing/descriptorindexing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "descriptorindexing/descriptorindexing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCI.pVertexInputState = &vertexInputStateCI;

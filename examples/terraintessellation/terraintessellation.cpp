@@ -122,7 +122,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.terrain, nullptr);
 		if (pipelines.wireframe != VK_NULL_HANDLE) {
@@ -153,7 +153,7 @@ public:
 		}
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Tessellation shader support is required for this example
@@ -175,7 +175,7 @@ public:
 		if (deviceFeatures.samplerAnisotropy) {
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
 		}
-		// Enable texture compression  
+		// Enable texture compression
 		if (deviceFeatures.textureCompressionBC) {
 			enabledFeatures.textureCompressionBC = VK_TRUE;
 		}
@@ -353,7 +353,7 @@ public:
 
 			// Terrain
 			if (deviceFeatures.pipelineStatisticsQuery) {
-				// Begin pipeline statistics query		
+				// Begin pipeline statistics query
 				vkCmdBeginQuery(drawCmdBuffers[i], queryPool, 0, 0);
 			}
 			// Render
@@ -387,7 +387,7 @@ public:
 		HeightMap(std::string filename, uint32_t patchsize, AAssetManager* assetManager)
 #else
 		HeightMap(std::string filename, uint32_t patchsize)
-#endif		
+#endif
 		{
 			ktxResult result;
 			ktxTexture* ktxTexture;
@@ -416,7 +416,7 @@ public:
 		};
 
 		~HeightMap()
-		{		
+		{
 			delete[] heightdata;
 		}
 
@@ -431,7 +431,7 @@ public:
 	};
 
 	// Generate a terrain quad patch for feeding to the tessellation control shader
-	void generateTerrain() 
+	void generateTerrain()
 	{
 		struct Vertex {
 			glm::vec3 pos;
@@ -444,7 +444,7 @@ public:
 
 		const uint32_t vertexCount = PATCH_SIZE * PATCH_SIZE;
 		Vertex *vertices = new Vertex[vertexCount];
-			
+
 		const float wx = 2.0f;
 		const float wy = 2.0f;
 
@@ -469,7 +469,7 @@ public:
 		for (auto x = 0; x < PATCH_SIZE; x++)
 		{
 			for (auto y = 0; y < PATCH_SIZE; y++)
-			{			
+			{
 				// Get height samples centered around current position
 				float heights[3][3];
 				for (auto hx = -1; hx <= 1; hx++)
@@ -613,7 +613,7 @@ public:
 		{
 			// Binding 0 : Shared Tessellation shader ubo
 			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
 				0),
 			// Binding 1 : Height map
@@ -667,9 +667,9 @@ public:
 		{
 			// Binding 0 : Shared tessellation shader ubo
 			vks::initializers::writeDescriptorSet(
-				descriptorSets.terrain, 
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
-				0, 
+				descriptorSets.terrain,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				0,
 				&uniformBuffers.terrainTessellation.descriptor),
 			// Binding 1 : Displacement map
 			vks::initializers::writeDescriptorSet(
@@ -785,10 +785,10 @@ public:
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
 
 		// Terrain tessellation pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/terraintessellation/terrain.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/terraintessellation/terrain.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		shaderStages[2] = loadShader(getAssetPath() + "shaders/terraintessellation/terrain.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-		shaderStages[3] = loadShader(getAssetPath() + "shaders/terraintessellation/terrain.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "terraintessellation/terrain.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "terraintessellation/terrain.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[2] = loadShader(getShadersPath() + "terraintessellation/terrain.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+		shaderStages[3] = loadShader(getShadersPath() + "terraintessellation/terrain.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(pipelineLayouts.terrain, renderPass, 0);
@@ -824,8 +824,8 @@ public:
 		depthStencilState.depthWriteEnable = VK_FALSE;
 		pipelineCreateInfo.stageCount = 2;
 		pipelineCreateInfo.layout = pipelineLayouts.skysphere;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/terraintessellation/skysphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/terraintessellation/skysphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "terraintessellation/skysphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "terraintessellation/skysphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.skysphere));
 	}
 

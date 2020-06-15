@@ -170,7 +170,7 @@ public:
 					graphics.queueFamilyIndex,
 					compute.storageBuffer.buffer,
 					0,
-					compute.storageBuffer.size 
+					compute.storageBuffer.size
 				};
 
 				vkCmdPipelineBarrier(
@@ -198,7 +198,7 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &compute.storageBuffer.buffer, offsets);
 			vkCmdDraw(drawCmdBuffers[i], numParticles, 1, 0, 0);
-			
+
 			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -253,7 +253,7 @@ public:
 				compute.queueFamilyIndex,
 				compute.storageBuffer.buffer,
 				0,
-				compute.storageBuffer.size 
+				compute.storageBuffer.size
 			};
 
 			vkCmdPipelineBarrier(
@@ -366,7 +366,7 @@ public:
 				}
 				else
 				{
-					// Position					
+					// Position
 					glm::vec3 position(attractors[i] + glm::vec3(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine)) * 0.75f);
 					float len = glm::length(glm::normalize(position - attractors[i]));
 					position.y *= 2.0f - (len * len);
@@ -390,7 +390,7 @@ public:
 		VkDeviceSize storageBufferSize = particleBuffer.size() * sizeof(Particle);
 
 		// Staging
-		// SSBO won't be changed on the host after upload so copy to device local memory 
+		// SSBO won't be changed on the host after upload so copy to device local memory
 
 		vks::Buffer stagingBuffer;
 
@@ -426,7 +426,7 @@ public:
 				compute.queueFamilyIndex,
 				compute.storageBuffer.buffer,
 				0,
-				compute.storageBuffer.size 
+				compute.storageBuffer.size
 			};
 
 			vkCmdPipelineBarrier(
@@ -590,8 +590,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/computenbody/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/computenbody/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "computenbody/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "computenbody/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(
@@ -705,7 +705,7 @@ public:
 		VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
 
 		// 1st pass
-		computePipelineCreateInfo.stage = loadShader(getAssetPath() + "shaders/computenbody/particle_calculate.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
+		computePipelineCreateInfo.stage = loadShader(getShadersPath() + "computenbody/particle_calculate.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
 
 		// Set shader parameters via specialization constants
 		struct SpecializationData {
@@ -727,14 +727,14 @@ public:
 		specializationData.power = 0.75f;
 		specializationData.soften = 0.05f;
 
-		VkSpecializationInfo specializationInfo = 
+		VkSpecializationInfo specializationInfo =
 			vks::initializers::specializationInfo(static_cast<uint32_t>(specializationMapEntries.size()), specializationMapEntries.data(), sizeof(specializationData), &specializationData);
 		computePipelineCreateInfo.stage.pSpecializationInfo = &specializationInfo;
 
 		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipelineCalculate));
 
 		// 2nd pass
-		computePipelineCreateInfo.stage = loadShader(getAssetPath() + "shaders/computenbody/particle_integrate.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
+		computePipelineCreateInfo.stage = loadShader(getShadersPath() + "computenbody/particle_integrate.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
 		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipelineIntegrate));
 
 		// Separate command pool as queue family for compute may be different than graphics
@@ -763,7 +763,7 @@ public:
 
 		// If graphics and compute queue family indices differ, acquire and immediately release the storage buffer, so that the initial acquire from the graphics command buffers are matched up properly
 		if (graphics.queueFamilyIndex != compute.queueFamilyIndex)
-		{			
+		{
 			// Create a transient command buffer for setting up the initial buffer transfer state
 			VkCommandBuffer transferCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, compute.commandPool, true);
 

@@ -100,7 +100,7 @@ public:
 	} pipelines;
 
 	struct {
-		VkPipelineLayout deferred; 
+		VkPipelineLayout deferred;
 		VkPipelineLayout offscreen;
 	} pipelineLayouts;
 
@@ -121,12 +121,12 @@ public:
 	};
 	struct FrameBuffer {
 		int32_t width, height;
-		VkFramebuffer frameBuffer;		
+		VkFramebuffer frameBuffer;
 		FrameBufferAttachment position, normal, albedo;
 		FrameBufferAttachment depth;
 		VkRenderPass renderPass;
 	} offScreenFrameBuf;
-	
+
 	// One sampler for the frame buffer color attachments
 	VkSampler colorSampler;
 
@@ -152,7 +152,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		vkDestroySampler(device, colorSampler, nullptr);
@@ -211,7 +211,7 @@ public:
 		vkDestroySemaphore(device, offscreenSemaphore, nullptr);
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Enable sample rate shading filtering if supported
@@ -222,7 +222,7 @@ public:
 		if (deviceFeatures.samplerAnisotropy) {
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
 		}
-		// Enable texture compression  
+		// Enable texture compression
 		if (deviceFeatures.textureCompressionBC) {
 			enabledFeatures.textureCompressionBC = VK_TRUE;
 		}
@@ -236,7 +236,7 @@ public:
 
 	// Create a frame buffer attachment
 	void createAttachment(
-		VkFormat format,  
+		VkFormat format,
 		VkImageUsageFlagBits usage,
 		FrameBufferAttachment *attachment)
 	{
@@ -279,7 +279,7 @@ public:
 		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &attachment->mem));
 		VK_CHECK_RESULT(vkBindImageMemory(device, attachment->image, attachment->mem, 0));
-		
+
 		VkImageViewCreateInfo imageView = vks::initializers::imageViewCreateInfo();
 		imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		imageView.format = format;
@@ -393,8 +393,8 @@ public:
 		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-		dependencies[1].srcSubpass = 0;													
-		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;								
+		dependencies[1].srcSubpass = 0;
+		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
 		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -409,9 +409,9 @@ public:
 		renderPassInfo.pSubpasses = &subpass;
 		renderPassInfo.dependencyCount = 2;
 		renderPassInfo.pDependencies = dependencies.data();
-	
+
 		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &offScreenFrameBuf.renderPass));
-	
+
 		std::array<VkImageView,4> attachments;
 		attachments[0] = offScreenFrameBuf.position.view;
 		attachments[1] = offScreenFrameBuf.normal.view;
@@ -795,7 +795,7 @@ public:
 
 		// Model
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.model));
-		writeDescriptorSets = 
+		writeDescriptorSets =
 		{
 			// Binding 0: Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(
@@ -871,7 +871,7 @@ public:
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
 			vks::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE, 
+				VK_TRUE,
 				VK_TRUE,
 				VK_COMPARE_OP_LESS_OR_EQUAL);
 
@@ -924,7 +924,7 @@ public:
 		specializationEntry.constantID = 0;
 		specializationEntry.offset = 0;
 		specializationEntry.size = sizeof(uint32_t);
-		
+
 		uint32_t specializationData = sampleCount;
 
 		VkSpecializationInfo specializationInfo;
@@ -934,8 +934,8 @@ public:
 		specializationInfo.pData = &specializationData;
 
 		// With MSAA
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/deferredmultisampling/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/deferredmultisampling/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "deferredmultisampling/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "deferredmultisampling/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		shaderStages[1].pSpecializationInfo = &specializationInfo;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.deferred));
 
@@ -945,16 +945,16 @@ public:
 
 		// Debug display pipeline
 		specializationData = sampleCount;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/deferredmultisampling/debug.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/deferredmultisampling/debug.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "deferredmultisampling/debug.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "deferredmultisampling/debug.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		shaderStages[1].pSpecializationInfo = &specializationInfo;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.debug));
-		
+
 		// Offscreen scene rendering pipeline
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/deferredmultisampling/mrt.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/deferredmultisampling/mrt.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "deferredmultisampling/mrt.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "deferredmultisampling/mrt.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		//rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 		//rasterizationState.lineWidth = 2.0f;
@@ -1031,7 +1031,7 @@ public:
 		if (debugDisplay)
 		{
 			uboVS.projection = glm::ortho(0.0f, 2.0f, 0.0f, 2.0f, -1.0f, 1.0f);
-		} 
+		}
 		else
 		{
 			uboVS.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
@@ -1141,7 +1141,7 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSet();
 		buildCommandBuffers();
-		buildDeferredCommandBuffer(); 
+		buildDeferredCommandBuffer();
 		prepared = true;
 	}
 

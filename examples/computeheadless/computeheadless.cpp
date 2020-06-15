@@ -1,5 +1,5 @@
 /*
-* Vulkan Example - Minimal headless compute example 
+* Vulkan Example - Minimal headless compute example
 *
 * Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
 *
@@ -51,7 +51,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageCallback(
 	int32_t messageCode,
 	const char* pLayerPrefix,
 	const char* pMessage,
-	void* pUserData) 
+	void* pUserData)
 {
 	LOG("[VALIDATION]: %s - %s\n", pLayerPrefix, pMessage);
 	return VK_FALSE;
@@ -62,7 +62,7 @@ class VulkanExample
 public:
 	VkInstance instance;
 	VkPhysicalDevice physicalDevice;
-	VkDevice device;	
+	VkDevice device;
 	uint32_t queueFamilyIndex;
 	VkPipelineCache pipelineCache;
 	VkQueue queue;
@@ -133,8 +133,8 @@ public:
 		appInfo.pEngineName = "VulkanExample";
 		appInfo.apiVersion = VK_API_VERSION_1_0;
 
-		/* 
-			Vulkan instance creation (without surface extensions) 
+		/*
+			Vulkan instance creation (without surface extensions)
 		*/
 		VkInstanceCreateInfo instanceCreateInfo = {};
 		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -197,10 +197,10 @@ public:
 		}
 #endif
 
-		/* 
-			Vulkan device creation 
+		/*
+			Vulkan device creation
 		*/
-		// Physical device (always use first) 
+		// Physical device (always use first)
 		uint32_t deviceCount = 0;
 		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
 		std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
@@ -245,7 +245,7 @@ public:
 		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &commandPool));
 
-		/* 
+		/*
 			Prepare storage buffers
 		*/
 		std::vector<uint32_t> computeInput(BUFFER_ELEMENTS);
@@ -314,7 +314,7 @@ public:
 			vkFreeCommandBuffers(device, commandPool, 1, &copyCmd);
 		}
 
-		/* 
+		/*
 			Prepare compute pipeline
 		*/
 		{
@@ -351,7 +351,7 @@ public:
 			pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 			VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
 
-			// Create pipeline		
+			// Create pipeline
 			VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(pipelineLayout, 0);
 
 			// Pass SSBO size via specialization constant
@@ -361,13 +361,18 @@ public:
 			VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
 			VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(SpecializationData), &specializationData);
 
+			// TODO: There is no command line arguments parsing (nor Android settings) for this
+			// example, so we have no way of picking between GLSL or HLSL shaders.
+			// Hard-code to glsl for now.
+			const std::string shadersPath = getAssetPath() + "shaders/glsl/computeheadless/";
+
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, (getAssetPath() + "shaders/computeheadless/headless.comp.spv").c_str(), device);
+			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, (shadersPath + "headless.comp.spv").c_str(), device);
 #else
-			shaderStage.module = vks::tools::loadShader((getAssetPath() + "shaders/computeheadless/headless.comp.spv").c_str(), device);
+			shaderStage.module = vks::tools::loadShader((shadersPath + "headless.comp.spv").c_str(), device);
 #endif
 			shaderStage.pName = "main";
 			shaderStage.pSpecializationInfo = &specializationInfo;
@@ -387,7 +392,7 @@ public:
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
 		}
 
-		/* 
+		/*
 			Command buffer creation (for compute work submission)
 		*/
 		{

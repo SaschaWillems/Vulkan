@@ -60,7 +60,7 @@ public:
 	VkPipelineLayout pipelineLayout;
 
 	VkCommandBuffer primaryCommandBuffer;
-	
+
 	// Secondary scene command buffers used to store backgdrop and user interface
 	struct SecondaryCommandBuffers {
 		VkCommandBuffer background;
@@ -81,7 +81,7 @@ public:
 		glm::mat4 mvp;
 		glm::vec3 color;
 	};
-	
+
 	struct ObjectData {
 		glm::mat4 model;
 		glm::vec3 pos;
@@ -144,7 +144,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.phong, nullptr);
 		vkDestroyPipeline(device, pipelines.starsphere, nullptr);
@@ -194,7 +194,7 @@ public:
 
 		for (uint32_t i = 0; i < numThreads; i++) {
 			ThreadData *thread = &threadData[i];
-			
+
 			// Create one command pool for each thread
 			VkCommandPoolCreateInfo cmdPoolInfo = vks::initializers::commandPoolCreateInfo();
 			cmdPoolInfo.queueFamilyIndex = swapChain.queueNodeIndex;
@@ -228,7 +228,7 @@ public:
 				thread->pushConstBlock[j].color = glm::vec3(rnd(1.0f), rnd(1.0f), rnd(1.0f));
 			}
 		}
-	
+
 	}
 
 	// Builds the secondary command buffer for each thread
@@ -238,7 +238,7 @@ public:
 		ObjectData *objectData = &thread->objectData[cmdBufferIndex];
 
 		// Check visibility against view frustum
-		objectData->visible = frustum.checkSphere(objectData->pos, objectSphereDim * 0.5f); 
+		objectData->visible = frustum.checkSphere(objectData->pos, objectSphereDim * 0.5f);
 
 		if (!objectData->visible)
 		{
@@ -359,8 +359,8 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffers.ui));
 	}
 
-	// Updates the secondary command buffers using a thread pool 
-	// and puts them into the primary command buffer that's 
+	// Updates the secondary command buffers using a thread pool
+	// and puts them into the primary command buffer that's
 	// lat submitted to the queue for rendering
 	void updateCommandBuffers(VkFramebuffer frameBuffer)
 	{
@@ -412,7 +412,7 @@ public:
 				threadPool.threads[t]->addJob([=] { threadRenderCode(t, i, inheritanceInfo); });
 			}
 		}
-			
+
 		threadPool.wait();
 
 		// Only submit if object is within the current view frustum
@@ -534,7 +534,7 @@ public:
 		};
 
 		const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position			
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position
 			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normal
 			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 6),	// Location 2: Color
 		};
@@ -547,15 +547,15 @@ public:
 		pipelineCI.pVertexInputState = &vertexInputStateCI;
 
 		// Object rendering pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/multithreading/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/multithreading/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "multithreading/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "multithreading/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.phong));
 
 		// Star sphere rendering pipeline
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		depthStencilState.depthWriteEnable = VK_FALSE;
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/multithreading/starsphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/multithreading/starsphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "multithreading/starsphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "multithreading/starsphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.starsphere));
 	}
 

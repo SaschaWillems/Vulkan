@@ -33,8 +33,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <assimp/Importer.hpp> 
-#include <assimp/scene.h>     
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/cimport.h>
 
@@ -235,8 +235,8 @@ private:
 
 		// We will be using a push constant block to pass material properties to the fragment shaders
 		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(
-			VK_SHADER_STAGE_FRAGMENT_BIT, 
-			sizeof(SceneMaterialProperties), 
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			sizeof(SceneMaterialProperties),
 			0);
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
@@ -343,7 +343,7 @@ private:
 		// For better performance we only create one index and vertex buffer to keep number of memory allocations down
 		size_t vertexDataSize = vertices.size() * sizeof(Vertex);
 		size_t indexDataSize = indices.size() * sizeof(uint32_t);
-		
+
 		vks::Buffer vertexStaging, indexStaging;
 
 		// Vertex buffer
@@ -600,7 +600,7 @@ public:
 		delete(scene);
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Fill mode non solid is required for wireframe display
@@ -751,8 +751,8 @@ public:
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 		// Solid rendering pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/scenerendering/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/scenerendering/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "scenerendering/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "scenerendering/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(

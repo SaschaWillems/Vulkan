@@ -32,6 +32,6 @@ script:
 notifications:
   email:
     recipients:
-      - webmaster@saschawillems.de
+      - ${email}
     on_success: change
     on_failure: always
