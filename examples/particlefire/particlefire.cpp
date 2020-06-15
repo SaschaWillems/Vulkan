@@ -23,9 +23,8 @@
 #include "vulkanexamplebase.h"
 #include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
-#include "VulkanModel.hpp"
+#include "VulkanglTFModel.h"
 
-#define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 #define PARTICLE_COUNT 512
 #define PARTICLE_SIZE 10.0f
@@ -63,18 +62,7 @@ public:
 		} floor;
 	} textures;
 
-	// Vertex layout for the models
-	vks::VertexLayout vertexLayout = vks::VertexLayout({
-		vks::VERTEX_COMPONENT_POSITION,
-		vks::VERTEX_COMPONENT_UV,
-		vks::VERTEX_COMPONENT_NORMAL,
-		vks::VERTEX_COMPONENT_TANGENT,
-		vks::VERTEX_COMPONENT_BITANGENT,
-	});
-
-	struct {
-		vks::Model environment;
-	} models;
+	vkglTF::Model environment;
 
 	glm::vec3 emitterPos = glm::vec3(0.0f, -FLAME_RADIUS + 2.0f, 0.0f);
 	glm::vec3 minVel = glm::vec3(-3.0f, 0.5f, -3.0f);
@@ -160,8 +148,6 @@ public:
 		uniformBuffers.environment.destroy();
 		uniformBuffers.fire.destroy();
 
-		models.environment.destroy();
-
 		vkDestroySampler(device, textures.particles.sampler, nullptr);
 	}
 
@@ -208,16 +194,14 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 
 			// Environment
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.environment, 0, NULL);
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.environment, 0, nullptr);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.environment);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.environment.vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.environment.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], models.environment.indexCount, 1, 0, 0, 0);
+			environment.draw(drawCmdBuffers[i]);
 
 			// Particle system (no index buffer)
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.particles, 0, NULL);
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.particles, 0, nullptr);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.particles);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &particles.buffer, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &particles.buffer, offsets);
 			vkCmdDraw(drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
 
 			drawUI(drawCmdBuffers[i]);
@@ -340,33 +324,13 @@ public:
 
 	void loadAssets()
 	{
-		// Textures
-		std::string texFormatSuffix;
-		VkFormat texFormat;
-		// Get supported compressed texture format
-		if (vulkanDevice->features.textureCompressionBC) {
-			texFormatSuffix = "_bc3_unorm";
-			texFormat = VK_FORMAT_BC3_UNORM_BLOCK;
-		}
-		else if (vulkanDevice->features.textureCompressionASTC_LDR) {
-			texFormatSuffix = "_astc_8x8_unorm";
-			texFormat = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
-		}
-		else if (vulkanDevice->features.textureCompressionETC2) {
-			texFormatSuffix = "_etc2_unorm";
-			texFormat = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
-		}
-		else {
-			vks::tools::exitFatal("Device does not support any compressed texture format!", VK_ERROR_FEATURE_NOT_PRESENT);
-		}
-
 		// Particles
 		textures.particles.smoke.loadFromFile(getAssetPath() + "textures/particle_smoke.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 		textures.particles.fire.loadFromFile(getAssetPath() + "textures/particle_fire.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 
 		// Floor
-		textures.floor.colorMap.loadFromFile(getAssetPath() + "textures/fireplace_colormap" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
-		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/fireplace_normalmap" + texFormatSuffix + ".ktx", texFormat, vulkanDevice, queue);
+		textures.floor.colorMap.loadFromFile(getAssetPath() + "textures/fireplace_colormap_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		textures.floor.normalMap.loadFromFile(getAssetPath() + "textures/fireplace_normalmap_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 
 		// Create a custom sampler to be used with the particle textures
 		// Create sampler
@@ -395,72 +359,43 @@ public:
 		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		VK_CHECK_RESULT(vkCreateSampler(device, &samplerCreateInfo, nullptr, &textures.particles.sampler));
 
-		models.environment.loadFromFile(getAssetPath() + "models/fireplace.obj", vertexLayout, 10.0f, vulkanDevice, queue);
+		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+		environment.loadFromFile(getAssetPath() + "models/fireplace.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
 	void setupDescriptorPool()
 	{
-		// Example uses one ubo and one image sampler
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
+		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4)
 		};
-
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
-				poolSizes.data(),
-				2);
-
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
 	void setupDescriptorSetLayout()
 	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-		{
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::descriptorSetLayoutBinding(
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			// Binding 1 : Fragment shader image sampler
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 			// Binding 1 : Fragment shader image sampler
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				2)
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,2)
 		};
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				setLayoutBindings.size());
-
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(
-				&descriptorSetLayout,
-				1);
-
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSets()
 	{
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.particles));
 
@@ -478,25 +413,12 @@ public:
 
 		writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.particles,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&uniformBuffers.fire.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.particles, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.fire.descriptor),
 			// Binding 1: Smoke texture
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.particles,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&texDescriptorSmoke),
+			vks::initializers::writeDescriptorSet(descriptorSets.particles, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texDescriptorSmoke),
 			// Binding 1: Fire texture array
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.particles,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				2,
-				&texDescriptorFire)
+			vks::initializers::writeDescriptorSet(descriptorSets.particles, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &texDescriptorFire)
 		};
-
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
 		// Environment
@@ -504,113 +426,52 @@ public:
 
 		writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.environment,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&uniformBuffers.environment.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.environment, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.environment.descriptor),
 			// Binding 1: Color map
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.environment,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&textures.floor.colorMap.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.environment, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.floor.colorMap.descriptor),
 			// Binding 2: Normal map
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.environment,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				2,
-				&textures.floor.normalMap.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.environment, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textures.floor.normalMap.descriptor),
 		};
-
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	void preparePipelines()
 	{
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(
-				VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
-				0,
-				VK_FALSE);
-
-		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vks::initializers::pipelineRasterizationStateCreateInfo(
-				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_BACK_BIT,
-				VK_FRONT_FACE_CLOCKWISE,
-				0);
-
-		VkPipelineColorBlendAttachmentState blendAttachmentState =
-			vks::initializers::pipelineColorBlendAttachmentState(
-				0xf,
-				VK_FALSE);
-
-		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vks::initializers::pipelineColorBlendStateCreateInfo(
-				1,
-				&blendAttachmentState);
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE,
-				VK_TRUE,
-				VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		VkPipelineViewportStateCreateInfo viewportState =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vks::initializers::pipelineMultisampleStateCreateInfo(
-				VK_SAMPLE_COUNT_1_BIT,
-				0);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(
-				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
-				0);
-
-		// Load shaders
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_POINT_LIST, 0, VK_FALSE);
+		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+		std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vks::initializers::pipelineCreateInfo(
-				pipelineLayout,
-				renderPass,
-				0);
-
-		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-		pipelineCreateInfo.pRasterizationState = &rasterizationState;
-		pipelineCreateInfo.pColorBlendState = &colorBlendState;
-		pipelineCreateInfo.pMultisampleState = &multisampleState;
-		pipelineCreateInfo.pViewportState = &viewportState;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
-		pipelineCreateInfo.pStages = shaderStages.data();
+		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
+		pipelineCI.pInputAssemblyState = &inputAssemblyState;
+		pipelineCI.pRasterizationState = &rasterizationState;
+		pipelineCI.pColorBlendState = &colorBlendState;
+		pipelineCI.pMultisampleState = &multisampleState;
+		pipelineCI.pViewportState = &viewportState;
+		pipelineCI.pDepthStencilState = &depthStencilState;
+		pipelineCI.pDynamicState = &dynamicState;
+		pipelineCI.stageCount = shaderStages.size();
+		pipelineCI.pStages = shaderStages.data();
 
 		// Particle rendering pipeline
 		{
-			// Shaders
-			shaderStages[0] = loadShader(getShadersPath() + "particlefire/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-			shaderStages[1] = loadShader(getShadersPath() + "particlefire/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 			// Vertex input state
 			VkVertexInputBindingDescription vertexInputBinding =
-				vks::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, sizeof(Particle), VK_VERTEX_INPUT_RATE_VERTEX);
+				vks::initializers::vertexInputBindingDescription(0, sizeof(Particle), VK_VERTEX_INPUT_RATE_VERTEX);
 
 			std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32A32_SFLOAT,	offsetof(Particle, pos)),	// Location 0: Position
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32A32_SFLOAT,	offsetof(Particle, color)),	// Location 1: Color
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32_SFLOAT, offsetof(Particle, alpha)),			// Location 2: Alpha
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32_SFLOAT, offsetof(Particle, size)),			// Location 3: Size
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 4, VK_FORMAT_R32_SFLOAT, offsetof(Particle, rotation)),		// Location 4: Rotation
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 5, VK_FORMAT_R32_SINT, offsetof(Particle, type)),				// Location 5: Particle type
+				vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32A32_SFLOAT,	offsetof(Particle, pos)),	// Location 0: Position
+				vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32A32_SFLOAT,	offsetof(Particle, color)),	// Location 1: Color
+				vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32_SFLOAT, offsetof(Particle, alpha)),			// Location 2: Alpha
+				vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32_SFLOAT, offsetof(Particle, size)),			// Location 3: Size
+				vks::initializers::vertexInputAttributeDescription(0, 4, VK_FORMAT_R32_SFLOAT, offsetof(Particle, rotation)),		// Location 4: Rotation
+				vks::initializers::vertexInputAttributeDescription(0, 5, VK_FORMAT_R32_SINT, offsetof(Particle, type)),				// Location 5: Particle type
 			};
 
 			VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
@@ -619,7 +480,7 @@ public:
 			vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
 			vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
-			pipelineCreateInfo.pVertexInputState = &vertexInputState;
+			pipelineCI.pVertexInputState = &vertexInputState;
 
 			// Dont' write to depth buffer
 			depthStencilState.depthWriteEnable = VK_FALSE;
@@ -634,40 +495,23 @@ public:
 			blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 			blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.particles));
+			shaderStages[0] = loadShader(getShadersPath() + "particlefire/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+			shaderStages[1] = loadShader(getShadersPath() + "particlefire/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.particles));
 		}
 
 		// Environment rendering pipeline (normal mapped)
 		{
-			// Shaders
-			shaderStages[0] = loadShader(getShadersPath() + "particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-			shaderStages[1] = loadShader(getShadersPath() + "particlefire/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-			// Vertex input state
-			VkVertexInputBindingDescription vertexInputBinding =
-				vks::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX);
-
-			std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),							// Location 0: Position
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3),				// Location 1: UV
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 5),			// Location 2: Normal
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),			// Location 3: Tangent
-				vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 4, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 11),			// Location 4: Bitangen
-			};
-
-			VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-			vertexInputState.vertexBindingDescriptionCount = 1;
-			vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
-			vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-			vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
-			pipelineCreateInfo.pVertexInputState = &vertexInputState;
+			// Vertex input state is taken from the glTF model loader
+			pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Tangent });
 
 			blendAttachmentState.blendEnable = VK_FALSE;
 			depthStencilState.depthWriteEnable = VK_TRUE;
 			inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.environment));
+			shaderStages[0] = loadShader(getShadersPath() + "particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+			shaderStages[1] = loadShader(getShadersPath() + "particlefire/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.environment));
 		}
 	}
 
@@ -757,11 +601,10 @@ public:
 			updateUniformBufferLight();
 			updateParticles();
 		}
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffers();
+		if (camera.updated)
+		{
+			updateUniformBuffers();
+		}
 	}
 };
 
