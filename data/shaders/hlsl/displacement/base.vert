@@ -18,7 +18,7 @@ VSOutput main(VSInput input)
 {
 	VSOutput output = (VSOutput)0;
 	output.Pos = float4(input.Pos.xyz, 1.0);
-    output.UV = input.UV * 3.0;
+    output.UV = input.UV;
 	output.Normal = input.Normal;
 	return output;
 }

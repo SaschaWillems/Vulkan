@@ -3,7 +3,7 @@
 layout (binding = 1) uniform UBO 
 {
 	mat4 projection;
-	mat4 model;
+	mat4 modelview;
 	vec4 lightPos;
 	float tessAlpha;
 	float tessStrength;
@@ -11,7 +11,7 @@ layout (binding = 1) uniform UBO
 
 layout (binding = 2) uniform sampler2D displacementMap; 
 
-layout(triangles, equal_spacing, ccw) in;
+layout(triangles, equal_spacing, cw) in;
 
 layout (location = 0) in vec3 inNormal[];
 layout (location = 1) in vec2 inUV[];
@@ -32,5 +32,5 @@ void main()
 	outEyesPos = (gl_Position).xyz;
 	outLightVec = normalize(ubo.lightPos.xyz - outEyesPos);	
 		
-	gl_Position = ubo.projection * ubo.model * gl_Position;
+	gl_Position = ubo.projection * ubo.modelview * gl_Position;
 }
