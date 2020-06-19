@@ -9,13 +9,19 @@ layout (location = 0) out vec4 outPosition;
 layout (location = 1) out vec4 outNormal;
 layout (location = 2) out vec4 outAlbedo;
 
-const float NEAR_PLANE = 0.1f; //todo: specialization const
-const float FAR_PLANE = 64.0f; //todo: specialization const 
+layout (binding = 0) uniform UBO 
+{
+	mat4 projection;
+	mat4 model;
+	mat4 view;
+	float nearPlane;
+	float farPlane;
+} ubo;
 
 float linearDepth(float depth)
 {
 	float z = depth * 2.0f - 1.0f; 
-	return (2.0f * NEAR_PLANE * FAR_PLANE) / (FAR_PLANE + NEAR_PLANE - z * (FAR_PLANE - NEAR_PLANE));	
+	return (2.0f * ubo.nearPlane * ubo.farPlane) / (ubo.farPlane + ubo.nearPlane - z * (ubo.farPlane - ubo.nearPlane));	
 }
 
 void main() 

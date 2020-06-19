@@ -17,11 +17,6 @@ layout (location = 1) out vec2 outUV;
 layout (location = 2) out vec3 outColor;
 layout (location = 3) out vec3 outPos;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
-
 void main() 
 {
 	gl_Position = ubo.projection * ubo.view * ubo.model * inPos;
