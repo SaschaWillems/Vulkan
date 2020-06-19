@@ -22,6 +22,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+//#define TINYGLTF_NO_STB_IMAGE
+//#define TINYGLTF_NO_STB_IMAGE_WRITE
+//#define TINYGLTF_NO_EXTERNAL_IMAGE
 #include "tiny_gltf.h"
 
 #if defined(__ANDROID__)
@@ -223,7 +226,8 @@ namespace vkglTF
 		None = 0x00000000,
 		PreTransformVertices = 0x00000001,
 		PreMultiplyVertexColors = 0x00000002,
-		FlipY = 0x00000004
+		FlipY = 0x00000004,
+		DontLoadImages = 0x00000008
 	};
 
 	enum RenderFlags {
@@ -233,8 +237,10 @@ namespace vkglTF
 	/*
 		glTF model loading and rendering class
 	*/
-	struct Model {
-
+	class Model {
+	private:
+		vkglTF::Texture* getTexture(uint32_t index);
+	public:
 		vks::VulkanDevice* device;
 		VkDescriptorPool descriptorPool;
 

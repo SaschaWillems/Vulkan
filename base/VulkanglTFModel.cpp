@@ -435,6 +435,15 @@ VkPipelineVertexInputStateCreateInfo* vkglTF::Vertex::getPipelineVertexInputStat
 	return &pipelineVertexInputStateCreateInfo;
 }
 
+vkglTF::Texture* vkglTF::Model::getTexture(uint32_t index)
+{
+
+	if (index < textures.size()) {
+		return &textures[index];
+	}
+	return nullptr;
+}
+
 /*
 	glTF model loading and rendering class
 */
@@ -705,11 +714,11 @@ void vkglTF::Model::loadMaterials(tinygltf::Model &gltfModel)
 	for (tinygltf::Material &mat : gltfModel.materials) {
 		vkglTF::Material material(device);
 		if (mat.values.find("baseColorTexture") != mat.values.end()) {
-			material.baseColorTexture = &textures[gltfModel.textures[mat.values["baseColorTexture"].TextureIndex()].source];
+			material.baseColorTexture = getTexture(gltfModel.textures[mat.values["baseColorTexture"].TextureIndex()].source);
 		}
 		// Metallic roughness workflow
 		if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
-			material.metallicRoughnessTexture = &textures[gltfModel.textures[mat.values["metallicRoughnessTexture"].TextureIndex()].source];
+			material.metallicRoughnessTexture = getTexture(gltfModel.textures[mat.values["metallicRoughnessTexture"].TextureIndex()].source);
 		}
 		if (mat.values.find("roughnessFactor") != mat.values.end()) {
 			material.roughnessFactor = static_cast<float>(mat.values["roughnessFactor"].Factor());
@@ -721,13 +730,13 @@ void vkglTF::Model::loadMaterials(tinygltf::Model &gltfModel)
 			material.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
 		}				
 		if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
-			material.normalTexture = &textures[gltfModel.textures[mat.additionalValues["normalTexture"].TextureIndex()].source];
+			material.normalTexture = getTexture(gltfModel.textures[mat.additionalValues["normalTexture"].TextureIndex()].source);
 		}
 		if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
-			material.emissiveTexture = &textures[gltfModel.textures[mat.additionalValues["emissiveTexture"].TextureIndex()].source];
+			material.emissiveTexture = getTexture(gltfModel.textures[mat.additionalValues["emissiveTexture"].TextureIndex()].source);
 		}
 		if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end()) {
-			material.occlusionTexture = &textures[gltfModel.textures[mat.additionalValues["occlusionTexture"].TextureIndex()].source];
+			material.occlusionTexture = getTexture(gltfModel.textures[mat.additionalValues["occlusionTexture"].TextureIndex()].source);
 		}
 		if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end()) {
 			tinygltf::Parameter param = mat.additionalValues["alphaMode"];
@@ -887,7 +896,9 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	std::vector<Vertex> vertexBuffer;
 
 	if (fileLoaded) {
-		loadImages(gltfModel, device, transferQueue);
+		if (!(fileLoadingFlags & FileLoadingFlags::DontLoadImages)) {
+			loadImages(gltfModel, device, transferQueue);
+		}
 		loadMaterials(gltfModel);
 		const tinygltf::Scene &scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
 		for (size_t i = 0; i < scene.nodes.size(); i++) {
