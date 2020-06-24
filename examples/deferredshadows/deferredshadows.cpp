@@ -219,8 +219,6 @@ public:
 		uniformBuffers.fsLights.destroy();
 		uniformBuffers.uboShadowGS.destroy();
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &commandBuffers.deferred);
-
 		// Textures
 		textures.model.colorMap.destroy();
 		textures.model.normalMap.destroy();
