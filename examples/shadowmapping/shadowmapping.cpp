@@ -33,7 +33,7 @@
 #else
 #define SHADOWMAP_DIM 2048
 #endif
-#define SHADOWMAP_FILTER VK_FILTER_LINEAR
+#define DEFAULT_SHADOWMAP_FILTER VK_FILTER_LINEAR
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -275,9 +275,12 @@ public:
 
 		// Create sampler to sample from to depth attachment
 		// Used to sample in the fragment shader for shadowed rendering
+		VkFilter shadowmap_filter = vks::tools::formatIsFilterable(physicalDevice, DEPTH_FORMAT, VK_IMAGE_TILING_OPTIMAL) ?
+		   DEFAULT_SHADOWMAP_FILTER :
+		   VK_FILTER_NEAREST;
 		VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
-		sampler.magFilter = SHADOWMAP_FILTER;
-		sampler.minFilter = SHADOWMAP_FILTER;
+		sampler.magFilter = shadowmap_filter;
+		sampler.minFilter = shadowmap_filter;
 		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		sampler.addressModeV = sampler.addressModeU;

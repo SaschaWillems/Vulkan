@@ -100,6 +100,21 @@ namespace vks
 			return false;
 		}
 
+		// Returns if a given format support LINEAR filtering
+		VkBool32 formatIsFilterable(VkPhysicalDevice physicalDevice, VkFormat format, VkImageTiling tiling)
+		{
+			VkFormatProperties formatProps;
+			vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);
+
+			if (tiling == VK_IMAGE_TILING_OPTIMAL)
+				return formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+
+			if (tiling == VK_IMAGE_TILING_LINEAR)
+				return formatProps.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+
+			return false;
+		}
+
 		// Create an image memory barrier for changing the layout of
 		// an image and put it into an active command buffer
 		// See chapter 11.4 "Image Layout" for details
