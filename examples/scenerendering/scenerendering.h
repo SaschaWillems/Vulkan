@@ -103,6 +103,8 @@ public:
 		std::vector<Node> children;
 		Mesh mesh;
 		glm::mat4 matrix;
+		std::string name;
+		bool visible = true;
 	};
 
 	// A glTF material stores information in e.g. the exture that is attached to it and colors
@@ -153,9 +155,7 @@ public:
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	bool wireframe = false;
-
-	VulkanglTFScene glTFModel;
+	VulkanglTFScene glTFScene;
 
 	struct ShaderData {
 		vks::Buffer buffer;

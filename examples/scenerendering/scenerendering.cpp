@@ -24,6 +24,10 @@
 
 #include "scenerendering.h"
 
+/*
+	Vulkan glTF scene class
+*/
+
 VulkanglTFScene::~VulkanglTFScene()
 {
 	// Release all Vulkan resources allocated for the model
@@ -128,10 +132,11 @@ void VulkanglTFScene::loadMaterials(tinygltf::Model& input)
 void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, VulkanglTFScene::Node* parent, std::vector<uint32_t>& indexBuffer, std::vector<VulkanglTFScene::Vertex>& vertexBuffer)
 {
 	VulkanglTFScene::Node node{};
-	node.matrix = glm::mat4(1.0f);
-
+	node.name = inputNode.name;
+	
 	// Get the local node matrix
 	// It's either made up from translation, rotation, scale or a 4x4 matrix
+	node.matrix = glm::mat4(1.0f);
 	if (inputNode.translation.size() == 3) {
 		node.matrix = glm::translate(node.matrix, glm::vec3(glm::make_vec3(inputNode.translation.data())));
 	}
@@ -271,6 +276,9 @@ void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 // Draw a single node including child nodes (if present)
 void VulkanglTFScene::drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFScene::Node node)
 {
+	if (!node.visible) {
+		return;
+	}
 	if (node.mesh.primitives.size() > 0) {
 		// Pass the node's matrix via push constanst
 		// Traverse the node hierarchy to the top-most parent to get the final matrix of the current node
@@ -312,6 +320,9 @@ void VulkanglTFScene::draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipel
 	}
 }
 
+/*
+	Vulkan Example class
+*/
 
 VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 {
@@ -373,7 +384,7 @@ void VulkanExample::buildCommandBuffers()
 		vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 		// @todo: comment
-		glTFModel.draw(drawCmdBuffers[i], pipelineLayout);
+		glTFScene.draw(drawCmdBuffers[i], pipelineLayout);
 
 		drawUI(drawCmdBuffers[i]);
 		vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -390,7 +401,7 @@ void VulkanExample::loadglTFFile(std::string filename)
 	this->device = device;
 
 	// @todo: comment
-	//gltfContext.SetImageLoader(glTFModel.loadImageCallback, nullptr);
+	//gltfContext.SetImageLoader(glTFScene.loadImageCallback, nullptr);
 
 #if defined(__ANDROID__)
 	// On Android all assets are packed with the apk in a compressed form, so we need to open them using the asset manager
@@ -400,23 +411,23 @@ void VulkanExample::loadglTFFile(std::string filename)
 	bool fileLoaded = gltfContext.LoadASCIIFromFile(&glTFInput, &error, &warning, filename);
 
 	// Pass some Vulkan resources required for setup and rendering to the glTF model loading class
-	glTFModel.vulkanDevice = vulkanDevice;
-	glTFModel.copyQueue = queue;
+	glTFScene.vulkanDevice = vulkanDevice;
+	glTFScene.copyQueue    = queue;
 
 	size_t pos = filename.find_last_of('/');
-	glTFModel.path = filename.substr(0, pos);
+	glTFScene.path = filename.substr(0, pos);
 
 	std::vector<uint32_t> indexBuffer;
 	std::vector<VulkanglTFScene::Vertex> vertexBuffer;
 
 	if (fileLoaded) {
-		glTFModel.loadImages(glTFInput);
-		glTFModel.loadMaterials(glTFInput);
-		glTFModel.loadTextures(glTFInput);
+		glTFScene.loadImages(glTFInput);
+		glTFScene.loadMaterials(glTFInput);
+		glTFScene.loadTextures(glTFInput);
 		const tinygltf::Scene& scene = glTFInput.scenes[0];
 		for (size_t i = 0; i < scene.nodes.size(); i++) {
 			const tinygltf::Node node = glTFInput.nodes[scene.nodes[i]];
-			glTFModel.loadNode(node, glTFInput, nullptr, indexBuffer, vertexBuffer);
+			glTFScene.loadNode(node, glTFInput, nullptr, indexBuffer, vertexBuffer);
 		}
 	}
 	else {
@@ -430,7 +441,7 @@ void VulkanExample::loadglTFFile(std::string filename)
 
 	size_t vertexBufferSize = vertexBuffer.size() * sizeof(VulkanglTFScene::Vertex);
 	size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
-	glTFModel.indices.count = static_cast<uint32_t>(indexBuffer.size());
+	glTFScene.indices.count = static_cast<uint32_t>(indexBuffer.size());
 
 	struct StagingBuffer {
 		VkBuffer buffer;
@@ -459,14 +470,14 @@ void VulkanExample::loadglTFFile(std::string filename)
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		vertexBufferSize,
-		&glTFModel.vertices.buffer,
-		&glTFModel.vertices.memory));
+		&glTFScene.vertices.buffer,
+		&glTFScene.vertices.memory));
 	VK_CHECK_RESULT(vulkanDevice->createBuffer(
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		indexBufferSize,
-		&glTFModel.indices.buffer,
-		&glTFModel.indices.memory));
+		&glTFScene.indices.buffer,
+		&glTFScene.indices.memory));
 
 	// Copy data from staging buffers (host) do device local buffer (gpu)
 	VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -476,7 +487,7 @@ void VulkanExample::loadglTFFile(std::string filename)
 	vkCmdCopyBuffer(
 		copyCmd,
 		vertexStaging.buffer,
-		glTFModel.vertices.buffer,
+		glTFScene.vertices.buffer,
 		1,
 		&copyRegion);
 
@@ -484,7 +495,7 @@ void VulkanExample::loadglTFFile(std::string filename)
 	vkCmdCopyBuffer(
 		copyCmd,
 		indexStaging.buffer,
-		glTFModel.indices.buffer,
+		glTFScene.indices.buffer,
 		1,
 		&copyRegion);
 
@@ -511,10 +522,10 @@ void VulkanExample::setupDescriptors()
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
 		// One combined image sampler per model image/texture
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(glTFModel.images.size())),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(glTFScene.images.size())),
 	};
 	// One set for matrices and one per model image/texture
-	const uint32_t maxSetCount = static_cast<uint32_t>(glTFModel.images.size()) + 1;
+	const uint32_t maxSetCount = static_cast<uint32_t>(glTFScene.images.size()) + 1;
 	VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxSetCount);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
@@ -556,14 +567,14 @@ void VulkanExample::setupDescriptors()
 	vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
 
 	// Descriptor sets for materials
-	for (auto& material : glTFModel.materials) {
+	for (auto& material : glTFScene.materials) {
 		const VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.textures, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &material.descriptorSet));
-		const VulkanglTFScene::Texture colorMap = glTFModel.textures[material.baseColorTextureIndex];
-		const VulkanglTFScene::Texture normalMap = glTFModel.textures[material.normalTextureIndex];
+		const VulkanglTFScene::Texture colorMap = glTFScene.textures[material.baseColorTextureIndex];
+		const VulkanglTFScene::Texture normalMap = glTFScene.textures[material.normalTextureIndex];
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &glTFModel.images[colorMap.imageIndex].texture.descriptor),
-			vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &glTFModel.images[normalMap.imageIndex].texture.descriptor),
+			vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &glTFScene.images[colorMap.imageIndex].texture.descriptor),
+			vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &glTFScene.images[normalMap.imageIndex].texture.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
@@ -615,7 +626,7 @@ void VulkanExample::preparePipelines()
 	pipelineCI.pStages = shaderStages.data();
 
 	// @todo: Per-Material pipeline
-	for (auto &material : glTFModel.materials) {
+	for (auto &material : glTFScene.materials) {
 		// @todo: comment
 
 		struct MaterialSpecializationData {
@@ -692,10 +703,28 @@ void VulkanExample::render()
 
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 {
-	if (overlay->header("Settings")) {
-		if (overlay->checkBox("Wireframe", &wireframe)) {
+	if (overlay->header("Visibility")) {
+
+		if (overlay->button("All")) {
+			std::for_each(glTFScene.nodes.begin(), glTFScene.nodes.end(), [](VulkanglTFScene::Node &node) { node.visible = true; });
 			buildCommandBuffers();
 		}
+		ImGui::SameLine();
+		if (overlay->button("None")) {
+			std::for_each(glTFScene.nodes.begin(), glTFScene.nodes.end(), [](VulkanglTFScene::Node &node) { node.visible = false; });
+			buildCommandBuffers();
+		}
+		ImGui::NewLine();
+
+		ImGui::BeginChild("#nodelist", ImVec2(200.0f, 340.0f), false);
+		for (auto &node : glTFScene.nodes)
+		{		
+			if (overlay->checkBox(node.name.c_str(), &node.visible))
+			{
+				buildCommandBuffers();
+			}
+		}
+		ImGui::EndChild();
 	}
 }
 
