@@ -122,7 +122,7 @@ void VulkanglTFScene::loadMaterials(tinygltf::Model& input)
 		}
 		// @todo: Comment
 		materials[i].alphaMode = glTFMaterial.alphaMode;
-		materials[i].alphaCutOff = glTFMaterial.alphaCutoff;
+		materials[i].alphaCutOff = (float)glTFMaterial.alphaCutoff;
 		materials[i].doubleSided = glTFMaterial.doubleSided;
 	}
 
@@ -678,7 +678,7 @@ void VulkanExample::updateUniformBuffers()
 {
 	shaderData.values.projection = camera.matrices.perspective;
 	shaderData.values.view = camera.matrices.view;
-	//shaderData.values.lightPos = glm::vec4(-camera.position, 1.0f);
+	shaderData.values.viewPos = camera.viewPos;
 	memcpy(shaderData.buffer.mapped, &shaderData.values, sizeof(shaderData.values));
 }
 

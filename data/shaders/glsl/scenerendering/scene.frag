@@ -31,10 +31,11 @@ void main()
 	mat3 TBN = mat3(T, B, N);
 	N = TBN * normalize(texture(samplerNormalMap, inUV).xyz * 2.0 - vec3(1.0));
 
+	const float ambient = 0.1;
 	vec3 L = normalize(inLightVec);
 	vec3 V = normalize(inViewVec);
 	vec3 R = reflect(-L, N);
-	vec3 diffuse = max(dot(N, L), 0.15) * inColor;
-	vec3 specular = pow(max(dot(R, V), 0.0), 16.0) * vec3(0.75);
-	outFragColor = vec4(diffuse * color.rgb + specular, color.a);		
+	vec3 diffuse = max(dot(N, L), ambient).rrr;
+	float specular = pow(max(dot(R, V), 0.0), 32.0);
+	outFragColor = vec4(diffuse * color.rgb + specular, color.a);
 }
