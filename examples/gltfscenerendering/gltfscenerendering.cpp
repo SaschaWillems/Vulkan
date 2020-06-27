@@ -41,6 +41,9 @@ VulkanglTFScene::~VulkanglTFScene()
 		vkDestroySampler(vulkanDevice->logicalDevice, image.texture.sampler, nullptr);
 		vkFreeMemory(vulkanDevice->logicalDevice, image.texture.deviceMemory, nullptr);
 	}
+	for (Material material : materials) {
+		vkDestroyPipeline(vulkanDevice->logicalDevice, material.pipeline, nullptr);
+	}
 }
 
 /*
@@ -51,46 +54,12 @@ VulkanglTFScene::~VulkanglTFScene()
 
 void VulkanglTFScene::loadImages(tinygltf::Model& input)
 {
-	// @todo: comment, files are now loaded from disk so we can use other formats like ktx
+	// POI: The textures for the glTF file used in this sample are stored as external ktx files, so we can directly load them from disk without the need for conversion
 	images.resize(input.images.size());
 	for (size_t i = 0; i < input.images.size(); i++) {
 		tinygltf::Image& glTFImage = input.images[i];
-
-		// Embedded images
-		if (!glTFImage.image.empty()) {
-
-			// Get the image data from the glTF loader
-			unsigned char* buffer = nullptr;
-			VkDeviceSize bufferSize = 0;
-			bool deleteBuffer = false;
-			// We convert RGB-only images to RGBA, as most devices don't support RGB-formats in Vulkan
-			if (glTFImage.component == 3) {
-				bufferSize = glTFImage.width * glTFImage.height * 4;
-				buffer = new unsigned char[bufferSize];
-				unsigned char* rgba = buffer;
-				unsigned char* rgb = &glTFImage.image[0];
-				for (size_t i = 0; i < glTFImage.width * glTFImage.height; ++i) {
-					memcpy(rgba, rgb, sizeof(unsigned char) * 3);
-					rgba += 4;
-					rgb += 3;
-				}
-				deleteBuffer = true;
-			}
-			else {
-				buffer = &glTFImage.image[0];
-				bufferSize = glTFImage.image.size();
-			}
-			// Load texture from image buffer
-			images[i].texture.fromBuffer(buffer, bufferSize, VK_FORMAT_R8G8B8A8_UNORM, glTFImage.width, glTFImage.height, vulkanDevice, copyQueue);
-			if (deleteBuffer) {
-				delete buffer;
-			}
-		}
-		else {
-			// External images
-			// @todo: Android
-			images[i].texture.loadFromFile(path + "/" + glTFImage.uri, VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, copyQueue);
-		}
+		// @todo: Android
+		images[i].texture.loadFromFile(path + "/" + glTFImage.uri, VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, copyQueue);
 	}
 }
 
@@ -120,13 +89,11 @@ void VulkanglTFScene::loadMaterials(tinygltf::Model& input)
 		if (glTFMaterial.additionalValues.find("normalTexture") != glTFMaterial.additionalValues.end()) {
 			materials[i].normalTextureIndex = glTFMaterial.additionalValues["normalTexture"].TextureIndex();
 		}
-		// @todo: Comment
+		// Get some additonal material parameters that are used in this sample
 		materials[i].alphaMode = glTFMaterial.alphaMode;
 		materials[i].alphaCutOff = (float)glTFMaterial.alphaCutoff;
 		materials[i].doubleSided = glTFMaterial.doubleSided;
 	}
-
-	// @todo: Create one pipeline for each material?
 }
 
 void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, VulkanglTFScene::Node* parent, std::vector<uint32_t>& indexBuffer, std::vector<VulkanglTFScene::Vertex>& vertexBuffer)
@@ -196,7 +163,7 @@ void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 					const tinygltf::BufferView& view = input.bufferViews[accessor.bufferView];
 					texCoordsBuffer = reinterpret_cast<const float*>(&(input.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 				}
-				// Get buffer data for vertex tangents
+				// POI: This sample uses normal mapping, so we also need to load the tangents from the glTF file
 				if (glTFPrimitive.attributes.find("TANGENT") != glTFPrimitive.attributes.end()) {
 					const tinygltf::Accessor& accessor = input.accessors[glTFPrimitive.attributes.find("TANGENT")->second];
 					const tinygltf::BufferView& view = input.bufferViews[accessor.bufferView];
@@ -288,15 +255,13 @@ void VulkanglTFScene::drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout p
 			nodeMatrix = currentParent->matrix * nodeMatrix;
 			currentParent = currentParent->parent;
 		}
-		// @todo: remember last material index?
 		// Pass the final matrix to the vertex shader using push constants
 		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &nodeMatrix);
 		for (VulkanglTFScene::Primitive& primitive : node.mesh.primitives) {
 			if (primitive.indexCount > 0) {
 				VulkanglTFScene::Material& material = materials[primitive.materialIndex];
-				// @todo
+				// POI: Bind the pipeline for the node's material
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.pipeline);
-				// @todo: comment
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &material.descriptorSet, 0, nullptr);
 				vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
 			}
@@ -337,13 +302,9 @@ VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 
 VulkanExample::~VulkanExample()
 {
-	// Clean up used Vulkan resources
-	// Note : Inherited destructor cleans up resources stored in base class
-	// @todo: clean up material pipelines
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
-
 	shaderData.buffer.destroy();
 }
 
@@ -510,7 +471,7 @@ void VulkanExample::loadglTFFile(std::string filename)
 
 void VulkanExample::loadAssets()
 {
-	loadglTFFile(getAssetPath() + "models/sponza_fixed/sponza_fixed_ktx.gltf");
+	loadglTFFile(getAssetPath() + "models/sponza/sponza.gltf");
 }
 
 void VulkanExample::setupDescriptors()
@@ -519,10 +480,11 @@ void VulkanExample::setupDescriptors()
 		This sample uses separate descriptor sets (and layouts) for the matrices and materials (textures)
 	*/
 
+	// One ubo to pass dynamic data to the shader
+	// Two combined image samplers per material as each material uses color and normal maps
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-		// One combined image sampler per model image/texture
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(glTFScene.images.size())),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(glTFScene.materials.size()) * 2),
 	};
 	// One set for matrices and one per model image/texture
 	const uint32_t maxSetCount = static_cast<uint32_t>(glTFScene.images.size()) + 1;
@@ -591,7 +553,8 @@ void VulkanExample::preparePipelines()
 	VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 	const std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 	VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
-	// Vertex input bindings and attributes
+	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+
 	const std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
 		vks::initializers::vertexInputBindingDescription(0, sizeof(VulkanglTFScene::Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
 	};
@@ -602,16 +565,7 @@ void VulkanExample::preparePipelines()
 		vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFScene::Vertex, color)),
 		vks::initializers::vertexInputAttributeDescription(0, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanglTFScene::Vertex, tangent)),
 	};
-	VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo();
-	vertexInputStateCI.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-	vertexInputStateCI.pVertexBindingDescriptions = vertexInputBindings.data();
-	vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-	vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
-	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-		loadShader(getShadersPath() + "gltfscenerendering/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-		loadShader(getShadersPath() + "gltfscenerendering/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
-	};
+	VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo(vertexInputBindings, vertexInputAttributes);
 
 	VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 	pipelineCI.pVertexInputState = &vertexInputStateCI;
@@ -625,9 +579,11 @@ void VulkanExample::preparePipelines()
 	pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 	pipelineCI.pStages = shaderStages.data();
 
-	// @todo: Per-Material pipeline
+	shaderStages[0] = loadShader(getShadersPath() + "gltfscenerendering/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = loadShader(getShadersPath() + "gltfscenerendering/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	// POI: Instead if using a few fixed pipelines, we create one pipeline for each material using the properties of that material
 	for (auto &material : glTFScene.materials) {
-		// @todo: comment
 
 		struct MaterialSpecializationData {
 			bool alphaMask;
@@ -637,40 +593,29 @@ void VulkanExample::preparePipelines()
 		materialSpecializationData.alphaMask = material.alphaMode == "MASK";
 		materialSpecializationData.alphaMaskCutoff = material.alphaCutOff;
 
-		std::array<VkSpecializationMapEntry, 2> specializationMapEntries = {
+		// POI: Constant fragment shader material parameters will be set using specialization constants
+		std::vector<VkSpecializationMapEntry> specializationMapEntries = {
 			vks::initializers::specializationMapEntry(0, offsetof(MaterialSpecializationData, alphaMask), sizeof(MaterialSpecializationData::alphaMask)),
 			vks::initializers::specializationMapEntry(1, offsetof(MaterialSpecializationData, alphaMaskCutoff), sizeof(MaterialSpecializationData::alphaMaskCutoff)),
 		};
-
-		VkSpecializationInfo specializationInfo =
-			vks::initializers::specializationInfo(
-				static_cast<uint32_t>(specializationMapEntries.size()),
-				specializationMapEntries.data(),
-				sizeof(materialSpecializationData),
-				&materialSpecializationData
-			);
-
+		VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(specializationMapEntries, sizeof(materialSpecializationData), &materialSpecializationData);
 		shaderStages[1].pSpecializationInfo = &specializationInfo;
 
+		// For double sided materials, culling will be disabled
 		rasterizationStateCI.cullMode = material.doubleSided ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &material.pipeline));
 	}
 }
 
-// Prepare and initialize uniform buffer containing shader uniforms
 void VulkanExample::prepareUniformBuffers()
 {
-	// Vertex shader uniform buffer block
 	VK_CHECK_RESULT(vulkanDevice->createBuffer(
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		&shaderData.buffer,
 		sizeof(shaderData.values)));
-
-	// Map persistent
 	VK_CHECK_RESULT(shaderData.buffer.map());
-
 	updateUniformBuffers();
 }
 
@@ -716,6 +661,7 @@ void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 		}
 		ImGui::NewLine();
 
+		// POI: Create a list of glTF nodes for visibility toggle
 		ImGui::BeginChild("#nodelist", ImVec2(200.0f, 340.0f), false);
 		for (auto &node : glTFScene.nodes)
 		{		
