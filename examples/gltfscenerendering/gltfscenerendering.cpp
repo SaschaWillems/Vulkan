@@ -22,7 +22,7 @@
 * Note that this example is just one way of rendering a scene made up of multiple parts in Vulkan.
 */
 
-#include "scenerendering.h"
+#include "gltfscenerendering.h"
 
 /*
 	Vulkan glTF scene class
@@ -609,8 +609,8 @@ void VulkanExample::preparePipelines()
 	vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
 	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-		loadShader(getShadersPath() + "scenerendering/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-		loadShader(getShadersPath() + "scenerendering/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+		loadShader(getShadersPath() + "gltfscenerendering/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+		loadShader(getShadersPath() + "gltfscenerendering/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 	};
 
 	VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);

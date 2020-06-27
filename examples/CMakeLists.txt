@@ -71,6 +71,7 @@ set(EXAMPLES
 	gears
 	geometryshader
 	gltfscene
+	gltfscenerendering
 	gltfskinning
 	hdr
 	imgui
@@ -98,7 +99,6 @@ set(EXAMPLES
 	pushdescriptors
 	radialblur
 	renderheadless
-	scenerendering
 	screenshot
 	shadowmapping
 	shadowmappingomni
