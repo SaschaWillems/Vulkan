@@ -115,7 +115,6 @@ public:
 		std::string alphaMode = "OPAQUE";
 		float alphaCutOff;
 		bool doubleSided = false;
-		// @todo: comment
 		VkDescriptorSet descriptorSet;
 		VkPipeline pipeline;
 	};
