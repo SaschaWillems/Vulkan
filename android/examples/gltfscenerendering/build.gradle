@@ -49,14 +49,14 @@ task copyTask {
     }
 
     copy {
-       from '../../../data/shaders/glsl/scenerendering'
-       into 'assets/shaders/glsl/scenerendering'
+       from '../../../data/shaders/glsl/gltfscenerendering'
+       into 'assets/shaders/glsl/gltfscenerendering'
        include '*.*'
     }
 
     copy {
-       from '../../../data/models/sibenik'
-       into 'assets/models/sibenik'
+       from '../../../data/models/sponza'
+       into 'assets/models/sponza'
        include '*.*'
     }
 
