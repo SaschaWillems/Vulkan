@@ -58,7 +58,6 @@ void VulkanglTFScene::loadImages(tinygltf::Model& input)
 	images.resize(input.images.size());
 	for (size_t i = 0; i < input.images.size(); i++) {
 		tinygltf::Image& glTFImage = input.images[i];
-		// @todo: Android
 		images[i].texture.loadFromFile(path + "/" + glTFImage.uri, VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, copyQueue);
 	}
 }
@@ -140,7 +139,7 @@ void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 				const float* positionBuffer = nullptr;
 				const float* normalsBuffer = nullptr;
 				const float* texCoordsBuffer = nullptr;
-				const float* texCoordsTangent = nullptr;
+				const float* tangentsBuffer = nullptr;
 				size_t vertexCount = 0;
 
 				// Get buffer data for vertex normals
@@ -167,7 +166,7 @@ void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 				if (glTFPrimitive.attributes.find("TANGENT") != glTFPrimitive.attributes.end()) {
 					const tinygltf::Accessor& accessor = input.accessors[glTFPrimitive.attributes.find("TANGENT")->second];
 					const tinygltf::BufferView& view = input.bufferViews[accessor.bufferView];
-					texCoordsTangent = reinterpret_cast<const float*>(&(input.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+					tangentsBuffer = reinterpret_cast<const float*>(&(input.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
 				}
 
 				// Append data to model's vertex buffer
@@ -177,7 +176,7 @@ void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 					vert.normal = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f)));
 					vert.uv = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f);
 					vert.color = glm::vec3(1.0f);
-					vert.tangent = texCoordsTangent ? glm::make_vec4(&texCoordsTangent[v * 4]) : glm::vec4(0.0f);
+					vert.tangent = tangentsBuffer ? glm::make_vec4(&tangentsBuffer[v * 4]) : glm::vec4(0.0f);
  					vertexBuffer.push_back(vert);
 				}
 			}
@@ -344,7 +343,7 @@ void VulkanExample::buildCommandBuffers()
 		// Bind scene matrices descriptor to set 0
 		vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-		// @todo: comment
+		// POI: Draw the glTF scene
 		glTFScene.draw(drawCmdBuffers[i], pipelineLayout);
 
 		drawUI(drawCmdBuffers[i]);
@@ -514,12 +513,10 @@ void VulkanExample::setupDescriptors()
 	std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayouts.matrices, descriptorSetLayouts.textures };
 	VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 	// We will use push constants to push the local matrices of a primitive to the vertex shader
-	// @todo: comment
-	std::vector<VkPushConstantRange> pushConstantRanges = {
-		vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4), 0)
-	};
+	VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4), 0);
+	// Push constant ranges are part of the pipeline layout
 	pipelineLayoutCI.pushConstantRangeCount = 1;
-	pipelineLayoutCI.pPushConstantRanges = pushConstantRanges.data();
+	pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
 	VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 
 	// Descriptor set for scene matrices
