@@ -10,9 +10,9 @@ Render a complete scene loaded from an glTF file. The sample is based on the [gl
 
 This example demonstrates how to render a more complex scene loaded from a glTF model.
 
-It builds on the basic glTF scene sample but instad of using global pipelines, it adds per-material pipelines that are dynamically created from the material definitions of the glTF model.
+It builds on the basic glTF scene sample but instead of using global pipelines, it adds per-material pipelines that are dynamically created from the material definitions of the glTF model.
 
-Those pipelines pass per-material parameters to the shader so different materials for e.g. displaying opqaue and transparent objects can be built from a single shader.
+Those pipelines pass per-material parameters to the shader so different materials for e.g. displaying opaque and transparent objects can be built from a single shader.
 
 It also adds data structures, loading functions and shaders to do normal mapping and an easy way of toggling visibility for the scene nodes.
 
@@ -70,9 +70,9 @@ Several new properties have been added to the material class for this example th
 Along with the base color we now also get the index of the normal map for that material in ```normalTextureIndex```, and store several material properties required to render the different materials in this scene:
 
 - ```alphaMode```<br/>
-The alpha mode defines how the alpha value for this material is determined. For opaque materials it's ignored, for masked materials the shader will discard fragments based on the alpha cutuff.
+The alpha mode defines how the alpha value for this material is determined. For opaque materials it's ignored, for masked materials the shader will discard fragments based on the alpha cutoff.
 - ```alphaCutOff```<br/>
-For masked materials, this value speficies the threshold between fully opaque and fully transparent. This is used to discard fragments in the fragment shader.
+For masked materials, this value specifies the threshold between fully opaque and fully transparent. This is used to discard fragments in the fragment shader.
 - ```doubleSided```<br/>
 This property is used to select the appropriate culling mode for this material. For double-sided materials, culling will be disabled.
 
@@ -131,7 +131,7 @@ For each material we then set constant properties for the fragment shader using 
 	...
 ```
 
-We also set the culling mode depending on wether this material is double-sided:
+We also set the culling mode depending on whether this material is double-sided:
 
 ```cpp
 	// For double sided materials, culling will be disabled
@@ -149,7 +149,7 @@ The material now also get's it's own ```pipeline```.
 
 The alpha mask properties are used in the fragment shader to distinguish between opaque and transparent materials (```scene.frag```).
 
-Specialization constant declartion in the shaders's header:
+Specialization constant declaration in the shaders's header:
 
 ```glsl
 layout (constant_id = 0) const bool ALPHA_MASK = false;
@@ -194,6 +194,44 @@ void VulkanglTFScene::loadMaterials(tinygltf::Model& input)
 ```
 **Note:* Unlike the color map index, the normal map index is stored in the ```additionalValues``` of the material.
 
+The normal maps are then bound to binding 1 via the material's descriptor set in ```VulkanExample::setupDescriptors```:
+
+```cpp
+for (auto& material : glTFScene.materials) {
+	...
+	VkDescriptorImageInfo colorMap = glTFScene.getTextureDescriptor(material.baseColorTextureIndex);
+	VkDescriptorImageInfo normalMap = glTFScene.getTextureDescriptor(material.normalTextureIndex);
+	std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+		vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &colorMap),
+		vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &normalMap),
+	};
+	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+}
+```
+
+The descriptor set itself is then bound to set 1 at draw time in ```VulkanglTFScene::drawNode```:
+
+```cpp
+if (node.mesh.primitives.size() > 0) {
+	...
+	for (VulkanglTFScene::Primitive& primitive : node.mesh.primitives) {
+		if (primitive.indexCount > 0) {
+			VulkanglTFScene::Material& material = materials[primitive.materialIndex];
+			...
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &material.descriptorSet, 0, nullptr);
+			...
+		}
+	}
+}
+```
+
+Fragment shader interface in ```scene.frag```:
+
+```glsl
+layout (set = 1, binding = 0) uniform sampler2D samplerColorMap;
+layout (set = 1, binding = 1) uniform sampler2D samplerNormalMap;
+```
+
 #### Per-Vertex tangents
 
 Along with the normals we also need per-vertex tangents and bitangents for normal mapping. As the bitangent can easily be calculated using the normal and tangent, glTF only stores those two. 
@@ -231,13 +269,13 @@ void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 			...
 ```
 
-**Note:** The tangent is a four-component vetor, with the w-component storing the handedness of the tangent basis. This will be used later on in the shader.
+**Note:** The tangent is a four-component vector, with the w-component storing the handedness of the tangent basis. This will be used later on in the shader.
 
 #### Shaders
 
 Normal mapping is applied in the ```scene.frag``` fragment shader and boils down to calculating a new world-space normal from the already provided per-vertex normal and the per-fragment tangent space normals provided via the materials' normal map.
 
-With the per-vertex normal and tangent values passed to the fragment shader, we simply change the way the per-fragment normal is calcualted:
+With the per-vertex normal and tangent values passed to the fragment shader, we simply change the way the per-fragment normal is calculated:
 
 ```glsl
 vec3 normal      = normalize(inNormal);
@@ -250,7 +288,7 @@ normal           = normalize(TBN * localNormal);
 
 As noted earlier, glTF does not store bitangents, but we can easily calculate them using the cross product of the normal and tangent. We also multiply this with the tangent's w-component which stores the handedness of the tangent. This is important, as this may differ between nodes in a glTF file.
 
-After that we calculate the tangent to world-space transformation matrix that is then aplied to the per-fragment normal read from the normal map.
+After that we calculate the tangent to world-space transformation matrix that is then applied to the per-fragment normal read from the normal map.
 
 This is then our new normal that is used for the lighting calculations to follow.
 
