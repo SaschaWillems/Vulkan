@@ -95,7 +95,7 @@ void VulkanglTFScene::loadMaterials(tinygltf::Model& input)
 
 #### Per-Material pipelines
 
-Unlike most of the other samples that use a few fixed pipelines, this sample will dynamically generate per-material pipelines based on material properties in the ````VulkanExample::preparePipelines()``` function
+Unlike most of the other samples that use a few pre-defined pipelines, this sample will dynamically generate per-material pipelines based on material properties in the ```VulkanExample::preparePipelines()``` function
 
 We first setup pipeline state that's common for all materials:
 
@@ -293,3 +293,31 @@ After that we calculate the tangent to world-space transformation matrix that is
 This is then our new normal that is used for the lighting calculations to follow.
 
 ### Rendering the scene
+
+Just like in the basic glTF sample, the scene hierarchy is added to the command buffer in ```VulkanglTFModel::draw```. Since glTF has a hierarchical node structure this function recursively calls ```VulkanglTFModel::drawNode``` for rendering a give node with it's children.
+
+The only real change in this sample is binding the per-material pipeline for a node's mesh:
+
+```cpp
+void VulkanglTFScene::drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFScene::Node node)
+{
+	if (!node.visible) {
+		return;
+	}
+	if (node.mesh.primitives.size() > 0) {
+		...
+		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &nodeMatrix);
+		for (VulkanglTFScene::Primitive& primitive : node.mesh.primitives) {
+			if (primitive.indexCount > 0) {
+				VulkanglTFScene::Material& material = materials[primitive.materialIndex];
+				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.pipeline);
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &material.descriptorSet, 0, nullptr);
+				vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+			}
+		}
+	}
+	for (auto& child : node.children) {
+		drawNode(commandBuffer, pipelineLayout, child);
+	}
+}
+```
