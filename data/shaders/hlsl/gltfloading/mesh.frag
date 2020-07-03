@@ -3,6 +3,11 @@
 Texture2D textureColorMap : register(t0, space1);
 SamplerState samplerColorMap : register(s0, space1);
 
+struct PushConsts {
+	float4x4 model;
+};
+[[vk::push_constant]] PushConsts primitive;
+
 struct VSOutput
 {
 [[vk::location(0)]] float3 Normal : NORMAL0;

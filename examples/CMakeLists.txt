@@ -70,7 +70,7 @@ set(EXAMPLES
 	dynamicuniformbuffer
 	gears
 	geometryshader
-	gltfscene
+	gltfloading
 	gltfscenerendering
 	gltfskinning
 	hdr

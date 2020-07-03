@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4.1 FATAL_ERROR)
 
-set(NAME gltfscene)
+set(NAME gltfloading)
 
 set(SRC_DIR ../../../examples/${NAME})
 set(BASE_DIR ../../../base)
