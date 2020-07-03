@@ -235,6 +235,11 @@ void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 	}
 }
 
+VkDescriptorImageInfo VulkanglTFScene::getTextureDescriptor(const size_t index)
+{
+	return images[index].texture.descriptor;
+}
+
 /*
 	glTF rendering functions
 */
@@ -529,11 +534,11 @@ void VulkanExample::setupDescriptors()
 	for (auto& material : glTFScene.materials) {
 		const VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.textures, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &material.descriptorSet));
-		const VulkanglTFScene::Texture colorMap = glTFScene.textures[material.baseColorTextureIndex];
-		const VulkanglTFScene::Texture normalMap = glTFScene.textures[material.normalTextureIndex];
+		VkDescriptorImageInfo colorMap = glTFScene.getTextureDescriptor(material.baseColorTextureIndex);
+		VkDescriptorImageInfo normalMap = glTFScene.getTextureDescriptor(material.normalTextureIndex);
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &glTFScene.images[colorMap.imageIndex].texture.descriptor),
-			vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &glTFScene.images[normalMap.imageIndex].texture.descriptor),
+			vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &colorMap),
+			vks::initializers::writeDescriptorSet(material.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &normalMap),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}

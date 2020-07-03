@@ -142,7 +142,7 @@ public:
 	std::string path;
 
 	~VulkanglTFScene();
-
+	VkDescriptorImageInfo getTextureDescriptor(const size_t index);
 	void loadImages(tinygltf::Model& input);
 	void loadTextures(tinygltf::Model& input);
 	void loadMaterials(tinygltf::Model& input);
