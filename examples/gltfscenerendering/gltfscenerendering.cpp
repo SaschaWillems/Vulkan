@@ -5,21 +5,11 @@
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
- * @todo: Update comment
 * Summary:
-* Renders a scene made of multiple parts with different materials and textures.
+* Render a complete scene loaded from an glTF file. The sample is based on the glTF model loading sample, 
+* and adds data structures, functions and shaders required to render a more complex scene using Crytek's Sponza model.
 *
-* The example loads a scene made up of multiple parts into one vertex and index buffer to only
-* have one (big) memory allocation. In Vulkan it's advised to keep number of memory allocations
-* down and try to allocate large blocks of memory at once instead of having many small allocations.
-*
-* Every part has a separate material and multiple descriptor sets (set = x layout qualifier in GLSL)
-* are used to bind a uniform buffer with global matrices and the part's material's sampler at once.
-*
-* To demonstrate another way of passing data the example also uses push constants for passing
-* material properties.
-*
-* Note that this example is just one way of rendering a scene made up of multiple parts in Vulkan.
+* This sample comes with a tutorial, see the README.md in this folder
 */
 
 #include "gltfscenerendering.h"
