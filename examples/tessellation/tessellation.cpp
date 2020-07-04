@@ -227,6 +227,7 @@ public:
 		std::array<VkPipelineShaderStageCreateInfo, 4> shaderStages;
 
 		// Tessellation pipelines
+		shaderStages[0] = loadShader(getShadersPath() + "tessellation/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "tessellation/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		shaderStages[2] = loadShader(getShadersPath() + "tessellation/pntriangles.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 		shaderStages[3] = loadShader(getShadersPath() + "tessellation/pntriangles.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
