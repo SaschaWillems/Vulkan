@@ -1,7 +1,6 @@
 ## Credits
 Thanks to the authors of these libraries :
 - [OpenGL Mathematics (GLM)](https://github.com/g-truc/glm)
-- [Open Asset Import Library](https://github.com/assimp/assimp)
 
 Thanks to Ben Clayton from Google LLC for contributing the [HLSL shaders](data/hlsl).
 

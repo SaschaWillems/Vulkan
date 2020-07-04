@@ -57,13 +57,13 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'treasure_smooth.dae'
+       include 'treasure_smooth.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'treasure_glow.dae'
+       include 'treasure_glow.gltf'
     }
 
 
