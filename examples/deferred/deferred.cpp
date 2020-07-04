@@ -168,8 +168,6 @@ public:
 		uniformBuffers.offscreen.destroy();
 		uniformBuffers.composition.destroy();
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &offScreenCmdBuffer);
-
 		vkDestroyRenderPass(device, offScreenFrameBuf.renderPass, nullptr);
 
 		textures.model.colorMap.destroy();

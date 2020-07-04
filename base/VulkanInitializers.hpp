@@ -390,6 +390,20 @@ namespace vks
 			return pipelineVertexInputStateCreateInfo;
 		}
 
+		inline VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo(
+			const std::vector<VkVertexInputBindingDescription> &vertexBindingDescriptions,
+			const std::vector<VkVertexInputAttributeDescription> &vertexAttributeDescriptions
+		)
+		{
+			VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{};
+			pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+			pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindingDescriptions.size());
+			pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = vertexBindingDescriptions.data();
+			pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributeDescriptions.size());
+			pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = vertexAttributeDescriptions.data();
+			return pipelineVertexInputStateCreateInfo;
+		}
+
 		inline VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo(
 			VkPrimitiveTopology topology,
 			VkPipelineInputAssemblyStateCreateFlags flags,
@@ -586,5 +600,17 @@ namespace vks
 			specializationInfo.pData = data;
 			return specializationInfo;
 		}
+
+		/** @brief Initialize a specialization constant info structure to pass to a shader stage */
+		inline VkSpecializationInfo specializationInfo(const std::vector<VkSpecializationMapEntry> &mapEntries, size_t dataSize, const void* data)
+		{
+			VkSpecializationInfo specializationInfo{};
+			specializationInfo.mapEntryCount = static_cast<uint32_t>(mapEntries.size());
+			specializationInfo.pMapEntries = mapEntries.data();
+			specializationInfo.dataSize = dataSize;
+			specializationInfo.pData = data;
+			return specializationInfo;
+		}
+
 	}
 }

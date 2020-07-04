@@ -189,8 +189,6 @@ public:
 		uniformBuffers.offscreen.destroy();
 		uniformBuffers.shadowGeometryShader.destroy();
 
-		vkFreeCommandBuffers(device, cmdPool, 1, &commandBuffers.deferred);
-
 		// Textures
 		textures.model.colorMap.destroy();
 		textures.model.normalMap.destroy();

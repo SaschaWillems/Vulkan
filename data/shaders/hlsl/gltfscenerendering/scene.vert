@@ -6,16 +6,22 @@ struct VSInput
 [[vk::location(1)]] float3 Normal : NORMAL0;
 [[vk::location(2)]] float2 UV : TEXCOORD0;
 [[vk::location(3)]] float3 Color : COLOR0;
+[[vk::location(4)]] float4 Tangent : TEXCOORD1;
 };
 
 struct UBO
 {
 	float4x4 projection;
 	float4x4 view;
-	float4x4 model;
 	float4 lightPos;
+	float4 viewPos;
 };
 cbuffer ubo : register(b0) { UBO ubo; };
+
+struct PushConsts {
+	float4x4 model;
+};
+[[vk::push_constant]] PushConsts primitive;
 
 struct VSOutput
 {
@@ -25,6 +31,7 @@ struct VSOutput
 [[vk::location(2)]] float2 UV : TEXCOORD0;
 [[vk::location(3)]] float3 ViewVec : TEXCOORD1;
 [[vk::location(4)]] float3 LightVec : TEXCOORD2;
+[[vk::location(5)]] float4 Tangent : TEXCOORD3;
 };
 
 VSOutput main(VSInput input)
@@ -33,15 +40,15 @@ VSOutput main(VSInput input)
 	output.Normal = input.Normal;
 	output.Color = input.Color;
 	output.UV = input.UV;
+	output.Tangent = input.Tangent;
 
-	float4x4 modelView = mul(ubo.view, ubo.model);
+	float4x4 modelView = mul(ubo.view, primitive.model);
 
 	output.Pos = mul(ubo.projection, mul(modelView, float4(input.Pos.xyz, 1.0)));
 
-	float4 pos = mul(modelView, float4(input.Pos, 0.0));
-	output.Normal = mul((float3x3)ubo.model, input.Normal);
-	float3 lPos = mul((float3x3)ubo.model, ubo.lightPos.xyz);
-	output.LightVec = lPos - mul(ubo.model, float4(input.Pos, 1.0)).xyz;
-	output.ViewVec = -mul(ubo.model, float4(input.Pos, 1.0)).xyz;
+	output.Normal = mul((float3x3)primitive.model, input.Normal);
+	float4 pos = mul(primitive.model, float4(input.Pos, 1.0));
+	output.LightVec = ubo.lightPos.xyz - pos.xyz;
+	output.ViewVec = ubo.viewPos.xyz - pos.xyz;
 	return output;
 }
