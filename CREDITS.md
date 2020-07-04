@@ -13,7 +13,6 @@ Please note that (some) models and textures use separate licenses. Please comply
 - Armored knight model used in deferred example by [Gabriel Piacenti](http://opengameart.org/users/piacenti)
 - Old deer model used in tessellation example by [Čestmír Dammer](http://opengameart.org/users/cdmir)
 - Hidden treasure scene used in pipeline and debug marker examples by [Laurynas Jurgila](http://www.blendswap.com/user/PigArt)
-- Sibenik Cathedral model by Marko Dabrovic, using updated version by [Kenzie Lamar and Morgan McGuire](http://graphics.cs.williams.edu/data/meshes.xml)
 - Textures used in some examples by [Hugues Muller](http://www.yughues-folio.com)
 - Cerberus gun model used in PBR sample by [Andrew Maximov](http://artisaverb.info/Cerberus.html)
 - Updated compute particle system shader by [Lukas Bergdoll](https://github.com/Voultapher)

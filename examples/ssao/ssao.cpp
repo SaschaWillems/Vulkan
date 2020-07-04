@@ -26,7 +26,7 @@
 #define ENABLE_VALIDATION false
 
 #define SSAO_KERNEL_SIZE 32
-#define SSAO_RADIUS 0.75f
+#define SSAO_RADIUS 0.3f
 
 #if defined(__ANDROID__)
 #define SSAO_NOISE_DIM 8
@@ -140,12 +140,10 @@ public:
 		title = "Screen space ambient occlusion";
 		settings.overlay = true;
 		camera.type = Camera::CameraType::firstperson;
-		camera.movementSpeed = 5.0f;
 #ifndef __ANDROID__
 		camera.rotationSpeed = 0.25f;
 #endif
 		camera.position = { 5.0f, 1.0f, 0.0f };
-//		camera.position = { 15.0f, -8.0f, 0.0f };
 		camera.setRotation(glm::vec3(5.0f, 90.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, uboSceneParams.nearPlane, uboSceneParams.farPlane);
 	}
@@ -499,8 +497,7 @@ public:
 	void loadAssets()
 	{
 		const uint32_t gltfLoadingFlags = vkglTF::FileLoadingFlags::FlipY | vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::DontLoadImages;
-		scene.loadFromFile(getAssetPath() + "models/Sponza/gltf/Sponza.gltf", vulkanDevice, queue, gltfLoadingFlags);
-		//		scene.loadFromFile(getAssetPath() + "models/Sponza/gltf/sponza_fixed.gltf", vulkanDevice, queue, gltfLoadingFlags);
+		scene.loadFromFile(getAssetPath() + "models/sponza/sponza.gltf", vulkanDevice, queue, gltfLoadingFlags);
 	}
 
 	void buildCommandBuffers()
