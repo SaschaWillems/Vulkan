@@ -76,7 +76,7 @@ public:
 	{
 		title = "Occlusion queries";
 		camera.type = Camera::CameraType::lookat;
-		camera.setPosition(glm::vec3(0.0f, 0.0f, -5.0f));
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -7.5f));
 		camera.setRotation(glm::vec3(0.0f, -123.75f, 0.0f));
 		camera.setRotationSpeed(0.5f);
 		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
@@ -431,21 +431,21 @@ public:
 		uint8_t *pData;
 		// Occluder
 		uboVS.visible = 1.0f;
-		uboVS.model = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
+		uboVS.model = glm::scale(glm::mat4(1.0f), glm::vec3(6.0f));
 		uboVS.color = glm::vec4(0.0f, 0.0f, 1.0f, 0.5f);
 		memcpy(uniformBuffers.occluder.mapped, &uboVS, sizeof(uboVS));
 
 		// Teapot
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[0] > 0) ? 1.0f : 0.0f;
-		uboVS.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
+		uboVS.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
 		uboVS.color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 		memcpy(uniformBuffers.teapot.mapped, &uboVS, sizeof(uboVS));
 
 		// Sphere
 		// Toggle color depending on visibility
 		uboVS.visible = (passedSamples[1] > 0) ? 1.0f : 0.0f;
-		uboVS.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f));
+		uboVS.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 3.0f));
 		uboVS.color = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
 		memcpy(uniformBuffers.sphere.mapped, &uboVS, sizeof(uboVS));
 	}
