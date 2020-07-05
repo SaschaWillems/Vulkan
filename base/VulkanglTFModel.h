@@ -16,15 +16,19 @@
 #include "vulkan/vulkan.h"
 #include "VulkanDevice.hpp"
 
+#include <ktx.h>
+#include <ktxvulkan.h>
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-//#define TINYGLTF_NO_STB_IMAGE
-//#define TINYGLTF_NO_STB_IMAGE_WRITE
-//#define TINYGLTF_NO_EXTERNAL_IMAGE
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+#ifdef VK_USE_PLATFORM_ANDROID_KHR
+#define TINYGLTF_ANDROID_LOAD_FROM_ASSETS
+#endif
 #include "tiny_gltf.h"
 
 #if defined(__ANDROID__)
@@ -55,11 +59,7 @@ namespace vkglTF
 		VkSampler sampler;
 		void updateDescriptor();
 		void destroy();
-		/*
-			Load a texture from a glTF image (stored as vector of chars loaded via stb_image)
-			Also generates the mip chain as glTF images are stored as jpg or png without any mips
-		*/
-		void fromglTfImage(tinygltf::Image& gltfimage, vks::VulkanDevice* device, VkQueue copyQueue);
+		void fromglTfImage(tinygltf::Image& gltfimage, std::string path, vks::VulkanDevice* device, VkQueue copyQueue);
 	};
 
 	/*
@@ -274,6 +274,7 @@ namespace vkglTF
 
 		bool metallicRoughnessWorkflow = true;
 		bool buffersBound = false;
+		std::string path;
 
 		Model() {};
 		~Model();
