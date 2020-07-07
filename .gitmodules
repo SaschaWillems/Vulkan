@@ -1,6 +1,3 @@
 [submodule "external/glm"]
 	path = external/glm
 	url = https://github.com/g-truc/glm
-[submodule "external/ktx"]
-	path = external/ktx
-	url = https://github.com/KhronosGroup/KTX-Software
