@@ -11,6 +11,8 @@ include_directories(external/glm)
 include_directories(external/gli)
 include_directories(external/imgui)
 include_directories(external/tinygltf)
+include_directories(external/ktx/include)
+include_directories(external/ktx/other_include)
 include_directories(base)
 
 OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
@@ -125,4 +127,3 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 
 add_subdirectory(base)
 add_subdirectory(examples)
-add_subdirectory(external)
