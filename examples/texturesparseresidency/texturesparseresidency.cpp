@@ -59,7 +59,6 @@ struct VirtualTexturePage
 	{
 		if (imageMemoryBind.memory != VK_NULL_HANDLE)
 		{
-			//std::cout << "Page " << index << " already allocated" << std::endl;
 			return;
 		};
 
@@ -104,6 +103,7 @@ struct VirtualTexture
 	VkSparseImageMemoryBindInfo imageMemoryBindInfo;					// Sparse image memory bind info
 	VkSparseImageOpaqueMemoryBindInfo opaqueMemoryBindInfo;				// Sparse image opaque memory bind info (mip tail)
 	uint32_t mipTailStart;												// First mip level in mip tail
+	VkSparseImageMemoryRequirements sparseImageMemoryRequirements;		// @todo: Comment
 
 	VirtualTexturePage* addPage(VkOffset3D offset, VkExtent3D extent, const VkDeviceSize size, const uint32_t mipLevel, uint32_t layer)
 	{
@@ -145,15 +145,12 @@ struct VirtualTexture
 		bindSparseInfo.imageBindCount = (imageMemoryBindInfo.bindCount > 0) ? 1 : 0;
 		bindSparseInfo.pImageBinds = &imageMemoryBindInfo;
 
-		// Opaque image memory binds (mip tail)
-		// @todo
-		/*
+		// Opaque image memory binds for the mip tail
 		opaqueMemoryBindInfo.image = image;
 		opaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(opaqueMemoryBinds.size());
 		opaqueMemoryBindInfo.pBinds = opaqueMemoryBinds.data();
 		bindSparseInfo.imageOpaqueBindCount = (opaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
 		bindSparseInfo.pImageOpaqueBinds = &opaqueMemoryBindInfo;
-		*/
 	}
 
 	// Release all Vulkan resources
@@ -171,7 +168,6 @@ struct VirtualTexture
 };
 
 uint32_t memoryTypeIndex;
-int32_t lastFilledMip = 0;
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -263,7 +259,6 @@ public:
 		texture.width = width;
 		texture.height = height;
 		texture.mipLevels = floor(log2(std::max(width, height))) + 1;
-		texture.mipLevels = 1;
 		texture.layerCount = layerCount;
 		texture.format = format;
 
@@ -361,8 +356,6 @@ public:
 			texture.mipTailStart = reqs.imageMipTailFirstLod;
 		}
 
-		lastFilledMip = texture.mipTailStart - 1;
-
 		// Get sparse image requirements for the color aspect
 		VkSparseImageMemoryRequirements sparseMemoryReq;
 		bool colorAspectFound = false;
@@ -390,9 +383,13 @@ public:
 		uint32_t sparseBindsCount = static_cast<uint32_t>(sparseImageMemoryReqs.size / sparseImageMemoryReqs.alignment);
 		std::vector<VkSparseMemoryBind>	sparseMemoryBinds(sparseBindsCount);
 
+		texture.sparseImageMemoryRequirements = sparseMemoryReq;
+
 		// Check if the format has a single mip tail for all layers or one mip tail for each layer
 		// The mip tail contains all mip levels > sparseMemoryReq.imageMipTailFirstLod
 		bool singleMipTail = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT;
+		// @todo: Comment
+		bool alingedMipSize = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_ALIGNED_MIP_SIZE_BIT;
 
 		// Sparse bindings for each mip level of all layers outside of the mip tail
 		for (uint32_t layer = 0; layer < texture.layerCount; layer++)
@@ -814,7 +811,19 @@ public:
 			rndVal[1] = (uint8_t)rndDist(rndEngine);
 			rndVal[2] = (uint8_t)rndDist(rndEngine);
 		}
-		rndVal[3] = 0;
+		rndVal[3] = 255;
+
+		switch (page.mipLevel) {
+		case 0: 
+			rndVal[0] = rndVal[1] = rndVal[2] = 255;
+			break;
+		case 1:
+			rndVal[0] = rndVal[1] = rndVal[2] = 200;
+			break;
+		case 2:
+			rndVal[0] = rndVal[1] = rndVal[2] = 150;
+			break;
+		}
 
 		for (uint32_t y = 0; y < page.extent.height; y++)
 		{
@@ -849,8 +858,7 @@ public:
 		std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 
 		std::vector<VirtualTexturePage> updatedPages;
-		for (auto& page : texture.pages)
-		{
+		for (auto& page : texture.pages) {
 			if (rndDist(rndEngine) < 0.5f) {
 				continue;
 			}
@@ -868,6 +876,96 @@ public:
 
 		for (auto &page: updatedPages) {
 			uploadContent(page, texture.image);
+		}
+	}
+
+	void fillMipTail()
+	{
+		//@todo: WIP
+		VkDeviceSize imageMipTailSize = texture.sparseImageMemoryRequirements.imageMipTailSize;
+		VkDeviceSize imageMipTailOffset = texture.sparseImageMemoryRequirements.imageMipTailOffset;
+		// Stride between memory bindings for each mip level if not single mip tail (VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT not set)
+		VkDeviceSize imageMipTailStride = texture.sparseImageMemoryRequirements.imageMipTailStride;
+
+		VkSparseImageMemoryBind mipTailimageMemoryBind{};
+
+		VkMemoryAllocateInfo allocInfo = vks::initializers::memoryAllocateInfo();
+		allocInfo.allocationSize = imageMipTailSize;
+		allocInfo.memoryTypeIndex = memoryTypeIndex;
+		VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &mipTailimageMemoryBind.memory));
+
+		uint32_t mipLevel = texture.sparseImageMemoryRequirements.imageMipTailFirstLod;
+		uint32_t width = std::max(texture.width >> texture.sparseImageMemoryRequirements.imageMipTailFirstLod, 1u);
+		uint32_t height = std::max(texture.height >> texture.sparseImageMemoryRequirements.imageMipTailFirstLod, 1u);
+		uint32_t depth = 1;
+
+		for (uint32_t i = texture.mipTailStart; i < texture.mipLevels; i++) {
+
+			const uint32_t width = std::max(texture.width >> i, 1u);
+			const uint32_t height = std::max(texture.height >> i, 1u);
+			const uint32_t depth = 1;
+
+			// Generate some random image data and upload as a buffer
+			const size_t bufferSize = 4 * width * height;
+
+			vks::Buffer imageBuffer;
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&imageBuffer,
+				bufferSize));
+			imageBuffer.map();
+
+			// Fill buffer with random colors
+			std::random_device rd;
+			std::mt19937 rndEngine(rd());
+			std::uniform_int_distribution<uint32_t> rndDist(0, 255);
+			uint8_t* data = (uint8_t*)imageBuffer.mapped;
+			uint8_t rndVal[4];
+			ZeroMemory(&rndVal, sizeof(uint32_t));
+			while (rndVal[0] + rndVal[1] + rndVal[2] < 10) {
+				rndVal[0] = (uint8_t)rndDist(rndEngine);
+				rndVal[1] = (uint8_t)rndDist(rndEngine);
+				rndVal[2] = (uint8_t)rndDist(rndEngine);
+			}
+			rndVal[3] = 255;
+
+			switch (mipLevel) {
+			case 0:
+				rndVal[0] = rndVal[1] = rndVal[2] = 255;
+				break;
+			case 1:
+				rndVal[0] = rndVal[1] = rndVal[2] = 200;
+				break;
+			case 2:
+				rndVal[0] = rndVal[1] = rndVal[2] = 150;
+				break;
+			}
+
+			for (uint32_t y = 0; y < height; y++)
+			{
+				for (uint32_t x = 0; x < width; x++)
+				{
+					for (uint32_t c = 0; c < 4; c++, ++data)
+					{
+						*data = rndVal[c];
+					}
+				}
+			}
+
+			VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+			VkBufferImageCopy region{};
+			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			region.imageSubresource.layerCount = 1;
+			region.imageSubresource.mipLevel = i;
+			region.imageOffset = {};
+			region.imageExtent = { width, height, depth };
+			vkCmdCopyBufferToImage(copyCmd, imageBuffer.buffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+			vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+			vulkanDevice->flushCommandBuffer(copyCmd, queue);
+
+			imageBuffer.destroy();
 		}
 	}
 
@@ -899,21 +997,24 @@ public:
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (overlay->sliderFloat("LOD bias", &uboVS.lodBias, 0.0f, (float)texture.mipLevels)) {
+			if (overlay->sliderFloat("LOD bias", &uboVS.lodBias, -(float)texture.mipLevels, (float)texture.mipLevels)) {
 				updateUniformBuffers();
 			}
-			overlay->text("Last filled mip level: %d", lastFilledMip);
 			if (overlay->button("Fill random pages")) {
 				fillRandomPages();
 			}
 			if (overlay->button("Flush random pages")) {
 				flushRandomPages();
 			}
+			if (overlay->button("Fill mip tail")) {
+				fillMipTail();
+			}
 		}
 		if (overlay->header("Statistics")) {
 			uint32_t respages = 0;
 			std::for_each(texture.pages.begin(), texture.pages.end(), [&respages](VirtualTexturePage page) { respages += (page.resident()) ? 1 : 0; });
 			overlay->text("Resident pages: %d of %d", respages, static_cast<uint32_t>(texture.pages.size()));
+			overlay->text("Mip tail starts at: %d", texture.mipTailStart);
 		}
 
 	}
