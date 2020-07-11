@@ -813,18 +813,6 @@ public:
 		}
 		rndVal[3] = 255;
 
-		switch (page.mipLevel) {
-		case 0: 
-			rndVal[0] = rndVal[1] = rndVal[2] = 255;
-			break;
-		case 1:
-			rndVal[0] = rndVal[1] = rndVal[2] = 200;
-			break;
-		case 2:
-			rndVal[0] = rndVal[1] = rndVal[2] = 150;
-			break;
-		}
-
 		for (uint32_t y = 0; y < page.extent.height; y++)
 		{
 			for (uint32_t x = 0; x < page.extent.width; x++)
@@ -841,6 +829,7 @@ public:
 		VkBufferImageCopy region{};
 		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		region.imageSubresource.layerCount = 1;
+		region.imageSubresource.mipLevel = page.mipLevel;
 		region.imageOffset = page.offset;
 		region.imageExtent = page.extent;
 		vkCmdCopyBufferToImage(copyCmd, imageBuffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
