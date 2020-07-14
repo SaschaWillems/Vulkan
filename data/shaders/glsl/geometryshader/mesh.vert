@@ -8,6 +8,7 @@ layout (set = 0, binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
+	float lineWidth;
 } ubo;
 
 layout (location = 0) out vec3 outNormal;
