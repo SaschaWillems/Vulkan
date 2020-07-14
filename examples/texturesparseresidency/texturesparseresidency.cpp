@@ -812,8 +812,7 @@ public:
 		std::mt19937 rndEngine(rd());
 		std::uniform_int_distribution<uint32_t> rndDist(0, 255);
 		uint8_t* data = (uint8_t*)imageBuffer.mapped;
-		uint8_t rndVal[4];
-		ZeroMemory(&rndVal, sizeof(uint32_t));
+		uint8_t rndVal[4] = { 0, 0, 0, 0 };
 		while (rndVal[0] + rndVal[1] + rndVal[2] < 10) {
 			rndVal[0] = (uint8_t)rndDist(rndEngine);
 			rndVal[1] = (uint8_t)rndDist(rndEngine);
@@ -918,8 +917,7 @@ public:
 			std::mt19937 rndEngine(rd());
 			std::uniform_int_distribution<uint32_t> rndDist(0, 255);
 			uint8_t* data = (uint8_t*)imageBuffer.mapped;
-			uint8_t rndVal[4];
-			ZeroMemory(&rndVal, sizeof(uint32_t));
+			uint8_t rndVal[4] = { 0, 0, 0, 0 };
 			while (rndVal[0] + rndVal[1] + rndVal[2] < 10) {
 				rndVal[0] = (uint8_t)rndDist(rndEngine);
 				rndVal[1] = (uint8_t)rndDist(rndEngine);
