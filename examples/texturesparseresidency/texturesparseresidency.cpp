@@ -105,6 +105,12 @@ struct VirtualTexture
 	uint32_t mipTailStart;												// First mip level in mip tail
 	VkSparseImageMemoryRequirements sparseImageMemoryRequirements;		// @todo: Comment
 
+	// @todo: comment
+	struct MipTailInfo {
+		bool singleMipTail;
+		bool alingedMipSize;
+	} mipTailInfo;
+
 	VirtualTexturePage* addPage(VkOffset3D offset, VkExtent3D extent, const VkDeviceSize size, const uint32_t mipLevel, uint32_t layer)
 	{
 		VirtualTexturePage newPage;
@@ -385,11 +391,11 @@ public:
 
 		texture.sparseImageMemoryRequirements = sparseMemoryReq;
 
-		// Check if the format has a single mip tail for all layers or one mip tail for each layer
 		// The mip tail contains all mip levels > sparseMemoryReq.imageMipTailFirstLod
-		bool singleMipTail = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT;
+		// Check if the format has a single mip tail for all layers or one mip tail for each layer
 		// @todo: Comment
-		bool alingedMipSize = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_ALIGNED_MIP_SIZE_BIT;
+		texture.mipTailInfo.singleMipTail = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT;
+		texture.mipTailInfo.alingedMipSize = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_ALIGNED_MIP_SIZE_BIT;
 
 		// Sparse bindings for each mip level of all layers outside of the mip tail
 		for (uint32_t layer = 0; layer < texture.layerCount; layer++)
@@ -444,8 +450,10 @@ public:
 				}
 			}
 
-			// Check if format has one mip tail per layer
-			if ((!singleMipTail) && (sparseMemoryReq.imageMipTailFirstLod < texture.mipLevels))
+			// @todo: proper comment
+			// @todo: store in mip tail and properly release
+			// @todo: Only one block for single mip tail
+			if ((!texture.mipTailInfo.singleMipTail) && (sparseMemoryReq.imageMipTailFirstLod < texture.mipLevels))
 			{
 				// Allocate memory for the mip tail
 				VkMemoryAllocateInfo allocInfo = vks::initializers::memoryAllocateInfo();
