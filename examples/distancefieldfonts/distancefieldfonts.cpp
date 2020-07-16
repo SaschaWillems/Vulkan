@@ -285,7 +285,6 @@ public:
 			float dimx = 1.0f * charw;
 			float charh = ((float)(charInfo->height) / 36.0f);
 			float dimy = 1.0f * charh;
-			posy = 1.0f - charh;
 
 			float us = charInfo->x / w;
 			float ue = (charInfo->x + charInfo->width) / w;
@@ -294,6 +293,8 @@ public:
 
 			float xo = charInfo->xoffset / 36.0f;
 			float yo = charInfo->yoffset / 36.0f;
+
+			posy = yo;
 
 			vertices.push_back({ { posx + dimx + xo,  posy + dimy, 0.0f }, { ue, te } });
 			vertices.push_back({ { posx + xo,         posy + dimy, 0.0f }, { us, te } });
