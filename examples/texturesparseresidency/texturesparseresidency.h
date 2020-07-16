@@ -28,7 +28,7 @@
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
-#include "VulkanModel.hpp"
+#include "VulkanglTFModel.h"
 
 #define ENABLE_VALIDATION false
 
@@ -92,12 +92,7 @@ public:
 		uint32_t layerCount;
 	} texture;
 
-	vks::VertexLayout vertexLayout = vks::VertexLayout({
-		vks::VERTEX_COMPONENT_POSITION,
-		vks::VERTEX_COMPONENT_NORMAL,
-		vks::VERTEX_COMPONENT_UV,
-	});
-	vks::Model plane;
+	vkglTF::Model plane;
 
 	struct UboVS {
 		glm::mat4 projection;
