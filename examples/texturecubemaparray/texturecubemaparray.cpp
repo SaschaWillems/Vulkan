@@ -219,9 +219,31 @@ public:
 		std::vector<VkBufferImageCopy> bufferCopyRegions;
 		uint32_t offset = 0;
 
-		// Setup buffer copy regions to copy the data from the ktx file to our image
-		for (uint32_t layer = 0; layer < ktxTexture->numLayers; layer++) {
-			for (uint32_t face = 0; face < 6; face++) {
+		/* 
+			Setup buffer copy regions to copy the data from the ktx file to our image
+			Cube map arrays in ktx are stored with a layout like this:
+			- Mip Level 0
+				- Layer 0 (= Cube map 0)
+					- Face +X
+					- Face -X
+					- Face +Y
+					- Face -Y
+					- Face +Z
+					- Face -Z
+				- Layer 1 (= Cube map 1)
+					- Face +X
+					...
+			- Mip Level 1
+				- Layer 0 (= Cube map 0)
+					- Face +X
+					...
+				- Layer 1 (= Cube map 1)
+					- Face +X
+					...
+		*/
+
+		for (uint32_t face = 0; face < 6; face++) {
+			for (uint32_t layer = 0; layer < ktxTexture->numLayers; layer++) {
 				for (uint32_t level = 0; level < ktxTexture->numLevels; level++) {
 					ktx_size_t offset;
 					KTX_error_code ret = ktxTexture_GetImageOffset(ktxTexture, level, layer, face, &offset);
