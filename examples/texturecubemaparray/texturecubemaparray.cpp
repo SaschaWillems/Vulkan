@@ -158,34 +158,30 @@ public:
 		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
 		ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
-		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memReqs;
+		vks::Buffer sourceData;
 
-		// Create a host-visible staging buffer that contains the raw image data
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingMemory;
-
+		// Create a host-visible source buffer that contains the raw image data
 		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
 		bufferCreateInfo.size = ktxTextureSize;
-		// This buffer is used as a transfer source for the buffer copy
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &sourceData.buffer));
 
-		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
-
-		// Get memory requirements for the staging buffer (alignment, memory type bits)
-		vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
+		// Get memory requirements for the source buffer (alignment, memory type bits)
+		VkMemoryRequirements memReqs;
+		vkGetBufferMemoryRequirements(device, sourceData.buffer, &memReqs);
+		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 		memAllocInfo.allocationSize = memReqs.size;
 		// Get memory type index for a host visible buffer
 		memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingMemory));
-		VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &sourceData.memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, sourceData.buffer, sourceData.memory, 0));
 
-		// Copy texture data into staging buffer
+		// Copy the ktx image data into the source buffer
 		uint8_t *data;
-		VK_CHECK_RESULT(vkMapMemory(device, stagingMemory, 0, memReqs.size, 0, (void **)&data));
+		VK_CHECK_RESULT(vkMapMemory(device, sourceData.memory, 0, memReqs.size, 0, (void **)&data));
 		memcpy(data, ktxTextureData, ktxTextureSize);
-		vkUnmapMemory(device, stagingMemory);
+		vkUnmapMemory(device, sourceData.memory);
 
 		// Create optimal tiled target image
 		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
@@ -202,25 +198,17 @@ public:
 		imageCreateInfo.arrayLayers = 6 * cubeMapArray.layerCount;
 		// This flag is required for cube map images
 		imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-
 		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &cubeMapArray.image));
 
+		// Allocate memory for the cube map array image
 		vkGetImageMemoryRequirements(device, cubeMapArray.image, &memReqs);
-
 		memAllocInfo.allocationSize = memReqs.size;
 		memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &cubeMapArray.deviceMemory));
 		VK_CHECK_RESULT(vkBindImageMemory(device, cubeMapArray.image, cubeMapArray.deviceMemory, 0));
 
-		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-		// Setup buffer copy regions for each face including all of its miplevels
-		std::vector<VkBufferImageCopy> bufferCopyRegions;
-		uint32_t offset = 0;
-
-		/* 
-			Setup buffer copy regions to copy the data from the ktx file to our image
+		/*
+			We now copy the parts that make up the cube map array to our image via a command buffer
 			Cube map arrays in ktx are stored with a layout like this:
 			- Mip Level 0
 				- Layer 0 (= Cube map 0)
@@ -242,6 +230,11 @@ public:
 					...
 		*/
 
+		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+		// Setup buffer copy regions for each face including all of its miplevels
+		std::vector<VkBufferImageCopy> bufferCopyRegions;
+		uint32_t offset = 0;
 		for (uint32_t face = 0; face < 6; face++) {
 			for (uint32_t layer = 0; layer < ktxTexture->numLayers; layer++) {
 				for (uint32_t level = 0; level < ktxTexture->numLevels; level++) {
@@ -262,39 +255,28 @@ public:
 			}
 		}
 
-		// Image barrier for optimal image (target)
-		// Set initial layout for all array layers (faces) of the optimal (target) tiled texture
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		subresourceRange.baseMipLevel = 0;
 		subresourceRange.levelCount = cubeMapArray.mipLevels;
 		subresourceRange.layerCount = 6 * cubeMapArray.layerCount;
 
-		vks::tools::setImageLayout(
-			copyCmd,
-			cubeMapArray.image,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			subresourceRange);
+		// Transition target image to accept the writes from our buffer to image copies
+		vks::tools::setImageLayout(copyCmd, cubeMapArray.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
 
-		// Copy the cube map faces from the staging buffer to the optimal tiled image
+		// Copy the cube map array buffer parts from the staging buffer to the optimal tiled image
 		vkCmdCopyBufferToImage(
 			copyCmd,
-			stagingBuffer,
+			sourceData.buffer,
 			cubeMapArray.image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			static_cast<uint32_t>(bufferCopyRegions.size()),
 			bufferCopyRegions.data()
 			);
 
-		// Change texture image layout to shader read after all faces have been copied
+		// Transition image to shader read layout
 		cubeMapArray.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		vks::tools::setImageLayout(
-			copyCmd,
-			cubeMapArray.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			cubeMapArray.imageLayout,
-			subresourceRange);
+		vks::tools::setImageLayout(copyCmd, cubeMapArray.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cubeMapArray.imageLayout, subresourceRange);
 
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
@@ -331,8 +313,8 @@ public:
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &cubeMapArray.view));
 
 		// Clean up staging resources
-		vkFreeMemory(device, stagingMemory, nullptr);
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, sourceData.memory, nullptr);
+		vkDestroyBuffer(device, sourceData.buffer, nullptr);
 		ktxTexture_Destroy(ktxTexture);
 	}
 
