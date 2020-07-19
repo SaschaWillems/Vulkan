@@ -309,7 +309,7 @@ public:
 		sampler.mipLodBias = 0.0f;
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
-		sampler.maxLod = cubeMapArray.mipLevels;
+		sampler.maxLod = static_cast<float>(cubeMapArray.mipLevels);
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		sampler.maxAnisotropy = 1.0f;
 		if (vulkanDevice->features.samplerAnisotropy)
@@ -452,7 +452,7 @@ public:
 			// Binding 1 : Fragment shader cubemap sampler
 			vks::initializers::writeDescriptorSet(descriptorSets.object, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureDescriptor)
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
 		// Sky box descriptor set
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.skybox));
@@ -463,7 +463,7 @@ public:
 			// Binding 1 : Fragment shader cubemap sampler
 			vks::initializers::writeDescriptorSet(descriptorSets.skybox, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureDescriptor)
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
@@ -501,7 +501,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
