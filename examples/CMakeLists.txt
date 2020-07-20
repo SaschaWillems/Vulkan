@@ -117,6 +117,7 @@ set(EXAMPLES
 	texture3d
 	texturearray
 	texturecubemap
+	texturecubemaparray
 	texturemipmapgen
 	texturesparseresidency
 	triangle

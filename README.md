@@ -97,35 +97,39 @@ Uses SPIR-V specialization constants to create multiple pipelines with different
 
 Loads a 2D texture from disk (including all mip levels), uses staging to upload it into video memory and samples from it using combined image samplers.
 
-#### [08 - Cube map textures](examples/texturecubemap/)
-
-Loads a cube map texture from disk containing six different faces. All faces and mip levels are uploaded into video memory and the cubemap is sampled once as a skybox (for the background) and as a source for reflections (for a 3D model).
-
-#### [09 - Texture arrays](examples/texturearray/)
+#### [08 - Texture arrays](examples/texturearray/)
 
 Loads a 2D texture array containing multiple 2D texture slices (each with its own mip chain) and renders multiple meshes each sampling from a different layer of the texture. 2D texture arrays don't do any interpolation between the slices.
 
-#### [10 - 3D textures](examples/texture3d/)
+#### [09 - Cube map textures](examples/texturecubemap/)
+
+Loads a cube map texture from disk containing six different faces. All faces and mip levels are uploaded into video memory, and the cubemap is displayed on a skybox as a backdrop and on a 3D model as a reflection.
+
+#### [10 - Cube map arrays](examples/texturecubemaparray/)
+
+Loads an array of cube map textures from a single file. All cube maps are uploaded into video memory with their faces and mip levels, and the selected cubemap is displayed on a skybox as a backdrop and on a 3D model as a reflection.
+
+#### [11 - 3D textures](examples/texture3d/)
 
 Generates a 3D texture on the cpu (using perlin noise), uploads it to the device and samples it to render an animation. 3D textures store volumetric data and interpolate in all three dimensions.
 
-#### [11 - Input attachments](examples/inputattachments)
+#### [12 - Input attachments](examples/inputattachments)
 
 Uses input attachments to read framebuffer contents from a previous sub pass at the same pixel position within a single render pass. This can be used for basic post processing or image composition ([blog entry](https://www.saschawillems.de/tutorials/vulkan/input_attachments_subpasses)).
 
-#### [12 - Sub passes](examples/subpasses/)
+#### [13 - Sub passes](examples/subpasses/)
 
 Advanced example that uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass.
 
-#### [13 - Offscreen rendering](examples/offscreen/)
+#### [14 - Offscreen rendering](examples/offscreen/)
 
 Basic offscreen rendering in two passes. First pass renders the mirrored scene to a separate framebuffer with color and depth attachments, second pass samples from that color attachment for rendering a mirror surface.
 
-#### [14 - CPU particle system](examples/particlefire/)
+#### [15 - CPU particle system](examples/particlefire/)
 
 Implements a simple CPU based particle system. Particle data is stored in host memory, updated on the CPU per-frame and synchronized with the device before it's rendered using pre-multiplied alpha.
 
-#### [15 - Stencil buffer](examples/stencilbuffer/)
+#### [16 - Stencil buffer](examples/stencilbuffer/)
 
 Uses the stencil buffer and its compare functionality for rendering a 3D model with dynamic outlines.
 
