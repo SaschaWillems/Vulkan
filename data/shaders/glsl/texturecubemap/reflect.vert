@@ -13,14 +13,8 @@ layout (binding = 0) uniform UBO
 
 layout (location = 0) out vec3 outPos;
 layout (location = 1) out vec3 outNormal;
-layout (location = 2) out float outLodBias;
-layout (location = 3) out vec3 outViewVec;
-layout (location = 4) out vec3 outLightVec;
-
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
+layout (location = 2) out vec3 outViewVec;
+layout (location = 3) out vec3 outLightVec;
 
 void main()
 {
@@ -28,7 +22,6 @@ void main()
 
 	outPos = vec3(ubo.model * vec4(inPos, 1.0));
 	outNormal = mat3(ubo.model) * inNormal;
-	outLodBias = ubo.lodBias;
 
 	vec3 lightPos = vec3(0.0f, -5.0f, 5.0f);
 	outLightVec = lightPos.xyz - outPos.xyz;

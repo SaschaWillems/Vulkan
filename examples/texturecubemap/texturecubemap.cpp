@@ -72,7 +72,7 @@ public:
 		title = "Cube map textures";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.0f));
-		camera.setRotation(glm::vec3(-7.25f, -120.0f, 0.0f));
+		camera.setRotation(glm::vec3(0.0f));
 		camera.setRotationSpeed(0.25f);
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		settings.overlay = true;
@@ -98,23 +98,6 @@ public:
 		uniformBuffers.object.destroy();
 		uniformBuffers.skybox.destroy();
 	}
-
-	// Enable physical device features required for this example
-	virtual void getEnabledFeatures()
-	{
-		if (deviceFeatures.samplerAnisotropy) {
-			enabledFeatures.samplerAnisotropy = VK_TRUE;
-		}
-		if (deviceFeatures.textureCompressionBC) {
-			enabledFeatures.textureCompressionBC = VK_TRUE;
-		}
-		else if (deviceFeatures.textureCompressionASTC_LDR) {
-			enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
-		}
-		else if (deviceFeatures.textureCompressionETC2) {
-			enabledFeatures.textureCompressionETC2 = VK_TRUE;
-		}
-	};
 
 	void loadCubemap(std::string filename, VkFormat format, bool forceLinearTiling)
 	{
@@ -310,31 +293,6 @@ public:
 		ktxTexture_Destroy(ktxTexture);
 	}
 
-	void loadTextures()
-	{
-		// Vulkan core supports three different compressed texture formats
-		// As the support differs between implemementations we need to check device features and select a proper format and file
-		std::string filename;
-		VkFormat format;
-		if (deviceFeatures.textureCompressionBC) {
-			filename = "cubemap_yokohama_bc3_unorm.ktx";
-			format = VK_FORMAT_BC2_UNORM_BLOCK;
-		}
-		else if (deviceFeatures.textureCompressionASTC_LDR) {
-			filename = "cubemap_yokohama_astc_8x8_unorm.ktx";
-			format = VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
-		}
-		else if (deviceFeatures.textureCompressionETC2) {
-			filename = "cubemap_yokohama_etc2_unorm.ktx";
-			format = VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
-		}
-		else {
-			vks::tools::exitFatal("Device does not support any compressed texture format!", VK_ERROR_FEATURE_NOT_PRESENT);
-		}
-
-		loadCubemap(getAssetPath() + "textures/" + filename, format, false);
-	}
-
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -402,6 +360,9 @@ public:
 		for (size_t i = 0; i < filenames.size(); i++) {
 			models.objects[i].loadFromFile(getAssetPath() + "models/" + filenames[i], vulkanDevice, queue, glTFLoadingFlags);
 		}
+		// Cubemap texture
+		const bool forceLinearTiling = false;
+		loadCubemap(getAssetPath() + "textures/cubemap_yokohama_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, forceLinearTiling);
 	}
 
 	void setupDescriptorPool()
@@ -599,7 +560,6 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		loadTextures();
 		loadAssets();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();

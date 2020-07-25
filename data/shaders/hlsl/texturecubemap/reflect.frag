@@ -28,7 +28,8 @@ float4 main(VSOutput input) : SV_TARGET
 	float3 cR = reflect (cI, normalize(input.Normal));
 
 	cR = mul(ubo.invModel, float4(cR, 0.0)).xyz;
-	cR.x *= -1.0;
+	// Convert cubemap coordinates into Vulkan coordinate space
+	cR.z *= -1.0;
 
 	float4 color = textureColor.SampleLevel(samplerColor, cR, input.LodBias);
 

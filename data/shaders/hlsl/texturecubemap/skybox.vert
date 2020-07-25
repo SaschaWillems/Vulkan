@@ -18,7 +18,8 @@ VSOutput main([[vk::location(0)]] float3 Pos : POSITION0)
 {
 	VSOutput output = (VSOutput)0;
 	output.UVW = Pos;
-	output.UVW.x *= -1.0;
+	// Convert cubemap coordinates into Vulkan coordinate space
+	output.UVW.xy *= -1.0;
 	output.Pos = mul(ubo.projection, mul(ubo.model, float4(Pos.xyz, 1.0)));
 	return output;
 }
