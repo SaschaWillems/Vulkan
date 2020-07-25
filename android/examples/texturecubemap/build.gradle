@@ -87,7 +87,7 @@ task copyTask {
     copy {
        from '../../../data/textures'
        into 'assets/textures'
-       include 'cubemap_yokohama*.ktx'
+       include 'cubemap_yokohama_rgba.ktx'
     }
 
 
