@@ -1,20 +1,8 @@
-# Additional asset pack
+# Getting the assets
 
-Newer assets (textures and models) will no longer be added to the repository in order to keep its size down. Especially HDR assets tend to be much larger than most of the ldr textures and compressing them is problematic due to the multi-platform target of the examples (Not all platforms support compressed HDR texture formats).
+Binary assets (models, textures, etc.) are not stored in this repository and need to be downloaded manually.
 
-So these are provided as a separate download required to run some of the newer examples.
-
-Examples that require assets from this pack will have a note in the header:
-```cpp
-/*
-* Vulkan Example
-*
-* Note: Requires the separate asset pack (see data/README.md)
-*
-*/
-```
-
-## Getting the asset pack
+## Downloading the assets
 
 ### Option 1: Run the python script
 
