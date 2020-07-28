@@ -28,7 +28,6 @@ FSOutput main(VSOutput input)
 
 	// Calculate normal in tangent space
 	float3 N = normalize(input.Normal);
-	N.y = -N.y;
 	float3 T = normalize(input.Tangent);
 	float3 B = cross(N, T);
 	float3x3 TBN = float3x3(T, B, N);

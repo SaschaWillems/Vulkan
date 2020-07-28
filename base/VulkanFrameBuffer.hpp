@@ -80,6 +80,7 @@ namespace vks
 		uint32_t layerCount;
 		VkFormat format;
 		VkImageUsageFlags usage;
+		VkSampleCountFlagBits imageSampleCount = VK_SAMPLE_COUNT_1_BIT;
 	};
 
 	/**
@@ -170,7 +171,7 @@ namespace vks
 			image.extent.depth = 1;
 			image.mipLevels = 1;
 			image.arrayLayers = createinfo.layerCount;
-			image.samples = VK_SAMPLE_COUNT_1_BIT;
+			image.samples = createinfo.imageSampleCount;
 			image.tiling = VK_IMAGE_TILING_OPTIMAL;
 			image.usage = createinfo.usage;
 
@@ -201,7 +202,7 @@ namespace vks
 
 			// Fill attachment description
 			attachment.description = {};
-			attachment.description.samples = VK_SAMPLE_COUNT_1_BIT;
+			attachment.description.samples = createinfo.imageSampleCount;
 			attachment.description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachment.description.storeOp = (createinfo.usage & VK_IMAGE_USAGE_SAMPLED_BIT) ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachment.description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;

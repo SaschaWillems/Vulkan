@@ -29,6 +29,7 @@ struct UBO
 	float4 viewPos;
 	Light lights[LIGHT_COUNT];
 	int useShadows;
+	int displayDebugTarget;
 };
 
 cbuffer ubo : register(b4) { UBO ubo; }
@@ -74,6 +75,23 @@ float filterPCF(float4 sc, float layer)
 	return shadowFactor / count;
 }
 
+float3 shadow(float3 fragcolor, float3 fragPos) {
+	for (int i = 0; i < LIGHT_COUNT; ++i)
+	{
+		float4 shadowClip = mul(ubo.lights[i].viewMatrix, float4(fragPos.xyz, 1.0));
+
+		float shadowFactor;
+		#ifdef USE_PCF
+			shadowFactor= filterPCF(shadowClip, i);
+		#else
+			shadowFactor = textureProj(shadowClip, i, float2(0.0, 0.0));
+		#endif
+
+		fragcolor *= shadowFactor;
+	}
+	return fragcolor;
+}
+
 float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 {
 	// Get G-Buffer values
@@ -81,12 +99,34 @@ float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 	float3 normal = textureNormal.Sample(samplerNormal, inUV).rgb;
 	float4 albedo = textureAlbedo.Sample(samplerAlbedo, inUV);
 
+	float3 fragcolor;
+
+	// Debug display
+	if (ubo.displayDebugTarget > 0) {
+		switch (ubo.displayDebugTarget) {
+			case 1: 
+				fragcolor.rgb = shadow(float3(1.0, 1.0, 1.0), fragPos);
+				break;
+			case 2: 
+				fragcolor.rgb = fragPos;
+				break;
+			case 3: 
+				fragcolor.rgb = normal;
+				break;
+			case 4: 
+				fragcolor.rgb = albedo.rgb;
+				break;
+			case 5: 
+				fragcolor.rgb = albedo.aaa;
+				break;
+		}		
+		return float4(fragcolor, 1.0);
+	}
+
 	// Ambient part
-	float3 fragcolor  = albedo.rgb * AMBIENT_LIGHT;
+	fragcolor  = albedo.rgb * AMBIENT_LIGHT;
 
 	float3 N = normalize(normal);
-
-	float shadow = 0.0;
 
 	for(int i = 0; i < LIGHT_COUNT; ++i)
 	{
@@ -127,19 +167,7 @@ float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 	// Shadow calculations in a separate pass
 	if (ubo.useShadows > 0)
 	{
-		for(int i = 0; i < LIGHT_COUNT; ++i)
-		{
-			float4 shadowClip	= mul(ubo.lights[i].viewMatrix, float4(fragPos, 1.0));
-
-			float shadowFactor;
-			#ifdef USE_PCF
-				shadowFactor= filterPCF(shadowClip, i);
-			#else
-				shadowFactor = textureProj(shadowClip, i, float2(0.0, 0.0));
-			#endif
-
-			fragcolor *= shadowFactor;
-		}
+		fragcolor = shadow(fragcolor, fragPos);
 	}
 
 	return float4(fragcolor, 1);

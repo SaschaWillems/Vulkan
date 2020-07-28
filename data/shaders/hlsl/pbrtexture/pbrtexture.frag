@@ -5,6 +5,7 @@ struct VSOutput
 [[vk::location(0)]] float3 WorldPos : POSITION0;
 [[vk::location(1)]] float3 Normal : NORMAL0;
 [[vk::location(2)]] float2 UV : TEXCOORD0;
+[[vk::location(3)]] float3 Tangent : TEXCOORD1;
 };
 
 struct UBO  {
@@ -124,19 +125,13 @@ float3 specularContribution(float2 inUV, float3 L, float3 V, float3 N, float3 F0
 	return color;
 }
 
-// See http://www.thetenthplanet.de/archives/1180
-float3 perturbNormal(float2 inUV, float3 inWorldPos, float3 inNormal)
+float3 calculateNormal(VSOutput input)
 {
-	float3 tangentNormal = normalMapTexture.Sample(normalMapSampler, inUV).xyz * 2.0 - 1.0;
+	float3 tangentNormal = normalMapTexture.Sample(normalMapSampler, input.UV).xyz * 2.0 - 1.0;
 
-	float3 q1 = ddx(inWorldPos);
-	float3 q2 = ddy(inWorldPos);
-	float2 st1 = ddx(inUV);
-	float2 st2 = ddy(inUV);
-
-	float3 N = normalize(inNormal);
-	float3 T = normalize(q1 * st2.y - q2 * st1.y);
-	float3 B = -normalize(cross(N, T));
+	float3 N = normalize(input.Normal);
+	float3 T = normalize(input.Tangent);
+	float3 B = normalize(cross(N, T));
 	float3x3 TBN = transpose(float3x3(T, B, N));
 
 	return normalize(mul(TBN, tangentNormal));
@@ -144,7 +139,7 @@ float3 perturbNormal(float2 inUV, float3 inWorldPos, float3 inNormal)
 
 float4 main(VSOutput input) : SV_TARGET
 {
-	float3 N = perturbNormal(input.UV, input.WorldPos, input.Normal);
+	float3 N = calculateNormal(input);
 	float3 V = normalize(ubo.camPos - input.WorldPos);
 	float3 R = reflect(-V, N);
 

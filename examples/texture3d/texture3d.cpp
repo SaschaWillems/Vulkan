@@ -24,7 +24,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
-#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -158,10 +157,6 @@ public:
 		uint32_t width, height, depth;
 		uint32_t mipLevels;
 	} texture;
-
-	struct {
-		vks::Model cube;
-	} models;
 
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;

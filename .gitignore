@@ -211,7 +211,7 @@ android/layers/*/*.so
 android/**/jni/
 
 # Downloadable assets
-vulkan_asset_pack.*
+vulkan_asset_pack_gltf.*
 data/textures/hdr/*.*
 data/readme.txt
 data/models/cerberus/*.*
@@ -229,8 +229,8 @@ data/models/cerberus/*.*
 .DS_Store
 
 # Assets that are part of the asset pack and should not be stored in the repo
-data/models/**/*.gltf
-data/models/**/*.bin
-data/models/**/*.glb
-data/models/**/*.png
-data/models/**/*.jpg
+data/models/**
+data/textures/**
+data/README_asset_pack.md
+data/font*.*
+data/roboto*.*

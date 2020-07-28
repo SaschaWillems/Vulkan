@@ -18,11 +18,6 @@ layout(push_constant) uniform PushConsts {
 	vec3 objPos;
 } pushConsts;
 
-out gl_PerVertex 
-{
-	vec4 gl_Position;
-};
-
 void main() 
 {
 	vec3 locPos = vec3(ubo.model * vec4(inPos, 1.0));

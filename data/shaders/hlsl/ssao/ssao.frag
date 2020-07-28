@@ -57,14 +57,8 @@ float main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 
 		float sampleDepth = -texturePositionDepth.Sample(samplerPositionDepth, offset.xy).w;
 
-#define RANGE_CHECK 1
-#ifdef RANGE_CHECK
-		// Range check
 		float rangeCheck = smoothstep(0.0f, 1.0f, SSAO_RADIUS / abs(fragPos.z - sampleDepth));
 		occlusion += (sampleDepth >= samplePos.z ? 1.0f : 0.0f) * rangeCheck;
-#else
-		occlusion += (sampleDepth >= samplePos.z ? 1.0f : 0.0f);
-#endif
 	}
 	occlusion = 1.0 - (occlusion / float(SSAO_KERNEL_SIZE));
 

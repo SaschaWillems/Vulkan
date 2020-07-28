@@ -23,7 +23,7 @@
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
-#include "VulkanModel.hpp"
+#include "VulkanglTFModel.h"
 
 // Ray tracing acceleration structure
 struct AccelerationStructure {
@@ -80,6 +80,7 @@ public:
 		glm::mat4 viewInverse;
 		glm::mat4 projInverse;
 		glm::vec4 lightPos;
+		int32_t vertexSize;
 	} uniformData;
 	vks::Buffer ubo;
 
@@ -88,14 +89,7 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	vks::VertexLayout vertexLayout = vks::VertexLayout({
-		vks::VERTEX_COMPONENT_POSITION,
-		vks::VERTEX_COMPONENT_NORMAL,
-		vks::VERTEX_COMPONENT_COLOR,
-		vks::VERTEX_COMPONENT_UV,
-		vks::VERTEX_COMPONENT_DUMMY_FLOAT
-		});
-	vks::Model scene;
+	vkglTF::Model scene;
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -106,7 +100,7 @@ public:
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-		camera.setTranslation(glm::vec3(0.0f, 0.0f, -1.5f));
+		camera.setTranslation(glm::vec3(0.0f, 0.5f, -2.0f));
 		// Enable instance and device extensions required to use VK_NV_ray_tracing
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
@@ -127,7 +121,6 @@ public:
 		vkDestroyAccelerationStructureNV(device, topLevelAS.accelerationStructure, nullptr);
 		shaderBindingTable.destroy();
 		ubo.destroy();
-		scene.destroy();
 	}
 
 	/*
@@ -260,11 +253,10 @@ public:
 	void createScene()
 	{
 		// Instead of a simple triangle, we'll be loading a more complex scene for this example
-		vks::ModelCreateInfo modelCI{};
-		modelCI.scale = glm::vec3(0.25f);
-		// The shaders are accessing the vertex and index buffers of the scene, so the proper usage flag has to be set
-		modelCI.memoryPropertyFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		scene.loadFromFile(getAssetPath() + "models/reflection_test.dae", vertexLayout, &modelCI, vulkanDevice, queue);
+		// The shaders are accessing the vertex and index buffers of the scene, so the proper usage flag has to be set on the vertex and index buffers for the scene
+		vkglTF::memoryPropertyFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+		scene.loadFromFile(getAssetPath() + "models/reflection_scene.gltf", vulkanDevice, queue, glTFLoadingFlags);
 
 		/*
 			Create the bottom level acceleration structure containing the actual scene geometry
@@ -275,12 +267,12 @@ public:
 		geometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
 		geometry.geometry.triangles.vertexData = scene.vertices.buffer;
 		geometry.geometry.triangles.vertexOffset = 0;
-		geometry.geometry.triangles.vertexCount = static_cast<uint32_t>(scene.vertexCount);
-		geometry.geometry.triangles.vertexStride = vertexLayout.stride();
+		geometry.geometry.triangles.vertexCount = static_cast<uint32_t>(scene.vertices.count);
+		geometry.geometry.triangles.vertexStride = sizeof(vkglTF::Vertex);
 		geometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
 		geometry.geometry.triangles.indexData = scene.indices.buffer;
 		geometry.geometry.triangles.indexOffset = 0;
-		geometry.geometry.triangles.indexCount = scene.indexCount;
+		geometry.geometry.triangles.indexCount = scene.indices.count;
 		geometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
 		geometry.geometry.triangles.transformData = VK_NULL_HANDLE;
 		geometry.geometry.triangles.transformOffset = 0;
@@ -700,9 +692,9 @@ public:
 	{
 		uniformData.projInverse = glm::inverse(camera.matrices.perspective);
 		uniformData.viewInverse = glm::inverse(camera.matrices.view);
-		//uniformData.lightPos = glm::vec4(cos(glm::radians(timer * 360.0f)) * 60.0f, -60.0f + sin(glm::radians(timer * 360.0f)) * 20.0f, 60.0f + sin(glm::radians(timer * 360.0f)) * 5.0f, 0.0f);
 		uniformData.lightPos = glm::vec4(cos(glm::radians(timer * 360.0f)) * 40.0f, -20.0f + sin(glm::radians(timer * 360.0f)) * 20.0f, 25.0f + sin(glm::radians(timer * 360.0f)) * 5.0f, 0.0f);
-//		uniformData.lightPos = glm::vec4(0.0f, -5.0f, 0.0f, 0.0f);
+		// Pass the vertex size to the shader for unpacking vertices
+		uniformData.vertexSize = sizeof(vkglTF::Vertex);
 		memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 	}
 

@@ -24,7 +24,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanglTFModel.hpp"
+#include "VulkanglTFModel.h"
 
 #define ENABLE_VALIDATION false
 
@@ -191,7 +191,7 @@ public:
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayout));
 
 		std::array<VkDescriptorSetLayout, 2> setLayouts = {
-			descriptorSetLayout, scene.descriptorSetLayout
+			descriptorSetLayout, vkglTF::descriptorSetLayoutUbo
 		};
 		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), 2);
 		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec4) * 2,	0);
@@ -220,38 +220,25 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
 
-		// Vertex bindings and attributes
-		VkVertexInputBindingDescription vertexInputBinding = vkglTF::Vertex::inputBindingDescription(0);
-		const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vkglTF::Vertex::inputAttributeDescription(0, 0, vkglTF::VertexComponent::Position),
-			vkglTF::Vertex::inputAttributeDescription(0, 1, vkglTF::VertexComponent::Normal),
-			vkglTF::Vertex::inputAttributeDescription(0, 2, vkglTF::VertexComponent::UV)
-		};
-		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertexInputState.vertexBindingDescriptionCount = 1;
-		vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
-		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
-		VkGraphicsPipelineCreateInfo pipelineCreateInfoCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
-		pipelineCreateInfoCI.pVertexInputState = &vertexInputState;
-		pipelineCreateInfoCI.pInputAssemblyState = &inputAssemblyStateCI;
-		pipelineCreateInfoCI.pRasterizationState = &rasterizationStateCI;
-		pipelineCreateInfoCI.pColorBlendState = &colorBlendStateCI;
-		pipelineCreateInfoCI.pMultisampleState = &multisampleStateCI;
-		pipelineCreateInfoCI.pViewportState = &viewportStateCI;
-		pipelineCreateInfoCI.pDepthStencilState = &depthStencilStateCI;
-		pipelineCreateInfoCI.pDynamicState = &dynamicStateCI;
+		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
+		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+		pipelineCI.pRasterizationState = &rasterizationStateCI;
+		pipelineCI.pColorBlendState = &colorBlendStateCI;
+		pipelineCI.pMultisampleState = &multisampleStateCI;
+		pipelineCI.pViewportState = &viewportStateCI;
+		pipelineCI.pDepthStencilState = &depthStencilStateCI;
+		pipelineCI.pDynamicState = &dynamicStateCI;
+		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV });
 
 		const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
 			loadShader(getShadersPath() + "conditionalrender/model.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
 			loadShader(getShadersPath() + "conditionalrender/model.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
-		pipelineCreateInfoCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCreateInfoCI.pStages = shaderStages.data();
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+		pipelineCI.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfoCI, nullptr, &pipeline));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
 
 	void prepareUniformBuffers()

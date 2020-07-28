@@ -49,21 +49,21 @@ task copyTask {
     }
 
     copy {
-       from '../../../data/shaders/glsl/shadowmapomni'
-       into 'assets/shaders/glsl/shadowmapomni'
+       from '../../../data/shaders/glsl/shadowmappingomni'
+       into 'assets/shaders/glsl/shadowmappingomni'
        include '*.*'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'shadowscene_fire.dae'
+       include 'shadowscene_fire.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'cube.obj'
+       include 'cube.gltf'
     }
 
 

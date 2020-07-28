@@ -19,27 +19,13 @@ cbuffer ubo : register(b0) { UBO ubo; }
 struct VSOutput
 {
 	float4 Pos : SV_POSITION;
-[[vk::location(0)]] float3 Normal : NORMAL0;
-[[vk::location(1)]] float3 Color : COLOR0;
-[[vk::location(2)]] float2 UV : TEXCOORD0;
-[[vk::location(3)]] float3 ViewVec : TEXCOORD1;
-[[vk::location(4)]] float3 LightVec : TEXCOORD2;
+[[vk::location(0)]] float2 UV : TEXCOORD0;
 };
 
 VSOutput main(VSInput input)
 {
 	VSOutput output = (VSOutput)0;
-	output.Color = input.Color;
 	output.UV = input.UV * 32.0;
-	output.Normal = input.Normal;
-
-	float4 pos = float4(input.Pos.xyz, 1.0);
-
-	output.Pos = mul(ubo.projection, mul(ubo.modelview, pos));
-
-	float4 wPos = mul(ubo.modelview, float4(pos.xyz, 1.0));
-	float4 lPos = float4(0.0, -5.0, 0.0, 1.0);
-	output.LightVec = lPos.xyz - pos.xyz;
-	output.ViewVec = -pos.xyz;
+	output.Pos = mul(ubo.projection, mul(ubo.modelview, float4(input.Pos.xyz, 1.0)));
 	return output;
 }

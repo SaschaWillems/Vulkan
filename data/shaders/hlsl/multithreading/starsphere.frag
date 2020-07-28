@@ -27,7 +27,7 @@ float3 starField(float3 pos)
 float4 main([[vk::location(0)]] float3 inUVW : TEXCOORD0) : SV_TARGET
 {
 	// Fake atmosphere at the bottom
-	float3 atmosphere = clamp(float3(0.1, 0.15, 0.4) * (inUVW.y - 5.0), 0.0, 1.0);
+	float3 atmosphere = clamp(float3(0.1, 0.15, 0.4) * (inUVW.y + 0.25), 0.0, 1.0);
 
 	float3 color = starField(inUVW) + atmosphere;
 

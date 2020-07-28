@@ -57,13 +57,13 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'plane.obj'
+       include 'displacement_plane.obj'
     }
 
     copy {
        from '../../../data/textures'
        into 'assets/textures'
-       include 'stonefloor03_color*.ktx'
+       include 'stonefloor03_color_height_rgba.ktx'
     }
 
 

@@ -19,8 +19,8 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanModel.hpp"
 #include "VulkanBuffer.hpp"
+#include "VulkanglTFModel.h"
 
 #define ENABLE_VALIDATION false
 
@@ -33,25 +33,15 @@ class VulkanExample : public VulkanExampleBase
 public:
 	bool debugDisplay = false;
 
-	// Vertex layout for the models
-	vks::VertexLayout vertexLayout = vks::VertexLayout({
-		vks::VERTEX_COMPONENT_POSITION,
-		vks::VERTEX_COMPONENT_UV,
-		vks::VERTEX_COMPONENT_COLOR,
-		vks::VERTEX_COMPONENT_NORMAL,
-	});
-
 	struct {
-		vks::Model example;
-		vks::Model quad;
-		vks::Model plane;
+		vkglTF::Model example;
+		vkglTF::Model plane;
 	} models;
 
 	struct {
 		vks::Buffer vsShared;
 		vks::Buffer vsMirror;
 		vks::Buffer vsOffScreen;
-		vks::Buffer vsDebugQuad;
 	} uniformBuffers;
 
 	struct UBO {
@@ -77,7 +67,6 @@ public:
 		VkDescriptorSet offscreen;
 		VkDescriptorSet mirror;
 		VkDescriptorSet model;
-		VkDescriptorSet debugQuad;
 	} descriptorSets;
 
 	struct {
@@ -100,7 +89,7 @@ public:
 		VkDescriptorImageInfo descriptor;
 	} offscreenPass;
 
-	glm::vec3 modelPosition = glm::vec3(0.0f, -1.5f, 0.0f);
+	glm::vec3 modelPosition = glm::vec3(0.0f, -1.0f, 0.0f);
 	glm::vec3 modelRotation = glm::vec3(0.0f);
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
@@ -149,16 +138,10 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.shaded, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textured, nullptr);
 
-		// Models
-		models.example.destroy();
-		models.quad.destroy();
-		models.plane.destroy();
-
 		// Uniform buffers
 		uniformBuffers.vsShared.destroy();
 		uniformBuffers.vsMirror.destroy();
 		uniformBuffers.vsOffScreen.destroy();
-		uniformBuffers.vsDebugQuad.destroy();
 	}
 
 	// Setup the offscreen framebuffer for rendering the mirrored scene
@@ -372,9 +355,7 @@ public:
 				// Mirrored scene
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.shaded, 0, 1, &descriptorSets.offscreen, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shadedOffscreen);
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.example.vertices.buffer, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.example.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], models.example.indexCount, 1, 0, 0, 0);
+				models.example.draw(drawCmdBuffers[i]);
 
 				vkCmdEndRenderPass(drawCmdBuffers[i]);
 			}
@@ -410,30 +391,22 @@ public:
 
 				if (debugDisplay)
 				{
-					vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.textured, 0, 1, &descriptorSets.debugQuad, 0, NULL);
+					vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.textured, 0, 1, &descriptorSets.mirror, 0, nullptr);
 					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);
-					vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.quad.vertices.buffer, offsets);
-					vkCmdBindIndexBuffer(drawCmdBuffers[i], models.quad.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-					vkCmdDrawIndexed(drawCmdBuffers[i], models.quad.indexCount, 1, 0, 0, 0);
+					vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 				}
 
 				// Scene
 
 				// Reflection plane
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.textured, 0, 1, &descriptorSets.mirror, 0, NULL);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.textured, 0, 1, &descriptorSets.mirror, 0, nullptr);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.mirror);
-
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.plane.vertices.buffer, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.plane.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], models.plane.indexCount, 1, 0, 0, 0);
+				models.plane.draw(drawCmdBuffers[i]);
 
 				// Model
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.shaded, 0, 1, &descriptorSets.model, 0, NULL);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.shaded, 0, 1, &descriptorSets.model, 0, nullptr);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shaded);
-
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &models.example.vertices.buffer, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], models.example.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(drawCmdBuffers[i], models.example.indexCount, 1, 0, 0, 0);
+				models.example.draw(drawCmdBuffers[i]);
 
 				drawUI(drawCmdBuffers[i]);
 
@@ -446,51 +419,9 @@ public:
 
 	void loadAssets()
 	{
-		models.plane.loadFromFile(getAssetPath() + "models/plane.obj", vertexLayout, 0.5f, vulkanDevice, queue);
-		models.example.loadFromFile(getAssetPath() + "models/chinesedragon.dae", vertexLayout, 0.3f, vulkanDevice, queue);
-	}
-
-	void generateQuad()
-	{
-		// Setup vertices for a single uv-mapped quad
-		struct Vertex {
-			float pos[3];
-			float uv[2];
-			float col[3];
-			float normal[3];
-		};
-
-#define QUAD_COLOR_NORMAL { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }
-		std::vector<Vertex> vertexBuffer =
-		{
-			{ { 1.0f, 1.0f, 0.0f },{ 1.0f, 1.0f }, QUAD_COLOR_NORMAL },
-			{ { 0.0f, 1.0f, 0.0f },{ 0.0f, 1.0f }, QUAD_COLOR_NORMAL },
-			{ { 0.0f, 0.0f, 0.0f },{ 0.0f, 0.0f }, QUAD_COLOR_NORMAL },
-			{ { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f }, QUAD_COLOR_NORMAL }
-		};
-#undef QUAD_COLOR_NORMAL
-
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			vertexBuffer.size() * sizeof(Vertex),
-			&models.quad.vertices.buffer,
-			&models.quad.vertices.memory,
-			vertexBuffer.data()));
-
-		// Setup indices
-		std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-		models.quad.indexCount = indexBuffer.size();
-
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			indexBuffer.size() * sizeof(uint32_t),
-			&models.quad.indices.buffer,
-			&models.quad.indices.memory,
-			indexBuffer.data()));
-
-		models.quad.device = device;
+		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+		models.plane.loadFromFile(getAssetPath() + "models/plane.gltf", vulkanDevice, queue, glTFLoadingFlags);
+		models.example.loadFromFile(getAssetPath() + "models/chinesedragon.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
 	void setupDescriptorPool()
@@ -576,26 +507,6 @@ public:
 
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 
-		// Debug quad
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.debugQuad));
-
-		std::vector<VkWriteDescriptorSet> debugQuadWriteDescriptorSets =
-		{
-			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.debugQuad,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				0,
-				&uniformBuffers.vsDebugQuad.descriptor),
-			// Binding 1 : Fragment shader texture sampler
-			vks::initializers::writeDescriptorSet(
-				descriptorSets.debugQuad,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				1,
-				&offscreenPass.descriptor)
-		};
-		vkUpdateDescriptorSets(device, debugQuadWriteDescriptorSets.size(), debugQuadWriteDescriptorSets.data(), 0, NULL);
-
 		// Shaded descriptor sets
 		allocInfo.pSetLayouts = &descriptorSetLayouts.shaded;
 
@@ -630,78 +541,18 @@ public:
 
 	void preparePipelines()
 	{
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(
-				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-				0,
-				VK_FALSE);
-
-		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vks::initializers::pipelineRasterizationStateCreateInfo(
-				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_FRONT_BIT,
-				VK_FRONT_FACE_CLOCKWISE,
-				0);
-
-		VkPipelineColorBlendAttachmentState blendAttachmentState =
-			vks::initializers::pipelineColorBlendAttachmentState(
-				0xf,
-				VK_FALSE);
-
-		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vks::initializers::pipelineColorBlendStateCreateInfo(
-				1,
-				&blendAttachmentState);
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE,
-				VK_TRUE,
-				VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		VkPipelineViewportStateCreateInfo viewportState =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vks::initializers::pipelineMultisampleStateCreateInfo(
-				VK_SAMPLE_COUNT_1_BIT,
-				0);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(
-				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
-				0);
-
-		// Solid rendering pipeline
-		// Load shaders
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+ 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE,0);
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+		std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), dynamicStateEnables.size(), 0);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		shaderStages[0] = loadShader(getShadersPath() + "offscreen/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "offscreen/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-		// Vertex bindings and attributes
-		const std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-			vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
-		};
-		const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position
-			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3),		// Location 1: UV
-			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 5),	// Location 2: Color
-			vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),	// Location 3: Normal
-		};
-		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-		vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayouts.textured, renderPass, 0);
-		pipelineCI.pVertexInputState = &vertexInputState;
 		pipelineCI.pInputAssemblyState = &inputAssemblyState;
 		pipelineCI.pRasterizationState = &rasterizationState;
 		pipelineCI.pColorBlendState = &colorBlendState;
@@ -711,16 +562,20 @@ public:
 		pipelineCI.pDynamicState = &dynamicState;
 		pipelineCI.stageCount = shaderStages.size();
 		pipelineCI.pStages = shaderStages.data();
+		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Color, vkglTF::VertexComponent::Normal});
 
+		rasterizationState.cullMode = VK_CULL_MODE_NONE;
+
+		// Render-target debug display
+		shaderStages[0] = loadShader(getShadersPath() + "offscreen/quad.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "offscreen/quad.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.debug));
 
 		// Mirror
 		shaderStages[0] = loadShader(getShadersPath() + "offscreen/mirror.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "offscreen/mirror.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.mirror));
 
-		// Flip culling
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
 		// Phong shading pipelines
@@ -730,7 +585,7 @@ public:
 		shaderStages[1] = loadShader(getShadersPath() + "offscreen/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.shaded));
 		// Offscreen
-		// Flip culling
+		// Flip cull mode
 		rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 		pipelineCI.renderPass = offscreenPass.renderPass;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.shadedOffscreen));
@@ -761,18 +616,10 @@ public:
 			&uniformBuffers.vsOffScreen,
 			sizeof(uboShared)));
 
-		// Debug quad vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.vsDebugQuad,
-			sizeof(uboShared)));
-
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffers.vsShared.map());
 		VK_CHECK_RESULT(uniformBuffers.vsMirror.map());
 		VK_CHECK_RESULT(uniformBuffers.vsOffScreen.map());
-		VK_CHECK_RESULT(uniformBuffers.vsDebugQuad.map());
 
 		updateUniformBuffers();
 		updateUniformBufferOffscreen();
@@ -792,12 +639,6 @@ public:
 		// Mirror
 		uboShared.model = glm::mat4(1.0f);
 		memcpy(uniformBuffers.vsMirror.mapped, &uboShared, sizeof(uboShared));
-
-		// Debug quad
-		// @todo: Full screen triangle in VS
-		uboShared.projection = glm::ortho(4.0f, 0.0f, 0.0f, 4.0f*(float)height / (float)width, -1.0f, 1.0f);
-		uboShared.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-		memcpy(uniformBuffers.vsDebugQuad.mapped, &uboShared, sizeof(uboShared));
 	}
 
 	void updateUniformBufferOffscreen()
@@ -829,7 +670,6 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
-		generateQuad();
 		prepareOffscreen();
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
@@ -845,18 +685,14 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		if (!paused)
+		if (!paused || camera.updated)
 		{
-			modelRotation.y += frameTimer * 10.0f;
+			if (!paused) {
+				modelRotation.y += frameTimer * 10.0f;
+			}
 			updateUniformBuffers();
 			updateUniformBufferOffscreen();
 		}
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffers();
-		updateUniformBufferOffscreen();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

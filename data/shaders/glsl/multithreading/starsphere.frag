@@ -31,7 +31,7 @@ vec3 starField(vec3 pos)
 void main() 
 {
 	// Fake atmosphere at the bottom
-	vec3 atmosphere = clamp(vec3(0.1, 0.15, 0.4) * (inUVW.t - 5.0), 0.0, 1.0);
+	vec3 atmosphere = clamp(vec3(0.1, 0.15, 0.4) * (inUVW.t + 0.25), 0.0, 1.0);
 
 	vec3 color = starField(inUVW) + atmosphere;
 	

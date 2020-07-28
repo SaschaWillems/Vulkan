@@ -22,7 +22,7 @@ layout (binding = 1) uniform UBO
     float tessAlpha;
 } ubo;
 
-layout(triangles, fractional_odd_spacing, ccw) in;
+layout(triangles, fractional_odd_spacing, cw) in;
 
 layout(location = 0) in vec3 iNormal[];
 layout(location = 3) in vec2 iTexCoord[];

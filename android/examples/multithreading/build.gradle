@@ -57,13 +57,13 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'retroufo_red_lowpoly.dae'
+       include 'retroufo_red_lowpoly.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'sphere.obj'
+       include 'sphere.gltf'
     }
 
 

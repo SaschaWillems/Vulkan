@@ -17,6 +17,7 @@ struct UBO
 {
 	Light lights[6];
 	float4 viewPos;
+	int displayDebugTarget;
 };
 
 cbuffer ubo : register(b4) { UBO ubo; }
@@ -29,11 +30,32 @@ float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 	float3 normal = textureNormal.Sample(samplerNormal, inUV).rgb;
 	float4 albedo = textureAlbedo.Sample(samplerAlbedo, inUV);
 
+	float3 fragcolor;
+
+	// Debug display
+	if (ubo.displayDebugTarget > 0) {
+		switch (ubo.displayDebugTarget) {
+			case 1: 
+				fragcolor.rgb = fragPos;
+				break;
+			case 2: 
+				fragcolor.rgb = normal;
+				break;
+			case 3: 
+				fragcolor.rgb = albedo.rgb;
+				break;
+			case 4: 
+				fragcolor.rgb = albedo.aaa;
+				break;
+		}		
+		return float4(fragcolor, 1.0);
+	}
+
 	#define lightCount 6
 	#define ambient 0.0
 
 	// Ambient part
-	float3 fragcolor  = albedo.rgb * ambient;
+	fragcolor = albedo.rgb * ambient;
 
 	for(int i = 0; i < lightCount; ++i)
 	{

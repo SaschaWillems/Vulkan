@@ -1,6 +1,6 @@
 #version 450
 
-layout (triangles) in;
+layout (triangles, fractional_odd_spacing, cw) in;
 
 layout (binding = 1) uniform UBO 
 {

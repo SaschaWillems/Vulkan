@@ -57,31 +57,25 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'cube.obj'
+       include 'sphere.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'geosphere.obj'
+       include 'teapot.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'teapot.dae'
+       include 'torusknot.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'torusknot.obj'
-    }
-
-    copy {
-       from '../../../data/models'
-       into 'assets/models'
-       include 'venus.fbx'
+       include 'venus.gltf'
     }
 
 

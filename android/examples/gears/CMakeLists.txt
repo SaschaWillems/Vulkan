@@ -21,9 +21,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_o
 include_directories(${BASE_DIR})
 include_directories(${EXTERNAL_DIR})
 include_directories(${EXTERNAL_DIR}/glm)
-include_directories(${EXTERNAL_DIR}/gli)
 include_directories(${EXTERNAL_DIR}/imgui)
-include_directories(${EXTERNAL_DIR}/assimp)
 include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_link_libraries(

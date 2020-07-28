@@ -57,7 +57,7 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'openbox.dae'
+       include 'deferred_box.gltf'
     }
 
     copy {

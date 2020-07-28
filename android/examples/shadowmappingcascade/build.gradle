@@ -57,27 +57,14 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'terrain_simple.dae'
+       include 'terrain_gridlines.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'oak_*.dae'
+       include 'oaktree.gltf'
     }
-
-    copy {
-       from '../../../data/textures'
-       into 'assets/textures'
-       include 'gridlines.ktx'
-    }
-
-    copy {
-       from '../../../data/textures'
-       into 'assets/textures'
-       include 'oak*.ktx'
-    }
-
 
 }
 

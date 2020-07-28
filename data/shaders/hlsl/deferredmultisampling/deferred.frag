@@ -17,7 +17,7 @@ struct UBO
 {
 	Light lights[6];
 	float4 viewPos;
-	int2 windowSize;
+	int debugDisplayTarget;
 };
 
 cbuffer ubo : register(b4) { UBO ubo; }
@@ -82,16 +82,37 @@ float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 	texturePosition.GetDimensions(attDim.x, attDim.y, sampleCount);
 	int2 UV = int2(inUV * attDim);
 
+	float3 fragColor;
+	uint status = 0;
+
+	// Debug display
+	if (ubo.debugDisplayTarget > 0) {
+		switch (ubo.debugDisplayTarget) {
+			case 1: 
+				fragColor.rgb = texturePosition.Load(UV, 0, int2(0, 0), status).rgb;
+				break;
+			case 2: 
+				fragColor.rgb = textureNormal.Load(UV, 0, int2(0, 0), status).rgb;
+				break;
+			case 3: 
+				fragColor.rgb = textureAlbedo.Load(UV, 0, int2(0, 0), status).rgb;
+				break;
+			case 4: 
+				fragColor.rgb = textureAlbedo.Load(UV, 0, int2(0, 0), status).aaa;
+				break;
+		}		
+		return float4(fragColor, 1.0);
+	}
+
 	#define ambient 0.15
 
 	// Ambient part
 	float4 alb = resolve(textureAlbedo, UV);
-	float3 fragColor = float3(0.0, 0.0, 0.0);
+	fragColor = float3(0.0, 0.0, 0.0);
 
 	// Calualte lighting for every MSAA sample
 	for (int i = 0; i < NUM_SAMPLES; i++)
 	{
-		uint status = 0;
 		float3 pos = texturePosition.Load(UV, i, int2(0, 0), status).rgb;
 		float3 normal = textureNormal.Load(UV, i, int2(0, 0), status).rgb;
 		float4 albedo = textureAlbedo.Load(UV, i, int2(0, 0), status);

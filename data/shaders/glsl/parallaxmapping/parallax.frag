@@ -18,44 +18,6 @@ layout (location = 3) in vec3 inTangentFragPos;
 
 layout (location = 0) out vec4 outColor;
 
-vec2 parallax_uv(vec2 uv, vec3 view_dir, int type)
-{
-	if (type == 2) {
-		// Parallax mapping
-		float depth = 1.0 - textureLod(sNormalHeightMap, uv, 0.0).a;
-		vec2 p = view_dir.xy * (depth * (ubo.heightScale * 0.5) + ubo.parallaxBias) / view_dir.z;
-		return uv - p;  
-	} else {
-		float layer_depth = 1.0 / ubo.numLayers;
-		float cur_layer_depth = 0.0;
-		vec2 delta_uv = view_dir.xy * ubo.heightScale / (view_dir.z * ubo.numLayers);
-		vec2 cur_uv = uv;
-
-		float depth_from_tex = 1.0 - textureLod(sNormalHeightMap, cur_uv, 0.0).a;
-
-		for (int i = 0; i < 32; i++) {
-			cur_layer_depth += layer_depth;
-			cur_uv -= delta_uv;
-			depth_from_tex = 1.0 - textureLod(sNormalHeightMap, cur_uv, 0.0).a;
-			if (depth_from_tex < cur_layer_depth) {
-				break;
-			}
-		}
-
-		if (type == 3) {
-			// Steep parallax mapping
-			return cur_uv;
-		} else {
-			// Parallax occlusion mapping
-			vec2 prev_uv = cur_uv + delta_uv;
-			float next = depth_from_tex - cur_layer_depth;
-			float prev = 1.0 - textureLod(sNormalHeightMap, prev_uv, 0.0).a - cur_layer_depth + layer_depth;
-			float weight = next / (next - prev);
-			return mix(cur_uv, prev_uv, weight);
-		}
-	}
-}
-
 vec2 parallaxMapping(vec2 uv, vec3 viewDir) 
 {
 	float height = 1.0 - textureLod(sNormalHeightMap, uv, 0.0).a;

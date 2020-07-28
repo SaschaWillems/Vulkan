@@ -57,19 +57,19 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'samplebuilding.dae'
+       include 'samplebuilding.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'samplebuilding_glass.dae'
+       include 'samplebuilding_glass.gltf'
     }
 
     copy {
        from '../../../data/textures'
        into 'assets/textures'
-       include 'colored_glass_*.ktx'
+       include 'colored_glass_rgba.ktx'
     }
 
 

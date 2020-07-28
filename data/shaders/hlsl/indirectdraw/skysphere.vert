@@ -23,7 +23,7 @@ struct VSOutput
 VSOutput main(VSInput input)
 {
 	VSOutput output = (VSOutput)0;
-	output.UV = float2(input.UV.x, 1.0-input.UV.y);
+	output.UV = input.UV;
 	// Skysphere always at center, only use rotation part of modelview matrix
 	output.Pos = mul(ubo.projection, float4(mul((float3x3)ubo.modelview, input.Pos.xyz), 1));
 	return output;

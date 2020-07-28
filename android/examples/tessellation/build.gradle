@@ -55,23 +55,10 @@ task copyTask {
     }
 
     copy {
-       from '../../../data/models/lowpoly'
-       into 'assets/models/lowpoly'
-       include '*.*'
-    }
-
-    copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'retroufo_glow.dae'
+       include 'deer.gltf'
     }
-
-    copy {
-       from '../../../data/textures'
-       into 'assets/textures'
-       include 'deer*.ktx'
-    }
-
 
 }
 

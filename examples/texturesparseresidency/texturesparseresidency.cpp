@@ -138,8 +138,8 @@ VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	title = "Sparse texture residency";
 	std::cout.imbue(std::locale(""));
 	camera.type = Camera::CameraType::lookat;
-	camera.setPosition(glm::vec3(0.0f, 0.0f, -20.0f));
-	camera.setRotation(glm::vec3(0.0f, 180.0f, 0.0f));
+	camera.setPosition(glm::vec3(0.0f, 0.0f, -12.0f));
+	camera.setRotation(glm::vec3(-90.0f, 0.0f, 0.0f));
 	camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 	settings.overlay = true;
 }
@@ -153,7 +153,6 @@ VulkanExample::~VulkanExample()
 	vkDestroyPipeline(device, pipeline, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-	plane.destroy();
 	uniformBufferVS.destroy();
 }
 
@@ -509,11 +508,7 @@ void VulkanExample::buildCommandBuffers()
 
 		vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 		vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &plane.vertices.buffer, offsets);
-		vkCmdBindIndexBuffer(drawCmdBuffers[i], plane.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(drawCmdBuffers[i], plane.indexCount, 1, 0, 0, 0);
+		plane.draw(drawCmdBuffers[i]);
 
 		drawUI(drawCmdBuffers[i]);
 
@@ -534,7 +529,8 @@ void VulkanExample::draw()
 
 void VulkanExample::loadAssets()
 {
-	plane.loadFromFile(getAssetPath() + "models/plane_z.obj", vertexLayout, 1.0f, vulkanDevice, queue);
+	const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+	plane.loadFromFile(getAssetPath() + "models/plane.gltf", vulkanDevice, queue, glTFLoadingFlags);
 }
 
 void VulkanExample::setupDescriptorPool()
@@ -638,22 +634,7 @@ void VulkanExample::preparePipelines()
 	pipelineCI.pDynamicState = &dynamicState;
 	pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 	pipelineCI.pStages = shaderStages.data();
-
-	// Vertex bindings an attributes
-	std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-		vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
-	};
-	std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-		vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position
-		vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normal
-		vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),		// Location 0: Texture coordinates
-	};
-	VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-	vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-	vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-	vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-	vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-	pipelineCI.pVertexInputState = &vertexInputState;
+	pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV });
 
 	shaderStages[0] = loadShader(getShadersPath() + "texturesparseresidency/sparseresidency.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 	shaderStages[1] = loadShader(getShadersPath() + "texturesparseresidency/sparseresidency.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);

@@ -18,7 +18,7 @@ layout (binding = 4) uniform UBO
 {
 	Light lights[6];
 	vec4 viewPos;
-	ivec2 windowSize;
+	int debugDisplayTarget;
 } ubo;
 
 layout (constant_id = 0) const int NUM_SAMPLES = 8;
@@ -79,6 +79,26 @@ void main()
 	ivec2 attDim = textureSize(samplerPosition);
 	ivec2 UV = ivec2(inUV * attDim);
 	
+	// Debug display
+	if (ubo.debugDisplayTarget > 0) {
+		switch (ubo.debugDisplayTarget) {
+			case 1: 
+				outFragcolor.rgb = texelFetch(samplerPosition, UV, 0).rgb;
+				break;
+			case 2: 
+				outFragcolor.rgb = texelFetch(samplerNormal, UV, 0).rgb;
+				break;
+			case 3: 
+				outFragcolor.rgb = texelFetch(samplerAlbedo, UV, 0).rgb;
+				break;
+			case 4: 
+				outFragcolor.rgb = texelFetch(samplerAlbedo, UV, 0).aaa;
+				break;
+		}		
+		outFragcolor.a = 1.0;
+		return;
+	}
+
 	#define ambient 0.15
 
 	// Ambient part

@@ -24,6 +24,5 @@ VSOutput main(VSInput input)
 	VSOutput output = (VSOutput)0;
 	output.Pos = mul(ubo.mvp, float4(input.Pos, 1.0));
 	output.UV = input.UV;
-	output.UV.y = 1.0 - output.UV.y;
 	return output;
 }

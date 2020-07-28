@@ -355,9 +355,6 @@ void VulkanExample::loadglTFFile(std::string filename)
 
 	this->device = device;
 
-	// @todo: comment
-	//gltfContext.SetImageLoader(glTFScene.loadImageCallback, nullptr);
-
 #if defined(__ANDROID__)
 	// On Android all assets are packed with the apk in a compressed form, so we need to open them using the asset manager
 	// We let tinygltf handle this, by passing the asset manager of our app

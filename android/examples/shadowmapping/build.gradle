@@ -57,13 +57,13 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'vulkanscene_shadow.dae'
+       include 'vulkanscene_shadow.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'samplescene.dae'
+       include 'samplescene.gltf'
     }
 
 }

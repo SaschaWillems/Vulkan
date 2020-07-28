@@ -22,5 +22,4 @@ void main()
 	}
 
 	outFragColor = vec4((IAmbient + IDiffuse) * vec4(inColor, 1.0) + ISpecular);
-  
 }

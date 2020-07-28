@@ -1,6 +1,6 @@
 #version 450
 
-layout (location = 0) in vec4 inPos;
+layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec3 inColor;
 
@@ -19,12 +19,12 @@ void main()
 {
 	outNormal = inNormal;
 	outColor = inColor;
-	gl_Position = ubo.projection * ubo.model * inPos;
+	gl_Position = ubo.projection * ubo.model * vec4(inPos, 1.0);
 
-	vec4 pos = ubo.model * vec4(inPos.xyz, 1.0);
+	vec4 pos = ubo.model * vec4(inPos, 1.0);
 	outNormal = mat3(ubo.model) * inNormal;
 
-	vec3 lightPos = vec3(1.0f, -1.0f, 1.0f);
+	vec3 lightPos = vec3(1.0f, 1.0f, 1.0f);
 	outLightVec = lightPos.xyz - pos.xyz;
 	outViewVec = -pos.xyz;		
 }

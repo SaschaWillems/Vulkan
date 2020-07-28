@@ -9,19 +9,28 @@ struct VSOutput
 [[vk::location(3)]] float3 WorldPos : POSITION0;
 };
 
+struct UBO
+{
+	float4x4 projection;
+	float4x4 model;
+	float4x4 view;
+	float nearPlane;
+	float farPlane;
+};
+
+cbuffer ubo : register(b0) { UBO ubo; }
+
 struct FSOutput
 {
 	float4 Position : SV_TARGET0;
 	float4 Normal : SV_TARGET1;
 	float4 Albedo : SV_TARGET2;
 };
-static const float NEAR_PLANE = 0.1f; //todo: specialization const
-static const float FAR_PLANE = 64.0f; //todo: specialization const
 
 float linearDepth(float depth)
 {
 	float z = depth * 2.0f - 1.0f;
-	return (2.0f * NEAR_PLANE * FAR_PLANE) / (FAR_PLANE + NEAR_PLANE - z * (FAR_PLANE - NEAR_PLANE));
+	return (2.0f * ubo.nearPlane * ubo.farPlane) / (ubo.farPlane + ubo.nearPlane - z * (ubo.farPlane - ubo.nearPlane));
 }
 
 FSOutput main(VSOutput input)

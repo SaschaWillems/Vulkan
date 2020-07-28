@@ -25,7 +25,7 @@ compiler:
   - gcc
 before_script:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libassimp-dev libx11-xcb-dev libxrandr-dev
+  - sudo apt-get install -y libx11-xcb-dev libxrandr-dev
 script:
   - cmake .
   - make

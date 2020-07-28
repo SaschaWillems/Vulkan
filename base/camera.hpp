@@ -94,7 +94,7 @@ public:
 		this->zfar = zfar;
 		matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
 		if (flipY) {
-			matrices.perspective[1, 1] *= -1.0f;
+			matrices.perspective[1][1] *= -1.0f;
 		}
 	};
 
@@ -102,7 +102,7 @@ public:
 	{
 		matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
 		if (flipY) {
-			matrices.perspective[1, 1] *= -1.0f;
+			matrices.perspective[1][1] *= -1.0f;
 		}
 	}
 

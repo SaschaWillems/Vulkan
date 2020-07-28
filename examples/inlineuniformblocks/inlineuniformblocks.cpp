@@ -24,10 +24,9 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanBuffer.hpp"
-#include "VulkanModel.hpp"
+#include "VulkanglTFModel.h"
 
 #define ENABLE_VALIDATION false
-#define OBJ_DIM 0.025f
 
 float rnd() {
 	return ((float)rand() / (RAND_MAX));
@@ -36,13 +35,7 @@ float rnd() {
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	vks::VertexLayout vertexLayout = vks::VertexLayout({
-		vks::VERTEX_COMPONENT_POSITION,
-		vks::VERTEX_COMPONENT_NORMAL,
-		vks::VERTEX_COMPONENT_UV,
-	});
-
-	vks::Model model;
+	vkglTF::Model model;
 
 	struct Object {
 		struct  Material {
@@ -107,13 +100,9 @@ public:
 	~VulkanExample()
 	{
 		vkDestroyPipeline(device, pipeline, nullptr);
-
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.object, nullptr);
-
-		model.destroy();
-
 		uniformBuffers.scene.destroy();
 	}
 
@@ -152,8 +141,6 @@ public:
 
 			// Render objects
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &model.vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			uint32_t objcount = static_cast<uint32_t>(objects.size());
 			for (uint32_t x = 0; x < objcount; x++) {
@@ -171,7 +158,7 @@ public:
 				glm::vec3 pos = glm::vec3(sin(glm::radians(x * (360.0f / objcount))), cos(glm::radians(x * (360.0f / objcount))), 0.0f) * 3.5f;
 
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
-				vkCmdDrawIndexed(drawCmdBuffers[i], model.indexCount, 1, 0, 0, 0);
+				model.draw(drawCmdBuffers[i]);
 			}
 			drawUI(drawCmdBuffers[i]);
 
@@ -183,7 +170,7 @@ public:
 
 	void loadAssets()
 	{
-		model.loadFromFile(getAssetPath() + "models/geosphere.obj", vertexLayout, OBJ_DIM, vulkanDevice, queue);
+		model.loadFromFile(getAssetPath() + "models/sphere.gltf", vulkanDevice, queue);
 
 		// Setup random materials for every object in the scene
 		for (uint32_t i = 0; i < objects.size(); i++) {
@@ -298,20 +285,6 @@ public:
 
 	void preparePipelines()
 	{
-		// Vertex bindings an attributes
-		std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-			vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
-		};
-		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),
-			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),
-		};
-		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-		vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -323,21 +296,21 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		VkGraphicsPipelineCreateInfo pipelineCreateInfoCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
-		pipelineCreateInfoCI.pInputAssemblyState = &inputAssemblyStateCI;
-		pipelineCreateInfoCI.pRasterizationState = &rasterizationStateCI;
-		pipelineCreateInfoCI.pColorBlendState = &colorBlendStateCI;
-		pipelineCreateInfoCI.pMultisampleState = &multisampleStateCI;
-		pipelineCreateInfoCI.pViewportState = &viewportStateCI;
-		pipelineCreateInfoCI.pDepthStencilState = &depthStencilStateCI;
-		pipelineCreateInfoCI.pDynamicState = &dynamicStateCI;
-		pipelineCreateInfoCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCreateInfoCI.pStages = shaderStages.data();
-		pipelineCreateInfoCI.pVertexInputState = &vertexInputState;
+		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
+		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+		pipelineCI.pRasterizationState = &rasterizationStateCI;
+		pipelineCI.pColorBlendState = &colorBlendStateCI;
+		pipelineCI.pMultisampleState = &multisampleStateCI;
+		pipelineCI.pViewportState = &viewportStateCI;
+		pipelineCI.pDepthStencilState = &depthStencilStateCI;
+		pipelineCI.pDynamicState = &dynamicStateCI;
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+		pipelineCI.pStages = shaderStages.data();
+		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal });
 
 		shaderStages[0] = loadShader(getShadersPath() + "inlineuniformblocks/pbr.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "inlineuniformblocks/pbr.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfoCI, nullptr, &pipeline));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
 
 	void prepareUniformBuffers()
@@ -351,8 +324,8 @@ public:
 	{
 		uboMatrices.projection = camera.matrices.perspective;
 		uboMatrices.view = camera.matrices.view;
-		uboMatrices.model = glm::mat4(1.0f);
-		uboMatrices.camPos = camera.position * -1.0f;
+		uboMatrices.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
+		uboMatrices.camPos = camera.position * glm::vec3(-1.0f, 1.0f, -1.0f);
 		memcpy(uniformBuffers.scene.mapped, &uboMatrices, sizeof(uboMatrices));
 	}
 

@@ -37,12 +37,9 @@ VSOutput main(VSInput input, uint InstanceIndex : SV_InstanceID)
 	output.Pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model, tmpPos)));
 
 	output.UV = input.UV;
-	output.UV.y = 1.0 - output.UV.y;
 
 	// Vertex position in world space
 	output.WorldPos = mul(ubo.model, tmpPos).xyz;
-	// GL to Vulkan coord space
-	output.WorldPos.y = -output.WorldPos.y;
 
 	// Normal in world space
 	output.Normal = normalize(input.Normal);

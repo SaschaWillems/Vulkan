@@ -1,7 +1,7 @@
 #version 450
 
 // Vertex attributes
-layout (location = 0) in vec4 inPos;
+layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inUV;
 layout (location = 3) in vec3 inColor;
@@ -24,16 +24,10 @@ layout (location = 2) out vec3 outUV;
 layout (location = 3) out vec3 outViewVec;
 layout (location = 4) out vec3 outLightVec;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
-
 void main() 
 {
 	outColor = inColor;
 	outUV = vec3(inUV, instanceTexIndex);
-	outUV.t = 1.0 - outUV.t;
 
 	mat4 mx, my, mz;
 	

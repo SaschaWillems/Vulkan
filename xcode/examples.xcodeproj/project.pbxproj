@@ -16,11 +16,8 @@
 		A9532B761EF99894000A09E2 /* libMoltenVK.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A9532B751EF99894000A09E2 /* libMoltenVK.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		A9532B771EF9991A000A09E2 /* libMoltenVK.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A9532B751EF99894000A09E2 /* libMoltenVK.dylib */; };
 		A9532B781EF99937000A09E2 /* libMoltenVK.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */; };
-		A9581BA61EEB648800247309 /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BA51EEB648800247309 /* libassimp.a */; };
 		A9581BA81EEB648C00247309 /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BA71EEB648C00247309 /* libzlibstatic.a */; };
 		A9581BAC1EEB64EC00247309 /* libMoltenVK.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		A9581BAE1EEB651100247309 /* libassimp.3.3.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A9581BAD1EEB651100247309 /* libassimp.3.3.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		A9581BAF1EEB651500247309 /* libassimp.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BAD1EEB651100247309 /* libassimp.3.3.1.dylib */; };
 		A98703D91E9D382A0066959C /* data in Resources */ = {isa = PBXBuildFile; fileRef = A98703D81E9D382A0066959C /* data */; };
 		A98703DA1E9D382A0066959C /* data in Resources */ = {isa = PBXBuildFile; fileRef = A98703D81E9D382A0066959C /* data */; };
 		A9B67B781C3AAE9800373FFD /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = A9B67B6C1C3AAE9800373FFD /* AppDelegate.m */; };
@@ -60,7 +57,6 @@
 			dstSubfolderSpec = 6;
 			files = (
 				A9581BAC1EEB64EC00247309 /* libMoltenVK.dylib in CopyFiles */,
-				A9581BAE1EEB651100247309 /* libassimp.3.3.1.dylib in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,10 +99,7 @@
 		A951FF131E9C349000FA9144 /* VulkanTools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanTools.cpp; sourceTree = "<group>"; };
 		A951FF141E9C349000FA9144 /* VulkanTools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanTools.h; sourceTree = "<group>"; };
 		A9532B751EF99894000A09E2 /* libMoltenVK.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libMoltenVK.dylib; path = MoltenVK/iOS/libMoltenVK.dylib; sourceTree = "<group>"; };
-		A9581BA51EEB648800247309 /* libassimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libassimp.a; path = "assimp/assimp-ios/lib/iOS/arm64/libassimp.a"; sourceTree = "<group>"; };
-		A9581BA71EEB648C00247309 /* libzlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libzlibstatic.a; path = "assimp/assimp-ios/lib/libzlibstatic.a"; sourceTree = "<group>"; };
 		A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libMoltenVK.dylib; path = MoltenVK/macOS/libMoltenVK.dylib; sourceTree = "<group>"; };
-		A9581BAD1EEB651100247309 /* libassimp.3.3.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libassimp.3.3.1.dylib; path = "assimp/assimp-macos/lib/libassimp.3.3.1.dylib"; sourceTree = "<group>"; };
 		A977BCFE1B66BB010067E5BF /* examples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = examples.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A977BD211B67186B0067E5BF /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/AppKit.framework; sourceTree = DEVELOPER_DIR; };
 		A977BD221B67186B0067E5BF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
@@ -163,7 +156,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A9532B771EF9991A000A09E2 /* libMoltenVK.dylib in Frameworks */,
-				A9581BA61EEB648800247309 /* libassimp.a in Frameworks */,
 				A9581BA81EEB648C00247309 /* libzlibstatic.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -173,7 +165,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A9532B781EF99937000A09E2 /* libMoltenVK.dylib in Frameworks */,
-				A9581BAF1EEB651500247309 /* libassimp.3.3.1.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -217,11 +208,9 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				A9581BAD1EEB651100247309 /* libassimp.3.3.1.dylib */,
 				A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */,
 				A9532B751EF99894000A09E2 /* libMoltenVK.dylib */,
 				A9581BA71EEB648C00247309 /* libzlibstatic.a */,
-				A9581BA51EEB648800247309 /* libassimp.a */,
 				A9B5D09B1CF8830B00D7CBDD /* libc++.tbd */,
 				A9B6B7641C0F795D00A9E33A /* CoreAudio.framework */,
 				A9ADEC601B6EC2EB00DBA48C /* iOS */,
@@ -501,8 +490,6 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SRCROOT)/MoltenVK/iOS\"",
-					"\"$(SRCROOT)/assimp/assimp-ios/lib/iOS/arm64\"",
-					"\"$(SRCROOT)/assimp/assimp-ios/lib\"",
 				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -526,8 +513,6 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SRCROOT)/MoltenVK/iOS\"",
-					"\"$(SRCROOT)/assimp/assimp-ios/lib/iOS/arm64\"",
-					"\"$(SRCROOT)/assimp/assimp-ios/lib\"",
 				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -556,7 +541,6 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SRCROOT)/MoltenVK/macOS\"",
-					"\"$(SRCROOT)/assimp/assimp-macos/lib\"",
 					"$(PROJECT_DIR)/MoltenVK/macOS",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
@@ -577,7 +561,6 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SRCROOT)/MoltenVK/macOS\"",
-					"\"$(SRCROOT)/assimp/assimp-macos/lib\"",
 					"$(PROJECT_DIR)/MoltenVK/macOS",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;

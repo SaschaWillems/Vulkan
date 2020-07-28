@@ -57,25 +57,25 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'vulkanscenelogos.dae'
+       include 'vulkanscenelogos.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'vulkanscenebackground.dae'
+       include 'vulkanscenebackground.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'vulkanscenemodels.dae'
+       include 'vulkanscenemodels.gltf'
     }
 
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'cube.obj'
+       include 'cube.gltf'
     }
 
     copy {
