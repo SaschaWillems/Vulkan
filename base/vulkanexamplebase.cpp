@@ -1800,6 +1800,18 @@ xcb_window_t VulkanExampleBase::setupWindow()
 
 	free(reply);
 
+	/**
+	 * Set the WM_CLASS property to display
+	 * title in dash tooltip and application menu
+	 * on GNOME and other desktop environments
+	 */
+	std::string wm_class;
+	wm_class = wm_class.insert(0, name);
+	wm_class = wm_class.insert(name.size(), 1, '\0');
+	wm_class = wm_class.insert(name.size() + 1, title);
+	wm_class = wm_class.insert(wm_class.size(), 1, '\0');
+	xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window, XCB_ATOM_WM_CLASS, XCB_ATOM_STRING, 8, wm_class.size() + 2, wm_class.c_str());
+
 	if (settings.fullscreen)
 	{
 		xcb_intern_atom_reply_t *atom_wm_state = intern_atom_helper(connection, false, "_NET_WM_STATE");
