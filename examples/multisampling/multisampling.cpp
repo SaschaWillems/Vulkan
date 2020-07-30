@@ -101,6 +101,10 @@ public:
 		if (deviceFeatures.sampleRateShading) {
 			enabledFeatures.sampleRateShading = VK_TRUE;
 		}
+		// Enable anisotropic filtering if supported
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		}
 	}
 
 	// Creates a multi sample render target (image and view) that is used to resolve
