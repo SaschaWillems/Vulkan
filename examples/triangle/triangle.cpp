@@ -748,7 +748,7 @@ public:
 		subpassDescription.pResolveAttachments = nullptr;                       // Resolve attachments are resolved at the end of a sub pass and can be used for e.g. multi sampling
 
 		// Setup subpass dependencies
-		// These will add the implicit ttachment layout transitionss specified by the attachment descriptions
+		// These will add the implicit attachment layout transitions specified by the attachment descriptions
 		// The actual usage layout is preserved through the layout specified in the attachment reference
 		// Each subpass dependency will introduce a memory and execution dependency between the source and dest subpass described by
 		// srcStageMask, dstStageMask, srcAccessMask, dstAccessMask (and dependencyFlags is set)
