@@ -79,7 +79,7 @@ public:
 		glm::mat4 viewMatrix;
 	} uboVS;
 
-	// The pipeline layout is used by a pipline to access the descriptor sets
+	// The pipeline layout is used by a pipeline to access the descriptor sets
 	// It defines interface (without binding any actual data) between the shader stages used by the pipeline and the shader resources
 	// A pipeline layout can be shared among multiple pipelines as long as their interfaces match
 	VkPipelineLayout pipelineLayout;
@@ -149,8 +149,8 @@ public:
 		}
 	}
 
-	// This function is used to request a device memory type that supports all the property flags we request (e.g. device local, host visibile)
-	// Upon success it will return the index of the memory type that fits our requestes memory properties
+	// This function is used to request a device memory type that supports all the property flags we request (e.g. device local, host visible)
+	// Upon success it will return the index of the memory type that fits our requested memory properties
 	// This is necessary as implementations can offer an arbitrary number of memory types with different
 	// memory properties.
 	// You can check http://vulkan.gpuinfo.org/ for details on different memory configurations
