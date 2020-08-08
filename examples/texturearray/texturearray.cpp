@@ -61,7 +61,7 @@ public:
 			glm::mat4 projection;
 			glm::mat4 view;
 		} matrices;
-		// Seperate data for each instance
+		// Separate data for each instance
 		UboInstanceData *instance;
 	} uboVS;
 

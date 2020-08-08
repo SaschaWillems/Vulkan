@@ -8,7 +8,7 @@
 
 /*
  * Note: This sample is deprecated!
- * An updated version using VK_EXT_debug_utils along with an in-depth tutorial is available in the pfficial Khronos Vulkan Samples repository at
+ * An updated version using VK_EXT_debug_utils along with an in-depth tutorial is available in the official Khronos Vulkan Samples repository at
  * https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/extensions/debug_utils.
  */
 
@@ -145,7 +145,7 @@ namespace DebugMarker
 	// End the current debug marker region
 	void endRegion(VkCommandBuffer cmdBuffer)
 	{
-		// Check for valid function (may not be present if not runnin in a debugging application)
+		// Check for valid function (may not be present if not running in a debugging application)
 		if (vkCmdDebugMarkerEnd)
 		{
 			vkCmdDebugMarkerEnd(cmdBuffer);
@@ -707,7 +707,7 @@ public:
 		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_DST_ALPHA;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.postprocess));
 
-		// Name shader moduels for debugging
+		// Name shader modules for debugging
 		// Shader module count starts at 2 when UI overlay in base class is enabled
 		uint32_t moduleIndex = settings.overlay ? 2 : 0;
 		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 0], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Toon shading vertex shader");

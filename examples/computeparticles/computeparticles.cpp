@@ -86,7 +86,7 @@ public:
 	struct Particle {
 		glm::vec2 pos;								// Particle position
 		glm::vec2 vel;								// Particle velocity
-		glm::vec4 gradientPos;						// Texture coordiantes for the gradient ramp map
+		glm::vec4 gradientPos;						// Texture coordinates for the gradient ramp map
 	};
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)

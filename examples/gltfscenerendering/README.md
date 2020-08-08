@@ -49,7 +49,7 @@ void VulkanglTFScene::loadImages(tinygltf::Model& input)
 
 ### Materials 
 
-#### New Material poperties
+#### New Material properties
 
 ```cpp
 struct Material 

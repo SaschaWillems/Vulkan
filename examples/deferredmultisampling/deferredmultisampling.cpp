@@ -225,7 +225,7 @@ public:
 
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		// Clear values for all attachments written in the fragment sahder
+		// Clear values for all attachments written in the fragment shader
 		std::array<VkClearValue,4> clearValues;
 		clearValues[0].color = clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 		clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -625,7 +625,7 @@ public:
 
 		// Wait for offscreen semaphore
 		submitInfo.pWaitSemaphores = &offscreenSemaphore;
-		// Signal ready with render complete semaphpre
+		// Signal ready with render complete semaphore
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 		// Submit work

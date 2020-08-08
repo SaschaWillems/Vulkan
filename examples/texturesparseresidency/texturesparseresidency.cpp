@@ -187,7 +187,7 @@ void VulkanExample::prepareSparseTexture(uint32_t width, uint32_t height, uint32
 	texture.layerCount = layerCount;
 	texture.format = format;
 
-	// Get device properites for the requested texture format
+	// Get device properties for the requested texture format
 	VkFormatProperties formatProperties;
 	vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 
@@ -251,7 +251,7 @@ void VulkanExample::prepareSparseTexture(uint32_t width, uint32_t height, uint32
 	// Check requested image size against hardware sparse limit
 	if (sparseImageMemoryReqs.size > vulkanDevice->properties.limits.sparseAddressSpaceSize)
 	{
-		std::cout << "Error: Requested sparse image size exceeds supportes sparse address space size!" << std::endl;
+		std::cout << "Error: Requested sparse image size exceeds supports sparse address space size!" << std::endl;
 		return;
 	};
 

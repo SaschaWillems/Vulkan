@@ -328,7 +328,7 @@ public:
 		subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
 		subpass.pDepthStencilAttachment = &depthReference;
 
-		// Use subpass dependencies for attachment layput transitions
+		// Use subpass dependencies for attachment layout transitions
 		std::array<VkSubpassDependency, 2> dependencies;
 
 		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -405,7 +405,7 @@ public:
 
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		// Clear values for all attachments written in the fragment sahder
+		// Clear values for all attachments written in the fragment shader
 		std::array<VkClearValue,4> clearValues;
 		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 		clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -784,7 +784,7 @@ public:
 
 		// Wait for offscreen semaphore
 		submitInfo.pWaitSemaphores = &offscreenSemaphore;
-		// Signal ready with render complete semaphpre
+		// Signal ready with render complete semaphore
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 		// Submit work

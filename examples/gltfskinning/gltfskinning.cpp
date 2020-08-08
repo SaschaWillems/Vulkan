@@ -589,7 +589,7 @@ void VulkanglTFModel::drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout p
 {
 	if (node.mesh.primitives.size() > 0)
 	{
-		// Pass the node's matrix via push constanst
+		// Pass the node's matrix via push constants
 		// Traverse the node hierarchy to the top-most parent to get the final matrix of the current node
 		glm::mat4              nodeMatrix    = node.matrix;
 		VulkanglTFModel::Node *currentParent = node.parent;

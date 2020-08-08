@@ -320,7 +320,7 @@ public:
 			v.pos[1] -= 0.5f;
 		}
 
-		// Generate host accesible buffers for the text vertices and indices and upload the data
+		// Generate host accessible buffers for the text vertices and indices and upload the data
 
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -593,7 +593,7 @@ public:
 			&uniformBuffers.vs,
 			sizeof(uboVS)));
 
-		// Fragment sahder uniform buffer block (Contains font rendering parameters)
+		// Fragment shader uniform buffer block (Contains font rendering parameters)
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

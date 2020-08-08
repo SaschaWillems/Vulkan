@@ -385,7 +385,7 @@ public:
 			// Depth attachment
 			createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &offscreen.depth);
 
-			// Set up separate renderpass with references to the colorand depth attachments
+			// Set up separate renderpass with references to the color and depth attachments
 			std::array<VkAttachmentDescription, 3> attachmentDescs = {};
 
 			// Init attachment properties
@@ -427,7 +427,7 @@ public:
 			subpass.colorAttachmentCount = 2;
 			subpass.pDepthStencilAttachment = &depthReference;
 
-			// Use subpass dependencies for attachment layput transitions
+			// Use subpass dependencies for attachment layout transitions
 			std::array<VkSubpassDependency, 2> dependencies;
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -499,7 +499,7 @@ public:
 			// Two floating point color buffers
 			createAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &filterPass.color[0]);
 
-			// Set up separate renderpass with references to the colorand depth attachments
+			// Set up separate renderpass with references to the color and depth attachments
 			std::array<VkAttachmentDescription, 1> attachmentDescs = {};
 
 			// Init attachment properties
@@ -520,7 +520,7 @@ public:
 			subpass.pColorAttachments = colorReferences.data();
 			subpass.colorAttachmentCount = 1;
 
-			// Use subpass dependencies for attachment layput transitions
+			// Use subpass dependencies for attachment layout transitions
 			std::array<VkSubpassDependency, 2> dependencies;
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;

@@ -36,7 +36,7 @@ layout (binding = 1) uniform UboInstance {
 
 ***Note:*** When preparing the (host) memory to back up the dynamic uniform buffer object it's crucial to take the [minUniformBufferOffsetAlignment](http://vulkan.gpuinfo.org/listreports.php?limit=minUniformBufferOffsetAlignment) limit of the implementation into account. 
 
-Due to the implementation dependant alignment (different from our actual data size) we can't just use a vector and work with pointers instead:
+Due to the implementation dependent alignment (different from our actual data size) we can't just use a vector and work with pointers instead:
 
 ```cpp
 struct UboDataDynamic {

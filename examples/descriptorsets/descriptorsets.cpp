@@ -164,7 +164,7 @@ public:
 		std::array<VkDescriptorSetLayoutBinding,2> setLayoutBindings{};
 
 		/*
-			Binding 0: Uniform buffers (used to pass matrices matrices)
+			Binding 0: Uniform buffers (used to pass matrices)
 		*/
 		setLayoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		// Shader binding point

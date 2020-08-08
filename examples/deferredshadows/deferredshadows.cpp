@@ -782,7 +782,7 @@ public:
 
 		// Wait for offscreen semaphore
 		submitInfo.pWaitSemaphores = &offscreenSemaphore;
-		// Signal ready with render complete semaphpre
+		// Signal ready with render complete semaphore
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 		// Submit work

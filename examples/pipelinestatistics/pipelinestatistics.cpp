@@ -110,7 +110,7 @@ public:
 			"Input assembly primitives count    ",
 			"Vertex shader invocations          ",
 			"Clipping stage primitives processed",
-			"Clipping stage primtives output    ",
+			"Clipping stage primitives output    ",
 			"Fragment shader invocations        "
 		};
 		if (deviceFeatures.tessellationShader) {

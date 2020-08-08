@@ -278,7 +278,7 @@ public:
 		bufferBarrier.size = compute.storageBuffer.descriptor.range;
 		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 		bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-		// Transfer ownership if compute and graphics queue familiy indices differ
+		// Transfer ownership if compute and graphics queue family indices differ
 		bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
