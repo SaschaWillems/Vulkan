@@ -146,7 +146,7 @@ namespace vks
 
 			switch (topology)
 			{
-				// Indices for triangles
+			// Indices for triangles
 			case topologyTriangles:
 			{
 				indices = new uint32_t[w * w * 6];

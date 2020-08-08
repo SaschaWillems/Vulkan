@@ -214,7 +214,7 @@ public:
 		VK_CHECK_RESULT(fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data()));
 
 		// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
-		// there is no preferered format, so we assume VK_FORMAT_B8G8R8A8_UNORM
+		// there is no preferred format, so we assume VK_FORMAT_B8G8R8A8_UNORM
 		if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED))
 		{
 			colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
@@ -276,7 +276,7 @@ public:
 	* 
 	* @param width Pointer to the width of the swapchain (may be adjusted to fit the requirements of the swapchain)
 	* @param height Pointer to the height of the swapchain (may be adjusted to fit the requirements of the swapchain)
-	* @param vsync (Optional) Can be used to force vsync'd rendering (by using VK_PRESENT_MODE_FIFO_KHR as presentation mode)
+	* @param vsync (Optional) Can be used to force vsync-ed rendering (by using VK_PRESENT_MODE_FIFO_KHR as presentation mode)
 	*/
 	void create(uint32_t *width, uint32_t *height, bool vsync = false)
 	{

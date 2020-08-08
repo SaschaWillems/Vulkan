@@ -308,7 +308,7 @@ void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path
 		// @todo: Use ktxTexture_GetVkFormat(ktxTexture)
 		format = VK_FORMAT_R8G8B8A8_UNORM;
 
-		// Get device properites for the requested texture format
+		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(device->physicalDevice, format, &formatProperties);
 

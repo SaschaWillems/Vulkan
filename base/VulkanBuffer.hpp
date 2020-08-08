@@ -33,7 +33,7 @@ namespace vks
 
 		/** @brief Usage flags to be filled by external source at buffer creation (to query at some later point) */
 		VkBufferUsageFlags usageFlags;
-		/** @brief Memory propertys flags to be filled by external source at buffer creation (to query at some later point) */
+		/** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
 		VkMemoryPropertyFlags memoryPropertyFlags;
 
 		/** 

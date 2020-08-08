@@ -121,7 +121,7 @@ namespace vks
 			ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
 			ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
-			// Get device properites for the requested texture format
+			// Get device properties for the requested texture format
 			VkFormatProperties formatProperties;
 			vkGetPhysicalDeviceFormatProperties(device->physicalDevice, format, &formatProperties);
 
@@ -334,7 +334,7 @@ namespace vks
 
 			ktxTexture_Destroy(ktxTexture);
 
-			// Create a defaultsampler
+			// Create a default sampler
 			VkSamplerCreateInfo samplerCreateInfo = {};
 			samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 			samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
@@ -348,7 +348,7 @@ namespace vks
 			samplerCreateInfo.minLod = 0.0f;
 			// Max level-of-detail should match mip level count
 			samplerCreateInfo.maxLod = (useStaging) ? (float)mipLevels : 0.0f;
-			// Only enable anisotropic filtering if enabled on the devicec
+			// Only enable anisotropic filtering if enabled on the device
 			samplerCreateInfo.maxAnisotropy = device->enabledFeatures.samplerAnisotropy ? device->properties.limits.maxSamplerAnisotropy : 1.0f;
 			samplerCreateInfo.anisotropyEnable = device->enabledFeatures.samplerAnisotropy;
 			samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;

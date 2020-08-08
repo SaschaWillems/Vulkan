@@ -84,7 +84,7 @@ protected:
 	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
-	// Physical device (GPU) that Vulkan will ise
+	// Physical device (GPU) that Vulkan will use
 	VkPhysicalDevice physicalDevice;
 	// Stores physical device properties (for e.g. checking device limits)
 	VkPhysicalDeviceProperties deviceProperties;
@@ -314,7 +314,7 @@ public:
 	virtual void mouseMoved(double x, double y, bool &handled);
 	/** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
 	virtual void windowResized();
-	/** @brief (Virtual) Called when resources have been recreated that require a rebuild of the command buffers (e.g. frame buffer), to be implemente by the sample application */
+	/** @brief (Virtual) Called when resources have been recreated that require a rebuild of the command buffers (e.g. frame buffer), to be implemented by the sample application */
 	virtual void buildCommandBuffers();
 	/** @brief (Virtual) Setup default depth and stencil views */
 	virtual void setupDepthStencil();
@@ -337,7 +337,7 @@ public:
 	/** @brief Adds the drawing commands for the ImGui overlay to the given command buffer */
 	void drawUI(const VkCommandBuffer commandBuffer);
 
-	/** Prepare the next frame for workload sumbission by acquiring the next swap chain image */
+	/** Prepare the next frame for workload submission by acquiring the next swap chain image */
 	void prepareFrame();
 	/** @brief Presents the current image to the swap chain */
 	void submitFrame();

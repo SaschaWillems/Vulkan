@@ -231,7 +231,7 @@ namespace vks
 		*
 		* @param magFilter Magnification filter for lookups
 		* @param minFilter Minification filter for lookups
-		* @param adressMode Adressing mode for the U,V and W coordinates
+		* @param adressMode Addressing mode for the U,V and W coordinates
 		*
 		* @return VkResult for the sampler creation
 		*/

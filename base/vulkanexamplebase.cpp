@@ -178,7 +178,7 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 #else
 	shaderStage.module = vks::tools::loadShader(fileName.c_str(), device);
 #endif
-	shaderStage.pName = "main"; // todo : make param
+	shaderStage.pName = "main";
 	assert(shaderStage.module != VK_NULL_HANDLE);
 	shaderModules.push_back(shaderStage.module);
 	return shaderStage;
@@ -814,7 +814,7 @@ bool VulkanExampleBase::initVulkan()
 	if (settings.validation)
 	{
 		// The report flags determine what type of messages for the layers will be displayed
-		// For validating (debugging) an appplication the error and warning bits should suffice
+		// For validating (debugging) an application the error and warning bits should suffice
 		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
 		// Additional flags include performance info, loader and layer debug messages, etc.
 		vks::debug::setupDebugging(instance, debugReportFlags, VK_NULL_HANDLE);
@@ -891,7 +891,7 @@ bool VulkanExampleBase::initVulkan()
 
 	physicalDevice = physicalDevices[selectedDevice];
 
-	// Store properties (including limits), features and memory properties of the phyiscal device (so that examples can check against them)
+	// Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
@@ -922,10 +922,10 @@ bool VulkanExampleBase::initVulkan()
 	// Create synchronization objects
 	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 	// Create a semaphore used to synchronize image presentation
-	// Ensures that the image is displayed before we start submitting new commands to the queu
+	// Ensures that the image is displayed before we start submitting new commands to the queue
 	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete));
 	// Create a semaphore used to synchronize command submission
-	// Ensures that the image is not presented until all commands have been sumbitted and executed
+	// Ensures that the image is not presented until all commands have been submitted and executed
 	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete));
 
 	// Set up submit info structure
@@ -2116,10 +2116,7 @@ void VulkanExampleBase::setupRenderPass()
 	VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 }
 
-void VulkanExampleBase::getEnabledFeatures()
-{
-	// Can be overriden in derived class
-}
+void VulkanExampleBase::getEnabledFeatures() {}
 
 void VulkanExampleBase::windowResize()
 {
@@ -2205,10 +2202,7 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 	mousePos = glm::vec2((float)x, (float)y);
 }
 
-void VulkanExampleBase::windowResized()
-{
-	// Can be overriden in derived class
-}
+void VulkanExampleBase::windowResized() {}
 
 void VulkanExampleBase::initSwapchain()
 {

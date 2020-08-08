@@ -443,7 +443,7 @@ namespace vks
 		* @param queue Pointer
 		* @param copyRegion (Optional) Pointer to a copy region, if NULL, the whole buffer is copied
 		*
-		* @note Source and destionation pointers must have the approriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
+		* @note Source and destination pointers must have the appropriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
 		*/
 		void copyBuffer(vks::Buffer *src, vks::Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr)
 		{
