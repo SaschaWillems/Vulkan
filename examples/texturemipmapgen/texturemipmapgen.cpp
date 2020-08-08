@@ -20,7 +20,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanDevice.hpp"
 #include "VulkanglTFModel.h"
 #include <ktx.h>
 #include <ktxvulkan.h>

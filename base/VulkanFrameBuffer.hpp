@@ -12,7 +12,7 @@
 #include <iterator>
 #include <vector>
 #include "vulkan/vulkan.h"
-#include "VulkanDevice.hpp"
+#include "VulkanDevice.h"
 #include "VulkanTools.h"
 
 namespace vks

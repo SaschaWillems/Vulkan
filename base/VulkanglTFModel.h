@@ -14,7 +14,7 @@
 #include <vector>
 
 #include "vulkan/vulkan.h"
-#include "VulkanDevice.hpp"
+#include "VulkanDevice.h"
 
 #include <ktx.h>
 #include <ktxvulkan.h>

@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 
 #include "vulkan/vulkan.h"
-#include "VulkanDevice.hpp"
+#include "VulkanDevice.h"
 #include "VulkanBuffer.h"
 #include <ktx.h>
 #include <ktxvulkan.h>

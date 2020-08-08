@@ -19,7 +19,7 @@
 #include <ktxvulkan.h>
 
 #include "VulkanTools.h"
-#include "VulkanDevice.hpp"
+#include "VulkanDevice.h"
 #include "VulkanBuffer.h"
 
 #if defined(__ANDROID__)
