@@ -19,7 +19,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanBuffer.hpp"
 #include "VulkanglTFModel.h"
 
 #define VERTEX_BUFFER_BIND_ID 0

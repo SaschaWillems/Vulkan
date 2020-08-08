@@ -23,7 +23,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanBuffer.hpp"
 
 #define ENABLE_VALIDATION false
 

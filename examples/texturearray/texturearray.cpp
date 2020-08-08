@@ -21,7 +21,6 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
-#include "VulkanBuffer.hpp"
 #include <ktx.h>
 #include <ktxvulkan.h>
 

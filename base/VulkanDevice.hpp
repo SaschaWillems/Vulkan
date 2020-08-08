@@ -15,7 +15,7 @@
 #include <algorithm>
 #include "vulkan/vulkan.h"
 #include "VulkanTools.h"
-#include "VulkanBuffer.hpp"
+#include "VulkanBuffer.h"
 
 namespace vks
 {	

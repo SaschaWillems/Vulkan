@@ -22,7 +22,6 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
-#include "VulkanBuffer.hpp"
 #include "VulkanglTFModel.h"
 
 // Ray tracing acceleration structure

@@ -24,7 +24,6 @@
 
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
-#include "VulkanBuffer.hpp"
 #include "VulkanglTFModel.h"
 
 #include "../external/stb/stb_font_consolas_24_latin1.inl"

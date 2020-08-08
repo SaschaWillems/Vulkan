@@ -11,7 +11,7 @@
 
 #include "vulkan/vulkan.h"
 #include "VulkanDevice.hpp"
-#include "VulkanBuffer.hpp"
+#include "VulkanBuffer.h"
 #include <ktx.h>
 #include <ktxvulkan.h>
 

@@ -20,7 +20,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanBuffer.hpp"
 #include "VulkanFrameBuffer.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanglTFModel.h"

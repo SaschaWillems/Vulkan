@@ -25,7 +25,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanBuffer.hpp"
 #include "VulkanglTFModel.h"
 
 #define ENABLE_VALIDATION false

@@ -20,7 +20,6 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanDevice.hpp"
-#include "VulkanBuffer.hpp"
 
 // Ray tracing acceleration structure
 struct AccelerationStructure {

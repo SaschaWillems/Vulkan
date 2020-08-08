@@ -24,7 +24,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanTexture.hpp"
 #include "VulkanglTFModel.h"
-#include "VulkanBuffer.hpp"
 
 #define ENABLE_VALIDATION false
 

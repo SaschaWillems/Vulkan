@@ -22,7 +22,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanBuffer.hpp"
 #include "VulkanglTFModel.h"
 #include "frustum.hpp"
 

@@ -48,6 +48,7 @@
 #include "VulkanDebug.h"
 #include "VulkanUIOverlay.h"
 #include "VulkanSwapChain.h"
+#include "VulkanBuffer.h"
 
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
