@@ -19,7 +19,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "VulkanglTFModel.h"
 #include <ktx.h>
 #include <ktxvulkan.h>

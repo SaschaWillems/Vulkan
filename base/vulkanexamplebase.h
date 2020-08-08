@@ -50,6 +50,7 @@
 #include "VulkanSwapChain.h"
 #include "VulkanBuffer.h"
 #include "VulkanDevice.h"
+#include "VulkanTexture.h"
 
 #include "VulkanInitializers.hpp"
 #include "camera.hpp"

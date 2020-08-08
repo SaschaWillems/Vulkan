@@ -35,7 +35,6 @@
 #endif
 #include "tiny_gltf.h"
 
-#include "VulkanTexture.hpp"
 #include "vulkanexamplebase.h"
 #include <vulkan/vulkan.h>
 

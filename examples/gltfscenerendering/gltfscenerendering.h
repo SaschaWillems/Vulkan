@@ -36,7 +36,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 
 
 #define ENABLE_VALIDATION false

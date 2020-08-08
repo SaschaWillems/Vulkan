@@ -20,7 +20,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "VulkanglTFModel.h"
 #include "frustum.hpp"
 #include <ktx.h>

@@ -34,7 +34,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanTexture.hpp"
 #include "VulkanglTFModel.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
