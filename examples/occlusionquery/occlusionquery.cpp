@@ -1,5 +1,5 @@
 /*
-* Vulkan Example - Using occlusion query for visbility testing
+* Vulkan Example - Using occlusion query for visibility testing
 *
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *

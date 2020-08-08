@@ -59,7 +59,7 @@ public:
 	float zFar = 64.0f;
 	float lightFOV = 100.0f;
 
-	// Depth bias (and slope) are used to avoid shadowing artefacts
+	// Depth bias (and slope) are used to avoid shadowing artifacts
 	float depthBiasConstant = 1.25f;
 	float depthBiasSlope = 1.75f;
 

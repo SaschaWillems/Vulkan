@@ -134,7 +134,7 @@ public:
 
 				// Instead of preparing the descriptor sets up-front, using push descriptors we can set (push) them inside of a command buffer
 				// This allows a more dynamic approach without the need to create descriptor sets for each model
-				// Note: dstSet for each descriptor set write is left at zero as this is ignored when ushing push descriptors
+				// Note: dstSet for each descriptor set write is left at zero as this is ignored when using push descriptors
 
 				std::array<VkWriteDescriptorSet, 3> writeDescriptorSets{};
 

@@ -317,7 +317,7 @@ public:
 
 		// Vertex attribute bindings
 		attributeDescriptions = {
-		    // Per-vertex attributees
+		    // Per-vertex attributes
 		    // These are advanced for each vertex fetched by the vertex shader
 		    vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, pos)),	// Location 0: Position
 		    vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, normal)),	// Location 1: Normal

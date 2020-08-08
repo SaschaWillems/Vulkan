@@ -78,7 +78,7 @@ void VulkanglTFScene::loadMaterials(tinygltf::Model& input)
 		if (glTFMaterial.additionalValues.find("normalTexture") != glTFMaterial.additionalValues.end()) {
 			materials[i].normalTextureIndex = glTFMaterial.additionalValues["normalTexture"].TextureIndex();
 		}
-		// Get some additonal material parameters that are used in this sample
+		// Get some additional material parameters that are used in this sample
 		materials[i].alphaMode = glTFMaterial.alphaMode;
 		materials[i].alphaCutOff = (float)glTFMaterial.alphaCutoff;
 		materials[i].doubleSided = glTFMaterial.doubleSided;
@@ -114,7 +114,7 @@ void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 		}
 	}
 
-	// If the node contains mesh data, we load vertices and indices from the the buffers
+	// If the node contains mesh data, we load vertices and indices from the buffers
 	// In glTF this is done via accessors and buffer views
 	if (inputNode.mesh > -1) {
 		const tinygltf::Mesh mesh = input.meshes[inputNode.mesh];
@@ -417,7 +417,7 @@ void VulkanExample::loadglTFFile(std::string filename)
 		&indexStaging.memory,
 		indexBuffer.data()));
 
-	// Create device local buffers (targat)
+	// Create device local buffers (target)
 	VK_CHECK_RESULT(vulkanDevice->createBuffer(
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,

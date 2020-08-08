@@ -422,7 +422,7 @@ public:
 				indices.push_back((y + 1) *  cloth.gridsize.x + x);
 				indices.push_back((y)*  cloth.gridsize.x + x);
 			}
-			// Primitive restart (signlaed by special value 0xFFFFFFFF)
+			// Primitive restart (signaled by special value 0xFFFFFFFF)
 			indices.push_back(0xFFFFFFFF);
 		}
 		uint32_t indexBufferSize = static_cast<uint32_t>(indices.size()) * sizeof(uint32_t);

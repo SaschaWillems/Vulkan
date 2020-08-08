@@ -54,7 +54,7 @@ public:
 
 	VkCommandBuffer primaryCommandBuffer;
 
-	// Secondary scene command buffers used to store backgdrop and user interface
+	// Secondary scene command buffers used to store backdrop and user interface
 	struct SecondaryCommandBuffers {
 		VkCommandBuffer background;
 		VkCommandBuffer ui;

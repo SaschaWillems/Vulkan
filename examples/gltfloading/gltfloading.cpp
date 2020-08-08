@@ -97,7 +97,7 @@ public:
 		glm::mat4 matrix;
 	};
 
-	// A glTF material stores information in e.g. the exture that is attached to it and colors
+	// A glTF material stores information in e.g. the texture that is attached to it and colors
 	struct Material {
 		glm::vec4 baseColorFactor = glm::vec4(1.0f);
 		uint32_t baseColorTextureIndex;
@@ -235,7 +235,7 @@ public:
 			}
 		}
 
-		// If the node contains mesh data, we load vertices and indices from the the buffers
+		// If the node contains mesh data, we load vertices and indices from the buffers
 		// In glTF this is done via accessors and buffer views
 		if (inputNode.mesh > -1) {
 			const tinygltf::Mesh mesh = input.meshes[inputNode.mesh];
@@ -555,7 +555,7 @@ public:
 			&indexStaging.memory,
 			indexBuffer.data()));
 
-		// Create device local buffers (targat)
+		// Create device local buffers (target)
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,

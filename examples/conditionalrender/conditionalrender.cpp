@@ -4,7 +4,7 @@
 * Note: Requires a device that supports the VK_EXT_conditional_rendering extension
 *
 * With conditional rendering it's possible to execute certain rendering commands based on a buffer value instead of having to rebuild the command buffers.
-* This example sets up a conditonal buffer with one value per glTF part, that is used to toggle visibility of single model parts.
+* This example sets up a conditional buffer with one value per glTF part, that is used to toggle visibility of single model parts.
 *
 * Copyright (C) 2018 by Sascha Willems - www.saschawillems.de
 *
@@ -268,7 +268,7 @@ public:
 	/*
 		[POI] Extension specific setup
 
-		Gets the function pointers required for conditonal rendering
+		Gets the function pointers required for conditional rendering
 		Sets up a dedicated conditional buffer that is used to determine visibility at draw time
 	*/
 	void prepareConditionalRendering()

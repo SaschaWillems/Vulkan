@@ -98,7 +98,7 @@ public:
 		bool visible = true;
 	};
 
-	// A glTF material stores information in e.g. the exture that is attached to it and colors
+	// A glTF material stores information in e.g. the texture that is attached to it and colors
 	struct Material {
 		glm::vec4 baseColorFactor = glm::vec4(1.0f);
 		uint32_t baseColorTextureIndex;

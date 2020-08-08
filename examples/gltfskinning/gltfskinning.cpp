@@ -337,7 +337,7 @@ void VulkanglTFModel::loadNode(const tinygltf::Node &inputNode, const tinygltf::
 		}
 	}
 
-	// If the node contains mesh data, we load vertices and indices from the the buffers
+	// If the node contains mesh data, we load vertices and indices from the buffers
 	// In glTF this is done via accessors and buffer views
 	if (inputNode.mesh > -1)
 	{
@@ -790,7 +790,7 @@ void VulkanExample::loadglTFFile(std::string filename)
 	    &indexStaging.memory,
 	    indexBuffer.data()));
 
-	// Create device local buffers (targat)
+	// Create device local buffers (target)
 	VK_CHECK_RESULT(vulkanDevice->createBuffer(
 	    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 	    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,

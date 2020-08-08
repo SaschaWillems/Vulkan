@@ -220,7 +220,7 @@ public:
 		descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());
 		descriptorPoolCI.pPoolSizes = descriptorPoolSizes.data();
-		// Max. number of descriptor sets that can be allocted from this pool (one per object)
+		// Max. number of descriptor sets that can be allocated from this pool (one per object)
 		descriptorPoolCI.maxSets = static_cast<uint32_t>(cubes.size());
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
@@ -266,7 +266,7 @@ public:
 			writeDescriptorSets[1].dstSet = cube.descriptorSet;
 			writeDescriptorSets[1].dstBinding = 1;
 			writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			// Images use a different descriptor strucutre, so we use pImageInfo instead of pBufferInfo
+			// Images use a different descriptor structure, so we use pImageInfo instead of pBufferInfo
 			writeDescriptorSets[1].pImageInfo = &cube.texture.descriptor;
 			writeDescriptorSets[1].descriptorCount = 1;
 

@@ -1,5 +1,5 @@
 /*
-* Vulkan Example - Example for VK_EXT_debug_marker extension. To be used in conjuction with a debugging app like RenderDoc (https://renderdoc.org)
+* Vulkan Example - Example for VK_EXT_debug_marker extension. To be used in conjunction with a debugging app like RenderDoc (https://renderdoc.org)
 *
 * Copyright (C) by Sascha Willems - www.saschawillems.de
 *

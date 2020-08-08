@@ -453,7 +453,7 @@ void VulkanglTFModel::drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout p
 {
 	if (node.mesh.primitives.size() > 0)
 	{
-		// Pass the node's matrix via push constanst
+		// Pass the node's matrix via push constants
 		// Traverse the node hierarchy to the top-most parent to get the final matrix of the current node
 		glm::mat4              nodeMatrix    = node.matrix;
 		VulkanglTFModel::Node *currentParent = node.parent;
@@ -500,7 +500,7 @@ vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
 
 As this matrix won't change in our case, we pass this is a push constant to the vertex shader.
 
-And we also bind the the shader storage buffer object of the skin so the vertex shader get's access to the current joint matrices for the skin to be applied to that particular node:
+And we also bind the shader storage buffer object of the skin so the vertex shader get's access to the current joint matrices for the skin to be applied to that particular node:
 
 ```cpp
 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &skins[node.skin].descriptorSet, 0, nullptr);

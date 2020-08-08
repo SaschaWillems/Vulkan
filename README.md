@@ -373,7 +373,7 @@ Adds ray traced shadows casting using the new Nvidia RTX extensions to a more co
 
 #### [10 - Ray traced reflections with VK_NV_ray_tracing](examples/nv_ray_tracing_reflections)
 
-Renders a complex scene with reflective surfaces using using the new Nvidia RTX extensions. Shows how to do recursion inside of the ray tracing shaders for implementing real time reflections.
+Renders a complex scene with reflective surfaces using the new Nvidia RTX extensions. Shows how to do recursion inside of the ray tracing shaders for implementing real time reflections.
 
 ### <a name="Misc"></a> Misc
 
