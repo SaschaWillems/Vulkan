@@ -47,10 +47,10 @@
 #include "VulkanTools.h"
 #include "VulkanDebug.h"
 #include "VulkanUIOverlay.h"
+#include "VulkanSwapChain.h"
 
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
-#include "VulkanSwapChain.hpp"
 #include "camera.hpp"
 #include "benchmark.hpp"
 
