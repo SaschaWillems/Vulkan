@@ -650,7 +650,7 @@ public:
 				VK_IMAGE_LAYOUT_GENERAL,
 				subresourceRange);
 
-			//@todo: Default render pass setup willl overwrite contents
+			//@todo: Default render pass setup will overwrite contents
 			//vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 			//drawUI(drawCmdBuffers[i]);
 			//vkCmdEndRenderPass(drawCmdBuffers[i]);
