@@ -877,10 +877,10 @@ bool VulkanExampleBase::initVulkan()
 				std::cout << "Available Vulkan devices" << std::endl;
 				std::vector<VkPhysicalDevice> devices(gpuCount);
 				VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, devices.data()));
-				for (uint32_t i = 0; i < gpuCount; i++) {
+				for (uint32_t j = 0; j < gpuCount; j++) {
 					VkPhysicalDeviceProperties deviceProperties;
-					vkGetPhysicalDeviceProperties(devices[i], &deviceProperties);
-					std::cout << "Device [" << i << "] : " << deviceProperties.deviceName << std::endl;
+					vkGetPhysicalDeviceProperties(devices[j], &deviceProperties);
+					std::cout << "Device [" << j << "] : " << deviceProperties.deviceName << std::endl;
 					std::cout << " Type: " << vks::tools::physicalDeviceTypeString(deviceProperties.deviceType) << std::endl;
 					std::cout << " API: " << (deviceProperties.apiVersion >> 22) << "." << ((deviceProperties.apiVersion >> 12) & 0x3ff) << "." << (deviceProperties.apiVersion & 0xfff) << std::endl;
 				}
@@ -1077,7 +1077,6 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		printf("Could not create window!\n");
 		fflush(stdout);
 		return nullptr;
-		exit(1);
 	}
 
 	ShowWindow(window, SW_SHOW);
@@ -1115,7 +1114,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			break;
 		}
 
-		if (camera.firstperson)
+		if (camera.type == Camera::firstperson)
 		{
 			switch (wParam)
 			{
@@ -1137,7 +1136,7 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		keyPressed((uint32_t)wParam);
 		break;
 	case WM_KEYUP:
-		if (camera.firstperson)
+		if (camera.type == Camera::firstperson)
 		{
 			switch (wParam)
 			{
