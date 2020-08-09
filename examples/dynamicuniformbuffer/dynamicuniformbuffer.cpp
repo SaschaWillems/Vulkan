@@ -16,20 +16,6 @@
 * offset used to pass data from the single uniform buffer to the connected shader binding point.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <vector>
-#include <array>
-#include <random>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0

@@ -341,7 +341,7 @@ public:
 
 		// Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
 		VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		// The submit info structure specifices a command buffer queue submission batch
+		// The submit info structure specifies a command buffer queue submission batch
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.pWaitDstStageMask = &waitStageMask;               // Pointer to the list of pipeline stages that the semaphore waits will occur at
@@ -370,8 +370,8 @@ public:
 	void prepareVertices(bool useStagingBuffers)
 	{
 		// A note on memory management in Vulkan in general:
-		//	This is a very complex topic and while it's fine for an example application to to small individual memory allocations that is not
-		//	what should be done a real-world application, where you should allocate large chunkgs of memory at once isntead.
+		//	This is a very complex topic and while it's fine for an example application to small individual memory allocations that is not
+		//	what should be done a real-world application, where you should allocate large chunks of memory at once instead.
 
 		// Setup vertices
 		std::vector<Vertex> vertexBuffer =
@@ -733,7 +733,7 @@ public:
 
 		VkAttachmentReference depthReference = {};
 		depthReference.attachment = 1;                                            // Attachment 1 is color
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; // Attachment used as depth/stemcil used during the subpass
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; // Attachment used as depth/stencil used during the subpass
 
 		// Setup a single subpass reference
 		VkSubpassDescription subpassDescription = {};
@@ -758,7 +758,7 @@ public:
 		// First dependency at the start of the renderpass
 		// Does the transition from final to initial layout
 		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;                             // Producer of the dependency
-		dependencies[0].dstSubpass = 0;                                               // Consumer is our single subpass that will wait for the execution depdendency
+		dependencies[0].dstSubpass = 0;                                               // Consumer is our single subpass that will wait for the execution dependency
 		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // Match our pWaitDstStageMask when we vkQueueSubmit
 		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // is a loadOp stage for color attachments
 		dependencies[0].srcAccessMask = 0;                                            // semaphore wait already does memory dependency for us
@@ -857,7 +857,7 @@ public:
 		// Renderpass this pipeline is attached to
 		pipelineCreateInfo.renderPass = renderPass;
 
-		// Construct the differnent states making up the pipeline
+		// Construct the different states making up the pipeline
 
 		// Input assembly state describes how primitives are assembled
 		// This pipeline will assemble vertex data as a triangle lists (though we only use one triangle)
@@ -887,7 +887,7 @@ public:
 		colorBlendState.pAttachments = blendAttachmentState;
 
 		// Viewport state sets the number of viewports and scissor used in this pipeline
-		// Note: This is actually overriden by the dynamic states (see below)
+		// Note: This is actually overridden by the dynamic states (see below)
 		VkPipelineViewportStateCreateInfo viewportState = {};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = 1;
@@ -920,7 +920,7 @@ public:
 		depthStencilState.front = depthStencilState.back;
 
 		// Multi sampling state
-		// This example does not make use fo multi sampling (for anti-aliasing), the state must still be set and passed to the pipeline
+		// This example does not make use of multi sampling (for anti-aliasing), the state must still be set and passed to the pipeline
 		VkPipelineMultisampleStateCreateInfo multisampleState = {};
 		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
@@ -936,7 +936,7 @@ public:
 		vertexInputBinding.stride = sizeof(Vertex);
 		vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-		// Inpute attribute bindings describe shader attribute locations and memory layouts
+		// Input attribute bindings describe shader attribute locations and memory layouts
 		std::array<VkVertexInputAttributeDescription, 2> vertexInputAttributs;
 		// These match the following shader layout (see triangle.vert):
 		//	layout (location = 0) in vec3 inPos;
@@ -1032,7 +1032,7 @@ public:
 		// Get memory requirements including size, alignment and memory type
 		vkGetBufferMemoryRequirements(device, uniformBufferVS.buffer, &memReqs);
 		allocInfo.allocationSize = memReqs.size;
-		// Get the memory type index that supports host visibile memory access
+		// Get the memory type index that supports host visible memory access
 		// Most implementations offer multiple memory types and selecting the correct one to allocate memory from is crucial
 		// We also want the buffer to be host coherent so we don't have to flush (or sync after every update.
 		// Note: This may affect performance so you might not want to do this in a real world application that updates buffers on a regular base
@@ -1095,7 +1095,7 @@ public:
 };
 
 // OS specific macros for the example main entry points
-// Most of the code base is shared for the different supported operating systems, but stuff like message handling diffes
+// Most of the code base is shared for the different supported operating systems, but stuff like message handling differs
 
 #if defined(_WIN32)
 // Windows entry point

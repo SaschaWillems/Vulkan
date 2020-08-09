@@ -6,19 +6,6 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <time.h>
-#include <vector>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include <ktx.h>
 #include <ktxvulkan.h>
@@ -464,7 +451,7 @@ public:
 		vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
 		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
-		// Instacing pipeline
+		// Instancing pipeline
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 		shaderStages[0] = loadShader(getShadersPath() + "texturearray/instancing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);

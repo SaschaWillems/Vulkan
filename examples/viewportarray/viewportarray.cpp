@@ -6,18 +6,6 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <vector>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
@@ -223,7 +211,7 @@ public:
 		shaderStages[0] = loadShader(getShadersPath() + "viewportarray/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "viewportarray/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		// A geometry shader is used to output geometry to multiple viewports in one single pass
-		// See the "invoctations" decorator of the layout input in the shader
+		// See the "invocations" decorator of the layout input in the shader
 		shaderStages[2] = loadShader(getShadersPath() + "viewportarray/multiview.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}

@@ -13,18 +13,6 @@
 * The sample uses these to push different static parameters for rendering multiple objects
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <vector>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
@@ -269,7 +257,7 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 

@@ -6,18 +6,6 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <vector>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
@@ -257,7 +245,7 @@ public:
 		// We are using this pipeline as the base for the other pipelines (derivatives)
 		// Pipeline derivatives can be used for pipelines that share most of their state
 		// Depending on the implementation this may result in better performance for pipeline
-		// switchting and faster creation time
+		// switching and faster creation time
 		pipelineCI.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
 
 		// Textured pipeline

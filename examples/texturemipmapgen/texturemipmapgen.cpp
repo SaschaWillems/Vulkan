@@ -6,19 +6,6 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <vector>
-#include <algorithm>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 #include <ktx.h>
@@ -130,7 +117,7 @@ public:
 		// Calculated as log2(max(width, height, depth))c + 1 (see specs)
 		texture.mipLevels = floor(log2(std::max(texture.width, texture.height))) + 1;
 
-		// Get device properites for the requested texture format
+		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 		// Mip-chain generation requires support for blit source and destination
@@ -419,7 +406,7 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 

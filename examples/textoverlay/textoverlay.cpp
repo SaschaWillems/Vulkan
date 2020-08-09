@@ -6,25 +6,10 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <vector>
 #include <sstream>
 #include <iomanip>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
-
-#include <vulkan/vulkan.h>
-
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
-
 #include "../external/stb/stb_font_consolas_24_latin1.inl"
 
 #define ENABLE_VALIDATION false
@@ -872,7 +857,7 @@ public:
 			commandBuffers.push_back(textOverlay->cmdBuffers[currentBuffer]);
 		}
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 		submitInfo.pCommandBuffers = commandBuffers.data();
 

@@ -6,17 +6,6 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <vector>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-
-#include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 #include <ktx.h>
 #include <ktxvulkan.h>
@@ -173,7 +162,7 @@ public:
 		bool forceLinearTiling = false;
 		if (forceLinearTiling) {
 			// Don't use linear if format is not supported for (linear) shader sampling
-			// Get device properites for the requested texture format
+			// Get device properties for the requested texture format
 			VkFormatProperties formatProperties;
 			vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
 			useStaging = !(formatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT);
@@ -307,7 +296,7 @@ public:
 			imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			// Insert a memory dependency at the proper pipeline stages that will execute the image layout transition
-			// Source pipeline stage stage is copy command exection (VK_PIPELINE_STAGE_TRANSFER_BIT)
+			// Source pipeline stage is copy command execution (VK_PIPELINE_STAGE_TRANSFER_BIT)
 			// Destination pipeline stage fragment shader access (VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
 			vkCmdPipelineBarrier(
 				copyCmd,
@@ -387,7 +376,7 @@ public:
 			imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			// Insert a memory dependency at the proper pipeline stages that will execute the image layout transition
-			// Source pipeline stage is host write/read exection (VK_PIPELINE_STAGE_HOST_BIT)
+			// Source pipeline stage is host write/read execution (VK_PIPELINE_STAGE_HOST_BIT)
 			// Destination pipeline stage fragment shader access (VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
 			vkCmdPipelineBarrier(
 				copyCmd,
@@ -517,7 +506,7 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
