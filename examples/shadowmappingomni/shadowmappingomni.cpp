@@ -128,7 +128,7 @@ public:
 
 		vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
 
-		// Pipelibes
+		// Pipelines
 		vkDestroyPipeline(device, pipelines.scene, nullptr);
 		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
 		vkDestroyPipeline(device, pipelines.cubemapDisplay, nullptr);

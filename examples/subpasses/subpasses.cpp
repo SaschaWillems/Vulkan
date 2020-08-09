@@ -12,7 +12,7 @@
 * the same pixel position.
 *
 * This is a feature that was especially designed for tile-based-renderers
-* (mostly mobile GPUs) and is a new optomization feature in Vulkan for those GPU types.
+* (mostly mobile GPUs) and is a new optimization feature in Vulkan for those GPU types.
 *
 */
 
@@ -466,7 +466,7 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 
 			// First sub pass
-			// Renders the components of the scene to the G-Buffer atttachments
+			// Renders the components of the scene to the G-Buffer attachments
 			{
 				vks::debugmarker::beginRegion(drawCmdBuffers[i], "Subpass 0: Deferred G-Buffer creation", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -492,7 +492,7 @@ public:
 			}
 
 			// Third subpass
-			// Render transparent geometry using a forward pass that compares against depth generted during G-Buffer fill
+			// Render transparent geometry using a forward pass that compares against depth generated during G-Buffer fill
 			{
 				vks::debugmarker::beginRegion(drawCmdBuffers[i], "Subpass 2: Forward transparency", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 

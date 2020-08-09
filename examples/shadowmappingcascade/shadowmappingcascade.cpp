@@ -177,7 +177,7 @@ public:
 	}
 
 	/*
-		Render the example scene with given command buffer, pipeline layout and dscriptor set
+		Render the example scene with given command buffer, pipeline layout and descriptor set
 		Used by the scene rendering and depth pass generation command buffer
 	*/
 	void renderScene(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet, uint32_t cascadeIndex = 0) {
@@ -330,7 +330,7 @@ public:
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &cascades[i].frameBuffer));
 		}
 
-		// Shared sampler for cascade deoth reads
+		// Shared sampler for cascade depth reads
 		VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
 		sampler.magFilter = VK_FILTER_LINEAR;
 		sampler.minFilter = VK_FILTER_LINEAR;
@@ -381,7 +381,7 @@ public:
 				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 				// One pass per cascade
-				// The layer that this pass renders to is defined by the cascade's image view (selected via the cascade's decsriptor set)
+				// The layer that this pass renders to is defined by the cascade's image view (selected via the cascade's descriptor set)
 				for (uint32_t j = 0; j < SHADOW_MAP_CASCADE_COUNT; j++) {
 					renderPassBeginInfo.framebuffer = cascades[j].frameBuffer;
 					vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -649,8 +649,8 @@ public:
 		float range = maxZ - minZ;
 		float ratio = maxZ / minZ;
 
-		// Calculate split depths based on view camera furstum
-		// Based on method presentd in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
+		// Calculate split depths based on view camera frustum
+		// Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
 		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
 			float p = (i + 1) / static_cast<float>(SHADOW_MAP_CASCADE_COUNT);
 			float log = minZ * std::pow(ratio, p);

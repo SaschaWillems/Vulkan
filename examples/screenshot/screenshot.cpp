@@ -183,7 +183,7 @@ public:
 
 	// Take a screenshot from the current swapchain image
 	// This is done using a blit from the swapchain image to a linear image whose memory content is then saved as a ppm image
-	// Getting the image date directly from a swapchain image wouldn't work as they're usually stored in an implementation dependant optimal tiling format
+	// Getting the image date directly from a swapchain image wouldn't work as they're usually stored in an implementation dependent optimal tiling format
 	// Note: This requires the swapchain images to be created with the VK_IMAGE_USAGE_TRANSFER_SRC_BIT flag (see VulkanSwapChain::create)
 	void saveScreenshot(const char *filename)
 	{
@@ -355,7 +355,7 @@ public:
 		// If source is BGR (destination is always RGB) and we can't use blit (which does automatic conversion), we'll have to manually swizzle color components
 		bool colorSwizzle = false;
 		// Check if source is BGR
-		// Note: Not complete, only contains most common and basic BGR surface formats for demonstation purposes
+		// Note: Not complete, only contains most common and basic BGR surface formats for demonstration purposes
 		if (!supportsBlit)
 		{
 			std::vector<VkFormat> formatsBGR = { VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SNORM };

@@ -40,7 +40,6 @@ public:
 	} textures;
 
 	struct {
-		//vks::Model terrain;
 		vkglTF::Model skysphere;
 	} models;
 

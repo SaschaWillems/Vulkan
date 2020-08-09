@@ -33,7 +33,7 @@ public:
 	float zNear = 1.0f;
 	float zFar = 96.0f;
 
-	// Depth bias (and slope) are used to avoid shadowing artefacts
+	// Depth bias (and slope) are used to avoid shadowing artifacts
 	// Constant depth bias factor (always applied)
 	float depthBiasConstant = 1.25f;
 	// Slope depth bias factor, applied depending on polygon's slope
@@ -298,7 +298,7 @@ public:
 				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 				// Set depth bias (aka "Polygon offset")
-				// Required to avoid shadow mapping artefacts
+				// Required to avoid shadow mapping artifacts
 				vkCmdSetDepthBias(
 					drawCmdBuffers[i],
 					depthBiasConstant,
@@ -423,7 +423,7 @@ public:
 		};
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 
-		// Scene rendering with shadow map appplied
+		// Scene rendering with shadow map applied
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
 		writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer

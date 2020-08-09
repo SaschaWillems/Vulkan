@@ -284,7 +284,7 @@ public:
 	{
 		uboTessEval.projection = camera.matrices.perspective;
 		uboTessEval.modelView = camera.matrices.view;
-		// Tessellation evaulation uniform block
+		// Tessellation evaluation uniform block
 		memcpy(uniformBuffers.tessEval.mapped, &uboTessEval, sizeof(uboTessEval));
 		// Tessellation control uniform block
 		memcpy(uniformBuffers.tessControl.mapped, &uboTessControl, sizeof(uboTessControl));

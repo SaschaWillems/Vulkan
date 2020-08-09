@@ -432,7 +432,7 @@ public:
 		// Use subpass dependencies for image layout transitions
 		VkSubpassDependency subpassDependencies[2] = {};
 
-		// Transition from final to initial (VK_SUBPASS_EXTERNAL refers to all commmands executed outside of the actual renderpass)
+		// Transition from final to initial (VK_SUBPASS_EXTERNAL refers to all commands executed outside of the actual renderpass)
 		subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 		subpassDependencies[0].dstSubpass = 0;
 		subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -721,7 +721,6 @@ public:
 		textOverlay->addText("A cube", projected.x, projected.y, TextOverlay::alignCenter);
 
 #if defined(__ANDROID__)
-		// toto
 #else
 		textOverlay->addText("Press \"space\" to toggle text overlay", 5.0f, 65.0f, TextOverlay::alignLeft);
 		textOverlay->addText("Hold middle mouse button and drag to move", 5.0f, 85.0f, TextOverlay::alignLeft);

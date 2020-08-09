@@ -500,7 +500,7 @@ public:
 				Offscreen SSAO generation
 			*/
 			{
-				// Clear values for all attachments written in the fragment sahder
+				// Clear values for all attachments written in the fragment shader
 				std::vector<VkClearValue> clearValues(4);
 				clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
 				clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
