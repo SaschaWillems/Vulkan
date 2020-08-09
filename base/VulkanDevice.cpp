@@ -8,8 +8,6 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#pragma once
-
 #include <VulkanDevice.h>
 
 namespace vks
