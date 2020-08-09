@@ -399,7 +399,7 @@ public:
 		VkFramebuffer framebuffer;
 		VK_CHECK_RESULT(vkCreateFramebuffer(device, &framebufferCI, nullptr, &framebuffer));
 
-		// Desriptors
+		// Descriptors
 		VkDescriptorSetLayout descriptorsetlayout;
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {};
 		VkDescriptorSetLayoutCreateInfo descriptorsetlayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
@@ -477,7 +477,6 @@ public:
 
 		vkQueueWaitIdle(queue);
 
-		// todo: cleanup
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelinelayout, nullptr);
 		vkDestroyRenderPass(device, renderpass, nullptr);
@@ -854,7 +853,6 @@ public:
 
 		vulkanDevice->flushCommandBuffer(cmdBuf, queue);
 
-		// todo: cleanup
 		vkDestroyRenderPass(device, renderpass, nullptr);
 		vkDestroyFramebuffer(device, offscreen.framebuffer, nullptr);
 		vkFreeMemory(device, offscreen.memory, nullptr);
@@ -1235,7 +1233,6 @@ public:
 
 		vulkanDevice->flushCommandBuffer(cmdBuf, queue);
 
-		// todo: cleanup
 		vkDestroyRenderPass(device, renderpass, nullptr);
 		vkDestroyFramebuffer(device, offscreen.framebuffer, nullptr);
 		vkFreeMemory(device, offscreen.memory, nullptr);
@@ -1254,7 +1251,7 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Objact vertex shader uniform buffer
+		// Object vertex shader uniform buffer
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
