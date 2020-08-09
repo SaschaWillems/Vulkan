@@ -203,7 +203,7 @@ public:
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
-			// Binding 0 : Vertex shader shader ubo
+			// Binding 0 : Vertex shader ubo
 			vks::initializers::writeDescriptorSet(
 				descriptorSet,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,

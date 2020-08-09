@@ -217,7 +217,7 @@ public:
 
 			Using the shared descriptor set layout and the descriptor pool we will now allocate the descriptor sets.
 
-			Descriptor sets contain the actual descriptor fo the objects (buffers, images) used at render time.
+			Descriptor sets contain the actual descriptor for the objects (buffers, images) used at render time.
 
 		*/
 

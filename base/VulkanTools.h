@@ -100,7 +100,7 @@ namespace vks
 			VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 			VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-		/** @brief Inser an image memory barrier into the command buffer */
+		/** @brief Insert an image memory barrier into the command buffer */
 		void insertImageMemoryBarrier(
 			VkCommandBuffer cmdbuffer,
 			VkImage image,

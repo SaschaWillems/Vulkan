@@ -128,7 +128,7 @@ namespace vks
 		/**
 		* Add a new attachment described by createinfo to the framebuffer's attachment list
 		*
-		* @param createinfo Structure that specifices the framebuffer to be constructed
+		* @param createinfo Structure that specifies the framebuffer to be constructed
 		*
 		* @return Index of the new attachment
 		*/

@@ -179,7 +179,7 @@ public:
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], models.plants.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			// If the multi draw feature is supported:
-			// One draw call for an arbitrary number of ojects
+			// One draw call for an arbitrary number of objects
 			// Index offsets and instance count are taken from the indirect buffer
 			if (vulkanDevice->features.multiDrawIndirect)
 			{
@@ -302,7 +302,7 @@ public:
 		//	...
 		//	layout (location = 4) in vec3 instancePos;	Per-Instance
 		attributeDescriptions = {
-		    // Per-vertex attributees
+		    // Per-vertex attributes
 		    // These are advanced for each vertex fetched by the vertex shader
 		    vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),								// Location 0: Position
 		    vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),				// Location 1: Normal
