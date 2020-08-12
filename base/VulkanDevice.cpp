@@ -315,6 +315,13 @@ namespace vks
 		memAlloc.allocationSize = memReqs.size;
 		// Find a memory type index that fits the properties of the buffer
 		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+		// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+		VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+		if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
+			allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
+			allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+			memAlloc.pNext = &allocFlagsInfo;
+		}
 		VK_CHECK_RESULT(vkAllocateMemory(logicalDevice, &memAlloc, nullptr, memory));
 			
 		// If a pointer to the buffer data has been passed, map the buffer and copy over the data
@@ -347,7 +354,7 @@ namespace vks
 	* @param usageFlags Usage flag bit mask for the buffer (i.e. index, vertex, uniform buffer)
 	* @param memoryPropertyFlags Memory properties for this buffer (i.e. device local, host visible, coherent)
 	* @param buffer Pointer to a vk::Vulkan buffer object
-	* @param size Size of the buffer in byes
+	* @param size Size of the buffer in bytes
 	* @param data Pointer to the data that should be copied to the buffer after creation (optional, if not set, no data is copied over)
 	*
 	* @return VK_SUCCESS if buffer handle and memory have been created and (optionally passed) data has been copied
@@ -367,6 +374,13 @@ namespace vks
 		memAlloc.allocationSize = memReqs.size;
 		// Find a memory type index that fits the properties of the buffer
 		memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+		// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+		VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+		if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
+			allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
+			allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+			memAlloc.pNext = &allocFlagsInfo;
+		}
 		VK_CHECK_RESULT(vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &buffer->memory));
 
 		buffer->alignment = memReqs.alignment;
