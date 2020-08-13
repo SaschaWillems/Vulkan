@@ -3,6 +3,7 @@ file(GLOB BASE_SRC "../../../base/*.cpp" "../../../external/imgui/*.cpp")
 add_library(libbase SHARED ${BASE_SRC})
 
 include_directories(${BASE_DIR})
+include_directories(../../../external)
 include_directories(../../../external/glm)
 include_directories(../../../external/gli)
 include_directories(../../../external/imgui)
