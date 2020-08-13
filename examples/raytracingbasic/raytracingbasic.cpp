@@ -612,9 +612,9 @@ public:
 		const uint32_t shaderIndexClosestHit = 2;
 
 		std::array<VkPipelineShaderStageCreateInfo, 3> shaderStages;
-		shaderStages[shaderIndexRaygen] = loadShader(getShadersPath() + "nv_ray_tracing_basic/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
-		shaderStages[shaderIndexMiss] = loadShader(getShadersPath() + "nv_ray_tracing_basic/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
-		shaderStages[shaderIndexClosestHit] = loadShader(getShadersPath() + "nv_ray_tracing_basic/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+		shaderStages[shaderIndexRaygen] = loadShader(getShadersPath() + "raytracingbasic/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
+		shaderStages[shaderIndexMiss] = loadShader(getShadersPath() + "raytracingbasic/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+		shaderStages[shaderIndexClosestHit] = loadShader(getShadersPath() + "raytracingbasic/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
 
 		/*
 			Setup ray tracing shader groups

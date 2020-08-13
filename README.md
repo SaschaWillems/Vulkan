@@ -363,9 +363,9 @@ An updated version using ```VK_EXT_debug_utils``` along with an in-depth tutoria
 
 Shows how to render a scene using a negative viewport height, making the Vulkan render setup more similar to other APIs like OpenGL. Also has several options for changing relevant pipeline state, and displaying meshes with OpenGL or Vulkan style coordinates. Details can be found in [this tutorial](https://www.saschawillems.de/tutorials/vulkan/flipping-viewport).
 
-#### [08 - Basic ray tracing with VK_NV_ray_tracing](examples/nv_ray_tracing_basic)
+#### [08 - Basic ray tracing](examples/raytracingbasic)
 
-Basic example for doing ray tracing using the new Nvidia RTX extensions. Shows how to setup acceleration structures, ray tracing pipelines and the shaders needed to do the actual ray tracing.
+Basic example for doing hardwarde accelerated ray tracing using the ```VK_KHR_ray_tracing``` extension. Shows how to setup acceleration structures, ray tracing pipelines and the shaders needed to do the actual ray tracing.
 
 #### [09 - Ray traced shadows with VK_NV_ray_tracing](examples/nv_ray_tracing_shadows)
 

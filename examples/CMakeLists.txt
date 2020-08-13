@@ -84,8 +84,7 @@ set(EXAMPLES
 	multisampling
 	multithreading
 	multiview
-	negativeviewportheight
-	nv_ray_tracing_basic
+	negativeviewportheight	
 	nv_ray_tracing_shadows
 	nv_ray_tracing_reflections
 	occlusionquery
@@ -100,6 +99,7 @@ set(EXAMPLES
 	pushconstants
 	pushdescriptors
 	radialblur
+	raytracingbasic	
 	renderheadless
 	screenshot
 	shadowmapping
