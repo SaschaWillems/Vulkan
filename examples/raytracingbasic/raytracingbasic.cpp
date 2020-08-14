@@ -1,5 +1,5 @@
 /*
-* Vulkan Example - Basic ray tracing example
+* Vulkan Example - Basic hardware accelerated ray tracing example using VK_KHR_ray_traying
 *
 * Copyright (C) 2019-2020 by Sascha Willems - www.saschawillems.de
 *
@@ -527,7 +527,7 @@ public:
 	void createDescriptorSets()
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1 },
+			{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
 			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 }
 		};
@@ -537,8 +537,8 @@ public:
 		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocateInfo, &descriptorSet));
 
-		VkWriteDescriptorSetAccelerationStructureNV descriptorAccelerationStructureInfo{};
-		descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
+		descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
 		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
 		descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.accelerationStructure;
 
@@ -549,7 +549,7 @@ public:
 		accelerationStructureWrite.dstSet = descriptorSet;
 		accelerationStructureWrite.dstBinding = 0;
 		accelerationStructureWrite.descriptorCount = 1;
-		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
 		VkDescriptorImageInfo storageImageDescriptor{};
 		storageImageDescriptor.imageView = storageImage.view;
@@ -573,21 +573,21 @@ public:
 	{
 		VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding{};
 		accelerationStructureLayoutBinding.binding = 0;
-		accelerationStructureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+		accelerationStructureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 		accelerationStructureLayoutBinding.descriptorCount = 1;
-		accelerationStructureLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+		accelerationStructureLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 
 		VkDescriptorSetLayoutBinding resultImageLayoutBinding{};
 		resultImageLayoutBinding.binding = 1;
 		resultImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		resultImageLayoutBinding.descriptorCount = 1;
-		resultImageLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+		resultImageLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 
 		VkDescriptorSetLayoutBinding uniformBufferBinding{};
 		uniformBufferBinding.binding = 2;
 		uniformBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		uniformBufferBinding.descriptorCount = 1;
-		uniformBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+		uniformBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 
 		std::vector<VkDescriptorSetLayoutBinding> bindings({
 			accelerationStructureLayoutBinding,
@@ -612,9 +612,9 @@ public:
 		const uint32_t shaderIndexClosestHit = 2;
 
 		std::array<VkPipelineShaderStageCreateInfo, 3> shaderStages;
-		shaderStages[shaderIndexRaygen] = loadShader(getShadersPath() + "raytracingbasic/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
-		shaderStages[shaderIndexMiss] = loadShader(getShadersPath() + "raytracingbasic/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
-		shaderStages[shaderIndexClosestHit] = loadShader(getShadersPath() + "raytracingbasic/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+		shaderStages[shaderIndexRaygen] = loadShader(getShadersPath() + "raytracingbasic/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+		shaderStages[shaderIndexMiss] = loadShader(getShadersPath() + "raytracingbasic/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_KHR);
+		shaderStages[shaderIndexClosestHit] = loadShader(getShadersPath() + "raytracingbasic/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
 
 		/*
 			Setup ray tracing shader groups
@@ -635,7 +635,7 @@ public:
 		groups[INDEX_MISS].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 		groups[INDEX_MISS].generalShader = shaderIndexMiss;
 		groups[INDEX_CLOSEST_HIT].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
-		groups[INDEX_CLOSEST_HIT].generalShader = VK_SHADER_UNUSED_NV;
+		groups[INDEX_CLOSEST_HIT].generalShader = VK_SHADER_UNUSED_KHR;
 		groups[INDEX_CLOSEST_HIT].closestHitShader = shaderIndexClosestHit;
 
 		VkRayTracingPipelineCreateInfoKHR rayTracingPipelineCI{};
@@ -682,12 +682,12 @@ public:
 			/*
 				Dispatch the ray tracing commands
 			*/
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
 
 
 			/*
-				Setup the strided buffer regions pointing to the shaders in our shader binding table
+				Setup the buffer regions pointing to the shaders in our shader binding table
 			*/
 
 			VkStridedBufferRegionKHR raygenShaderSBTEntry{};
@@ -705,7 +705,7 @@ public:
 			hitShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupHandleSize * INDEX_CLOSEST_HIT);
 			hitShaderSBTEntry.size = rayTracingProperties.shaderGroupHandleSize;
 
-			VkStridedBufferRegionKHR callable_shader_sbt_entry{};
+			VkStridedBufferRegionKHR callableShaderSBTEntry{};
 
 			/*
 				Dispatch the ray tracing commands
@@ -718,7 +718,7 @@ public:
 				&raygenShaderSBTEntry,
 				&missShaderSBTEntry,
 				&hitShaderSBTEntry,
-				&callable_shader_sbt_entry,
+				&callableShaderSBTEntry,
 				width,
 				height,
 				1);
