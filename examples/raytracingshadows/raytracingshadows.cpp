@@ -475,10 +475,21 @@ public:
 		Create the Shader Binding Table that binds the programs and top-level acceleration structure
 	*/
 	void createShaderBindingTable() {
-		const uint32_t sbtSize = rayTracingProperties.shaderGroupHandleSize * NUM_SHADER_GROUPS;
+		const uint32_t sbtSize = rayTracingProperties.shaderGroupBaseAlignment * NUM_SHADER_GROUPS;
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &shaderBindingTable, sbtSize));
 		shaderBindingTable.map();
-		VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, NUM_SHADER_GROUPS, sbtSize, shaderBindingTable.mapped));
+
+		// Write the shader handles to the shader binding table
+		std::vector<uint8_t> shaderHandleStorage(sbtSize);
+		VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, NUM_SHADER_GROUPS, sbtSize, shaderHandleStorage.data()));
+
+		auto* data = static_cast<uint8_t*>(shaderBindingTable.mapped);
+		// This part is required, as the alignment and handle size may differ
+		for (uint32_t i = 0; i < NUM_SHADER_GROUPS; i++)
+		{
+			memcpy(data, shaderHandleStorage.data() + i * rayTracingProperties.shaderGroupHandleSize, rayTracingProperties.shaderGroupHandleSize);
+			data += rayTracingProperties.shaderGroupBaseAlignment;
+		}
 		shaderBindingTable.unmap();
 	}
 
@@ -688,21 +699,22 @@ public:
 			/*
 				Setup the buffer regions pointing to the shaders in our shader binding table
 			*/
+			const uint32_t sbtSize = rayTracingProperties.shaderGroupBaseAlignment * NUM_SHADER_GROUPS;
 
 			VkStridedBufferRegionKHR raygenShaderSBTEntry{};
 			raygenShaderSBTEntry.buffer = shaderBindingTable.buffer;
-			raygenShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupHandleSize * INDEX_RAYGEN);
-			raygenShaderSBTEntry.size = rayTracingProperties.shaderGroupHandleSize;
+			raygenShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupBaseAlignment * INDEX_RAYGEN);
+			raygenShaderSBTEntry.size = sbtSize;
 
 			VkStridedBufferRegionKHR missShaderSBTEntry{};
 			missShaderSBTEntry.buffer = shaderBindingTable.buffer;
-			missShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupHandleSize * INDEX_MISS);
-			missShaderSBTEntry.size = rayTracingProperties.shaderGroupHandleSize;
+			missShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupBaseAlignment * INDEX_MISS);
+			missShaderSBTEntry.size = sbtSize;
 
 			VkStridedBufferRegionKHR hitShaderSBTEntry{};
 			hitShaderSBTEntry.buffer = shaderBindingTable.buffer;
-			hitShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupHandleSize * INDEX_CLOSEST_HIT);
-			hitShaderSBTEntry.size = rayTracingProperties.shaderGroupHandleSize;
+			hitShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupBaseAlignment * INDEX_CLOSEST_HIT);
+			hitShaderSBTEntry.size = sbtSize;
 
 			VkStridedBufferRegionKHR callableShaderSBTEntry{};
 
