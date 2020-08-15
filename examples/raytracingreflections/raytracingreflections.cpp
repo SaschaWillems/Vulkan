@@ -1,9 +1,9 @@
 /*
-* Vulkan Example - Advanced example for doing reflections with ray tracing using VK_NV_ray_tracing
+* Vulkan Example - Hardware accelerated ray tracing example for doing reflections using VK_KHR_ray_traying
 *
 * Renders a complex scene doing recursion inside the shaders for creating reflections
 *
-* Copyright (C) by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2019-2020 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -90,7 +90,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		title = "VK_NV_ray_tracing - Reflections";
+		title = "Ray tracing reflections";
 		settings.overlay = false;
 		timerSpeed *= 0.5f;
 		camera.rotationSpeed *= 0.25f;
@@ -600,9 +600,9 @@ public:
 		const uint32_t shaderIndexClosestHit = 2;
 
 		std::array<VkPipelineShaderStageCreateInfo, 3> shaderStages;
-		shaderStages[shaderIndexRaygen] = loadShader(getShadersPath() + "nv_ray_tracing_reflections/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
-		shaderStages[shaderIndexMiss] = loadShader(getShadersPath() + "nv_ray_tracing_reflections/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
-		shaderStages[shaderIndexClosestHit] = loadShader(getShadersPath() + "nv_ray_tracing_reflections/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+		shaderStages[shaderIndexRaygen] = loadShader(getShadersPath() + "raytracingreflections/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
+		shaderStages[shaderIndexMiss] = loadShader(getShadersPath() + "raytracingreflections/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+		shaderStages[shaderIndexClosestHit] = loadShader(getShadersPath() + "raytracingreflections/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
 
 		// Pass recursion depth for reflections to ray generation shader via specialization constant
 		VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));

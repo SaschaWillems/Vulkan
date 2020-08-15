@@ -86,7 +86,6 @@ set(EXAMPLES
 	multiview
 	negativeviewportheight	
 	nv_ray_tracing_shadows
-	nv_ray_tracing_reflections
 	occlusionquery
 	offscreen
 	parallaxmapping
@@ -100,6 +99,7 @@ set(EXAMPLES
 	pushdescriptors
 	radialblur
 	raytracingbasic	
+	raytracingreflections
 	renderheadless
 	screenshot
 	shadowmapping
