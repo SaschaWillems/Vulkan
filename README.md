@@ -20,6 +20,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
     + [Compute Shader](#ComputeShader)
     + [Geometry Shader](#GeometryShader)
     + [Tessellation Shader](#TessellationShader)
+    + [Ray tracing](#Raytracing)
     + [Headless](#Headless)
     + [User Interface](#UserInterface)
     + [Effects](#Effects)
@@ -287,6 +288,20 @@ Renders a terrain using tessellation shaders for height displacement (based on a
 
 Uses curved PN-triangles ([paper](http://alex.vlachos.com/graphics/CurvedPNTriangles.pdf)) for adding details to a low-polygon model.
 
+### <a name="Raytracing"></a> Ray Tracing (VK_KHR_ray_tracing)
+
+#### [01 - Basic ray tracing](examples/raytracingbasic)
+
+Basic example for doing hardware accelerated ray tracing using the ```VK_KHR_ray_tracing``` extension. Shows how to setup acceleration structures, ray tracing pipelines and the shaders needed to do the actual ray tracing.
+
+#### [02 - Ray traced shadows](examples/raytracingshadows)
+
+Adds ray traced shadows casting using the new ray tracing extensions to a more complex scene. Shows how to add multiple hit and miss shaders and how to modify existing shaders to add shadow calculations.
+
+#### [03 - Ray traced reflections](examples/raytracingreflections)
+
+Renders a complex scene with reflective surfaces using the new ray tracing extensions. Shows how to do recursion inside of the ray tracing shaders for implementing real time reflections.
+
 ### <a name="Headless"></a> Headless
 
 Examples that run one-time tasks and don't make use of visual output (no window system integration). These can be run in environments where no user interface is available ([blog entry](https://www.saschawillems.de/tutorials/vulkan/headless_examples)).
@@ -362,18 +377,6 @@ An updated version using ```VK_EXT_debug_utils``` along with an in-depth tutoria
 #### [07 - Negative viewport height (VK_KHR_Maintenance1 or Vulkan 1.1)](examples/negativeviewportheight/)
 
 Shows how to render a scene using a negative viewport height, making the Vulkan render setup more similar to other APIs like OpenGL. Also has several options for changing relevant pipeline state, and displaying meshes with OpenGL or Vulkan style coordinates. Details can be found in [this tutorial](https://www.saschawillems.de/tutorials/vulkan/flipping-viewport).
-
-#### [08 - Basic ray tracing](examples/raytracingbasic)
-
-Basic example for doing hardwarde accelerated ray tracing using the ```VK_KHR_ray_tracing``` extension. Shows how to setup acceleration structures, ray tracing pipelines and the shaders needed to do the actual ray tracing.
-
-#### [09 - Ray traced shadows with VK_NV_ray_tracing](examples/nv_ray_tracing_shadows)
-
-Adds ray traced shadows casting using the new Nvidia RTX extensions to a more complex scene. Shows how to add multiple hit and miss shaders and how to modify existing shaders to add shadow calculations.
-
-#### [10 - Ray traced reflections with VK_NV_ray_tracing](examples/nv_ray_tracing_reflections)
-
-Renders a complex scene with reflective surfaces using the new Nvidia RTX extensions. Shows how to do recursion inside of the ray tracing shaders for implementing real time reflections.
 
 ### <a name="Misc"></a> Misc
 
