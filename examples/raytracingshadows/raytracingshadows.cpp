@@ -642,14 +642,14 @@ public:
 		missGroupCI.generalShader = shaderIndexShadowMiss;
 		shaderGroups.push_back(missGroupCI);
 
-		VkRayTracingShaderGroupCreateInfoKHR closesHitGroup{};
-		closesHitGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-		closesHitGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
-		closesHitGroup.generalShader = VK_SHADER_UNUSED_KHR;
-		closesHitGroup.closestHitShader = shaderIndexClosestHit;
-		closesHitGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
-		closesHitGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
-		shaderGroups.push_back(closesHitGroup);
+		VkRayTracingShaderGroupCreateInfoKHR closesHitGroupCI{};
+		closesHitGroupCI.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+		closesHitGroupCI.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+		closesHitGroupCI.generalShader = VK_SHADER_UNUSED_KHR;
+		closesHitGroupCI.closestHitShader = shaderIndexClosestHit;
+		closesHitGroupCI.anyHitShader = VK_SHADER_UNUSED_KHR;
+		closesHitGroupCI.intersectionShader = VK_SHADER_UNUSED_KHR;
+		shaderGroups.push_back(closesHitGroupCI);
 
 		VkRayTracingPipelineCreateInfoKHR rayTracingPipelineCI{};
 		rayTracingPipelineCI.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
