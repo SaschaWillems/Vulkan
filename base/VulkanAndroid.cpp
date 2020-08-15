@@ -21,10 +21,12 @@ PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 PFN_vkCreateDevice vkCreateDevice;
 PFN_vkEnumeratePhysicalDevices vkEnumeratePhysicalDevices;
 PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
+PFN_vkGetPhysicalDeviceProperties2 vkGetPhysicalDeviceProperties2;
 PFN_vkEnumerateDeviceExtensionProperties vkEnumerateDeviceExtensionProperties;
 PFN_vkEnumerateDeviceLayerProperties vkEnumerateDeviceLayerProperties;
 PFN_vkGetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
 PFN_vkGetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures;
+PFN_vkGetPhysicalDeviceFeatures2 vkGetPhysicalDeviceFeatures2;
 PFN_vkGetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
 PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
 PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
@@ -158,10 +160,12 @@ namespace vks
 
 			vkEnumeratePhysicalDevices = reinterpret_cast<PFN_vkEnumeratePhysicalDevices>(vkGetInstanceProcAddr(instance, "vkEnumeratePhysicalDevices"));
 			vkGetPhysicalDeviceProperties = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties"));
+			vkGetPhysicalDeviceProperties2 = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2"));
 			vkEnumerateDeviceLayerProperties = reinterpret_cast<PFN_vkEnumerateDeviceLayerProperties>(vkGetInstanceProcAddr(instance, "vkEnumerateDeviceLayerProperties"));
 			vkEnumerateDeviceExtensionProperties = reinterpret_cast<PFN_vkEnumerateDeviceExtensionProperties>(vkGetInstanceProcAddr(instance, "vkEnumerateDeviceExtensionProperties"));
 			vkGetPhysicalDeviceQueueFamilyProperties = reinterpret_cast<PFN_vkGetPhysicalDeviceQueueFamilyProperties>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceQueueFamilyProperties"));
 			vkGetPhysicalDeviceFeatures = reinterpret_cast<PFN_vkGetPhysicalDeviceFeatures>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFeatures"));
+			vkGetPhysicalDeviceFeatures2 = reinterpret_cast<PFN_vkGetPhysicalDeviceFeatures2>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFeatures2"));
 			vkCreateDevice = reinterpret_cast<PFN_vkCreateDevice>(vkGetInstanceProcAddr(instance, "vkCreateDevice"));
 			vkGetPhysicalDeviceFormatProperties = reinterpret_cast<PFN_vkGetPhysicalDeviceFormatProperties>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFormatProperties"));
 			vkGetPhysicalDeviceMemoryProperties = reinterpret_cast<PFN_vkGetPhysicalDeviceMemoryProperties>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceMemoryProperties"));
