@@ -21,7 +21,10 @@ struct Vertex
 {
   vec3 pos;
   vec3 normal;
+  vec2 uv;
   vec4 color;
+  vec4 _pad0;
+  vec4 _pad1;
  };
 
 Vertex unpack(uint index)
@@ -57,15 +60,15 @@ void main()
 	// Basic lighting
 	vec3 lightVector = normalize(ubo.lightPos.xyz);
 	float dot_product = max(dot(lightVector, normal), 0.2);
-	hitValue = v0.color.rgb * vec3(dot_product);
+	hitValue = v0.color.rgb * dot_product;
  
 	// Shadow casting
 	float tmin = 0.001;
-	float tmax = 100.0;
+	float tmax = 10000.0;
 	vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
 	shadowed = true;  
 	// Offset indices to match shadow hit/miss index
-	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 1, 0, 1, origin, tmin, lightVector, tmax, 2);
+	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 2, origin, tmin, lightVector, tmax, 2);
 	if (shadowed) {
 		hitValue *= 0.3;
 	}

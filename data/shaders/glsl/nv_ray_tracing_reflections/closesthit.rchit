@@ -1,5 +1,5 @@
 #version 460
-#extension GL_NV_ray_tracing : require
+#extension GL_EXT_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier : enable
 
 struct RayPayload {
@@ -9,11 +9,11 @@ struct RayPayload {
 	float reflector;
 };
 
-layout(location = 0) rayPayloadInNV RayPayload rayPayload;
+layout(location = 0) rayPayloadInEXT RayPayload rayPayload;
 
-hitAttributeNV vec3 attribs;
+hitAttributeEXT vec3 attribs;
 
-layout(binding = 0, set = 0) uniform accelerationStructureNV topLevelAS;
+layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
 layout(binding = 2, set = 0) uniform UBO 
 {
 	mat4 viewInverse;
@@ -68,7 +68,7 @@ void main()
 	vec3 lightVector = normalize(ubo.lightPos.xyz);
 	float dot_product = max(dot(lightVector, normal), 0.6);
 	rayPayload.color = v0.color.rgb * vec3(dot_product);
-	rayPayload.distance = gl_RayTmaxNV;
+	rayPayload.distance = gl_RayTmaxEXT;
 	rayPayload.normal = normal;
 
 	// Objects with full white vertex color are treated as reflectors
