@@ -620,13 +620,6 @@ public:
 		/*
 			Setup ray tracing shader groups
 		*/
-		VkRayTracingShaderGroupCreateInfoKHR emptyGroup{};
-		emptyGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-		emptyGroup.generalShader = VK_SHADER_UNUSED_KHR;
-		emptyGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
-		emptyGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
-		emptyGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
-
 		VkRayTracingShaderGroupCreateInfoKHR raygenGroupCI{};
 		raygenGroupCI.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
 		raygenGroupCI.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
