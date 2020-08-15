@@ -1,12 +1,12 @@
 #version 460
-#extension GL_NV_ray_tracing : require
+#extension GL_EXT_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier : enable
 
-layout(location = 0) rayPayloadInNV vec3 hitValue;
-layout(location = 2) rayPayloadNV bool shadowed;
-hitAttributeNV vec3 attribs;
+layout(location = 0) rayPayloadInEXT vec3 hitValue;
+layout(location = 2) rayPayloadEXT bool shadowed;
+hitAttributeEXT vec3 attribs;
 
-layout(binding = 0, set = 0) uniform accelerationStructureNV topLevelAS;
+layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
 layout(binding = 2, set = 0) uniform UBO 
 {
 	mat4 viewInverse;
@@ -21,11 +21,8 @@ struct Vertex
 {
   vec3 pos;
   vec3 normal;
-  vec2 uv;
   vec4 color;
-  vec4 _pad0; 
-  vec4 _pad1;
-};
+ };
 
 Vertex unpack(uint index)
 {
@@ -65,10 +62,10 @@ void main()
 	// Shadow casting
 	float tmin = 0.001;
 	float tmax = 100.0;
-	vec3 origin = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
+	vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
 	shadowed = true;  
 	// Offset indices to match shadow hit/miss index
-	traceNV(topLevelAS, gl_RayFlagsTerminateOnFirstHitNV | gl_RayFlagsOpaqueNV|gl_RayFlagsSkipClosestHitShaderNV, 0xFF, 1, 0, 1, origin, tmin, lightVector, tmax, 2);
+	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 1, 0, 1, origin, tmin, lightVector, tmax, 2);
 	if (shadowed) {
 		hitValue *= 0.3;
 	}
