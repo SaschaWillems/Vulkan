@@ -33,11 +33,9 @@ struct AccelerationStructure {
 };
 
 // Indices for the different ray tracing shader types used in this example
-#define INDEX_RAYGEN 0
-#define INDEX_MISS 1
-#define INDEX_CLOSEST_HIT 2
-
-#define NUM_SHADER_GROUPS 3
+#define INDEX_RAYGEN_GROUP 0
+#define INDEX_MISS_GROUP 1
+#define INDEX_CLOSEST_HIT_GROUP 2
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -66,6 +64,7 @@ public:
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
 	uint32_t indexCount;
+	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
 	vks::Buffer shaderBindingTable;
 
 	struct StorageImage {
@@ -514,17 +513,19 @@ public:
 		Create the Shader Binding Table that binds the programs and top-level acceleration structure
 	*/
 	void createShaderBindingTable() {
-		const uint32_t sbtSize = rayTracingProperties.shaderGroupBaseAlignment * NUM_SHADER_GROUPS;
+		const uint32_t groupCount = static_cast<uint32_t>(shaderGroups.size());
+
+		const uint32_t sbtSize = rayTracingProperties.shaderGroupBaseAlignment * groupCount;
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &shaderBindingTable, sbtSize));
 		shaderBindingTable.map();
 
 		// Write the shader handles to the shader binding table
 		std::vector<uint8_t> shaderHandleStorage(sbtSize);
-		VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, NUM_SHADER_GROUPS, sbtSize, shaderHandleStorage.data()));
+		VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data()));
 
 		auto* data = static_cast<uint8_t*>(shaderBindingTable.mapped);
 		// This part is required, as the alignment and handle size may differ
-		for (uint32_t i = 0; i < NUM_SHADER_GROUPS; i++)
+		for (uint32_t i = 0; i < groupCount; i++)
 		{
 			memcpy(data, shaderHandleStorage.data() + i * rayTracingProperties.shaderGroupHandleSize, rayTracingProperties.shaderGroupHandleSize);
 			data += rayTracingProperties.shaderGroupBaseAlignment;
@@ -630,31 +631,39 @@ public:
 		/*
 			Setup ray tracing shader groups
 		*/
-		std::array<VkRayTracingShaderGroupCreateInfoKHR, NUM_SHADER_GROUPS> groups{};
-		for (auto& group : groups) {
-			// Initialize all groups with some default values
-			group.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-			group.generalShader = VK_SHADER_UNUSED_KHR;
-			group.closestHitShader = VK_SHADER_UNUSED_KHR;
-			group.anyHitShader = VK_SHADER_UNUSED_KHR;
-			group.intersectionShader = VK_SHADER_UNUSED_KHR;
-		}
+		VkRayTracingShaderGroupCreateInfoKHR raygenGroupCI{};
+		raygenGroupCI.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+		raygenGroupCI.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+		raygenGroupCI.generalShader = shaderIndexRaygen;
+		raygenGroupCI.closestHitShader = VK_SHADER_UNUSED_KHR;
+		raygenGroupCI.anyHitShader = VK_SHADER_UNUSED_KHR;
+		raygenGroupCI.intersectionShader = VK_SHADER_UNUSED_KHR;
+		shaderGroups.push_back(raygenGroupCI);
 
-		// Links shaders and types to ray tracing shader groups
-		groups[INDEX_RAYGEN].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-		groups[INDEX_RAYGEN].generalShader = shaderIndexRaygen;
-		groups[INDEX_MISS].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-		groups[INDEX_MISS].generalShader = shaderIndexMiss;
-		groups[INDEX_CLOSEST_HIT].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
-		groups[INDEX_CLOSEST_HIT].generalShader = VK_SHADER_UNUSED_KHR;
-		groups[INDEX_CLOSEST_HIT].closestHitShader = shaderIndexClosestHit;
+		VkRayTracingShaderGroupCreateInfoKHR missGroupCI{};
+		missGroupCI.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+		missGroupCI.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+		missGroupCI.generalShader = shaderIndexMiss;
+		missGroupCI.closestHitShader = VK_SHADER_UNUSED_KHR;
+		missGroupCI.anyHitShader = VK_SHADER_UNUSED_KHR;
+		missGroupCI.intersectionShader = VK_SHADER_UNUSED_KHR;
+		shaderGroups.push_back(missGroupCI);
+
+		VkRayTracingShaderGroupCreateInfoKHR closesHitGroup{};
+		closesHitGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+		closesHitGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+		closesHitGroup.generalShader = VK_SHADER_UNUSED_KHR;
+		closesHitGroup.closestHitShader = shaderIndexClosestHit;
+		closesHitGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
+		closesHitGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
+		shaderGroups.push_back(closesHitGroup);
 
 		VkRayTracingPipelineCreateInfoKHR rayTracingPipelineCI{};
 		rayTracingPipelineCI.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
 		rayTracingPipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		rayTracingPipelineCI.pStages = shaderStages.data();
-		rayTracingPipelineCI.groupCount = static_cast<uint32_t>(groups.size());
-		rayTracingPipelineCI.pGroups = groups.data();
+		rayTracingPipelineCI.groupCount = static_cast<uint32_t>(shaderGroups.size());
+		rayTracingPipelineCI.pGroups = shaderGroups.data();
 		rayTracingPipelineCI.maxRecursionDepth = 1;
 		rayTracingPipelineCI.layout = pipelineLayout;
 		rayTracingPipelineCI.libraries.sType = VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR;
@@ -700,21 +709,24 @@ public:
 			/*
 				Setup the buffer regions pointing to the shaders in our shader binding table
 			*/
-			const uint32_t sbtSize = rayTracingProperties.shaderGroupBaseAlignment * NUM_SHADER_GROUPS;
+			const VkDeviceSize sbtSize = rayTracingProperties.shaderGroupBaseAlignment * (VkDeviceSize)shaderGroups.size();
 
 			VkStridedBufferRegionKHR raygenShaderSBTEntry{};
 			raygenShaderSBTEntry.buffer = shaderBindingTable.buffer;
-			raygenShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupBaseAlignment * INDEX_RAYGEN);
+			raygenShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupBaseAlignment * INDEX_RAYGEN_GROUP);
+			raygenShaderSBTEntry.stride = rayTracingProperties.shaderGroupBaseAlignment;
 			raygenShaderSBTEntry.size = sbtSize;
 
 			VkStridedBufferRegionKHR missShaderSBTEntry{};
 			missShaderSBTEntry.buffer = shaderBindingTable.buffer;
-			missShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupBaseAlignment * INDEX_MISS);
+			missShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupBaseAlignment * INDEX_MISS_GROUP);
+			missShaderSBTEntry.stride = rayTracingProperties.shaderGroupBaseAlignment;
 			missShaderSBTEntry.size = sbtSize;
 
 			VkStridedBufferRegionKHR hitShaderSBTEntry{};
 			hitShaderSBTEntry.buffer = shaderBindingTable.buffer;
-			hitShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupBaseAlignment * INDEX_CLOSEST_HIT);
+			hitShaderSBTEntry.offset = static_cast<VkDeviceSize>(rayTracingProperties.shaderGroupBaseAlignment * INDEX_CLOSEST_HIT_GROUP);
+			hitShaderSBTEntry.stride = rayTracingProperties.shaderGroupBaseAlignment;
 			hitShaderSBTEntry.size = sbtSize;
 
 			VkStridedBufferRegionKHR callableShaderSBTEntry{};
