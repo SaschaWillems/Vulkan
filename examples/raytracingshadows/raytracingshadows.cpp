@@ -680,10 +680,32 @@ public:
 	}
 
 	/*
+		If the window has been resized, we need to recreate the storage image and it's descriptor
+	*/
+	void handleResize()
+	{
+		// Delete allocated resources
+		vkDestroyImageView(device, storageImage.view, nullptr);
+		vkDestroyImage(device, storageImage.image, nullptr);
+		vkFreeMemory(device, storageImage.memory, nullptr);
+		// Recreate image
+		createStorageImage();
+		// Update descriptor
+		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, storageImage.view, VK_IMAGE_LAYOUT_GENERAL };
+		VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
+		vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);
+	}
+
+	/*
 		Command buffer generation
 	*/
 	void buildCommandBuffers()
 	{
+		if (resized)
+		{
+			handleResize();
+		}
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
