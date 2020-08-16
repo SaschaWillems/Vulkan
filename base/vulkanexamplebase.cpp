@@ -2124,6 +2124,7 @@ void VulkanExampleBase::windowResize()
 		return;
 	}
 	prepared = false;
+	resized = true;
 
 	// Ensure all operations on the device have been finished before destroying resources
 	vkDeviceWaitIdle(device);
