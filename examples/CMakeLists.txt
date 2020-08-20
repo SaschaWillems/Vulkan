@@ -87,6 +87,7 @@ set(EXAMPLES
 	negativeviewportheight	
 	occlusionquery
 	offscreen
+	oit
 	parallaxmapping
 	particlefire
 	pbrbasic
