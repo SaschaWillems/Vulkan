@@ -180,6 +180,10 @@ Generating a complete mip-chain at runtime instead of loading it from a file, by
 
 Capturing and saving an image after a scene has been rendered using blits to copy the last swapchain image from optimal device to host local linear memory, so that it can be stored into a ppm image.
 
+#### [08 - Order Independent Transparency](examples/oit)
+
+Implements order independent transparency based on the linked list. This example use the storage buffer, the image load and store operations and atomic operations.
+
 ### <a name="Performance"></a> Performance
 
 #### [01 - Multi threaded command buffer generation](examples/multithreading/)
