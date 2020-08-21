@@ -82,13 +82,10 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Order independent transparency rendering";
-
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -6.0f));
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setPerspective(60.0f, (float) width / (float) height, 0.1f, 256.0f);
-
-		settings.validation = ENABLE_VALIDATION;
 		settings.overlay = true;
 	}
 
@@ -111,8 +108,11 @@ public:
 
 	void getEnabledFeatures() override
 	{
-		if (deviceFeatures.fragmentStoresAndAtomics)
+		if (deviceFeatures.fragmentStoresAndAtomics) {
 			enabledFeatures.fragmentStoresAndAtomics = VK_TRUE;
+		} else {
+			vks::tools::exitFatal("Selected GPU does not support stores and atomic operations in the fragment stage", VK_ERROR_FEATURE_NOT_PRESENT);
+		}
 	};
 
 	void prepare() override

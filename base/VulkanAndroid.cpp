@@ -58,6 +58,7 @@ PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass;
 PFN_vkCmdEndRenderPass vkCmdEndRenderPass;
 PFN_vkCmdNextSubpass vkCmdNextSubpass;
 PFN_vkCmdExecuteCommands vkCmdExecuteCommands;
+PFN_vkCmdClearColorImage vkCmdClearColorImage;
 PFN_vkCreateImage vkCreateImage;
 PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements;
 PFN_vkCreateImageView vkCreateImageView;
@@ -68,6 +69,7 @@ PFN_vkCreateFence vkCreateFence;
 PFN_vkDestroyFence vkDestroyFence;
 PFN_vkWaitForFences vkWaitForFences;
 PFN_vkResetFences vkResetFences;
+PFN_vkResetDescriptorPool vkResetDescriptorPool;
 PFN_vkCreateCommandPool vkCreateCommandPool;
 PFN_vkDestroyCommandPool vkDestroyCommandPool;
 PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
@@ -189,6 +191,7 @@ namespace vks
 			vkCmdEndRenderPass = reinterpret_cast<PFN_vkCmdEndRenderPass>(vkGetInstanceProcAddr(instance, "vkCmdEndRenderPass"));
 			vkCmdNextSubpass = reinterpret_cast<PFN_vkCmdNextSubpass>(vkGetInstanceProcAddr(instance, "vkCmdNextSubpass"));
 			vkCmdExecuteCommands = reinterpret_cast<PFN_vkCmdExecuteCommands>(vkGetInstanceProcAddr(instance, "vkCmdExecuteCommands"));
+	        vkCmdClearColorImage = reinterpret_cast<PFN_vkCmdClearColorImage>(vkGetInstanceProcAddr(instance, "vkCmdClearColorImage"));
 
 			vkCreateImage = reinterpret_cast<PFN_vkCreateImage>(vkGetInstanceProcAddr(instance, "vkCreateImage"));
 			vkGetImageMemoryRequirements = reinterpret_cast<PFN_vkGetImageMemoryRequirements>(vkGetInstanceProcAddr(instance, "vkGetImageMemoryRequirements"));
@@ -215,6 +218,7 @@ namespace vks
 			vkDestroyFence = reinterpret_cast<PFN_vkDestroyFence>(vkGetInstanceProcAddr(instance, "vkDestroyFence"));
 			vkWaitForFences = reinterpret_cast<PFN_vkWaitForFences>(vkGetInstanceProcAddr(instance, "vkWaitForFences"));
 			vkResetFences = reinterpret_cast<PFN_vkResetFences>(vkGetInstanceProcAddr(instance, "vkResetFences"));;
+	        vkResetDescriptorPool = reinterpret_cast<PFN_vkResetDescriptorPool>(vkGetInstanceProcAddr(instance, "vkResetDescriptorPool"));
 
 			vkCreateCommandPool = reinterpret_cast<PFN_vkCreateCommandPool>(vkGetInstanceProcAddr(instance, "vkCreateCommandPool"));
 			vkDestroyCommandPool = reinterpret_cast<PFN_vkDestroyCommandPool>(vkGetInstanceProcAddr(instance, "vkDestroyCommandPool"));;
