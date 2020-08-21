@@ -13,13 +13,11 @@ struct RenderPassUBO
 
 cbuffer renderPassUBO : register(b0) { RenderPassUBO renderPassUBO; }
 
-struct ObjectUBO
-{
-    float4x4 model;
-    float4 color;
+struct PushConsts {
+	float4x4 model;
+	float4 color;
 };
-
-cbuffer objectUBO : register(b1) { ObjectUBO objectUBO; }
+[[vk::push_constant]] PushConsts pushConsts;
 
 struct VSOutput
 {
@@ -29,6 +27,6 @@ struct VSOutput
 VSOutput main(VSInput input)
 {
 	VSOutput output = (VSOutput)0;
-	output.Pos = mul(renderPassUBO.projection, mul(renderPassUBO.view, mul(objectUBO.model, input.Pos)));
+	output.Pos = mul(renderPassUBO.projection, mul(renderPassUBO.view, mul(pushConsts.model, input.Pos)));
     return output;
 }

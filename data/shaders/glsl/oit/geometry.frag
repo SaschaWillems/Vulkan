@@ -11,24 +11,23 @@ struct Node
     uint next;
 };
 
-layout (set = 0, binding = 1) uniform ObjectUBO
-{
-    mat4 model;
-    vec4 color;
-} objectUBO;
-
-layout (set = 0, binding = 2) buffer GeometrySBO
+layout (set = 0, binding = 1) buffer GeometrySBO
 {
     uint count;
     uint maxNodeCount;
 };
 
-layout (set = 0, binding = 3, r32ui) uniform uimage2D headIndexImage;
+layout (set = 0, binding = 2, r32ui) uniform uimage2D headIndexImage;
 
-layout (set = 0, binding = 4) buffer LinkedListSBO
+layout (set = 0, binding = 3) buffer LinkedListSBO
 {
     Node nodes[];
 };
+
+layout(push_constant) uniform PushConsts {
+	mat4 model;
+    vec4 color;
+} pushConsts;
 
 void main()
 {
@@ -42,7 +41,7 @@ void main()
         uint prevHeadIdx = imageAtomicExchange(headIndexImage, ivec2(gl_FragCoord.xy), nodeIdx);
 
         // Store node data
-        nodes[nodeIdx].color = objectUBO.color;
+        nodes[nodeIdx].color = pushConsts.color;
         nodes[nodeIdx].depth = gl_FragCoord.z;
         nodes[nodeIdx].next = prevHeadIdx;
     }

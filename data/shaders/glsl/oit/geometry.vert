@@ -8,14 +8,13 @@ layout (set = 0, binding = 0) uniform RenderPassUBO
     mat4 view;
 } renderPassUBO;
 
-layout (set = 0, binding = 1) uniform ObjectUBO
-{
-    mat4 model;
+layout(push_constant) uniform PushConsts {
+	mat4 model;
     vec4 color;
-} objectUBO;
+} pushConsts;
 
 void main()
 {
-    mat4 PVM = renderPassUBO.projection * renderPassUBO.view * objectUBO.model;
+    mat4 PVM = renderPassUBO.projection * renderPassUBO.view * pushConsts.model;
     gl_Position = PVM * vec4(inPos, 1.0);
 }

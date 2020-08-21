@@ -14,25 +14,23 @@ struct Node
     uint next;
 };
 
-struct ObjectUBO
-{
-    float4x4 model;
-    float4 color;
-};
-
-cbuffer ubo : register(b1) { ObjectUBO objectUBO; }
-
 struct GeometrySBO
 {
     uint count;
     uint maxNodeCount;
 };
 // Binding 0 : Position storage buffer
-RWStructuredBuffer<GeometrySBO> geometrySBO : register(u2);
+RWStructuredBuffer<GeometrySBO> geometrySBO : register(u1);
 
-RWTexture2D<uint> headIndexImage : register(u3);
+RWTexture2D<uint> headIndexImage : register(u2);
 
-RWStructuredBuffer<Node> nodes : register(u4);
+RWStructuredBuffer<Node> nodes : register(u3);
+
+struct PushConsts {
+	float4x4 model;
+	float4 color;
+};
+[[vk::push_constant]] PushConsts pushConsts;
 
 [earlydepthstencil]
 void main(VSOutput input)
@@ -49,7 +47,7 @@ void main(VSOutput input)
         InterlockedExchange(headIndexImage[uint2(input.Pos.xy)], nodeIdx, prevHeadIdx);
 
         // Store node data
-        nodes[nodeIdx].color = objectUBO.color;
+        nodes[nodeIdx].color = pushConsts.color;
         nodes[nodeIdx].depth = input.Pos.z;
         nodes[nodeIdx].next = prevHeadIdx;
     }
