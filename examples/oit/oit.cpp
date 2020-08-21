@@ -12,7 +12,7 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION true
+#define ENABLE_VALIDATION false
 #define SPHERE_COUNT 5 * 5 * 5
 #define CUBE_COUNT 2
 #define NODE_COUNT 20
