@@ -96,7 +96,7 @@
 #define KEY_KPADD KEY_KPPLUS
 #define KEY_KPSUB KEY_KPMINUS
 
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__FreeBSD__)
 #define KEY_ESCAPE 0x9
 #define KEY_F1 0x43
 #define KEY_F2 0x44

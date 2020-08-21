@@ -1164,7 +1164,7 @@ int main(const int argc, const char *argv[])
 	delete(vulkanExample);
 	return 0;
 }
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__FreeBSD__)
 
 // Linux entry point
 VulkanExample *vulkanExample;
