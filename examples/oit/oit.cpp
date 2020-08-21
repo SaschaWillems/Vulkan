@@ -1,9 +1,10 @@
 /*
-* Vulkan Example - High dynamic range rendering
+* Vulkan Example - Order Independent Transparency rendering
 *
 * Note: Requires the separate asset pack (see data/README.md)
 *
 * Copyright by Sascha Willems - www.saschawillems.de
+* Copyright by Daemyung Jang  - dm86.jang@gmail.com
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
