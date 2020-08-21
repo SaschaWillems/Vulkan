@@ -182,7 +182,7 @@ Capturing and saving an image after a scene has been rendered using blits to cop
 
 #### [08 - Order Independent Transparency](examples/oit)
 
-Implements order independent transparency based on the linked list. This example use the storage buffer, the image load and store operations and atomic operations.
+Implements order independent transparency based on linked lists. To achieve this, the sample uses storage buffers in combination with image load and store atomic operations in the fragment shader.
 
 ### <a name="Performance"></a> Performance
 
