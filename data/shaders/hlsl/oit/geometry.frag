@@ -1,7 +1,5 @@
 // Copyright 2020 Sascha Willems
 
-#define MAX_FRAGMENT_COUNT 75
-
 struct VSOutput
 {
 	float4 Pos : SV_POSITION;

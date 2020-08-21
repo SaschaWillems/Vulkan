@@ -1,7 +1,5 @@
 #version 450
 
-#define MAX_FRAGMENT_COUNT 75
-
 layout (early_fragment_tests) in;
 
 struct Node
