@@ -113,8 +113,8 @@ namespace vks
 			VkImageSubresourceRange subresourceRange);
 
 		// Display error message and exit on fatal error
-		void exitFatal(std::string message, int32_t exitCode);
-		void exitFatal(std::string message, VkResult resultCode);
+		void exitFatal(const std::string& message, int32_t exitCode);
+		void exitFatal(const std::string& message, VkResult resultCode);
 
 		// Load a SPIR-V shader (binary)
 #if defined(__ANDROID__)

@@ -288,7 +288,7 @@ namespace vks
 				1, &imageMemoryBarrier);
 		}
 
-		void exitFatal(std::string message, int32_t exitCode)
+		void exitFatal(const std::string& message, int32_t exitCode)
 		{
 #if defined(_WIN32)
 			if (!errorModeSilent) {
@@ -304,7 +304,7 @@ namespace vks
 #endif
 		}
 
-		void exitFatal(std::string message, VkResult resultCode)
+		void exitFatal(const std::string& message, VkResult resultCode)
 		{
 			exitFatal(message, (int32_t)resultCode);
 		}
