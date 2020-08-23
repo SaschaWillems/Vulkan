@@ -70,12 +70,12 @@ public:
 		glm::vec2 translate;
 	} pushConstBlock;
 
-	ImGUI(VulkanExampleBase *example) : example(example) 
+	ImGUI(VulkanExampleBase *example) : example(example)
 	{
 		device = example->vulkanDevice;
 		ImGui::CreateContext();
 	};
-	
+
 	~ImGUI()
 	{
 		ImGui::DestroyContext();
@@ -110,7 +110,7 @@ public:
 	}
 
 	// Initialize all Vulkan resources used by the ui
-	void initResources(VkRenderPass renderPass, VkQueue copyQueue)
+	void initResources(VkRenderPass renderPass, VkQueue copyQueue, const std::string& shadersPath)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -329,8 +329,8 @@ public:
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		shaderStages[0] = example->loadShader(getAssetPath() + "shaders/imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = example->loadShader(getAssetPath() + "shaders/imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = example->loadShader(shadersPath + "imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = example->loadShader(shadersPath + "imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
@@ -539,7 +539,7 @@ public:
 
 		delete imGui;
 	}
-	
+
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -689,9 +689,9 @@ public:
 			vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
 		};
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position		
-			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normal		
-			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 6),	// Location 2: Color		
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position
+			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normal
+			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 6),	// Location 2: Color
 		};
 		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 		vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
@@ -701,8 +701,8 @@ public:
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/imgui/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/imgui/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "imgui/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "imgui/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
@@ -722,7 +722,7 @@ public:
 
 	void updateUniformBuffers()
 	{
-		// Vertex shader		
+		// Vertex shader
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.modelview = camera.matrices.view * glm::mat4(1.0f);
 
@@ -759,7 +759,7 @@ public:
 	{
 		imGui = new ImGUI(this);
 		imGui->init((float)width, (float)height);
-		imGui->initResources(renderPass, queue);
+		imGui->initResources(renderPass, queue, getShadersPath());
 	}
 
 	void prepare()
@@ -802,7 +802,7 @@ public:
 
 	virtual void mouseMoved(double x, double y, bool &handled)
 	{
-		ImGuiIO& io = ImGui::GetIO();	
+		ImGuiIO& io = ImGui::GetIO();
 		handled = io.WantCaptureMouse;
 	}
 

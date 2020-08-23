@@ -78,6 +78,9 @@ namespace vks
 		// Returns false if none of the depth formats in the list is supported by the device
 		VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *depthFormat);
 
+		// Returns if a given format support LINEAR filtering
+		VkBool32 formatIsFilterable(VkPhysicalDevice physicalDevice, VkFormat format, VkImageTiling tiling);
+
 		// Put an image memory barrier for setting an image layout on the sub resource into the given command buffer
 		void setImageLayout(
 			VkCommandBuffer cmdbuffer,
@@ -113,7 +116,7 @@ namespace vks
 		void exitFatal(std::string message, int32_t exitCode);
 		void exitFatal(std::string message, VkResult resultCode);
 
-		// Load a SPIR-V shader (binary) 
+		// Load a SPIR-V shader (binary)
 #if defined(__ANDROID__)
 		VkShaderModule loadShader(AAssetManager* assetManager, const char *fileName, VkDevice device);
 #else

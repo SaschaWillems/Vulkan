@@ -55,7 +55,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageCallback(
 	int32_t messageCode,
 	const char* pLayerPrefix,
 	const char* pMessage,
-	void* pUserData) 
+	void* pUserData)
 {
 	LOG("[VALIDATION]: %s - %s\n", pLayerPrefix, pMessage);
 	return VK_FALSE;
@@ -66,7 +66,7 @@ class VulkanExample
 public:
 	VkInstance instance;
 	VkPhysicalDevice physicalDevice;
-	VkDevice device;	
+	VkDevice device;
 	uint32_t queueFamilyIndex;
 	VkPipelineCache pipelineCache;
 	VkQueue queue;
@@ -135,7 +135,7 @@ public:
 	/*
 		Submit command buffer to a queue and wait for fence until queue operations have been finished
 	*/
-	void submitWork(VkCommandBuffer cmdBuffer, VkQueue queue) 
+	void submitWork(VkCommandBuffer cmdBuffer, VkQueue queue)
 	{
 		VkSubmitInfo submitInfo = vks::initializers::submitInfo();
 		submitInfo.commandBufferCount = 1;
@@ -504,7 +504,7 @@ public:
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &framebufferCreateInfo, nullptr, &framebuffer));
 		}
 
-		/* 
+		/*
 			Prepare graphics pipeline
 		*/
 		{
@@ -527,7 +527,7 @@ public:
 			pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 			VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
 
-			// Create pipeline		
+			// Create pipeline
 			VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
 				vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
@@ -591,6 +591,11 @@ public:
 
 			pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
+			// TODO: There is no command line arguments parsing (nor Android settings) for this
+			// example, so we have no way of picking between GLSL or HLSL shaders.
+			// Hard-code to glsl for now.
+			const std::string shadersPath = getAssetPath() + "shaders/glsl/renderheadless/";
+
 			shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
 			shaderStages[0].pName = "main";
@@ -598,17 +603,17 @@ public:
 			shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 			shaderStages[1].pName = "main";
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-			shaderStages[0].module = vks::tools::loadShader(androidapp->activity->assetManager, (getAssetPath() + "shaders/renderheadless/triangle.vert.spv").c_str(), device);
-			shaderStages[1].module = vks::tools::loadShader(androidapp->activity->assetManager, (getAssetPath() + "shaders/renderheadless/triangle.frag.spv").c_str(), device);
+			shaderStages[0].module = vks::tools::loadShader(androidapp->activity->assetManager, (shadersPath + "triangle.vert.spv").c_str(), device);
+			shaderStages[1].module = vks::tools::loadShader(androidapp->activity->assetManager, (shadersPath + "triangle.frag.spv").c_str(), device);
 #else
-			shaderStages[0].module = vks::tools::loadShader((getAssetPath() + "shaders/renderheadless/triangle.vert.spv").c_str(), device);
-			shaderStages[1].module = vks::tools::loadShader((getAssetPath() + "shaders/renderheadless/triangle.frag.spv").c_str(), device);
+			shaderStages[0].module = vks::tools::loadShader((shadersPath + "triangle.vert.spv").c_str(), device);
+			shaderStages[1].module = vks::tools::loadShader((shadersPath + "triangle.frag.spv").c_str(), device);
 #endif
 			shaderModules = { shaderStages[0].module, shaderStages[1].module };
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 		}
 
-		/* 
+		/*
 			Command buffer creation
 		*/
 		{
@@ -617,7 +622,7 @@ public:
 				vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer));
 
-			VkCommandBufferBeginInfo cmdBufInfo = 
+			VkCommandBufferBeginInfo cmdBufInfo =
 				vks::initializers::commandBufferBeginInfo();
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));

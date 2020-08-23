@@ -12,6 +12,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 + [Shaders](#Shaders)
 + [Examples](#Examples)
     + [Basics](#Basics)
+    + [glTF](#glTF)
     + [Advanced](#Advanced)
     + [Performance](#Performance)
     + [Physically Based Rendering](#PBR)
@@ -28,7 +29,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 
 ## <a name="Khronossamples"></a> Official Khronos Vulkan Samples
 
-Khronos recently made an official Vulkan Samples repository available to the public ([press release](https://www.khronos.org/blog/vulkan-releases-unified-samples-repository?utm_source=Khronos%20Blog&utm_medium=Twitter&utm_campaign=Vulkan%20Repository)). 
+Khronos recently made an official Vulkan Samples repository available to the public ([press release](https://www.khronos.org/blog/vulkan-releases-unified-samples-repository?utm_source=Khronos%20Blog&utm_medium=Twitter&utm_campaign=Vulkan%20Repository)).
 
 You can find this repository at https://github.com/KhronosGroup/Vulkan-Samples
 
@@ -39,7 +40,7 @@ This repository contains submodules for external dependencies, so when doing a f
 
 ```
 git clone --recursive https://github.com/SaschaWillems/Vulkan.git
-``` 
+```
 
 Existing repositories can be updated manually:
 
@@ -63,7 +64,7 @@ See [BUILD.md](BUILD.md) for details on how to build for the different platforms
 
 ## <a name="Shaders"></a> Shaders
 
-Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](data/shaders) but thanks to an external contribution you'll also find [HLSL](data/hlsl) shader sources.
+Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](data/shaders/glsl) but thanks to an external contribution you'll also find [HLSL](data/shaders/hlsl) shader sources.
 
 ## <a name="Examples"></a> Examples
 
@@ -96,21 +97,21 @@ Uses SPIR-V specialization constants to create multiple pipelines with different
 
 Loads a 2D texture from disk (including all mip levels), uses staging to upload it into video memory and samples from it using combined image samplers.
 
-#### [08 - Cube map textures](examples/texturecubemap/)
-
-Loads a cube map texture from disk containing six different faces. All faces and mip levels are uploaded into video memory and the cubemap is sampled once as a skybox (for the background) and as a source for reflections (for a 3D model).
-
-#### [09 - Texture arrays](examples/texturearray/)
+#### [08 - Texture arrays](examples/texturearray/)
 
 Loads a 2D texture array containing multiple 2D texture slices (each with its own mip chain) and renders multiple meshes each sampling from a different layer of the texture. 2D texture arrays don't do any interpolation between the slices.
 
-#### [10 - 3D textures](examples/texture3d/)
+#### [09 - Cube map textures](examples/texturecubemap/)
+
+Loads a cube map texture from disk containing six different faces. All faces and mip levels are uploaded into video memory, and the cubemap is displayed on a skybox as a backdrop and on a 3D model as a reflection.
+
+#### [10 - Cube map arrays](examples/texturecubemaparray/)
+
+Loads an array of cube map textures from a single file. All cube maps are uploaded into video memory with their faces and mip levels, and the selected cubemap is displayed on a skybox as a backdrop and on a 3D model as a reflection.
+
+#### [11 - 3D textures](examples/texture3d/)
 
 Generates a 3D texture on the cpu (using perlin noise), uploads it to the device and samples it to render an animation. 3D textures store volumetric data and interpolate in all three dimensions.
-
-#### [11 - glTF scene loading and rendering](examples/gltfscene/)
-
-Shows how to load the scene from a [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The structure of the glTF 2.0 scene is converted into data structures required to render the scene with Vulkan.
 
 #### [12 - Input attachments](examples/inputattachments)
 
@@ -118,7 +119,7 @@ Uses input attachments to read framebuffer contents from a previous sub pass at 
 
 #### [13 - Sub passes](examples/subpasses/)
 
-Advanced example that uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass. 
+Advanced example that uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass.
 
 #### [14 - Offscreen rendering](examples/offscreen/)
 
@@ -132,41 +133,49 @@ Implements a simple CPU based particle system. Particle data is stored in host m
 
 Uses the stencil buffer and its compare functionality for rendering a 3D model with dynamic outlines.
 
+### <a name="glTF"></a> glTF
+
+These samples show how implement different features of the [glTF 2.0 3D format](https://www.khronos.org/gltf/) 3D transmission file format in detail.
+
+#### [01 - glTF model loading and rendering](examples/gltfloading/)
+
+Shows how to load a complete scene from a [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The structure of the glTF 2.0 scene is converted into the data structures required to render the scene with Vulkan.
+
+#### [02 - glTF vertex skinning](examples/gltfskinning/)
+
+Demonstrates how to do GPU vertex skinning from animation data stored in a [glTF 2.0](https://github.com/KhronosGroup/glTF) model. Along with reading all the data structures required for doing vertex skinning, the sample also shows how to upload animation data to the GPU and how to render it using shaders.
+
+#### [03 - glTF scene rendering](examples/gltfscenerendering/)
+
+Renders a complete scene loaded from an [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The sample is based on the glTF model loading sample, and adds data structures, functions and shaders required to render a more complex scene using Crytek's Sponza model with per-material pipelines and normal mapping.
+
 ### <a name="Advanced"></a> Advanced
 
-#### [01 - Scene rendering](examples/scenerendering/)
-
-Combines multiple techniques to render a complex scene consisting of multiple meshes, textures and materials. Meshes are stored and rendered from a single buffer using vertex offsets. Material parameters are passed via push constants, and separate per-model and scene descriptor sets are used to pass data to the shaders.
-
-#### [02 - Multi sampling](examples/multisampling/)
+#### [01 - Multi sampling](examples/multisampling/)
 
 Implements multisample anti-aliasing (MSAA) using a renderpass with multisampled attachments and resolve attachments that get resolved into the visible frame buffer.
 
-#### [03 - High dynamic range](examples/hdr/)
+#### [02 - High dynamic range](examples/hdr/)
 
-Implements a high dynamic range rendering pipeline using 16/32 bit floating point precision for all internal formats, textures and calculations, including a bloom pass, manual exposure and tone mapping. 
+Implements a high dynamic range rendering pipeline using 16/32 bit floating point precision for all internal formats, textures and calculations, including a bloom pass, manual exposure and tone mapping.
 
-#### [04 - Shadow mapping](examples/shadowmapping/)
+#### [03 - Shadow mapping](examples/shadowmapping/)
 
 Rendering shadows for a directional light source. First pass stores depth values from the light's pov, second pass compares against these to check if a fragment is shadowed. Uses depth bias to avoid shadow artifacts and applies a PCF filter to smooth shadow edges.
 
-#### [05 - Cascaded shadow mapping](examples/shadowmappingcascade/)
+#### [04 - Cascaded shadow mapping](examples/shadowmappingcascade/)
 
 Uses multiple shadow maps (stored as a layered texture) to increase shadow resolution for larger scenes. The camera frustum is split up into multiple cascades with corresponding layers in the shadow map. Layer selection for shadowing depth compare is then done by comparing fragment depth with the cascades' depths ranges.
 
-#### [06 - Omnidirectional shadow mapping](examples/shadowmappingomni/)
+#### [05 - Omnidirectional shadow mapping](examples/shadowmappingomni/)
 
 Uses a dynamic floating point cube map to implement shadowing for a point light source that casts shadows in all directions. The cube map is updated every frame and stores distance to the light source for each fragment used to determine if a fragment is shadowed.
 
-#### [07 - Run-time mip-map generation](examples/texturemipmapgen/)
+#### [06 - Run-time mip-map generation](examples/texturemipmapgen/)
 
 Generating a complete mip-chain at runtime instead of loading it from a file, by blitting from one mip level, starting with the actual texture image, down to the next smaller size until the lower 1x1 pixel end of the mip chain.
 
-#### [08 - Skeletal animation](examples/skeletalanimation/)
-
-Loads and renders an animated skinned 3D model. Skinning is done on the GPU by passing per-vertex bone weights and translation matrices. 
-
-#### [09 - Capturing screenshots](examples/screenshot/)
+#### [07 - Capturing screenshots](examples/screenshot/)
 
 Capturing and saving an image after a scene has been rendered using blits to copy the last swapchain image from optimal device to host local linear memory, so that it can be stored into a ppm image.
 
@@ -278,7 +287,7 @@ Renders a terrain using tessellation shaders for height displacement (based on a
 
 Uses curved PN-triangles ([paper](http://alex.vlachos.com/graphics/CurvedPNTriangles.pdf)) for adding details to a low-polygon model.
 
-### <a name="Headless"></a> Headless 
+### <a name="Headless"></a> Headless
 
 Examples that run one-time tasks and don't make use of visual output (no window system integration). These can be run in environments where no user interface is available ([blog entry](https://www.saschawillems.de/tutorials/vulkan/headless_examples)).
 
@@ -320,7 +329,7 @@ Implements multiple texture mapping methods to simulate depth based on texture i
 
 #### [04 - Spherical environment mapping](examples/sphericalenvmapping/)
 
-Uses a spherical material capture texture array defining environment lighting and reflection information to fake complex lighting. 
+Uses a spherical material capture texture array defining environment lighting and reflection information to fake complex lighting.
 
 ### <a name="Extensions"></a> Extensions
 

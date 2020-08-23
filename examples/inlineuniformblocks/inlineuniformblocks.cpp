@@ -98,7 +98,7 @@ public:
 
 		/*
 			[POI] Enable extensions required for inline uniform blocks
-		*/		
+		*/
 		enabledDeviceExtensions.push_back(VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
@@ -159,7 +159,7 @@ public:
 			for (uint32_t x = 0; x < objcount; x++) {
 				/*
 					[POI] Bind descriptor sets
-					Set 0 = Scene matrices: 
+					Set 0 = Scene matrices:
 					Set 1 = Object inline uniform block (In shader pbr.frag: layout (set = 1, binding = 0) uniform UniformInline ... )
 				*/
 				std::vector<VkDescriptorSet> descriptorSets = {
@@ -335,8 +335,8 @@ public:
 		pipelineCreateInfoCI.pStages = shaderStages.data();
 		pipelineCreateInfoCI.pVertexInputState = &vertexInputState;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/inlineuniformblocks/pbr.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/inlineuniformblocks/pbr.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "inlineuniformblocks/pbr.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "inlineuniformblocks/pbr.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfoCI, nullptr, &pipeline));
 	}
 

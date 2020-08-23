@@ -3,9 +3,9 @@
 *
 * Note: Requires a device that supports the VK_KHR_push_descriptor extension
 *
-* Push descriptors apply the push constants concept to descriptor sets. So instead of creating 
-* per-model descriptor sets (along with a pool for each descriptor type) for rendering multiple objects, 
-* this example uses push descriptors to pass descriptor sets for per-model textures and matrices 
+* Push descriptors apply the push constants concept to descriptor sets. So instead of creating
+* per-model descriptor sets (along with a pool for each descriptor type) for rendering multiple objects,
+* this example uses push descriptors to pass descriptor sets for per-model textures and matrices
 * at command buffer creation time.
 *
 * Copyright (C) 2018 by Sascha Willems - www.saschawillems.de
@@ -202,7 +202,7 @@ public:
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
 		};
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};		
+		VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
 		descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		// Setting this flag tells the descriptor set layouts that no actual descriptor sets are allocated but instead pushed at command buffer creation time
 		descriptorLayoutCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
@@ -232,7 +232,7 @@ public:
 			vks::initializers::vertexInputBindingDescription(0, vertexLayout.stride(), VK_VERTEX_INPUT_RATE_VERTEX),
 		};
 		const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position			
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),					// Location 0: Position
 			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3),	// Location 1: Normal
 			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6),		// Location 2: UV
 			vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8),	// Location 3: Color
@@ -254,8 +254,8 @@ public:
 		pipelineCreateInfoCI.pDynamicState = &dynamicStateCI;
 
 		const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-			loadShader(getAssetPath() + "shaders/pushdescriptors/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getAssetPath() + "shaders/pushdescriptors/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+			loadShader(getShadersPath() + "pushdescriptors/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "pushdescriptors/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
 		pipelineCreateInfoCI.stageCount = static_cast<uint32_t>(shaderStages.size());
@@ -334,7 +334,7 @@ public:
 			Extension specific functions
 		*/
 
-		// The push descriptor update function is part of an extension so it has to be manually loaded 
+		// The push descriptor update function is part of an extension so it has to be manually loaded
 		vkCmdPushDescriptorSetKHR = (PFN_vkCmdPushDescriptorSetKHR)vkGetDeviceProcAddr(device, "vkCmdPushDescriptorSetKHR");
 		if (!vkCmdPushDescriptorSetKHR) {
 			vks::tools::exitFatal("Could not get a valid function pointer for vkCmdPushDescriptorSetKHR", -1);

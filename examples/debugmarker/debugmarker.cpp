@@ -8,7 +8,7 @@
 
 /*
  * Note: This sample is deprecated!
- * An updated version using VK_EXT_debug_utils along with an in-depth tutorial is available in the pfficial Khronos Vulkan Samples repository at 
+ * An updated version using VK_EXT_debug_utils along with an in-depth tutorial is available in the pfficial Khronos Vulkan Samples repository at
  * https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/extensions/debug_utils.
  */
 
@@ -246,7 +246,7 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 	}
 
-	// Enable physical device features required for this example				
+	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
 		// Fill mode non solid is required for wireframe display
@@ -258,7 +258,7 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.toonshading, nullptr);
 		vkDestroyPipeline(device, pipelines.color, nullptr);
@@ -270,7 +270,7 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		// Destroy and free mesh resources 
+		// Destroy and free mesh resources
 		scene.model.destroy();
 		sceneGlow.model.destroy();
 
@@ -454,7 +454,7 @@ public:
 
 		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offscreenPass.frameBuffer));
 
-		// Fill a descriptor for later use in a descriptor set 
+		// Fill a descriptor for later use in a descriptor set
 		offscreenPass.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		offscreenPass.descriptor.imageView = offscreenPass.color.view;
 		offscreenPass.descriptor.sampler = offscreenPass.sampler;
@@ -503,7 +503,7 @@ public:
 			/*
 				First render pass: Offscreen rendering
 			*/
-			if (glow) 
+			if (glow)
 			{
 				VkClearValue clearValues[2];
 				clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -519,7 +519,7 @@ public:
 
 				// Start a new debug marker region
 				DebugMarker::beginRegion(drawCmdBuffers[i], "Off-screen scene rendering", glm::vec4(1.0f, 0.78f, 0.05f, 1.0f));
-				
+
 				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 				VkViewport viewport = vks::initializers::viewport((float)offscreenPass.width, (float)offscreenPass.height, 0.0f, 1.0f);
@@ -616,7 +616,7 @@ public:
 				vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 				// End current debug marker region
-				DebugMarker::endRegion(drawCmdBuffers[i]);  
+				DebugMarker::endRegion(drawCmdBuffers[i]);
 
 			}
 
@@ -663,7 +663,7 @@ public:
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
-			// Binding 1 : Color map 
+			// Binding 1 : Color map
 			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &offscreenPass.descriptor)
 		};
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -701,10 +701,10 @@ public:
 		// Attribute descriptions
 		// Describes memory layout and shader positions
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			{ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },					// Location 0: Position		
-			{ 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3 },	// Location 1: Normal		
-			{ 2, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6 },		// Location 2: Texture coordinates		
-			{ 3, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8 },	// Location 3: Color		
+			{ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },					// Location 0: Position
+			{ 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3 },	// Location 1: Normal
+			{ 2, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6 },		// Location 2: Texture coordinates
+			{ 3, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8 },	// Location 3: Color
 		};
 
 		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
@@ -716,13 +716,13 @@ public:
 		pipelineCI.pVertexInputState = &vertexInputState;
 
 		// Toon shading pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/debugmarker/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "debugmarker/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "debugmarker/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.toonshading));
 
 		// Color only pipeline
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/debugmarker/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "debugmarker/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "debugmarker/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		pipelineCI.renderPass = offscreenPass.renderPass;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.color));
 
@@ -735,8 +735,8 @@ public:
 		}
 
 		// Post processing effect
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/debugmarker/postprocess.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/debugmarker/postprocess.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "debugmarker/postprocess.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "debugmarker/postprocess.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		depthStencilStateCI.depthTestEnable = VK_FALSE;
 		depthStencilStateCI.depthWriteEnable = VK_FALSE;
 		rasterizationStateCI.polygonMode = VK_POLYGON_MODE_FILL;
