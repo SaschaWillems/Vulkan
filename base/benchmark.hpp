@@ -62,11 +62,11 @@ namespace vks
 					frameTimes.push_back(tDiff);
 					frameCount++;
 				};
-				std::cout << "Benchmark finished" << std::endl;
-				std::cout << "device : " << deviceProps.deviceName << " (driver version: " << deviceProps.driverVersion << ")" << std::endl;
-				std::cout << "runtime: " << (runtime / 1000.0) << std::endl;
-				std::cout << "frames : " << frameCount << std::endl;
-				std::cout << "fps    : " << frameCount / (runtime / 1000.0) << std::endl;
+				std::cout << "Benchmark finished" << "\n";
+				std::cout << "device : " << deviceProps.deviceName << " (driver version: " << deviceProps.driverVersion << ")" << "\n";
+				std::cout << "runtime: " << (runtime / 1000.0) << "\n";
+				std::cout << "frames : " << frameCount << "\n";
+				std::cout << "fps    : " << frameCount / (runtime / 1000.0) << "\n";
 			}
 		}
 
@@ -75,21 +75,21 @@ namespace vks
 			if (result.is_open()) {
 				result << std::fixed << std::setprecision(4);
 
-				result << "device,driverversion,duration (ms),frames,fps" << std::endl;
-				result << deviceProps.deviceName << "," << deviceProps.driverVersion << "," << runtime << "," << frameCount << "," << frameCount / (runtime / 1000.0) << std::endl;
+				result << "device,driverversion,duration (ms),frames,fps" << "\n";
+				result << deviceProps.deviceName << "," << deviceProps.driverVersion << "," << runtime << "," << frameCount << "," << frameCount / (runtime / 1000.0) << "\n";
 
 				if (outputFrameTimes) {
-					result << std::endl << "frame,ms" << std::endl;
+					result << "\n" << "frame,ms" << "\n";
 					for (size_t i = 0; i < frameTimes.size(); i++) {
-						result << i << "," << frameTimes[i] << std::endl;
+						result << i << "," << frameTimes[i] << "\n";
 					}
 					double tMin = *std::min_element(frameTimes.begin(), frameTimes.end());
 					double tMax = *std::max_element(frameTimes.begin(), frameTimes.end());
 					double tAvg = std::accumulate(frameTimes.begin(), frameTimes.end(), 0.0) / (double)frameTimes.size();
-					std::cout << "best   : " << (1000.0 / tMin) << " fps (" << tMin << " ms)" << std::endl;
-					std::cout << "worst  : " << (1000.0 / tMax) << " fps (" << tMax << " ms)" << std::endl;
-					std::cout << "avg    : " << (1000.0 / tAvg) << " fps (" << tAvg << " ms)" << std::endl;
-					std::cout << std::endl;
+					std::cout << "best   : " << (1000.0 / tMin) << " fps (" << tMin << " ms)" << "\n";
+					std::cout << "worst  : " << (1000.0 / tMax) << " fps (" << tMax << " ms)" << "\n";
+					std::cout << "avg    : " << (1000.0 / tAvg) << " fps (" << tAvg << " ms)" << "\n";
+					std::cout << "\n";
 				}
 
 				result.flush();
