@@ -1003,16 +1003,15 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 
 	if (settings.fullscreen)
 	{
-		DEVMODE dmScreenSettings;
-		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
-		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
-		dmScreenSettings.dmPelsWidth = screenWidth;
-		dmScreenSettings.dmPelsHeight = screenHeight;
-		dmScreenSettings.dmBitsPerPel = 32;
-		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-
 		if ((width != (uint32_t)screenWidth) && (height != (uint32_t)screenHeight))
 		{
+			DEVMODE dmScreenSettings;
+			memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
+			dmScreenSettings.dmSize       = sizeof(dmScreenSettings);
+			dmScreenSettings.dmPelsWidth  = width;
+			dmScreenSettings.dmPelsHeight = height;
+			dmScreenSettings.dmBitsPerPel = 32;
+			dmScreenSettings.dmFields     = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 			{
 				if (MessageBox(NULL, "Fullscreen Mode not supported!\n Switch to window mode?", "Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
@@ -1024,6 +1023,8 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 					return nullptr;
 				}
 			}
+			screenWidth = width;
+			screenHeight = height;
 		}
 
 	}
