@@ -1821,8 +1821,13 @@ void VulkanExampleBase::initxcbConnection()
 	xcb_screen_iterator_t iter;
 	int scr;
 
+	// xcb_connect always returns a non-NULL pointer to a xcb_connection_t,
+	// even on failure. Callers need to use xcb_connection_has_error() to
+	// check for failure. When finished, use xcb_disconnect() to close the
+	// connection and free the structure.
 	connection = xcb_connect(NULL, &scr);
-	if (connection == NULL) {
+	assert( connection );
+	if( xcb_connection_has_error(connection) ) {
 		printf("Could not find a compatible Vulkan ICD!\n");
 		fflush(stdout);
 		exit(1);
