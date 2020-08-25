@@ -9,6 +9,7 @@
 */
 
 #include <VulkanDevice.h>
+#include <unordered_set>
 
 namespace vks
 {	
@@ -272,6 +273,12 @@ namespace vks
 
 		if (deviceExtensions.size() > 0)
 		{
+			for (const char* ext : deviceExtensions)
+			{
+				if (!extensionSupported(ext))
+					std::cerr << ext << " device extension support seems to be missing" << std::endl;
+			}
+
 			deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
 			deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 		}
