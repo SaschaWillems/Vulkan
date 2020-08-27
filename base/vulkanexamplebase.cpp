@@ -53,9 +53,9 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		std::vector<VkExtensionProperties> extensions(extCount);
 		if (vkEnumerateInstanceExtensionProperties(nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
 		{
-			for (auto ext : extensions)
+			for (VkExtensionProperties extension : extensions)
 			{
-				supportedInstanceExtensions.push_back(ext.extensionName);
+				supportedInstanceExtensions.push_back(extension.extensionName);
 			}
 		}
 	}
@@ -63,7 +63,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	// Enabled requested instance extensions
 	if (enabledInstanceExtensions.size() > 0) 
 	{
-		for (auto enabledExtension : enabledInstanceExtensions) 
+		for (const char * enabledExtension : enabledInstanceExtensions) 
 		{
 			// Output message if requested extension is not available
 			if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), enabledExtension) == supportedInstanceExtensions.end())

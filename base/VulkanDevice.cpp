@@ -273,10 +273,11 @@ namespace vks
 
 		if (deviceExtensions.size() > 0)
 		{
-			for (const char* ext : deviceExtensions)
+			for (const char* enabledExtension : deviceExtensions)
 			{
-				if (!extensionSupported(ext))
-					std::cerr << ext << " device extension support seems to be missing" << std::endl;
+				if (!extensionSupported(enabledExtension)) {
+					std::cerr << "Enabled device extension \"" << enabledExtension << "\" is not present at device level\n";
+				}
 			}
 
 			deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
