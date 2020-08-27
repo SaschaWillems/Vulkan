@@ -99,6 +99,7 @@ protected:
 	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
+	std::vector<const char*> supportedInstanceExtensions;
 	// Physical device (GPU) that Vulkan will use
 	VkPhysicalDevice physicalDevice;
 	// Stores physical device properties (for e.g. checking device limits)

@@ -45,24 +45,31 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #endif
 
-	std::uint32_t extCount = 0;
+	// Get extensions supported by the instance and store for later use
+	uint32_t extCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extCount, nullptr);
-
-	std::unordered_set<std::string> supportedExtensions;
 	if (extCount > 0)
 	{
-		std::vector<VkExtensionProperties> instanceExtensions(extCount);
-		vkEnumerateInstanceExtensionProperties(nullptr, &extCount, instanceExtensions.data());
-
-		for (const auto &ext : instanceExtensions)
-			supportedExtensions.emplace(ext.extensionName);
+		std::vector<VkExtensionProperties> extensions(extCount);
+		if (vkEnumerateInstanceExtensionProperties(nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
+		{
+			for (auto ext : extensions)
+			{
+				supportedInstanceExtensions.push_back(ext.extensionName);
+			}
+		}
 	}
 
-	if (enabledInstanceExtensions.size() > 0) {
-		for (auto enabledExtension : enabledInstanceExtensions) {
-			if (supportedExtensions.find(enabledExtension) == supportedExtensions.end())
-				std::cerr << enabledExtension << " instance extension support seems to be missing" << std::endl;
-
+	// Enabled requested instance extensions
+	if (enabledInstanceExtensions.size() > 0) 
+	{
+		for (auto enabledExtension : enabledInstanceExtensions) 
+		{
+			// Output message if requested extension is not available
+			if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), enabledExtension) == supportedInstanceExtensions.end())
+			{
+				std::cerr << "Enabled instance extension \"" << enabledExtension << "\" is not present at instance level\n";
+			}
 			instanceExtensions.push_back(enabledExtension);
 		}
 	}
