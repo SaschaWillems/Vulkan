@@ -7,6 +7,7 @@
 */
 
 #include "vulkanexamplebase.h"
+#include <unordered_set>
 
 std::vector<const char*> VulkanExampleBase::args;
 
@@ -44,8 +45,24 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #endif
 
+	std::uint32_t extCount = 0;
+	vkEnumerateInstanceExtensionProperties(nullptr, &extCount, nullptr);
+
+	std::unordered_set<std::string> supportedExtensions;
+	if (extCount > 0)
+	{
+		std::vector<VkExtensionProperties> instanceExtensions(extCount);
+		vkEnumerateInstanceExtensionProperties(nullptr, &extCount, instanceExtensions.data());
+
+		for (const auto &ext : instanceExtensions)
+			supportedExtensions.emplace(ext.extensionName);
+	}
+
 	if (enabledInstanceExtensions.size() > 0) {
 		for (auto enabledExtension : enabledInstanceExtensions) {
+			if (supportedExtensions.find(enabledExtension) == supportedExtensions.end())
+				std::cerr << enabledExtension << " instance extension support seems to be missing" << std::endl;
+
 			instanceExtensions.push_back(enabledExtension);
 		}
 	}
