@@ -284,15 +284,16 @@ namespace vks
 			deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 		}
 
-		VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
+		this->enabledFeatures = enabledFeatures;
 
-		if (result == VK_SUCCESS)
+		VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
+		if (result != VK_SUCCESS) 
 		{
-			// Create a default command pool for graphics command buffers
-			commandPool = createCommandPool(queueFamilyIndices.graphics);
+			return result;
 		}
 
-		this->enabledFeatures = enabledFeatures;
+		// Create a default command pool for graphics command buffers
+		commandPool = createCommandPool(queueFamilyIndices.graphics);
 
 		return result;
 	}
