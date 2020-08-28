@@ -24,7 +24,7 @@ void main()
 	vec3 cR = reflect (cI, normalize(inNormal));
 
 	cR = vec3(ubo.invModel * vec4(cR, 0.0));
-	cR.y *= -1.0;
+	cR.yz *= -1.0;
 
 	vec4 color = textureLod(samplerCubeMapArray, vec4(cR, ubo.cubeMapIndex), ubo.lodBias);
 

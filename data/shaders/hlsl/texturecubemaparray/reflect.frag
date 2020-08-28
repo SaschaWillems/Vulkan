@@ -25,11 +25,11 @@ struct VSOutput
 
 float4 main(VSOutput input) : SV_TARGET
 {
-	float3 cI = normalize (input.ViewVec);
+	float3 cI = normalize (input.Pos);
 	float3 cR = reflect (cI, normalize(input.Normal));
 
 	cR = mul(ubo.invModel, float4(cR, 0.0)).xyz;
-	cR *= float3(-1.0, 1.0, -1.0);
+	cR *= float3(1.0, -1.0, -1.0);
 
 	float4 color = textureCubeMapArray.SampleLevel(samplerCubeMapArray, float4(cR, ubo.cubeMapIndex), input.LodBias);
 
