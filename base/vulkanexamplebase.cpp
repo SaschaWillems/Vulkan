@@ -7,7 +7,6 @@
 */
 
 #include "vulkanexamplebase.h"
-#include <unordered_set>
 
 std::vector<const char*> VulkanExampleBase::args;
 
