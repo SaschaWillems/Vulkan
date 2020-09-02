@@ -13,6 +13,7 @@ layout (set = 0, binding = 0) uniform UBOScene
 	mat4 model;
 	vec4 lightPos;
 	vec4 viewPos;
+	int colorShadingRates;
 } uboScene;
 
 layout (location = 0) out vec3 outNormal;

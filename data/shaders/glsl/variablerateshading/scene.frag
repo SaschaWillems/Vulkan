@@ -12,6 +12,16 @@ layout (location = 3) in vec3 inViewVec;
 layout (location = 4) in vec3 inLightVec;
 layout (location = 5) in vec4 inTangent;
 
+layout (set = 0, binding = 0) uniform UBOScene 
+{
+	mat4 projection;
+	mat4 view;
+	mat4 model;
+	vec4 lightPos;
+	vec4 viewPos;
+	int colorShadingRates;
+} uboScene;
+
 layout (location = 0) out vec4 outFragColor;
 
 layout (constant_id = 0) const bool ALPHA_MASK = false;
@@ -40,4 +50,17 @@ void main()
 	vec3 diffuse = max(dot(N, L), ambient).rrr;
 	float specular = pow(max(dot(R, V), 0.0), 32.0);
 	outFragColor = vec4(diffuse * color.rgb + specular, color.a);
+
+	if (uboScene.colorShadingRates == 1) {
+		outFragColor = vec4(diffuse * vec3(1.0) + specular, color.a);
+		if (gl_FragmentSizeNV.x == 1 && gl_FragmentSizeNV.y == 1) {
+			outFragColor.rgb *= vec3(0.5, 1.0, 0.5);
+		}
+		if (gl_FragmentSizeNV.x == 2 || gl_FragmentSizeNV.y == 2) {
+			outFragColor.rgb *= vec3(1.0, 1.0, 0.5);
+		}
+		if (gl_FragmentSizeNV.x == 4 || gl_FragmentSizeNV.y == 4) {
+			outFragColor.rgb *= vec3(1.0, 0.5, 0.5);
+		}
+	}
 }

@@ -22,6 +22,8 @@ public:
 		VkImageView view;
 	} shadingRateImage;
 
+	bool colorShadingRate = false;
+
 	struct ShaderData {
 		vks::Buffer buffer;
 		struct Values {
@@ -30,6 +32,7 @@ public:
 			glm::mat4 model = glm::mat4(1.0f);
 			glm::vec4 lightPos = glm::vec4(0.0f, -5.0f, 0.0f, 1.0f);
 			glm::vec4 viewPos;
+			int32_t colorShadingRate;
 		} values;
 	} shaderData;
 

@@ -16,6 +16,7 @@ VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	camera.setPosition(glm::vec3(0.0f, 1.0f, 0.0f));
 	camera.setRotation(glm::vec3(0.0f, -90.0f, 0.0f));
 	camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
+	camera.setRotationSpeed(0.25f);
 	settings.overlay = true;
 	enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 	enabledDeviceExtensions.push_back(VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME);
@@ -97,7 +98,7 @@ void VulkanExample::setupDescriptors()
 
 	// Descriptor set layout
 	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
 	};
 	VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
@@ -171,13 +172,13 @@ void VulkanExample::prepareShadingRateImage()
 	uint8_t* ptrData = shadingRatePatternData;
 	for (uint32_t y = 0; y < imageExtent.height; y++) {
 		for (uint32_t x = 0; x < imageExtent.width; x++) {
-			const float deltaX = imageExtent.width / 2 - (float)x;
-			const float deltaY = imageExtent.height / 2 - (float)y;
+			const float deltaX = (float)imageExtent.width / 2.0f - (float)x;
+			const float deltaY = (float)imageExtent.height / 2.0f - (float)y;
 			const float dist = std::sqrt(deltaX * deltaX + deltaY * deltaY);
-			if (dist <= 16.0f) {
+			if (dist <= 8.0f) {
 				*ptrData = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_PIXEL_NV;
 			} else {
-				if (dist <= 32.0f) {
+				if (dist <= 16.0f) {
 					*ptrData = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_2X2_PIXELS_NV;
 				} else {
 					*ptrData = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_4X4_PIXELS_NV;
@@ -325,6 +326,7 @@ void VulkanExample::updateUniformBuffers()
 	shaderData.values.projection = camera.matrices.perspective;
 	shaderData.values.view = camera.matrices.view;
 	shaderData.values.viewPos = camera.viewPos;
+	shaderData.values.colorShadingRate = colorShadingRate;
 	memcpy(shaderData.buffer.mapped, &shaderData.values, sizeof(shaderData.values));
 }
 
@@ -360,6 +362,10 @@ void VulkanExample::render()
 
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 {
+	if (overlay->checkBox("Color shading rates", &colorShadingRate)) {
+		updateUniformBuffers();
+	}
+
 }
 
 VULKAN_EXAMPLE_MAIN()
