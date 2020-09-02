@@ -122,19 +122,27 @@ void VulkanExample::setupDescriptors()
 // [POI]
 void VulkanExample::prepareShadingRateImage()
 {
+	// Shading rate image size depends on shading rate texel size
+	// For each texel in the target image, there is a corresponding shading texel size width x height block in the shading rate image
+	const VkExtent3D imageExtent = { width / physicalDeviceShadingRateImagePropertiesNV.shadingRateTexelSize.width, height / physicalDeviceShadingRateImagePropertiesNV.shadingRateTexelSize.height, 1 };
+
 	VkImageCreateInfo imageCI{};
 	imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageCI.imageType = VK_IMAGE_TYPE_2D;
 	imageCI.format = VK_FORMAT_R8_UINT;
-	imageCI.extent = { 512, 512, 1 };
+	imageCI.extent = imageExtent;
 	imageCI.mipLevels = 1;
 	imageCI.arrayLayers = 1;
 	imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageCI.usage = VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &shadingRateImage.image));
 	VkMemoryRequirements memReqs{};
 	vkGetImageMemoryRequirements(device, shadingRateImage.image, &memReqs);
+	
+	VkDeviceSize bufferSize = imageExtent.width * imageExtent.height * sizeof(uint8_t);
 
 	VkMemoryAllocateInfo memAllloc{};
 	memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -156,10 +164,28 @@ void VulkanExample::prepareShadingRateImage()
 	VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &shadingRateImage.view));
 
 	// Populate with shading rate pattern
-	const size_t bufferSize = 512 * 512 * sizeof(uint8_t);
-	uint8_t val = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_PIXEL_NV;
-	uint8_t* shadingRatePatternData = new uint8_t[512 * 512];
+	uint8_t val = VK_SHADING_RATE_PALETTE_ENTRY_NO_INVOCATIONS_NV;
+	uint8_t* shadingRatePatternData = new uint8_t[bufferSize];
 	memset(shadingRatePatternData, val, bufferSize);
+
+	uint8_t* ptrData = shadingRatePatternData;
+	for (uint32_t y = 0; y < imageExtent.height; y++) {
+		for (uint32_t x = 0; x < imageExtent.width; x++) {
+			const float deltaX = imageExtent.width / 2 - (float)x;
+			const float deltaY = imageExtent.height / 2 - (float)y;
+			const float dist = std::sqrt(deltaX * deltaX + deltaY * deltaY);
+			if (dist <= 16.0f) {
+				*ptrData = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_PIXEL_NV;
+			} else {
+				if (dist <= 32.0f) {
+					*ptrData = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_2X2_PIXELS_NV;
+				} else {
+					*ptrData = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_4X4_PIXELS_NV;
+				}
+			}
+			ptrData++;
+		}
+	}
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingMemory;
@@ -206,8 +232,8 @@ void VulkanExample::prepareShadingRateImage()
 	VkBufferImageCopy bufferCopyRegion{};
 	bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	bufferCopyRegion.imageSubresource.layerCount = 1;
-	bufferCopyRegion.imageExtent.width = 512;
-	bufferCopyRegion.imageExtent.height = 512;
+	bufferCopyRegion.imageExtent.width = imageExtent.width;
+	bufferCopyRegion.imageExtent.height = imageExtent.height;
 	bufferCopyRegion.imageExtent.depth = 1;
 	vkCmdCopyBufferToImage(copyCmd, stagingBuffer, shadingRateImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
 	{
@@ -308,6 +334,13 @@ void VulkanExample::prepare()
 	loadAssets();
 	
 	vkCmdBindShadingRateImageNV = reinterpret_cast<PFN_vkCmdBindShadingRateImageNV>(vkGetDeviceProcAddr(device, "vkCmdBindShadingRateImageNV"));
+
+	// [POI]
+	physicalDeviceShadingRateImagePropertiesNV.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV;
+	VkPhysicalDeviceProperties2 deviceProperties2{};
+	deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	deviceProperties2.pNext = &physicalDeviceShadingRateImagePropertiesNV;
+	vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProperties2);
 
 	prepareShadingRateImage();
 	prepareUniformBuffers();
