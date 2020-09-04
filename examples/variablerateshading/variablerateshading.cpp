@@ -67,11 +67,17 @@ void VulkanExample::buildCommandBuffers()
 		vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 		vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-		vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-		// POI: todo
-		vkCmdBindShadingRateImageNV(drawCmdBuffers[i], shadingRateImage.view, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV);
+		if (enableShadingRate) {
+			// POI: todo
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shadingRate);
+			vkCmdBindShadingRateImageNV(drawCmdBuffers[i], shadingRateImage.view, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV);
+		}
+		else 
+		{
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.base);
+		}
 
 		scene.draw(drawCmdBuffers[i], vkglTF::RenderFlags::BindImages, pipelineLayout);
 
@@ -267,7 +273,26 @@ void VulkanExample::preparePipelines()
 	VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
 	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-	// [POI] Per-Viewport shading rate palette entries
+	VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
+	pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+	pipelineCI.pRasterizationState = &rasterizationStateCI;
+	pipelineCI.pColorBlendState = &colorBlendStateCI;
+	pipelineCI.pMultisampleState = &multisampleStateCI;
+	pipelineCI.pViewportState = &viewportStateCI;
+	pipelineCI.pDepthStencilState = &depthStencilStateCI;
+	pipelineCI.pDynamicState = &dynamicStateCI;
+	pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+	pipelineCI.pStages = shaderStages.data();
+	pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color, vkglTF::VertexComponent::Tangent });
+
+	shaderStages[0] = loadShader(getShadersPath() + "variablerateshading/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = loadShader(getShadersPath() + "variablerateshading/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	// Create pipeline without shading rate
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.base));
+
+	// Create pipeline with shading rate enabled
+	// [POI] Possible per-Viewport shading rate palette entries
 	const std::vector<VkShadingRatePaletteEntryNV> shadingRatePaletteEntries = {
 		VK_SHADING_RATE_PALETTE_ENTRY_NO_INVOCATIONS_NV,
 		VK_SHADING_RATE_PALETTE_ENTRY_16_INVOCATIONS_PER_PIXEL_NV,
@@ -291,23 +316,7 @@ void VulkanExample::preparePipelines()
 	pipelineViewportShadingRateImageStateCI.viewportCount = 1;
 	pipelineViewportShadingRateImageStateCI.pShadingRatePalettes = &shadingRatePalette;
 	viewportStateCI.pNext = &pipelineViewportShadingRateImageStateCI;
-
-	VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
-	pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
-	pipelineCI.pRasterizationState = &rasterizationStateCI;
-	pipelineCI.pColorBlendState = &colorBlendStateCI;
-	pipelineCI.pMultisampleState = &multisampleStateCI;
-	pipelineCI.pViewportState = &viewportStateCI;
-	pipelineCI.pDepthStencilState = &depthStencilStateCI;
-	pipelineCI.pDynamicState = &dynamicStateCI;
-	pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-	pipelineCI.pStages = shaderStages.data();
-	pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color, vkglTF::VertexComponent::Tangent });
-
-	shaderStages[0] = loadShader(getShadersPath() + "variablerateshading/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = loadShader(getShadersPath() + "variablerateshading/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.shadingRate));
 }
 
 void VulkanExample::prepareUniformBuffers()
@@ -362,10 +371,12 @@ void VulkanExample::render()
 
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 {
+	if (overlay->checkBox("Enable shading rate", &enableShadingRate)) {
+		buildCommandBuffers();
+	}
 	if (overlay->checkBox("Color shading rates", &colorShadingRate)) {
 		updateUniformBuffers();
 	}
-
 }
 
 VULKAN_EXAMPLE_MAIN()

@@ -22,6 +22,7 @@ public:
 		VkImageView view;
 	} shadingRateImage;
 
+	bool enableShadingRate = true;
 	bool colorShadingRate = false;
 
 	struct ShaderData {
@@ -36,7 +37,11 @@ public:
 		} values;
 	} shaderData;
 
-	VkPipeline pipeline;
+	struct Pipelines {
+		VkPipeline base;
+		VkPipeline shadingRate;
+	} pipelines;
+
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
