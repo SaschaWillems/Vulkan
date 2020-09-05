@@ -53,13 +53,32 @@ void main()
 
 	if (uboScene.colorShadingRates == 1) {
 		if (gl_FragmentSizeNV.x == 1 && gl_FragmentSizeNV.y == 1) {
-			outFragColor.rgb *= vec3(0.5, 1.0, 0.5);
+			outFragColor.rgb *= vec3(0.0, 0.8, 0.4);
+			return;
 		}
-		if (gl_FragmentSizeNV.x == 2 || gl_FragmentSizeNV.y == 2) {
-			outFragColor.rgb *= vec3(1.0, 1.0, 0.5);
+		if (gl_FragmentSizeNV.x == 2 && gl_FragmentSizeNV.y == 1) {
+			outFragColor.rgb *= vec3(0.2, 0.6, 1.0);
+			return;
 		}
-		if (gl_FragmentSizeNV.x == 4 || gl_FragmentSizeNV.y == 4) {
-			outFragColor.rgb *= vec3(1.0, 0.5, 0.5);
+		if (gl_FragmentSizeNV.x == 1 && gl_FragmentSizeNV.y == 2) {
+			outFragColor.rgb *= vec3(0.0, 0.4, 0.8);
+			return;
+		}
+		if (gl_FragmentSizeNV.x == 2 && gl_FragmentSizeNV.y == 2) {
+			outFragColor.rgb *= vec3(1.0, 1.0, 0.2);
+			return;
+		}
+		if (gl_FragmentSizeNV.x == 4 && gl_FragmentSizeNV.y == 2) {
+			outFragColor.rgb *= vec3(0.8, 0.8, 0.0);
+			return;
+		}
+		if (gl_FragmentSizeNV.x == 2 && gl_FragmentSizeNV.y == 4) {
+			outFragColor.rgb *= vec3(1.0, 0.4, 0.2);
+			return;
+		}
+		if (gl_FragmentSizeNV.x == 4 && gl_FragmentSizeNV.y == 4) {
+			outFragColor.rgb *= vec3(0.8, 0.0, 0.0);
+			return;
 		}
 	}
 }

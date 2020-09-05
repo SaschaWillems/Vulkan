@@ -171,10 +171,20 @@ void VulkanExample::prepareShadingRateImage()
 	imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &shadingRateImage.view));
 
-	// Populate with shading rate pattern
-	uint8_t val = VK_SHADING_RATE_PALETTE_ENTRY_NO_INVOCATIONS_NV;
+	// Populate with lowest possible shading rate pattern
+	uint8_t val = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_4X4_PIXELS_NV;
 	uint8_t* shadingRatePatternData = new uint8_t[bufferSize];
 	memset(shadingRatePatternData, val, bufferSize);
+
+	// Create a circular pattern with decreasing sampling rates outwards (max. range, pattern)
+	std::map<float, VkShadingRatePaletteEntryNV> patternLookup = {
+		{ 8.0f, VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_PIXEL_NV },
+		{ 12.0f, VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_2X1_PIXELS_NV },
+		{ 16.0f, VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_1X2_PIXELS_NV },
+		{ 18.0f, VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_2X2_PIXELS_NV },
+		{ 20.0f, VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_4X2_PIXELS_NV },
+		{ 24.0f, VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_2X4_PIXELS_NV }
+	};
 
 	uint8_t* ptrData = shadingRatePatternData;
 	for (uint32_t y = 0; y < imageExtent.height; y++) {
@@ -182,13 +192,10 @@ void VulkanExample::prepareShadingRateImage()
 			const float deltaX = (float)imageExtent.width / 2.0f - (float)x;
 			const float deltaY = (float)imageExtent.height / 2.0f - (float)y;
 			const float dist = std::sqrt(deltaX * deltaX + deltaY * deltaY);
-			if (dist <= 8.0f) {
-				*ptrData = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_PIXEL_NV;
-			} else {
-				if (dist <= 16.0f) {
-					*ptrData = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_2X2_PIXELS_NV;
-				} else {
-					*ptrData = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_4X4_PIXELS_NV;
+			for (auto pattern : patternLookup) {
+				if (dist <= pattern.first) {
+					*ptrData = pattern.second;
+					break;
 				}
 			}
 			ptrData++;
