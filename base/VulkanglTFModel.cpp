@@ -16,6 +16,7 @@
 VkDescriptorSetLayout vkglTF::descriptorSetLayoutImage = VK_NULL_HANDLE;
 VkDescriptorSetLayout vkglTF::descriptorSetLayoutUbo = VK_NULL_HANDLE;
 VkMemoryPropertyFlags vkglTF::memoryPropertyFlags = 0;
+uint32_t vkglTF::descriptorBindingFlags = vkglTF::DescriptorBindingFlags::ImageBaseColor;
 
 /*
 	We use a custom image loading function with tinyglTF, so we can do custom stuff loading ktx textures
@@ -428,7 +429,7 @@ void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path
 /*
 	glTF material
 */
-void vkglTF::Material::createDescriptorSet(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout)
+void vkglTF::Material::createDescriptorSet(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t descriptorBindingFlags)
 {
 	VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
 	descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -436,19 +437,31 @@ void vkglTF::Material::createDescriptorSet(VkDescriptorPool descriptorPool, VkDe
 	descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
 	descriptorSetAllocInfo.descriptorSetCount = 1;
 	VK_CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &descriptorSetAllocInfo, &descriptorSet));
-
-	std::vector<VkDescriptorImageInfo> imageDescriptors = {
-		baseColorTexture->descriptor,
-	};
-
-	VkWriteDescriptorSet writeDescriptorSet{};
-	writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	writeDescriptorSet.descriptorCount = 1;
-	writeDescriptorSet.dstSet = descriptorSet;
-	writeDescriptorSet.dstBinding = 0;
-	writeDescriptorSet.pImageInfo = &baseColorTexture->descriptor;
-	vkUpdateDescriptorSets(device->logicalDevice, 1, &writeDescriptorSet, 0, nullptr);
+	std::vector<VkDescriptorImageInfo> imageDescriptors{};
+	std::vector<VkWriteDescriptorSet> writeDescriptorSets{};
+	if (descriptorBindingFlags & DescriptorBindingFlags::ImageBaseColor) {
+		imageDescriptors.push_back(baseColorTexture->descriptor);
+		VkWriteDescriptorSet writeDescriptorSet{};
+		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		writeDescriptorSet.descriptorCount = 1;
+		writeDescriptorSet.dstSet = descriptorSet;
+		writeDescriptorSet.dstBinding = static_cast<uint32_t>(writeDescriptorSets.size());
+		writeDescriptorSet.pImageInfo = &baseColorTexture->descriptor;
+		writeDescriptorSets.push_back(writeDescriptorSet);
+	}
+	if (normalTexture && descriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap) {
+		imageDescriptors.push_back(normalTexture->descriptor);
+		VkWriteDescriptorSet writeDescriptorSet{};
+		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		writeDescriptorSet.descriptorCount = 1;
+		writeDescriptorSet.dstSet = descriptorSet;
+		writeDescriptorSet.dstBinding = static_cast<uint32_t>(writeDescriptorSets.size());
+		writeDescriptorSet.pImageInfo = &normalTexture->descriptor;
+		writeDescriptorSets.push_back(writeDescriptorSet);
+	}
+	vkUpdateDescriptorSets(device->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 }
 
 
@@ -1210,7 +1223,12 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uboCount },
 	};
 	if (imageCount > 0) {
-		poolSizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageCount });
+		if (descriptorBindingFlags & DescriptorBindingFlags::ImageBaseColor) {
+			poolSizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageCount });
+		}
+		if (descriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap) {
+			poolSizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageCount });
+		}
 	}
 	VkDescriptorPoolCreateInfo descriptorPoolCI{};
 	descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1241,9 +1259,13 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	{
 		// Layout is global, so only create if it hasn't already been created before
 		if (descriptorSetLayoutImage == VK_NULL_HANDLE) {
-			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-			};
+			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
+			if (descriptorBindingFlags & DescriptorBindingFlags::ImageBaseColor) {
+				setLayoutBindings.push_back(vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, static_cast<uint32_t>(setLayoutBindings.size())));
+			}
+			if (descriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap) {
+				setLayoutBindings.push_back(vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, static_cast<uint32_t>(setLayoutBindings.size())));
+			}
 			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
 			descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			descriptorLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
@@ -1252,11 +1274,10 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 		}
 		for (auto& material : materials) {
 			if (material.baseColorTexture != nullptr) {
-				material.createDescriptorSet(descriptorPool, vkglTF::descriptorSetLayoutImage);
+				material.createDescriptorSet(descriptorPool, vkglTF::descriptorSetLayoutImage, descriptorBindingFlags);
 			}
 		}
 	}
-
 }
 
 void vkglTF::Model::bindBuffers(VkCommandBuffer commandBuffer)
@@ -1270,15 +1291,28 @@ void vkglTF::Model::bindBuffers(VkCommandBuffer commandBuffer)
 void vkglTF::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet)
 {
 	if (node->mesh) {
-		for (Primitive *primitive : node->mesh->primitives) {
-			if (renderFlags & vkglTF::RenderFlags::BindImages) {
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, bindImageSet, 1, &primitive->material.descriptorSet, 0, nullptr);
+		for (Primitive* primitive : node->mesh->primitives) {
+			bool skip = false;
+			const vkglTF::Material& material = primitive->material;
+			if (renderFlags & RenderFlags::RenderOpaqueNodes) {
+				skip = (material.alphaMode != Material::ALPHAMODE_OPAQUE);
 			}
-			vkCmdDrawIndexed(commandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
+			if (renderFlags & RenderFlags::RenderAlphaMaskedNodes) {
+				skip = (material.alphaMode != Material::ALPHAMODE_MASK);
+			}
+			if (renderFlags & RenderFlags::RenderAlphaBlendedNodes) {
+				skip = (material.alphaMode != Material::ALPHAMODE_BLEND);
+			}
+			if (!skip) {
+				if (renderFlags & RenderFlags::BindImages) {
+					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, bindImageSet, 1, &material.descriptorSet, 0, nullptr);
+				}
+				vkCmdDrawIndexed(commandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
+			}
 		}
 	}
 	for (auto& child : node->children) {
-		drawNode(child, commandBuffer);
+		drawNode(child, commandBuffer, renderFlags);
 	}
 }
 

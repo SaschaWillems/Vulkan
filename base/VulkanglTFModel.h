@@ -37,9 +37,15 @@
 
 namespace vkglTF
 {
+	enum DescriptorBindingFlags {
+		ImageBaseColor = 0x00000001,
+		ImageNormalMap = 0x00000002
+	};
+
 	extern VkDescriptorSetLayout descriptorSetLayoutImage;
 	extern VkDescriptorSetLayout descriptorSetLayoutUbo;
     extern VkMemoryPropertyFlags memoryPropertyFlags;
+	extern uint32_t descriptorBindingFlags;
 
 	struct Node;
 
@@ -85,7 +91,7 @@ namespace vkglTF
 		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
 		Material(vks::VulkanDevice* device) : device(device) {};
-		void createDescriptorSet(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout);
+		void createDescriptorSet(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t descriptorBindingFlags);
 	};
 
 	/*
@@ -231,7 +237,10 @@ namespace vkglTF
 	};
 
 	enum RenderFlags {
-		BindImages = 0x00000001
+		BindImages = 0x00000001,
+		RenderOpaqueNodes = 0x00000002,
+		RenderAlphaMaskedNodes = 0x00000004,
+		RenderAlphaBlendedNodes = 0x00000008
 	};
 
 	/*
