@@ -31,16 +31,19 @@ public:
 			glm::mat4 projection;
 			glm::mat4 view;
 			glm::mat4 model = glm::mat4(1.0f);
-			glm::vec4 lightPos = glm::vec4(0.0f, -5.0f, 0.0f, 1.0f);
+			glm::vec4 lightPos = glm::vec4(0.0f, 2.5f, 0.0f, 1.0f);
 			glm::vec4 viewPos;
 			int32_t colorShadingRate;
 		} values;
 	} shaderData;
 
 	struct Pipelines {
-		VkPipeline base;
-		VkPipeline shadingRate;
-	} pipelines;
+		VkPipeline opaque;
+		VkPipeline masked;
+	};
+
+	Pipelines basePipelines;
+	Pipelines shadingRatePipelines;
 
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;

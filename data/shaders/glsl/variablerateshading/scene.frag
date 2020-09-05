@@ -43,7 +43,7 @@ void main()
 	mat3 TBN = mat3(T, B, N);
 	N = TBN * normalize(texture(samplerNormalMap, inUV).xyz * 2.0 - vec3(1.0));
 
-	const float ambient = 0.1;
+	const float ambient = 0.25;
 	vec3 L = normalize(inLightVec);
 	vec3 V = normalize(inViewVec);
 	vec3 R = reflect(-L, N);
@@ -52,7 +52,6 @@ void main()
 	outFragColor = vec4(diffuse * color.rgb + specular, color.a);
 
 	if (uboScene.colorShadingRates == 1) {
-		outFragColor = vec4(diffuse * vec3(1.0) + specular, color.a);
 		if (gl_FragmentSizeNV.x == 1 && gl_FragmentSizeNV.y == 1) {
 			outFragColor.rgb *= vec3(0.5, 1.0, 0.5);
 		}

@@ -13,6 +13,7 @@ VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	title = "Variable rate shading";
 	apiVersion = VK_VERSION_1_1;
 	camera.type = Camera::CameraType::firstperson;
+	camera.flipY = true;
 	camera.setPosition(glm::vec3(0.0f, 1.0f, 0.0f));
 	camera.setRotation(glm::vec3(0.0f, -90.0f, 0.0f));
 	camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
@@ -69,17 +70,17 @@ void VulkanExample::buildCommandBuffers()
 		vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 		vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
+		// POI: Bind the image that contains the shading rate patterns
 		if (enableShadingRate) {
-			// POI: todo
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shadingRate);
 			vkCmdBindShadingRateImageNV(drawCmdBuffers[i], shadingRateImage.view, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV);
-		}
-		else 
-		{
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.base);
-		}
+		};
 
-		scene.draw(drawCmdBuffers[i], vkglTF::RenderFlags::BindImages, pipelineLayout);
+		// Render the scene
+		Pipelines& pipelines = enableShadingRate ? shadingRatePipelines : basePipelines;
+		vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.opaque);
+		scene.draw(drawCmdBuffers[i], vkglTF::RenderFlags::BindImages | vkglTF::RenderFlags::RenderOpaqueNodes, pipelineLayout);
+		vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.masked);
+		scene.draw(drawCmdBuffers[i], vkglTF::RenderFlags::BindImages | vkglTF::RenderFlags::RenderAlphaMaskedNodes, pipelineLayout);
 
 		drawUI(drawCmdBuffers[i]);
 		vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -90,7 +91,7 @@ void VulkanExample::buildCommandBuffers()
 void VulkanExample::loadAssets()
 {
 	vkglTF::descriptorBindingFlags = vkglTF::DescriptorBindingFlags::ImageBaseColor | vkglTF::DescriptorBindingFlags::ImageNormalMap;
-	scene.loadFromFile(getAssetPath() + "models/sponza/sponza.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY);
+	scene.loadFromFile(getAssetPath() + "models/sponza/sponza.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices);
 }
 
 void VulkanExample::setupDescriptors()
@@ -123,7 +124,7 @@ void VulkanExample::setupDescriptors()
 	std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor),
 	};
-	vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 }
 
 // [POI]
@@ -288,8 +289,27 @@ void VulkanExample::preparePipelines()
 	shaderStages[0] = loadShader(getShadersPath() + "variablerateshading/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 	shaderStages[1] = loadShader(getShadersPath() + "variablerateshading/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-	// Create pipeline without shading rate
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.base));
+	// Properties for alpha masked materials will be passed via specialization constants
+	struct SpecializationData {
+		bool alphaMask;
+		float alphaMaskCutoff;
+	} specializationData;
+	specializationData.alphaMask = false;
+	specializationData.alphaMaskCutoff = 0.5f;
+	const std::vector<VkSpecializationMapEntry> specializationMapEntries = {
+		vks::initializers::specializationMapEntry(0, offsetof(SpecializationData, alphaMask), sizeof(SpecializationData::alphaMask)),
+		vks::initializers::specializationMapEntry(1, offsetof(SpecializationData, alphaMaskCutoff), sizeof(SpecializationData::alphaMaskCutoff)),
+	};
+	VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(specializationMapEntries, sizeof(specializationData), &specializationData);
+	shaderStages[1].pSpecializationInfo = &specializationInfo;
+
+	// Create pipeline without shading rate 
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &basePipelines.opaque));
+	specializationData.alphaMask = true;
+	rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &basePipelines.masked));
+	rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
+	specializationData.alphaMask = false;
 
 	// Create pipeline with shading rate enabled
 	// [POI] Possible per-Viewport shading rate palette entries
@@ -316,7 +336,10 @@ void VulkanExample::preparePipelines()
 	pipelineViewportShadingRateImageStateCI.viewportCount = 1;
 	pipelineViewportShadingRateImageStateCI.pShadingRatePalettes = &shadingRatePalette;
 	viewportStateCI.pNext = &pipelineViewportShadingRateImageStateCI;
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.shadingRate));
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &shadingRatePipelines.opaque));
+	specializationData.alphaMask = true;
+	rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &shadingRatePipelines.masked));
 }
 
 void VulkanExample::prepareUniformBuffers()
