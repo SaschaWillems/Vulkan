@@ -132,7 +132,10 @@ void VulkanExample::prepareShadingRateImage()
 {
 	// Shading rate image size depends on shading rate texel size
 	// For each texel in the target image, there is a corresponding shading texel size width x height block in the shading rate image
-	const VkExtent3D imageExtent = { width / physicalDeviceShadingRateImagePropertiesNV.shadingRateTexelSize.width, height / physicalDeviceShadingRateImagePropertiesNV.shadingRateTexelSize.height, 1 };
+	VkExtent3D imageExtent{};
+	imageExtent.width = static_cast<uint32_t>(ceil(width / (float)physicalDeviceShadingRateImagePropertiesNV.shadingRateTexelSize.width));
+	imageExtent.height = static_cast<uint32_t>(ceil(height / (float)physicalDeviceShadingRateImagePropertiesNV.shadingRateTexelSize.height));
+	imageExtent.depth = 1;
 
 	VkImageCreateInfo imageCI{};
 	imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
