@@ -40,8 +40,26 @@ void VulkanExample::getEnabledFeatures()
 	deviceCreatepNextChain = &enabledPhysicalDeviceShadingRateImageFeaturesNV;
 }
 
+/*
+	If the window has been resized, we need to recreate the shading rate image
+*/
+void VulkanExample::handleResize()
+{
+	// Delete allocated resources
+	vkDestroyImageView(device, shadingRateImage.view, nullptr);
+	vkDestroyImage(device, shadingRateImage.image, nullptr);
+	vkFreeMemory(device, shadingRateImage.memory, nullptr);
+	// Recreate image
+	prepareShadingRateImage();
+}
+
 void VulkanExample::buildCommandBuffers()
 {
+	if (resized)
+	{
+		handleResize();
+	}
+
 	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 	VkClearValue clearValues[2];
@@ -377,9 +395,8 @@ void VulkanExample::prepare()
 	VulkanExampleBase::prepare();
 	loadAssets();
 	
-	vkCmdBindShadingRateImageNV = reinterpret_cast<PFN_vkCmdBindShadingRateImageNV>(vkGetDeviceProcAddr(device, "vkCmdBindShadingRateImageNV"));
-
 	// [POI]
+	vkCmdBindShadingRateImageNV = reinterpret_cast<PFN_vkCmdBindShadingRateImageNV>(vkGetDeviceProcAddr(device, "vkCmdBindShadingRateImageNV"));
 	physicalDeviceShadingRateImagePropertiesNV.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV;
 	VkPhysicalDeviceProperties2 deviceProperties2{};
 	deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;

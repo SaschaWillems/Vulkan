@@ -56,6 +56,7 @@ public:
 	VulkanExample();
 	~VulkanExample();
 	virtual void getEnabledFeatures();
+	void handleResize();
 	void buildCommandBuffers();
 	void loadglTFFile(std::string filename);
 	void loadAssets();
