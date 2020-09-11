@@ -8,6 +8,13 @@
 
 #include "vulkanexamplebase.h"
 
+#if (defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_EXAMPLE_XCODE_GENERATED))
+#include <Cocoa/Cocoa.h>
+#include <Carbon/Carbon.h>
+#include <QuartzCore/CAMetalLayer.h>
+#include <CoreVideo/CVDisplayLink.h>
+#endif
+
 std::vector<const char*> VulkanExampleBase::args;
 
 VkResult VulkanExampleBase::createInstance(bool enableValidation)
@@ -532,6 +539,8 @@ void VulkanExampleBase::renderLoop()
 		}
 		updateOverlay();
 	}
+#elif (defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_EXAMPLE_XCODE_GENERATED))
+	[NSApp run];
 #endif
 	// Flush device to make sure all resources can be freed
 	if (device != VK_NULL_HANDLE) {
@@ -1427,10 +1436,252 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 	}
 }
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+#if defined(VK_EXAMPLE_XCODE_GENERATED)
+@interface AppDelegate : NSObject<NSApplicationDelegate>
+{
+}
+
+@end
+
+@implementation AppDelegate
+{
+}
+
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
+{
+	return YES;
+}
+
+@end
+
+static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
+	const CVTimeStamp *inOutputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut,
+	void *displayLinkContext)
+{
+	@autoreleasepool
+	{
+		auto vulkanExample = static_cast<VulkanExampleBase*>(displayLinkContext);
+			vulkanExample->displayLinkOutputCb();
+	}
+	return kCVReturnSuccess;
+}
+
+@interface View : NSView<NSWindowDelegate>
+{
+@public
+	VulkanExampleBase *vulkanExample;
+}
+
+@end
+
+@implementation View
+{
+	CVDisplayLinkRef displayLink;
+}
+
+- (instancetype)initWithFrame:(NSRect)frameRect
+{
+	self = [super initWithFrame:(frameRect)];
+	if (self)
+	{
+		self.wantsLayer = YES;
+		self.layer = [CAMetalLayer layer];
+	}
+	return self;
+}
+
+- (void)viewDidMoveToWindow
+{
+	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
+	CVDisplayLinkSetOutputCallback(displayLink, &displayLinkOutputCallback, vulkanExample);
+	CVDisplayLinkStart(displayLink);
+}
+
+- (BOOL)acceptsFirstResponder
+{
+	return YES;
+}
+
+- (void)keyDown:(NSEvent*)event
+{
+	switch (event.keyCode)
+	{
+		case kVK_ANSI_P:
+			vulkanExample->paused = !vulkanExample->paused;
+			break;
+		case kVK_Escape:
+			[NSApp terminate:nil];
+			break;
+		case kVK_ANSI_W:
+			vulkanExample->camera.keys.up = true;
+			break;
+		case kVK_ANSI_S:
+			vulkanExample->camera.keys.down = true;
+			break;
+		case kVK_ANSI_A:
+			vulkanExample->camera.keys.left = true;
+			break;
+		case kVK_ANSI_D:
+			vulkanExample->camera.keys.right = true;
+			break;
+		default:
+			break;
+	}
+}
+
+- (void)keyUp:(NSEvent*)event
+{
+	switch (event.keyCode)
+	{
+		case kVK_ANSI_W:
+			vulkanExample->camera.keys.up = false;
+			break;
+		case kVK_ANSI_S:
+			vulkanExample->camera.keys.down = false;
+			break;
+		case kVK_ANSI_A:
+			vulkanExample->camera.keys.left = false;
+		break;
+			case kVK_ANSI_D:
+		vulkanExample->camera.keys.right = false;
+			break;
+		default:
+			break;
+	}
+}
+
+- (NSPoint)getMouseLocalPoint:(NSEvent*)event
+{
+	NSPoint location = [event locationInWindow];
+	NSPoint point = [self convertPoint:location fromView:nil];
+	point.y = self.frame.size.height - point.y;
+	return point;
+}
+
+- (void)mouseDown:(NSEvent *)event
+{
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mousePos = glm::vec2(point.x, point.y);
+	vulkanExample->mouseButtons.left = true;
+}
+
+- (void)mouseUp:(NSEvent *)event
+{
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mousePos = glm::vec2(point.x, point.y);
+	vulkanExample->mouseButtons.left = false;
+}
+
+- (void)otherMouseDown:(NSEvent *)event
+{
+	vulkanExample->mouseButtons.right = true;
+}
+
+- (void)otherMouseUp:(NSEvent *)event
+{
+	vulkanExample->mouseButtons.right = false;
+}
+
+- (void)mouseDragged:(NSEvent *)event
+{
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mouseDragged(point.x, point.y);
+}
+
+- (void)mouseMoved:(NSEvent *)event
+{
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mouseDragged(point.x, point.y);
+}
+
+- (void)scrollWheel:(NSEvent *)event
+{
+	short wheelDelta = [event deltaY];
+	vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f,
+		-(float)wheelDelta * 0.05f * vulkanExample->camera.movementSpeed));
+}
+
+- (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
+{
+	CVDisplayLinkStop(displayLink);
+	vulkanExample->windowWillResize(frameSize.width, frameSize.height);
+	return frameSize;
+}
+
+- (void)windowDidResize:(NSNotification *)notification
+{
+	vulkanExample->windowDidResize();
+	CVDisplayLinkStart(displayLink);
+}
+
+- (BOOL)windowShouldClose:(NSWindow *)sender
+{
+	return TRUE;
+}
+
+- (void)windowWillClose:(NSNotification *)notification
+{
+	CVDisplayLinkStop(displayLink);
+}
+
+@end
+#endif
+
 void* VulkanExampleBase::setupWindow(void* view)
 {
+#if defined(VK_EXAMPLE_XCODE_GENERATED)
+	NSApp = [NSApplication sharedApplication];
+	[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+	[NSApp setDelegate:[AppDelegate new]];
+
+	const auto kContentRect = NSMakeRect(0.0f, 0.0f, width, height);
+	const auto kWindowStyle = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
+
+	auto window = [[NSWindow alloc] initWithContentRect:kContentRect
+											  styleMask:kWindowStyle
+												backing:NSBackingStoreBuffered
+												  defer:NO];
+	[window setTitle:@(title.c_str())];
+	[window setAcceptsMouseMovedEvents:YES];
+	[window center];
+	[window makeKeyAndOrderFront:nil];
+
+	auto nsView = [[View alloc] initWithFrame:kContentRect];
+	nsView->vulkanExample = this;
+	[window setDelegate:nsView];
+	[window setContentView:nsView];
+	this->view = (__bridge void*)nsView;
+#else
 	this->view = view;
+#endif
 	return view;
+}
+
+void VulkanExampleBase::displayLinkOutputCb()
+{
+	if (prepared)
+		nextFrame();
+}
+
+void VulkanExampleBase::mouseDragged(float x, float y)
+{
+	handleMouseMove(static_cast<uint32_t>(x), static_cast<uint32_t>(y));
+}
+
+void VulkanExampleBase::windowWillResize(float x, float y)
+{
+	resizing = true;
+	if (prepared)
+	{
+		destWidth = x;
+		destHeight = y;
+		windowResize();
+	}
+}
+
+void VulkanExampleBase::windowDidResize()
+{
+	resizing = false;
 }
 #elif defined(_DIRECT2DISPLAY)
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
