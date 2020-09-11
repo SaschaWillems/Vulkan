@@ -269,6 +269,10 @@ public:
 	static void handleAppCommand(android_app* app, int32_t cmd);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	void* setupWindow(void* view);
+	void displayLinkOutputCb();
+	void mouseDragged(float x, float y);
+	void windowWillResize(float x, float y);
+	void windowDidResize();
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	struct xdg_surface *setupWindow();
 	void initWaylandConnection();
@@ -457,5 +461,24 @@ int main(const int argc, const char *argv[])													    \
 	return 0;																						\
 }
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+#if defined(VK_EXAMPLE_XCODE_GENERATED)
+#define VULKAN_EXAMPLE_MAIN()																		\
+VulkanExample *vulkanExample;																		\
+int main(const int argc, const char *argv[])														\
+{																									\
+	@autoreleasepool																				\
+	{																								\
+		for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };				\
+		vulkanExample = new VulkanExample();														\
+		vulkanExample->initVulkan();																\
+		vulkanExample->setupWindow(nullptr);														\
+		vulkanExample->prepare();																	\
+		vulkanExample->renderLoop();																\
+		delete(vulkanExample);																		\
+	}																								\
+	return 0;																						\
+}
+#else
 #define VULKAN_EXAMPLE_MAIN()
+#endif
 #endif
