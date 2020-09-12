@@ -249,6 +249,8 @@ namespace vkglTF
 	class Model {
 	private:
 		vkglTF::Texture* getTexture(uint32_t index);
+		vkglTF::Texture emptyTexture;
+		void createEmptyTexture(VkQueue transferQueue);
 	public:
 		vks::VulkanDevice* device;
 		VkDescriptorPool descriptorPool;
