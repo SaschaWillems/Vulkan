@@ -25,7 +25,15 @@ VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 
 VulkanExample::~VulkanExample()
 {
+	vkDestroyPipeline(device, basePipelines.masked, nullptr);
+	vkDestroyPipeline(device, basePipelines.opaque, nullptr);
+	vkDestroyPipeline(device, shadingRatePipelines.masked, nullptr);
+	vkDestroyPipeline(device, shadingRatePipelines.opaque, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+	vkDestroyImageView(device, shadingRateImage.view, nullptr);
+	vkDestroyImage(device, shadingRateImage.image, nullptr);
+	vkFreeMemory(device, shadingRateImage.memory, nullptr);
 	shaderData.buffer.destroy();
 }
 
@@ -36,7 +44,6 @@ void VulkanExample::getEnabledFeatures()
 	enabledPhysicalDeviceShadingRateImageFeaturesNV = {};
 	enabledPhysicalDeviceShadingRateImageFeaturesNV.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV;
 	enabledPhysicalDeviceShadingRateImageFeaturesNV.shadingRateImage = VK_TRUE;
-	// @todo
 	deviceCreatepNextChain = &enabledPhysicalDeviceShadingRateImageFeaturesNV;
 }
 
@@ -211,10 +218,10 @@ void VulkanExample::prepareShadingRateImage()
 	for (uint32_t y = 0; y < imageExtent.height; y++) {
 		for (uint32_t x = 0; x < imageExtent.width; x++) {
 			const float deltaX = (float)imageExtent.width / 2.0f - (float)x;
-			const float deltaY = (float)imageExtent.height / 2.0f - (float)y;
+			const float deltaY = ((float)imageExtent.height / 2.0f - (float)y) * ((float)width / (float)height);
 			const float dist = std::sqrt(deltaX * deltaX + deltaY * deltaY);
 			for (auto pattern : patternLookup) {
-				if (dist <= pattern.first) {
+				if (dist < pattern.first) {
 					*ptrData = pattern.second;
 					break;
 				}
