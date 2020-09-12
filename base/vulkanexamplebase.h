@@ -20,6 +20,8 @@
 #include <android_native_app_glue.h>
 #include <sys/system_properties.h>
 #include "VulkanAndroid.h"
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+#include <directfb.h>
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <wayland-client.h>
 #include "xdg-shell-client-protocol.h"
@@ -230,6 +232,13 @@ public:
 	int64_t lastTapTime = 0;
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	void* view;
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+	bool quit = false;
+	IDirectFB *dfb = nullptr;
+	IDirectFBDisplayLayer *layer = nullptr;
+	IDirectFBWindow *window = nullptr;
+	IDirectFBSurface *surface = nullptr;
+	IDirectFBEventBuffer *event_buffer = nullptr;
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	wl_display *display = nullptr;
 	wl_registry *registry = nullptr;
@@ -273,6 +282,9 @@ public:
 	void mouseDragged(float x, float y);
 	void windowWillResize(float x, float y);
 	void windowDidResize();
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+	IDirectFBSurface *setupWindow();
+	void handleEvent(const DFBWindowEvent *event);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	struct xdg_surface *setupWindow();
 	void initWaylandConnection();
@@ -420,6 +432,27 @@ int main(const int argc, const char *argv[])													    \
 	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };  				\
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->initVulkan();																	\
+	vulkanExample->prepare();																		\
+	vulkanExample->renderLoop();																	\
+	delete(vulkanExample);																			\
+	return 0;																						\
+}
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+#define VULKAN_EXAMPLE_MAIN()																		\
+VulkanExample *vulkanExample;																		\
+static void handleEvent(const DFBWindowEvent *event)												\
+{																									\
+	if (vulkanExample != NULL)																		\
+	{																								\
+		vulkanExample->handleEvent(event);															\
+	}																								\
+}																									\
+int main(const int argc, const char *argv[])													    \
+{																									\
+	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };  				\
+	vulkanExample = new VulkanExample();															\
+	vulkanExample->initVulkan();																	\
+	vulkanExample->setupWindow();					 												\
 	vulkanExample->prepare();																		\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\

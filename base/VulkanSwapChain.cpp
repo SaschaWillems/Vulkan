@@ -15,6 +15,8 @@
 void VulkanSwapChain::initSurface(void* platformHandle, void* platformWindow)
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 void VulkanSwapChain::initSurface(ANativeWindow* window)
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+void VulkanSwapChain::initSurface(IDirectFB* dfb, IDirectFBSurface* window)
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 void VulkanSwapChain::initSurface(wl_display *display, wl_surface *window)
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
@@ -55,6 +57,12 @@ void VulkanSwapChain::initSurface(uint32_t width, uint32_t height)
 	err = vkCreateMacOSSurfaceMVK(instance, &surfaceCreateInfo, NULL, &surface);
 #elif defined(_DIRECT2DISPLAY)
 	createDirect2DisplaySurface(width, height);
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+	VkDirectFBSurfaceCreateInfoEXT surfaceCreateInfo = {};
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_DIRECTFB_SURFACE_CREATE_INFO_EXT;
+	surfaceCreateInfo.dfb = dfb;
+	surfaceCreateInfo.surface = window;
+	err = vkCreateDirectFBSurfaceEXT(instance, &surfaceCreateInfo, nullptr, &surface);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
 	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;

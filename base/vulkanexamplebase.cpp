@@ -41,6 +41,8 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 #elif defined(_DIRECT2DISPLAY)
 	instanceExtensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+	instanceExtensions.push_back(VK_EXT_DIRECTFB_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	instanceExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
@@ -408,6 +410,48 @@ void VulkanExampleBase::renderLoop()
 		{
 			viewUpdated = false;
 			viewChanged();
+		}
+		render();
+		frameCounter++;
+		auto tEnd = std::chrono::high_resolution_clock::now();
+		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+		frameTimer = tDiff / 1000.0f;
+		camera.update(frameTimer);
+		if (camera.moving())
+		{
+			viewUpdated = true;
+		}
+		// Convert to clamped timer value
+		if (!paused)
+		{
+			timer += timerSpeed * frameTimer;
+			if (timer > 1.0)
+			{
+				timer -= 1.0f;
+			}
+		}
+		float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count();
+		if (fpsTimer > 1000.0f)
+		{
+			lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
+			frameCounter = 0;
+			lastTimestamp = tEnd;
+		}
+		updateOverlay();
+	}
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+	while (!quit)
+	{
+		auto tStart = std::chrono::high_resolution_clock::now();
+		if (viewUpdated)
+		{
+			viewUpdated = false;
+			viewChanged();
+		}
+		DFBWindowEvent event;
+		while (!event_buffer->GetEvent(event_buffer, DFB_EVENT(&event)))
+		{
+			handleEvent(&event);
 		}
 		render();
 		frameCounter++;
@@ -806,6 +850,17 @@ VulkanExampleBase::~VulkanExampleBase()
 
 #if defined(_DIRECT2DISPLAY)
 
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+	if (event_buffer)
+		event_buffer->Release(event_buffer);
+	if (surface)
+		surface->Release(surface);
+	if (window)
+		window->Release(window);
+	if (layer)
+		layer->Release(layer);
+	if (dfb)
+		dfb->Release(dfb);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	xdg_toplevel_destroy(xdg_toplevel);
 	xdg_surface_destroy(xdg_surface);
@@ -1684,6 +1739,200 @@ void VulkanExampleBase::windowDidResize()
 	resizing = false;
 }
 #elif defined(_DIRECT2DISPLAY)
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+IDirectFBSurface *VulkanExampleBase::setupWindow()
+{
+	DFBResult ret;
+	int posx = 0, posy = 0;
+
+	ret = DirectFBInit(NULL, NULL);
+	if (ret)
+	{
+		std::cout << "Could not initialize DirectFB!\n";
+		fflush(stdout);
+		exit(1);
+	}
+
+	ret = DirectFBCreate(&dfb);
+	if (ret)
+	{
+		std::cout << "Could not create main interface of DirectFB!\n";
+		fflush(stdout);
+		exit(1);
+	}
+
+	ret = dfb->GetDisplayLayer(dfb, DLID_PRIMARY, &layer);
+	if (ret)
+	{
+		std::cout << "Could not get DirectFB display layer interface!\n";
+		fflush(stdout);
+		exit(1);
+	}
+
+	DFBDisplayLayerConfig layer_config;
+	ret = layer->GetConfiguration(layer, &layer_config);
+	if (ret)
+	{
+		std::cout << "Could not get DirectFB display layer configuration!\n";
+		fflush(stdout);
+		exit(1);
+	}
+
+	if (settings.fullscreen)
+	{
+		width = layer_config.width;
+		height = layer_config.height;
+	}
+	else
+	{
+		if (layer_config.width > width)
+			posx = (layer_config.width - width) / 2;
+		if (layer_config.height > height)
+			posy = (layer_config.height - height) / 2;
+	}
+
+	DFBWindowDescription desc;
+	desc.flags = (DFBWindowDescriptionFlags)(DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_POSX | DWDESC_POSY);
+	desc.width = width;
+	desc.height = height;
+	desc.posx = posx;
+	desc.posy = posy;
+	ret = layer->CreateWindow(layer, &desc, &window);
+	if (ret)
+	{
+		std::cout << "Could not create DirectFB window interface!\n";
+		fflush(stdout);
+		exit(1);
+	}
+
+	ret = window->GetSurface(window, &surface);
+	if (ret)
+	{
+		std::cout << "Could not get DirectFB surface interface!\n";
+		fflush(stdout);
+		exit(1);
+	}
+
+	ret = window->CreateEventBuffer(window, &event_buffer);
+	if (ret)
+	{
+		std::cout << "Could not create DirectFB event buffer interface!\n";
+		fflush(stdout);
+		exit(1);
+	}
+
+	ret = window->SetOpacity(window, 0xFF);
+	if (ret)
+	{
+		std::cout << "Could not set DirectFB window opacity!\n";
+		fflush(stdout);
+		exit(1);
+	}
+
+	return surface;
+}
+
+void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
+{
+	switch (event->type)
+	{
+	case DWET_CLOSE:
+		quit = true;
+		break;
+	case DWET_MOTION:
+		handleMouseMove(event->x, event->y);
+		break;
+	case DWET_BUTTONDOWN:
+		switch (event->button)
+		{
+		case DIBI_LEFT:
+			mouseButtons.left = true;
+			break;
+		case DIBI_MIDDLE:
+			mouseButtons.middle = true;
+			break;
+		case DIBI_RIGHT:
+			mouseButtons.right = true;
+			break;
+		default:
+			break;
+		}
+		break;
+	case DWET_BUTTONUP:
+		switch (event->button)
+		{
+		case DIBI_LEFT:
+			mouseButtons.left = false;
+			break;
+		case DIBI_MIDDLE:
+			mouseButtons.middle = false;
+			break;
+		case DIBI_RIGHT:
+			mouseButtons.right = false;
+			break;
+		default:
+			break;
+		}
+		break;
+	case DWET_KEYDOWN:
+		switch (event->key_symbol)
+		{
+			case KEY_W:
+				camera.keys.up = true;
+				break;
+			case KEY_S:
+				camera.keys.down = true;
+				break;
+			case KEY_A:
+				camera.keys.left = true;
+				break;
+			case KEY_D:
+				camera.keys.right = true;
+				break;
+			case KEY_P:
+				paused = !paused;
+				break;
+			case KEY_F1:
+				if (settings.overlay) {
+					settings.overlay = !settings.overlay;
+				}
+				break;
+			default:
+				break;
+		}
+		break;
+	case DWET_KEYUP:
+		switch (event->key_symbol)
+		{
+			case KEY_W:
+				camera.keys.up = false;
+				break;
+			case KEY_S:
+				camera.keys.down = false;
+				break;
+			case KEY_A:
+				camera.keys.left = false;
+				break;
+			case KEY_D:
+				camera.keys.right = false;
+				break;
+			case KEY_ESCAPE:
+				quit = true;
+				break;
+			default:
+				break;
+		}
+		keyPressed(event->key_symbol);
+		break;
+	case DWET_SIZE:
+		destWidth = event->w;
+		destHeight = event->h;
+		windowResize();
+		break;
+	default:
+		break;
+	}
+}
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 /*static*/void VulkanExampleBase::registryGlobalCb(void *data,
 		wl_registry *registry, uint32_t name, const char *interface,
@@ -2494,6 +2743,8 @@ void VulkanExampleBase::initSwapchain()
 	swapChain.initSurface(view);
 #elif defined(_DIRECT2DISPLAY)
 	swapChain.initSurface(width, height);
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+	swapChain.initSurface(dfb, surface);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	swapChain.initSurface(display, surface);
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
