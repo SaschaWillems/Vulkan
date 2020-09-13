@@ -89,6 +89,27 @@
 #define KEY_O 0x1F
 #define KEY_T 0x11
 
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+#define KEY_ESCAPE DIKS_ESCAPE
+#define KEY_F1 DIKS_F1
+#define KEY_F2 DIKS_F2
+#define KEY_F3 DIKS_F3
+#define KEY_F4 DIKS_F4
+#define KEY_W DIKS_SMALL_W
+#define KEY_A DIKS_SMALL_A
+#define KEY_S DIKS_SMALL_S
+#define KEY_D DIKS_SMALL_D
+#define KEY_P DIKS_SMALL_P
+#define KEY_SPACE DIKS_SPACE
+#define KEY_KPADD DIKS_PLUS_SIGN
+#define KEY_KPSUB DIKS_MINUS_SIGN
+#define KEY_B DIKS_SMALL_B
+#define KEY_F DIKS_SMALL_F
+#define KEY_L DIKS_SMALL_L
+#define KEY_N DIKS_SMALL_N
+#define KEY_O DIKS_SMALL_O
+#define KEY_T DIKS_SMALL_T
+
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 #include <linux/input.h>
 

@@ -1151,6 +1151,26 @@ int main(const int argc, const char *argv[])
 	delete(vulkanExample);
 	return 0;
 }
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+VulkanExample *vulkanExample;
+static void handleEvent(const DFBWindowEvent *event)
+{
+	if (vulkanExample != NULL)
+	{
+		vulkanExample->handleEvent(event);
+	}
+}
+int main(const int argc, const char *argv[])
+{
+	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };
+	vulkanExample = new VulkanExample();
+	vulkanExample->initVulkan();
+	vulkanExample->setupWindow();
+	vulkanExample->prepare();
+	vulkanExample->renderLoop();
+	delete(vulkanExample);
+	return 0;
+}
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 VulkanExample *vulkanExample;
 int main(const int argc, const char *argv[])
