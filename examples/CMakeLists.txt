@@ -40,8 +40,12 @@ function(buildExample EXAMPLE_NAME)
 
 	set_target_properties(${EXAMPLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 	if(OpenMP_CXX_FOUND)
-		message(STATUS "OpenMP found")
 		target_compile_options(${EXAMPLE_NAME} PRIVATE ${OpenMP_CXX_FLAGS})
+		IF(${EXAMPLE_NAME} STREQUAL "texture3d")
+			if(OpenMP_CXX_FOUND)
+    			target_link_libraries(${EXAMPLE_NAME} OpenMP::OpenMP_CXX)
+			endif()	
+		endif()
 	endif()
 
 	if(RESOURCE_INSTALL_DIR)
