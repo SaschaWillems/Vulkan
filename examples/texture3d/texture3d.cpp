@@ -308,11 +308,11 @@ public:
 		const float noiseScale = static_cast<float>(rand() % 10) + 4.0f;
 
 #pragma omp parallel for
-		for (uint32_t z = 0; z < texture.depth; z++)
+		for (int32_t z = 0; z < texture.depth; z++)
 		{
-			for (uint32_t y = 0; y < texture.height; y++)
+			for (int32_t y = 0; y < texture.height; y++)
 			{
-				for (uint32_t x = 0; x < texture.width; x++)
+				for (int32_t x = 0; x < texture.width; x++)
 				{
 					float nx = (float)x / (float)texture.width;
 					float ny = (float)y / (float)texture.height;

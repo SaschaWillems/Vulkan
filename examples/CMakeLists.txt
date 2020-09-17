@@ -11,6 +11,7 @@ function(buildExample EXAMPLE_NAME)
 	if(EXISTS ${EXAMPLE_FOLDER}/${EXAMPLE_NAME}.h)
 		SET(MAIN_HEADER ${EXAMPLE_FOLDER}/${EXAMPLE_NAME}.h)
 	ENDIF()
+	find_package(OpenMP)
 	# imgui example requires additional source files
 	IF(${EXAMPLE_NAME} STREQUAL "imgui")
 		file(GLOB ADD_SOURCE "../external/imgui/*.cpp")
@@ -38,6 +39,10 @@ function(buildExample EXAMPLE_NAME)
 	endif(WIN32)
 
 	set_target_properties(${EXAMPLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+	if(OpenMP_CXX_FOUND)
+		message(STATUS "OpenMP found")
+		target_compile_options(${EXAMPLE_NAME} PRIVATE ${OpenMP_CXX_FLAGS})
+	endif()
 
 	if(RESOURCE_INSTALL_DIR)
 		install(TARGETS ${EXAMPLE_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
