@@ -937,22 +937,22 @@ public:
 		vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		// Input attribute bindings describe shader attribute locations and memory layouts
-		std::array<VkVertexInputAttributeDescription, 2> vertexInputAttributs;
+		std::array<VkVertexInputAttributeDescription, 2> vertexInputAttributes;
 		// These match the following shader layout (see triangle.vert):
 		//	layout (location = 0) in vec3 inPos;
 		//	layout (location = 1) in vec3 inColor;
 		// Attribute location 0: Position
-		vertexInputAttributs[0].binding = 0;
-		vertexInputAttributs[0].location = 0;
+		vertexInputAttributes[0].binding = 0;
+		vertexInputAttributes[0].location = 0;
 		// Position attribute is three 32 bit signed (SFLOAT) floats (R32 G32 B32)
-		vertexInputAttributs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		vertexInputAttributs[0].offset = offsetof(Vertex, position);
+		vertexInputAttributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		vertexInputAttributes[0].offset = offsetof(Vertex, position);
 		// Attribute location 1: Color
-		vertexInputAttributs[1].binding = 0;
-		vertexInputAttributs[1].location = 1;
+		vertexInputAttributes[1].binding = 0;
+		vertexInputAttributes[1].location = 1;
 		// Color attribute is three 32 bit signed (SFLOAT) floats (R32 G32 B32)
-		vertexInputAttributs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		vertexInputAttributs[1].offset = offsetof(Vertex, color);
+		vertexInputAttributes[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		vertexInputAttributes[1].offset = offsetof(Vertex, color);
 
 		// Vertex input state used for pipeline creation
 		VkPipelineVertexInputStateCreateInfo vertexInputState = {};
@@ -960,7 +960,7 @@ public:
 		vertexInputState.vertexBindingDescriptionCount = 1;
 		vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
 		vertexInputState.vertexAttributeDescriptionCount = 2;
-		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributs.data();
+		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
 		// Shaders
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
