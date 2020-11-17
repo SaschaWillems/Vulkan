@@ -638,7 +638,6 @@ public:
 		missGroupCI.intersectionShader = VK_SHADER_UNUSED_KHR;
 		shaderGroups.push_back(missGroupCI);
 		// Second miss group for the shadow miss shader
-		missGroupCI.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
 		missGroupCI.generalShader = shaderIndexShadowMiss;
 		shaderGroups.push_back(missGroupCI);
 
