@@ -1,34 +1,32 @@
 /*
-* Vulkan Example - Hardware accelerated ray tracing example for doing reflections
+* Vulkan Example - Hardware accelerated ray tracing callable shaders example
 *
-* Renders a complex scene doing recursion inside the shaders for creating reflections
+* Renders a complex scene using multiple hit and miss shaders for implementing shadows
 *
-* Copyright (C) 2019-2020 by Sascha Willems - www.saschawillems.de
+* Copyright (C) by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 #include "VulkanRaytracingSample.h"
-#include "VulkanglTFModel.h"
 
 class VulkanExample : public VulkanRaytracingSample
 {
 public:
-	AccelerationStructure bottomLevelAS{};
-	AccelerationStructure topLevelAS{};
+	AccelerationStructure bottomLevelAS;
+	AccelerationStructure topLevelAS;
 
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
 	struct ShaderBindingTables {
 		ShaderBindingTable raygen;
 		ShaderBindingTable miss;
 		ShaderBindingTable hit;
+		ShaderBindingTable callable;
 	} shaderBindingTables;
 
 	struct UniformData {
 		glm::mat4 viewInverse;
 		glm::mat4 projInverse;
-		glm::vec4 lightPos;
-		int32_t vertexSize;
 	} uniformData;
 	vks::Buffer ubo;
 
@@ -37,19 +35,22 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	vkglTF::Model scene;
+	vks::Buffer vertexBuffer;
+	vks::Buffer indexBuffer;
+	vks::Buffer transformBuffer;
+
+	uint32_t objectCount = 3;
 
 	// This sample is derived from an extended base class that saves most of the ray tracing setup boiler plate
 	VulkanExample() : VulkanRaytracingSample()
 	{
-		title = "Ray tracing reflections";
+		title = "Ray tracing callable shaders";
 		settings.overlay = false;
-		timerSpeed *= 0.5f;
-		camera.rotationSpeed *= 0.25f;
-		camera.type = Camera::CameraType::firstperson;
+		timerSpeed *= 0.25f;
+		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-		camera.setTranslation(glm::vec3(0.0f, 0.5f, -2.0f));
+		camera.setTranslation(glm::vec3(0.0f, 0.0f, -10.0f));
 		enableExtensions();
 	}
 
@@ -64,6 +65,7 @@ public:
 		shaderBindingTables.raygen.destroy();
 		shaderBindingTables.miss.destroy();
 		shaderBindingTables.hit.destroy();
+		shaderBindingTables.callable.destroy();
 		ubo.destroy();
 	}
 
@@ -72,48 +74,96 @@ public:
 	*/
 	void createBottomLevelAccelerationStructure()
 	{
-		// Instead of a simple triangle, we'll be loading a more complex scene for this example
-		// The shaders are accessing the vertex and index buffers of the scene, so the proper usage flag has to be set on the vertex and index buffers for the scene
-		vkglTF::memoryPropertyFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-		scene.loadFromFile(getAssetPath() + "models/reflection_scene.gltf", vulkanDevice, queue, glTFLoadingFlags);
+		// Setup vertices for a single triangle
+		struct Vertex {
+			float pos[3];
+		};
+		std::vector<Vertex> vertices = {
+			{ {  1.0f,  1.0f, 0.0f } },
+			{ { -1.0f,  1.0f, 0.0f } },
+			{ {  0.0f, -1.0f, 0.0f } }
+		};
+
+		// Setup indices
+		std::vector<uint32_t> indices = { 0, 1, 2 };
+		uint32_t indexCount = static_cast<uint32_t>(indices.size());
+
+		// Setup transform matrices for the geometries in the bottom level AS
+		std::vector<VkTransformMatrixKHR> transformMatrices(objectCount);
+		for (uint32_t i = 0; i < objectCount; i++) {
+			transformMatrices[i] = {
+				1.0f, 0.0f, 0.0f, (float)i * 3.0f - 3.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f
+			};
+		}
+		// Transform buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&transformBuffer,
+			objectCount * sizeof(VkTransformMatrixKHR),
+			transformMatrices.data()));
+
+		// Create buffers
+		// For the sake of simplicity we won't stage the vertex data to the GPU memory
+		// Vertex buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&vertexBuffer,
+			vertices.size() * sizeof(Vertex),
+			vertices.data()));
+		// Index buffer
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&indexBuffer,
+			indices.size() * sizeof(uint32_t),
+			indices.data()));
 
 		VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
 		VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
+		VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
 
-		vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(scene.vertices.buffer);
-		indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(scene.indices.buffer);
+		vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(vertexBuffer.buffer);
+		indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(indexBuffer.buffer);
+		transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(transformBuffer.buffer);
 
-		uint32_t numTriangles = static_cast<uint32_t>(scene.indices.count) / 3;
-		uint32_t maxVertex = scene.vertices.count;
+		uint32_t numTriangles = 1;
 
-		// Build
-		VkAccelerationStructureGeometryKHR accelerationStructureGeometry = vks::initializers::accelerationStructureGeometryKHR();
-		accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
-		accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-		accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-		accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-		accelerationStructureGeometry.geometry.triangles.vertexData = vertexBufferDeviceAddress;
-		accelerationStructureGeometry.geometry.triangles.maxVertex = maxVertex;
-		accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof(vkglTF::Vertex);
-		accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
-		accelerationStructureGeometry.geometry.triangles.indexData = indexBufferDeviceAddress;
-		accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = 0;
-		accelerationStructureGeometry.geometry.triangles.transformData.hostAddress = nullptr;
+		// Our scene will consist of three different triangles, that'll be distinguished in the shader via gl_GeometryIndexEXT, so we add three geometries to the bottom level AS
+		std::vector<uint32_t> geometryCounts;
+		std::vector<VkAccelerationStructureGeometryKHR> accelerationStructureGeometries;
+		for (uint32_t i = 0; i < objectCount; i++) {
+			VkAccelerationStructureGeometryKHR accelerationStructureGeometry = vks::initializers::accelerationStructureGeometryKHR();
+			accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+			accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+			accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+			accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+			accelerationStructureGeometry.geometry.triangles.vertexData = vertexBufferDeviceAddress;
+			accelerationStructureGeometry.geometry.triangles.maxVertex = 3;
+			accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof(Vertex);
+			accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
+			accelerationStructureGeometry.geometry.triangles.indexData = indexBufferDeviceAddress;
+			accelerationStructureGeometry.geometry.triangles.transformData = transformBufferDeviceAddress;
+			accelerationStructureGeometries.push_back(accelerationStructureGeometry);
+			geometryCounts.push_back(1);
+		}
 
 		// Get size info
 		VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo = vks::initializers::accelerationStructureBuildGeometryInfoKHR();
 		accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 		accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-		accelerationStructureBuildGeometryInfo.geometryCount = 1;
-		accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
+		accelerationStructureBuildGeometryInfo.geometryCount = static_cast<uint32_t>(accelerationStructureGeometries.size());
+		accelerationStructureBuildGeometryInfo.pGeometries = accelerationStructureGeometries.data();
 
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo = vks::initializers::accelerationStructureBuildSizesInfoKHR();
 		vkGetAccelerationStructureBuildSizesKHR(
 			device,
 			VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 			&accelerationStructureBuildGeometryInfo,
-			&numTriangles,
+			geometryCounts.data(),
 			&accelerationStructureBuildSizesInfo);
 
 		createAccelerationStructure(bottomLevelAS, VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR, accelerationStructureBuildSizesInfo);
@@ -126,16 +176,20 @@ public:
 		accelerationBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
 		accelerationBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 		accelerationBuildGeometryInfo.dstAccelerationStructure = bottomLevelAS.handle;
-		accelerationBuildGeometryInfo.geometryCount = 1;
-		accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
+		accelerationBuildGeometryInfo.geometryCount = static_cast<uint32_t>(accelerationStructureGeometries.size());
+		accelerationBuildGeometryInfo.pGeometries = accelerationStructureGeometries.data();
 		accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer.deviceAddress;
 
-		VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-		accelerationStructureBuildRangeInfo.primitiveCount = numTriangles;
-		accelerationStructureBuildRangeInfo.primitiveOffset = 0;
-		accelerationStructureBuildRangeInfo.firstVertex = 0;
-		accelerationStructureBuildRangeInfo.transformOffset = 0;
-		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
+		std::vector<VkAccelerationStructureBuildRangeInfoKHR> accelerationStructureBuildRangeInfos{};
+		for (uint32_t i = 0; i < objectCount; i++) {
+			VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
+			accelerationStructureBuildRangeInfo.primitiveCount = numTriangles;
+			accelerationStructureBuildRangeInfo.primitiveOffset = 0;
+			accelerationStructureBuildRangeInfo.firstVertex = 0;
+			accelerationStructureBuildRangeInfo.transformOffset = i * sizeof(VkTransformMatrixKHR);
+			accelerationStructureBuildRangeInfos.push_back(accelerationStructureBuildRangeInfo);
+		}
+		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfos[0], &accelerationStructureBuildRangeInfos[1], &accelerationStructureBuildRangeInfos[2] };
 
 		if (accelerationStructureFeatures.accelerationStructureHostCommands)
 		{
@@ -265,7 +319,7 @@ public:
 
 	/*
 		Create the Shader Binding Tables that binds the programs and top-level acceleration structure
-
+			
 		SBT Layout used in this sample:
 
 			/-----------\
@@ -274,13 +328,17 @@ public:
 			| miss      |
 			|-----------|
 			| hit       |
+			|-----------|
+			| callable0 |
+			| callable1 |
+			| callabel2 |
 			\-----------/
 
 	*/
 	void createShaderBindingTables() {
 		const uint32_t handleSize = rayTracingPipelineProperties.shaderGroupHandleSize;
 		const uint32_t handleAlignment = rayTracingPipelineProperties.shaderGroupHandleAlignment;
-		const uint32_t groupCount = static_cast<uint32_t>(shaderGroups.size());
+		const uint32_t groupCount = 3 + objectCount;
 		const uint32_t sbtSize = handleSize * groupCount;
 
 		std::vector<uint8_t> shaderHandleStorage(sbtSize);
@@ -289,11 +347,14 @@ public:
 		createShaderBindingTable(shaderBindingTables.raygen, 1);
 		createShaderBindingTable(shaderBindingTables.miss, 1);
 		createShaderBindingTable(shaderBindingTables.hit, 1);
+		// The callable shader binding table contains one shader handle per ray traced object
+		createShaderBindingTable(shaderBindingTables.callable, objectCount);
 
 		// Copy handles
 		memcpy(shaderBindingTables.raygen.mapped, shaderHandleStorage.data(), handleSize);
 		memcpy(shaderBindingTables.miss.mapped, shaderHandleStorage.data() + handleAlignment, handleSize);
 		memcpy(shaderBindingTables.hit.mapped, shaderHandleStorage.data() + handleAlignment * 2, handleSize);
+		memcpy(shaderBindingTables.callable.mapped, shaderHandleStorage.data() + handleAlignment * 3, handleSize * 3);
 	}
 
 	/*
@@ -327,8 +388,8 @@ public:
 		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
 		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, storageImage.view, VK_IMAGE_LAYOUT_GENERAL };
-		VkDescriptorBufferInfo vertexBufferDescriptor{ scene.vertices.buffer, 0, VK_WHOLE_SIZE };
-		VkDescriptorBufferInfo indexBufferDescriptor{ scene.indices.buffer, 0, VK_WHOLE_SIZE };
+		VkDescriptorBufferInfo vertexBufferDescriptor{ vertexBuffer.buffer, 0, VK_WHOLE_SIZE };
+		VkDescriptorBufferInfo indexBufferDescriptor{ indexBuffer.buffer, 0, VK_WHOLE_SIZE };
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0: Top level acceleration structure
@@ -368,22 +429,16 @@ public:
 
 		VkPipelineLayoutCreateInfo pPipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCI, nullptr, &pipelineLayout));
-
+	
 		/*
 			Setup ray tracing shader groups
 		*/
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
-		// Ray generation group
+		// Ray generation shader group
 		{
-			shaderStages.push_back(loadShader(getShadersPath() + "raytracingreflections/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_KHR));
-			// Pass recursion depth for reflections to ray generation shader via specialization constant
-			VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
-			uint32_t maxRecursion = 4;
-			VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(maxRecursion), &maxRecursion);
-			shaderStages.back().pSpecializationInfo = &specializationInfo;
-			VkRayTracingShaderGroupCreateInfoKHR shaderGroup{};
-			shaderGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+			shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_KHR));
+			VkRayTracingShaderGroupCreateInfoKHR shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
 			shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 			shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 			shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
@@ -392,11 +447,10 @@ public:
 			shaderGroups.push_back(shaderGroup);
 		}
 
-		// Miss group
+		// Miss shader group
 		{
-			shaderStages.push_back(loadShader(getShadersPath() + "raytracingreflections/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_KHR));
-			VkRayTracingShaderGroupCreateInfoKHR shaderGroup{};
-			shaderGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+			shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_KHR));
+			VkRayTracingShaderGroupCreateInfoKHR shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
 			shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 			shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 			shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
@@ -405,14 +459,28 @@ public:
 			shaderGroups.push_back(shaderGroup);
 		}
 
-		// Closest hit group
+		// Closest hit shader group
 		{
-			shaderStages.push_back(loadShader(getShadersPath() + "raytracingreflections/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
-			VkRayTracingShaderGroupCreateInfoKHR shaderGroup{};
-			shaderGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+			shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
+			VkRayTracingShaderGroupCreateInfoKHR shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
 			shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
 			shaderGroup.generalShader = VK_SHADER_UNUSED_KHR;
 			shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;
+			shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
+			shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
+			shaderGroups.push_back(shaderGroup);
+		}
+
+		// Callable shader group
+		// This sample's hit shader will call different callable shaders depending on the geometry index, so as we render three different geometries, we'll also use three callable shaders
+		for (uint32_t i = 0; i < objectCount; i++) 
+		{
+			shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/callable" + std::to_string(i+1) + ".rcall.spv", VK_SHADER_STAGE_CALLABLE_BIT_KHR));
+			VkRayTracingShaderGroupCreateInfoKHR shaderGroup{};
+			shaderGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+			shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+			shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
+			shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
 			shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
 			shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
 			shaderGroups.push_back(shaderGroup);
@@ -423,7 +491,7 @@ public:
 		rayTracingPipelineCI.pStages = shaderStages.data();
 		rayTracingPipelineCI.groupCount = static_cast<uint32_t>(shaderGroups.size());
 		rayTracingPipelineCI.pGroups = shaderGroups.data();
-		rayTracingPipelineCI.maxPipelineRayRecursionDepth = 4;
+		rayTracingPipelineCI.maxPipelineRayRecursionDepth = 2;
 		rayTracingPipelineCI.layout = pipelineLayout;
 		VK_CHECK_RESULT(vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &pipeline));
 	}
@@ -481,19 +549,12 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
 
-			/*
-				Dispatch the ray tracing commands
-			*/
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
-
-			VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
 			vkCmdTraceRaysKHR(
 				drawCmdBuffers[i],
 				&shaderBindingTables.raygen.stridedDeviceAddressRegion,
 				&shaderBindingTables.miss.stridedDeviceAddressRegion,
 				&shaderBindingTables.hit.stridedDeviceAddressRegion,
-				&emptySbtEntry,
+				&shaderBindingTables.callable.stridedDeviceAddressRegion,
 				width,
 				height,
 				1);
@@ -542,11 +603,6 @@ public:
 				VK_IMAGE_LAYOUT_GENERAL,
 				subresourceRange);
 
-			//@todo: Default render pass setup will overwrite contents
-			//vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			//drawUI(drawCmdBuffers[i]);
-			//vkCmdEndRenderPass(drawCmdBuffers[i]);
-
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
@@ -555,9 +611,6 @@ public:
 	{
 		uniformData.projInverse = glm::inverse(camera.matrices.perspective);
 		uniformData.viewInverse = glm::inverse(camera.matrices.view);
-		uniformData.lightPos = glm::vec4(cos(glm::radians(timer * 360.0f)) * 40.0f, -20.0f + sin(glm::radians(timer * 360.0f)) * 20.0f, 25.0f + sin(glm::radians(timer * 360.0f)) * 5.0f, 0.0f);
-		// Pass the vertex size to the shader for unpacking vertices
-		uniformData.vertexSize = sizeof(vkglTF::Vertex);
 		memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 	}
 
