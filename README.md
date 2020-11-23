@@ -5,7 +5,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BHXPMV6ZKPH9E)
 
 ## Table of Contents
-+ [Official Khronos Vulkan Samples](#Khronossamples)
++ [Official Khronos Vulkan Samples](#official-khronos-vulkan-samples)
 + [Cloning](#Cloning)
 + [Assets](#Assets)
 + [Building](#Building)
@@ -15,20 +15,20 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
     + [glTF](#glTF)
     + [Advanced](#Advanced)
     + [Performance](#Performance)
-    + [Physically Based Rendering](#PBR)
+    + [Physically Based Rendering](#physically-based-rendering)
     + [Deferred](#Deferred)
-    + [Compute Shader](#ComputeShader)
-    + [Geometry Shader](#GeometryShader)
-    + [Tessellation Shader](#TessellationShader)
-    + [Ray tracing](#Raytracing)
+    + [Compute Shader](#compute-shader)
+    + [Geometry Shader](#geometry-shader)
+    + [Tessellation Shader](#tessellation-shader)
+    + [Hardware accelerated ray tracing](#hardware-accelerated-ray-tracing)
     + [Headless](#Headless)
-    + [User Interface](#UserInterface)
+    + [User Interface](#user-interface)
     + [Effects](#Effects)
     + [Extensions](#Extensions)
     + [Misc](#Misc)
-+ [Credits and Attributions](#CreditsAttributions)
++ [Credits and Attributions](#credits-and-attributions)
 
-## <a name="Khronossamples"></a> Official Khronos Vulkan Samples
+## Official Khronos Vulkan Samples
 
 Khronos recently made an official Vulkan Samples repository available to the public ([press release](https://www.khronos.org/blog/vulkan-releases-unified-samples-repository?utm_source=Khronos%20Blog&utm_medium=Twitter&utm_campaign=Vulkan%20Repository)).
 
@@ -36,7 +36,7 @@ You can find this repository at https://github.com/KhronosGroup/Vulkan-Samples
 
 As I've been involved with getting the official repository up and running, I'll be mostly contributing to that repository from now, but may still add samples that don't fit there in here and I'll of course continue to maintain these samples.
 
-## <a name="Cloning"></a> Cloning
+## Cloning
 This repository contains submodules for external dependencies, so when doing a fresh clone you need to clone recursively:
 
 ```
@@ -50,26 +50,26 @@ git submodule init
 git submodule update
 ```
 
-## <a name="Assets"></a> Assets
+## Assets
 Many examples require assets from the asset pack that is not part of this repository due to file size. A python script is included to download the asset pack that. Run
 
     python download_assets.py
 
 from the root of the repository after cloning or see [this](data/README.md) for manual download.
 
-## <a name="Building"></a> Building
+## Building
 
 The repository contains everything required to compile and build the examples on <img src="./images/windowslogo.png" alt="" height="22px" valign="bottom"> Windows, <img src="./images/linuxlogo.png" alt="" height="24px" valign="bottom"> Linux, <img src="./images/androidlogo.png" alt="" height="24px" valign="bottom"> Android, <img src="./images/applelogo.png" alt="" valign="bottom" height="24px"> iOS and macOS (using MoltenVK) using a C++ compiler that supports C++11.
 
 See [BUILD.md](BUILD.md) for details on how to build for the different platforms.
 
-## <a name="Shaders"></a> Shaders
+## Shaders
 
 Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](data/shaders/glsl) but thanks to an external contribution you'll also find [HLSL](data/shaders/hlsl) shader sources.
 
-## <a name="Examples"></a> Examples
+## Examples
 
-### <a name="Basics"></a> Basics
+### Basics
 
 #### [01 - Triangle](examples/triangle/)
 Basic and verbose example for getting a colored triangle rendered to the screen using Vulkan. This is meant as a starting point for learning Vulkan from the ground up. A huge part of the code is boilerplate that is abstracted away in later examples.
@@ -134,7 +134,7 @@ Implements a simple CPU based particle system. Particle data is stored in host m
 
 Uses the stencil buffer and its compare functionality for rendering a 3D model with dynamic outlines.
 
-### <a name="glTF"></a> glTF
+### glTF
 
 These samples show how implement different features of the [glTF 2.0 3D format](https://www.khronos.org/gltf/) 3D transmission file format in detail.
 
@@ -150,7 +150,7 @@ Demonstrates how to do GPU vertex skinning from animation data stored in a [glTF
 
 Renders a complete scene loaded from an [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The sample is based on the glTF model loading sample, and adds data structures, functions and shaders required to render a more complex scene using Crytek's Sponza model with per-material pipelines and normal mapping.
 
-### <a name="Advanced"></a> Advanced
+### Advanced
 
 #### [01 - Multi sampling](examples/multisampling/)
 
@@ -184,7 +184,7 @@ Capturing and saving an image after a scene has been rendered using blits to cop
 
 Implements order independent transparency based on linked lists. To achieve this, the sample uses storage buffers in combination with image load and store atomic operations in the fragment shader.
 
-### <a name="Performance"></a> Performance
+### Performance
 
 #### [01 - Multi threaded command buffer generation](examples/multithreading/)
 
@@ -206,7 +206,7 @@ Using query pool objects to get number of passed samples for rendered primitives
 
 Using query pool objects to gather statistics from different stages of the pipeline like vertex, fragment shader and tessellation evaluation shader invocations depending on payload.
 
-### <a name="PBR"></a> Physically Based Rendering
+### Physically Based Rendering
 
 Physical based rendering as a lighting technique that achieves a more realistic and dynamic look by applying approximations of bidirectional reflectance distribution functions based on measured real-world material parameters and environment lighting.
 
@@ -222,7 +222,7 @@ Adds image based lighting from an hdr environment cubemap to the PBR equation, u
 
 Renders a model specially crafted for a metallic-roughness PBR workflow with textures defining material parameters for the PRB equation (albedo, metallic, roughness, baked ambient occlusion, normal maps) in an image based lighting environment.
 
-### <a name="Deferred"></a> Deferred
+### Deferred
 
 These examples use a [deferred shading](https://en.wikipedia.org/wiki/Deferred_shading) setup.
 
@@ -242,7 +242,7 @@ Adds shadows from multiple spotlights to a deferred renderer using a layered dep
 
 Adds ambient occlusion in screen space to a 3D scene. Depth values from a previous deferred pass are used to generate an ambient occlusion texture that is blurred before being applied to the scene in a final composition path.
 
-### <a name="ComputeShader"></a> Compute Shader
+### Compute Shader
 
 #### [01 - Image processing](examples/computeshader/)
 
@@ -268,7 +268,7 @@ Mass-spring based cloth system on the GPU using a compute shader to calculate an
 
 Purely GPU based frustum visibility culling and level-of-detail system. A compute shader is used to modify draw commands stored in an indirect draw commands buffer to toggle model visibility and select its level-of-detail based on camera distance, no calculations have to be done on and synced with the CPU.
 
-### <a name="GeometryShader"></a> Geometry Shader
+### Geometry Shader
 
 #### [01 - Normal debugging](examples/geometryshader/)
 
@@ -278,7 +278,7 @@ Visualizing per-vertex model normals (for debugging). First pass renders the pla
 
 Renders a scene to multiple viewports in one pass using a geometry shader to apply different matrices per viewport to simulate stereoscopic rendering (left/right). Requires a device with support for ```multiViewport```.
 
-### <a name="TessellationShader"></a> Tessellation Shader
+### Tessellation Shader
 
 #### [01 - Displacement mapping](examples/tessellation/)
 
@@ -292,11 +292,11 @@ Renders a terrain using tessellation shaders for height displacement (based on a
 
 Uses curved PN-triangles ([paper](http://alex.vlachos.com/graphics/CurvedPNTriangles.pdf)) for adding details to a low-polygon model.
 
-### <a name="Raytracing"></a> Ray Tracing (VK_KHR_ray_tracing)
+### Hardware accelerated ray tracing
 
 #### [01 - Basic ray tracing](examples/raytracingbasic)
 
-Basic example for doing hardware accelerated ray tracing using the ```VK_KHR_ray_tracing``` extension. Shows how to setup acceleration structures, ray tracing pipelines and the shaders needed to do the actual ray tracing.
+Basic example for doing hardware accelerated ray tracing using the ```VK_KHR_acceleration_structure``` and ```VK_KHR_ray_tracing_pipeline``` extensions. Shows how to setup acceleration structures, ray tracing pipelines and the shader binding table needed to do the actual ray tracing.
 
 #### [02 - Ray traced shadows](examples/raytracingshadows)
 
@@ -306,7 +306,15 @@ Adds ray traced shadows casting using the new ray tracing extensions to a more c
 
 Renders a complex scene with reflective surfaces using the new ray tracing extensions. Shows how to do recursion inside of the ray tracing shaders for implementing real time reflections.
 
-### <a name="Headless"></a> Headless
+#### [04 - Callable ray tracing shaders](examples/raytracingcallable)
+
+Callable haders can be called from other ray tracing shaders to execute different shaders based on dynamic conditions. The example ray traces multiple geometries, with each calling a differnt callable shader from the closest hit shader.
+
+#### [05 - Ray query](examples/rayquery)
+
+```GLSL_EXT_ray_query``` adds ray queryies, which can be used to do ray interesctions in any shader stage. This example makes uses ray quers to add ray casted shadows to a rasteriser in the fragment shader.
+
+### Headless
 
 Examples that run one-time tasks and don't make use of visual output (no window system integration). These can be run in environments where no user interface is available ([blog entry](https://www.saschawillems.de/tutorials/vulkan/headless_examples)).
 
@@ -318,7 +326,7 @@ Renders a basic scene to a (non-visible) frame buffer attachment, reads it back 
 
 Only uses compute shader capabilities for running calculations on an input data set (passed via SSBO). A fibonacci row is calculated based on input data via the compute shader, stored back and displayed via command line.
 
-### <a name="UserInterface"></a> User Interface
+### User Interface
 
 #### [01 - Text rendering](examples/textoverlay/)
 
@@ -332,7 +340,7 @@ Uses a texture that stores signed distance field information per character along
 
 Generates and renders a complex user interface with multiple windows, controls and user interaction on top of a 3D scene. The UI is generated using [Dear ImGUI](https://github.com/ocornut/imgui) and updated each frame.
 
-### <a name="Effects"></a> Effects
+### Effects
 
 #### [01 - Fullscreen radial blur](examples/radialblur/)
 
@@ -350,7 +358,7 @@ Implements multiple texture mapping methods to simulate depth based on texture i
 
 Uses a spherical material capture texture array defining environment lighting and reflection information to fake complex lighting.
 
-### <a name="Extensions"></a> Extensions
+### Extensions
 
 #### [01 - Conservative rasterization (VK_EXT_conservative_rasterization)](examples/conservativeraster/)
 
@@ -387,7 +395,7 @@ Shows how to render a scene using a negative viewport height, making the Vulkan 
 Uses a special image that contains variable shading rates to vary the number of fragment shader invocations across the framebuffer. This makes it possible to lower fragment shader invocations for less important/less noisy parts of the framebuffer.
 
 
-### <a name="Misc"></a> Misc
+### Misc
 
 #### [01 - Vulkan Gears](examples/gears/)
 
@@ -397,5 +405,5 @@ Vulkan interpretation of glxgears. Procedurally generates and animates multiple 
 
 Renders a Vulkan demo scene with logos and mascots. Not an actual example but more of a playground and showcase.
 
-## <a name="CreditsAttributions"></a> Credits and Attributions
+## Credits and Attributions
 See [CREDITS.md](CREDITS.md) for additional credits and attributions.

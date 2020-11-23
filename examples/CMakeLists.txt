@@ -107,9 +107,11 @@ set(EXAMPLES
 	pushconstants
 	pushdescriptors
 	radialblur
-	raytracingbasic	
+	rayquery
+	raytracingbasic
+	raytracingcallable
 	raytracingreflections
-	raytracingshadows
+	raytracingshadows	
 	renderheadless
 	screenshot
 	shadowmapping
