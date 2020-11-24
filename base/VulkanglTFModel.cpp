@@ -53,10 +53,13 @@ void vkglTF::Texture::updateDescriptor()
 
 void vkglTF::Texture::destroy()
 {
-	vkDestroyImageView(device->logicalDevice, view, nullptr);
-	vkDestroyImage(device->logicalDevice, image, nullptr);
-	vkFreeMemory(device->logicalDevice, deviceMemory, nullptr);
-	vkDestroySampler(device->logicalDevice, sampler, nullptr);
+	if (device)
+	{
+		vkDestroyImageView(device->logicalDevice, view, nullptr);
+		vkDestroyImage(device->logicalDevice, image, nullptr);
+		vkFreeMemory(device->logicalDevice, deviceMemory, nullptr);
+		vkDestroySampler(device->logicalDevice, sampler, nullptr);
+	}
 }
 
 void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path, vks::VulkanDevice *device, VkQueue copyQueue)
