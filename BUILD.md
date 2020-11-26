@@ -25,13 +25,15 @@ Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a bu
 
 ## <img src="./images/androidlogo.png" alt="" height="32px"> [Android](android/)
 
-Building on Android is done using the [Gradle Build Tool](https://gradle.org/). Put the ```bin``` directory of it somewhere in your path and from the root of the repository run:
+Building on Android is done using the [Gradle Build Tool](https://gradle.org/):
 
 ```
 cd android
-gradle assembleDebug
+./gradlew assembleDebug
 ```
-This will build all samples and output the apks to ```android\examples\bin```.
+This will download gradle locally, build all samples and output the apks to ```android\examples\bin```.
+
+On Windows execute `gradlew.bat assembleDebug`.
 
 If you want to build and install on a connected device or emulator image, run ```gradle installDebug``` instead.
 
