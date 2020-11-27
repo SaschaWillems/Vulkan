@@ -308,11 +308,11 @@ Renders a complex scene with reflective surfaces using the new ray tracing exten
 
 #### [04 - Callable ray tracing shaders](examples/raytracingcallable)
 
-Callable haders can be called from other ray tracing shaders to execute different shaders based on dynamic conditions. The example ray traces multiple geometries, with each calling a differnt callable shader from the closest hit shader.
+Callable shaders can be dynamically invoked from within other ray tracing shaders to execute different shaders based on your own conditions. The example ray traces multiple geometries, with each calling a different callable shader from the closest hit shader.
 
 #### [05 - Ray query](examples/rayquery)
 
-```GLSL_EXT_ray_query``` adds ray queryies, which can be used to do ray interesctions in any shader stage. This example makes uses ray quers to add ray casted shadows to a rasteriser in the fragment shader.
+Ray queries add acceleration structure intersection functionality to non ray tracing shader stages. This allows for combining ray tracing with rasterization. This example makes uses ray queries to add ray casted shadows to a rasterized sample in the fragment shader.
 
 ### Headless
 
