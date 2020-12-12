@@ -6,8 +6,6 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#pragma once
-
 #include "VulkanRaytracingSample.h"
 
 void VulkanRaytracingSample::enableExtensions()
