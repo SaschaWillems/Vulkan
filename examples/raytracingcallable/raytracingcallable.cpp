@@ -66,6 +66,9 @@ public:
 		shaderBindingTables.miss.destroy();
 		shaderBindingTables.hit.destroy();
 		shaderBindingTables.callable.destroy();
+		vertexBuffer.destroy();
+		indexBuffer.destroy();
+		transformBuffer.destroy();
 		ubo.destroy();
 	}
 
