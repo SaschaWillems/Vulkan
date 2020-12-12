@@ -282,9 +282,9 @@ public:
 	*/
 	void createShaderBindingTables() {
 		const uint32_t handleSize = rayTracingPipelineProperties.shaderGroupHandleSize;
-		const uint32_t handleAlignment = rayTracingPipelineProperties.shaderGroupHandleAlignment;
+		const uint32_t handleSizeAligned = vks::tools::alignedSize(rayTracingPipelineProperties.shaderGroupHandleSize, rayTracingPipelineProperties.shaderGroupHandleAlignment);
 		const uint32_t groupCount = static_cast<uint32_t>(shaderGroups.size());
-		const uint32_t sbtSize = handleSize * groupCount;
+		const uint32_t sbtSize = groupCount * handleSizeAligned;
 
 		std::vector<uint8_t> shaderHandleStorage(sbtSize);
 		VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data()));
@@ -297,8 +297,8 @@ public:
 		// Copy handles
 		memcpy(shaderBindingTables.raygen.mapped, shaderHandleStorage.data(), handleSize);
 		// We are using two miss shaders, so we need to get two handles for the miss shader binding table
-		memcpy(shaderBindingTables.miss.mapped, shaderHandleStorage.data() + handleAlignment, handleSize * 2);
-		memcpy(shaderBindingTables.hit.mapped, shaderHandleStorage.data() + handleAlignment * 3, handleSize);
+		memcpy(shaderBindingTables.miss.mapped, shaderHandleStorage.data() + handleSizeAligned, handleSize * 2);
+		memcpy(shaderBindingTables.hit.mapped, shaderHandleStorage.data() + handleSizeAligned * 3, handleSize);
 	}
 
 	/*

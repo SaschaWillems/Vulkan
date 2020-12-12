@@ -539,9 +539,9 @@ public:
 	*/
 	void createShaderBindingTable() {
 		const uint32_t handleSize = rayTracingPipelineProperties.shaderGroupHandleSize;
-		const uint32_t handleAlignment = rayTracingPipelineProperties.shaderGroupHandleAlignment;
+		const uint32_t handleSizeAligned = vks::tools::alignedSize(rayTracingPipelineProperties.shaderGroupHandleSize, rayTracingPipelineProperties.shaderGroupHandleAlignment);
 		const uint32_t groupCount = static_cast<uint32_t>(shaderGroups.size());
-		const uint32_t sbtSize = handleSize * groupCount;
+		const uint32_t sbtSize = groupCount * handleSizeAligned;
 
 		std::vector<uint8_t> shaderHandleStorage(sbtSize);
 		VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data()));
@@ -557,8 +557,8 @@ public:
 		missShaderBindingTable.map();
 		hitShaderBindingTable.map();
 		memcpy(raygenShaderBindingTable.mapped, shaderHandleStorage.data(), handleSize);
-		memcpy(missShaderBindingTable.mapped, shaderHandleStorage.data() + handleAlignment, handleSize);
-		memcpy(hitShaderBindingTable.mapped, shaderHandleStorage.data() + handleAlignment * 2, handleSize);
+		memcpy(missShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned, handleSize);
+		memcpy(hitShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned * 2, handleSize);
 	}
 
 	/*
@@ -760,20 +760,22 @@ public:
 				Setup the buffer regions pointing to the shaders in our shader binding table
 			*/
 
+			const uint32_t handleSizeAligned = vks::tools::alignedSize(rayTracingPipelineProperties.shaderGroupHandleSize, rayTracingPipelineProperties.shaderGroupHandleAlignment);
+
 			VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
 			raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(raygenShaderBindingTable.buffer);
-			raygenShaderSbtEntry.stride = rayTracingPipelineProperties.shaderGroupHandleSize;
-			raygenShaderSbtEntry.size = rayTracingPipelineProperties.shaderGroupHandleSize;
+			raygenShaderSbtEntry.stride = handleSizeAligned;
+			raygenShaderSbtEntry.size = handleSizeAligned;
 
 			VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
 			missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(missShaderBindingTable.buffer);
-			missShaderSbtEntry.stride = rayTracingPipelineProperties.shaderGroupHandleSize;
-			missShaderSbtEntry.size = rayTracingPipelineProperties.shaderGroupHandleSize;
+			missShaderSbtEntry.stride = handleSizeAligned;
+			missShaderSbtEntry.size = handleSizeAligned;
 
 			VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
 			hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(hitShaderBindingTable.buffer);
-			hitShaderSbtEntry.stride = rayTracingPipelineProperties.shaderGroupHandleSize;
-			hitShaderSbtEntry.size = rayTracingPipelineProperties.shaderGroupHandleSize;
+			hitShaderSbtEntry.stride = handleSizeAligned;
+			hitShaderSbtEntry.size = handleSizeAligned;
 
 			VkStridedDeviceAddressRegionKHR callableShaderSbtEntry{};
 

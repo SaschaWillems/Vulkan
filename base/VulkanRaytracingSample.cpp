@@ -205,10 +205,11 @@ void VulkanRaytracingSample::prepare()
 
 VkStridedDeviceAddressRegionKHR VulkanRaytracingSample::getSbtEntryStridedDeviceAddressRegion(VkBuffer buffer, uint32_t handleCount)
 {
+	const uint32_t handleSizeAligned = vks::tools::alignedSize(rayTracingPipelineProperties.shaderGroupHandleSize, rayTracingPipelineProperties.shaderGroupHandleAlignment);
 	VkStridedDeviceAddressRegionKHR stridedDeviceAddressRegionKHR{};
 	stridedDeviceAddressRegionKHR.deviceAddress = getBufferDeviceAddress(buffer);
-	stridedDeviceAddressRegionKHR.stride = rayTracingPipelineProperties.shaderGroupHandleSize;
-	stridedDeviceAddressRegionKHR.size = rayTracingPipelineProperties.shaderGroupHandleSize * handleCount;
+	stridedDeviceAddressRegionKHR.stride = handleSizeAligned;
+	stridedDeviceAddressRegionKHR.size = handleCount * handleSizeAligned;
 	return stridedDeviceAddressRegionKHR;
 }
 
