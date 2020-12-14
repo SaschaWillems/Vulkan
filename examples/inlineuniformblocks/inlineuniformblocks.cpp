@@ -16,7 +16,7 @@
 #define ENABLE_VALIDATION false
 
 float rnd() {
-	return ((float)rand() / (RAND_MAX));
+	return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 }
 
 class VulkanExample : public VulkanExampleBase
