@@ -75,6 +75,7 @@ set(EXAMPLES
 	deferred
 	deferredmultisampling
 	deferredshadows
+	descriptorindexing
 	descriptorsets
 	displacement
 	distancefieldfonts
