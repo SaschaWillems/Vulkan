@@ -292,11 +292,11 @@ public:
 			Descriptor sets
 		*/
 
-		VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescriptorCountAllocInfo = {};
+		VkDescriptorSetVariableDescriptorCountAllocateInfoEXT variableDescriptorCountAllocInfo = {};
 
 		uint32_t variableDescCounts[] = {textures.size()};
 
-		variableDescriptorCountAllocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+		variableDescriptorCountAllocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
 		variableDescriptorCountAllocInfo.descriptorSetCount = 1;
 		variableDescriptorCountAllocInfo.pDescriptorCounts  = variableDescCounts;
 
