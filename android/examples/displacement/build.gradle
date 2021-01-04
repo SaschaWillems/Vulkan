@@ -57,7 +57,7 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
-       include 'displacement_plane.obj'
+       include 'displacement_plane.gltf'
     }
 
     copy {
