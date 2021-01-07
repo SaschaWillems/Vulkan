@@ -68,6 +68,7 @@ namespace vks
 				STR(INTEGRATED_GPU);
 				STR(DISCRETE_GPU);
 				STR(VIRTUAL_GPU);
+				STR(CPU);
 #undef STR
 			default: return "UNKNOWN_DEVICE_TYPE";
 			}
