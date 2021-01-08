@@ -57,6 +57,12 @@ task copyTask {
     copy {
        from '../../../data/models'
        into 'assets/models'
+       include 'sphere.gltf'
+    }
+
+    copy {
+       from '../../../data/models'
+       into 'assets/models'
        include 'samplescene.gltf'
     }
 
