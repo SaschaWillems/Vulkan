@@ -39,4 +39,4 @@ jobs:
           TARGET_PLATFORM: windows
         run: |
           cmake .
-          make
+          cmake --build .
