@@ -18,11 +18,6 @@ jobs:
         with:
           submodules: "recursive"
 
-      - name: Install Vulkan SDK
-        run: |
-          sudo apt update
-          sudo apt install libvulkan-dev
-
       - name: Build
         run: |
           cmake .
