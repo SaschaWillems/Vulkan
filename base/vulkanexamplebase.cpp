@@ -95,11 +95,12 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 	}
+
+	// The VK_LAYER_KHRONOS_validation contains all current validation functionality.
+	// Note that on Android this layer requires at least NDK r20
+	const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 	if (settings.validation)
 	{
-		// The VK_LAYER_KHRONOS_validation contains all current validation functionality.
-		// Note that on Android this layer requires at least NDK r20
-		const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 		// Check if this layer is available at instance level
 		uint32_t instanceLayerCount;
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);

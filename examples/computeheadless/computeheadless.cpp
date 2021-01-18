@@ -170,9 +170,9 @@ public:
 			}
 		}
 
+		const char *validationExt = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
 		if (layersAvailable) {
 			instanceCreateInfo.ppEnabledLayerNames = validationLayers;
-			const char *validationExt = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
 			instanceCreateInfo.enabledLayerCount = layerCount;
 			instanceCreateInfo.enabledExtensionCount = 1;
 			instanceCreateInfo.ppEnabledExtensionNames = &validationExt;
