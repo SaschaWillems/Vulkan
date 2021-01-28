@@ -716,11 +716,11 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		if ((args[i] == std::string("-f")) || (args[i] == std::string("--fullscreen"))) {
 			settings.fullscreen = true;
 		}
-		if ((args[i] == std::string("-w")) || (args[i] == std::string("-width"))) {
+		if ((args[i] == std::string("-w")) || (args[i] == std::string("--width"))) {
 			uint32_t w = strtol(args[i + 1], &numConvPtr, 10);
 			if (numConvPtr != args[i + 1]) { width = w; };
 		}
-		if ((args[i] == std::string("-h")) || (args[i] == std::string("-height"))) {
+		if ((args[i] == std::string("-h")) || (args[i] == std::string("--height"))) {
 			uint32_t h = strtol(args[i + 1], &numConvPtr, 10);
 			if (numConvPtr != args[i + 1]) { height = h; };
 		}
