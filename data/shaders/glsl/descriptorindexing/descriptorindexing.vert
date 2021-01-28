@@ -17,10 +17,7 @@ layout (location = 1) flat out int outTexIndex;
 void main() 
 {
 	outUV = inUV;
-	outTexIndex = 0;
 	outTexIndex = inTextureIndex;
-	outTexIndex = gl_InstanceIndex;
 	vec4 pos = vec4(inPos, 1.0f);
-	pos.y += gl_InstanceIndex;
 	gl_Position = matrices.projection * matrices.view * matrices.model * pos;
 }
