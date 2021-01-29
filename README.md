@@ -394,6 +394,10 @@ Shows how to render a scene using a negative viewport height, making the Vulkan 
 
 Uses a special image that contains variable shading rates to vary the number of fragment shader invocations across the framebuffer. This makes it possible to lower fragment shader invocations for less important/less noisy parts of the framebuffer.
 
+#### [Descriptor indexing (VK_EXT_descriptor_indexing)](examples/descriptorindexing/)  
+
+Demonstrates the use of VK_EXT_descriptor_indexing for creating descriptor sets with a variable size that can be dynamically indexed in a shader using `GL_EXT_nonuniform_qualifier` and `SPV_EXT_descriptor_indexing`.
+
 
 ### Misc
 
