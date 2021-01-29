@@ -2744,7 +2744,7 @@ void CommandLineParser::printHelp()
 		std::cout << " ";
 		for (size_t i = 0; i < option.second.commands.size(); i++) {
 			std::cout << option.second.commands[i];
-			if (i < size(option.second.commands) - 1) {
+			if (i < option.second.commands.size() - 1) {
 				std::cout << ", ";
 			}
 		}
