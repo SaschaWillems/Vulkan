@@ -1,0 +1,58 @@
+apply plugin: 'com.android.application'
+apply from: '../gradle/outputfilename.gradle'
+
+android {
+    compileSdkVersion 26
+    defaultConfig {
+        applicationId "de.saschawillems.vulkanDescriptorindexing"
+        minSdkVersion 19
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        ndk {
+            abiFilters "armeabi-v7a"
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++14"
+                arguments "-DANDROID_STL=c++_shared", '-DANDROID_TOOLCHAIN=clang'
+            }
+        }
+    }
+    sourceSets {
+        main.assets.srcDirs = ['assets']
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+}
+
+task copyTask {
+    copy {
+        from '../../common/res/drawable'
+        into "src/main/res/drawable"
+        include 'icon.png'
+    }
+
+    copy {
+        from '../../../data/shaders/glsl/base'
+        into 'assets/shaders/glsl/base'
+        include '*.spv'
+    }
+
+    copy {
+       from '../../../data/shaders/glsl/descriptorindexing'
+       into 'assets/shaders/glsl/descriptorindexing'
+       include '*.*'
+    }
+}
+
+preBuild.dependsOn copyTask
