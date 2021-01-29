@@ -2755,6 +2755,8 @@ void CommandLineParser::printHelp()
 
 void CommandLineParser::parse(std::vector<const char*> arguments)
 {
+	bool printHelp = false;
+	// Known arguments
 	for (auto& option : options) {
 		for (auto& command : option.second.commands) {
 			for (size_t i = 0; i < arguments.size(); i++) {
@@ -2766,12 +2768,17 @@ void CommandLineParser::parse(std::vector<const char*> arguments)
 							option.second.value = arguments[i + 1];
 						}
 						if (option.second.value == "") {
-							std::cerr << command << " requires a value\n";
+							printHelp = true;
+							break;
 						}
 					}
 				}
 			}
 		}
+	}
+	// Print help for unknown arguments or missing argument values
+	if (printHelp) {
+		options["help"].set = true;
 	}
 }
 
