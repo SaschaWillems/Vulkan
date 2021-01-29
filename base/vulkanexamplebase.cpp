@@ -705,7 +705,9 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	// Command line arguments
 	commandLineParser.parse(args);
 	if (commandLineParser.isSet("help")) {
+#if defined(_WIN32)
 		setupConsole("Vulkan example");
+#endif
 		commandLineParser.printHelp();
 		std::cin.get();
 		exit(0);
@@ -2740,7 +2742,7 @@ void CommandLineParser::printHelp()
 	std::cout << "Available command line options:\n";
 	for (auto option : options) {
 		std::cout << " ";
-		for (uint32_t i = 0; i < size(option.second.commands); i++) {
+		for (size_t i = 0; i < option.second.commands.size(); i++) {
 			std::cout << option.second.commands[i];
 			if (i < size(option.second.commands) - 1) {
 				std::cout << ", ";
@@ -2756,7 +2758,7 @@ void CommandLineParser::parse(std::vector<const char*> arguments)
 	for (auto& option : options) {
 		for (auto& command : option.second.commands) {
 			for (size_t i = 0; i < arguments.size(); i++) {
-				if (_strcmpi(arguments[i], command.c_str()) == 0) {
+				if (strcmpi(arguments[i], command.c_str()) == 0) {
 					option.second.set = true;
 					// Get value
 					if (option.second.hasValue) {
