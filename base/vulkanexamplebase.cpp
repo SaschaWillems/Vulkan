@@ -2758,7 +2758,7 @@ void CommandLineParser::parse(std::vector<const char*> arguments)
 	for (auto& option : options) {
 		for (auto& command : option.second.commands) {
 			for (size_t i = 0; i < arguments.size(); i++) {
-				if (strcmpi(arguments[i], command.c_str()) == 0) {
+				if (strcmp(arguments[i], command.c_str()) == 0) {
 					option.second.set = true;
 					// Get value
 					if (option.second.hasValue) {
