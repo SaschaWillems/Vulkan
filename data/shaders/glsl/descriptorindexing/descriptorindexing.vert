@@ -1,3 +1,5 @@
+// Copyright 2021 Sascha Willems
+
 #version 450
 
 layout (location = 0) in vec3 inPos;

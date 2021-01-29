@@ -64,5 +64,6 @@ for root, dirs, files in os.walk(dir_path):
                 '-fspv-extension=SPV_NV_ray_tracing',
                 '-fspv-extension=SPV_KHR_multiview',
                 '-fspv-extension=SPV_KHR_shader_draw_parameters',
+                '-fspv-extension=SPV_EXT_descriptor_indexing',
                 hlsl_file,
                 '-Fo', spv_out])
