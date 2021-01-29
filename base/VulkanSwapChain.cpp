@@ -272,7 +272,7 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync)
 				swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
 				break;
 			}
-			if ((swapchainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR))
+			if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)
 			{
 				swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 			}
