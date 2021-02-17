@@ -44,7 +44,7 @@ namespace vkglTF
 
 	extern VkDescriptorSetLayout descriptorSetLayoutImage;
 	extern VkDescriptorSetLayout descriptorSetLayoutUbo;
-    extern VkMemoryPropertyFlags memoryPropertyFlags;
+	extern VkMemoryPropertyFlags memoryPropertyFlags;
 	extern uint32_t descriptorBindingFlags;
 
 	struct Node;
@@ -53,7 +53,7 @@ namespace vkglTF
 		glTF texture loading class
 	*/
 	struct Texture {
-		vks::VulkanDevice* device;
+		vks::VulkanDevice* device = nullptr;
 		VkImage image;
 		VkImageLayout imageLayout;
 		VkDeviceMemory deviceMemory;
@@ -72,7 +72,7 @@ namespace vkglTF
 		glTF material class
 	*/
 	struct Material {
-		vks::VulkanDevice* device;
+		vks::VulkanDevice* device = nullptr;
 		enum AlphaMode { ALPHAMODE_OPAQUE, ALPHAMODE_MASK, ALPHAMODE_BLEND };
 		AlphaMode alphaMode = ALPHAMODE_OPAQUE;
 		float alphaCutoff = 1.0f;
@@ -295,7 +295,7 @@ namespace vkglTF
 		void loadMaterials(tinygltf::Model& gltfModel);
 		void loadAnimations(tinygltf::Model& gltfModel);
 		void loadFromFile(std::string filename, vks::VulkanDevice* device, VkQueue transferQueue, uint32_t fileLoadingFlags = vkglTF::FileLoadingFlags::None, float scale = 1.0f);
-	    void bindBuffers(VkCommandBuffer commandBuffer);
+		void bindBuffers(VkCommandBuffer commandBuffer);
 		void drawNode(Node* node, VkCommandBuffer commandBuffer, uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, uint32_t bindImageSet = 1);
 		void draw(VkCommandBuffer commandBuffer, uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, uint32_t bindImageSet = 1);
 		void getNodeDimensions(Node* node, glm::vec3& min, glm::vec3& max);
