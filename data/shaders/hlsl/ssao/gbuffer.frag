@@ -20,6 +20,9 @@ struct UBO
 
 cbuffer ubo : register(b0) { UBO ubo; }
 
+Texture2D textureColorMap : register(t0, space1);
+SamplerState samplerColorMap : register(s0, space1);
+
 struct FSOutput
 {
 	float4 Position : SV_TARGET0;
@@ -38,6 +41,6 @@ FSOutput main(VSOutput input)
 	FSOutput output = (FSOutput)0;
 	output.Position = float4(input.WorldPos, linearDepth(input.Pos.z));
 	output.Normal = float4(normalize(input.Normal) * 0.5 + 0.5, 1.0);
-	output.Albedo = float4(input.Color * 2.0, 1.0);
+	output.Albedo = textureColorMap.Sample(samplerColorMap, input.UV) * float4(input.Color, 1.0);
 	return output;
 }

@@ -9,7 +9,7 @@ layout (location = 0) out vec4 outPosition;
 layout (location = 1) out vec4 outNormal;
 layout (location = 2) out vec4 outAlbedo;
 
-layout (binding = 0) uniform UBO 
+layout (set = 0, binding = 0) uniform UBO 
 {
 	mat4 projection;
 	mat4 model;
@@ -17,6 +17,8 @@ layout (binding = 0) uniform UBO
 	float nearPlane;
 	float farPlane;
 } ubo;
+
+layout (set = 1, binding = 0) uniform sampler2D samplerColormap;
 
 float linearDepth(float depth)
 {
@@ -28,5 +30,5 @@ void main()
 {
 	outPosition = vec4(inPos, linearDepth(gl_FragCoord.z));
 	outNormal = vec4(normalize(inNormal) * 0.5 + 0.5, 1.0);
-	outAlbedo = vec4(inColor * 2.0, 1.0);
+	outAlbedo = texture(samplerColormap * inColor, inUV);
 }

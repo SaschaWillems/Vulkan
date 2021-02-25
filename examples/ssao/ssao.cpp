@@ -129,8 +129,8 @@ public:
 #ifndef __ANDROID__
 		camera.rotationSpeed = 0.25f;
 #endif
-		camera.position = { 5.0f, 1.0f, 0.0f };
-		camera.setRotation(glm::vec3(5.0f, 90.0f, 0.0f));
+		camera.position = { 1.0f, 0.75f, 0.0f };
+		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, uboSceneParams.nearPlane, uboSceneParams.farPlane);
 	}
 
@@ -172,6 +172,11 @@ public:
 		uniformBuffers.ssaoParams.destroy();
 
 		textures.ssaoNoise.destroy();
+	}
+
+	void getEnabledFeatures()
+	{
+		enabledFeatures.samplerAnisotropy = deviceFeatures.samplerAnisotropy;
 	}
 
 	// Create a frame buffer attachment
@@ -482,7 +487,8 @@ public:
 
 	void loadAssets()
 	{
-		const uint32_t gltfLoadingFlags = vkglTF::FileLoadingFlags::FlipY | vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::DontLoadImages;
+		vkglTF::descriptorBindingFlags  = vkglTF::DescriptorBindingFlags::ImageBaseColor;
+		const uint32_t gltfLoadingFlags = vkglTF::FileLoadingFlags::FlipY | vkglTF::FileLoadingFlags::PreTransformVertices;
 		scene.loadFromFile(getAssetPath() + "models/sponza/sponza.gltf", vulkanDevice, queue, gltfLoadingFlags);
 	}
 
@@ -530,7 +536,7 @@ public:
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
 
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.gBuffer, 0, 1, &descriptorSets.floor, 0, NULL);
-				scene.draw(drawCmdBuffers[i]);
+				scene.draw(drawCmdBuffers[i], vkglTF::RenderFlags::BindImages, pipelineLayouts.gBuffer);
 
 				vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -653,7 +659,10 @@ public:
 		};
 		setLayoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &setLayoutCreateInfo, nullptr, &descriptorSetLayouts.gBuffer));
-		pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayouts.gBuffer;
+
+		const std::vector<VkDescriptorSetLayout> setLayouts = { descriptorSetLayouts.gBuffer, vkglTF::descriptorSetLayoutImage };
+		pipelineLayoutCreateInfo.pSetLayouts = setLayouts.data();
+		pipelineLayoutCreateInfo.setLayoutCount = 2;
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.gBuffer));
 		descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.gBuffer;
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets.floor));
@@ -661,6 +670,7 @@ public:
 			vks::initializers::writeDescriptorSet(descriptorSets.floor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.sceneParams.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+		pipelineLayoutCreateInfo.setLayoutCount = 1;
 
 		// SSAO Generation
 		setLayoutBindings = {
@@ -928,15 +938,14 @@ public:
 
 	virtual void render()
 	{
-		if (!prepared)
+		if (!prepared) {
 			return;
+		}
 		draw();
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBufferMatrices();
-		updateUniformBufferSSAOParams();
+		if (camera.updated) {
+			updateUniformBufferMatrices();
+			updateUniformBufferSSAOParams();
+		}
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
