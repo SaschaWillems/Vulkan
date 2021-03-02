@@ -3,7 +3,7 @@
 * 
 * A swap chain is a collection of framebuffers used for rendering and presentation to the windowing system
 *
-* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2021 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -223,6 +223,7 @@ void VulkanSwapChain::connect(VkInstance instance, VkPhysicalDevice physicalDevi
 */
 void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync)
 {
+	// Store the current swap chain handle so we can use it later on to ease up recreation
 	VkSwapchainKHR oldSwapchain = swapChain;
 
 	// Get physical device surface properties and formats
@@ -316,7 +317,6 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync)
 
 	VkSwapchainCreateInfoKHR swapchainCI = {};
 	swapchainCI.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swapchainCI.pNext = NULL;
 	swapchainCI.surface = surface;
 	swapchainCI.minImageCount = desiredNumberOfSwapchainImages;
 	swapchainCI.imageFormat = colorFormat;
@@ -327,8 +327,8 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync)
 	swapchainCI.imageArrayLayers = 1;
 	swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	swapchainCI.queueFamilyIndexCount = 0;
-	swapchainCI.pQueueFamilyIndices = NULL;
 	swapchainCI.presentMode = swapchainPresentMode;
+	// Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
 	swapchainCI.oldSwapchain = oldSwapchain;
 	// Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
 	swapchainCI.clipped = VK_TRUE;
