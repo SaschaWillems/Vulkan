@@ -8,6 +8,4 @@ void main()
     // Generate a line pattern
 	vec2 pos = vec2(gl_LaunchIDEXT / 8);
 	outColor = vec3(mod(pos.y, 2.0));
-
-//    outColor = vec3(0.0, 0.0, 1.0);
 }

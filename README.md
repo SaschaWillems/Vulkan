@@ -308,7 +308,7 @@ Renders a complex scene with reflective surfaces using the new ray tracing exten
 
 #### [Callable ray tracing shaders](examples/raytracingcallable)
 
-Callable shaders can be dynamically invoked from within other ray tracing shaders to execute different shaders based on your own conditions. The example ray traces multiple geometries, with each calling a different callable shader from the closest hit shader.
+Callable shaders can be dynamically invoked from within other ray tracing shaders to execute different shaders based on dynamic conditions. The example ray traces multiple geometries, with each calling a different callable shader from the closest hit shader.
 
 #### [Ray query](examples/rayquery)
 

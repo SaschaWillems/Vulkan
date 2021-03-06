@@ -1,9 +1,11 @@
 /*
 * Vulkan Example - Hardware accelerated ray tracing callable shaders example
 *
-* Renders a complex scene using multiple hit and miss shaders for implementing shadows
+* Dynamically calls different shaders based on the geoemtry id in the closest hit shader
 *
-* Copyright (C) by Sascha Willems - www.saschawillems.de
+* Relevant code parts are marked with [POI]
+*
+* Copyright (C) 2021 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -56,20 +58,22 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		deleteStorageImage();
-		deleteAccelerationStructure(bottomLevelAS);
-		deleteAccelerationStructure(topLevelAS);
-		shaderBindingTables.raygen.destroy();
-		shaderBindingTables.miss.destroy();
-		shaderBindingTables.hit.destroy();
-		shaderBindingTables.callable.destroy();
-		vertexBuffer.destroy();
-		indexBuffer.destroy();
-		transformBuffer.destroy();
-		ubo.destroy();
+		if (device) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			deleteStorageImage();
+			deleteAccelerationStructure(bottomLevelAS);
+			deleteAccelerationStructure(topLevelAS);
+			shaderBindingTables.raygen.destroy();
+			shaderBindingTables.miss.destroy();
+			shaderBindingTables.hit.destroy();
+			shaderBindingTables.callable.destroy();
+			vertexBuffer.destroy();
+			indexBuffer.destroy();
+			transformBuffer.destroy();
+			ubo.destroy();
+		}
 	}
 
 	/*
@@ -183,6 +187,7 @@ public:
 		accelerationBuildGeometryInfo.pGeometries = accelerationStructureGeometries.data();
 		accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer.deviceAddress;
 
+		// [POI] The bottom level acceleration structure for this sample contains three separate triangle geometries, so we can use gl_GeometryIndexEXT in the closest hit shader to select different callable shaders
 		std::vector<VkAccelerationStructureBuildRangeInfoKHR> accelerationStructureBuildRangeInfos{};
 		for (uint32_t i = 0; i < objectCount; i++) {
 			VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
@@ -350,7 +355,7 @@ public:
 		createShaderBindingTable(shaderBindingTables.raygen, 1);
 		createShaderBindingTable(shaderBindingTables.miss, 1);
 		createShaderBindingTable(shaderBindingTables.hit, 1);
-		// The callable shader binding table contains one shader handle per ray traced object
+		// [POI] The callable shader binding table contains one shader handle per ray traced object
 		createShaderBindingTable(shaderBindingTables.callable, objectCount);
 
 		// Copy handles
@@ -437,50 +442,44 @@ public:
 			Setup ray tracing shader groups
 		*/
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+		VkRayTracingShaderGroupCreateInfoKHR shaderGroup;
 
 		// Ray generation shader group
-		{
-			shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_KHR));
-			VkRayTracingShaderGroupCreateInfoKHR shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
-			shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-			shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
-			shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
-			shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
-			shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
-			shaderGroups.push_back(shaderGroup);
-		}
+		shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_KHR));
+		shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
+		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+		shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
+		shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
+		shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
+		shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
+		shaderGroups.push_back(shaderGroup);
 
 		// Miss shader group
-		{
-			shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_KHR));
-			VkRayTracingShaderGroupCreateInfoKHR shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
-			shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-			shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
-			shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
-			shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
-			shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
-			shaderGroups.push_back(shaderGroup);
-		}
+		shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_KHR));
+		shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
+		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+		shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
+		shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
+		shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
+		shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
+		shaderGroups.push_back(shaderGroup);
 
 		// Closest hit shader group
-		{
-			shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
-			VkRayTracingShaderGroupCreateInfoKHR shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
-			shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
-			shaderGroup.generalShader = VK_SHADER_UNUSED_KHR;
-			shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;
-			shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
-			shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
-			shaderGroups.push_back(shaderGroup);
-		}
+		shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
+		shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
+		shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+		shaderGroup.generalShader = VK_SHADER_UNUSED_KHR;
+		shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;
+		shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
+		shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
+		shaderGroups.push_back(shaderGroup);
 
-		// Callable shader group
-		// This sample's hit shader will call different callable shaders depending on the geometry index, so as we render three different geometries, we'll also use three callable shaders
+		// [POI] Callable shader group
+		// This sample's hit shader will call different callable shaders depending on the geometry index using executeCallableEXT, so as we render three geometries, we'll also use three callable shaders
 		for (uint32_t i = 0; i < objectCount; i++) 
 		{
 			shaderStages.push_back(loadShader(getShadersPath() + "raytracingcallable/callable" + std::to_string(i+1) + ".rcall.spv", VK_SHADER_STAGE_CALLABLE_BIT_KHR));
-			VkRayTracingShaderGroupCreateInfoKHR shaderGroup{};
-			shaderGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+			shaderGroup = vks::initializers::rayTracingShaderGroupCreateInfoKHR();
 			shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
 			shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 			shaderGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
