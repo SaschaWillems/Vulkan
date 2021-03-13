@@ -748,8 +748,8 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	}
 	if (commandLineParser.isSet("benchmarkresultfile")) {
 		benchmark.filename = commandLineParser.getValueAsString("benchmarkresultfile", benchmark.filename);
-	}
-	if (commandLineParser.isSet("benchmarkframetimes")) {
+	}	
+	if (commandLineParser.isSet("benchmarkresultframes")) {
 		benchmark.outputFrameTimes = true;
 	}
 
@@ -2725,7 +2725,7 @@ CommandLineParser::CommandLineParser()
 	add("benchmarkwarmup", { "-bw", "--benchwarmup" }, 1, "Set warmup time for benchmark mode in seconds");
 	add("benchmarkruntime", { "-br", "--benchruntime" }, 1, "Set duration time for benchmark mode in seconds");
 	add("benchmarkresultfile", { "-bf", "--benchfilename" }, 1, "Set file name for benchmark results");
-	add("benchmarkresultframes", { "-bt", "--benchframetimes" }, 1, "Save frame times to benchmark results file");
+	add("benchmarkresultframes", { "-bt", "--benchframetimes" }, 0, "Save frame times to benchmark results file");
 }
 
 void CommandLineParser::add(std::string name, std::vector<std::string> commands, bool hasValue, std::string help)
