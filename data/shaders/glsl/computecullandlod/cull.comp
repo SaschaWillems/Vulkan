@@ -74,8 +74,6 @@ bool frustumCheck(vec4 pos, float radius)
 	return true;
 }
 
-layout (local_size_x = 16) in;
-
 void main()
 {
 	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
