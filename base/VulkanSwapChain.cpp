@@ -23,7 +23,7 @@ void VulkanSwapChain::initSurface(wl_display *display, wl_surface *window)
 void VulkanSwapChain::initSurface(xcb_connection_t* connection, xcb_window_t window)
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 void VulkanSwapChain::initSurface(void* view)
-#elif defined(_DIRECT2DISPLAY)
+#elif (defined(_DIRECT2DISPLAY) || defined(VK_USE_PLATFORM_HEADLESS_EXT))
 void VulkanSwapChain::initSurface(uint32_t width, uint32_t height)
 #endif
 {
@@ -75,6 +75,14 @@ void VulkanSwapChain::initSurface(uint32_t width, uint32_t height)
 	surfaceCreateInfo.connection = connection;
 	surfaceCreateInfo.window = window;
 	err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_HEADLESS_EXT)
+	VkHeadlessSurfaceCreateInfoEXT surfaceCreateInfo = {};
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT;
+	PFN_vkCreateHeadlessSurfaceEXT fpCreateHeadlessSurfaceEXT = (PFN_vkCreateHeadlessSurfaceEXT)vkGetInstanceProcAddr(instance, "vkCreateHeadlessSurfaceEXT");
+	if (!fpCreateHeadlessSurfaceEXT){
+		vks::tools::exitFatal("Could not fetch function pointer for the headless extension!", -1);
+	}
+	err = fpCreateHeadlessSurfaceEXT(instance, &surfaceCreateInfo, nullptr, &surface);
 #endif
 
 	if (err != VK_SUCCESS) {
