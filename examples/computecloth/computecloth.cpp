@@ -53,6 +53,7 @@ public:
 		} semaphores;
 		vks::Buffer uniformBuffer;
 		VkQueue queue;
+		VkFence fence;
 		VkCommandPool commandPool;
 		std::array<VkCommandBuffer,2> commandBuffers;
 		VkDescriptorSetLayout descriptorSetLayout;
@@ -119,6 +120,7 @@ public:
 		vkDestroySemaphore(device, compute.semaphores.ready, nullptr);
 		vkDestroySemaphore(device, compute.semaphores.complete, nullptr);
 		vkDestroyCommandPool(device, compute.commandPool, nullptr);
+		vkDestroyFence(device, compute.fence, nullptr);
 	}
 
 	// Enable physical device features required for this example
@@ -626,6 +628,10 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffers[0]));
 
+		// Fence for compute CB sync
+		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &compute.fence));
+
 		// Semaphores for graphics / compute synchronization
 		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &compute.semaphores.ready));
@@ -717,7 +723,9 @@ public:
 		computeSubmitInfo.commandBufferCount = 1;
 		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[readSet];
 
-		VK_CHECK_RESULT( vkQueueSubmit( compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE) );
+		VK_CHECK_RESULT( vkQueueSubmit( compute.queue, 1, &computeSubmitInfo, compute.fence) );
+		vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
+		vkResetFences(device, 1, &compute.fence);
 
 		// Submit graphics commands
 		VulkanExampleBase::prepareFrame();
