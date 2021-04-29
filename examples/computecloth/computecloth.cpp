@@ -724,6 +724,8 @@ public:
 		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[readSet];
 
 		VK_CHECK_RESULT( vkQueueSubmit( compute.queue, 1, &computeSubmitInfo, compute.fence) );
+		
+		// Wait for fence to ensure that compute buffer writes have finished
 		vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
 		vkResetFences(device, 1, &compute.fence);
 
