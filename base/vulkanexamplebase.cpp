@@ -842,7 +842,8 @@ VulkanExampleBase::~VulkanExampleBase()
 		wl_keyboard_destroy(keyboard);
 	if (pointer)
 		wl_pointer_destroy(pointer);
-	wl_seat_destroy(seat);
+	if (seat)
+		wl_seat_destroy(seat);
 	xdg_wm_base_destroy(shell);
 	wl_compositor_destroy(compositor);
 	wl_registry_destroy(registry);
@@ -2128,11 +2129,16 @@ void VulkanExampleBase::initWaylandConnection()
 	wl_registry_add_listener(registry, &registry_listener, this);
 	wl_display_dispatch(display);
 	wl_display_roundtrip(display);
-	if (!compositor || !shell || !seat)
+	if (!compositor || !shell)
 	{
 		std::cout << "Could not bind Wayland protocols!\n";
 		fflush(stdout);
 		exit(1);
+	}
+	if (!seat)
+	{
+		std::cout << "WARNING: Input handling not available!\n";
+		fflush(stdout);
 	}
 }
 
