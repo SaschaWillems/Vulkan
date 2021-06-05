@@ -18,6 +18,7 @@ include_directories(base)
 OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
 OPTION(USE_DIRECTFB_WSI "Build the project using DirectFB swapchain" OFF)
 OPTION(USE_WAYLAND_WSI "Build the project using Wayland swapchain" OFF)
+OPTION(USE_HEADLESS "Build the project using headless extension swapchain" OFF)
 
 set(RESOURCE_INSTALL_DIR "" CACHE PATH "Path to install resources to (leave empty for running uninstalled)")
 
@@ -79,6 +80,8 @@ ELSEIF(LINUX)
 		execute_process(COMMAND ${WAYLAND_SCANNER} client-header ${protocol_dir}/stable/xdg-shell/xdg-shell.xml ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h
 				COMMAND ${WAYLAND_SCANNER} private-code ${protocol_dir}/stable/xdg-shell/xdg-shell.xml ${CMAKE_BINARY_DIR}/xdg-shell-protocol.c)
 		include_directories(${CMAKE_BINARY_DIR})
+	ELSEIF(USE_HEADLESS)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_HEADLESS_EXT")
 	ELSE(USE_D2D_WSI)
 		find_package(XCB REQUIRED)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_XCB_KHR")

@@ -1188,6 +1188,7 @@ int main(const int argc, const char *argv[])
 
 // Linux entry point
 VulkanExample *vulkanExample;
+#if defined(VK_USE_PLATFORM_XCB_KHR)
 static void handleEvent(const xcb_generic_event_t *event)
 {
 	if (vulkanExample != NULL)
@@ -1195,6 +1196,11 @@ static void handleEvent(const xcb_generic_event_t *event)
 		vulkanExample->handleEvent(event);
 	}
 }
+#else
+static void handleEvent()
+{
+}
+#endif
 int main(const int argc, const char *argv[])
 {
 	for (size_t i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };
