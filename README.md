@@ -9,6 +9,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 + [Cloning](#Cloning)
 + [Assets](#Assets)
 + [Building](#Building)
++ [Running](#Running)
 + [Shaders](#Shaders)
 + [Examples](#Examples)
     + [Basics](#Basics)
@@ -62,6 +63,28 @@ from the root of the repository after cloning or see [this](data/README.md) for 
 The repository contains everything required to compile and build the examples on <img src="./images/windowslogo.png" alt="" height="22px" valign="bottom"> Windows, <img src="./images/linuxlogo.png" alt="" height="24px" valign="bottom"> Linux, <img src="./images/androidlogo.png" alt="" height="24px" valign="bottom"> Android, <img src="./images/applelogo.png" alt="" valign="bottom" height="24px"> iOS and macOS (using MoltenVK) using a C++ compiler that supports C++11.
 
 See [BUILD.md](BUILD.md) for details on how to build for the different platforms.
+
+## Running
+
+Once built, examples can be run from the bin directory. The list of available command line options can be brought up with `--help`:
+```
+ -v, --validation: Enable validation layers
+ -br, --benchruntime: Set duration time for benchmark mode in seconds
+ -vs, --vsync: Enable V-Sync
+ -w, --width: Set window width
+ -f, --fullscreen: Start in fullscreen mode
+ --help: Show help
+ -h, --height: Set window height
+ -bt, --benchframetimes: Save frame times to benchmark results file
+ -s, --shaders: Select shader type to use (glsl or hlsl)
+ -b, --benchmark: Run example in benchmark mode
+ -g, --gpu: Select GPU to run on
+ -bf, --benchfilename: Set file name for benchmark results
+ -gl, --listgpus: Display a list of available Vulkan devices
+ -bw, --benchwarmup: Set warmup time for benchmark mode in seconds
+```
+
+Note that some examples require specific device features, and if you are on a multi-gpu system you might need to use the `-gl` and `-g` to select a gpu that supports them.
 
 ## Shaders
 
