@@ -49,8 +49,8 @@ task copyTask {
     }
 
     copy {
-       from '../../../data/shaders/glsl/raytracingbasic'
-       into 'assets/shaders/glsl/raytracingbasic'
+       from '../../../data/shaders/glsl/raytracingshadows'
+       into 'assets/shaders/glsl/raytracingshadows'
        include '*.*'
     }
 
