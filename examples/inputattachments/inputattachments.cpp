@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Using input attachments
 *
-* Copyright (C) 2018 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2021 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
@@ -58,15 +58,18 @@ public:
 	} descriptorSetLayouts;
 
 	struct FrameBufferAttachment {
-		VkImage image;
-		VkDeviceMemory memory;
-		VkImageView view;
+		VkImage image = VK_NULL_HANDLE;
+		VkDeviceMemory memory = VK_NULL_HANDLE;
+		VkImageView view = VK_NULL_HANDLE;
 		VkFormat format;
 	};
 	struct Attachments {
 		FrameBufferAttachment color, depth;
 	};
 	std::vector<Attachments> attachments;
+	VkExtent2D attachmentSize;
+
+	const VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -105,6 +108,13 @@ public:
 
 		uniformBuffers.matrices.destroy();
 		uniformBuffers.params.destroy();
+	}
+
+	void clearAttachment(FrameBufferAttachment* attachment)
+	{
+		vkDestroyImageView(device, attachment->view, nullptr);
+		vkDestroyImage(device, attachment->image, nullptr);
+		vkFreeMemory(device, attachment->memory, nullptr);
 	}
 
 	// Create a frame buffer attachment
@@ -163,6 +173,21 @@ public:
 	// Override framebuffer setup from base class
 	void setupFrameBuffer()
 	{
+		// If the window is resized, all the framebuffers/attachments used in our composition passes need to be recreated
+		if (attachmentSize.width != width || attachmentSize.height != height)
+		{
+			attachmentSize = { width, height };
+
+			for (auto i = 0; i < attachments.size(); i++) {
+				clearAttachment(&attachments[i].color);
+				clearAttachment(&attachments[i].depth);
+				createAttachment(colorFormat, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments[i].color);
+				createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &attachments[i].depth);
+				// Since the framebuffers/attachments are referred in the descriptor sets, these need to be updated too
+				updateAttachmentReadDescriptors(i);
+			}
+		}
+
 		VkImageView views[3];
 
 		VkFramebufferCreateInfo frameBufferCI{};
@@ -187,7 +212,7 @@ public:
 	// Override render pass setup from base class
 	void setupRenderPass()
 	{
-		const VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		attachmentSize = { width, height };		
 
 		attachments.resize(swapChain.imageCount);
 		for (auto i = 0; i < attachments.size(); i++) {
@@ -384,6 +409,24 @@ public:
 		scene.loadFromFile(getAssetPath() + "models/treasure_smooth.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
+	void updateAttachmentReadDescriptors(uint32_t index)
+	{
+		// Image descriptors for the input attachments read by the shader
+		std::vector<VkDescriptorImageInfo> descriptors = {
+			vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments[index].color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+			vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments[index].depth.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+		};
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			// Binding 0: Color input attachment
+			vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead[index], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, &descriptors[0]),
+			// Binding 1: Depth input attachment
+			vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead[index], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &descriptors[1]),
+			// Binding 2: Display parameters uniform buffer
+			vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead[index], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffers.params.descriptor),
+		};
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+	}
+
 	void setupDescriptors()
 	{
 		/*
@@ -420,41 +463,25 @@ public:
 		/*
 			Attachment read
 		*/
-		{
-			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				// Binding 0: Color input attachment
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-				// Binding 1: Depth input attachment
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
-				// Binding 2: Display parameters uniform buffer
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
-			};
-			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayouts.attachmentRead));
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+			// Binding 0: Color input attachment
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+			// Binding 1: Depth input attachment
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+			// Binding 2: Display parameters uniform buffer
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
+		};
+		VkDescriptorSetLayoutCreateInfo descriptorLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayouts.attachmentRead));
 
-			VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.attachmentRead, 1);
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts.attachmentRead));
+		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.attachmentRead, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts.attachmentRead));
 
-			descriptorSets.attachmentRead.resize(attachments.size());
-			for (auto i = 0; i < descriptorSets.attachmentRead.size(); i++) {
-				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.attachmentRead, 1);
-				VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.attachmentRead[i]));
-
-				// Image descriptors for the input attachments read by the shader
-				std::vector<VkDescriptorImageInfo> descriptors = {
-					vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments[i].color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-					vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments[i].depth.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-				};
-				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-					// Binding 0: Color input attachment
-					vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, &descriptors[0]),
-					// Binding 1: Depth input attachment
-					vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &descriptors[1]),
-					// Binding 2: Display parameters uniform buffer
-					vks::initializers::writeDescriptorSet(descriptorSets.attachmentRead[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffers.params.descriptor),
-				};
-				vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-			}
+		descriptorSets.attachmentRead.resize(attachments.size());
+		for (auto i = 0; i < descriptorSets.attachmentRead.size(); i++) {
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.attachmentRead, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.attachmentRead[i]));
+			updateAttachmentReadDescriptors(i);
 		}
 
 	}
