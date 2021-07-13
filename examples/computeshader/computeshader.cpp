@@ -36,15 +36,16 @@ public:
 		VkDescriptorSet descriptorSetPostCompute;	// Image display shader bindings after compute shader image manipulation
 		VkPipeline pipeline;						// Image display pipeline
 		VkPipelineLayout pipelineLayout;			// Layout of the graphics pipeline
-		VkSemaphore semaphore;                      // Execution dependency between compute & graphic submission
+		VkSemaphore semaphore;						// Execution dependency between compute & graphic submission
 	} graphics;
 
 	// Resources for the compute part of the example
 	struct Compute {
 		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
+		VkFence fence; 								// Synchronization fence to avoid rewriting compute CB if still in use
 		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
 		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
-		VkSemaphore semaphore;                      // Execution dependency between compute & graphic submission
+		VkSemaphore semaphore;						// Execution dependency between compute & graphic submission
 		VkDescriptorSetLayout descriptorSetLayout;	// Compute shader binding layout
 		VkDescriptorSet descriptorSet;				// Compute shader bindings
 		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
@@ -94,6 +95,7 @@ public:
 		vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
 		vkDestroySemaphore(device, compute.semaphore, nullptr);
 		vkDestroyCommandPool(device, compute.commandPool, nullptr);
+		vkDestroyFence(device, compute.fence, nullptr);
 
 		vertexBuffer.destroy();
 		indexBuffer.destroy();
@@ -555,6 +557,10 @@ public:
 
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffer));
 
+		// Fence for compute CB sync
+		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &compute.fence));
+
 		// Semaphore for compute & graphics sync
 		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &compute.semaphore));
@@ -625,7 +631,11 @@ public:
 		computeSubmitInfo.pWaitDstStageMask = &waitStageMask;
 		computeSubmitInfo.signalSemaphoreCount = 1;
 		computeSubmitInfo.pSignalSemaphores = &compute.semaphore;
-		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fence));
+
+		// Wait for fence to ensure that compute buffer writes have finished
+		vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
+		vkResetFences(device, 1, &compute.fence);
 	}
 
 	void prepare()
