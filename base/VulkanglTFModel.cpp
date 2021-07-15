@@ -878,8 +878,10 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 						switch (numColorComponents) {
 							case 3: 
 								vert.color = glm::vec4(glm::make_vec3(&bufferColors[v * 3]), 1.0f);
+								break;
 							case 4:
 								vert.color = glm::make_vec4(&bufferColors[v * 4]);
+								break;
 						}
 					}
 					else {
