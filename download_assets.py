@@ -49,10 +49,10 @@ def download_assets(force_download=False):
 
 if '__main__' == __name__:
     arg_parser = argparse.ArgumentParser(
-        'Download Sascha Williems Vulkan samples asset files')
+        description='Download Sascha Williems Vulkan samples asset files')
     arg_parser.add_argument(
         '--force', dest='force',
         action='store_true', default=False,
-        help='Force asset download, even assets were already downloaded')
+        help='Force asset download, even if assets were already downloaded')
     arg_parser.parse_args()
     download_assets()
