@@ -303,7 +303,7 @@ Renders a scene to multiple viewports in one pass using a geometry shader to app
 
 ### Tessellation Shader
 
-#### [Displacement mapping](examples/tessellation/)
+#### [Displacement mapping](examples/displacement/)
 
 Uses a height map to dynamically generate and displace additional geometric detail for a low-poly mesh.
 
