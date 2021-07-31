@@ -67,7 +67,7 @@ public:
 		VkStridedDeviceAddressRegionKHR stridedDeviceAddressRegion{};
 	};
 
-	void enableExtensions();
+	void enableExtensions(bool rayqueryOnly = false);
 	ScratchBuffer createScratchBuffer(VkDeviceSize size);
 	void deleteScratchBuffer(ScratchBuffer& scratchBuffer);
 	void createAccelerationStructure(AccelerationStructure& accelerationStructure, VkAccelerationStructureTypeKHR type, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo);

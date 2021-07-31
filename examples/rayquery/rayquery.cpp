@@ -47,7 +47,7 @@ public:
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 3.0f, -10.0f));
 		settings.overlay = true;
-		enableExtensions();
+		enableExtensions(true);
 		enabledDeviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
 	}
 

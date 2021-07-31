@@ -8,18 +8,18 @@
 
 #include "VulkanRaytracingSample.h"
 
-void VulkanRaytracingSample::enableExtensions()
+void VulkanRaytracingSample::enableExtensions(bool rayqueryOnly)
 {
 	// Require Vulkan 1.1
 	apiVersion = VK_API_VERSION_1_1;
 
 	// Ray tracing related extensions required by this sample
 	enabledDeviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
-	enabledDeviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+	if (!rayqueryOnly) enabledDeviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
 
 	// Required by VK_KHR_acceleration_structure
 	enabledDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
-	enabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+	if (!rayqueryOnly) enabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
 	enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 
 	// Required for VK_KHR_ray_tracing_pipeline
