@@ -23,6 +23,7 @@ namespace vks
 	public:
 		bool active = false;
 		bool outputFrameTimes = false;
+		int outputFrames = -1; // -1 means no frames limit
 		uint32_t warmup = 1;
 		uint32_t duration = 10;
 		std::vector<double> frameTimes;
@@ -61,6 +62,7 @@ namespace vks
 					runtime += tDiff;
 					frameTimes.push_back(tDiff);
 					frameCount++;
+					if (outputFrames != -1 && outputFrames == frameCount) break;
 				};
 				std::cout << "Benchmark finished" << "\n";
 				std::cout << "device : " << deviceProps.deviceName << " (driver version: " << deviceProps.driverVersion << ")" << "\n";

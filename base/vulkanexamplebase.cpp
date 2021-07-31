@@ -788,6 +788,9 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	if (commandLineParser.isSet("benchmarkresultframes")) {
 		benchmark.outputFrameTimes = true;
 	}
+	if (commandLineParser.isSet("benchmarkframes")) {
+		benchmark.outputFrames = commandLineParser.getValueAsInt("benchmarkframes", benchmark.outputFrames);
+	}
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// Vulkan library is loaded dynamically on Android
@@ -2772,6 +2775,7 @@ CommandLineParser::CommandLineParser()
 	add("benchmarkruntime", { "-br", "--benchruntime" }, 1, "Set duration time for benchmark mode in seconds");
 	add("benchmarkresultfile", { "-bf", "--benchfilename" }, 1, "Set file name for benchmark results");
 	add("benchmarkresultframes", { "-bt", "--benchframetimes" }, 0, "Save frame times to benchmark results file");
+	add("benchmarkframes", { "-bfs", "--benchmarkframes" }, 1, "Only render the given number of frames");
 }
 
 void CommandLineParser::add(std::string name, std::vector<std::string> commands, bool hasValue, std::string help)
