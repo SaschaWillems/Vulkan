@@ -666,15 +666,6 @@ public:
 
 	void draw()
 	{
-		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be submitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
-
 		// Submit compute commands
 		// Use a fence to ensure that compute command buffer has finished executing before using it again
 		vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
@@ -685,6 +676,15 @@ public:
 		computeSubmitInfo.pCommandBuffers = &compute.commandBuffer;
 
 		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fence));
+		
+		VulkanExampleBase::prepareFrame();
+
+		// Command buffer to be submitted to the queue
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		VulkanExampleBase::submitFrame();		
 	}
 
 	void prepare()
