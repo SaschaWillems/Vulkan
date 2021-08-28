@@ -15,6 +15,9 @@
 
 class VulkanRaytracingSample : public VulkanExampleBase
 {
+protected:
+	// Update the default render pass with different color attachment load ops
+	virtual void updateRenderPass();
 public:
 	// Function pointers for ray tracing related stuff
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
@@ -45,7 +48,7 @@ public:
 		VkDeviceMemory memory = VK_NULL_HANDLE;
 	};
 
-	// Holds information for a ray tracing tracing acceleration structure
+	// Holds information for a ray tracing acceleration structure
 	struct AccelerationStructure {
 		VkAccelerationStructureKHR handle;
 		uint64_t deviceAddress = 0;
@@ -67,7 +70,10 @@ public:
 		VkStridedDeviceAddressRegionKHR stridedDeviceAddressRegion{};
 	};
 
-	void enableExtensions(bool rayqueryOnly = false);
+	// Set to true, to denote that the sample only uses ray queries (changes extension and render pass handling)
+	bool rayQueryOnly = false;
+
+	void enableExtensions();
 	ScratchBuffer createScratchBuffer(VkDeviceSize size);
 	void deleteScratchBuffer(ScratchBuffer& scratchBuffer);
 	void createAccelerationStructure(AccelerationStructure& accelerationStructure, VkAccelerationStructureTypeKHR type, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo);
@@ -77,6 +83,8 @@ public:
 	void deleteStorageImage();
 	VkStridedDeviceAddressRegionKHR getSbtEntryStridedDeviceAddressRegion(VkBuffer buffer, uint32_t handleCount);
 	void createShaderBindingTable(ShaderBindingTable& shaderBindingTable, uint32_t handleCount);
+	// Draw the ImGUI UI overlay using a render pass
+	void drawUI(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer);
 
 	virtual void prepare();
 };

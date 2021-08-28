@@ -98,7 +98,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setTranslation(glm::vec3(0.5f, 0.0f, 0.0f));
 		camera.movementSpeed = 5.0f;
-		settings.overlay = true;
 		memset(&indirectStats, 0, sizeof(indirectStats));
 	}
 

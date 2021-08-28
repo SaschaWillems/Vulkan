@@ -78,7 +78,6 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Compute shader particle system";
-		settings.overlay = true;
 	}
 
 	~VulkanExample()

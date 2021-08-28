@@ -81,7 +81,6 @@ public:
 		camera.rotationSpeed = 0.25f;
 		paused = true;
 		timerSpeed *= 0.25f;
-		settings.overlay = true;
 
 		// Setup some default materials (source: https://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
 		materials.push_back(Material("Gold", glm::vec3(1.0f, 0.765557f, 0.336057f), 0.1f, 1.0f));

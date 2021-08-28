@@ -82,8 +82,6 @@ public:
 
 		camera.setRotation({ -7.75f, 150.25f, 0.0f });
 		camera.setPosition({ 0.7f, 0.1f, 1.7f });
-
-		settings.overlay = true;
 	}
 
 	~VulkanExample()

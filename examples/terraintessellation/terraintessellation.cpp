@@ -106,7 +106,6 @@ public:
 		camera.setRotation(glm::vec3(-12.0f, 159.0f, 0.0f));
 		camera.setTranslation(glm::vec3(18.0f, 22.5f, 57.5f));
 		camera.movementSpeed = 7.5f;
-		settings.overlay = true;
 	}
 
 	~VulkanExample()

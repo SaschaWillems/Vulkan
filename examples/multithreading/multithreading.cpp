@@ -103,7 +103,6 @@ public:
 		camera.setRotation(glm::vec3(0.0f));
 		camera.setRotationSpeed(0.5f);
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		settings.overlay = true;
 		// Get number of max. concurrent threads
 		numThreads = std::thread::hardware_concurrency();
 		assert(numThreads > 0);

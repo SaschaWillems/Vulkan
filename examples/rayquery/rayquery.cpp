@@ -46,8 +46,8 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 3.0f, -10.0f));
-		settings.overlay = true;
-		enableExtensions(true);
+		rayQueryOnly = true;
+		enableExtensions();
 		enabledDeviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
 	}
 
@@ -271,7 +271,7 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 			scene.draw(drawCmdBuffers[i]);
 
-			drawUI(drawCmdBuffers[i]);
+			VulkanExampleBase::drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 

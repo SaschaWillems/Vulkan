@@ -43,7 +43,6 @@ public:
 	VulkanExample() : VulkanRaytracingSample()
 	{
 		title = "Ray tracing reflections";
-		settings.overlay = false;
 		timerSpeed *= 0.5f;
 		camera.rotationSpeed *= 0.25f;
 		camera.type = Camera::CameraType::firstperson;
@@ -519,10 +518,7 @@ public:
 				VK_IMAGE_LAYOUT_GENERAL,
 				subresourceRange);
 
-			//@todo: Default render pass setup will overwrite contents
-			//vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			//drawUI(drawCmdBuffers[i]);
-			//vkCmdEndRenderPass(drawCmdBuffers[i]);
+			drawUI(drawCmdBuffers[i], frameBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}

@@ -146,7 +146,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, zNear, zFar);
 		timerSpeed *= 0.25f;
 		paused = true;
-		settings.overlay = true;
 	}
 
 	~VulkanExample()

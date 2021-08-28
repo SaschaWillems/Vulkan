@@ -200,7 +200,7 @@ public:
 		/** @brief Set to true if v-sync will be forced for the swapchain */
 		bool vsync = false;
 		/** @brief Enable UI overlay */
-		bool overlay = false;
+		bool overlay = true;
 	} settings;
 
 	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };

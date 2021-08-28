@@ -89,7 +89,6 @@ public:
 		camera.setRotation(glm::vec3(-16.25f, -28.75f, 0.0f));
 		camera.setPerspective(45.0f, (float)width / (float)height, 1.0f, 256.0f);
 		timerSpeed *= 0.5f;
-		settings.overlay = true;
 	}
 
 	~VulkanExample()

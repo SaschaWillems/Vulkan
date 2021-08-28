@@ -55,7 +55,6 @@ public:
 		camera.setTranslation(glm::vec3(40.75f, 0.0f, 0.0f));
 		camera.movementSpeed = 2.5f;
 		camera.rotationSpeed = 0.5f;
-		settings.overlay = true;
 		timerSpeed *= 0.05f;
 	}
 

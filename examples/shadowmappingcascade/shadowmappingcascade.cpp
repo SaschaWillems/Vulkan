@@ -141,7 +141,6 @@ public:
 		camera.setPerspective(45.0f, (float)width / (float)height, zNear, zFar);
 		camera.setPosition(glm::vec3(-0.12f, 1.14f, -2.25f));
 		camera.setRotation(glm::vec3(-17.0f, 7.0f, 0.0f));
-		settings.overlay = true;
 		timer = 0.2f;
 	}
 

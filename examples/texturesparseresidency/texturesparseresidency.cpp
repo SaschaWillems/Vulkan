@@ -141,7 +141,6 @@ VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	camera.setPosition(glm::vec3(0.0f, 0.0f, -12.0f));
 	camera.setRotation(glm::vec3(-90.0f, 0.0f, 0.0f));
 	camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-	settings.overlay = true;
 }
 
 VulkanExample::~VulkanExample()

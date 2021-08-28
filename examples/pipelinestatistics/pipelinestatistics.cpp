@@ -60,7 +60,6 @@ public:
 		camera.movementSpeed = 4.0f;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.rotationSpeed = 0.25f;
-		settings.overlay = true;
 	}
 
 	~VulkanExample()

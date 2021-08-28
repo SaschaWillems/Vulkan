@@ -124,7 +124,6 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Screen space ambient occlusion";
-		settings.overlay = true;
 		camera.type = Camera::CameraType::firstperson;
 #ifndef __ANDROID__
 		camera.rotationSpeed = 0.25f;

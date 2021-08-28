@@ -43,7 +43,6 @@ public:
 	VulkanExample() : VulkanRaytracingSample()
 	{
 		title = "Ray traced shadows";
-		settings.overlay = false;
 		timerSpeed *= 0.25f;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
@@ -513,6 +512,8 @@ public:
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				VK_IMAGE_LAYOUT_GENERAL,
 				subresourceRange);
+
+			drawUI(drawCmdBuffers[i], frameBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}

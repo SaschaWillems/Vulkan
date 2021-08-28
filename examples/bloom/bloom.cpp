@@ -97,7 +97,6 @@ public:
 	{
 		title = "Bloom (offscreen rendering)";
 		timerSpeed *= 0.5f;
-		settings.overlay = true;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -10.25f));
 		camera.setRotation(glm::vec3(7.5f, -343.0f, 0.0f));
