@@ -90,7 +90,7 @@ float3 BRDF(float3 L, float3 V, float3 N, float metallic, float roughness)
 		// D = Normal distribution (Distribution of the microfacets)
 		float D = D_GGX(dotNH, roughness);
 		// G = Geometric shadowing term (Microfacets shadowing)
-		float G = G_SchlicksmithGGX(dotNL, dotNV, roughness);
+		float G = G_SchlicksmithGGX(dotNL, dotNV, rroughness);
 		// F = Fresnel factor (Reflectance depending on angle of incidence)
 		float3 F = F_Schlick(dotNV, metallic);
 
