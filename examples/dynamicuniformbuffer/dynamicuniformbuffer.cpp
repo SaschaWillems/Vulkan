@@ -424,6 +424,9 @@ public:
 			&uniformBuffers.dynamic,
 			bufferSize));
 
+		// Override descriptor range to [base, base + dynamicAlignment]
+		uniformBuffers.dynamic.descriptor.range = dynamicAlignment;
+
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffers.view.map());
 		VK_CHECK_RESULT(uniformBuffers.dynamic.map());
