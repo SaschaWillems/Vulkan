@@ -17,7 +17,7 @@
  * If you are looking for a complete glTF implementation, check out https://github.com/SaschaWillems/Vulkan-glTF-PBR/
  */
 
-#define TINYGLTF_IMPLEMENTATION
+//#define TINYGLTF_IMPLEMENTATION   // SRS - Already defined in VulkanglTFModel.cpp
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #ifdef VK_USE_PLATFORM_ANDROID_KHR

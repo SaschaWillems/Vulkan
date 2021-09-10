@@ -10,7 +10,7 @@
 #include "MVKExample.h"
 
 
-const std::string VulkanExampleBase::getAssetPath() {
+const std::string getAssetPath() {
     return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/data/"].UTF8String;
 }
 
@@ -55,7 +55,8 @@ const std::string VulkanExampleBase::getAssetPath() {
 -(BOOL) canBecomeFirstResponder { return _viewHasAppeared; }
 
 -(void) renderFrame {
-    _mvkExample->renderFrame();
+    //_mvkExample->renderFrame();
+    _mvkExample->nextFrame();             // SRS - Call MVKExample::nextFrame() to animate frames vs. MVKExample::renderFrame() for static image
 }
 
 -(void) dealloc {

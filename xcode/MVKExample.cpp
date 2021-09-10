@@ -13,6 +13,10 @@ void MVKExample::renderFrame() {
     _vulkanExample->renderFrame();
 }
 
+void MVKExample::nextFrame() {                      // SRS - expose VulkanExampleBase::nextFrame() to DemoViewController
+    _vulkanExample->nextFrame();
+}
+
 void MVKExample::keyPressed(uint32_t keyCode) {
     _vulkanExample->keyPressed(keyCode);
 }
@@ -21,7 +25,7 @@ MVKExample::MVKExample(void* view) {
     _vulkanExample = new VulkanExample();
     _vulkanExample->initVulkan();
     _vulkanExample->setupWindow(view);
-    _vulkanExample->initSwapchain();
+//    _vulkanExample->initSwapchain();              // SRS - initSwapchain() is now part of VulkanExampleBase::prepare()
     _vulkanExample->prepare();
 }
 

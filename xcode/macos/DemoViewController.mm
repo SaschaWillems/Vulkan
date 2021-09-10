@@ -10,8 +10,7 @@
 
 #include "MVKExample.h"
 
-
-const std::string VulkanExampleBase::getAssetPath() {
+const std::string getAssetPath() {
     return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/data/"].UTF8String;
 }
 
@@ -22,7 +21,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                                     CVOptionFlags flagsIn,
                                     CVOptionFlags* flagsOut,
                                     void* target) {
-    ((MVKExample*)target)->renderFrame();
+    //((MVKExample*)target)->renderFrame();
+    ((MVKExample*)target)->nextFrame();             // SRS - Call MVKExample::nextFrame() to animate frames vs. MVKExample::renderFrame() for static image
     return kCVReturnSuccess;
 }
 

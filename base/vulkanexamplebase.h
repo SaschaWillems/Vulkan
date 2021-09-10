@@ -102,7 +102,7 @@ private:
 	bool resizing = false;
 	void windowResize();
 	void handleMouseMove(int32_t x, int32_t y);
-	void nextFrame();
+//	void nextFrame();                               // SRS - make VulkanExampleBase::nextFrame() public
 	void updateOverlay();
 	void createPipelineCache();
 	void createCommandPool();
@@ -401,7 +401,9 @@ public:
 	/** @brief Presents the current image to the swap chain */
 	void submitFrame();
 	/** @brief (Virtual) Default image acquire + submission and command buffer submission function */
-	virtual void renderFrame();
+	void renderFrame();                             // SRS - Don't think this needs to be virtual since render() is virtual
+    /** @brief Draws and advances to the next frame */
+    void nextFrame();                               // SRS - make VulkanExampleBase::nextFrame() public
 
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);

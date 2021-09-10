@@ -12,7 +12,7 @@
 * This sample comes with a tutorial, see the README.md in this folder
 */
 
-#define TINYGLTF_IMPLEMENTATION
+//#define TINYGLTF_IMPLEMENTATION   // SRS - Already defined in VulkanglTFModel.cpp
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #define TINYGLTF_NO_STB_IMAGE

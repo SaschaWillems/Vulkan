@@ -27,7 +27,7 @@
 // In the list below, the comments indicate entries that,
 // under certain conditions, that may not run as expected.
 
-#define MVK_vulkanscene
+#define MVK_gltfskinning
 
 // BASICS
 
@@ -50,9 +50,9 @@
 #   include "../examples/texturearray/texturearray.cpp"
 #endif
 
-#ifdef MVK_mesh
-#   include "../examples/mesh/mesh.cpp"
-#endif
+//#ifdef MVK_mesh
+//#   include "../examples/mesh/mesh.cpp"
+//#endif
 
 #ifdef MVK_dynamicuniformbuffer
 #   include "../examples/dynamicuniformbuffer/dynamicuniformbuffer.cpp"
@@ -90,8 +90,8 @@
 #   include "../examples/multithreading/multithreading.cpp"
 #endif
 
-#ifdef MVK_scenerendering
-#   include "../examples/scenerendering/scenerendering.cpp"
+#ifdef MVK_gltfscenerendering
+#   include "../examples/gltfscenerendering/gltfscenerendering.cpp"
 #endif
 
 #ifdef MVK_instancing
@@ -178,6 +178,7 @@
 
 #ifdef MVK_gears
 #   include "../examples/gears/gears.cpp"
+#   include "../examples/gears/vulkangear.cpp"
 #endif
 
 #ifdef MVK_distancefieldfonts
@@ -188,3 +189,10 @@
 #   include "../examples/vulkanscene/vulkanscene.cpp"
 #endif
 
+#ifdef MVK_gltfloading
+#   include "../examples/gltfloading/gltfloading.cpp"
+#endif
+
+#ifdef MVK_gltfskinning
+#   include "../examples/gltfskinning/gltfskinning.cpp"
+#endif
