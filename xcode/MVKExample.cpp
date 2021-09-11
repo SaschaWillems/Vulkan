@@ -13,8 +13,8 @@ void MVKExample::renderFrame() {
     _vulkanExample->renderFrame();
 }
 
-void MVKExample::nextFrame() {                      // SRS - expose VulkanExampleBase::nextFrame() to DemoViewController
-    _vulkanExample->nextFrame();
+void MVKExample::displayLinkOutputCb() {            // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
+    _vulkanExample->displayLinkOutputCb();
 }
 
 void MVKExample::keyPressed(uint32_t keyCode) {

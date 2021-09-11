@@ -14,7 +14,7 @@ class MVKExample {
 
 public:
     void renderFrame();
-    void nextFrame();                               // SRS - expose VulkanExampleBase::nextFrame() to DemoViewController
+    void displayLinkOutputCb();                     // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
     void keyPressed(uint32_t keyCode);
 
     MVKExample(void* view);

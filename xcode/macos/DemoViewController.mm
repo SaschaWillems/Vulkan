@@ -22,7 +22,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                                     CVOptionFlags* flagsOut,
                                     void* target) {
     //((MVKExample*)target)->renderFrame();
-    ((MVKExample*)target)->nextFrame();             // SRS - Call MVKExample::nextFrame() to animate frames vs. MVKExample::renderFrame() for static image
+    ((MVKExample*)target)->displayLinkOutputCb();   // SRS - Call MVKExample::displayLinkOutputCb() to animate frames vs. MVKExample::renderFrame() for static image
     return kCVReturnSuccess;
 }
 
