@@ -26,12 +26,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     return kCVReturnSuccess;
 }
 
+MVKExample* _mvkExample;
 
 #pragma mark -
 #pragma mark DemoViewController
 
 @implementation DemoViewController {
-    MVKExample* _mvkExample;
     CVDisplayLinkRef _displayLink;
 }
 
@@ -48,15 +48,22 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     CVDisplayLinkStart(_displayLink);
 }
 
+// SRS - Handle window resize events
+-(NSSize) windowWillResize:(NSWindow*) sender toSize:(NSSize)frameSize {
+    CVDisplayLinkStop(_displayLink);
+    _mvkExample->windowWillResize(frameSize.width, frameSize.height);
+    return frameSize;
+}
+
+-(void) windowDidResize:(NSNotification*) notification {
+    _mvkExample->windowDidResize();
+    CVDisplayLinkStart(_displayLink);
+}
+
 -(void) dealloc {
     CVDisplayLinkRelease(_displayLink);
     delete _mvkExample;
     [super dealloc];
-}
-
-// Handle keyboard input
--(void) keyDown:(NSEvent*) theEvent {
-    _mvkExample->keyPressed(theEvent.keyCode);
 }
 
 @end
@@ -82,5 +89,55 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 }
 
 -(BOOL) acceptsFirstResponder { return YES; }
+
+// SRS - Handle keyboard events
+-(void) keyDown:(NSEvent*) theEvent {
+    _mvkExample->keyDown(theEvent.keyCode);
+}
+
+-(void) keyUp:(NSEvent*) theEvent {
+    _mvkExample->keyUp(theEvent.keyCode);
+}
+
+// SRS - Handle mouse events
+-(NSPoint) getMouseLocalPoint:(NSEvent*) theEvent {
+    NSPoint location = [theEvent locationInWindow];
+    NSPoint point = [self convertPoint:location fromView:nil];
+    point.y = self.frame.size.height - point.y;
+    return point;
+}
+
+-(void) mouseDown:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseDown(point.x, point.y);
+}
+
+-(void) mouseUp:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseUp(point.x, point.y);
+}
+
+-(void) otherMouseDown:(NSEvent*) theEvent {
+    _mvkExample->otherMouseDown();
+}
+
+-(void) otherMouseUp:(NSEvent*) theEvent {
+    _mvkExample->otherMouseUp();
+}
+
+-(void) mouseDragged:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseDragged(point.x, point.y);
+}
+
+-(void) mouseMoved:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseDragged(point.x, point.y);
+}
+
+-(void) scrollWheel:(NSEvent*) theEvent {
+    short wheelDelta = [theEvent deltaY];
+    _mvkExample->scrollWheel(wheelDelta);
+}
 
 @end

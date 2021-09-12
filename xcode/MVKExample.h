@@ -13,9 +13,22 @@
 class MVKExample {
 
 public:
-    void renderFrame();
+    //void renderFrame();                           // SRS - don't need to expose VulkanExampleBase::renderFrame() to DemoViewController
     void displayLinkOutputCb();                     // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
-    void keyPressed(uint32_t keyCode);
+    
+    void windowWillResize(float x, float y);        // SRS - expose window resize events to DemoViewController
+    void windowDidResize();
+    
+    void keyDown(uint32_t keyCode);                 // SRS - expose keyboard events to DemoViewController
+    void keyUp(uint32_t keyCode);
+    
+    void mouseDown(double x, double y);             // SRS - expose mouse events to DemoViewController
+    void mouseUp(double x, double y);
+    void otherMouseDown();
+    void otherMouseUp();
+    void mouseDragged(double x, double y);
+    void mouseMoved(double x, double y);
+    void scrollWheel(short wheelDelta);
 
     MVKExample(void* view);
     ~MVKExample();

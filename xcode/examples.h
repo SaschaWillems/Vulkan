@@ -39,7 +39,7 @@
 #   include "../examples/texture/texture.cpp"
 #endif
 
-// Does not run. Metal does not support passing matrices between shader stages.
+// Does not run. Metal does not support passing matrices between shader stages. Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
 #ifdef MVK_texturecubemap
 #   include "../examples/texturecubemap/texturecubemap.cpp"
 #endif
@@ -58,7 +58,7 @@
 #   include "../examples/dynamicuniformbuffer/dynamicuniformbuffer.cpp"
 #endif
 
-// Does not run. Metal does not support passing arrays between shader stages.
+// Does not run. Metal does not support passing arrays between shader stages. Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
 #ifdef MVK_pushconstants
 #   include "../examples/pushconstants/pushconstants.cpp"
 #endif
@@ -102,7 +102,7 @@
 #   include "../examples/indirectdraw/indirectdraw.cpp"
 #endif
 
-// Does not run. Metal does not support passing matrices between shader stages.
+// Does not run. Metal does not support passing matrices between shader stages. Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
 #ifdef MVK_hdr
 #   include "../examples/hdr/hdr.cpp"
 #endif
@@ -111,7 +111,7 @@
 #   include "../examples/occlusionquery/occlusionquery.cpp"
 #endif
 
-// Does not run. Sampler arrays require Metal 2.
+// Does not run. Sampler arrays require Metal 2. Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
 #ifdef MVK_texturemipmapgen
 #   include "../examples/texturemipmapgen/texturemipmapgen.cpp"
 #endif
@@ -128,9 +128,9 @@
 #   include "../examples/shadowmappingomni/shadowmappingomni.cpp"
 #endif
 
-#ifdef MVK_skeletalanimation
-#   include "../examples/skeletalanimation/skeletalanimation.cpp"
-#endif
+//#ifdef MVK_skeletalanimation
+//#   include "../examples/skeletalanimation/skeletalanimation.cpp"
+//#endif
 
 #ifdef MVK_bloom
 #   include "../examples/bloom/bloom.cpp"
