@@ -61,82 +61,11 @@ function(buildExamples)
 endfunction(buildExamples)
 
 set(EXAMPLES
-	bloom
-	computecloth
-	computecullandlod
-	computeheadless
-	computenbody
-	computeparticles
+	bufferreference
 	computeraytracing
-	computeshader
-	conditionalrender
-	conservativeraster
-	debugmarker
-	deferred
-	deferredmultisampling
-	deferredshadows
-	descriptorindexing
-	descriptorsets
-	displacement
-	distancefieldfonts
-	dynamicuniformbuffer
+	display
 	gears
-	geometryshader
-	gltfloading
-	gltfscenerendering
-	gltfskinning
-	hdr
-	imgui
-	indirectdraw
-	inlineuniformblocks
-	inputattachments
-	instancing
-	multisampling
-	multithreading
-	multiview
-	negativeviewportheight	
-	occlusionquery
-	offscreen
-	oit
-	parallaxmapping
-	particlefire
-	pbrbasic
-	pbribl
-	pbrtexture
-	pipelines
-	pipelinestatistics
-	pushconstants
-	pushdescriptors
-	radialblur
-	rayquery
-	raytracingbasic
-	raytracingcallable
-	raytracingreflections
-	raytracingshadows	
-	renderheadless
-	screenshot
-	shadowmapping
-	shadowmappingomni
-	shadowmappingcascade
-	specializationconstants
-	sphericalenvmapping
-	ssao
-	stencilbuffer
-	subpasses
-	terraintessellation
-	tessellation
-	textoverlay
 	texture
-	texture3d
-	texturearray
-	texturecubemap
-	texturecubemaparray
-	texturemipmapgen
-	texturesparseresidency
-	triangle
-	variablerateshading
-	viewportarray
-	vulkanscene
 )
 
 buildExamples()

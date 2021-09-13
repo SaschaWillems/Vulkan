@@ -915,7 +915,7 @@ bool VulkanExampleBase::initVulkan()
 	{
 		// The report flags determine what type of messages for the layers will be displayed
 		// For validating (debugging) an application the error and warning bits should suffice
-		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
 		// Additional flags include performance info, loader and layer debug messages, etc.
 		vks::debug::setupDebugging(instance, debugReportFlags, VK_NULL_HANDLE);
 	}
@@ -2644,6 +2644,13 @@ void VulkanExampleBase::setupRenderPass()
 
 void VulkanExampleBase::getEnabledFeatures() {}
 
+void VulkanExampleBase::windowResize(uint32_t width, uint32_t height)
+{
+	destWidth = width;
+	destHeight = height;
+	windowResize();
+}
+
 void VulkanExampleBase::windowResize()
 {
 	if (!prepared)
@@ -2719,11 +2726,11 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 		viewUpdated = true;
 	}
 	if (mouseButtons.right) {
-		camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f));
+		camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f) * camera.movementSpeed);
 		viewUpdated = true;
 	}
 	if (mouseButtons.middle) {
-		camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+		camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f) * camera.movementSpeed);
 		viewUpdated = true;
 	}
 	mousePos = glm::vec2((float)x, (float)y);

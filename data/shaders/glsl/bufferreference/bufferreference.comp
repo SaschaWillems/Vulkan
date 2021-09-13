@@ -1,0 +1,60 @@
+#version 450
+
+// #extension GL_EXT_buffer_reference : require
+// #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+layout(binding = 0) buffer Pos {
+   uint values[ ];
+};
+
+layout (push_constant) uniform PushConsts {
+	uint address;
+} pushConsts;
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout (constant_id = 0) const uint BUFFER_ELEMENTS = 32;
+
+uint fibonacci(uint n) {
+	if(n <= 1){
+		return n;
+	}
+	uint curr = 1;
+	uint prev = 1;
+	for(uint i = 2; i < n; ++i) {
+		uint temp = curr;
+		curr += prev;
+		prev = temp;
+	}
+	return curr;
+}
+
+void main() 
+{
+	uint index = gl_GlobalInvocationID.x;
+	if (index >= BUFFER_ELEMENTS) 
+		return;
+	// uint64_t a0 = 0xffffb000;
+	// uint64_t a1 = 0xfffffffe;
+	// uint64_t address = (a1 << 32) | a0;
+	// uint64_t address = 0xfffffffeffffb000;
+	// Pos pos = Pos(address);
+	// pos.values[index] = fibonacci(pos.values[index]);
+	values[index] = fibonacci(values[index]);
+	if (index == 31) {
+		values[index] = pushConsts.address + 10;
+	}
+	// else if (index == 30) {
+	// 	pos.values[index] = pushConsts.address1;
+	// }
+	// else {
+		// values[index] = fibonacci(values[index]);
+	// }
+	// memoryBarrier();
+	// barrier();
+	// if (index == 31) {
+	// 	values[index] = values[15];
+	// }
+	// pos1.values[index] = pos1.values[index] ^ 1;
+}
+

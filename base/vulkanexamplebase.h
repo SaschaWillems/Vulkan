@@ -94,6 +94,8 @@ public:
 
 class VulkanExampleBase
 {
+public:
+	void windowResize(uint32_t width, uint32_t height);
 private:
 	std::string getWindowTitle();
 	bool viewUpdated = false;

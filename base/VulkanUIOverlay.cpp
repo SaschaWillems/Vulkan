@@ -341,8 +341,8 @@ namespace vks
 		}
 
 		// Flush to make writes visible to GPU
-		vertexBuffer.flush();
-		indexBuffer.flush();
+		vertexBuffer.flush(vertexBufferSize);
+		indexBuffer.flush(indexBufferSize);
 
 		return updateCmdBuffers;
 	}
