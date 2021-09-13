@@ -19,7 +19,8 @@ public:
     void windowWillResize(float x, float y);        // SRS - expose window resize events to DemoViewController
     void windowDidResize();
     
-    void keyDown(uint32_t keyCode);                 // SRS - expose keyboard events to DemoViewController
+    void keyPressed(uint32_t keyCode);              // SRS - expose keyboard events to DemoViewController
+    void keyDown(uint32_t keyCode);
     void keyUp(uint32_t keyCode);
     
     void mouseDown(double x, double y);             // SRS - expose mouse events to DemoViewController

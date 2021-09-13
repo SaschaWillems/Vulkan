@@ -20,14 +20,16 @@ void MVKExample::displayLinkOutputCb() {            // SRS - expose VulkanExampl
     _vulkanExample->displayLinkOutputCb();
 }
 
-void MVKExample::windowWillResize(float x, float y)
-{
+void MVKExample::windowWillResize(float x, float y) {
     _vulkanExample->windowWillResize(x, y);
 }
 
-void MVKExample::windowDidResize()
-{
+void MVKExample::windowDidResize() {
     _vulkanExample->windowDidResize();
+}
+
+void MVKExample::keyPressed(uint32_t keyCode) {
+    _vulkanExample->keyPressed(keyCode);
 }
 
 void MVKExample::keyDown(uint32_t keyCode) {
@@ -73,40 +75,33 @@ void MVKExample::keyUp(uint32_t keyCode) {
     }
 }
 
-void MVKExample::mouseDown(double x, double y)
-{
+void MVKExample::mouseDown(double x, double y) {
     _vulkanExample->mousePos = glm::vec2(x, y);
     _vulkanExample->mouseButtons.left = true;
 }
 
-void MVKExample::mouseUp(double x, double y)
-{
+void MVKExample::mouseUp(double x, double y) {
     _vulkanExample->mousePos = glm::vec2(x, y);
     _vulkanExample->mouseButtons.left = false;
 }
 
-void MVKExample::otherMouseDown()
-{
+void MVKExample::otherMouseDown() {
     _vulkanExample->mouseButtons.right = true;
 }
 
-void MVKExample::otherMouseUp()
-{
+void MVKExample::otherMouseUp() {
     _vulkanExample->mouseButtons.right = false;
 }
 
-void MVKExample::mouseDragged(double x, double y)
-{
+void MVKExample::mouseDragged(double x, double y) {
     _vulkanExample->mouseDragged(x, y);
 }
 
-void MVKExample::mouseMoved(double x, double y)
-{
+void MVKExample::mouseMoved(double x, double y) {
     _vulkanExample->mouseDragged(x, y);
 }
 
-void MVKExample::scrollWheel(short wheelDelta)
-{
+void MVKExample::scrollWheel(short wheelDelta) {
     _vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f, wheelDelta * 0.05f * _vulkanExample->camera.movementSpeed));
 }
 

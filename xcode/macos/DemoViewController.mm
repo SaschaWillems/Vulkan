@@ -92,6 +92,7 @@ MVKExample* _mvkExample;
 
 // SRS - Handle keyboard events
 -(void) keyDown:(NSEvent*) theEvent {
+    _mvkExample->keyPressed(theEvent.keyCode);
     _mvkExample->keyDown(theEvent.keyCode);
 }
 
