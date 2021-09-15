@@ -242,8 +242,8 @@ void VulkanExampleBase::nextFrame()
 	frameCounter++;
 	auto tEnd = std::chrono::high_resolution_clock::now();
 	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-#if defined(VK_USE_PLATFORM_MACOS_MVK)
-    frameTimer = (float)tDiff / 100.0f;     // SRS - Divide by 100 for macOS - perhaps shorter tDiff due to background rendering?
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+    frameTimer = (float)tDiff * refreshPeriod;      // SRS - Multiply by the display refresh period due to fixed vsync rendering on iOS and macOS
 #else
 	frameTimer = (float)tDiff / 1000.0f;
 #endif

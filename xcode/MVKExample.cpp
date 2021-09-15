@@ -11,13 +11,17 @@
 #include "examples.h"
 
 /*
-void MVKExample::renderFrame() {                    // SRS - don't need to expose VulkanExampleBase::renderFrame() to DemoViewController
+void MVKExample::renderFrame() {                                // SRS - don't need to expose VulkanExampleBase::renderFrame() to DemoViewController
     _vulkanExample->renderFrame();
 }
 */
 
-void MVKExample::displayLinkOutputCb() {            // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
+void MVKExample::displayLinkOutputCb() {                        // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
     _vulkanExample->displayLinkOutputCb();
+}
+
+void MVKExample::getRefreshPeriod(double refreshPeriod) {       // SRS - get the actual refresh period of the display
+    _vulkanExample->refreshPeriod = refreshPeriod;
 }
 
 void MVKExample::windowWillResize(float x, float y) {
@@ -85,12 +89,20 @@ void MVKExample::mouseUp(double x, double y) {
     _vulkanExample->mouseButtons.left = false;
 }
 
-void MVKExample::otherMouseDown() {
+void MVKExample::rightMouseDown() {
     _vulkanExample->mouseButtons.right = true;
 }
 
-void MVKExample::otherMouseUp() {
+void MVKExample::rightMouseUp() {
     _vulkanExample->mouseButtons.right = false;
+}
+
+void MVKExample::otherMouseDown() {
+    _vulkanExample->mouseButtons.middle = true;
+}
+
+void MVKExample::otherMouseUp() {
+    _vulkanExample->mouseButtons.middle = false;
 }
 
 void MVKExample::mouseDragged(double x, double y) {
@@ -109,7 +121,7 @@ MVKExample::MVKExample(void* view) {
     _vulkanExample = new VulkanExample();
     _vulkanExample->initVulkan();
     _vulkanExample->setupWindow(view);
-//    _vulkanExample->initSwapchain();              // SRS - initSwapchain() is now part of VulkanExampleBase::prepare()
+    //_vulkanExample->initSwapchain();                          // SRS - initSwapchain() is now part of VulkanExampleBase::prepare()
     _vulkanExample->prepare();
 }
 

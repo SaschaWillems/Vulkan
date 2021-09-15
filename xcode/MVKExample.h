@@ -15,6 +15,7 @@ class MVKExample {
 public:
     //void renderFrame();                           // SRS - don't need to expose VulkanExampleBase::renderFrame() to DemoViewController
     void displayLinkOutputCb();                     // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
+    void getRefreshPeriod(double refreshPeriod);    // SRS - get the actual refresh period of the display
     
     void windowWillResize(float x, float y);        // SRS - expose window resize events to DemoViewController
     void windowDidResize();
@@ -25,6 +26,8 @@ public:
     
     void mouseDown(double x, double y);             // SRS - expose mouse events to DemoViewController
     void mouseUp(double x, double y);
+    void rightMouseDown();
+    void rightMouseUp();
     void otherMouseDown();
     void otherMouseUp();
     void mouseDragged(double x, double y);

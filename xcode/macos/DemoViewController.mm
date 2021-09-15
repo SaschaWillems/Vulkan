@@ -48,7 +48,14 @@ MVKExample* _mvkExample;
     CVDisplayLinkStart(_displayLink);
 }
 
-// SRS - Handle window resize events
+// SRS - get the actual refresh period of the display
+-(void) viewWillAppear {
+    [super viewWillAppear];
+    
+    _mvkExample->getRefreshPeriod(CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink));
+}
+
+// SRS - Handle window resize events (FIXME: resizeable window not yet supported at init)
 -(NSSize) windowWillResize:(NSWindow*) sender toSize:(NSSize)frameSize {
     CVDisplayLinkStop(_displayLink);
     _mvkExample->windowWillResize(frameSize.width, frameSize.height);
@@ -118,6 +125,14 @@ MVKExample* _mvkExample;
     _mvkExample->mouseUp(point.x, point.y);
 }
 
+-(void) rightMouseDown:(NSEvent*) theEvent {
+    _mvkExample->rightMouseDown();
+}
+
+-(void) rightMouseUp:(NSEvent*) theEvent {
+    _mvkExample->rightMouseUp();
+}
+
 -(void) otherMouseDown:(NSEvent*) theEvent {
     _mvkExample->otherMouseDown();
 }
@@ -127,6 +142,16 @@ MVKExample* _mvkExample;
 }
 
 -(void) mouseDragged:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseDragged(point.x, point.y);
+}
+
+-(void) rightMouseDragged:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseDragged(point.x, point.y);
+}
+
+-(void) otherMouseDragged:(NSEvent*) theEvent {
     auto point = [self getMouseLocalPoint:theEvent];
     _mvkExample->mouseDragged(point.x, point.y);
 }

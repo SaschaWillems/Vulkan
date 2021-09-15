@@ -254,6 +254,7 @@ public:
 	int64_t lastTapTime = 0;
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	void* view;
+    double refreshPeriod = 1.0/60.0;        // SRS - default refreshPeriod for 60 fps display
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
 	bool quit = false;
 	IDirectFB *dfb = nullptr;
