@@ -80,6 +80,8 @@
 		AA54A6E526E52CE400485C4A /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20A26E52CE100485C4A /* imgui_demo.cpp */; };
 		AA54A6E626E52CE400485C4A /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20B26E52CE100485C4A /* imgui_draw.cpp */; };
 		AA54A6E726E52CE400485C4A /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20B26E52CE100485C4A /* imgui_draw.cpp */; };
+		AAB0D0BF26F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AAB0D0BE26F24001005DC611 /* VulkanRaytracingSample.cpp */; };
+		AAB0D0C026F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AAB0D0BE26F24001005DC611 /* VulkanRaytracingSample.cpp */; };
 		C9788FD52044D78D00AB0892 /* VulkanAndroid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9788FD32044D78D00AB0892 /* VulkanAndroid.cpp */; };
 		C9A79EFC204504E000696219 /* VulkanUIOverlay.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EFB204504E000696219 /* VulkanUIOverlay.cpp */; };
 		C9A79EFD2045051D00696219 /* VulkanUIOverlay.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EFB204504E000696219 /* VulkanUIOverlay.cpp */; };
@@ -201,6 +203,8 @@
 		AA54A20926E52CE100485C4A /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		AA54A20A26E52CE100485C4A /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_demo.cpp; sourceTree = "<group>"; };
 		AA54A20B26E52CE100485C4A /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_draw.cpp; sourceTree = "<group>"; };
+		AAB0D0BE26F24001005DC611 /* VulkanRaytracingSample.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanRaytracingSample.cpp; sourceTree = "<group>"; };
+		AAB0D0C126F2400E005DC611 /* VulkanRaytracingSample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanRaytracingSample.h; sourceTree = "<group>"; };
 		C9788FD02044D78D00AB0892 /* benchmark.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = benchmark.hpp; sourceTree = "<group>"; };
 		C9788FD22044D78D00AB0892 /* VulkanAndroid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanAndroid.h; sourceTree = "<group>"; };
 		C9788FD32044D78D00AB0892 /* VulkanAndroid.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanAndroid.cpp; sourceTree = "<group>"; };
@@ -292,6 +296,8 @@
 				A951FF0E1E9C349000FA9144 /* VulkanInitializers.hpp */,
 				AA54A1BA26E5276000485C4A /* VulkanglTFModel.cpp */,
 				AA54A1BB26E5276000485C4A /* VulkanglTFModel.h */,
+				AAB0D0BE26F24001005DC611 /* VulkanRaytracingSample.cpp */,
+				AAB0D0C126F2400E005DC611 /* VulkanRaytracingSample.h */,
 				AA54A1BF26E5276C00485C4A /* VulkanSwapChain.cpp */,
 				AA54A1BE26E5276C00485C4A /* VulkanSwapChain.h */,
 				AA54A1C326E5277600485C4A /* VulkanTexture.cpp */,
@@ -565,6 +571,7 @@
 				A9B67B7A1C3AAE9800373FFD /* DemoViewController.mm in Sources */,
 				A9B67B781C3AAE9800373FFD /* AppDelegate.m in Sources */,
 				AA54A6CA26E52CE300485C4A /* texture.c in Sources */,
+				AAB0D0BF26F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */,
 				C9788FD52044D78D00AB0892 /* VulkanAndroid.cpp in Sources */,
 				A951FF1B1E9C349000FA9144 /* VulkanTools.cpp in Sources */,
 				AA54A1BC26E5276000485C4A /* VulkanglTFModel.cpp in Sources */,
@@ -601,6 +608,7 @@
 				AA54A1BD26E5276000485C4A /* VulkanglTFModel.cpp in Sources */,
 				A951FF181E9C349000FA9144 /* VulkanDebug.cpp in Sources */,
 				AA54A6CB26E52CE300485C4A /* texture.c in Sources */,
+				AAB0D0C026F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */,
 				A9BC9B1D1EE8421F00384233 /* MVKExample.cpp in Sources */,
 				A9B67B8C1C3AAEA200373FFD /* AppDelegate.m in Sources */,
 				AA54A1C126E5276C00485C4A /* VulkanSwapChain.cpp in Sources */,

@@ -47,8 +47,6 @@
 #   include "../examples/texture3d/texture3d.cpp"
 #endif
 
-// Does not run. Metal does not support passing matrices between shader stages.
-// Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
 #ifdef MVK_texturecubemap
 #   include "../examples/texturecubemap/texturecubemap.cpp"
 #endif
@@ -57,9 +55,6 @@
 #   include "../examples/texturecubemaparray/texturecubemaparray.cpp"
 #endif
 
-// Runs in Release mode. Does not run in Debug mode, as Metal validation will
-// assert that UBO buffer length is too short for UBO size declared in shader.
-// Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
 #ifdef MVK_texturearray
 #   include "../examples/texturearray/texturearray.cpp"
 #endif
@@ -80,8 +75,6 @@
 #   include "../examples/negativeviewportheight/negativeviewportheight.cpp"
 #endif
 
-// Does not run. Metal does not support passing arrays between shader stages.
-// Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
 #ifdef MVK_pushconstants
 #   include "../examples/pushconstants/pushconstants.cpp"
 #endif
@@ -92,20 +85,6 @@
 
 #ifdef MVK_offscreen
 #   include "../examples/offscreen/offscreen.cpp"
-#endif
-
-// Runs but nothing displays
-#ifdef MVK_oit
-#   include "../examples/oit/oit.cpp"
-#endif
-
-// Does not run - build issue.
-#ifdef MVK_renderheadless
-#   include "../examples/renderheadless/renderheadless.cpp"
-#endif
-
-#ifdef MVK_screenshot
-#   include "../examples/screenshot/screenshot.cpp"
 #endif
 
 #ifdef MVK_stencilbuffer
@@ -128,11 +107,21 @@
 #   include "../examples/particlefire/particlefire.cpp"
 #endif
 
+// Does not run - build issue on macOS.
+#ifdef MVK_renderheadless
+#   include "../examples/renderheadless/renderheadless.cpp"
+#endif
+
 
 // ADVANCED
 
 #ifdef MVK_multithreading
 #   include "../examples/multithreading/multithreading.cpp"
+#endif
+
+// Runs but cannot load gltf file from asset pack.
+#ifdef MVK_gltfscenerendering
+#   include "../examples/gltfscenerendering/gltfscenerendering.cpp"
 #endif
 
 #ifdef MVK_multiview
@@ -147,8 +136,6 @@
 #   include "../examples/indirectdraw/indirectdraw.cpp"
 #endif
 
-// Does not run. Metal does not support passing matrices between shader stages.
-// Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
 #ifdef MVK_hdr
 #   include "../examples/hdr/hdr.cpp"
 #endif
@@ -157,25 +144,17 @@
 #   include "../examples/occlusionquery/occlusionquery.cpp"
 #endif
 
-// Does not run. Sampler arrays require Metal 2.
-// Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
 #ifdef MVK_texturemipmapgen
 #   include "../examples/texturemipmapgen/texturemipmapgen.cpp"
 #endif
 
-// Does not run.  Sparse binding not supported.
+// Does not run.  Sparse binding not supported by MoltenVK/Metal.
 #ifdef MVK_texturesparseresidency
 #   include "../examples/texturesparseresidency/texturesparseresidency.cpp"
 #endif
 
-// Runs but multisampling may not be working.
 #ifdef MVK_multisampling
 #   include "../examples/multisampling/multisampling.cpp"
-#endif
-
-// Runs but multisampling may not be working.
-#ifdef MVK_deferredmultisampling
-#   include "../examples/deferredmultisampling/deferredmultisampling.cpp"
 #endif
 
 #ifdef MVK_shadowmapping
@@ -198,28 +177,53 @@
 #   include "../examples/gltfskinning/gltfskinning.cpp"
 #endif
 
-// Runs but cannot find input file.
-#ifdef MVK_gltfscenerendering
-#   include "../examples/gltfscenerendering/gltfscenerendering.cpp"
-#endif
-
 #ifdef MVK_bloom
 #   include "../examples/bloom/bloom.cpp"
 #endif
 
-// Runs in Release mode. Debug mode Metal validation will assert.
-// UBO buffer length is too short for UBO size declared in shader.
-// Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
+// Runs but nothing displays.
+#ifdef MVK_oit
+#   include "../examples/oit/oit.cpp"
+#endif
+
+
+// DEFERRED
+
 #ifdef MVK_deferred
 #   include "../examples/deferred/deferred.cpp"
 #endif
 
-// Runs in Release mode, but does not display content.
-// Metal does not support the use of specialization constants to set array lengths.
-// Update: runs on macOS Big Sur with Vulksn SDK 1.2.189.0
+// Does not run. Metal does not support geometry shaders.
+#ifdef MVK_deferredshadows
+#   include "../examples/deferredshadows/deferredshadows.cpp"
+#endif
+
+#ifdef MVK_deferredmultisampling
+#   include "../examples/deferredmultisampling/deferredmultisampling.cpp"
+#endif
+
 #ifdef MVK_ssao
 #   include "../examples/ssao/ssao.cpp"
 #endif
+
+
+// DESCRIPTORS
+
+#ifdef MVK_descriptorsets
+#   include "../examples/descriptorsets/descriptorsets.cpp"
+#endif
+
+#ifdef MVK_pushdescriptors
+#   include "../examples/pushdescriptors/pushdescriptors.cpp"
+#endif
+
+// Does not run.  Shader compilation fails with MoltenVK.
+#ifdef MVK_descriptorindexing
+#   include "../examples/descriptorindexing/descriptorindexing.cpp"
+#endif
+
+
+// PHYSICALLY BASED RENDERING
 
 #ifdef MVK_pbrbasic
 #   include "../examples/pbrbasic/pbrbasic.cpp"
@@ -264,57 +268,52 @@
 
 // COMPUTE
 
-#ifdef MVK_computecloth
-#   include "../examples/computecloth/computecloth.cpp"
-#endif
-
-#ifdef MVK_computecullandlod
-#   include "../examples/computecullandlod/computecullandlod.cpp"
-#endif
-
-// Does not run - build issue.
-#ifdef MVK_computeheadless
-#   include "../examples/computeheadless/computeheadless.cpp"
+#ifdef MVK_computeparticles
+#   include "../examples/computeparticles/computeparticles.cpp"
 #endif
 
 #ifdef MVK_computenbody
 #   include "../examples/computenbody/computenbody.cpp"
 #endif
 
-#ifdef MVK_computeparticles
-#   include "../examples/computeparticles/computeparticles.cpp"
-#endif
-
 #ifdef MVK_computeraytracing
 #   include "../examples/computeraytracing/computeraytracing.cpp"
+#endif
+
+#ifdef MVK_computecullandlod
+#   include "../examples/computecullandlod/computecullandlod.cpp"
 #endif
 
 #ifdef MVK_computeshader
 #   include "../examples/computeshader/computeshader.cpp"
 #endif
 
+#ifdef MVK_computecloth
+#   include "../examples/computecloth/computecloth.cpp"
+#endif
+
+// Does not run - build issue on macOS.
+#ifdef MVK_computeheadless
+#   include "../examples/computeheadless/computeheadless.cpp"
+#endif
+
 
 // TESSELLATION
 
-#ifdef MVK_displacement
-#   include "../examples/displacement/displacement.cpp"
+#ifdef MVK_terraintessellation
+#   include "../examples/terraintessellation/terraintessellation.cpp"
 #endif
 
 #ifdef MVK_tessellation
 #   include "../examples/tessellation/tessellation.cpp"
 #endif
 
-#ifdef MVK_terraintessellation
-#   include "../examples/terraintessellation/terraintessellation.cpp"
+#ifdef MVK_displacement
+#   include "../examples/displacement/displacement.cpp"
 #endif
 
 
 // GEOMETRY SHADER - Unsupported by Metal
-
-// Does not run. Metal does not support geometry shaders.
-#ifdef MVK_deferredshadows
-#   include "../examples/deferredshadows/deferredshadows.cpp"
-#endif
 
 // Does not run. Metal does not support geometry shaders.
 #ifdef MVK_geometryshader
@@ -329,22 +328,22 @@
 
 // EXTENSIONS
 
-// Does not run. MoltenVK does not support VK_EXT_conditional_rendering.
+// Does not run. Requires VK_EXT_conditional_rendering.
 #ifdef MVK_conditionalrender
 #   include "../examples/conditionalrender/conditionalrender.cpp"
 #endif
 
-// Does not run. MoltenVK does not support VK_EXT_conservative_rasterization.
+// Does not run. Requires VK_EXT_conservative_rasterization.
 #ifdef MVK_conservativeraster
 #   include "../examples/conservativeraster/conservativeraster.cpp"
 #endif
 
-// Does not run. MoltenVK does not support VK_NV_shading_rate_image.
+// Does not run. Requires VK_NV_shading_rate_image.
 #ifdef MVK_variablerateshading
 #   include "../examples/variablerateshading/variablerateshading.cpp"
 #endif
 
-// Runs. MoltenVK supports VK_EXT_debug_marker.
+// Runs. Requires VK_EXT_debug_marker.
 #ifdef MVK_debugmarker
 #   include "../examples/debugmarker/debugmarker.cpp"
 #endif
@@ -352,22 +351,8 @@
 
 // MISC
 
-// Does not run.  Metal/MoltenVK does not support pipeline statistics.
-#ifdef MVK_pipelinestatistics
-#   include "../examples/pipelinestatistics/pipelinestatistics.cpp"
-#endif
-
-// Does not run.
-#ifdef MVK_descriptorindexing
-#   include "../examples/descriptorindexing/descriptorindexing.cpp"
-#endif
-
-#ifdef MVK_descriptorsets
-#   include "../examples/descriptorsets/descriptorsets.cpp"
-#endif
-
-#ifdef MVK_pushdescriptors
-#   include "../examples/pushdescriptors/pushdescriptors.cpp"
+#ifdef MVK_screenshot
+#   include "../examples/screenshot/screenshot.cpp"
 #endif
 
 #ifdef MVK_parallaxmapping
@@ -387,7 +372,11 @@
 #   include "../examples/distancefieldfonts/distancefieldfonts.cpp"
 #endif
 
-// Runs but mouse interaction not working.
+// Does not run.  MoltenVK/Metal does not support pipeline statistics.
+#ifdef MVK_pipelinestatistics
+#   include "../examples/pipelinestatistics/pipelinestatistics.cpp"
+#endif
+
 #ifdef MVK_imgui
 #   include "../examples/imgui/main.cpp"
 #endif
