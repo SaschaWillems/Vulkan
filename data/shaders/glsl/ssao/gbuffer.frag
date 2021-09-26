@@ -30,5 +30,5 @@ void main()
 {
 	outPosition = vec4(inPos, linearDepth(gl_FragCoord.z));
 	outNormal = vec4(normalize(inNormal) * 0.5 + 0.5, 1.0);
-	outAlbedo = texture(samplerColormap * inColor, inUV);
+	outAlbedo = texture(samplerColormap, inUV) * vec4(inColor, 1.0);
 }
