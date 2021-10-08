@@ -10,4 +10,4 @@ Run the [download_assets.py](../download_assets.py) python script which will dow
 
 ### Option 2: Manual download
 
-Download the asset pack from [http://vulkan.gpuinfo.org/downloads/vulkan_asset_pack_gltf.zip](http://vulkan.gpuinfo.org/downloads/vulkan_asset_pack_gltf.zip) and extract it in the ```data``` directory.
+Download the asset pack from [https://vulkan.gpuinfo.org/downloads/vulkan_asset_pack_gltf.zip](https://vulkan.gpuinfo.org/downloads/vulkan_asset_pack_gltf.zip) and extract it in the ```data``` directory.
