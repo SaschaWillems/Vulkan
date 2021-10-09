@@ -29,11 +29,11 @@ bool VirtualTexturePage::resident()
 }
 
 // Allocate Vulkan memory for the virtual page
-void VirtualTexturePage::allocate(VkDevice device, uint32_t memoryTypeIndex)
+bool VirtualTexturePage::allocate(VkDevice device, uint32_t memoryTypeIndex)
 {
 	if (imageMemoryBind.memory != VK_NULL_HANDLE)
 	{
-		return;
+		return false;
 	};
 
 	imageMemoryBind = {};
@@ -52,16 +52,20 @@ void VirtualTexturePage::allocate(VkDevice device, uint32_t memoryTypeIndex)
 	imageMemoryBind.subresource = subResource;
 	imageMemoryBind.extent = extent;
 	imageMemoryBind.offset = offset;
+	return true;
 }
 
 // Release Vulkan memory allocated for this page
-void VirtualTexturePage::release(VkDevice device)
+bool VirtualTexturePage::release(VkDevice device)
 {
+	del= false;
 	if (imageMemoryBind.memory != VK_NULL_HANDLE)
 	{
 		vkFreeMemory(device, imageMemoryBind.memory, nullptr);
 		imageMemoryBind.memory = VK_NULL_HANDLE;
+		return true;
 	}
+	return false;
 }
 
 /*
@@ -81,19 +85,24 @@ VirtualTexturePage* VirtualTexture::addPage(VkOffset3D offset, VkExtent3D extent
 	newPage.imageMemoryBind = {};
 	newPage.imageMemoryBind.offset = offset;
 	newPage.imageMemoryBind.extent = extent;
+	newPage.del = false;
 	pages.push_back(newPage);
 	return &pages.back();
 }
 
 // Call before sparse binding to update memory bind list etc.
-void VirtualTexture::updateSparseBindInfo()
+void VirtualTexture::updateSparseBindInfo(std::vector<VirtualTexturePage> &bindingChangedPages, bool del)
 {
 	// Update list of memory-backed sparse image memory binds
 	//sparseImageMemoryBinds.resize(pages.size());
 	sparseImageMemoryBinds.clear();
-	for (auto page : pages)
+	for (auto page : bindingChangedPages)
 	{
 		sparseImageMemoryBinds.push_back(page.imageMemoryBind);
+		if (del)
+		{
+			sparseImageMemoryBinds[sparseImageMemoryBinds.size() - 1].memory = VK_NULL_HANDLE;
+		}
 	}
 	// Update sparse bind info
 	bindSparseInfo = vks::initializers::bindSparseInfo();
@@ -186,6 +195,7 @@ void VulkanExample::prepareSparseTexture(uint32_t width, uint32_t height, uint32
 	texture.layerCount = layerCount;
 	texture.format = format;
 
+	texture.subRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, texture.mipLevels, 0, 1 };
 	// Get device properties for the requested texture format
 	VkFormatProperties formatProperties;
 	vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
@@ -235,7 +245,7 @@ void VulkanExample::prepareSparseTexture(uint32_t width, uint32_t height, uint32
 	VK_CHECK_RESULT(vkCreateImage(device, &sparseImageCreateInfo, nullptr, &texture.image));
 
 	VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-	vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, texture.subRange);
 	vulkanDevice->flushCommandBuffer(copyCmd, queue);
 
 	// Get memory requirements
@@ -420,7 +430,7 @@ void VulkanExample::prepareSparseTexture(uint32_t width, uint32_t height, uint32
 	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &bindSparseSemaphore));
 
 	// Prepare bind sparse info for reuse in queue submission
-	texture.updateSparseBindInfo();
+	texture.updateSparseBindInfo(texture.pages);
 
 	// Bind to queue
 	// todo: in draw?
@@ -732,7 +742,7 @@ void VulkanExample::uploadContent(VirtualTexturePage page, VkImage image)
 	}
 
 	VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-	vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+	vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, texture.subRange, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 	VkBufferImageCopy region{};
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.imageSubresource.layerCount = 1;
@@ -740,12 +750,12 @@ void VulkanExample::uploadContent(VirtualTexturePage page, VkImage image)
 	region.imageOffset = page.offset;
 	region.imageExtent = page.extent;
 	vkCmdCopyBufferToImage(copyCmd, imageBuffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-	vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+	vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, texture.subRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 	vulkanDevice->flushCommandBuffer(copyCmd, queue);
 
 	imageBuffer.destroy();
 }
-	
+
 void VulkanExample::fillRandomPages()
 {
 	vkDeviceWaitIdle(device);
@@ -754,16 +764,20 @@ void VulkanExample::fillRandomPages()
 	std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 
 	std::vector<VirtualTexturePage> updatedPages;
+	std::vector<VirtualTexturePage> bindingChangedPages;
 	for (auto& page : texture.pages) {
 		if (rndDist(rndEngine) < 0.5f) {
 			continue;
 		}
-		page.allocate(device, texture.memoryTypeIndex);
+		if (page.allocate(device, texture.memoryTypeIndex))
+		{
+			bindingChangedPages.push_back(page);
+		}
 		updatedPages.push_back(page);
 	}
 
 	// Update sparse queue binding
-	texture.updateSparseBindInfo();
+	texture.updateSparseBindInfo(bindingChangedPages);
 	VkFenceCreateInfo fenceInfo = vks::initializers::fenceCreateInfo(VK_FLAGS_NONE);
 	VkFence fence;
 	VK_CHECK_RESULT(vkCreateFence(device, &fenceInfo, nullptr, &fence));
@@ -849,7 +863,7 @@ void VulkanExample::fillMipTail()
 		}
 
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+		vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, texture.subRange, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 		VkBufferImageCopy region{};
 		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		region.imageSubresource.layerCount = 1;
@@ -857,7 +871,7 @@ void VulkanExample::fillMipTail()
 		region.imageOffset = {};
 		region.imageExtent = { width, height, depth };
 		vkCmdCopyBufferToImage(copyCmd, imageBuffer.buffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-		vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+		vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, texture.subRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue);
 
 		imageBuffer.destroy();
@@ -872,21 +886,32 @@ void VulkanExample::flushRandomPages()
 	std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 
 	std::vector<VirtualTexturePage> updatedPages;
+	std::vector<VirtualTexturePage> bindingChangedPages;
 	for (auto& page : texture.pages)
 	{
 		if (rndDist(rndEngine) < 0.5f) {
 			continue;
 		}
-		page.release(device);
+		if (page.imageMemoryBind.memory != VK_NULL_HANDLE){
+			page.del = true;
+			bindingChangedPages.push_back(page);
+		}
 	}
 
 	// Update sparse queue binding
-	texture.updateSparseBindInfo();
+	texture.updateSparseBindInfo(bindingChangedPages, true);
 	VkFenceCreateInfo fenceInfo = vks::initializers::fenceCreateInfo(VK_FLAGS_NONE);
 	VkFence fence;
 	VK_CHECK_RESULT(vkCreateFence(device, &fenceInfo, nullptr, &fence));
 	vkQueueBindSparse(queue, 1, &texture.bindSparseInfo, fence);
 	vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+	for (auto& page : texture.pages)
+	{
+		if (page.del)
+		{
+			page.release(device);
+		}
+	}
 }
 
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)

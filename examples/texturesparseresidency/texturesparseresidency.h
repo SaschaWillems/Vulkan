@@ -26,11 +26,12 @@ struct VirtualTexturePage
 	uint32_t mipLevel;													// Mip level that this page belongs to
 	uint32_t layer;														// Array layer that this page belongs to
 	uint32_t index;
+    bool del;
 
 	VirtualTexturePage();
 	bool resident();
-	void allocate(VkDevice device, uint32_t memoryTypeIndex);
-	void release(VkDevice device);
+	bool allocate(VkDevice device, uint32_t memoryTypeIndex);
+	bool release(VkDevice device);
 };
 
 // Virtual texture object containing all pages
@@ -55,7 +56,7 @@ struct VirtualTexture
 	} mipTailInfo;
 
 	VirtualTexturePage *addPage(VkOffset3D offset, VkExtent3D extent, const VkDeviceSize size, const uint32_t mipLevel, uint32_t layer);
-	void updateSparseBindInfo();
+	void updateSparseBindInfo(std::vector<VirtualTexturePage> &bindingChangedPages, bool del = false);
 	// @todo: replace with dtor?
 	void destroy();
 };
@@ -73,6 +74,7 @@ public:
 		uint32_t width, height;
 		uint32_t mipLevels;
 		uint32_t layerCount;
+        VkImageSubresourceRange subRange;
 	} texture;
 
 	vkglTF::Model plane;
