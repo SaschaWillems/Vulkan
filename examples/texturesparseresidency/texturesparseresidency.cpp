@@ -787,6 +787,7 @@ void VulkanExample::fillRandomPages()
 	VK_CHECK_RESULT(vkCreateFence(device, &fenceInfo, nullptr, &fence));
 	vkQueueBindSparse(queue, 1, &texture.bindSparseInfo, fence);
 	vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+	vkDestroyFence(device, fence, nullptr);
 
 	for (auto &page: updatedPages) {
 		uploadContent(page, texture.image);
