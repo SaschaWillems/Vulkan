@@ -137,6 +137,10 @@ void VirtualTexture::destroy()
 	{
 		vkFreeMemory(device, bind.memory, nullptr);
 	}
+	// Clean up mip tail
+	if (mipTailimageMemoryBind.memory != VK_NULL_HANDLE) {
+		vkFreeMemory(device, mipTailimageMemoryBind.memory, nullptr);
+	}
 }
 
 /*
@@ -791,18 +795,21 @@ void VulkanExample::fillRandomPages()
 
 void VulkanExample::fillMipTail()
 {
+	// Clean up previous mip tail memory allocation
+	if (texture.mipTailimageMemoryBind.memory != VK_NULL_HANDLE) {
+		vkFreeMemory(device, texture.mipTailimageMemoryBind.memory, nullptr);
+	}
+
 	//@todo: WIP
 	VkDeviceSize imageMipTailSize = texture.sparseImageMemoryRequirements.imageMipTailSize;
 	VkDeviceSize imageMipTailOffset = texture.sparseImageMemoryRequirements.imageMipTailOffset;
 	// Stride between memory bindings for each mip level if not single mip tail (VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT not set)
 	VkDeviceSize imageMipTailStride = texture.sparseImageMemoryRequirements.imageMipTailStride;
 
-	VkSparseImageMemoryBind mipTailimageMemoryBind{};
-
 	VkMemoryAllocateInfo allocInfo = vks::initializers::memoryAllocateInfo();
 	allocInfo.allocationSize = imageMipTailSize;
 	allocInfo.memoryTypeIndex = texture.memoryTypeIndex;
-	VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &mipTailimageMemoryBind.memory));
+	VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &texture.mipTailimageMemoryBind.memory));
 
 	uint32_t mipLevel = texture.sparseImageMemoryRequirements.imageMipTailFirstLod;
 	uint32_t width = std::max(texture.width >> texture.sparseImageMemoryRequirements.imageMipTailFirstLod, 1u);
