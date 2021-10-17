@@ -195,7 +195,7 @@ void VulkanExample::prepareSparseTexture(uint32_t width, uint32_t height, uint32
 	texture.device = vulkanDevice->logicalDevice;
 	texture.width = width;
 	texture.height = height;
-	texture.mipLevels = floor(log2(std::max(width, height))) + 1;
+	texture.mipLevels = static_cast<uint32_t>(floor(log2(std::max(width, height))) + 1);
 	texture.layerCount = layerCount;
 	texture.format = format;
 
@@ -708,6 +708,28 @@ void VulkanExample::render()
 	}
 }
 
+// Fills a buffer with random colors
+void VulkanExample::randomPattern(uint8_t* buffer, uint32_t width, uint32_t height)
+{
+	std::random_device rd;
+	std::mt19937 rndEngine(rd());
+	std::uniform_int_distribution<uint32_t> rndDist(0, 255);
+	uint8_t rndVal[4] = { 0, 0, 0, 0 };
+	while (rndVal[0] + rndVal[1] + rndVal[2] < 10) {
+		rndVal[0] = (uint8_t)rndDist(rndEngine);
+		rndVal[1] = (uint8_t)rndDist(rndEngine);
+		rndVal[2] = (uint8_t)rndDist(rndEngine);
+	}
+	rndVal[3] = 255;
+	for (uint32_t y = 0; y < height; y++) {
+		for (uint32_t x = 0; x < width; x++) {
+			for (uint32_t c = 0; c < 4; c++, ++buffer) {
+				*buffer = rndVal[c];
+			}
+		}
+	}
+}
+
 void VulkanExample::uploadContent(VirtualTexturePage page, VkImage image)
 {
 	// Generate some random image data and upload as a buffer
@@ -721,29 +743,8 @@ void VulkanExample::uploadContent(VirtualTexturePage page, VkImage image)
 		bufferSize));
 	imageBuffer.map();
 
-	// Fill buffer with random colors
-	std::random_device rd;
-	std::mt19937 rndEngine(rd());
-	std::uniform_int_distribution<uint32_t> rndDist(0, 255);
 	uint8_t* data = (uint8_t*)imageBuffer.mapped;
-	uint8_t rndVal[4] = { 0, 0, 0, 0 };
-	while (rndVal[0] + rndVal[1] + rndVal[2] < 10) {
-		rndVal[0] = (uint8_t)rndDist(rndEngine);
-		rndVal[1] = (uint8_t)rndDist(rndEngine);
-		rndVal[2] = (uint8_t)rndDist(rndEngine);
-	}
-	rndVal[3] = 255;
-
-	for (uint32_t y = 0; y < page.extent.height; y++)
-	{
-		for (uint32_t x = 0; x < page.extent.width; x++)
-		{
-			for (uint32_t c = 0; c < 4; c++, ++data)
-			{
-				*data = rndVal[c];
-			}
-		}
-	}
+	randomPattern(data, page.extent.height, page.extent.width);
 
 	VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 	vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, texture.subRange, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
@@ -821,7 +822,6 @@ void VulkanExample::fillMipTail()
 
 		const uint32_t width = std::max(texture.width >> i, 1u);
 		const uint32_t height = std::max(texture.height >> i, 1u);
-		const uint32_t depth = 1;
 
 		// Generate some random image data and upload as a buffer
 		const size_t bufferSize = 4 * width * height;
@@ -839,36 +839,7 @@ void VulkanExample::fillMipTail()
 		std::mt19937 rndEngine(rd());
 		std::uniform_int_distribution<uint32_t> rndDist(0, 255);
 		uint8_t* data = (uint8_t*)imageBuffer.mapped;
-		uint8_t rndVal[4] = { 0, 0, 0, 0 };
-		while (rndVal[0] + rndVal[1] + rndVal[2] < 10) {
-			rndVal[0] = (uint8_t)rndDist(rndEngine);
-			rndVal[1] = (uint8_t)rndDist(rndEngine);
-			rndVal[2] = (uint8_t)rndDist(rndEngine);
-		}
-		rndVal[3] = 255;
-
-		switch (mipLevel) {
-		case 0:
-			rndVal[0] = rndVal[1] = rndVal[2] = 255;
-			break;
-		case 1:
-			rndVal[0] = rndVal[1] = rndVal[2] = 200;
-			break;
-		case 2:
-			rndVal[0] = rndVal[1] = rndVal[2] = 150;
-			break;
-		}
-
-		for (uint32_t y = 0; y < height; y++)
-		{
-			for (uint32_t x = 0; x < width; x++)
-			{
-				for (uint32_t c = 0; c < 4; c++, ++data)
-				{
-					*data = rndVal[c];
-				}
-			}
-		}
+		randomPattern(data, width, height);
 
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, texture.subRange, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
@@ -877,7 +848,7 @@ void VulkanExample::fillMipTail()
 		region.imageSubresource.layerCount = 1;
 		region.imageSubresource.mipLevel = i;
 		region.imageOffset = {};
-		region.imageExtent = { width, height, depth };
+		region.imageExtent = { width, height, 1 };
 		vkCmdCopyBufferToImage(copyCmd, imageBuffer.buffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 		vks::tools::setImageLayout(copyCmd, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, texture.subRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue);

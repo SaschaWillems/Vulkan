@@ -101,6 +101,7 @@ public:
 	~VulkanExample();
 	virtual void getEnabledFeatures();
 	glm::uvec3 alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity);
+	void randomPattern(uint8_t* buffer, uint32_t width, uint32_t height);
 	void prepareSparseTexture(uint32_t width, uint32_t height, uint32_t layerCount, VkFormat format);
 	// @todo: move to dtor of texture
 	void destroyTextureImage(SparseTexture texture);
