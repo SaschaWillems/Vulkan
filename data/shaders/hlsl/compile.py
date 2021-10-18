@@ -37,6 +37,7 @@ for root, dirs, files in os.walk(dir_path):
             hlsl_file = os.path.join(root, file)
             spv_out = hlsl_file + ".spv"
 
+            target = ''
             profile = ''
             if(hlsl_file.find('.vert') != -1):
                 profile = 'vs_6_1'
@@ -53,6 +54,7 @@ for root, dirs, files in os.walk(dir_path):
             elif(hlsl_file.find('.rgen') != -1 or
 				hlsl_file.find('.rchit') != -1 or
 				hlsl_file.find('.rmiss') != -1):
+                target='-fspv-target-env=vulkan1.2'
                 profile = 'lib_6_3'
 
             print('Compiling %s' % (hlsl_file))
@@ -61,9 +63,10 @@ for root, dirs, files in os.walk(dir_path):
                 '-spirv',
                 '-T', profile,
                 '-E', 'main',
-                '-fspv-extension=SPV_NV_ray_tracing',
+                '-fspv-extension=SPV_KHR_ray_tracing',
                 '-fspv-extension=SPV_KHR_multiview',
                 '-fspv-extension=SPV_KHR_shader_draw_parameters',
                 '-fspv-extension=SPV_EXT_descriptor_indexing',
+                target,
                 hlsl_file,
                 '-Fo', spv_out])

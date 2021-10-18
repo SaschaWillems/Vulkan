@@ -50,7 +50,7 @@ Vertex unpack(uint index)
 }
 
 [shader("closesthit")]
-void main(inout RayPayload rayPayload, in float3 attribs)
+void main(inout RayPayload rayPayload, in float2 attribs)
 {
 	uint PrimitiveID = PrimitiveIndex();
 	int3 index = int3(indices[3 * PrimitiveID], indices[3 * PrimitiveID + 1], indices[3 * PrimitiveID + 2]);

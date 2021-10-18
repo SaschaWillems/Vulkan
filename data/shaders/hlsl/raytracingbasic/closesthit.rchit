@@ -11,7 +11,7 @@ struct Payload
 };
 
 [shader("closesthit")]
-void main(inout Payload p, in float3 attribs)
+void main(inout Payload p, in float2 attribs)
 {
   const float3 barycentricCoords = float3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
   p.hitValue = barycentricCoords;

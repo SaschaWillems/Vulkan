@@ -52,7 +52,7 @@ Vertex unpack(uint index)
 }
 
 [shader("closesthit")]
-void main(in InPayload inPayload, inout InOutPayload inOutPayload, in float3 attribs)
+void main(in InPayload inPayload, inout InOutPayload inOutPayload, in float2 attribs)
 {
 	uint PrimitiveID = PrimitiveIndex();
 	int3 index = int3(indices[3 * PrimitiveID], indices[3 * PrimitiveID + 1], indices[3 * PrimitiveID + 2]);
