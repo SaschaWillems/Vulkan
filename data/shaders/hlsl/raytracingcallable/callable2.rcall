@@ -2,7 +2,7 @@
 
 struct CallData
 {
-    vec3 outColor;
+    float3 outColor;
 };
 
 [shader("callable")]

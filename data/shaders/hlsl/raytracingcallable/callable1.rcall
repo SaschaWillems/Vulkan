@@ -2,13 +2,14 @@
 
 struct CallData
 {
-    vec3 outColor;
+    float3 outColor;
 };
 
 [shader("callable")]
 void main(inout CallData data)
 {
     // Generate a checker board pattern
-	float2 pos = float2(DispatchRaysIndex() / 8);
-	data.outColor = float3(mod(pos.x + mod(pos.y, 2.0), 2.0));
+	float2 pos = float2(DispatchRaysIndex().x / 8, DispatchRaysIndex().y / 8);
+	float col = (pos.x + (pos.y % 2.0)) % 2.0;
+	data.outColor = float3(col, col, col);
 }
