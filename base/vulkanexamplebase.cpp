@@ -755,7 +755,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		settings.vsync = true;
 	}
 	if (commandLineParser.isSet("height")) {
-		height = commandLineParser.getValueAsInt("height", width);
+		height = commandLineParser.getValueAsInt("height", height);
 	}
 	if (commandLineParser.isSet("width")) {
 		width = commandLineParser.getValueAsInt("width", width);
