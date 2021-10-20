@@ -9,7 +9,8 @@
                 "VK_USE_PLATFORM_WAYLAND_KHR"
             ],
             "compilerPath": "/usr/bin/gcc",
-            "intelliSenseMode": "linux-gcc-x64"
+            "intelliSenseMode": "linux-gcc-x64",
+            "cppStandard": "c++17"
         }
     ],
     "version": 4

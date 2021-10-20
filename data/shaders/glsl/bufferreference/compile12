@@ -1,0 +1,16 @@
+
+[  1382] struct Pos {
+[  1383]     uint[1]  hp  struct Pos::values;/* offset:0, virRegOffset:0 */
+[  1384] } hp local  pos1 ==> temp(0) common_flags:< enabled statically_used >;
+
+[  1390] struct Pos {
+[  1391]     uint[1]  hp  struct Pos::values;/* offset:0, virRegOffset:0 */
+[  1392] } hp global  #spv_id72 ==> temp(0) common_flags:< enabled statically_used 
+
+[  1466] 012: BITCAST            uint hp global  #spv_id72.hp.x, uvec2 hp  #spv_id71.hp.xy
+[  1467] 013: MOV                struct Pos hp local  pos1.hp, struct Pos hp  #spv_id72.hp
+
+[  1513] 059: MOV                uint hp global  #spv_id109.hp.x, struct Pos hp  pos1.hp
+[  1514] 060: MOV                uint hp global  #spv_id110.hp.x, uint hp  index.hp.x
+[  1515] 061: MUL                uint global  _spv_ac_id_113.x, uint hp  #spv_id110.hp.x, uint 1
+[  1516] 062: MOV                uint hp global  #spv_id109[_spv_ac_id_113.x].hp.x, uint(2333).hp.x

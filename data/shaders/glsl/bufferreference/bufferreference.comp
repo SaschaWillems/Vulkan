@@ -1,15 +1,33 @@
 #version 450
 
-// #extension GL_EXT_buffer_reference : require
-// #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#define INT64 0
 
-layout(binding = 0) buffer Pos {
+#if INT64
+#extension GL_ARB_gpu_shader_int64 : require
+#extension GL_EXT_buffer_reference : require
+#else
+#extension GL_EXT_buffer_reference_uvec2 : require
+#endif
+
+layout(buffer_reference) buffer Pos {
    uint values[ ];
 };
 
 layout (push_constant) uniform PushConsts {
-	uint address;
+#if INT64
+	uint64_t address;
+#else
+	uvec2 address;
+#endif
 } pushConsts;
+
+#if INT64
+#define low32(address) uint((address) & 0xffffffff)
+#define high32(address) uint(((address) >> 32) & 0xffffffff)
+#else
+#define low32(address) uint((address).x)
+#define high32(address) uint((address).y)
+#endif
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
@@ -37,19 +55,27 @@ void main()
 	// uint64_t a0 = 0xffffb000;
 	// uint64_t a1 = 0xfffffffe;
 	// uint64_t address = (a1 << 32) | a0;
-	// uint64_t address = 0xfffffffeffffb000;
-	// Pos pos = Pos(address);
-	// pos.values[index] = fibonacci(pos.values[index]);
-	values[index] = fibonacci(values[index]);
+	// uint64_t address = 0x2bffff000UL;
+	Pos pos1 = Pos(pushConsts.address);
+	pos1.values[index] = fibonacci(pos1.values[index]);
 	if (index == 31) {
-		values[index] = pushConsts.address + 10;
+		pos1.values[index] = low32(pushConsts.address);
 	}
+	else if (index == 30) {
+		pos1.values[index] = high32(pushConsts.address);
+	}
+	// if (index == 31) {
+	// 	values[index] = pushConsts.address0;
+	// }
 	// else if (index == 30) {
-	// 	pos.values[index] = pushConsts.address1;
+	// 	values[index] = pushConsts.address1;
 	// }
 	// else {
-		// values[index] = fibonacci(values[index]);
+	// 	values[index] = fibonacci(values[index]);
 	// }
+	if (index == 0) {
+		pos1.values[index] = 2444;
+	}
 	// memoryBarrier();
 	// barrier();
 	// if (index == 31) {

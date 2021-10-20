@@ -65,6 +65,10 @@ set(EXAMPLES
 	computeraytracing
 	display
 	gears
+	reducesum
+	shadowmapping
+	subpasses
+	ssao
 	texture
 )
 

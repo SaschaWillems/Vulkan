@@ -1,0 +1,27 @@
+
+               OpName %Pos "Pos"
+               OpMemberName %Pos 0 "values"
+               OpName %pos1 "pos1"
+
+               OpDecorate %_runtimearr_uint ArrayStride 4
+               OpMemberDecorate %Pos 0 Offset 0
+               OpDecorate %Pos Block
+               OpDecorate %pos1 AliasedPointer
+
+               OpTypeForwardPointer %_ptr_PhysicalStorageBuffer_Pos PhysicalStorageBuffer
+%_runtimearr_uint = OpTypeRuntimeArray %uint
+        %Pos = OpTypeStruct %_runtimearr_uint
+%_ptr_PhysicalStorageBuffer_Pos = OpTypePointer PhysicalStorageBuffer %Pos
+%_ptr_Function__ptr_PhysicalStorageBuffer_Pos = OpTypePointer Function %_ptr_PhysicalStorageBuffer_Pos
+
+%_ptr_PhysicalStorageBuffer_uint = OpTypePointer PhysicalStorageBuffer %uint
+
+       %pos1 = OpVariable %_ptr_Function__ptr_PhysicalStorageBuffer_Pos Function
+       
+         %72 = OpBitcast %_ptr_PhysicalStorageBuffer_Pos %71
+               OpStore %pos1 %72
+
+        %109 = OpLoad %_ptr_PhysicalStorageBuffer_Pos %pos1
+        %110 = OpLoad %uint %index
+        %113 = OpAccessChain %_ptr_PhysicalStorageBuffer_uint %109 %int_0 %110
+               OpStore %113 %uint_2333 Aligned 4

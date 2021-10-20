@@ -1,0 +1,30 @@
+
+[  1189]                                 OpName 61 
+[  1190]  													 "Pos"
+[  1191]                                 OpMemberName 61 0 
+[  1192]  													 "values"
+[  1193]                                 OpName 63 
+[  1194]  													 "pos1"
+
+[  1211]                                 OpDecorate 60 ArrayStride 4 
+[  1212]                                 OpMemberDecorate 61 0 Offset 0 
+[  1213]                                 OpDecorate 61 Block 
+[  1214]                                 OpDecorate 63 Unsupported decoration 
+
+[  1239]                                 OpTypeForwardPointer 59 Unsupported storage class 
+[  1240]               60:               OpTypeRuntimeArray 6 
+[  1241]               61:               OpTypeStruct 60 
+[  1242]               59:               OpTypePointer Unsupported storage class 61 
+[  1243]               62:               OpTypePointer Function 59 
+
+[  1259]              112:               OpTypePointer Unsupported storage class 6 
+
+[  1264]               63:           62  OpVariable Function 
+ 
+[  1278]               72:           59  OpBitcast 71 
+[  1279]                                 OpStore 63 72 
+
+[  1319]              109:           59  OpLoad 63 
+[  1320]              110:            6  OpLoad 45 
+[  1321]              113:          112  OpAccessChain 109 68 110 
+[  1322]                                 OpStore 113 111 Aligned 

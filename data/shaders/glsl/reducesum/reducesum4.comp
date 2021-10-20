@@ -1,0 +1,65 @@
+#version 450
+
+#define BLOCK_SIZE 128
+
+layout (binding = 0) buffer Value {
+	uint value[];
+};
+
+layout (local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout (push_constant) uniform PushConsts {
+	uint BUFFER_ELEMENTS;
+};
+
+volatile shared uint sharedData[BLOCK_SIZE * 2];
+
+shared uint semaphore;
+
+void main() 
+{
+	uint wid = gl_WorkGroupID.x;
+	uint gid = gl_GlobalInvocationID.x;
+	uint tid = gl_LocalInvocationID.x;
+
+	uint pos = wid * BLOCK_SIZE * 2 + tid;
+
+	if (pos < BUFFER_ELEMENTS) {
+		sharedData[tid] = value[pos];
+	}
+	else {
+		sharedData[tid] = 0;
+	}
+	if (pos + BLOCK_SIZE < BUFFER_ELEMENTS) {
+		sharedData[tid + BLOCK_SIZE] = value[pos + BLOCK_SIZE];
+	}
+	else {
+		sharedData[tid + BLOCK_SIZE] = 0;
+	}
+
+	memoryBarrierShared();
+	barrier();
+
+	for (uint s = BLOCK_SIZE; s > 16; s >>= 1) {
+		if (tid < s) {
+			sharedData[tid] += sharedData[tid + s];
+		}
+		memoryBarrierShared();
+		barrier();
+	}
+
+	if (tid < 16) {
+		sharedData[tid] += sharedData[tid + 16];
+		sharedData[tid] += sharedData[tid + 8];
+		sharedData[tid] += sharedData[tid + 4];
+		sharedData[tid] += sharedData[tid + 2];
+		sharedData[tid] += sharedData[tid + 1];
+	}
+		memoryBarrierShared();
+		barrier();
+
+	if (tid == 0) {
+		value[wid] = sharedData[0];
+	}
+}
+

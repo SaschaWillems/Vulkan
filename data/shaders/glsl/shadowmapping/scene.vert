@@ -40,7 +40,7 @@ void main()
 	
     vec4 pos = ubo.model * vec4(inPos, 1.0);
     outNormal = mat3(ubo.model) * inNormal;
-    outLightVec = normalize(ubo.lightPos - inPos);
+    outLightVec = ubo.lightPos - inPos;
     outViewVec = -pos.xyz;			
 
 	outShadowCoord = ( biasMat * ubo.lightSpace * ubo.model ) * vec4(inPos, 1.0);	

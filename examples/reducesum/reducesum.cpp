@@ -25,6 +25,8 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <random>
+#include <chrono>
 
 #include <vulkan/vulkan.h>
 #include "VulkanTools.h"
@@ -36,7 +38,8 @@ android_app* androidapp;
 // #define DEBUG (!NDEBUG)
 #define DEBUG 1
 
-#define BUFFER_ELEMENTS 32
+const int BUFFER_ELEMENTS = 1000000;
+const int NUM_GROUP_THREAD = 128;
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 #define LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vulkanExample", __VA_ARGS__))
@@ -69,7 +72,6 @@ public:
 	VkQueue queue;
 	VkCommandPool commandPool;
 	VkCommandBuffer commandBuffer;
-	VkFence fence;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
@@ -78,6 +80,9 @@ public:
 	VkShaderModule shaderModule;
 
 	VkDebugReportCallbackEXT debugReportCallback{};
+
+	std::mt19937 mt;
+	std::uniform_int_distribution<uint32_t> uniform;
 
 	VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkBuffer *buffer, VkDeviceMemory *memory, VkDeviceSize size, void *data = nullptr)
 	{
@@ -105,14 +110,6 @@ public:
 			memReqs.memoryTypeBits >>= 1;
 		}
 		assert(memTypeFound);
-
-		VkMemoryAllocateFlagsInfo flagsInfo = {};
-		if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
-			flagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
-			flagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
-			memAlloc.pNext = &flagsInfo;
-		}
-
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, memory));
 
 		if (data != nullptr) {
@@ -129,6 +126,9 @@ public:
 
 	VulkanExample()
 	{
+        mt.seed(0);
+		uniform = std::uniform_int_distribution<uint32_t>(0, 100000);
+
 		LOG("Running headless compute example\n");
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -237,26 +237,11 @@ public:
 				break;
 			}
 		}
-
-		VkPhysicalDeviceVulkan12Features enabledVulkan12Features = {};
-		enabledVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-		enabledVulkan12Features.bufferDeviceAddress = VK_TRUE;
-
-		VkPhysicalDeviceFeatures enabledFeatures = {};
-		enabledFeatures.shaderInt64 = VK_TRUE;
-
-		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
-		physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		physicalDeviceFeatures2.features = enabledFeatures;
-		physicalDeviceFeatures2.pNext = &enabledVulkan12Features;
-
 		// Create logical device
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.queueCreateInfoCount = 1;
 		deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-		deviceCreateInfo.pEnabledFeatures = nullptr;
-		deviceCreateInfo.pNext = &physicalDeviceFeatures2;
 		VK_CHECK_RESULT(vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device));
 
 		// Get a compute queue
@@ -273,11 +258,27 @@ public:
 			Prepare storage buffers
 		*/
 		std::vector<uint32_t> computeInput(BUFFER_ELEMENTS);
-		std::vector<uint32_t> computeOutput(BUFFER_ELEMENTS);
 
 		// Fill input data
-		uint32_t n = 0;
-		std::generate(computeInput.begin(), computeInput.end(), [&n] { return n++; });
+		for (int i = 0; i < BUFFER_ELEMENTS; i++) {
+			computeInput[i] = uniform(mt);
+		}
+
+		uint standandResult = 0;
+		auto tStart = std::chrono::high_resolution_clock::now();
+		for (int i = 0; i < BUFFER_ELEMENTS; i++) {
+			standandResult += computeInput[i];
+		}
+		auto tEnd = std::chrono::high_resolution_clock::now();
+		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+		std::cout << tDiff << std::endl;
+
+		// Output buffer contents
+		// LOG("Compute input:\n");
+		// for (auto v : computeInput) {
+		// 	LOG("%d \t", v);
+		// }
+		// std::cout << std::endl;
 
 		const VkDeviceSize bufferSize = BUFFER_ELEMENTS * sizeof(uint32_t);
 
@@ -326,15 +327,11 @@ public:
 			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &copyCmd;
-			VkFenceCreateInfo fenceInfo = vks::initializers::fenceCreateInfo(VK_FLAGS_NONE);
-			VkFence fence;
-			VK_CHECK_RESULT(vkCreateFence(device, &fenceInfo, nullptr, &fence));
 
 			// Submit to the queue
-			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
-			VK_CHECK_RESULT(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+			vkQueueWaitIdle(queue);
 
-			vkDestroyFence(device, fence, nullptr);
 			vkFreeCommandBuffers(device, commandPool, 1, &copyCmd);
 		}
 
@@ -358,13 +355,11 @@ public:
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =
-				vks::initializers::pipelineLayoutCreateInfo(nullptr, 0);
+				vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 			VkPushConstantRange pushConstantRange =
-				vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(uint64_t), 0);
+				vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(uint32_t), 0);
 			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 			pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-			// VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =
-			// 	vks::initializers::pipelineLayoutCreateInfo(nullptr, 0);
 			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 			VkDescriptorSetAllocateInfo allocInfo =
@@ -394,15 +389,15 @@ public:
 			// TODO: There is no command line arguments parsing (nor Android settings) for this
 			// example, so we have no way of picking between GLSL or HLSL shaders.
 			// Hard-code to glsl for now.
-			const std::string shadersPath = getAssetPath() + "shaders/glsl/bufferreference/";
+			const std::string shadersPath = getAssetPath() + "shaders/glsl/reducesum/";
 
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, (shadersPath + "bufferreference.comp.spv").c_str(), device);
+			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, (shadersPath + "reducesum.comp.spv").c_str(), device);
 #else
-			shaderStage.module = vks::tools::loadShader((shadersPath + "bufferreference.comp.spv").c_str(), device);
+			shaderStage.module = vks::tools::loadShader((shadersPath + "reducesum.comp.spv").c_str(), device);
 #endif
 			shaderStage.pName = "main";
 			shaderStage.pSpecializationInfo = &specializationInfo;
@@ -416,10 +411,6 @@ public:
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 				vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer));
-
-			// Fence for compute CB sync
-			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
 		}
 
 		/*
@@ -449,46 +440,67 @@ public:
 				0, nullptr);
 
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-			// vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
 
-			VkBufferDeviceAddressInfo addressInfo {
-				.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-				.pNext = VK_NULL_HANDLE,
-				.buffer = deviceBuffer
-			};
-			static PFN_vkGetBufferDeviceAddress pfn_vkGetBufferDeviceAddress = nullptr;
-			if (!pfn_vkGetBufferDeviceAddress) {
-				pfn_vkGetBufferDeviceAddress = (PFN_vkGetBufferDeviceAddress)vkGetDeviceProcAddr(device, "vkGetBufferDeviceAddress");
-			}
-			const VkDeviceAddress address = pfn_vkGetBufferDeviceAddress(device, &addressInfo);
-			// uint64_t address = vkGetBufferDeviceAddress(device, &addressInfo);
-			std::cout << "address == 0x" << std::hex << address << std::endl;
-			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint64_t), &address);
+			uint32_t num = BUFFER_ELEMENTS;
+			auto divCeil = [](int l) {return (l + NUM_GROUP_THREAD * 2 - 1) / (NUM_GROUP_THREAD * 2);};
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &num);
 
-			vkCmdDispatch(commandBuffer, BUFFER_ELEMENTS, 1, 1);
+			num = divCeil(num);
+			vkCmdDispatch(commandBuffer, num, 1, 1);
 
-			// Barrier to ensure that shader writes are finished before buffer is read back from GPU
 			bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-			bufferBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			bufferBarrier.buffer = deviceBuffer;
 			bufferBarrier.size = VK_WHOLE_SIZE;
 			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			
+			while (num > 1) {
+				vkCmdPipelineBarrier(
+					commandBuffer,
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					VK_FLAGS_NONE,
+					0, nullptr,
+					1, &bufferBarrier,
+					0, nullptr);
+				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &num);
 
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				VK_FLAGS_NONE,
-				0, nullptr,
-				1, &bufferBarrier,
-				0, nullptr);
+				num = divCeil(num);
+				vkCmdDispatch(commandBuffer, num, 1, 1);
+			}
+
+
+			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+
+			// Submit compute work
+			VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
+			computeSubmitInfo.commandBufferCount = 1;
+			computeSubmitInfo.pCommandBuffers = &commandBuffer;
+
+			auto tStart = std::chrono::high_resolution_clock::now();
+
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
+			vkQueueWaitIdle(queue);
+
+			auto tEnd = std::chrono::high_resolution_clock::now();
+			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+			std::cout << tDiff << std::endl;
+		}
+		{
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+			VkCommandBuffer copyCmd;
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &copyCmd));
+			VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+			VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
 
 			// Read back to host visible buffer
 			VkBufferCopy copyRegion = {};
 			copyRegion.size = bufferSize;
-			vkCmdCopyBuffer(commandBuffer, deviceBuffer, hostBuffer, 1, &copyRegion);
+			vkCmdCopyBuffer(copyCmd, deviceBuffer, hostBuffer, 1, &copyRegion);
 
+			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
 			// Barrier to ensure that buffer copy is finished before host reading from it
 			bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			bufferBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
@@ -498,25 +510,22 @@ public:
 			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 			vkCmdPipelineBarrier(
-				commandBuffer,
+				copyCmd,
 				VK_PIPELINE_STAGE_TRANSFER_BIT,
 				VK_PIPELINE_STAGE_HOST_BIT,
 				VK_FLAGS_NONE,
 				0, nullptr,
 				1, &bufferBarrier,
 				0, nullptr);
+			VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &copyCmd;
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+			vkQueueWaitIdle(queue);
 
-			// Submit compute work
-			vkResetFences(device, 1, &fence);
-			const VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
-			computeSubmitInfo.pWaitDstStageMask = &waitStageMask;
-			computeSubmitInfo.commandBufferCount = 1;
-			computeSubmitInfo.pCommandBuffers = &commandBuffer;
-			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &computeSubmitInfo, fence));
-			VK_CHECK_RESULT(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
+			vkFreeCommandBuffers(device, commandPool, 1, &copyCmd);
 
 			// Make device writes visible to the host
 			void *mapped;
@@ -528,24 +537,16 @@ public:
 			vkInvalidateMappedMemoryRanges(device, 1, &mappedRange);
 
 			// Copy to output
-			memcpy(computeOutput.data(), mapped, bufferSize);
+			memcpy(computeInput.data(), mapped, bufferSize);
 			vkUnmapMemory(device, hostMemory);
 		}
 
 		vkQueueWaitIdle(queue);
 
-		// Output buffer contents
-		LOG("Compute input:\n");
-		for (auto v : computeInput) {
-			LOG("%d \t", v);
-		}
-		std::cout << std::endl;
-
+		LOG("Expected output:\n");
+		LOG("%d\n", standandResult);
 		LOG("Compute output:\n");
-		for (auto v : computeOutput) {
-			LOG("%d \t", v);
-		}
-		std::cout << std::endl;
+		LOG("%d %d\n", computeInput[0], computeInput[BUFFER_ELEMENTS - 1]);
 
 		// Clean up
 		vkDestroyBuffer(device, deviceBuffer, nullptr);
@@ -561,7 +562,6 @@ public:
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineCache(device, pipelineCache, nullptr);
-		vkDestroyFence(device, fence, nullptr);
 		vkDestroyCommandPool(device, commandPool, nullptr);
 		vkDestroyShaderModule(device, shaderModule, nullptr);
 		vkDestroyDevice(device, nullptr);
@@ -601,8 +601,8 @@ void android_main(android_app* state) {
 #else
 int main() {
 	VulkanExample *vulkanExample = new VulkanExample();
-	std::cout << "Finished. Press enter to terminate...";
-	getchar();
+	// std::cout << "Finished. Press enter to terminate...";
+	// getchar();
 	delete(vulkanExample);
 	return 0;
 }
