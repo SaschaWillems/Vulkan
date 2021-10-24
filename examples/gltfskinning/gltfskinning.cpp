@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - glTF skinned animation
 *
-* Copyright (C) 2020 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2021 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -426,8 +426,7 @@ void VulkanglTFModel::loadNode(const tinygltf::Node &inputNode, const tinygltf::
 				switch (accessor.componentType)
 				{
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-						uint32_t *buf = new uint32_t[accessor.count];
-						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint32_t));
+						const uint32_t* buf = reinterpret_cast<const uint32_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
 						for (size_t index = 0; index < accessor.count; index++)
 						{
 							indexBuffer.push_back(buf[index] + vertexStart);
@@ -435,8 +434,7 @@ void VulkanglTFModel::loadNode(const tinygltf::Node &inputNode, const tinygltf::
 						break;
 					}
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-						uint16_t *buf = new uint16_t[accessor.count];
-						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint16_t));
+						const uint16_t* buf = reinterpret_cast<const uint16_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
 						for (size_t index = 0; index < accessor.count; index++)
 						{
 							indexBuffer.push_back(buf[index] + vertexStart);
@@ -444,8 +442,7 @@ void VulkanglTFModel::loadNode(const tinygltf::Node &inputNode, const tinygltf::
 						break;
 					}
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-						uint8_t *buf = new uint8_t[accessor.count];
-						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint8_t));
+						const uint8_t* buf = reinterpret_cast<const uint8_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
 						for (size_t index = 0; index < accessor.count; index++)
 						{
 							indexBuffer.push_back(buf[index] + vertexStart);
