@@ -114,6 +114,8 @@ public:
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Vulkan Example - Basic indexed triangle";
+		// To keep things simple, we don't use the UI overlay
+		settings.overlay = false;
 		// Setup a default look-at camera
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
