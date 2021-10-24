@@ -574,7 +574,7 @@ void VulkanExample::preparePipelines()
 	for (auto &material : glTFScene.materials) {
 
 		struct MaterialSpecializationData {
-			bool alphaMask;
+			VkBool32 alphaMask;
 			float alphaMaskCutoff;
 		} materialSpecializationData;
 
