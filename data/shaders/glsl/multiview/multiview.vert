@@ -19,11 +19,6 @@ layout (binding = 0) uniform UBO
 	vec4 lightPos;
 } ubo;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
-
 void main() 
 {
 	outColor = inColor;

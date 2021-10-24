@@ -93,6 +93,9 @@ public:
 		else {
 			wireframe = false;
 		}
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		}
 	}
 
 	void buildCommandBuffers()

@@ -49,6 +49,8 @@ public:
 
 	VkPipeline viewDisplayPipelines[2];
 
+	VkPhysicalDeviceMultiviewFeaturesKHR physicalDeviceMultiviewFeatures{};
+
 	// Camera and view properties
 	float eyeSeparation = 0.08f;
 	const float focalLength = 0.5f;
@@ -69,6 +71,11 @@ public:
 
 		// Reading device properties and features for multiview requires VK_KHR_get_physical_device_properties2 to be enabled
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
+		// Enable required extension features
+		physicalDeviceMultiviewFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR;
+		physicalDeviceMultiviewFeatures.multiview = VK_TRUE;
+		deviceCreatepNextChain = &physicalDeviceMultiviewFeatures;
 	}
 
 	~VulkanExample()

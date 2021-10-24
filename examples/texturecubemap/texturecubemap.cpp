@@ -84,6 +84,14 @@ public:
 		uniformBuffers.skybox.destroy();
 	}
 
+	// Enable physical device features required for this example
+	virtual void getEnabledFeatures()
+	{
+		if (deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		}
+	}
+
 	void loadCubemap(std::string filename, VkFormat format, bool forceLinearTiling)
 	{
 		ktxResult result;
