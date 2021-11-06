@@ -823,7 +823,10 @@ VulkanExampleBase::~VulkanExampleBase()
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 	}
 	destroyCommandBuffers();
-	vkDestroyRenderPass(device, renderPass, nullptr);
+	if (renderPass != VK_NULL_HANDLE)
+	{
+		vkDestroyRenderPass(device, renderPass, nullptr);
+	}
 	for (uint32_t i = 0; i < frameBuffers.size(); i++)
 	{
 		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
