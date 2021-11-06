@@ -22,7 +22,7 @@ extern "C" {
 #define VK_KHR_video_queue 1
 VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkVideoSessionKHR)
 VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkVideoSessionParametersKHR)
-#define VK_KHR_VIDEO_QUEUE_SPEC_VERSION   1
+#define VK_KHR_VIDEO_QUEUE_SPEC_VERSION   2
 #define VK_KHR_VIDEO_QUEUE_EXTENSION_NAME "VK_KHR_video_queue"
 
 typedef enum VkQueryResultStatusKHR {
@@ -36,6 +36,9 @@ typedef enum VkVideoCodecOperationFlagBitsKHR {
     VK_VIDEO_CODEC_OPERATION_INVALID_BIT_KHR = 0,
 #ifdef VK_ENABLE_BETA_EXTENSIONS
     VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_EXT = 0x00010000,
+#endif
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+    VK_VIDEO_CODEC_OPERATION_ENCODE_H265_BIT_EXT = 0x00020000,
 #endif
 #ifdef VK_ENABLE_BETA_EXTENSIONS
     VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_EXT = 0x00000001,
@@ -66,12 +69,12 @@ typedef enum VkVideoComponentBitDepthFlagBitsKHR {
 } VkVideoComponentBitDepthFlagBitsKHR;
 typedef VkFlags VkVideoComponentBitDepthFlagsKHR;
 
-typedef enum VkVideoCapabilitiesFlagBitsKHR {
-    VK_VIDEO_CAPABILITIES_PROTECTED_CONTENT_BIT_KHR = 0x00000001,
-    VK_VIDEO_CAPABILITIES_SEPARATE_REFERENCE_IMAGES_BIT_KHR = 0x00000002,
-    VK_VIDEO_CAPABILITIES_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
-} VkVideoCapabilitiesFlagBitsKHR;
-typedef VkFlags VkVideoCapabilitiesFlagsKHR;
+typedef enum VkVideoCapabilityFlagBitsKHR {
+    VK_VIDEO_CAPABILITY_PROTECTED_CONTENT_BIT_KHR = 0x00000001,
+    VK_VIDEO_CAPABILITY_SEPARATE_REFERENCE_IMAGES_BIT_KHR = 0x00000002,
+    VK_VIDEO_CAPABILITY_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
+} VkVideoCapabilityFlagBitsKHR;
+typedef VkFlags VkVideoCapabilityFlagsKHR;
 
 typedef enum VkVideoSessionCreateFlagBitsKHR {
     VK_VIDEO_SESSION_CREATE_DEFAULT_KHR = 0,
@@ -90,7 +93,6 @@ typedef enum VkVideoCodingControlFlagBitsKHR {
 typedef VkFlags VkVideoCodingControlFlagsKHR;
 
 typedef enum VkVideoCodingQualityPresetFlagBitsKHR {
-    VK_VIDEO_CODING_QUALITY_PRESET_DEFAULT_BIT_KHR = 0,
     VK_VIDEO_CODING_QUALITY_PRESET_NORMAL_BIT_KHR = 0x00000001,
     VK_VIDEO_CODING_QUALITY_PRESET_POWER_BIT_KHR = 0x00000002,
     VK_VIDEO_CODING_QUALITY_PRESET_QUALITY_BIT_KHR = 0x00000004,
@@ -120,16 +122,16 @@ typedef struct VkVideoProfilesKHR {
 } VkVideoProfilesKHR;
 
 typedef struct VkVideoCapabilitiesKHR {
-    VkStructureType                sType;
-    void*                          pNext;
-    VkVideoCapabilitiesFlagsKHR    capabilityFlags;
-    VkDeviceSize                   minBitstreamBufferOffsetAlignment;
-    VkDeviceSize                   minBitstreamBufferSizeAlignment;
-    VkExtent2D                     videoPictureExtentGranularity;
-    VkExtent2D                     minExtent;
-    VkExtent2D                     maxExtent;
-    uint32_t                       maxReferencePicturesSlotsCount;
-    uint32_t                       maxReferencePicturesActiveCount;
+    VkStructureType              sType;
+    void*                        pNext;
+    VkVideoCapabilityFlagsKHR    capabilityFlags;
+    VkDeviceSize                 minBitstreamBufferOffsetAlignment;
+    VkDeviceSize                 minBitstreamBufferSizeAlignment;
+    VkExtent2D                   videoPictureExtentGranularity;
+    VkExtent2D                   minExtent;
+    VkExtent2D                   maxExtent;
+    uint32_t                     maxReferencePicturesSlotsCount;
+    uint32_t                     maxReferencePicturesActiveCount;
 } VkVideoCapabilitiesKHR;
 
 typedef struct VkPhysicalDeviceVideoFormatInfoKHR {
@@ -305,7 +307,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdControlVideoCodingKHR(
 
 
 #define VK_KHR_video_decode_queue 1
-#define VK_KHR_VIDEO_DECODE_QUEUE_SPEC_VERSION 1
+#define VK_KHR_VIDEO_DECODE_QUEUE_SPEC_VERSION 2
 #define VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME "VK_KHR_video_decode_queue"
 
 typedef enum VkVideoDecodeFlagBitsKHR {
@@ -370,7 +372,7 @@ typedef struct VkPhysicalDevicePortabilitySubsetPropertiesKHR {
 
 
 #define VK_KHR_video_encode_queue 1
-#define VK_KHR_VIDEO_ENCODE_QUEUE_SPEC_VERSION 2
+#define VK_KHR_VIDEO_ENCODE_QUEUE_SPEC_VERSION 3
 #define VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME "VK_KHR_video_encode_queue"
 
 typedef enum VkVideoEncodeFlagBitsKHR {
@@ -433,10 +435,10 @@ VKAPI_ATTR void VKAPI_CALL vkCmdEncodeVideoKHR(
 #define VK_EXT_video_encode_h264 1
 #include "vk_video/vulkan_video_codec_h264std.h"
 #include "vk_video/vulkan_video_codec_h264std_encode.h"
-#define VK_EXT_VIDEO_ENCODE_H264_SPEC_VERSION 1
+#define VK_EXT_VIDEO_ENCODE_H264_SPEC_VERSION 2
 #define VK_EXT_VIDEO_ENCODE_H264_EXTENSION_NAME "VK_EXT_video_encode_h264"
 
-typedef enum VkVideoEncodeH264CapabilitiesFlagBitsEXT {
+typedef enum VkVideoEncodeH264CapabilityFlagBitsEXT {
     VK_VIDEO_ENCODE_H264_CAPABILITY_CABAC_BIT_EXT = 0x00000001,
     VK_VIDEO_ENCODE_H264_CAPABILITY_CAVLC_BIT_EXT = 0x00000002,
     VK_VIDEO_ENCODE_H264_CAPABILITY_WEIGHTED_BI_PRED_IMPLICIT_BIT_EXT = 0x00000004,
@@ -448,9 +450,9 @@ typedef enum VkVideoEncodeH264CapabilitiesFlagBitsEXT {
     VK_VIDEO_ENCODE_H264_CAPABILITY_DEBLOCKING_FILTER_PARTIAL_BIT_EXT = 0x00000100,
     VK_VIDEO_ENCODE_H264_CAPABILITY_MULTIPLE_SLICE_PER_FRAME_BIT_EXT = 0x00000200,
     VK_VIDEO_ENCODE_H264_CAPABILITY_EVENLY_DISTRIBUTED_SLICE_SIZE_BIT_EXT = 0x00000400,
-    VK_VIDEO_ENCODE_H264_CAPABILITIES_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
-} VkVideoEncodeH264CapabilitiesFlagBitsEXT;
-typedef VkFlags VkVideoEncodeH264CapabilitiesFlagsEXT;
+    VK_VIDEO_ENCODE_H264_CAPABILITY_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
+} VkVideoEncodeH264CapabilityFlagBitsEXT;
+typedef VkFlags VkVideoEncodeH264CapabilityFlagsEXT;
 
 typedef enum VkVideoEncodeH264InputModeFlagBitsEXT {
     VK_VIDEO_ENCODE_H264_INPUT_MODE_FRAME_BIT_EXT = 0x00000001,
@@ -475,19 +477,19 @@ typedef enum VkVideoEncodeH264CreateFlagBitsEXT {
 } VkVideoEncodeH264CreateFlagBitsEXT;
 typedef VkFlags VkVideoEncodeH264CreateFlagsEXT;
 typedef struct VkVideoEncodeH264CapabilitiesEXT {
-    VkStructureType                          sType;
-    const void*                              pNext;
-    VkVideoEncodeH264CapabilitiesFlagsEXT    flags;
-    VkVideoEncodeH264InputModeFlagsEXT       inputModeFlags;
-    VkVideoEncodeH264OutputModeFlagsEXT      outputModeFlags;
-    VkExtent2D                               minPictureSizeInMbs;
-    VkExtent2D                               maxPictureSizeInMbs;
-    VkExtent2D                               inputImageDataAlignment;
-    uint8_t                                  maxNumL0ReferenceForP;
-    uint8_t                                  maxNumL0ReferenceForB;
-    uint8_t                                  maxNumL1Reference;
-    uint8_t                                  qualityLevelCount;
-    VkExtensionProperties                    stdExtensionVersion;
+    VkStructureType                        sType;
+    const void*                            pNext;
+    VkVideoEncodeH264CapabilityFlagsEXT    flags;
+    VkVideoEncodeH264InputModeFlagsEXT     inputModeFlags;
+    VkVideoEncodeH264OutputModeFlagsEXT    outputModeFlags;
+    VkExtent2D                             minPictureSizeInMbs;
+    VkExtent2D                             maxPictureSizeInMbs;
+    VkExtent2D                             inputImageDataAlignment;
+    uint8_t                                maxNumL0ReferenceForP;
+    uint8_t                                maxNumL0ReferenceForB;
+    uint8_t                                maxNumL1Reference;
+    uint8_t                                qualityLevelCount;
+    VkExtensionProperties                  stdExtensionVersion;
 } VkVideoEncodeH264CapabilitiesEXT;
 
 typedef struct VkVideoEncodeH264SessionCreateInfoEXT {
@@ -565,24 +567,152 @@ typedef struct VkVideoEncodeH264ProfileEXT {
 
 
 
+#define VK_EXT_video_encode_h265 1
+#include "vk_video/vulkan_video_codec_h265std.h"
+#include "vk_video/vulkan_video_codec_h265std_encode.h"
+#define VK_EXT_VIDEO_ENCODE_H265_SPEC_VERSION 2
+#define VK_EXT_VIDEO_ENCODE_H265_EXTENSION_NAME "VK_EXT_video_encode_h265"
+typedef VkFlags VkVideoEncodeH265CapabilityFlagsEXT;
+
+typedef enum VkVideoEncodeH265InputModeFlagBitsEXT {
+    VK_VIDEO_ENCODE_H265_INPUT_MODE_FRAME_BIT_EXT = 0x00000001,
+    VK_VIDEO_ENCODE_H265_INPUT_MODE_SLICE_BIT_EXT = 0x00000002,
+    VK_VIDEO_ENCODE_H265_INPUT_MODE_NON_VCL_BIT_EXT = 0x00000004,
+    VK_VIDEO_ENCODE_H265_INPUT_MODE_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
+} VkVideoEncodeH265InputModeFlagBitsEXT;
+typedef VkFlags VkVideoEncodeH265InputModeFlagsEXT;
+
+typedef enum VkVideoEncodeH265OutputModeFlagBitsEXT {
+    VK_VIDEO_ENCODE_H265_OUTPUT_MODE_FRAME_BIT_EXT = 0x00000001,
+    VK_VIDEO_ENCODE_H265_OUTPUT_MODE_SLICE_BIT_EXT = 0x00000002,
+    VK_VIDEO_ENCODE_H265_OUTPUT_MODE_NON_VCL_BIT_EXT = 0x00000004,
+    VK_VIDEO_ENCODE_H265_OUTPUT_MODE_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
+} VkVideoEncodeH265OutputModeFlagBitsEXT;
+typedef VkFlags VkVideoEncodeH265OutputModeFlagsEXT;
+typedef VkFlags VkVideoEncodeH265CreateFlagsEXT;
+
+typedef enum VkVideoEncodeH265CtbSizeFlagBitsEXT {
+    VK_VIDEO_ENCODE_H265_CTB_SIZE_8_BIT_EXT = 0x00000001,
+    VK_VIDEO_ENCODE_H265_CTB_SIZE_16_BIT_EXT = 0x00000002,
+    VK_VIDEO_ENCODE_H265_CTB_SIZE_32_BIT_EXT = 0x00000004,
+    VK_VIDEO_ENCODE_H265_CTB_SIZE_64_BIT_EXT = 0x00000008,
+    VK_VIDEO_ENCODE_H265_CTB_SIZE_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
+} VkVideoEncodeH265CtbSizeFlagBitsEXT;
+typedef VkFlags VkVideoEncodeH265CtbSizeFlagsEXT;
+typedef struct VkVideoEncodeH265CapabilitiesEXT {
+    VkStructureType                        sType;
+    const void*                            pNext;
+    VkVideoEncodeH265CapabilityFlagsEXT    flags;
+    VkVideoEncodeH265InputModeFlagsEXT     inputModeFlags;
+    VkVideoEncodeH265OutputModeFlagsEXT    outputModeFlags;
+    VkVideoEncodeH265CtbSizeFlagsEXT       ctbSizes;
+    VkExtent2D                             inputImageDataAlignment;
+    uint8_t                                maxNumL0ReferenceForP;
+    uint8_t                                maxNumL0ReferenceForB;
+    uint8_t                                maxNumL1Reference;
+    uint8_t                                maxNumSubLayers;
+    uint8_t                                qualityLevelCount;
+    VkExtensionProperties                  stdExtensionVersion;
+} VkVideoEncodeH265CapabilitiesEXT;
+
+typedef struct VkVideoEncodeH265SessionCreateInfoEXT {
+    VkStructureType                    sType;
+    const void*                        pNext;
+    VkVideoEncodeH265CreateFlagsEXT    flags;
+    const VkExtensionProperties*       pStdExtensionVersion;
+} VkVideoEncodeH265SessionCreateInfoEXT;
+
+typedef struct VkVideoEncodeH265SessionParametersAddInfoEXT {
+    VkStructureType                            sType;
+    const void*                                pNext;
+    uint32_t                                   vpsStdCount;
+    const StdVideoH265VideoParameterSet*       pVpsStd;
+    uint32_t                                   spsStdCount;
+    const StdVideoH265SequenceParameterSet*    pSpsStd;
+    uint32_t                                   ppsStdCount;
+    const StdVideoH265PictureParameterSet*     pPpsStd;
+} VkVideoEncodeH265SessionParametersAddInfoEXT;
+
+typedef struct VkVideoEncodeH265SessionParametersCreateInfoEXT {
+    VkStructureType                                        sType;
+    const void*                                            pNext;
+    uint32_t                                               maxVpsStdCount;
+    uint32_t                                               maxSpsStdCount;
+    uint32_t                                               maxPpsStdCount;
+    const VkVideoEncodeH265SessionParametersAddInfoEXT*    pParametersAddInfo;
+} VkVideoEncodeH265SessionParametersCreateInfoEXT;
+
+typedef struct VkVideoEncodeH265DpbSlotInfoEXT {
+    VkStructureType                           sType;
+    const void*                               pNext;
+    int8_t                                    slotIndex;
+    const StdVideoEncodeH265ReferenceInfo*    pStdReferenceInfo;
+} VkVideoEncodeH265DpbSlotInfoEXT;
+
+typedef struct VkVideoEncodeH265ReferenceListsEXT {
+    VkStructureType                                    sType;
+    const void*                                        pNext;
+    uint8_t                                            referenceList0EntryCount;
+    const VkVideoEncodeH265DpbSlotInfoEXT*             pReferenceList0Entries;
+    uint8_t                                            referenceList1EntryCount;
+    const VkVideoEncodeH265DpbSlotInfoEXT*             pReferenceList1Entries;
+    const StdVideoEncodeH265ReferenceModifications*    pReferenceModifications;
+} VkVideoEncodeH265ReferenceListsEXT;
+
+typedef struct VkVideoEncodeH265NaluSliceEXT {
+    VkStructureType                              sType;
+    const void*                                  pNext;
+    uint32_t                                     ctbCount;
+    const VkVideoEncodeH265ReferenceListsEXT*    pReferenceFinalLists;
+    const StdVideoEncodeH265SliceHeader*         pSliceHeaderStd;
+} VkVideoEncodeH265NaluSliceEXT;
+
+typedef struct VkVideoEncodeH265VclFrameInfoEXT {
+    VkStructureType                              sType;
+    const void*                                  pNext;
+    const VkVideoEncodeH265ReferenceListsEXT*    pReferenceFinalLists;
+    uint32_t                                     naluSliceEntryCount;
+    const VkVideoEncodeH265NaluSliceEXT*         pNaluSliceEntries;
+    const StdVideoEncodeH265PictureInfo*         pCurrentPictureInfo;
+} VkVideoEncodeH265VclFrameInfoEXT;
+
+typedef struct VkVideoEncodeH265EmitPictureParametersEXT {
+    VkStructureType    sType;
+    const void*        pNext;
+    uint8_t            vpsId;
+    uint8_t            spsId;
+    VkBool32           emitVpsEnable;
+    VkBool32           emitSpsEnable;
+    uint32_t           ppsIdEntryCount;
+    const uint8_t*     ppsIdEntries;
+} VkVideoEncodeH265EmitPictureParametersEXT;
+
+typedef struct VkVideoEncodeH265ProfileEXT {
+    VkStructureType           sType;
+    const void*               pNext;
+    StdVideoH265ProfileIdc    stdProfileIdc;
+} VkVideoEncodeH265ProfileEXT;
+
+
+
 #define VK_EXT_video_decode_h264 1
 #include "vk_video/vulkan_video_codec_h264std_decode.h"
-#define VK_EXT_VIDEO_DECODE_H264_SPEC_VERSION 1
+#define VK_EXT_VIDEO_DECODE_H264_SPEC_VERSION 3
 #define VK_EXT_VIDEO_DECODE_H264_EXTENSION_NAME "VK_EXT_video_decode_h264"
 
-typedef enum VkVideoDecodeH264FieldLayoutFlagBitsEXT {
-    VK_VIDEO_DECODE_H264_PROGRESSIVE_PICTURES_ONLY_EXT = 0,
-    VK_VIDEO_DECODE_H264_FIELD_LAYOUT_LINE_INTERLACED_PLANE_BIT_EXT = 0x00000001,
-    VK_VIDEO_DECODE_H264_FIELD_LAYOUT_SEPARATE_INTERLACED_PLANE_BIT_EXT = 0x00000002,
-    VK_VIDEO_DECODE_H264_FIELD_LAYOUT_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
-} VkVideoDecodeH264FieldLayoutFlagBitsEXT;
-typedef VkFlags VkVideoDecodeH264FieldLayoutFlagsEXT;
+typedef enum VkVideoDecodeH264PictureLayoutFlagBitsEXT {
+    VK_VIDEO_DECODE_H264_PICTURE_LAYOUT_PROGRESSIVE_EXT = 0,
+    VK_VIDEO_DECODE_H264_PICTURE_LAYOUT_INTERLACED_INTERLEAVED_LINES_BIT_EXT = 0x00000001,
+    VK_VIDEO_DECODE_H264_PICTURE_LAYOUT_INTERLACED_SEPARATE_PLANES_BIT_EXT = 0x00000002,
+    VK_VIDEO_DECODE_H264_PICTURE_LAYOUT_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
+} VkVideoDecodeH264PictureLayoutFlagBitsEXT;
+typedef VkFlags VkVideoDecodeH264PictureLayoutFlagsEXT;
 typedef VkFlags VkVideoDecodeH264CreateFlagsEXT;
 typedef struct VkVideoDecodeH264ProfileEXT {
-    VkStructureType                         sType;
-    const void*                             pNext;
-    StdVideoH264ProfileIdc                  stdProfileIdc;
-    VkVideoDecodeH264FieldLayoutFlagsEXT    fieldLayout;
+    VkStructureType                           sType;
+    const void*                               pNext;
+    StdVideoH264ProfileIdc                    stdProfileIdc;
+    VkVideoDecodeH264PictureLayoutFlagsEXT    pictureLayout;
 } VkVideoDecodeH264ProfileEXT;
 
 typedef struct VkVideoDecodeH264CapabilitiesEXT {
@@ -640,7 +770,6 @@ typedef struct VkVideoDecodeH264DpbSlotInfoEXT {
 
 
 #define VK_EXT_video_decode_h265 1
-#include "vk_video/vulkan_video_codec_h265std.h"
 #include "vk_video/vulkan_video_codec_h265std_decode.h"
 #define VK_EXT_VIDEO_DECODE_H265_SPEC_VERSION 1
 #define VK_EXT_VIDEO_DECODE_H265_EXTENSION_NAME "VK_EXT_video_decode_h265"
