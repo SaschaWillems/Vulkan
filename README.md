@@ -421,6 +421,9 @@ Uses a special image that contains variable shading rates to vary the number of 
 
 Demonstrates the use of VK_EXT_descriptor_indexing for creating descriptor sets with a variable size that can be dynamically indexed in a shader using `GL_EXT_nonuniform_qualifier` and `SPV_EXT_descriptor_indexing`.
 
+#### [Dynamic rendering (VK_KHR_dynamic_rendering)](examples/dynamicrendering/)
+
+Shows usage of the VK_KHR_dynamic_rendering extension, which simplifies the rendering setup by no longer requiring render pass objects or framebuffers.
 
 ### Misc
 

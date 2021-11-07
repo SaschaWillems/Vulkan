@@ -96,7 +96,7 @@ public:
 			colorAttachment.imageView = swapChain.buffers[i].view;
 			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_NONE_KHR;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.clearValue.color = { 0.0f,0.0f,0.0f,0.0f };
 
 			// A single depth stencil attachment info can be used, but they can also be specified separately.
