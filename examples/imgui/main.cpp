@@ -499,6 +499,8 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.8f));
 		camera.setRotation(glm::vec3(4.5f, -380.0f, 0.0f));
 		camera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
+		// Don't use the ImGui overlay of the base framework in this sample
+		settings.overlay = false;
 	}
 
 	~VulkanExample()
