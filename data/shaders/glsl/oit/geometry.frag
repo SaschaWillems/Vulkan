@@ -15,7 +15,7 @@ layout (set = 0, binding = 1) buffer GeometrySBO
     uint maxNodeCount;
 };
 
-layout (set = 0, binding = 2, r32ui) uniform uimage2D headIndexImage;
+layout (set = 0, binding = 2, r32ui) uniform coherent uimage2D headIndexImage;
 
 layout (set = 0, binding = 3) buffer LinkedListSBO
 {
