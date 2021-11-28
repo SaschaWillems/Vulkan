@@ -604,6 +604,12 @@ private:
 			// Make a pipeline barrier to guarantee the geometry pass is done
 			vkCmdPipelineBarrier(drawCmdBuffers[i], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
 
+			// We need a barrier to make sure all writes are finished before starting to write again
+			memoryBarrier = vks::initializers::memoryBarrier();
+			memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+			memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+			vkCmdPipelineBarrier(drawCmdBuffers[i], VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+
 			// Begin the color render pass
 			renderPassBeginInfo.renderPass = renderPass;
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
