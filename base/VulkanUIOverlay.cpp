@@ -50,7 +50,9 @@ namespace vks
 		io.FontGlobalScale = scale;
 	}
 
-	UIOverlay::~UIOverlay()	{ }
+	UIOverlay::~UIOverlay()	{
+		ImGui::DestroyContext();
+	}
 
 	/** Prepare all vulkan resources required to render the UI overlay */
 	void UIOverlay::prepareResources()
@@ -397,7 +399,6 @@ namespace vks
 
 	void UIOverlay::freeResources()
 	{
-		ImGui::DestroyContext();
 		vertexBuffer.destroy();
 		indexBuffer.destroy();
 		vkDestroyImageView(device->logicalDevice, fontView, nullptr);
