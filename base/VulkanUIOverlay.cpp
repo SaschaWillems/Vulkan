@@ -51,7 +51,9 @@ namespace vks
 	}
 
 	UIOverlay::~UIOverlay()	{
-		ImGui::DestroyContext();
+		if (ImGui::GetCurrentContext()) {
+			ImGui::DestroyContext();
+		}
 	}
 
 	/** Prepare all vulkan resources required to render the UI overlay */
