@@ -136,6 +136,7 @@ set(EXAMPLES
 	texturesparseresidency
 	triangle
 	variablerateshading
+	vertexattributes
 	viewportarray
 	vulkanscene
 )
