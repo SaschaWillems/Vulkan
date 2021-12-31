@@ -2,7 +2,7 @@
 * Vulkan Example - Basic indexed triangle rendering
 *
 * Note:
-*	This is a "pedal to the metal" example to show off how to get Vulkan up an displaying something
+*	This is a "pedal to the metal" example to show off how to get Vulkan up and displaying something
 *	Contrary to the other examples, this one won't make use of helper functions or initializers
 *	Except in a few cases (swap chain setup e.g.)
 *
@@ -87,7 +87,7 @@ public:
 	// Pipelines (often called "pipeline state objects") are used to bake all states that affect a pipeline
 	// While in OpenGL every state can be changed at (almost) any time, Vulkan requires to layout the graphics (and compute) pipeline states upfront
 	// So for each combination of non-dynamic pipeline states you need a new pipeline (there are a few exceptions to this not discussed here)
-	// Even though this adds a new dimension of planing ahead, it's a great opportunity for performance optimizations by the driver
+	// Even though this adds a new dimension of planning ahead, it's a great opportunity for performance optimizations by the driver
 	VkPipeline pipeline;
 
 	// The descriptor set layout describes the shader binding layout (without actually referencing descriptor)
@@ -182,10 +182,10 @@ public:
 		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		semaphoreCreateInfo.pNext = nullptr;
 
-		// Semaphore used to ensures that image presentation is complete before starting to submit again
+		// Semaphore used to ensure that image presentation is complete before starting to submit again
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &presentCompleteSemaphore));
 
-		// Semaphore used to ensures that all commands submitted have been finished before submitting the image to the queue
+		// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &renderCompleteSemaphore));
 
 		// Fences (Used to check draw command buffer completion)
