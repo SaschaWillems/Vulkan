@@ -123,6 +123,7 @@ PFN_vkCmdCopyQueryPoolResults vkCmdCopyQueryPoolResults;
 
 PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
+PFN_vkCmdFillBuffer vkCmdFillBuffer;
 
 int32_t vks::android::screenDensity;
 
@@ -286,6 +287,8 @@ namespace vks
 
 			vkCreateAndroidSurfaceKHR = reinterpret_cast<PFN_vkCreateAndroidSurfaceKHR>(vkGetInstanceProcAddr(instance, "vkCreateAndroidSurfaceKHR"));
 			vkDestroySurfaceKHR = reinterpret_cast<PFN_vkDestroySurfaceKHR>(vkGetInstanceProcAddr(instance, "vkDestroySurfaceKHR"));
+
+			vkCmdFillBuffer = reinterpret_cast<PFN_vkCmdFillBuffer>(vkGetInstanceProcAddr(instance, "vkCmdFillBuffer"));
 		}
 
 		void freeVulkanLibrary()
