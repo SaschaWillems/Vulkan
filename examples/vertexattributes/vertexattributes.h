@@ -67,13 +67,6 @@ struct Node {
 	glm::mat4 matrix;
 };
 
-// Only used at loading time
-struct VertexAttributes {
-	std::vector<glm::vec2> uv;
-	std::vector<glm::vec3> pos, normal;
-	std::vector<glm::vec4> tangent;
-} vertexAttributes;
-
 std::vector<Node> nodes;
 
 class VulkanExample : public VulkanExampleBase
@@ -82,8 +75,14 @@ public:
 	enum VertexAttributeSettings { interleaved, separate };
 	VertexAttributeSettings vertexAttributeSettings = separate;
 
+	// Used to store indices and vertices from glTF to be uploaded to the GPU
 	std::vector<uint32_t> indexBuffer;
 	std::vector<Vertex> vertexBuffer;
+	struct VertexAttributes {
+		std::vector<glm::vec2> uv;
+		std::vector<glm::vec3> pos, normal;
+		std::vector<glm::vec4> tangent;
+	} vertexAttributeBuffers;
 
 	// Buffers for the separate vertex attributes
 	// @todo: rename
@@ -137,7 +136,7 @@ public:
 	void prepareUniformBuffers();
 	void updateUniformBuffers();
 	void prepare();
-	void loadSceneNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, Node* parent, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer);
+	void loadSceneNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, Node* parent);
 	void drawSceneNode(VkCommandBuffer commandBuffer, Node node);
 	virtual void render();
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay);

@@ -8,7 +8,7 @@
 
 #include "vertexattributes.h"
 
-void VulkanExample::loadSceneNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, Node* parent, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer)
+void VulkanExample::loadSceneNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, Node* parent)
 {
 	Node node{};
 
@@ -32,7 +32,7 @@ void VulkanExample::loadSceneNode(const tinygltf::Node& inputNode, const tinyglt
 	// Load node's children
 	if (inputNode.children.size() > 0) {
 		for (size_t i = 0; i < inputNode.children.size(); i++) {
-			loadSceneNode(input.nodes[inputNode.children[i]], input, &node, indexBuffer, vertexBuffer);
+			loadSceneNode(input.nodes[inputNode.children[i]], input, &node);
 		}
 	}
 
@@ -93,10 +93,10 @@ void VulkanExample::loadSceneNode(const tinygltf::Node& inputNode, const tinyglt
 				vertexBuffer.push_back(vert);
 
 				// Append separate attributes
-				vertexAttributes.pos.push_back(glm::make_vec3(&positionBuffer[v * 3]));
-				vertexAttributes.normal.push_back(glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f))));
-				vertexAttributes.tangent.push_back(tangentsBuffer ? glm::make_vec4(&tangentsBuffer[v * 4]) : glm::vec4(0.0f));
-				vertexAttributes.uv.push_back(texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f));
+				vertexAttributeBuffers.pos.push_back(glm::make_vec3(&positionBuffer[v * 3]));
+				vertexAttributeBuffers.normal.push_back(glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f))));
+				vertexAttributeBuffers.tangent.push_back(tangentsBuffer ? glm::make_vec4(&tangentsBuffer[v * 4]) : glm::vec4(0.0f));
+				vertexAttributeBuffers.uv.push_back(texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f));
 
 			}
 
@@ -174,6 +174,7 @@ VulkanExample::~VulkanExample()
 	separateVertexBuffers.pos.destroy();
 	separateVertexBuffers.tangent.destroy();
 	separateVertexBuffers.uv.destroy();
+	interleavedVertexBuffer.destroy();
 	for (Image image : scene.images) {
 		vkDestroyImageView(vulkanDevice->logicalDevice, image.texture.view, nullptr);
 		vkDestroyImage(vulkanDevice->logicalDevice, image.texture.image, nullptr);
@@ -306,7 +307,7 @@ void VulkanExample::loadglTFFile(std::string filename)
 	const tinygltf::Scene& scene = glTFInput.scenes[0];
 	for (size_t i = 0; i < scene.nodes.size(); i++) {
 		const tinygltf::Node node = glTFInput.nodes[scene.nodes[i]];
-		loadSceneNode(node, glTFInput, nullptr, indexBuffer, vertexBuffer);
+		loadSceneNode(node, glTFInput, nullptr);
 	}
 
 	uploadVertexData();
@@ -350,10 +351,10 @@ void VulkanExample::uploadVertexData()
 		We create multiple separate buffers for each of the vertex attributes (position, normals, etc.)
 	*/
 	std::array<vks::Buffer, 4> stagingBuffers;
-	createStagingBuffer(stagingBuffers[0], vertexAttributes.pos.data(), vertexAttributes.pos.size() * sizeof(vertexAttributes.pos[0]));
-	createStagingBuffer(stagingBuffers[1], vertexAttributes.normal.data(), vertexAttributes.normal.size() * sizeof(vertexAttributes.normal[0]));
-	createStagingBuffer(stagingBuffers[2], vertexAttributes.uv.data(), vertexAttributes.uv.size() * sizeof(vertexAttributes.uv[0]));
-	createStagingBuffer(stagingBuffers[3], vertexAttributes.tangent.data(), vertexAttributes.tangent.size() * sizeof(vertexAttributes.tangent[0]));
+	createStagingBuffer(stagingBuffers[0], vertexAttributeBuffers.pos.data(), vertexAttributeBuffers.pos.size() * sizeof(vertexAttributeBuffers.pos[0]));
+	createStagingBuffer(stagingBuffers[1], vertexAttributeBuffers.normal.data(), vertexAttributeBuffers.normal.size() * sizeof(vertexAttributeBuffers.normal[0]));
+	createStagingBuffer(stagingBuffers[2], vertexAttributeBuffers.uv.data(), vertexAttributeBuffers.uv.size() * sizeof(vertexAttributeBuffers.uv[0]));
+	createStagingBuffer(stagingBuffers[3], vertexAttributeBuffers.tangent.data(), vertexAttributeBuffers.tangent.size() * sizeof(vertexAttributeBuffers.tangent[0]));
 
 	createDeviceBuffer(separateVertexBuffers.pos, stagingBuffers[0].size);
 	createDeviceBuffer(separateVertexBuffers.normal, stagingBuffers[1].size);
