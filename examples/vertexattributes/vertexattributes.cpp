@@ -497,8 +497,8 @@ void VulkanExample::preparePipelines()
 	const std::vector<VkVertexInputAttributeDescription> vertexInputAttributesInterleaved = {
 		vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)),
 		vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)),
-		vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, uv)),
-		vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tangent)),
+		vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)),
+		vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, tangent)),
 	};
 
 	vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo(vertexInputBindingsInterleaved, vertexInputAttributesInterleaved);
@@ -515,8 +515,8 @@ void VulkanExample::preparePipelines()
 	const std::vector<VkVertexInputAttributeDescription> vertexInputAttributesSeparate = {
 		vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),
 		vks::initializers::vertexInputAttributeDescription(1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0),
-		vks::initializers::vertexInputAttributeDescription(2, 2, VK_FORMAT_R32G32B32_SFLOAT, 0),
-		vks::initializers::vertexInputAttributeDescription(3, 3, VK_FORMAT_R32G32B32_SFLOAT, 0),
+		vks::initializers::vertexInputAttributeDescription(2, 2, VK_FORMAT_R32G32_SFLOAT, 0),
+		vks::initializers::vertexInputAttributeDescription(3, 3, VK_FORMAT_R32G32B32A32_SFLOAT, 0),
 	};
 	vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo(vertexInputBindingsSeparate, vertexInputAttributesSeparate);
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.vertexAttributesSeparate));
