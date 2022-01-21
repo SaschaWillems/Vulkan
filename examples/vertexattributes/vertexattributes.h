@@ -1,7 +1,7 @@
 /*
  * Vulkan Example - Passing vertex attributes using interleaved and separate buffers
  *
- * Copyright (C) 2021 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2022 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -26,116 +26,76 @@ struct PushConstBlock {
 	float alphaMaskCutoff;
 };
 
- // Contains everything required to render a basic glTF scene in Vulkan
- // This class is heavily simplified (compared to glTF's feature set) but retains the basic glTF structure
-class VulkanglTFScene
-{
-public:
-	// The class requires some Vulkan objects so it can create it's own resources
-	vks::VulkanDevice* vulkanDevice;
-	VkQueue copyQueue;
-
-	// The vertex layout for the samples' model
-	struct Vertex {
-		glm::vec3 pos;
-		glm::vec3 normal;
-		glm::vec2 uv;
-		glm::vec4 tangent;
-	};
-
-	// Single vertex buffer for all primitives
-	vks::Buffer vertices;
-
-	// Used at loading time
-	struct VertexAttributes {
-		std::vector<glm::vec2> uv;
-		std::vector<glm::vec3> pos, normal;
-		std::vector<glm::vec4> tangent;
-	} vertexAttributes;
-
-	// Single index buffer for all primitives
-	vks::Buffer indices;
-
-	// The following structures roughly represent the glTF scene structure
-	// To keep things simple, they only contain those properties that are required for this sample
-	struct Node;
-
-	// A primitive contains the data for a single draw call
-	struct Primitive {
-		uint32_t firstIndex;
-		uint32_t indexCount;
-		int32_t materialIndex;
-	};
-
-	// Contains the node's (optional) geometry and can be made up of an arbitrary number of primitives
-	struct Mesh {
-		std::vector<Primitive> primitives;
-	};
-
-	// A node represents an object in the glTF scene graph
-	struct Node {
-		Node* parent;
-		std::vector<Node> children;
-		Mesh mesh;
-		glm::mat4 matrix;
-		std::string name;
-		bool visible = true;
-	};
-
-	// A glTF material stores information in e.g. the texture that is attached to it and colors
-	struct Material {
-		glm::vec4 baseColorFactor = glm::vec4(1.0f);
-		uint32_t baseColorTextureIndex;
-		uint32_t normalTextureIndex;
-		std::string alphaMode = "OPAQUE";
-		float alphaCutOff;
-		bool doubleSided = false;
-		VkDescriptorSet descriptorSet;
-	};
-
-	// Contains the texture for a single glTF image
-	// Images may be reused by texture objects and are as such separated
-	struct Image {
-		vks::Texture2D texture;
-	};
-
-	// A glTF texture stores a reference to the image and a sampler
-	// In this sample, we are only interested in the image
-	struct Texture {
-		int32_t imageIndex;
-	};
-
-	/*
-		Model data
-	*/
-	std::vector<Image> images;
-	std::vector<Texture> textures;
-	std::vector<Material> materials;
-	std::vector<Node> nodes;
-
-	std::string path;
-
-	~VulkanglTFScene();
-	VkDescriptorImageInfo getTextureDescriptor(const size_t index);
-	void loadImages(tinygltf::Model& input);
-	void loadTextures(tinygltf::Model& input);
-	void loadMaterials(tinygltf::Model& input);
-	void loadNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, VulkanglTFScene::Node* parent, std::vector<uint32_t>& indexBuffer, std::vector<VulkanglTFScene::Vertex>& vertexBuffer);
-	void drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFScene::Node node, bool separate);
+struct Material {
+	glm::vec4 baseColorFactor = glm::vec4(1.0f);
+	uint32_t baseColorTextureIndex;
+	uint32_t normalTextureIndex;
+	std::string alphaMode = "OPAQUE";
+	float alphaCutOff;
+	VkDescriptorSet descriptorSet;
 };
+
+struct Image {
+	vks::Texture2D texture;
+};
+
+struct Texture {
+	int32_t imageIndex;
+};
+
+// Layout for the interleaved vertex attributes
+struct Vertex {
+	glm::vec3 pos;
+	glm::vec3 normal;
+	glm::vec2 uv;
+	glm::vec4 tangent;
+};
+
+struct Primitive {
+	uint32_t firstIndex;
+	uint32_t indexCount;
+	int32_t materialIndex;
+};
+struct Mesh {
+	std::vector<Primitive> primitives;
+};
+struct Node;
+struct Node {
+	Node* parent;
+	std::vector<Node> children;
+	Mesh mesh;
+	glm::mat4 matrix;
+};
+
+// Only used at loading time
+struct VertexAttributes {
+	std::vector<glm::vec2> uv;
+	std::vector<glm::vec3> pos, normal;
+	std::vector<glm::vec4> tangent;
+} vertexAttributes;
+
+std::vector<Node> nodes;
 
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	VulkanglTFScene glTFScene;
-
 	enum VertexAttributeSettings { interleaved, separate };
 	VertexAttributeSettings vertexAttributeSettings = separate;
 
+	std::vector<uint32_t> indexBuffer;
+	std::vector<Vertex> vertexBuffer;
+
 	// Buffers for the separate vertex attributes
+	// @todo: rename
 	struct VertexAttributeBuffers {
 		vks::Buffer pos, normal, uv, tangent;
 	} vertexAttibuteBuffers;
+
+	// Single vertex buffer for all primitives
+	vks::Buffer interleavedVertexBuffer;
+
+	// Index buffer for all primitives of the scene
+	vks::Buffer indices;
 
 	struct ShaderData {
 		vks::Buffer buffer;
@@ -151,19 +111,25 @@ public:
 		VkPipeline vertexAttributesInterleaved;
 		VkPipeline vertexAttributesSeparate;
 	} pipelines;
-
 	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
 
 	struct DescriptorSetLayouts {
 		VkDescriptorSetLayout matrices;
 		VkDescriptorSetLayout textures;
 	} descriptorSetLayouts;
+	VkDescriptorSet descriptorSet;
+
+	struct Scene {
+		std::vector<Image> images;
+		std::vector<Texture> textures;
+		std::vector<Material> materials;
+	} scene;
 
 	VulkanExample();
 	~VulkanExample();
 	virtual void getEnabledFeatures();
 	void buildCommandBuffers();
+	void uploadVertexData();
 	void loadglTFFile(std::string filename);
 	void loadAssets();
 	void setupDescriptors();
@@ -171,6 +137,8 @@ public:
 	void prepareUniformBuffers();
 	void updateUniformBuffers();
 	void prepare();
+	void loadSceneNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, Node* parent, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer);
+	void drawSceneNode(VkCommandBuffer commandBuffer, Node node);
 	virtual void render();
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay);
 };
