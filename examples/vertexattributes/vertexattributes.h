@@ -87,9 +87,9 @@ public:
 
 	// Buffers for the separate vertex attributes
 	// @todo: rename
-	struct VertexAttributeBuffers {
+	struct SeparateVertexBuffers {
 		vks::Buffer pos, normal, uv, tangent;
-	} vertexAttibuteBuffers;
+	} separateVertexBuffers;
 
 	// Single vertex buffer for all primitives
 	vks::Buffer interleavedVertexBuffer;

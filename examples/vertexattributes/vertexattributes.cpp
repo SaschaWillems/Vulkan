@@ -153,7 +153,7 @@ void VulkanExample::loadSceneNode(const tinygltf::Node& inputNode, const tinyglt
 
 VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 {
-	title = "Separate vertex attribute buffers";
+	title = "Separate/interleaved vertex attribute buffers";
 	camera.type = Camera::CameraType::firstperson;
 	camera.flipY = true;
 	camera.setPosition(glm::vec3(0.0f, 1.0f, 0.0f));
@@ -170,10 +170,10 @@ VulkanExample::~VulkanExample()
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
 	indices.destroy();
 	shaderData.buffer.destroy();
-	vertexAttibuteBuffers.normal.destroy();
-	vertexAttibuteBuffers.pos.destroy();
-	vertexAttibuteBuffers.tangent.destroy();
-	vertexAttibuteBuffers.uv.destroy();
+	separateVertexBuffers.normal.destroy();
+	separateVertexBuffers.pos.destroy();
+	separateVertexBuffers.tangent.destroy();
+	separateVertexBuffers.uv.destroy();
 	for (Image image : scene.images) {
 		vkDestroyImageView(vulkanDevice->logicalDevice, image.texture.view, nullptr);
 		vkDestroyImage(vulkanDevice->logicalDevice, image.texture.image, nullptr);
@@ -228,7 +228,7 @@ void VulkanExample::buildCommandBuffers()
 		if (vertexAttributeSettings == VertexAttributeSettings::separate) {
 			// Using separate vertex attribute bindings requires binding multiple attribute buffers
 			VkDeviceSize offsets[4] = { 0, 0, 0, 0 };
-			std::array<VkBuffer, 4> buffers = { vertexAttibuteBuffers.pos.buffer, vertexAttibuteBuffers.normal.buffer, vertexAttibuteBuffers.uv.buffer, vertexAttibuteBuffers.tangent.buffer };
+			std::array<VkBuffer, 4> buffers = { separateVertexBuffers.pos.buffer, separateVertexBuffers.normal.buffer, separateVertexBuffers.uv.buffer, separateVertexBuffers.tangent.buffer };
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, static_cast<uint32_t>(buffers.size()), buffers.data(), offsets);
 		} else {
 			// Using interleaved attribute bindings only requires one buffer to be bound
@@ -316,94 +316,84 @@ void VulkanExample::uploadVertexData()
 	// Upload vertex and index buffers
 
 	// Anonymous functions to simplify buffer creation
-
 	// Create a staging buffer used as a source for copies
 	auto createStagingBuffer = [this](vks::Buffer& buffer, void* data, VkDeviceSize size) {
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, size, data));
-	};
-	
+	};	
 	// Create a device local buffer used as a target for copies
 	auto createDeviceBuffer = [this](vks::Buffer& buffer, VkDeviceSize size, VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) {
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(usageFlags | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &buffer, size));
 	};
 
-	size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
-	size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
-
-	vks::Buffer vertexStaging, indexStaging;
-
-	createStagingBuffer(indexStaging, indexBuffer.data(), indexBufferSize);
-	createStagingBuffer(vertexStaging, vertexBuffer.data(), vertexBufferSize);
-
-	createDeviceBuffer(indices, indexStaging.size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-	createDeviceBuffer(interleavedVertexBuffer, vertexStaging.size);
-
-	// Copy data from staging buffers (host) do device local buffer (gpu)
-	VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-	VkBufferCopy copyRegion = {};
-
-	copyRegion.size = vertexBufferSize;
-	vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, interleavedVertexBuffer.buffer, 1, &copyRegion);
-
-	copyRegion.size = indexBufferSize;
-	vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indices.buffer, 1, &copyRegion);
-
-	vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
-
-	// Free staging resources
-	vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
-	vkFreeMemory(device, vertexStaging.memory, nullptr);
-	vkDestroyBuffer(device, indexStaging.buffer, nullptr);
-	vkFreeMemory(device, indexStaging.memory, nullptr);
+	VkCommandBuffer copyCmd;
+	VkBufferCopy copyRegion{};
 
 	/*
 		Interleaved vertex attributes
 		We create one single buffer containing the interleaved vertex attributes
 	*/
+	size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+	vks::Buffer vertexStaging;
+	createStagingBuffer(vertexStaging, vertexBuffer.data(), vertexBufferSize);
+	createDeviceBuffer(interleavedVertexBuffer, vertexStaging.size);
+
+	// Copy data from staging buffer (host) do device local buffer (gpu)
+	copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+	copyRegion.size = vertexBufferSize;
+	vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, interleavedVertexBuffer.buffer, 1, &copyRegion);
+	vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+	vertexStaging.destroy();
 
 	/*
 		Separate vertex attributes
-		We create a separate buffer for each of the vertex attributes (position, normals, etc.)
+		We create multiple separate buffers for each of the vertex attributes (position, normals, etc.)
 	*/
-
 	std::array<vks::Buffer, 4> stagingBuffers;
 	createStagingBuffer(stagingBuffers[0], vertexAttributes.pos.data(), vertexAttributes.pos.size() * sizeof(vertexAttributes.pos[0]));
 	createStagingBuffer(stagingBuffers[1], vertexAttributes.normal.data(), vertexAttributes.normal.size() * sizeof(vertexAttributes.normal[0]));
 	createStagingBuffer(stagingBuffers[2], vertexAttributes.uv.data(), vertexAttributes.uv.size() * sizeof(vertexAttributes.uv[0]));
 	createStagingBuffer(stagingBuffers[3], vertexAttributes.tangent.data(), vertexAttributes.tangent.size() * sizeof(vertexAttributes.tangent[0]));
 
-	createDeviceBuffer(vertexAttibuteBuffers.pos, stagingBuffers[0].size);
-	createDeviceBuffer(vertexAttibuteBuffers.normal, stagingBuffers[1].size);
-	createDeviceBuffer(vertexAttibuteBuffers.uv, stagingBuffers[2].size);
-	createDeviceBuffer(vertexAttibuteBuffers.tangent, stagingBuffers[3].size);
+	createDeviceBuffer(separateVertexBuffers.pos, stagingBuffers[0].size);
+	createDeviceBuffer(separateVertexBuffers.normal, stagingBuffers[1].size);
+	createDeviceBuffer(separateVertexBuffers.uv, stagingBuffers[2].size);
+	createDeviceBuffer(separateVertexBuffers.tangent, stagingBuffers[3].size);
 
 	// Stage
 	std::vector<vks::Buffer> attributeBuffers = {
-		vertexAttibuteBuffers.pos,
-		vertexAttibuteBuffers.normal,
-		vertexAttibuteBuffers.uv,
-		vertexAttibuteBuffers.tangent,
+		separateVertexBuffers.pos,
+		separateVertexBuffers.normal,
+		separateVertexBuffers.uv,
+		separateVertexBuffers.tangent,
 	};
 
-	// Copy data from staging buffers (host) do device local buffer (gpu)
+	// Copy data from staging buffer (host) do device local buffer (gpu)
 	copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-	copyRegion = {};
 	for (size_t i = 0; i < attributeBuffers.size(); i++) {
 		copyRegion.size = attributeBuffers[i].size;
 		vkCmdCopyBuffer(copyCmd, stagingBuffers[i].buffer, attributeBuffers[i].buffer, 1, &copyRegion);
 	}
 	vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
+	for (size_t i = 0; i < 4; i++) {
+		stagingBuffers[i].destroy();
+	}
+
 	/*
 		Index buffer
 		The index buffer is always the same, no matter how we pass the vertex attributes
 	*/
-
-	// @todo: clear
-	for (size_t i = 0; i < 4; i++) {
-		vkDestroyBuffer(device, stagingBuffers[i].buffer, nullptr);
-		vkFreeMemory(device, stagingBuffers[i].memory, nullptr);
-	}
+	size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
+	vks::Buffer indexStaging;
+	createStagingBuffer(indexStaging, indexBuffer.data(), indexBufferSize);
+	createDeviceBuffer(indices, indexStaging.size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+	// Copy data from staging buffer (host) do device local buffer (gpu)
+	copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+	copyRegion.size = indexBufferSize;
+	vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indices.buffer, 1, &copyRegion);
+	vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+	// Free staging resources
+	indexStaging.destroy();
 }
 
 void VulkanExample::loadAssets()
@@ -484,31 +474,6 @@ void VulkanExample::preparePipelines()
 	VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo();
 	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-	// @todo: comment
-	const std::vector<VkVertexInputBindingDescription> vertexInputBindingsInterleaved = {
-		vks::initializers::vertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
-	};
-	const std::vector<VkVertexInputAttributeDescription> vertexInputAttributesInterleaved = {
-		vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)),
-		vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)),
-		vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, uv)),
-		vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tangent)),
-	};
-
-	// @todo: comment
-	const std::vector<VkVertexInputBindingDescription> vertexInputBindingsSeparate = {
-		vks::initializers::vertexInputBindingDescription(0, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX),
-		vks::initializers::vertexInputBindingDescription(1, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX),
-		vks::initializers::vertexInputBindingDescription(2, sizeof(glm::vec2), VK_VERTEX_INPUT_RATE_VERTEX),
-		vks::initializers::vertexInputBindingDescription(3, sizeof(glm::vec4), VK_VERTEX_INPUT_RATE_VERTEX),
-	};
-	const std::vector<VkVertexInputAttributeDescription> vertexInputAttributesSeparate = {
-		vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),
-		vks::initializers::vertexInputAttributeDescription(1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0),
-		vks::initializers::vertexInputAttributeDescription(2, 2, VK_FORMAT_R32G32B32_SFLOAT, 0),
-		vks::initializers::vertexInputAttributeDescription(3, 3, VK_FORMAT_R32G32B32_SFLOAT, 0),
-	};
-
 	VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 	pipelineCI.pVertexInputState = &vertexInputStateCI;
 	pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -524,9 +489,35 @@ void VulkanExample::preparePipelines()
 	shaderStages[0] = loadShader(getShadersPath() + "vertexattributes/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 	shaderStages[1] = loadShader(getShadersPath() + "vertexattributes/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
+	// Interleaved vertex attributes 
+	// One Binding (one buffer) and multiple attributes
+	const std::vector<VkVertexInputBindingDescription> vertexInputBindingsInterleaved = {
+		vks::initializers::vertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
+	};
+	const std::vector<VkVertexInputAttributeDescription> vertexInputAttributesInterleaved = {
+		vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)),
+		vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)),
+		vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, uv)),
+		vks::initializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tangent)),
+	};
+
 	vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo(vertexInputBindingsInterleaved, vertexInputAttributesInterleaved);
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.vertexAttributesInterleaved));
 
+	// Separate vertex attribute
+	// Multiple bindings (for each attribute buffer) and multiple attribues
+	const std::vector<VkVertexInputBindingDescription> vertexInputBindingsSeparate = {
+		vks::initializers::vertexInputBindingDescription(0, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX),
+		vks::initializers::vertexInputBindingDescription(1, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX),
+		vks::initializers::vertexInputBindingDescription(2, sizeof(glm::vec2), VK_VERTEX_INPUT_RATE_VERTEX),
+		vks::initializers::vertexInputBindingDescription(3, sizeof(glm::vec4), VK_VERTEX_INPUT_RATE_VERTEX),
+	};
+	const std::vector<VkVertexInputAttributeDescription> vertexInputAttributesSeparate = {
+		vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),
+		vks::initializers::vertexInputAttributeDescription(1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0),
+		vks::initializers::vertexInputAttributeDescription(2, 2, VK_FORMAT_R32G32B32_SFLOAT, 0),
+		vks::initializers::vertexInputAttributeDescription(3, 3, VK_FORMAT_R32G32B32_SFLOAT, 0),
+	};
 	vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo(vertexInputBindingsSeparate, vertexInputAttributesSeparate);
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.vertexAttributesSeparate));
 }
