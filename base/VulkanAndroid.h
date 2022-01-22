@@ -156,6 +156,7 @@ extern PFN_vkCmdCopyQueryPoolResults vkCmdCopyQueryPoolResults;
 
 extern PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 extern PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
+extern PFN_vkCmdFillBuffer vkCmdFillBuffer;
 
 namespace vks
 {
