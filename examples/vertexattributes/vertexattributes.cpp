@@ -54,34 +54,25 @@ void VulkanExample::loadSceneNode(const tinygltf::Node& inputNode, const tinyglt
 			const float* tangentsBuffer = nullptr;
 			size_t vertexCount = 0;
 
-			// Get buffer data for vertex positions
-			if (glTFPrimitive.attributes.find("POSITION") != glTFPrimitive.attributes.end()) {
-				const tinygltf::Accessor& accessor = input.accessors[glTFPrimitive.attributes.find("POSITION")->second];
-				const tinygltf::BufferView& view = input.bufferViews[accessor.bufferView];
-				positionBuffer = reinterpret_cast<const float*>(&(input.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
-				vertexCount = accessor.count;
-			}
-			// Get buffer data for vertex normals
-			if (glTFPrimitive.attributes.find("NORMAL") != glTFPrimitive.attributes.end()) {
-				const tinygltf::Accessor& accessor = input.accessors[glTFPrimitive.attributes.find("NORMAL")->second];
-				const tinygltf::BufferView& view = input.bufferViews[accessor.bufferView];
-				normalsBuffer = reinterpret_cast<const float*>(&(input.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
-			}
-			// Get buffer data for vertex texture coordinates
-			// glTF supports multiple sets, we only load the first one
-			if (glTFPrimitive.attributes.find("TEXCOORD_0") != glTFPrimitive.attributes.end()) {
-				const tinygltf::Accessor& accessor = input.accessors[glTFPrimitive.attributes.find("TEXCOORD_0")->second];
-				const tinygltf::BufferView& view = input.bufferViews[accessor.bufferView];
-				texCoordsBuffer = reinterpret_cast<const float*>(&(input.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
-			}
-			// POI: This sample uses normal mapping, so we also need to load the tangents from the glTF file
-			if (glTFPrimitive.attributes.find("TANGENT") != glTFPrimitive.attributes.end()) {
-				const tinygltf::Accessor& accessor = input.accessors[glTFPrimitive.attributes.find("TANGENT")->second];
-				const tinygltf::BufferView& view = input.bufferViews[accessor.bufferView];
-				tangentsBuffer = reinterpret_cast<const float*>(&(input.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
-			}
+			// Anonymous functions to simplify buffer view access
+			auto getBuffer = [glTFPrimitive, input, &vertexCount](const std::string attributeName, const float* &bufferTarget) {
+				if (glTFPrimitive.attributes.find(attributeName) != glTFPrimitive.attributes.end()) {
+					const tinygltf::Accessor& accessor = input.accessors[glTFPrimitive.attributes.find(attributeName)->second];
+					const tinygltf::BufferView& view = input.bufferViews[accessor.bufferView];
+					bufferTarget = reinterpret_cast<const float*>(&(input.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+					if (attributeName == "POSITION") {
+						vertexCount = accessor.count;
+					}
+				}
+			};
 
-			// Append data to model's vertex buffer
+			// Get buffer pointers to the vertex attributes used in this sample
+			getBuffer("POSITION", positionBuffer);
+			getBuffer("NORMAL", normalsBuffer);
+			getBuffer("TEXCOORD_0", texCoordsBuffer);
+			getBuffer("TANGENT", tangentsBuffer);
+
+			// Append attributes to the vertex buffers
 			for (size_t v = 0; v < vertexCount; v++) {
 
 				// Append interleaved attributes
@@ -97,7 +88,6 @@ void VulkanExample::loadSceneNode(const tinygltf::Node& inputNode, const tinyglt
 				vertexAttributeBuffers.normal.push_back(glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f))));
 				vertexAttributeBuffers.tangent.push_back(tangentsBuffer ? glm::make_vec4(&tangentsBuffer[v * 4]) : glm::vec4(0.0f));
 				vertexAttributeBuffers.uv.push_back(texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f));
-
 			}
 
 			// Indices
