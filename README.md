@@ -157,6 +157,11 @@ Implements a simple CPU based particle system. Particle data is stored in host m
 
 Uses the stencil buffer and its compare functionality for rendering a 3D model with dynamic outlines.
 
+
+#### [Vertex attributes](examples/vertexattributes/)
+
+Demonstrates two different ways of passing vertices to the vertex shader using either interleaved or separate vertex attributes.
+
 ### glTF
 
 These samples show how implement different features of the [glTF 2.0 3D format](https://www.khronos.org/gltf/) 3D transmission file format in detail.
