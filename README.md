@@ -11,6 +11,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 + [Building](#Building)
 + [Running](#Running)
 + [Shaders](#Shaders)
++ [A note on synchronization](#a-note-on-synchronization)
 + [Examples](#Examples)
     + [Basics](#Basics)
     + [glTF](#glTF)
@@ -89,6 +90,11 @@ Note that some examples require specific device features, and if you are on a mu
 ## Shaders
 
 Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](data/shaders/glsl) but thanks to an external contribution you'll also find [HLSL](data/shaders/hlsl) shader sources.
+
+## A note on synchronization
+
+Synchronization in the master branch currently isn't optimal und uses ```vkDeviceQueueWaitIdle``` at the end of each frame. This is a heavy operation and is suboptimal in regards to having CPU and GPU operations run in parallel. I'm currently reworking this in the [this branch](https://github.com/SaschaWillems/Vulkan/tree/proper_sync_dynamic_cb). While still work-in-progress, if you're interested in a more proper way of synchronization in Vulkan, please take a look at that branch.
+
 
 ## Examples
 
