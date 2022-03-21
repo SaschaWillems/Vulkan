@@ -1074,7 +1074,7 @@ void vkglTF::Model::loadAnimations(tinygltf::Model &gltfModel)
 				for (size_t index = 0; index < accessor.count; index++) {
 					sampler.inputs.push_back(buf[index]);
 				}
-
+                delete[] buf;
 				for (auto input : sampler.inputs) {
 					if (input < animation.start) {
 						animation.start = input;
@@ -1100,7 +1100,8 @@ void vkglTF::Model::loadAnimations(tinygltf::Model &gltfModel)
 					for (size_t index = 0; index < accessor.count; index++) {
 						sampler.outputsVec4.push_back(glm::vec4(buf[index], 0.0f));
 					}
-					break;
+                    delete[] buf;
+                    break;
 				}
 				case TINYGLTF_TYPE_VEC4: {
 					glm::vec4 *buf = new glm::vec4[accessor.count];
@@ -1108,7 +1109,8 @@ void vkglTF::Model::loadAnimations(tinygltf::Model &gltfModel)
 					for (size_t index = 0; index < accessor.count; index++) {
 						sampler.outputsVec4.push_back(buf[index]);
 					}
-					break;
+                    delete[] buf;
+                    break;
 				}
 				default: {
 					std::cout << "unknown type" << std::endl;
