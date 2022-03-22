@@ -499,6 +499,10 @@ vkglTF::Mesh::Mesh(vks::VulkanDevice *device, glm::mat4 matrix) {
 vkglTF::Mesh::~Mesh() {
 	vkDestroyBuffer(device->logicalDevice, uniformBuffer.buffer, nullptr);
 	vkFreeMemory(device->logicalDevice, uniformBuffer.memory, nullptr);
+    for(auto primitive : primitives)
+    {
+        delete primitive;
+    }
 }
 
 /*
@@ -735,6 +739,9 @@ vkglTF::Model::~Model()
 	for (auto node : nodes) {
 		delete node;
 	}
+    for (auto skin : skins) {
+        delete skin;
+    }
 	if (descriptorSetLayoutUbo != VK_NULL_HANDLE) {
 		vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayoutUbo, nullptr);
 		descriptorSetLayoutUbo = VK_NULL_HANDLE;
