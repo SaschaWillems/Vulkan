@@ -499,6 +499,10 @@ vkglTF::Mesh::Mesh(vks::VulkanDevice *device, glm::mat4 matrix) {
 vkglTF::Mesh::~Mesh() {
 	vkDestroyBuffer(device->logicalDevice, uniformBuffer.buffer, nullptr);
 	vkFreeMemory(device->logicalDevice, uniformBuffer.memory, nullptr);
+    for(auto primitive : primitives)
+    {
+        delete primitive;
+    }
 }
 
 /*
@@ -735,6 +739,9 @@ vkglTF::Model::~Model()
 	for (auto node : nodes) {
 		delete node;
 	}
+    for (auto skin : skins) {
+        delete skin;
+    }
 	if (descriptorSetLayoutUbo != VK_NULL_HANDLE) {
 		vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayoutUbo, nullptr);
 		descriptorSetLayoutUbo = VK_NULL_HANDLE;
@@ -906,6 +913,7 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 					for (size_t index = 0; index < accessor.count; index++) {
 						indexBuffer.push_back(buf[index] + vertexStart);
 					}
+                    delete[] buf;
 					break;
 				}
 				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
@@ -914,7 +922,8 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 					for (size_t index = 0; index < accessor.count; index++) {
 						indexBuffer.push_back(buf[index] + vertexStart);
 					}
-					break;
+                    delete[] buf;
+                    break;
 				}
 				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
 					uint8_t *buf = new uint8_t[accessor.count];
@@ -922,7 +931,8 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 					for (size_t index = 0; index < accessor.count; index++) {
 						indexBuffer.push_back(buf[index] + vertexStart);
 					}
-					break;
+                    delete[] buf;
+                    break;
 				}
 				default:
 					std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
