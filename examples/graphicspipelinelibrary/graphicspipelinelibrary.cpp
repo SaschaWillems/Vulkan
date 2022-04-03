@@ -228,6 +228,27 @@ public:
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
+	VkPipeline createVertexInputState(VkDevice device, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
+	{
+		VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
+		libraryInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT;
+		libraryInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT;
+
+		VkPipelineVertexInputStateCreateInfo vertexInputState = *vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Color });
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+
+		VkGraphicsPipelineCreateInfo vertexShaderCreateInfo{};
+		vertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		vertexShaderCreateInfo.pNext = &libraryInfo;
+		vertexShaderCreateInfo.pInputAssemblyState = &inputAssemblyState;
+		vertexShaderCreateInfo.pVertexInputState = &vertexInputState;
+
+		VkPipeline vertexInputStateP;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &vertexShaderCreateInfo, nullptr, &vertexInputStateP));
+
+		return vertexInputStateP;
+	}
+
 	VkPipeline createVertexShader(VkDevice device, VkPipelineShaderStageCreateInfo shaderStageCreateInfo, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
 	{
 		VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
@@ -275,7 +296,7 @@ public:
 		libraryInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT;
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-
+		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 
 		VkGraphicsPipelineCreateInfo fragmentShaderCreateInfo{};
 		fragmentShaderCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -286,6 +307,32 @@ public:
 		fragmentShaderCreateInfo.layout = layout;
 		fragmentShaderCreateInfo.renderPass = renderPass;
 		fragmentShaderCreateInfo.pDepthStencilState = &depthStencilState;
+		fragmentShaderCreateInfo.pMultisampleState = &multisampleState;
+
+		VkPipeline fragmentShader;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &fragmentShaderCreateInfo, nullptr, &fragmentShader));
+
+		return fragmentShader;
+	}
+
+	VkPipeline createFragmentOutputState(VkDevice device, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
+	{
+		VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
+		libraryInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT;
+		libraryInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT;
+
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
+
+		VkGraphicsPipelineCreateInfo fragmentShaderCreateInfo{};
+		fragmentShaderCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		fragmentShaderCreateInfo.pNext = &libraryInfo;
+		fragmentShaderCreateInfo.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+		fragmentShaderCreateInfo.layout = layout;
+		fragmentShaderCreateInfo.renderPass = renderPass;
+		fragmentShaderCreateInfo.pColorBlendState = &colorBlendState;
+		fragmentShaderCreateInfo.pMultisampleState = &multisampleState;
 
 		VkPipeline fragmentShader;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &fragmentShaderCreateInfo, nullptr, &fragmentShader));
@@ -318,8 +365,10 @@ public:
 		VkPipelineShaderStageCreateInfo vsShader = loadShader(getShadersPath() + "pipelines/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		VkPipelineShaderStageCreateInfo fsShader = loadShader(getShadersPath() + "pipelines/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		std::vector<VkPipeline> libraries = {
+			createVertexInputState(device, pipelineCache, pipelineLayout),
 			createVertexShader(device, vsShader, pipelineCache, pipelineLayout),
 			createFragmentShader(device, fsShader, pipelineCache, pipelineLayout),
+			createFragmentOutputState(device, pipelineCache, pipelineLayout),
 		};
 		VkPipeline compiledPipeline = linkExecutable(device, libraries, pipelineCache, true);
 
@@ -348,25 +397,13 @@ public:
 
 		// Create the graphics pipeline state objects
 
-		// We are using this pipeline as the base for the other pipelines (derivatives)
-		// Pipeline derivatives can be used for pipelines that share most of their state
-		// Depending on the implementation this may result in better performance for pipeline
-		// switching and faster creation time
-		pipelineCI.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
-
 		// Textured pipeline
 		// Phong shading pipeline
-		shaderStages[0] = loadShader(getShadersPath() + "pipelines/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "pipelines/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.phong));
+		//shaderStages[0] = loadShader(getShadersPath() + "pipelines/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		//shaderStages[1] = loadShader(getShadersPath() + "pipelines/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		//VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.phong));
 
-		// All pipelines created after the base pipeline will be derivatives
-		pipelineCI.flags = VK_PIPELINE_CREATE_DERIVATIVE_BIT;
-		// Base pipeline will be our first created pipeline
-		pipelineCI.basePipelineHandle = pipelines.phong;
-		// It's only allowed to either use a handle or index for the base pipeline
-		// As we use the handle, we must set the index to -1 (see section 9.5 of the specification)
-		pipelineCI.basePipelineIndex = -1;
+		pipelines.phong = compiledPipeline;
 
 		// Toon shading pipeline
 		shaderStages[0] = loadShader(getShadersPath() + "pipelines/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
