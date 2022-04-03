@@ -2,7 +2,7 @@
 #define VULKAN_VIDEO_CODEC_H264STD_H_ 1
 
 /*
-** Copyright 2015-2021 The Khronos Group Inc.
+** Copyright 2015-2022 The Khronos Group Inc.
 **
 ** SPDX-License-Identifier: Apache-2.0
 */
@@ -21,16 +21,13 @@ extern "C" {
 
 #define vulkan_video_codec_h264std 1
 #include <stdint.h>
-// Vulkan 0.9 provisional Vulkan video H.264 encode and decode std specification version number
-#define VK_STD_VULKAN_VIDEO_CODEC_H264_API_VERSION_0_9_5 VK_MAKE_VIDEO_STD_VERSION(0, 9, 5) // Patch version should always be set to 0
-
 #define STD_VIDEO_H264_CPB_CNT_LIST_SIZE  32
 #define STD_VIDEO_H264_SCALING_LIST_4X4_NUM_LISTS 6
 #define STD_VIDEO_H264_SCALING_LIST_4X4_NUM_ELEMENTS 16
 #define STD_VIDEO_H264_SCALING_LIST_8X8_NUM_LISTS 2
 #define STD_VIDEO_H264_SCALING_LIST_8X8_NUM_ELEMENTS 64
-#define VK_STD_VULKAN_VIDEO_CODEC_H264_SPEC_VERSION VK_STD_VULKAN_VIDEO_CODEC_H264_API_VERSION_0_9_5
-#define VK_STD_VULKAN_VIDEO_CODEC_H264_EXTENSION_NAME "VK_STD_vulkan_video_codec_h264"
+#define STD_VIDEO_H264_MAX_NUM_LIST_REF   32
+#define STD_VIDEO_H264_MAX_CHROMA_PLANES  2
 
 typedef enum StdVideoH264ChromaFormatIdc {
     STD_VIDEO_H264_CHROMA_FORMAT_IDC_MONOCHROME = 0,
@@ -207,19 +204,19 @@ typedef struct StdVideoH264HrdParameters {
 } StdVideoH264HrdParameters;
 
 typedef struct StdVideoH264SequenceParameterSetVui {
-    StdVideoH264AspectRatioIdc    aspect_ratio_idc;
-    uint16_t                      sar_width;
-    uint16_t                      sar_height;
-    uint8_t                       video_format;
-    uint8_t                       color_primaries;
-    uint8_t                       transfer_characteristics;
-    uint8_t                       matrix_coefficients;
-    uint32_t                      num_units_in_tick;
-    uint32_t                      time_scale;
-    StdVideoH264HrdParameters*    pHrdParameters;
-    uint8_t                       max_num_reorder_frames;
-    uint8_t                       max_dec_frame_buffering;
-    StdVideoH264SpsVuiFlags       flags;
+    StdVideoH264SpsVuiFlags             flags;
+    StdVideoH264AspectRatioIdc          aspect_ratio_idc;
+    uint16_t                            sar_width;
+    uint16_t                            sar_height;
+    uint8_t                             video_format;
+    uint8_t                             color_primaries;
+    uint8_t                             transfer_characteristics;
+    uint8_t                             matrix_coefficients;
+    uint32_t                            num_units_in_tick;
+    uint32_t                            time_scale;
+    const StdVideoH264HrdParameters*    pHrdParameters;
+    uint8_t                             max_num_reorder_frames;
+    uint8_t                             max_dec_frame_buffering;
 } StdVideoH264SequenceParameterSetVui;
 
 typedef struct StdVideoH264SpsFlags {
@@ -249,29 +246,29 @@ typedef struct StdVideoH264ScalingLists {
 } StdVideoH264ScalingLists;
 
 typedef struct StdVideoH264SequenceParameterSet {
-    StdVideoH264ProfileIdc                  profile_idc;
-    StdVideoH264Level                       level_idc;
-    uint8_t                                 seq_parameter_set_id;
-    StdVideoH264ChromaFormatIdc             chroma_format_idc;
-    uint8_t                                 bit_depth_luma_minus8;
-    uint8_t                                 bit_depth_chroma_minus8;
-    uint8_t                                 log2_max_frame_num_minus4;
-    StdVideoH264PocType                     pic_order_cnt_type;
-    uint8_t                                 log2_max_pic_order_cnt_lsb_minus4;
-    int32_t                                 offset_for_non_ref_pic;
-    int32_t                                 offset_for_top_to_bottom_field;
-    uint8_t                                 num_ref_frames_in_pic_order_cnt_cycle;
-    uint8_t                                 max_num_ref_frames;
-    uint32_t                                pic_width_in_mbs_minus1;
-    uint32_t                                pic_height_in_map_units_minus1;
-    uint32_t                                frame_crop_left_offset;
-    uint32_t                                frame_crop_right_offset;
-    uint32_t                                frame_crop_top_offset;
-    uint32_t                                frame_crop_bottom_offset;
-    StdVideoH264SpsFlags                    flags;
-    int32_t*                                pOffsetForRefFrame;
-    StdVideoH264ScalingLists*               pScalingLists;
-    StdVideoH264SequenceParameterSetVui*    pSequenceParameterSetVui;
+    StdVideoH264SpsFlags                          flags;
+    StdVideoH264ProfileIdc                        profile_idc;
+    StdVideoH264Level                             level_idc;
+    uint8_t                                       seq_parameter_set_id;
+    StdVideoH264ChromaFormatIdc                   chroma_format_idc;
+    uint8_t                                       bit_depth_luma_minus8;
+    uint8_t                                       bit_depth_chroma_minus8;
+    uint8_t                                       log2_max_frame_num_minus4;
+    StdVideoH264PocType                           pic_order_cnt_type;
+    uint8_t                                       log2_max_pic_order_cnt_lsb_minus4;
+    int32_t                                       offset_for_non_ref_pic;
+    int32_t                                       offset_for_top_to_bottom_field;
+    uint8_t                                       num_ref_frames_in_pic_order_cnt_cycle;
+    uint8_t                                       max_num_ref_frames;
+    uint32_t                                      pic_width_in_mbs_minus1;
+    uint32_t                                      pic_height_in_map_units_minus1;
+    uint32_t                                      frame_crop_left_offset;
+    uint32_t                                      frame_crop_right_offset;
+    uint32_t                                      frame_crop_top_offset;
+    uint32_t                                      frame_crop_bottom_offset;
+    const int32_t*                                pOffsetForRefFrame;
+    const StdVideoH264ScalingLists*               pScalingLists;
+    const StdVideoH264SequenceParameterSetVui*    pSequenceParameterSetVui;
 } StdVideoH264SequenceParameterSet;
 
 typedef struct StdVideoH264PpsFlags {
@@ -287,17 +284,17 @@ typedef struct StdVideoH264PpsFlags {
 } StdVideoH264PpsFlags;
 
 typedef struct StdVideoH264PictureParameterSet {
-    uint8_t                          seq_parameter_set_id;
-    uint8_t                          pic_parameter_set_id;
-    uint8_t                          num_ref_idx_l0_default_active_minus1;
-    uint8_t                          num_ref_idx_l1_default_active_minus1;
-    StdVideoH264WeightedBipredIdc    weighted_bipred_idc;
-    int8_t                           pic_init_qp_minus26;
-    int8_t                           pic_init_qs_minus26;
-    int8_t                           chroma_qp_index_offset;
-    int8_t                           second_chroma_qp_index_offset;
-    StdVideoH264PpsFlags             flags;
-    StdVideoH264ScalingLists*        pScalingLists;
+    StdVideoH264PpsFlags               flags;
+    uint8_t                            seq_parameter_set_id;
+    uint8_t                            pic_parameter_set_id;
+    uint8_t                            num_ref_idx_l0_default_active_minus1;
+    uint8_t                            num_ref_idx_l1_default_active_minus1;
+    StdVideoH264WeightedBipredIdc      weighted_bipred_idc;
+    int8_t                             pic_init_qp_minus26;
+    int8_t                             pic_init_qs_minus26;
+    int8_t                             chroma_qp_index_offset;
+    int8_t                             second_chroma_qp_index_offset;
+    const StdVideoH264ScalingLists*    pScalingLists;
 } StdVideoH264PictureParameterSet;
 
 

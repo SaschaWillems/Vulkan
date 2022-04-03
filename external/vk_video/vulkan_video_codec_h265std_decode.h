@@ -2,7 +2,7 @@
 #define VULKAN_VIDEO_CODEC_H265STD_DECODE_H_ 1
 
 /*
-** Copyright 2015-2021 The Khronos Group Inc.
+** Copyright 2015-2022 The Khronos Group Inc.
 **
 ** SPDX-License-Identifier: Apache-2.0
 */
@@ -20,7 +20,12 @@ extern "C" {
 
 
 #define vulkan_video_codec_h265std_decode 1
+// Vulkan 0.9 provisional Vulkan video H.265 decode std specification version number
+#define VK_STD_VULKAN_VIDEO_CODEC_H265_DECODE_API_VERSION_0_9_6 VK_MAKE_VIDEO_STD_VERSION(0, 9, 6) // Patch version should always be set to 0
+
 #define STD_VIDEO_DECODE_H265_REF_PIC_SET_LIST_SIZE 8
+#define VK_STD_VULKAN_VIDEO_CODEC_H265_DECODE_SPEC_VERSION VK_STD_VULKAN_VIDEO_CODEC_H265_DECODE_API_VERSION_0_9_6
+#define VK_STD_VULKAN_VIDEO_CODEC_H265_DECODE_EXTENSION_NAME "VK_STD_vulkan_video_codec_h265_decode"
 typedef struct StdVideoDecodeH265PictureInfoFlags {
     uint32_t    IrapPicFlag : 1;
     uint32_t    IdrPicFlag  : 1;
@@ -29,8 +34,9 @@ typedef struct StdVideoDecodeH265PictureInfoFlags {
 } StdVideoDecodeH265PictureInfoFlags;
 
 typedef struct StdVideoDecodeH265PictureInfo {
-    uint8_t                               vps_video_parameter_set_id;
-    uint8_t                               sps_seq_parameter_set_id;
+    StdVideoDecodeH265PictureInfoFlags    flags;
+    uint8_t                               sps_video_parameter_set_id;
+    uint8_t                               pps_seq_parameter_set_id;
     uint8_t                               pps_pic_parameter_set_id;
     uint8_t                               num_short_term_ref_pic_sets;
     int32_t                               PicOrderCntVal;
@@ -39,17 +45,17 @@ typedef struct StdVideoDecodeH265PictureInfo {
     uint8_t                               RefPicSetStCurrBefore[STD_VIDEO_DECODE_H265_REF_PIC_SET_LIST_SIZE];
     uint8_t                               RefPicSetStCurrAfter[STD_VIDEO_DECODE_H265_REF_PIC_SET_LIST_SIZE];
     uint8_t                               RefPicSetLtCurr[STD_VIDEO_DECODE_H265_REF_PIC_SET_LIST_SIZE];
-    StdVideoDecodeH265PictureInfoFlags    flags;
 } StdVideoDecodeH265PictureInfo;
 
 typedef struct StdVideoDecodeH265ReferenceInfoFlags {
-    uint32_t    is_long_term : 1;
+    uint32_t    used_for_long_term_reference : 1;
+    uint32_t    unused_for_reference : 1;
     uint32_t    is_non_existing : 1;
 } StdVideoDecodeH265ReferenceInfoFlags;
 
 typedef struct StdVideoDecodeH265ReferenceInfo {
-    int32_t                                 PicOrderCntVal;
     StdVideoDecodeH265ReferenceInfoFlags    flags;
+    int32_t                                 PicOrderCntVal;
 } StdVideoDecodeH265ReferenceInfo;
 
 
