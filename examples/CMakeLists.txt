@@ -86,6 +86,7 @@ set(EXAMPLES
 	gltfloading
 	gltfscenerendering
 	gltfskinning
+	graphicspipelinelibrary
 	hdr
 	imgui
 	indirectdraw
