@@ -39,6 +39,11 @@ public:
 		VkPipeline toon;
 	} pipelines;
 
+	struct ShaderInfo {
+		uint32_t* code;
+		size_t size;
+	};
+
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
 		title = "Graphics pipeline library";
@@ -228,6 +233,57 @@ public:
 		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
 	}
 
+	// With VK_EXT_graphics_pipeline_library we don't need to create the shader module when loading it, but instead have the driver create it at linking time
+	// So we use a custom function that only loads the required shader information without actually creating the shader module
+
+#if defined(__ANDROID__)
+	// Android shaders are stored as assets in the apk so they need to be loaded via the asset manager
+	bool loadShader(AAssetManager* assetManager, std::string fileName, const uint32_t** pShaderCode, size_t& shaderSize)
+	{
+		// Load shader from compressed asset
+		AAsset* asset = AAssetManager_open(assetManager, fileName, AASSET_MODE_STREAMING);
+		assert(asset);
+		size_t size = AAsset_getLength(asset);
+		assert(size > 0);
+
+		char* shaderCode = new char[size];
+		AAsset_read(asset, shaderCode, size);
+		AAsset_close(asset);
+
+		VkShaderModule shaderModule;
+		VkShaderModuleCreateInfo moduleCreateInfo;
+		moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		moduleCreateInfo.pNext = NULL;
+		moduleCreateInfo.codeSize = size;
+		moduleCreateInfo.pCode = (uint32_t*)shaderCode;
+		moduleCreateInfo.flags = 0;
+
+		VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
+
+		delete[] shaderCode;
+
+		return shaderModule;
+	}
+#else
+	bool loadShaderFile(std::string fileName, ShaderInfo &shaderInfo)
+	{
+		std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
+
+		if (is.is_open())
+		{
+			shaderInfo.size = is.tellg();
+			is.seekg(0, std::ios::beg);
+			shaderInfo.code = new uint32_t[shaderInfo.size];
+			is.read(reinterpret_cast<char*>(shaderInfo.code), shaderInfo.size);
+			is.close();
+			return true;
+		} else {
+			std::cerr << "Error: Could not open shader file \"" << fileName << "\"" << "\n";
+			return false;
+		}
+	}
+#endif
+
 	VkPipeline createVertexInputState(VkDevice device, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
 	{
 		VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
@@ -249,7 +305,7 @@ public:
 		return vertexInputStateP;
 	}
 
-	VkPipeline createVertexShader(VkDevice device, VkPipelineShaderStageCreateInfo shaderStageCreateInfo, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
+	VkPipeline createVertexShader(VkDevice device, const ShaderInfo shaderInfo, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
 	{
 		VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
 		libraryInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT;
@@ -271,6 +327,17 @@ public:
 
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 
+		VkShaderModuleCreateInfo shaderModuleCreateInfo{};
+		shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		shaderModuleCreateInfo.codeSize = shaderInfo.size;
+		shaderModuleCreateInfo.pCode = shaderInfo.code;
+
+		VkPipelineShaderStageCreateInfo shaderStageCreateInfo{};
+		shaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStageCreateInfo.pNext = &shaderModuleCreateInfo;
+		shaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		shaderStageCreateInfo.pName = "main";
+
 		VkGraphicsPipelineCreateInfo vertexShaderCreateInfo{};
 		vertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		vertexShaderCreateInfo.pNext = &libraryInfo;
@@ -289,7 +356,7 @@ public:
 		return vertexShader;
 	}
 
-	VkPipeline createFragmentShader(VkDevice device, VkPipelineShaderStageCreateInfo shaderStageCreateInfo, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
+	VkPipeline createFragmentShader(VkDevice device, const ShaderInfo shaderInfo, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
 	{
 		VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
 		libraryInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT;
@@ -297,6 +364,17 @@ public:
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
+
+		VkShaderModuleCreateInfo shaderModuleCreateInfo{};
+		shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		shaderModuleCreateInfo.codeSize = shaderInfo.size;
+		shaderModuleCreateInfo.pCode = shaderInfo.code;
+
+		VkPipelineShaderStageCreateInfo shaderStageCreateInfo{};
+		shaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStageCreateInfo.pNext = &shaderModuleCreateInfo;
+		shaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		shaderStageCreateInfo.pName = "main";
 
 		VkGraphicsPipelineCreateInfo fragmentShaderCreateInfo{};
 		fragmentShaderCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -361,13 +439,18 @@ public:
 
 	void preparePipelines()
 	{
-		// @todo: 
+		struct Shaders {
+			ShaderInfo phongVS;
+			ShaderInfo phongFS;
+		} shaders;		
+		loadShaderFile(getShadersPath() + "pipelines/phong.vert.spv", shaders.phongVS);
+		loadShaderFile(getShadersPath() + "pipelines/phong.frag.spv", shaders.phongFS);
 		VkPipelineShaderStageCreateInfo vsShader = loadShader(getShadersPath() + "pipelines/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		VkPipelineShaderStageCreateInfo fsShader = loadShader(getShadersPath() + "pipelines/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		std::vector<VkPipeline> libraries = {
 			createVertexInputState(device, pipelineCache, pipelineLayout),
-			createVertexShader(device, vsShader, pipelineCache, pipelineLayout),
-			createFragmentShader(device, fsShader, pipelineCache, pipelineLayout),
+			createVertexShader(device, shaders.phongVS, pipelineCache, pipelineLayout),
+			createFragmentShader(device, shaders.phongFS, pipelineCache, pipelineLayout),
 			createFragmentOutputState(device, pipelineCache, pipelineLayout),
 		};
 		VkPipeline compiledPipeline = linkExecutable(device, libraries, pipelineCache, true);
