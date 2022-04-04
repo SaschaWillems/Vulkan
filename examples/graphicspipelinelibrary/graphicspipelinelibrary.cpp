@@ -293,16 +293,15 @@ public:
 		VkPipelineVertexInputStateCreateInfo vertexInputState = *vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Color });
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
-		VkGraphicsPipelineCreateInfo vertexShaderCreateInfo{};
-		vertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		vertexShaderCreateInfo.pNext = &libraryInfo;
-		vertexShaderCreateInfo.pInputAssemblyState = &inputAssemblyState;
-		vertexShaderCreateInfo.pVertexInputState = &vertexInputState;
+		VkGraphicsPipelineCreateInfo pipelineCI{};
+		pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineCI.pNext = &libraryInfo;
+		pipelineCI.pInputAssemblyState = &inputAssemblyState;
+		pipelineCI.pVertexInputState = &vertexInputState;
 
-		VkPipeline vertexInputStateP;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &vertexShaderCreateInfo, nullptr, &vertexInputStateP));
-
-		return vertexInputStateP;
+		VkPipeline library = VK_NULL_HANDLE;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &pipelineCI, nullptr, &library));
+		return library;
 	}
 
 	VkPipeline createVertexShader(VkDevice device, const ShaderInfo shaderInfo, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
@@ -338,22 +337,21 @@ public:
 		shaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		shaderStageCreateInfo.pName = "main";
 
-		VkGraphicsPipelineCreateInfo vertexShaderCreateInfo{};
-		vertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		vertexShaderCreateInfo.pNext = &libraryInfo;
-		vertexShaderCreateInfo.renderPass = renderPass;
-		vertexShaderCreateInfo.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
-		vertexShaderCreateInfo.stageCount = 1;
-		vertexShaderCreateInfo.pStages = &shaderStageCreateInfo;
-		vertexShaderCreateInfo.layout = layout;
-		vertexShaderCreateInfo.pDynamicState = &dynamicInfo;
-		vertexShaderCreateInfo.pViewportState = &viewportState;
-		vertexShaderCreateInfo.pRasterizationState = &rasterizationState;
+		VkGraphicsPipelineCreateInfo pipelineCI{};
+		pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineCI.pNext = &libraryInfo;
+		pipelineCI.renderPass = renderPass;
+		pipelineCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+		pipelineCI.stageCount = 1;
+		pipelineCI.pStages = &shaderStageCreateInfo;
+		pipelineCI.layout = layout;
+		pipelineCI.pDynamicState = &dynamicInfo;
+		pipelineCI.pViewportState = &viewportState;
+		pipelineCI.pRasterizationState = &rasterizationState;
 
-		VkPipeline vertexShader;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &vertexShaderCreateInfo, nullptr, &vertexShader));
-
-		return vertexShader;
+		VkPipeline library = VK_NULL_HANDLE;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &pipelineCI, nullptr, &library));
+		return library;
 	}
 
 	VkPipeline createFragmentShader(VkDevice device, const ShaderInfo shaderInfo, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
@@ -376,21 +374,20 @@ public:
 		shaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		shaderStageCreateInfo.pName = "main";
 
-		VkGraphicsPipelineCreateInfo fragmentShaderCreateInfo{};
-		fragmentShaderCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		fragmentShaderCreateInfo.pNext = &libraryInfo;
-		fragmentShaderCreateInfo.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
-		fragmentShaderCreateInfo.stageCount = 1;
-		fragmentShaderCreateInfo.pStages = &shaderStageCreateInfo;
-		fragmentShaderCreateInfo.layout = layout;
-		fragmentShaderCreateInfo.renderPass = renderPass;
-		fragmentShaderCreateInfo.pDepthStencilState = &depthStencilState;
-		fragmentShaderCreateInfo.pMultisampleState = &multisampleState;
+		VkGraphicsPipelineCreateInfo pipelineCI{};
+		pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineCI.pNext = &libraryInfo;
+		pipelineCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+		pipelineCI.stageCount = 1;
+		pipelineCI.pStages = &shaderStageCreateInfo;
+		pipelineCI.layout = layout;
+		pipelineCI.renderPass = renderPass;
+		pipelineCI.pDepthStencilState = &depthStencilState;
+		pipelineCI.pMultisampleState = &multisampleState;
 
-		VkPipeline fragmentShader;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &fragmentShaderCreateInfo, nullptr, &fragmentShader));
-
-		return fragmentShader;
+		VkPipeline library = VK_NULL_HANDLE;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &pipelineCI, nullptr, &library));
+		return library;
 	}
 
 	VkPipeline createFragmentOutputState(VkDevice device, VkPipelineCache vertexShaderCache, VkPipelineLayout layout)
@@ -403,19 +400,18 @@ public:
 		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 
-		VkGraphicsPipelineCreateInfo fragmentShaderCreateInfo{};
-		fragmentShaderCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		fragmentShaderCreateInfo.pNext = &libraryInfo;
-		fragmentShaderCreateInfo.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
-		fragmentShaderCreateInfo.layout = layout;
-		fragmentShaderCreateInfo.renderPass = renderPass;
-		fragmentShaderCreateInfo.pColorBlendState = &colorBlendState;
-		fragmentShaderCreateInfo.pMultisampleState = &multisampleState;
+		VkGraphicsPipelineCreateInfo pipelineCI{};
+		pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineCI.pNext = &libraryInfo;
+		pipelineCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+		pipelineCI.layout = layout;
+		pipelineCI.renderPass = renderPass;
+		pipelineCI.pColorBlendState = &colorBlendState;
+		pipelineCI.pMultisampleState = &multisampleState;
 
-		VkPipeline fragmentShader;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &fragmentShaderCreateInfo, nullptr, &fragmentShader));
-
-		return fragmentShader;
+		VkPipeline library = VK_NULL_HANDLE;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, vertexShaderCache, 1, &pipelineCI, nullptr, &library));
+		return library;
 	}
 
 	VkPipeline linkExecutable(VkDevice device, const std::vector<VkPipeline> libraries, VkPipelineCache executableCache, bool optimized)
@@ -431,9 +427,7 @@ public:
 		executablePipelineCreateInfo.flags |= optimized ? VK_PIPELINE_CREATE_LINK_TIME_OPTIMIZATION_BIT_EXT : 0;
 
 		VkPipeline executable = VK_NULL_HANDLE;
-
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, executableCache, 1, &executablePipelineCreateInfo, nullptr, &executable));
-
 		return executable;
 	}
 
