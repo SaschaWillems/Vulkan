@@ -436,6 +436,9 @@ Demonstrates the use of VK_EXT_descriptor_indexing for creating descriptor sets 
 
 Shows usage of the VK_KHR_dynamic_rendering extension, which simplifies the rendering setup by no longer requiring render pass objects or framebuffers.
 
+#### [Graphics pipeline library (VK_EXT_graphics_pipeline_library)](./examples/graphicspipelinelibrary)<br/>
+Uses the graphics pipeline library extensions to improve run-time pipeline creation. Instead of creating the whole pipeline at once, this sample pre builds shared pipeline parts like like vertex input state and fragment output state. These are then used to create full pipelines at runtime, reducing build times and possible hick-ups.
+
 ### Misc
 
 #### [Vulkan Gears](examples/gears/)
