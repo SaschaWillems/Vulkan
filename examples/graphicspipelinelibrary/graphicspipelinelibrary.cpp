@@ -8,6 +8,7 @@
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
+#include <thread>
 #include <mutex>
 
 #define ENABLE_VALIDATION false
