@@ -243,7 +243,7 @@ void VulkanExampleBase::nextFrame()
 	auto tEnd = std::chrono::high_resolution_clock::now();
 	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    frameTimer = (float)tDiff * refreshPeriod;      // SRS - Multiply by the display refresh period due to fixed vsync rendering on iOS and macOS
+    frameTimer = (float)tDiff * refreshPeriod;      // SRS - Multiply by refresh period due to displayLink callback rendering on iOS and macOS
 #else
 	frameTimer = (float)tDiff / 1000.0f;
 #endif
@@ -1515,6 +1515,10 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 
 @end
 
+const std::string getAssetPath() {
+    return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../data/"].UTF8String;
+}
+
 static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
 	const CVTimeStamp *inOutputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut,
 	void *displayLinkContext)
@@ -1556,6 +1560,9 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
 	CVDisplayLinkSetOutputCallback(displayLink, &displayLinkOutputCallback, vulkanExample);
 	CVDisplayLinkStart(displayLink);
+	// SRS - Pause 1 ms for displayLink startup then get the actual refresh period of the display
+	usleep(1000);
+	vulkanExample->refreshPeriod = CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink);
 }
 
 - (BOOL)acceptsFirstResponder
@@ -1633,17 +1640,39 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 	vulkanExample->mouseButtons.left = false;
 }
 
-- (void)otherMouseDown:(NSEvent *)event
+- (void)rightMouseDown:(NSEvent *)event
 {
 	vulkanExample->mouseButtons.right = true;
 }
 
-- (void)otherMouseUp:(NSEvent *)event
+- (void)rightMouseUp:(NSEvent *)event
 {
 	vulkanExample->mouseButtons.right = false;
 }
 
+- (void)otherMouseDown:(NSEvent *)event
+{
+	vulkanExample->mouseButtons.middle = true;
+}
+
+- (void)otherMouseUp:(NSEvent *)event
+{
+	vulkanExample->mouseButtons.middle = false;
+}
+
 - (void)mouseDragged:(NSEvent *)event
+{
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mouseDragged(point.x, point.y);
+}
+
+- (void)rightMouseDragged:(NSEvent *)event
+{
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mouseDragged(point.x, point.y);
+}
+
+- (void)otherMouseDragged:(NSEvent *)event
 {
 	auto point = [self getMouseLocalPoint:event];
 	vulkanExample->mouseDragged(point.x, point.y);

@@ -10,26 +10,12 @@
 #include "MVKExample.h"
 #include "examples.h"
 
-/*
-void MVKExample::renderFrame() {                                // SRS - don't need to expose VulkanExampleBase::renderFrame() to DemoViewController
-    _vulkanExample->renderFrame();
-}
-*/
-
 void MVKExample::displayLinkOutputCb() {                        // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
     _vulkanExample->displayLinkOutputCb();
 }
 
-void MVKExample::getRefreshPeriod(double refreshPeriod) {       // SRS - get the actual refresh period of the display
+void MVKExample::setRefreshPeriod(double refreshPeriod) {       // SRS - set VulkanExampleBase::refreshPeriod from DemoViewController displayLink
     _vulkanExample->refreshPeriod = refreshPeriod;
-}
-
-void MVKExample::windowWillResize(float x, float y) {
-    _vulkanExample->windowWillResize(x, y);
-}
-
-void MVKExample::windowDidResize() {
-    _vulkanExample->windowDidResize();
 }
 
 void MVKExample::keyPressed(uint32_t keyCode) {
@@ -119,10 +105,12 @@ void MVKExample::scrollWheel(short wheelDelta) {
 
 MVKExample::MVKExample(void* view) {
     _vulkanExample = new VulkanExample();
+	width = _vulkanExample->width;								// SRS - Get desired window size from VulkanExampleBase instance
+	height = _vulkanExample->height;
     _vulkanExample->initVulkan();
     _vulkanExample->setupWindow(view);
-    //_vulkanExample->initSwapchain();                          // SRS - initSwapchain() is now part of VulkanExampleBase::prepare()
     _vulkanExample->prepare();
+	_vulkanExample->renderLoop();								// SRS - Init destWidth & destHeight, then fall through and return
 }
 
 MVKExample::~MVKExample() {

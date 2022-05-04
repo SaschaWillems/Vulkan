@@ -13,12 +13,11 @@
 class MVKExample {
 
 public:
-    //void renderFrame();                           // SRS - don't need to expose VulkanExampleBase::renderFrame() to DemoViewController
+	uint32_t width;									// SRS - expose VulkanExampleBase initial window size to DemoViewController
+	uint32_t height;
+
     void displayLinkOutputCb();                     // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
-    void getRefreshPeriod(double refreshPeriod);    // SRS - get the actual refresh period of the display
-    
-    void windowWillResize(float x, float y);        // SRS - expose window resize events to DemoViewController
-    void windowDidResize();
+    void setRefreshPeriod(double refreshPeriod);    // SRS - set VulkanExampleBase::refreshPeriod from DemoViewController displayLink
     
     void keyPressed(uint32_t keyCode);              // SRS - expose keyboard events to DemoViewController
     void keyDown(uint32_t keyCode);

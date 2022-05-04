@@ -22,7 +22,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                                     CVOptionFlags* flagsOut,
                                     void* target) {
     //((MVKExample*)target)->renderFrame();
-    ((MVKExample*)target)->displayLinkOutputCb();   // SRS - Call MVKExample::displayLinkOutputCb() to animate frames vs. MVKExample::renderFrame() for static image
+    ((MVKExample*)target)->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to animate frames vs. renderFrame() for static image
     return kCVReturnSuccess;
 }
 
@@ -48,23 +48,18 @@ MVKExample* _mvkExample;
     CVDisplayLinkStart(_displayLink);
 }
 
-// SRS - get the actual refresh period of the display
+// SRS - Set window's initial content size and set VulkanExampleBase::refreshPeriod from the displayLink
 -(void) viewWillAppear {
     [super viewWillAppear];
-    
-    _mvkExample->getRefreshPeriod(CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink));
-}
 
-// SRS - Handle window resize events (FIXME: resizeable window not yet supported at init)
--(NSSize) windowWillResize:(NSWindow*) sender toSize:(NSSize)frameSize {
-    CVDisplayLinkStop(_displayLink);
-    _mvkExample->windowWillResize(frameSize.width, frameSize.height);
-    return frameSize;
-}
+	NSWindow* window = self.view.window;
+	NSSize viewSize;
+	viewSize.width = _mvkExample->width;
+	viewSize.height = _mvkExample->height;
+	[window setContentSize:viewSize];
+	[window center];
 
--(void) windowDidResize:(NSNotification*) notification {
-    _mvkExample->windowDidResize();
-    CVDisplayLinkStart(_displayLink);
+    _mvkExample->setRefreshPeriod(CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink));
 }
 
 -(void) dealloc {
