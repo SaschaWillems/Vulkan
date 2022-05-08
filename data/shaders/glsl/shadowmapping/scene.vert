@@ -11,7 +11,9 @@ layout (binding = 0) uniform UBO
 	mat4 view;
 	mat4 model;
 	mat4 lightSpace;
-	vec3 lightPos;
+	vec4 lightPos;
+	float zNear;
+	float zFar;
 } ubo;
 
 layout (location = 0) out vec3 outNormal;
@@ -19,11 +21,6 @@ layout (location = 1) out vec3 outColor;
 layout (location = 2) out vec3 outViewVec;
 layout (location = 3) out vec3 outLightVec;
 layout (location = 4) out vec4 outShadowCoord;
-
-out gl_PerVertex 
-{
-    vec4 gl_Position;   
-};
 
 const mat4 biasMat = mat4( 
 	0.5, 0.0, 0.0, 0.0,
@@ -40,7 +37,7 @@ void main()
 	
     vec4 pos = ubo.model * vec4(inPos, 1.0);
     outNormal = mat3(ubo.model) * inNormal;
-    outLightVec = normalize(ubo.lightPos - inPos);
+    outLightVec = normalize(ubo.lightPos.xyz - inPos);
     outViewVec = -pos.xyz;			
 
 	outShadowCoord = ( biasMat * ubo.lightSpace * ubo.model ) * vec4(inPos, 1.0);	

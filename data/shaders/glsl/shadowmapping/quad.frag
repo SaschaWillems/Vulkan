@@ -6,10 +6,21 @@ layout (location = 0) in vec2 inUV;
 
 layout (location = 0) out vec4 outFragColor;
 
+layout (binding = 0) uniform UBO 
+{
+	mat4 projection;
+	mat4 view;
+	mat4 model;
+	mat4 lightSpace;
+	vec4 lightPos;
+	float zNear;
+	float zFar;
+} ubo;
+
 float LinearizeDepth(float depth)
 {
-  float n = 1.0; // camera z near
-  float f = 128.0; // camera z far
+  float n = ubo.zNear;
+  float f = ubo.zFar;
   float z = depth;
   return (2.0 * n) / (f + n - z * (f - n));	
 }

@@ -3,10 +3,23 @@
 Texture2D textureColor : register(t1);
 SamplerState samplerColor : register(s1);
 
+struct UBO
+{
+	float4x4 projection;
+	float4x4 view;
+	float4x4 model;
+	float4x4 lightSpace;
+	float4 lightPos;
+	float zNear;
+	float zFar;
+};
+
+cbuffer ubo : register(b0) { UBO ubo; }
+
 float LinearizeDepth(float depth)
 {
-  float n = 1.0; // camera z near
-  float f = 128.0; // camera z far
+  float n = ubo.zNear;
+  float f = ubo.zFar;
   float z = depth;
   return (2.0 * n) / (f + n - z * (f - n));
 }

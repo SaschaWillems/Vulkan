@@ -56,7 +56,10 @@ public:
 		glm::mat4 view;
 		glm::mat4 model;
 		glm::mat4 depthBiasMVP;
-		glm::vec3 lightPos;
+		glm::vec4 lightPos;
+		// Used for depth map visualization
+		float zNear;
+		float zFar;
 	} uboVSscene;
 
 	struct {
@@ -384,7 +387,7 @@ public:
 		// Shared pipeline layout for all pipelines used in this sample
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
 			// Binding 1 : Fragment shader image sampler (shadow map)
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
 		};
@@ -409,6 +412,8 @@ public:
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.debug));
 		writeDescriptorSets = {
+			// Binding 0 : Parameters uniform buffer
+			vks::initializers::writeDescriptorSet(descriptorSets.debug, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 		    vks::initializers::writeDescriptorSet(descriptorSets.debug, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
 		};
@@ -542,8 +547,10 @@ public:
 		uboVSscene.projection = camera.matrices.perspective;
 		uboVSscene.view = camera.matrices.view;
 		uboVSscene.model = glm::mat4(1.0f);
-		uboVSscene.lightPos = lightPos;
+		uboVSscene.lightPos = glm::vec4(lightPos, 1.0f);
 		uboVSscene.depthBiasMVP = uboOffscreenVS.depthMVP;
+		uboVSscene.zNear = zNear;
+		uboVSscene.zFar = zFar;
 		memcpy(uniformBuffers.scene.mapped, &uboVSscene, sizeof(uboVSscene));
 	}
 
