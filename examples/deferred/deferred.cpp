@@ -746,7 +746,7 @@ public:
 		// rendering to be finished before we can use the framebuffer
 		// color image for sampling during final rendering
 		// To ensure this we use a dedicated offscreen synchronization
-		// semaphore that will be signaled when offscreen renderin
+		// semaphore that will be signaled when offscreen rendering
 		// has been finished
 		// This is necessary as an implementation may start both
 		// command buffers at the same time, there is no guarantee
