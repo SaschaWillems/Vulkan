@@ -8,6 +8,10 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+// SRS - This is needed to make visible VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+#define VK_ENABLE_BETA_EXTENSIONS
+#endif
 #include <VulkanDevice.h>
 #include <unordered_set>
 
@@ -278,6 +282,14 @@ namespace vks
 			deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 			enableDebugMarkers = true;
 		}
+
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+		// SRS - When running on iOS/macOS with MoltenVK, must enable the VK_KHR_portability_subset device extension
+		if (extensionSupported(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
+		{
+			deviceExtensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+		}
+#endif
 
 		if (deviceExtensions.size() > 0)
 		{
