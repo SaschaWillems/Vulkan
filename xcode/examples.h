@@ -27,7 +27,13 @@
 // In the list below, the comments indicate entries that,
 // under certain conditions, that may not run as expected.
 
-#define MVK_gltfskinning
+#define MVK_vulkanscene
+
+// COMMON  - Include VulkanglTFModel.cpp in all examples other than ones that already include/customize tiny_gltf.h directly
+#if !defined(MVK_gltfloading) && !defined(MVK_gltfskinning) && !defined(MVK_gltfscenerendering) && !defined(MVK_vertexattributes)
+#include "../base/VulkanglTFModel.cpp"
+#endif
+
 
 // BASICS
 
@@ -107,7 +113,7 @@
 #   include "../examples/particlefire/particlefire.cpp"
 #endif
 
-// Does not run - build issue on macOS.
+// Build issue when using this xcode examples project, builds/runs fine using vulkanExamples project.
 #ifdef MVK_renderheadless
 #   include "../examples/renderheadless/renderheadless.cpp"
 #endif
@@ -119,7 +125,6 @@
 #   include "../examples/multithreading/multithreading.cpp"
 #endif
 
-// Runs but cannot load gltf file from asset pack.
 #ifdef MVK_gltfscenerendering
 #   include "../examples/gltfscenerendering/gltfscenerendering.cpp"
 #endif
@@ -181,7 +186,11 @@
 #   include "../examples/bloom/bloom.cpp"
 #endif
 
-// Runs but nothing displays.
+#ifdef MVK_vertexattributes
+#   include "../examples/vertexattributes/vertexattributes.cpp"
+#endif
+
+// Runs but nothing displays.  MoltenVK format VK_FORMAT_R32_UINT doesn't contain VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT
 #ifdef MVK_oit
 #   include "../examples/oit/oit.cpp"
 #endif
@@ -191,11 +200,6 @@
 
 #ifdef MVK_deferred
 #   include "../examples/deferred/deferred.cpp"
-#endif
-
-// Does not run. Metal does not support geometry shaders.
-#ifdef MVK_deferredshadows
-#   include "../examples/deferredshadows/deferredshadows.cpp"
 #endif
 
 #ifdef MVK_deferredmultisampling
@@ -292,7 +296,7 @@
 #   include "../examples/computecloth/computecloth.cpp"
 #endif
 
-// Does not run - build issue on macOS.
+// Build issue when using this xcode examples project, builds/runs fine using vulkanExamples project.
 #ifdef MVK_computeheadless
 #   include "../examples/computeheadless/computeheadless.cpp"
 #endif
@@ -321,6 +325,11 @@
 #endif
 
 // Does not run. Metal does not support geometry shaders.
+#ifdef MVK_deferredshadows
+#   include "../examples/deferredshadows/deferredshadows.cpp"
+#endif
+
+// Does not run. Metal does not support geometry shaders.
 #ifdef MVK_viewportarray
 #   include "../examples/viewportarray/viewportarray.cpp"
 #endif
@@ -341,6 +350,16 @@
 // Does not run. Requires VK_NV_shading_rate_image.
 #ifdef MVK_variablerateshading
 #   include "../examples/variablerateshading/variablerateshading.cpp"
+#endif
+
+// Does not run. Requires VK_KHR_pipeline_library and VK_EXT_graphics_pipeline_library.
+#ifdef MVK_graphicspipelinelibrary
+#   include "../examples/graphicspipelinelibrary/graphicspipelinelibrary.cpp"
+#endif
+
+// Does not run yet. Requires VK_KHR_dynamic_rendering (under development in MoltenVK)
+#ifdef MVK_dynamicrendering
+#   include "../examples/dynamicrendering/dynamicrendering.cpp"
 #endif
 
 // Runs. Requires VK_EXT_debug_marker.

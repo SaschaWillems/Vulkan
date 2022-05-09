@@ -38,8 +38,6 @@
 		AA54A1B526E5274500485C4A /* VulkanBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1B226E5274500485C4A /* VulkanBuffer.cpp */; };
 		AA54A1B826E5275300485C4A /* VulkanDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1B626E5275300485C4A /* VulkanDevice.cpp */; };
 		AA54A1B926E5275300485C4A /* VulkanDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1B626E5275300485C4A /* VulkanDevice.cpp */; };
-		AA54A1BC26E5276000485C4A /* VulkanglTFModel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1BA26E5276000485C4A /* VulkanglTFModel.cpp */; };
-		AA54A1BD26E5276000485C4A /* VulkanglTFModel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1BA26E5276000485C4A /* VulkanglTFModel.cpp */; };
 		AA54A1C026E5276C00485C4A /* VulkanSwapChain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1BF26E5276C00485C4A /* VulkanSwapChain.cpp */; };
 		AA54A1C126E5276C00485C4A /* VulkanSwapChain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1BF26E5276C00485C4A /* VulkanSwapChain.cpp */; };
 		AA54A1C426E5277600485C4A /* VulkanTexture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1C326E5277600485C4A /* VulkanTexture.cpp */; };
@@ -574,7 +572,6 @@
 				AAB0D0BF26F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */,
 				C9788FD52044D78D00AB0892 /* VulkanAndroid.cpp in Sources */,
 				A951FF1B1E9C349000FA9144 /* VulkanTools.cpp in Sources */,
-				AA54A1BC26E5276000485C4A /* VulkanglTFModel.cpp in Sources */,
 				AA54A6CC26E52CE300485C4A /* hashlist.c in Sources */,
 				A951FF191E9C349000FA9144 /* vulkanexamplebase.cpp in Sources */,
 				AA54A1B426E5274500485C4A /* VulkanBuffer.cpp in Sources */,
@@ -605,7 +602,6 @@
 				AA54A6C326E52CE300485C4A /* writer.c in Sources */,
 				AA54A1B926E5275300485C4A /* VulkanDevice.cpp in Sources */,
 				AA54A6DF26E52CE400485C4A /* imgui_widgets.cpp in Sources */,
-				AA54A1BD26E5276000485C4A /* VulkanglTFModel.cpp in Sources */,
 				A951FF181E9C349000FA9144 /* VulkanDebug.cpp in Sources */,
 				AA54A6CB26E52CE300485C4A /* texture.c in Sources */,
 				AAB0D0C026F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */,
