@@ -2793,7 +2793,7 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 		viewUpdated = true;
 	}
 	if (mouseButtons.middle) {
-		camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+		camera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
 		viewUpdated = true;
 	}
 	mousePos = glm::vec2((float)x, (float)y);

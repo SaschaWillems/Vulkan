@@ -17,7 +17,7 @@
  *
  * For example, to run the pipelines example, you would add the MVK_pipelines define macro
  * to the Preprocessor Macros (aka GCC_PREPROCESSOR_DEFINITIONS) entry of the Xcode project,
- * overwriting any otheor value there.
+ * overwriting any other value there.
  *
  * If you choose to add a #define statement to this file, be sure to clear the existing macro
  * from the Preprocessor Macros (aka GCC_PREPROCESSOR_DEFINITIONS) compiler setting in Xcode.
@@ -27,11 +27,12 @@
 // In the list below, the comments indicate entries that,
 // under certain conditions, that may not run as expected.
 
-#define MVK_vulkanscene
+// Uncomment the next line and select example here if not using a Preprocessor Macro to define example
+//#define MVK_vulkanscene
 
 // COMMON  - Include VulkanglTFModel.cpp in all examples other than ones that already include/customize tiny_gltf.h directly
 #if !defined(MVK_gltfloading) && !defined(MVK_gltfskinning) && !defined(MVK_gltfscenerendering) && !defined(MVK_vertexattributes)
-#include "../base/VulkanglTFModel.cpp"
+#	include "../base/VulkanglTFModel.cpp"
 #endif
 
 

@@ -103,7 +103,7 @@
                 <windowController id="B8D-0N-5wS" sceneMemberID="viewController">
                     <window key="window" title="MoltenVK Vulkan Example" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="IQv-IB-iLA">
                         <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
-                        <rect key="contentRect" x="1051" y="656" width="1024" height="768"/>
+                        <rect key="contentRect" x="1051" y="656" width="1280" height="720"/>
                         <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
                         <connections>
                             <outlet property="delegate" destination="B8D-0N-5wS" id="ayw-fB-DBj"/>
@@ -122,7 +122,7 @@
             <objects>
                 <viewController id="XfG-lQ-9wD" customClass="DemoViewController" sceneMemberID="viewController">
                     <view key="view" id="m2S-Jp-Qdl" customClass="DemoView">
-                        <rect key="frame" x="0.0" y="0.0" width="1024" height="768"/>
+                        <rect key="frame" x="0.0" y="0.0" width="1280" height="720"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </view>
                 </viewController>

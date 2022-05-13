@@ -48,15 +48,11 @@ MVKExample* _mvkExample;
     CVDisplayLinkStart(_displayLink);
 }
 
-// SRS - Set window's initial content size and set VulkanExampleBase::refreshPeriod from the displayLink
+// SRS - Center the window and set VulkanExampleBase::refreshPeriod from the active displayLink
 -(void) viewWillAppear {
     [super viewWillAppear];
 
 	NSWindow* window = self.view.window;
-	NSSize viewSize;
-	viewSize.width = _mvkExample->width;
-	viewSize.height = _mvkExample->height;
-	[window setContentSize:viewSize];
 	[window center];
 
     _mvkExample->setRefreshPeriod(CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink));
@@ -94,12 +90,15 @@ MVKExample* _mvkExample;
 
 // SRS - Handle keyboard events
 -(void) keyDown:(NSEvent*) theEvent {
-    _mvkExample->keyPressed(theEvent.keyCode);
-    _mvkExample->keyDown(theEvent.keyCode);
+	NSString *text = [theEvent charactersIgnoringModifiers];
+	unichar keychar = (text.length > 0) ? [text characterAtIndex: 0] : 0;
+    _mvkExample->keyDown(keychar);
 }
 
 -(void) keyUp:(NSEvent*) theEvent {
-    _mvkExample->keyUp(theEvent.keyCode);
+	NSString *text = [theEvent charactersIgnoringModifiers];
+	unichar keychar = (text.length > 0) ? [text characterAtIndex: 0] : 0;
+    _mvkExample->keyUp(keychar);
 }
 
 // SRS - Handle mouse events
@@ -116,12 +115,12 @@ MVKExample* _mvkExample;
 }
 
 -(void) mouseUp:(NSEvent*) theEvent {
-    auto point = [self getMouseLocalPoint:theEvent];
-    _mvkExample->mouseUp(point.x, point.y);
+    _mvkExample->mouseUp();
 }
 
 -(void) rightMouseDown:(NSEvent*) theEvent {
-    _mvkExample->rightMouseDown();
+	auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->rightMouseDown(point.x, point.y);
 }
 
 -(void) rightMouseUp:(NSEvent*) theEvent {
@@ -129,7 +128,8 @@ MVKExample* _mvkExample;
 }
 
 -(void) otherMouseDown:(NSEvent*) theEvent {
-    _mvkExample->otherMouseDown();
+	auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->otherMouseDown(point.x, point.y);
 }
 
 -(void) otherMouseUp:(NSEvent*) theEvent {
@@ -147,11 +147,6 @@ MVKExample* _mvkExample;
 }
 
 -(void) otherMouseDragged:(NSEvent*) theEvent {
-    auto point = [self getMouseLocalPoint:theEvent];
-    _mvkExample->mouseDragged(point.x, point.y);
-}
-
--(void) mouseMoved:(NSEvent*) theEvent {
     auto point = [self getMouseLocalPoint:theEvent];
     _mvkExample->mouseDragged(point.x, point.y);
 }

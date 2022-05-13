@@ -13,24 +13,21 @@
 class MVKExample {
 
 public:
-	uint32_t width;									// SRS - expose VulkanExampleBase initial window size to DemoViewController
-	uint32_t height;
-
+	void renderFrame();
     void displayLinkOutputCb();                     // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
     void setRefreshPeriod(double refreshPeriod);    // SRS - set VulkanExampleBase::refreshPeriod from DemoViewController displayLink
     
-    void keyPressed(uint32_t keyCode);              // SRS - expose keyboard events to DemoViewController
-    void keyDown(uint32_t keyCode);
-    void keyUp(uint32_t keyCode);
+    void keyPressed(uint32_t keyChar);              // SRS - expose keyboard events to DemoViewController
+    void keyDown(uint32_t keyChar);
+    void keyUp(uint32_t keyChar);
     
     void mouseDown(double x, double y);             // SRS - expose mouse events to DemoViewController
-    void mouseUp(double x, double y);
-    void rightMouseDown();
+    void mouseUp();
+    void rightMouseDown(double x, double y);
     void rightMouseUp();
-    void otherMouseDown();
+    void otherMouseDown(double x, double y);
     void otherMouseUp();
     void mouseDragged(double x, double y);
-    void mouseMoved(double x, double y);
     void scrollWheel(short wheelDelta);
 
     MVKExample(void* view);
