@@ -78,8 +78,10 @@ namespace vks
 		// Returns false if none of the depth formats in the list is supported by the device
 		VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *depthFormat);
 
-		// Returns if a given format support LINEAR filtering
+		// Returns tru a given format support LINEAR filtering
 		VkBool32 formatIsFilterable(VkPhysicalDevice physicalDevice, VkFormat format, VkImageTiling tiling);
+		// Returns true if a given format has a stencil part
+		VkBool32 formatHasStencil(VkFormat format);
 
 		// Put an image memory barrier for setting an image layout on the sub resource into the given command buffer
 		void setImageLayout(
