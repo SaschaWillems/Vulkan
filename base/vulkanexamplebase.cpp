@@ -1601,6 +1601,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 		case kVK_ANSI_P:
 			vulkanExample->paused = !vulkanExample->paused;
 			break;
+		case kVK_Delete:								// support keyboards with no escape key
 		case kVK_Escape:
 			[NSApp terminate:nil];
 			break;
@@ -1617,6 +1618,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 			vulkanExample->camera.keys.right = true;
 			break;
 		default:
+			vulkanExample->keyPressed(event.keyCode);	// handle example-specific key press events
 			break;
 	}
 }
@@ -1633,9 +1635,9 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 			break;
 		case kVK_ANSI_A:
 			vulkanExample->camera.keys.left = false;
-		break;
-			case kVK_ANSI_D:
-		vulkanExample->camera.keys.right = false;
+			break;
+		case kVK_ANSI_D:
+			vulkanExample->camera.keys.right = false;
 			break;
 		default:
 			break;

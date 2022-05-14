@@ -91,13 +91,13 @@ MVKExample* _mvkExample;
 // SRS - Handle keyboard events
 -(void) keyDown:(NSEvent*) theEvent {
 	NSString *text = [theEvent charactersIgnoringModifiers];
-	unichar keychar = (text.length > 0) ? [text characterAtIndex: 0] : 0;
+	unichar keychar = (text.length > 0) ? [text.lowercaseString characterAtIndex: 0] : 0;
     _mvkExample->keyDown(keychar);
 }
 
 -(void) keyUp:(NSEvent*) theEvent {
 	NSString *text = [theEvent charactersIgnoringModifiers];
-	unichar keychar = (text.length > 0) ? [text characterAtIndex: 0] : 0;
+	unichar keychar = (text.length > 0) ? [text.lowercaseString characterAtIndex: 0] : 0;
     _mvkExample->keyUp(keychar);
 }
 

@@ -97,13 +97,13 @@ const std::string getAssetPath() {
 
 // A key on the keyboard has been pressed.
 -(void) insertText: (NSString*) text {
-	unichar keychar = (text.length > 0) ? [text characterAtIndex: 0] : 0;
+	unichar keychar = (text.length > 0) ? [text.lowercaseString characterAtIndex: 0] : 0;
 	_mvkExample->keyPressed(keychar);
 }
 
 // The delete backward key has been pressed.
 -(void) deleteBackward {
-	_mvkExample->keyPressed(0x7F);
+	_mvkExample->keyPressed(KEY_DELETE);
 }
 
 

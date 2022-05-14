@@ -21,11 +21,10 @@ void MVKExample::setRefreshPeriod(double refreshPeriod) {       // SRS - set Vul
     _vulkanExample->refreshPeriod = refreshPeriod;
 }
 
-void MVKExample::keyPressed(uint32_t keyChar) {					// SRS - handle iOS virtual screen keyboard presses
+void MVKExample::keyPressed(uint32_t keyChar) {					// SRS - handle keyboard key presses only (e.g. Pause, Space, etc)
 	switch (keyChar)
 	{
-		case 'p':
-		case 'P':
+		case KEY_P:
 			_vulkanExample->paused = !_vulkanExample->paused;
 			break;
 		default:
@@ -34,34 +33,25 @@ void MVKExample::keyPressed(uint32_t keyChar) {					// SRS - handle iOS virtual 
 	}
 }
 
-void MVKExample::keyDown(uint32_t keyChar) {					// SRS - handle physical keyboard key down/up actions
+void MVKExample::keyDown(uint32_t keyChar) {					// SRS - handle physical keyboard key down/up actions and presses
     switch (keyChar)
     {
-		case 'p':
-		case 'P':
-            _vulkanExample->paused = !_vulkanExample->paused;
-            break;
-		case 'w':
-		case 'W':
-		case 'z':	// for French AZERTY keyboards
-		case 'Z':
+		case KEY_W:
+		case KEY_Z:	// for French AZERTY keyboards
             _vulkanExample->camera.keys.up = true;
             break;
-		case 's':
-		case 'S':
+		case KEY_S:
             _vulkanExample->camera.keys.down = true;
             break;
-		case 'a':
-		case 'A':
-		case 'q':	// for French AZERTY keyboards
-		case 'Q':
+		case KEY_A:
+		case KEY_Q:	// for French AZERTY keyboards
             _vulkanExample->camera.keys.left = true;
             break;
-		case 'd':
-		case 'D':
+		case KEY_D:
             _vulkanExample->camera.keys.right = true;
             break;
         default:
+			MVKExample::keyPressed(keyChar);
             break;
     }
 }
@@ -69,24 +59,18 @@ void MVKExample::keyDown(uint32_t keyChar) {					// SRS - handle physical keyboa
 void MVKExample::keyUp(uint32_t keyChar) {
     switch (keyChar)
     {
-		case 'w':
-		case 'W':
-		case 'z':	// for French AZERTY keyboards
-		case 'Z':
+		case KEY_W:
+		case KEY_Z:	// for French AZERTY keyboards
             _vulkanExample->camera.keys.up = false;
             break;
-		case 's':
-		case 'S':
+		case KEY_S:
             _vulkanExample->camera.keys.down = false;
             break;
-		case 'a':
-		case 'A':
-		case 'q':	// for French AZERTY keyboards
-		case 'Q':
+		case KEY_A:
+		case KEY_Q:	// for French AZERTY keyboards
             _vulkanExample->camera.keys.left = false;
             break;
-		case 'd':
-		case 'D':
+		case KEY_D:
             _vulkanExample->camera.keys.right = false;
             break;
         default:
