@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <iterator>
 #include <vector>
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 #include "VulkanDevice.h"
 #include "VulkanTools.h"
 

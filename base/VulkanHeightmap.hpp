@@ -9,7 +9,7 @@
 #include <glm/glm.hpp>
 #include <glm/glm.hpp>
 
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 #include "VulkanDevice.h"
 #include "VulkanBuffer.h"
 #include <ktx.h>

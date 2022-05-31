@@ -56,7 +56,7 @@
 #include <numeric>
 #include <array>
 
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 #include "keycodes.hpp"
 #include "VulkanTools.h"

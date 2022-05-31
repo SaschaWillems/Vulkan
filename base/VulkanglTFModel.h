@@ -13,7 +13,7 @@
 #include <fstream>
 #include <vector>
 
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 #include "VulkanDevice.h"
 
 #include <ktx.h>
