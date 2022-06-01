@@ -6,6 +6,7 @@
  */
 
 #import "DemoViewController.h"
+#import "AppDelegate.h"
 #import <QuartzCore/CAMetalLayer.h>
 
 #include "MVKExample.h"
@@ -43,25 +44,19 @@ MVKExample* _mvkExample;
 
     _mvkExample = new MVKExample(self.view);
 
+	// SRS - Enable AppDelegate to call into DemoViewController for handling application lifecycle events (e.g. termination)
+	auto appDelegate = (AppDelegate *)NSApplication.sharedApplication.delegate;
+	appDelegate.viewController = self;
+	
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
     CVDisplayLinkSetOutputCallback(_displayLink, &DisplayLinkCallback, _mvkExample);
     CVDisplayLinkStart(_displayLink);
 }
 
-// SRS - Center the window and set VulkanExampleBase::refreshPeriod from the active displayLink
--(void) viewWillAppear {
-    [super viewWillAppear];
-
-	NSWindow* window = self.view.window;
-	[window center];
-
-    _mvkExample->setRefreshPeriod(CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink));
-}
-
--(void) dealloc {
+-(void) shutdownExample {
+	CVDisplayLinkStop(_displayLink);
     CVDisplayLinkRelease(_displayLink);
     delete _mvkExample;
-    [super dealloc];
 }
 
 @end
@@ -84,6 +79,15 @@ MVKExample* _mvkExample;
     CGSize viewScale = [self convertSizeToBacking: CGSizeMake(1.0, 1.0)];
     layer.contentsScale = MIN(viewScale.width, viewScale.height);
     return layer;
+}
+
+// SRS - Activate mouse cursor tracking within the view, set view as window delegate, and center the window
+- (void) viewDidMoveToWindow {
+	auto trackingArea = [[NSTrackingArea alloc] initWithRect:[self bounds] options: (NSTrackingMouseMoved | NSTrackingActiveAlways | NSTrackingInVisibleRect) owner:self userInfo:nil];
+	[self addTrackingArea: trackingArea];
+
+	[self.window setDelegate: self.window.contentView];
+	[self.window center];
 }
 
 -(BOOL) acceptsFirstResponder { return YES; }
@@ -151,9 +155,24 @@ MVKExample* _mvkExample;
     _mvkExample->mouseDragged(point.x, point.y);
 }
 
+-(void) mouseMoved:(NSEvent*) theEvent {
+	auto point = [self getMouseLocalPoint:theEvent];
+	_mvkExample->mouseDragged(point.x, point.y);
+}
+
 -(void) scrollWheel:(NSEvent*) theEvent {
     short wheelDelta = [theEvent deltaY];
     _mvkExample->scrollWheel(wheelDelta);
+}
+
+- (void)windowWillEnterFullScreen:(NSNotification *)notification
+{
+	_mvkExample->fullScreen(true);
+}
+
+- (void)windowWillExitFullScreen:(NSNotification *)notification
+{
+	_mvkExample->fullScreen(false);
 }
 
 @end

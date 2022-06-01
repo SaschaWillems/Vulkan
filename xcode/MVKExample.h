@@ -15,7 +15,6 @@ class MVKExample {
 public:
 	void renderFrame();
     void displayLinkOutputCb();                     // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
-    void setRefreshPeriod(double refreshPeriod);    // SRS - set VulkanExampleBase::refreshPeriod from DemoViewController displayLink
     
     void keyPressed(uint32_t keyChar);              // SRS - expose keyboard events to DemoViewController
     void keyDown(uint32_t keyChar);
@@ -29,7 +28,9 @@ public:
     void otherMouseUp();
     void mouseDragged(double x, double y);
     void scrollWheel(short wheelDelta);
-
+	
+	void fullScreen(bool fullscreen);				// SRS - expose VulkanExampleBase::settings.fullscreen to DemoView (macOS only)
+	
     MVKExample(void* view);
     ~MVKExample();
 

@@ -119,7 +119,7 @@ protected:
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
 	uint32_t lastFPS = 0;
-	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp;
+	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp, tPrevEnd;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
 	std::vector<std::string> supportedInstanceExtensions;
@@ -254,7 +254,9 @@ public:
 	int64_t lastTapTime = 0;
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	void* view;
-    double refreshPeriod = 1.0/60.0;        // SRS - default refreshPeriod for 60 fps display
+#if defined(VK_EXAMPLE_XCODE_GENERATED)
+	bool quit = false;
+#endif
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
 	bool quit = false;
 	IDirectFB *dfb = nullptr;
@@ -534,7 +536,6 @@ int main(const int argc, const char *argv[])														\
 		vulkanExample->setupWindow(nullptr);														\
 		vulkanExample->prepare();																	\
 		vulkanExample->renderLoop();																\
-		delete(vulkanExample);																		\
 	}																								\
 	return 0;																						\
 }

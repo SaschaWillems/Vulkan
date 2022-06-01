@@ -255,7 +255,7 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 
 void VulkanExampleBase::nextFrame()
 {
-	auto tStart = std::chrono::high_resolution_clock::now();
+	//auto tStart = std::chrono::high_resolution_clock::now();
 	if (viewUpdated)
 	{
 		viewUpdated = false;
@@ -265,12 +265,10 @@ void VulkanExampleBase::nextFrame()
 	render();
 	frameCounter++;
 	auto tEnd = std::chrono::high_resolution_clock::now();
-	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
-    frameTimer = (float)tDiff * refreshPeriod;      // SRS - Multiply by refresh period due to displayLink callback rendering on iOS and macOS
-#else
+	// SRS - Calculate tDiff as time between frames vs. rendering time for Win32/macOS/iOS vsync portability
+	//auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tPrevEnd).count();
 	frameTimer = (float)tDiff / 1000.0f;
-#endif
 	camera.update(frameTimer);
 	if (camera.moving())
 	{
@@ -298,6 +296,8 @@ void VulkanExampleBase::nextFrame()
 		frameCounter = 0;
 		lastTimestamp = tEnd;
 	}
+	tPrevEnd = tEnd;
+	
 	// TODO: Cap UI overlay update rates
 	updateOverlay();
 }
@@ -316,6 +316,7 @@ void VulkanExampleBase::renderLoop()
 	destWidth = width;
 	destHeight = height;
 	lastTimestamp = std::chrono::high_resolution_clock::now();
+	tPrevEnd = lastTimestamp;
 #if defined(_WIN32)
 	MSG msg;
 	bool quitMessageReceived = false;
@@ -733,9 +734,12 @@ void VulkanExampleBase::prepareFrame()
 {
 	// Acquire the next image from the swap chain
 	VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
+	// SRS - If no longer optimal (VK_SUBOPTIMAL_KHR), wait until submitFrame() in case number of swapchain images will change on resize
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-		windowResize();
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			windowResize();
+		}
 	}
 	else {
 		VK_CHECK_RESULT(result);
@@ -745,14 +749,15 @@ void VulkanExampleBase::prepareFrame()
 void VulkanExampleBase::submitFrame()
 {
 	VkResult result = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
+	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+		windowResize();
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			// Swap chain is no longer compatible with the surface and needs to be recreated
-			windowResize();
 			return;
-		} else {
-			VK_CHECK_RESULT(result);
 		}
+	}
+	else {
+		VK_CHECK_RESULT(result);
 	}
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
@@ -1524,6 +1529,8 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 #if defined(VK_EXAMPLE_XCODE_GENERATED)
 @interface AppDelegate : NSObject<NSApplicationDelegate>
 {
+@public
+	VulkanExampleBase *vulkanExample;
 }
 
 @end
@@ -1532,9 +1539,33 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 {
 }
 
+// SRS - Dispatch rendering loop onto a queue for max frame rate concurrent rendering vs displayLink vsync rendering
+//     - vsync command line option (-vs) on macOS now works like other platforms (using VK_PRESENT_MODE_FIFO_KHR)
+dispatch_group_t concurrentGroup;
+
+- (void)applicationDidFinishLaunching:(NSNotification *)aNotification
+{
+	concurrentGroup = dispatch_group_create();
+	dispatch_queue_t concurrentQueue = dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0);
+	dispatch_group_async(concurrentGroup, concurrentQueue, ^{
+
+		while (!vulkanExample->quit) {
+			vulkanExample->displayLinkOutputCb();
+		}
+	});
+}
+
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
 {
 	return YES;
+}
+
+// SRS - Tell rendering loop to quit, then wait for concurrent queue to terminate before deleting vulkanExample
+- (void)applicationWillTerminate:(NSNotification *)aNotification
+{
+	vulkanExample->quit = YES;
+	dispatch_group_wait(concurrentGroup, DISPATCH_TIME_FOREVER);
+	delete vulkanExample;
 }
 
 @end
@@ -1582,11 +1613,10 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 - (void)viewDidMoveToWindow
 {
 	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
-	CVDisplayLinkSetOutputCallback(displayLink, &displayLinkOutputCallback, vulkanExample);
+	// SRS - Disable displayLink vsync rendering in favour of max frame rate concurrent rendering
+	//     - vsync command line option (-vs) on macOS now works like other platforms (using VK_PRESENT_MODE_FIFO_KHR)
+	//CVDisplayLinkSetOutputCallback(displayLink, &displayLinkOutputCallback, vulkanExample);
 	CVDisplayLinkStart(displayLink);
-	// SRS - Pause 1 ms for displayLink startup then get the actual refresh period of the display
-	usleep(1000);
-	vulkanExample->refreshPeriod = CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink);
 }
 
 - (BOOL)acceptsFirstResponder
@@ -1661,13 +1691,13 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 
 - (void)mouseUp:(NSEvent *)event
 {
-	auto point = [self getMouseLocalPoint:event];
-	vulkanExample->mousePos = glm::vec2(point.x, point.y);
 	vulkanExample->mouseButtons.left = false;
 }
 
 - (void)rightMouseDown:(NSEvent *)event
 {
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mousePos = glm::vec2(point.x, point.y);
 	vulkanExample->mouseButtons.right = true;
 }
 
@@ -1678,6 +1708,8 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 
 - (void)otherMouseDown:(NSEvent *)event
 {
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mousePos = glm::vec2(point.x, point.y);
 	vulkanExample->mouseButtons.middle = true;
 }
 
@@ -1717,6 +1749,9 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 		-(float)wheelDelta * 0.05f * vulkanExample->camera.movementSpeed));
 }
 
+// SRS - Window resizing already handled by windowResize() in VulkanExampleBase::submitFrame()
+//	   - handling window resize events here is redundant and can cause interaction problems
+/*
 - (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
 {
 	CVDisplayLinkStop(displayLink);
@@ -1729,6 +1764,17 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 	vulkanExample->windowDidResize();
 	CVDisplayLinkStart(displayLink);
 }
+*/
+
+- (void)windowWillEnterFullScreen:(NSNotification *)notification
+{
+	vulkanExample->settings.fullscreen = true;
+}
+
+- (void)windowWillExitFullScreen:(NSNotification *)notification
+{
+	vulkanExample->settings.fullscreen = false;
+}
 
 - (BOOL)windowShouldClose:(NSWindow *)sender
 {
@@ -1738,6 +1784,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 - (void)windowWillClose:(NSNotification *)notification
 {
 	CVDisplayLinkStop(displayLink);
+	CVDisplayLinkRelease(displayLink);
 }
 
 @end
@@ -1748,7 +1795,9 @@ void* VulkanExampleBase::setupWindow(void* view)
 #if defined(VK_EXAMPLE_XCODE_GENERATED)
 	NSApp = [NSApplication sharedApplication];
 	[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-	[NSApp setDelegate:[AppDelegate new]];
+	auto nsAppDelegate = [AppDelegate new];
+	nsAppDelegate->vulkanExample = this;
+	[NSApp setDelegate:nsAppDelegate];
 
 	const auto kContentRect = NSMakeRect(0.0f, 0.0f, width, height);
 	const auto kWindowStyle = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
@@ -1761,6 +1810,9 @@ void* VulkanExampleBase::setupWindow(void* view)
 	[window setAcceptsMouseMovedEvents:YES];
 	[window center];
 	[window makeKeyAndOrderFront:nil];
+	if (settings.fullscreen) {
+		[window toggleFullScreen:nil];
+	}
 
 	auto nsView = [[View alloc] initWithFrame:kContentRect];
 	nsView->vulkanExample = this;
@@ -2754,6 +2806,12 @@ void VulkanExampleBase::windowResize()
 	destroyCommandBuffers();
 	createCommandBuffers();
 	buildCommandBuffers();
+	
+	// SRS - Recreate fences in case number of swapchain images has changed on resize
+	for (auto& fence : waitFences) {
+		vkDestroyFence(device, fence, nullptr);
+	}
+	createSynchronizationPrimitives();
 
 	vkDeviceWaitIdle(device);
 
@@ -2824,7 +2882,7 @@ void VulkanExampleBase::initSwapchain()
 
 void VulkanExampleBase::setupSwapChain()
 {
-	swapChain.create(&width, &height, settings.vsync);
+	swapChain.create(&width, &height, settings.vsync, settings.fullscreen);
 }
 
 void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}

@@ -17,10 +17,6 @@ void MVKExample::displayLinkOutputCb() {                        // SRS - expose 
     _vulkanExample->displayLinkOutputCb();
 }
 
-void MVKExample::setRefreshPeriod(double refreshPeriod) {       // SRS - set VulkanExampleBase::refreshPeriod from DemoViewController displayLink
-    _vulkanExample->refreshPeriod = refreshPeriod;
-}
-
 void MVKExample::keyPressed(uint32_t keyChar) {					// SRS - handle keyboard key presses only (e.g. Pause, Space, etc)
 	switch (keyChar)
 	{
@@ -113,12 +109,17 @@ void MVKExample::scrollWheel(short wheelDelta) {
     _vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f, wheelDelta * 0.05f * _vulkanExample->camera.movementSpeed));
 }
 
+void MVKExample::fullScreen(bool fullscreen) {
+	_vulkanExample->settings.fullscreen = fullscreen;
+}
+
 MVKExample::MVKExample(void* view) {
     _vulkanExample = new VulkanExample();
+	_vulkanExample->settings.vsync = true;	// SRS - this iOS/macOS example uses displayLink vsync rendering - set before calling prepare()
     _vulkanExample->initVulkan();
     _vulkanExample->setupWindow(view);
     _vulkanExample->prepare();
-	_vulkanExample->renderLoop();			// SRS - init VulkanExampleBase::destWidth & destHeight, then fall through and return
+	_vulkanExample->renderLoop();			// SRS - this inits destWidth/destHeight/lastTimestamp/tPrevEnd, then falls through and returns
 }
 
 MVKExample::~MVKExample() {

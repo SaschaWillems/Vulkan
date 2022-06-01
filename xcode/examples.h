@@ -114,7 +114,7 @@
 #   include "../examples/particlefire/particlefire.cpp"
 #endif
 
-// Build issue when using this xcode examples project, builds/runs fine using vulkanExamples project.
+// No headless target when using xcode examples project, builds/runs fine using vulkanExamples project.
 #ifdef MVK_renderheadless
 #   include "../examples/renderheadless/renderheadless.cpp"
 #endif
@@ -191,7 +191,7 @@
 #   include "../examples/vertexattributes/vertexattributes.cpp"
 #endif
 
-// Runs but nothing displays.  MoltenVK format VK_FORMAT_R32_UINT doesn't contain VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT
+// Does not run.  MoltenVK/Metal does not support stores and atomic operations in the fragment stage.
 #ifdef MVK_oit
 #   include "../examples/oit/oit.cpp"
 #endif
@@ -297,7 +297,7 @@
 #   include "../examples/computecloth/computecloth.cpp"
 #endif
 
-// Build issue when using this xcode examples project, builds/runs fine using vulkanExamples project.
+// No headless target when using xcode examples project, builds/runs fine using vulkanExamples project.
 #ifdef MVK_computeheadless
 #   include "../examples/computeheadless/computeheadless.cpp"
 #endif

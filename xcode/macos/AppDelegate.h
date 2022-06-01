@@ -9,4 +9,6 @@
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 
+@property (strong, nonatomic) NSViewController *viewController;
+
 @end

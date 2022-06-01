@@ -6,6 +6,7 @@
  */
 
 #import "DemoViewController.h"
+#import "AppDelegate.h"
 
 #include "MVKExample.h"
 
@@ -22,6 +23,7 @@ const std::string getAssetPath() {
     MVKExample* _mvkExample;
     CADisplayLink* _displayLink;
     BOOL _viewHasAppeared;
+	CGPoint _startPoint;
 }
 
 /** Since this is a single-view app, init Vulkan when the view is loaded. */
@@ -31,26 +33,37 @@ const std::string getAssetPath() {
     self.view.contentScaleFactor = UIScreen.mainScreen.nativeScale;
 
     _mvkExample = new MVKExample(self.view);
-
+	
+	// SRS - Enable AppDelegate to call into DemoViewController for handling app lifecycle events (e.g. termination)
+	auto appDelegate = (AppDelegate *)UIApplication.sharedApplication.delegate;
+	appDelegate.viewController = self;
+	
     uint32_t fps = 60;
     _displayLink = [CADisplayLink displayLinkWithTarget: self selector: @selector(renderFrame)];
     [_displayLink setFrameInterval: 60 / fps];
     [_displayLink addToRunLoop: NSRunLoop.currentRunLoop forMode: NSDefaultRunLoopMode];
 
-	// SRS - set VulkanExampleBase::refreshPeriod to calibrate the frame animation rate
-	_mvkExample->setRefreshPeriod( 1.0 / fps );
-
 	// Setup double tap gesture to toggle virtual keyboard
-    UITapGestureRecognizer* tapSelector = [[UITapGestureRecognizer alloc]
-                                           initWithTarget: self action: @selector(handleTapGesture:)];
+    UITapGestureRecognizer* tapSelector = [[[UITapGestureRecognizer alloc]
+                                           initWithTarget: self action: @selector(handleTapGesture:)] autorelease];
     tapSelector.numberOfTapsRequired = 2;
     tapSelector.cancelsTouchesInView = YES;
+	tapSelector.requiresExclusiveTouchType = YES;
     [self.view addGestureRecognizer: tapSelector];
 
+	// SRS - Setup pan gesture to detect and activate translation
+	UIPanGestureRecognizer* panSelector = [[[UIPanGestureRecognizer alloc]
+										   initWithTarget: self action: @selector(handlePanGesture:)] autorelease];
+	panSelector.minimumNumberOfTouches = 2;
+	panSelector.cancelsTouchesInView = YES;
+	panSelector.requiresExclusiveTouchType = YES;
+	[self.view addGestureRecognizer: panSelector];
+
 	// SRS - Setup pinch gesture to detect and activate zoom
-	UIPinchGestureRecognizer* pinchSelector = [[UIPinchGestureRecognizer alloc]
-										   initWithTarget: self action: @selector(handlePinchGesture:)];
+	UIPinchGestureRecognizer* pinchSelector = [[[UIPinchGestureRecognizer alloc]
+										   initWithTarget: self action: @selector(handlePinchGesture:)] autorelease];
 	pinchSelector.cancelsTouchesInView = YES;
+	pinchSelector.requiresExclusiveTouchType = YES;
 	[self.view addGestureRecognizer: pinchSelector];
 
     _viewHasAppeared = NO;
@@ -68,9 +81,9 @@ const std::string getAssetPath() {
 	_mvkExample->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to animate frames vs. renderFrame() for static image
 }
 
--(void) dealloc {
-    delete _mvkExample;
-    [super dealloc];
+-(void) shutdownExample {
+	[_displayLink invalidate];
+	delete _mvkExample;
 }
 
 // Toggle the display of the virtual keyboard
@@ -109,58 +122,84 @@ const std::string getAssetPath() {
 
 #pragma mark UITouch methods
 
-// SRS - Handle touch events
 -(CGPoint) getTouchLocalPoint:(UIEvent*) theEvent {
 	UITouch *touch = [[theEvent allTouches] anyObject];
-	CGPoint point = [touch locationInView:self.view];
-	point.x = point.x * self.view.contentScaleFactor;
-	point.y = point.y * self.view.contentScaleFactor;
+	CGPoint point = [touch locationInView: self.view];
+	point.x *= self.view.contentScaleFactor;
+	point.y *= self.view.contentScaleFactor;
 	return point;
 }
 
+// SRS - Handle touch events
 -(void) touchesBegan:(NSSet*) touches withEvent:(UIEvent*) theEvent {
-	auto point = [self getTouchLocalPoint:theEvent];
 	if (touches.count == 1) {
-		// Single touch for imgui select and camera rotation
+		auto point = [self getTouchLocalPoint: theEvent];
 		_mvkExample->mouseDown(point.x, point.y);
-	}
-	else {
-		// Multi-touch for swipe translation (note: pinch gesture will cancel/override)
-		_mvkExample->otherMouseDown(point.x, point.y);
 	}
 }
 
 -(void) touchesMoved:(NSSet*) touches withEvent:(UIEvent*) theEvent {
-	auto point = [self getTouchLocalPoint:theEvent];
-	_mvkExample->mouseDragged(point.x, point.y);
+	if (touches.count == 1) {
+		auto point = [self getTouchLocalPoint: theEvent];
+		_mvkExample->mouseDragged(point.x, point.y);
+	}
 }
 
 -(void) touchesEnded:(NSSet*) touches withEvent:(UIEvent*) theEvent {
 	_mvkExample->mouseUp();
-	_mvkExample->otherMouseUp();
 }
 
 -(void) touchesCancelled:(NSSet*) touches withEvent:(UIEvent*) theEvent {
 	_mvkExample->mouseUp();
-	_mvkExample->otherMouseUp();
+}
+
+#pragma mark UIGesture methods
+
+-(CGPoint) getGestureLocalPoint:(UIGestureRecognizer*) gestureRecognizer {
+	CGPoint point = [gestureRecognizer locationInView: self.view];
+	point.x *= self.view.contentScaleFactor;
+	point.y *= self.view.contentScaleFactor;
+	return point;
+}
+
+// SRS - Respond to pan gestures for translation
+-(void) handlePanGesture: (UIPanGestureRecognizer*) gestureRecognizer {
+	switch (gestureRecognizer.state) {
+		case UIGestureRecognizerStateBegan: {
+			_startPoint = [self getGestureLocalPoint: gestureRecognizer];
+			_mvkExample->otherMouseDown(_startPoint.x, _startPoint.y);
+			break;
+		}
+		case UIGestureRecognizerStateChanged: {
+			auto translation = [gestureRecognizer translationInView: self.view];
+			translation.x *= self.view.contentScaleFactor;
+			translation.y *= self.view.contentScaleFactor;
+			_mvkExample->mouseDragged(_startPoint.x + translation.x, _startPoint.y + translation.y);
+			break;
+		}
+		default: {
+			_mvkExample->otherMouseUp();
+			break;
+		}
+	}
 }
 
 // SRS - Respond to pinch gestures for zoom
 -(void) handlePinchGesture: (UIPinchGestureRecognizer*) gestureRecognizer {
-	if (gestureRecognizer.state == UIGestureRecognizerStateBegan) {
-		auto point = [gestureRecognizer locationInView:self.view];
-		point.x = point.x * self.view.contentScaleFactor;
-		point.y = point.y * self.view.contentScaleFactor;
-		_mvkExample->rightMouseDown(point.x, point.y);
-	}
-	else if (gestureRecognizer.state == UIGestureRecognizerStateChanged) {
-		auto point = [gestureRecognizer locationInView:self.view];
-		point.x = point.x * self.view.contentScaleFactor;
-		point.y = point.y * self.view.contentScaleFactor;
-		_mvkExample->mouseDragged(point.x, point.y - gestureRecognizer.view.frame.size.height / 2.0 * log(gestureRecognizer.scale));
-	}
-	else if (gestureRecognizer.state == UIGestureRecognizerStateEnded) {
-		_mvkExample->rightMouseUp();
+	switch (gestureRecognizer.state) {
+		case UIGestureRecognizerStateBegan: {
+			_startPoint = [self getGestureLocalPoint: gestureRecognizer];
+			_mvkExample->rightMouseDown(_startPoint.x, _startPoint.y);
+			break;
+		}
+		case UIGestureRecognizerStateChanged: {
+			_mvkExample->mouseDragged(_startPoint.x, _startPoint.y - self.view.frame.size.height * log(gestureRecognizer.scale));
+			break;
+		}
+		default: {
+			_mvkExample->rightMouseUp();
+			break;
+		}
 	}
 }
 
