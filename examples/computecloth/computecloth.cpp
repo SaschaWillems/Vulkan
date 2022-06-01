@@ -101,6 +101,7 @@ public:
 	~VulkanExample()
 	{
 		// Graphics
+		graphics.indices.destroy();
 		graphics.uniformBuffer.destroy();
 		vkDestroyPipeline(device, graphics.pipelines.cloth, nullptr);
 		vkDestroyPipeline(device, graphics.pipelines.sphere, nullptr);
@@ -670,13 +671,13 @@ public:
 	void updateComputeUBO()
 	{
 		if (!paused) {
-			compute.ubo.deltaT = 0.000005f;
+			//compute.ubo.deltaT = 0.000005f;
 			// todo: base on frametime
-			//compute.ubo.deltaT = frameTimer * 0.0075f;
+			compute.ubo.deltaT = frameTimer * 0.0015f;
 
 			if (simulateWind) {
 				std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
-				std::uniform_real_distribution<float> rd(1.0f, 6.0f);
+				std::uniform_real_distribution<float> rd(1.0f, 30.0f);
 				compute.ubo.gravity.x = cos(glm::radians(-timer * 360.0f)) * (rd(rndEngine) - rd(rndEngine));
 				compute.ubo.gravity.z = sin(glm::radians(timer * 360.0f)) * (rd(rndEngine) - rd(rndEngine));
 			}

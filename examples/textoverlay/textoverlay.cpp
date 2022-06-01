@@ -901,7 +901,9 @@ public:
 
 	virtual void windowResized()
 	{
-		updateTextOverlay();
+		// SRS - Recreate text overlay resources in case number of swapchain images has changed on resize
+		delete textOverlay;
+		prepareTextOverlay();
 	}
 
 #if !defined(__ANDROID__)
