@@ -255,7 +255,7 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 
 void VulkanExampleBase::nextFrame()
 {
-	//auto tStart = std::chrono::high_resolution_clock::now();
+	auto tStart = std::chrono::high_resolution_clock::now();
 	if (viewUpdated)
 	{
 		viewUpdated = false;
@@ -265,9 +265,12 @@ void VulkanExampleBase::nextFrame()
 	render();
 	frameCounter++;
 	auto tEnd = std::chrono::high_resolution_clock::now();
-	// SRS - Calculate tDiff as time between frames vs. rendering time for Win32/macOS/iOS vsync portability
-	//auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || (defined(VK_USE_PLATFORM_MACOS_MVK) && !defined(VK_EXAMPLE_XCODE_GENERATED)))
+	// SRS - Calculate tDiff as time between frames vs. rendering time for iOS/macOS displayLink-driven examples project
 	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tPrevEnd).count();
+#else
+	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+#endif
 	frameTimer = (float)tDiff / 1000.0f;
 	camera.update(frameTimer);
 	if (camera.moving())
@@ -740,6 +743,7 @@ void VulkanExampleBase::prepareFrame()
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			windowResize();
 		}
+		return;
 	}
 	else {
 		VK_CHECK_RESULT(result);
@@ -1750,7 +1754,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 }
 
 // SRS - Window resizing already handled by windowResize() in VulkanExampleBase::submitFrame()
-//	   - handling window resize events here is redundant and can cause interaction problems
+//	   - handling window resize events here is redundant and can cause thread interaction problems
 /*
 - (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
 {
