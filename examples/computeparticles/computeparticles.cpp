@@ -149,7 +149,7 @@ public:
 
 				vkCmdPipelineBarrier(
 					drawCmdBuffers[i],
-					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 					VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
 					0,
 					0, nullptr,
@@ -196,7 +196,7 @@ public:
 				vkCmdPipelineBarrier(
 					drawCmdBuffers[i],
 					VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 					0,
 					0, nullptr,
 					1, &buffer_barrier,
@@ -234,7 +234,7 @@ public:
 
 			vkCmdPipelineBarrier(
 				compute.commandBuffer,
-				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 				0,
 				0, nullptr,
@@ -267,7 +267,7 @@ public:
 			vkCmdPipelineBarrier(
 				compute.commandBuffer,
 				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				0,
 				0, nullptr,
 				1, &buffer_barrier,
@@ -336,7 +336,7 @@ public:
 			vkCmdPipelineBarrier(
 				copyCmd,
 				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				0,
 				0, nullptr,
 				1, &buffer_barrier,
@@ -647,7 +647,9 @@ public:
 		// Build a single command buffer containing the compute dispatch commands
 		buildComputeCommandBuffer();
 
+		// SRS - By reordering compute and graphics within draw(), the following code is no longer needed:
 		// If graphics and compute queue family indices differ, acquire and immediately release the storage buffer, so that the initial acquire from the graphics command buffers are matched up properly
+		/*
 		if (graphics.queueFamilyIndex != compute.queueFamilyIndex)
 		{
 			// Create a transient command buffer for setting up the initial buffer transfer state
@@ -697,6 +699,7 @@ public:
 
 			vulkanDevice->flushCommandBuffer(transferCmd, compute.queue, compute.commandPool);
 		}
+		*/
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms

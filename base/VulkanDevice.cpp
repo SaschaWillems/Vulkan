@@ -120,6 +120,7 @@ namespace vks
 
 	/**
 	* Get the index of a queue family that supports the requested queue flags
+	* SRS - support VkQueueFlags parameter for requesting multiple flags vs. VkQueueFlagBits for a single flag only
 	*
 	* @param queueFlags Queue flags to find a queue family index for
 	*
@@ -127,15 +128,15 @@ namespace vks
 	*
 	* @throw Throws an exception if no queue family index could be found that supports the requested flags
 	*/
-	uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlagBits queueFlags) const
+	uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const
 	{
 		// Dedicated queue for compute
 		// Try to find a queue family index that supports compute but not graphics
-		if (queueFlags & VK_QUEUE_COMPUTE_BIT)
+		if ((queueFlags & VK_QUEUE_COMPUTE_BIT) == queueFlags)
 		{
 			for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
 			{
-				if ((queueFamilyProperties[i].queueFlags & queueFlags) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
+				if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
 				{
 					return i;
 				}
@@ -144,11 +145,11 @@ namespace vks
 
 		// Dedicated queue for transfer
 		// Try to find a queue family index that supports transfer but not graphics and compute
-		if (queueFlags & VK_QUEUE_TRANSFER_BIT)
+		if ((queueFlags & VK_QUEUE_TRANSFER_BIT) == queueFlags)
 		{
 			for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
 			{
-				if ((queueFamilyProperties[i].queueFlags & queueFlags) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
+				if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
 				{
 					return i;
 				}
@@ -158,7 +159,7 @@ namespace vks
 		// For other queue types or if no separate compute queue is present, return the first one to support the requested flags
 		for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
 		{
-			if (queueFamilyProperties[i].queueFlags & queueFlags)
+			if ((queueFamilyProperties[i].queueFlags & queueFlags) == queueFlags)
 			{
 				return i;
 			}
@@ -233,7 +234,7 @@ namespace vks
 			queueFamilyIndices.transfer = getQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
 			if ((queueFamilyIndices.transfer != queueFamilyIndices.graphics) && (queueFamilyIndices.transfer != queueFamilyIndices.compute))
 			{
-				// If compute family index differs, we need an additional queue create info for the compute queue
+				// If transfer family index differs, we need an additional queue create info for the transfer queue
 				VkDeviceQueueCreateInfo queueInfo{};
 				queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 				queueInfo.queueFamilyIndex = queueFamilyIndices.transfer;
