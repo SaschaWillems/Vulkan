@@ -773,6 +773,11 @@ public:
 			updateUniformBuffers(camera.updated);
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBuffers(true);
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {

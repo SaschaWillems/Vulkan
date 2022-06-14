@@ -514,6 +514,8 @@ public:
 			case alignCenter:
 				x -= textWidth / 2.0f;
 				break;
+			case alignLeft:
+				break;
 		}
 
 		// Generate a uv mapped quad per char in the new text
@@ -885,6 +887,10 @@ public:
 		if (!prepared)
 			return;
 		draw();
+		if (camera.updated)
+		{
+			updateUniformBuffers();
+		}
 		if (frameCounter == 0)
 		{
 			vkDeviceWaitIdle(device);
@@ -892,18 +898,17 @@ public:
 		}
 	}
 
-	virtual void viewChanged()
-	{
-		vkDeviceWaitIdle(device);
-		updateUniformBuffers();
-		updateTextOverlay();
-	}
-
 	virtual void windowResized()
 	{
 		// SRS - Recreate text overlay resources in case number of swapchain images has changed on resize
 		delete textOverlay;
 		prepareTextOverlay();
+	}
+
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
+		updateTextOverlay();
 	}
 
 #if !defined(__ANDROID__)

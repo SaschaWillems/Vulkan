@@ -589,6 +589,11 @@ public:
 			updateUniformBuffers();
 		}
 	}
+
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
+	}
 };
 
 VULKAN_EXAMPLE_MAIN()

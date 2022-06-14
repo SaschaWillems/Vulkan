@@ -320,7 +320,7 @@ public:
 		}
 	}
 
-	virtual void windowResized()
+	virtual void viewChanged()
 	{
 		updateUniformBuffers();
 	}

@@ -541,6 +541,11 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
+	}
+
 	// Returns the maximum sample count usable by the platform
 	VkSampleCountFlagBits getMaxUsableSampleCount()
 	{

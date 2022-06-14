@@ -527,6 +527,11 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		updateMatrices();
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Statistics")) {

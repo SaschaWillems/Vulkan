@@ -162,5 +162,6 @@ public:
 	void updateUniformBuffers();
 	void prepare();
 	virtual void render();
+	virtual void viewChanged();
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay);
 };

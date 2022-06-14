@@ -507,7 +507,7 @@ private:
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
-	void buildCommandBuffers()
+	void buildCommandBuffers() override
 	{
 		if (resized)
 			return;
