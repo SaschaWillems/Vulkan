@@ -84,5 +84,5 @@ float2 BRDF(float NoV, float roughness)
 
 float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 {
-	return float4(BRDF(inUV.x, 1.0-inUV.y), 0.0, 1.0);
+	return float4(BRDF(inUV.x, inUV.y), 0.0, 1.0);
 }
