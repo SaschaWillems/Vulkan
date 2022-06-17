@@ -86,5 +86,5 @@ vec2 BRDF(float NoV, float roughness)
 
 void main() 
 {
-	outColor = vec4(BRDF(inUV.s, 1.0-inUV.t), 0.0, 1.0);
+	outColor = vec4(BRDF(inUV.s, inUV.t), 0.0, 1.0);
 }
