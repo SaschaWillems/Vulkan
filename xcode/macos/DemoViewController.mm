@@ -27,6 +27,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
     return kCVReturnSuccess;
 }
 
+CALayer* layer;
 MVKExample* _mvkExample;
 
 #pragma mark -
@@ -40,9 +41,9 @@ MVKExample* _mvkExample;
 -(void) viewDidLoad {
 	[super viewDidLoad];
 
-	self.view.wantsLayer = YES;		// Back the view with a layer created by the makeBackingLayer method.
+	self.view.wantsLayer = YES;		// Back the view with a layer created by the makeBackingLayer method (called immediately on set)
 
-    _mvkExample = new MVKExample(self.view);
+    _mvkExample = new MVKExample(self.view, layer.contentsScale);	// SRS - Use backing layer scale factor for UIOverlay on macOS
 
 	// SRS - Enable AppDelegate to call into DemoViewController for handling application lifecycle events (e.g. termination)
 	auto appDelegate = (AppDelegate *)NSApplication.sharedApplication.delegate;
@@ -75,7 +76,7 @@ MVKExample* _mvkExample;
 
 /** If the wantsLayer property is set to YES, this method will be invoked to return a layer instance. */
 -(CALayer*) makeBackingLayer {
-    CALayer* layer = [self.class.layerClass layer];
+    layer = [self.class.layerClass layer];
     CGSize viewScale = [self convertSizeToBacking: CGSizeMake(1.0, 1.0)];
     layer.contentsScale = MIN(viewScale.width, viewScale.height);
     return layer;
@@ -108,8 +109,8 @@ MVKExample* _mvkExample;
 // SRS - Handle mouse events
 -(NSPoint) getMouseLocalPoint:(NSEvent*) theEvent {
     NSPoint location = [theEvent locationInWindow];
-    NSPoint point = [self convertPoint:location fromView:nil];
-    point.y = self.frame.size.height - point.y;
+    NSPoint point = [self convertPointToBacking:location];
+    point.y = self.frame.size.height*self.window.backingScaleFactor - point.y;
     return point;
 }
 

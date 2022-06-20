@@ -32,7 +32,7 @@ const std::string getAssetPath() {
 
     self.view.contentScaleFactor = UIScreen.mainScreen.nativeScale;
 
-    _mvkExample = new MVKExample(self.view);
+	_mvkExample = new MVKExample(self.view, 1.0f);		// SRS - Use 1x scale factor for UIOverlay on iOS
 	
 	// SRS - Enable AppDelegate to call into DemoViewController for handling app lifecycle events (e.g. termination)
 	auto appDelegate = (AppDelegate *)UIApplication.sharedApplication.delegate;

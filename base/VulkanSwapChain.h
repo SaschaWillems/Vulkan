@@ -23,6 +23,10 @@
 #include "VulkanAndroid.h"
 #endif
 
+#ifdef __APPLE__
+#include <sys/utsname.h>
+#endif
+
 typedef struct _SwapChainBuffers {
 	VkImage image;
 	VkImageView view;

@@ -31,7 +31,7 @@ public:
 	
 	void fullScreen(bool fullscreen);				// SRS - expose VulkanExampleBase::settings.fullscreen to DemoView (macOS only)
 	
-    MVKExample(void* view);
+    MVKExample(void* view, double scaleUI);			// SRS - support UIOverlay scaling parameter based on device and display type
     ~MVKExample();
 
 protected:
