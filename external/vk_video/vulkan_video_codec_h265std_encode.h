@@ -21,9 +21,9 @@ extern "C" {
 
 #define vulkan_video_codec_h265std_encode 1
 // Vulkan 0.9 provisional Vulkan video H.265 encode std specification version number
-#define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_API_VERSION_0_9_6 VK_MAKE_VIDEO_STD_VERSION(0, 9, 6) // Patch version should always be set to 0
+#define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_API_VERSION_0_9_7 VK_MAKE_VIDEO_STD_VERSION(0, 9, 7) // Patch version should always be set to 0
 
-#define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_SPEC_VERSION VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_API_VERSION_0_9_6
+#define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_SPEC_VERSION VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_API_VERSION_0_9_7
 #define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_EXTENSION_NAME "VK_STD_vulkan_video_codec_h265_encode"
 typedef struct StdVideoEncodeH265WeightTableFlags {
     uint16_t    luma_weight_l0_flag;

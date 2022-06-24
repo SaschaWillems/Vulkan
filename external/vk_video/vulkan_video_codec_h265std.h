@@ -32,7 +32,6 @@ extern "C" {
 #define STD_VIDEO_H265_SCALING_LIST_32X32_NUM_ELEMENTS 64
 #define STD_VIDEO_H265_PREDICTOR_PALETTE_COMPONENTS_LIST_SIZE 3
 #define STD_VIDEO_H265_PREDICTOR_PALETTE_COMP_ENTRIES_LIST_SIZE 128
-#define STD_VIDEO_H265_SPS_MAX_SUB_LAYERS 8
 #define STD_VIDEO_H265_CHROMA_QP_OFFSET_TILE_COLS_LIST_SIZE 19
 #define STD_VIDEO_H265_CHROMA_QP_OFFSET_TILE_ROWS_LIST_SIZE 21
 #define STD_VIDEO_H265_CHROMA_QP_OFFSET_LIST_SIZE 6
@@ -255,7 +254,6 @@ typedef struct StdVideoH265SequenceParameterSet {
     uint8_t                                       bit_depth_luma_minus8;
     uint8_t                                       bit_depth_chroma_minus8;
     uint8_t                                       log2_max_pic_order_cnt_lsb_minus4;
-    uint8_t                                       sps_max_dec_pic_buffering_minus1[STD_VIDEO_H265_SPS_MAX_SUB_LAYERS];
     uint8_t                                       log2_min_luma_coding_block_size_minus3;
     uint8_t                                       log2_diff_max_min_luma_coding_block_size;
     uint8_t                                       log2_min_luma_transform_block_size_minus2;
