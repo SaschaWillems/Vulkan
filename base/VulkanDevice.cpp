@@ -11,6 +11,10 @@
 #include <VulkanDevice.h>
 #include <unordered_set>
 
+#if defined(VK_USE_PLATFORM_MACOS_MVK) && (VK_HEADER_VERSION >= 216)
+#include <vulkan/vulkan_beta.h>
+#endif
+
 namespace vks
 {	
 	/**
@@ -248,8 +252,8 @@ namespace vks
 			deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 		}
 
-#if defined(VK_USE_PLATFORM_MACOS_MVK)
-        deviceExtensions.push_back("VK_KHR_portability_subset");
+#if defined(VK_USE_PLATFORM_MACOS_MVK) && (VK_HEADER_VERSION >= 216)
+        deviceExtensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
 #endif
 
 		VkDeviceCreateInfo deviceCreateInfo = {};
