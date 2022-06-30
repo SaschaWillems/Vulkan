@@ -19,8 +19,6 @@
 #else
 #define SHADOWMAP_DIM 2048
 #endif
-// 16 bits of depth is enough for such a small scene
-#define SHADOWMAP_FORMAT VK_FORMAT_D32_SFLOAT_S8_UINT
 
 #if defined(__ANDROID__)
 // Use max. screen dimension as deferred framebuffer size
@@ -218,12 +216,17 @@ public:
 		frameBuffers.shadow->width = SHADOWMAP_DIM;
 		frameBuffers.shadow->height = SHADOWMAP_DIM;
 
+		// Find a suitable depth format
+		VkFormat shadowMapFormat;
+		VkBool32 validShadowMapFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &shadowMapFormat);
+		assert(validShadowMapFormat);
+
 		// Create a layered depth attachment for rendering the depth maps from the lights' point of view
 		// Each layer corresponds to one of the lights
 		// The actual output to the separate layers is done in the geometry shader using shader instancing
 		// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
 		vks::AttachmentCreateInfo attachmentInfo = {};
-		attachmentInfo.format = SHADOWMAP_FORMAT;
+		attachmentInfo.format = shadowMapFormat;
 		attachmentInfo.width = SHADOWMAP_DIM;
 		attachmentInfo.height = SHADOWMAP_DIM;
 		attachmentInfo.layerCount = LIGHT_COUNT;
