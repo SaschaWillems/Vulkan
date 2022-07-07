@@ -107,6 +107,7 @@ void MVKExample::mouseDragged(double x, double y) {
 
 void MVKExample::scrollWheel(short wheelDelta) {
     _vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f, wheelDelta * 0.05f * _vulkanExample->camera.movementSpeed));
+	_vulkanExample->viewUpdated = true;
 }
 
 void MVKExample::fullScreen(bool fullscreen) {

@@ -96,7 +96,6 @@ class VulkanExampleBase
 {
 private:
 	std::string getWindowTitle();
-	bool viewUpdated = false;
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;
@@ -177,6 +176,7 @@ protected:
 public:
 	bool prepared = false;
 	bool resized = false;
+	bool viewUpdated = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
 

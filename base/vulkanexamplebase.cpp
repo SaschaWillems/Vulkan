@@ -1549,6 +1549,8 @@ dispatch_group_t concurrentGroup;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+	[NSApp activateIgnoringOtherApps:YES];		// SRS - Make sure app window launches in front of Xcode window
+	
 	concurrentGroup = dispatch_group_create();
 	dispatch_queue_t concurrentQueue = dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0);
 	dispatch_group_async(concurrentGroup, concurrentQueue, ^{
@@ -1624,6 +1626,11 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 }
 
 - (BOOL)acceptsFirstResponder
+{
+	return YES;
+}
+
+- (BOOL)acceptsFirstMouse:(NSEvent *)event
 {
 	return YES;
 }
@@ -1751,6 +1758,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 	short wheelDelta = [event deltaY];
 	vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f,
 		-(float)wheelDelta * 0.05f * vulkanExample->camera.movementSpeed));
+	vulkanExample->viewUpdated = true;
 }
 
 // SRS - Window resizing already handled by windowResize() in VulkanExampleBase::submitFrame()
