@@ -79,11 +79,13 @@ namespace vks
 #else
 		const std::string filename = getAssetPath() + "Roboto-Medium.ttf";
 		io.Fonts->AddFontFromFileTTF(filename.c_str(), 16.0f * scale);
-		ImGuiStyle& style = ImGui::GetStyle();
-		style.ScaleAllSizes(scale);
 #endif
 		io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
 		VkDeviceSize uploadSize = texWidth*texHeight * 4 * sizeof(char);
+
+		//SRS - Set ImGui style scale factor to handle retina and other HiDPI displays (same as font scaling above)
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.ScaleAllSizes(scale);
 
 		// Create target image for copy
 		VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
@@ -324,7 +326,6 @@ namespace vks
 		}
 
 		// Index buffer
-		VkDeviceSize indexSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
 		if ((indexBuffer.buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
 			indexBuffer.unmap();
 			indexBuffer.destroy();

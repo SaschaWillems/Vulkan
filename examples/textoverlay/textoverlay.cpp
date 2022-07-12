@@ -31,6 +31,7 @@ private:
 
 	uint32_t *frameBufferWidth;
 	uint32_t *frameBufferHeight;
+	float scale;
 
 	VkSampler sampler;
 	VkImage image;
@@ -70,6 +71,7 @@ public:
 		VkFormat depthformat,
 		uint32_t *framebufferwidth,
 		uint32_t *framebufferheight,
+		float scale,
 		std::vector<VkPipelineShaderStageCreateInfo> shaderstages)
 	{
 		this->vulkanDevice = vulkanDevice;
@@ -87,6 +89,7 @@ public:
 
 		this->frameBufferWidth = framebufferwidth;
 		this->frameBufferHeight = framebufferheight;
+		this->scale = scale;
 
 		cmdBuffers.resize(framebuffers.size());
 		prepareResources();
@@ -490,8 +493,8 @@ public:
 
 		assert(mapped != nullptr);
 
-		const float charW = 1.5f / *frameBufferWidth;
-		const float charH = 1.5f / *frameBufferHeight;
+		const float charW = 1.5f * scale / *frameBufferWidth;
+		const float charH = 1.5f * scale / *frameBufferHeight;
 
 		float fbW = (float)*frameBufferWidth;
 		float fbH = (float)*frameBufferHeight;
@@ -700,23 +703,23 @@ public:
 	{
 		textOverlay->beginTextUpdate();
 
-		textOverlay->addText(title, 5.0f, 5.0f, TextOverlay::alignLeft);
+		textOverlay->addText(title, 5.0f * UIOverlay.scale, 5.0f * UIOverlay.scale, TextOverlay::alignLeft);
 
 		std::stringstream ss;
 		ss << std::fixed << std::setprecision(2) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
-		textOverlay->addText(ss.str(), 5.0f, 25.0f, TextOverlay::alignLeft);
+		textOverlay->addText(ss.str(), 5.0f * UIOverlay.scale, 25.0f * UIOverlay.scale, TextOverlay::alignLeft);
 
-		textOverlay->addText(deviceProperties.deviceName, 5.0f, 45.0f, TextOverlay::alignLeft);
+		textOverlay->addText(deviceProperties.deviceName, 5.0f * UIOverlay.scale, 45.0f * UIOverlay.scale, TextOverlay::alignLeft);
 
 		// Display current model view matrix
-		textOverlay->addText("model view matrix", (float)width, 5.0f, TextOverlay::alignRight);
+		textOverlay->addText("model view matrix", (float)width - 5.0f * UIOverlay.scale, 5.0f * UIOverlay.scale, TextOverlay::alignRight);
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			ss.str("");
 			ss << std::fixed << std::setprecision(2) << std::showpos;
 			ss << uboVS.modelView[0][i] << " " << uboVS.modelView[1][i] << " " << uboVS.modelView[2][i] << " " << uboVS.modelView[3][i];
-			textOverlay->addText(ss.str(), (float)width, 25.0f + (float)i * 20.0f, TextOverlay::alignRight);
+			textOverlay->addText(ss.str(), (float)width - 5.0f * UIOverlay.scale, (25.0f + (float)i * 20.0f) * UIOverlay.scale, TextOverlay::alignRight);
 		}
 
 		glm::vec3 projected = glm::project(glm::vec3(0.0f), uboVS.modelView, uboVS.projection, glm::vec4(0, 0, (float)width, (float)height));
@@ -724,8 +727,8 @@ public:
 
 #if defined(__ANDROID__)
 #else
-		textOverlay->addText("Press \"space\" to toggle text overlay", 5.0f, 65.0f, TextOverlay::alignLeft);
-		textOverlay->addText("Hold middle mouse button and drag to move", 5.0f, 85.0f, TextOverlay::alignLeft);
+		textOverlay->addText("Press \"space\" to toggle text overlay", 5.0f * UIOverlay.scale, 65.0f * UIOverlay.scale, TextOverlay::alignLeft);
+		textOverlay->addText("Hold middle mouse button and drag to move", 5.0f * UIOverlay.scale, 85.0f * UIOverlay.scale, TextOverlay::alignLeft);
 #endif
 		textOverlay->endTextUpdate();
 	}
@@ -842,6 +845,7 @@ public:
 			depthFormat,
 			&width,
 			&height,
+			UIOverlay.scale,
 			shaderStages
 			);
 		updateTextOverlay();

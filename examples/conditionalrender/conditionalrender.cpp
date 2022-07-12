@@ -354,7 +354,7 @@ public:
 			}
 			ImGui::NewLine();
 
-			ImGui::BeginChild("InnerRegion", ImVec2(200.0f, 400.0f), false);
+			ImGui::BeginChild("InnerRegion", ImVec2(200.0f * overlay->scale, 400.0f * overlay->scale), false);
 			for (auto node : scene.linearNodes) {
 				// Add visibility toggle checkboxes for all model nodes with a mesh
 				if (node->mesh) {
