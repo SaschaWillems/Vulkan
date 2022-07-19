@@ -536,6 +536,7 @@ int main(const int argc, const char *argv[])														\
 		vulkanExample->setupWindow(nullptr);														\
 		vulkanExample->prepare();																	\
 		vulkanExample->renderLoop();																\
+		delete(vulkanExample);																		\
 	}																								\
 	return 0;																						\
 }

@@ -1259,7 +1259,7 @@ int main(const int argc, const char *argv[])
 		vulkanExample->setupWindow(nullptr);
 		vulkanExample->prepare();
 		vulkanExample->renderLoop();
-		//delete(vulkanExample);		// SRS - vulkanExample deleted by AppDelegate termination event handler
+		delete(vulkanExample);			// SRS - handle benchmarking case, normally deleted by applicationWillTerminate() event handler
 	}
 	return 0;
 }
