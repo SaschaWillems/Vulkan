@@ -94,9 +94,6 @@ public:
 
 	~VulkanExample()
 	{
-		// SRS - Ensure all operations on the device have finished before destroying resources
-		vkDeviceWaitIdle(device);
-
 		// Graphics
 		vkDestroyPipeline(device, graphics.pipeline, nullptr);
 		vkDestroyPipelineLayout(device, graphics.pipelineLayout, nullptr);

@@ -125,5 +125,6 @@ MVKExample::MVKExample(void* view, double scaleUI) {
 }
 
 MVKExample::~MVKExample() {
-    delete _vulkanExample;
+	vkDeviceWaitIdle(_vulkanExample->vulkanDevice->logicalDevice);
+    delete(_vulkanExample);
 }

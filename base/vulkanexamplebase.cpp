@@ -1556,7 +1556,8 @@ dispatch_group_t concurrentGroup;
 {
 	vulkanExample->quit = YES;
 	dispatch_group_wait(concurrentGroup, DISPATCH_TIME_FOREVER);
-	delete vulkanExample;
+	vkDeviceWaitIdle(vulkanExample->vulkanDevice->logicalDevice);
+	delete(vulkanExample);
 }
 
 @end

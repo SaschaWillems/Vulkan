@@ -126,9 +126,6 @@ public:
 
 	~VulkanExample()
 	{
-		// SRS - Ensure all operations on the device have finished before destroying resources
-		vkDeviceWaitIdle(device);
-
 		// Clean up used Vulkan resources
 		// Note: Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipeline, nullptr);
