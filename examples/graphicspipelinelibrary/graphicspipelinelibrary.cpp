@@ -16,6 +16,8 @@
 class VulkanExample: public VulkanExampleBase
 {
 public:
+	bool linkTimeOptimization = true;
+
 	vkglTF::Model scene;
 
 	struct UBOVS {
@@ -35,6 +37,7 @@ public:
 		VkPipeline vertexInputInterface;
 		VkPipeline preRasterizationShaders;
 		VkPipeline fragmentOutputInterface;
+		std::vector<VkPipeline> fragmentShaders;
 	} pipelineLibrary;
 
 	std::vector<VkPipeline> pipelines{};
@@ -80,6 +83,13 @@ public:
 			for (auto pipeline : pipelines) {
 				vkDestroyPipeline(device, pipeline, nullptr);
 			}
+			for (auto pipeline : pipelineLibrary.fragmentShaders) {
+				vkDestroyPipeline(device, pipeline, nullptr);
+			}
+			vkDestroyPipeline(device, pipelineLibrary.fragmentOutputInterface, nullptr);
+			vkDestroyPipeline(device, pipelineLibrary.preRasterizationShaders, nullptr);
+			vkDestroyPipeline(device, pipelineLibrary.vertexInputInterface, nullptr);
+			vkDestroyPipelineCache(device, threadPipelineCache, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 			uniformBuffer.destroy();
@@ -238,14 +248,14 @@ public:
 			VkPipelineVertexInputStateCreateInfo vertexInputState = *vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Color });
 			VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
-			VkGraphicsPipelineCreateInfo pipelineCI{};
-			pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-			pipelineCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
-			pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-			pipelineCI.pNext = &libraryInfo;
-			pipelineCI.pInputAssemblyState = &inputAssemblyState;
-			pipelineCI.pVertexInputState = &vertexInputState;
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelineLibrary.vertexInputInterface));
+			VkGraphicsPipelineCreateInfo pipelineLibraryCI{};
+			pipelineLibraryCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			pipelineLibraryCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+			pipelineLibraryCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			pipelineLibraryCI.pNext = &libraryInfo;
+			pipelineLibraryCI.pInputAssemblyState = &inputAssemblyState;
+			pipelineLibraryCI.pVertexInputState = &vertexInputState;
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineLibraryCI, nullptr, &pipelineLibrary.vertexInputInterface));
 		}
 
 		// Creata a pipeline library for the vertex shader stage
@@ -285,18 +295,18 @@ public:
 			shaderStageCI.stage = VK_SHADER_STAGE_VERTEX_BIT;
 			shaderStageCI.pName = "main";
 
-			VkGraphicsPipelineCreateInfo pipelineCI{};
-			pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-			pipelineCI.pNext = &libraryInfo;
-			pipelineCI.renderPass = renderPass;
-			pipelineCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
-			pipelineCI.stageCount = 1;
-			pipelineCI.pStages = &shaderStageCI;
-			pipelineCI.layout = pipelineLayout;
-			pipelineCI.pDynamicState = &dynamicInfo;
-			pipelineCI.pViewportState = &viewportState;
-			pipelineCI.pRasterizationState = &rasterizationState;
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelineLibrary.preRasterizationShaders));
+			VkGraphicsPipelineCreateInfo pipelineLibraryCI{};
+			pipelineLibraryCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			pipelineLibraryCI.pNext = &libraryInfo;
+			pipelineLibraryCI.renderPass = renderPass;
+			pipelineLibraryCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+			pipelineLibraryCI.stageCount = 1;
+			pipelineLibraryCI.pStages = &shaderStageCI;
+			pipelineLibraryCI.layout = pipelineLayout;
+			pipelineLibraryCI.pDynamicState = &dynamicInfo;
+			pipelineLibraryCI.pViewportState = &viewportState;
+			pipelineLibraryCI.pRasterizationState = &rasterizationState;
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineLibraryCI, nullptr, &pipelineLibrary.preRasterizationShaders));
 		}
 
 		// Create a pipeline library for the fragment output interface
@@ -314,6 +324,7 @@ public:
 			pipelineLibraryCI.pNext = &libraryInfo;
 			pipelineLibraryCI.layout = pipelineLayout;
 			pipelineLibraryCI.renderPass = renderPass;
+			pipelineLibraryCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
 			pipelineLibraryCI.pColorBlendState = &colorBlendState;
 			pipelineLibraryCI.pMultisampleState = &multisampleState;
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineLibraryCI, nullptr, &pipelineLibrary.fragmentOutputInterface));
@@ -393,15 +404,15 @@ public:
 		pipelineCI.renderPass = renderPass;
 		pipelineCI.pDepthStencilState = &depthStencilState;
 		pipelineCI.pMultisampleState = &multisampleState;
-		VkPipeline fragment_shader = VK_NULL_HANDLE;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, threadPipelineCache, 1, &pipelineCI, nullptr, &fragment_shader));
+		VkPipeline fragmentShader = VK_NULL_HANDLE;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, threadPipelineCache, 1, &pipelineCI, nullptr, &fragmentShader));
 
 		// Create the pipeline using the pre-built pipeline library parts
 		// Except for above fragment shader part all parts have been pre-built and will be re-used
 		std::vector<VkPipeline> libraries = {
 			pipelineLibrary.vertexInputInterface,
 			pipelineLibrary.preRasterizationShaders,
-			fragment_shader,
+			fragmentShader,
 			pipelineLibrary.fragmentOutputInterface };
 
 		// Link the library parts into a graphics pipeline
@@ -417,12 +428,20 @@ public:
 		VkGraphicsPipelineCreateInfo executablePipelineCI{};
 		executablePipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		executablePipelineCI.pNext = &pipelineLibraryCI;
-		executablePipelineCI.flags |= optimized ? VK_PIPELINE_CREATE_LINK_TIME_OPTIMIZATION_BIT_EXT : 0;
+		executablePipelineCI.layout = pipelineLayout;
+		if (linkTimeOptimization)
+		{
+			// If link time optimization is activated in the UI, we set the VK_PIPELINE_CREATE_LINK_TIME_OPTIMIZATION_BIT_EXT flag which will let the implementation do additional optimizations at link time
+			// This trades in pipeline creation time for run-time performance
+			executablePipelineCI.flags = VK_PIPELINE_CREATE_LINK_TIME_OPTIMIZATION_BIT_EXT;
+		}
 
 		VkPipeline executable = VK_NULL_HANDLE;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, threadPipelineCache, 1, &executablePipelineCI, nullptr, &executable));
 
 		pipelines.push_back(executable);
+		// Push fragment shader to list for deletion in the sample's destructor
+		pipelineLibrary.fragmentShaders.push_back(fragmentShader);
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -502,6 +521,7 @@ public:
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
+		overlay->checkBox("Link time optimization", &linkTimeOptimization);
 		if (overlay->button("New pipeline")) {
 			// Spwan a thread to create a new pipeline in the background
 			std::thread pipelineGenerationThread(&VulkanExample::threadFn, this);
