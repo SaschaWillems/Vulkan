@@ -101,6 +101,7 @@ public:
 	~VulkanExample()
 	{
 		// Graphics
+		graphics.indices.destroy();
 		graphics.uniformBuffer.destroy();
 		vkDestroyPipeline(device, graphics.pipelines.cloth, nullptr);
 		vkDestroyPipeline(device, graphics.pipelines.sphere, nullptr);
@@ -135,12 +136,12 @@ public:
 		textureCloth.loadFromFile(getAssetPath() + "textures/vulkan_cloth_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
-	void addGraphicsToComputeBarriers(VkCommandBuffer commandBuffer)
+	void addGraphicsToComputeBarriers(VkCommandBuffer commandBuffer, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
 	{
 		if (specializedComputeQueue) {
 			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
-			bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-			bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+			bufferBarrier.srcAccessMask = srcAccessMask;
+			bufferBarrier.dstAccessMask = dstAccessMask;
 			bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
 			bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
 			bufferBarrier.size = VK_WHOLE_SIZE;
@@ -151,8 +152,8 @@ public:
 			bufferBarrier.buffer = compute.storageBuffers.output.buffer;
 			bufferBarriers.push_back(bufferBarrier);
 			vkCmdPipelineBarrier(commandBuffer,
-				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				srcStageMask,
+				dstStageMask,
 				VK_FLAGS_NONE,
 				0, nullptr,
 				static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
@@ -165,8 +166,8 @@ public:
 		VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
 		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 		bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-		bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
-		bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
+		bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		bufferBarrier.size = VK_WHOLE_SIZE;
 		std::vector<VkBufferMemoryBarrier> bufferBarriers;
 		bufferBarrier.buffer = compute.storageBuffers.input.buffer;
@@ -183,12 +184,12 @@ public:
 			0, nullptr);
 	}
 
-	void addComputeToGraphicsBarriers(VkCommandBuffer commandBuffer)
+	void addComputeToGraphicsBarriers(VkCommandBuffer commandBuffer, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
 	{
 		if (specializedComputeQueue) {
 			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
-			bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-			bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+			bufferBarrier.srcAccessMask = srcAccessMask;
+			bufferBarrier.dstAccessMask = dstAccessMask;
 			bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
 			bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
 			bufferBarrier.size = VK_WHOLE_SIZE;
@@ -199,8 +200,8 @@ public:
 			bufferBarriers.push_back(bufferBarrier);
 			vkCmdPipelineBarrier(
 				commandBuffer,
-				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-				VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+				srcStageMask,
+				dstStageMask,
 				VK_FLAGS_NONE,
 				0, nullptr,
 				static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
@@ -233,7 +234,7 @@ public:
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			// Acquire storage buffers from compute queue
-			addComputeToGraphicsBarriers(drawCmdBuffers[i]);
+			addComputeToGraphicsBarriers(drawCmdBuffers[i], 0, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT);
 
 			// Draw the particle system using the update vertex buffer
 
@@ -266,7 +267,7 @@ public:
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			// release the storage buffers to the compute queue
-			addGraphicsToComputeBarriers(drawCmdBuffers[i]);
+			addGraphicsToComputeBarriers(drawCmdBuffers[i], VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 0, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
@@ -284,7 +285,7 @@ public:
 			VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffers[i], &cmdBufInfo));
 
 			// Acquire the storage buffers from the graphics queue
-			addGraphicsToComputeBarriers(compute.commandBuffers[i]);
+			addGraphicsToComputeBarriers(compute.commandBuffers[i], 0, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 			vkCmdBindPipeline(compute.commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
 
@@ -312,7 +313,7 @@ public:
 			}
 
 			// release the storage buffers back to the graphics queue
-			addComputeToGraphicsBarriers(compute.commandBuffers[i]);
+			addComputeToGraphicsBarriers(compute.commandBuffers[i], VK_ACCESS_SHADER_WRITE_BIT, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 			vkEndCommandBuffer(compute.commandBuffers[i]);
 		}
 	}
@@ -395,7 +396,7 @@ public:
 		// Add an initial release barrier to the graphics queue,
 		// so that when the compute command buffer executes for the first time
 		// it doesn't complain about a lack of a corresponding "release" to its "acquire"
-		addGraphicsToComputeBarriers(copyCmd);
+		addGraphicsToComputeBarriers(copyCmd, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 0, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
 		stagingBuffer.destroy();
@@ -670,13 +671,14 @@ public:
 	void updateComputeUBO()
 	{
 		if (!paused) {
-			compute.ubo.deltaT = 0.000005f;
+			//compute.ubo.deltaT = 0.000005f;
 			// todo: base on frametime
-			//compute.ubo.deltaT = frameTimer * 0.0075f;
+			// SRS - Clamp frameTimer to max 20ms refresh period (e.g. if blocked on resize), otherwise image breakup can occur
+			compute.ubo.deltaT = fmin(frameTimer, 0.02) * 0.0025f;
 
 			if (simulateWind) {
 				std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
-				std::uniform_real_distribution<float> rd(1.0f, 6.0f);
+				std::uniform_real_distribution<float> rd(1.0f, 12.0f);
 				compute.ubo.gravity.x = cos(glm::radians(-timer * 360.0f)) * (rd(rndEngine) - rd(rndEngine));
 				compute.ubo.gravity.z = sin(glm::radians(timer * 360.0f)) * (rd(rndEngine) - rd(rndEngine));
 			}

@@ -10,21 +10,121 @@
 #include "examples.h"
 
 void MVKExample::renderFrame() {
-    _vulkanExample->renderFrame();
+	_vulkanExample->renderFrame();
 }
 
-void MVKExample::keyPressed(uint32_t keyCode) {
-    _vulkanExample->keyPressed(keyCode);
+void MVKExample::displayLinkOutputCb() {                        // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
+    _vulkanExample->displayLinkOutputCb();
 }
 
-MVKExample::MVKExample(void* view) {
+void MVKExample::keyPressed(uint32_t keyChar) {					// SRS - handle keyboard key presses only (e.g. Pause, Space, etc)
+	switch (keyChar)
+	{
+		case KEY_P:
+			_vulkanExample->paused = !_vulkanExample->paused;
+			break;
+		default:
+			_vulkanExample->keyPressed(keyChar);
+			break;
+	}
+}
+
+void MVKExample::keyDown(uint32_t keyChar) {					// SRS - handle physical keyboard key down/up actions and presses
+    switch (keyChar)
+    {
+		case KEY_W:
+		case KEY_Z:	// for French AZERTY keyboards
+            _vulkanExample->camera.keys.up = true;
+            break;
+		case KEY_S:
+            _vulkanExample->camera.keys.down = true;
+            break;
+		case KEY_A:
+		case KEY_Q:	// for French AZERTY keyboards
+            _vulkanExample->camera.keys.left = true;
+            break;
+		case KEY_D:
+            _vulkanExample->camera.keys.right = true;
+            break;
+        default:
+			MVKExample::keyPressed(keyChar);
+            break;
+    }
+}
+
+void MVKExample::keyUp(uint32_t keyChar) {
+    switch (keyChar)
+    {
+		case KEY_W:
+		case KEY_Z:	// for French AZERTY keyboards
+            _vulkanExample->camera.keys.up = false;
+            break;
+		case KEY_S:
+            _vulkanExample->camera.keys.down = false;
+            break;
+		case KEY_A:
+		case KEY_Q:	// for French AZERTY keyboards
+            _vulkanExample->camera.keys.left = false;
+            break;
+		case KEY_D:
+            _vulkanExample->camera.keys.right = false;
+            break;
+        default:
+            break;
+    }
+}
+
+void MVKExample::mouseDown(double x, double y) {
+    _vulkanExample->mousePos = glm::vec2(x, y);
+    _vulkanExample->mouseButtons.left = true;
+}
+
+void MVKExample::mouseUp() {
+    _vulkanExample->mouseButtons.left = false;
+}
+
+void MVKExample::rightMouseDown(double x, double y) {
+	_vulkanExample->mousePos = glm::vec2(x, y);
+    _vulkanExample->mouseButtons.right = true;
+}
+
+void MVKExample::rightMouseUp() {
+    _vulkanExample->mouseButtons.right = false;
+}
+
+void MVKExample::otherMouseDown(double x, double y) {
+	_vulkanExample->mousePos = glm::vec2(x, y);
+    _vulkanExample->mouseButtons.middle = true;
+}
+
+void MVKExample::otherMouseUp() {
+    _vulkanExample->mouseButtons.middle = false;
+}
+
+void MVKExample::mouseDragged(double x, double y) {
+    _vulkanExample->mouseDragged(x, y);
+}
+
+void MVKExample::scrollWheel(short wheelDelta) {
+    _vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f, wheelDelta * 0.05f * _vulkanExample->camera.movementSpeed));
+	_vulkanExample->viewUpdated = true;
+}
+
+void MVKExample::fullScreen(bool fullscreen) {
+	_vulkanExample->settings.fullscreen = fullscreen;
+}
+
+MVKExample::MVKExample(void* view, double scaleUI) {
     _vulkanExample = new VulkanExample();
     _vulkanExample->initVulkan();
     _vulkanExample->setupWindow(view);
-    _vulkanExample->initSwapchain();
+	_vulkanExample->settings.vsync = true;		// SRS - set vsync flag since this iOS/macOS example app uses displayLink vsync rendering
+	_vulkanExample->UIOverlay.scale = scaleUI;	// SRS - set UIOverlay scale to maintain relative proportions/readability on retina displays
     _vulkanExample->prepare();
+	_vulkanExample->renderLoop();				// SRS - this inits destWidth/destHeight/lastTimestamp/tPrevEnd, then falls through and returns
 }
 
 MVKExample::~MVKExample() {
-    delete _vulkanExample;
+	vkDeviceWaitIdle(_vulkanExample->vulkanDevice->logicalDevice);
+    delete(_vulkanExample);
 }

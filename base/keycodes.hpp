@@ -40,11 +40,12 @@
 #define GAMEPAD_BUTTON_START 0x1006
 #define TOUCH_DOUBLE_TAP 0x1100
 
-#elif defined(VK_USE_PLATFORM_IOS_MVK)
-// Use numeric keys instead of function keys.
-// Use main keyboard plus/minus instead of keypad plus/minus
-// Use Delete key instead of Escape key.
-#define KEY_ESCAPE 0x33
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+#if !defined(VK_EXAMPLE_XCODE_GENERATED)
+// For iOS and macOS pre-configured Xcode example project: Use character keycodes
+// - Use numeric keys instead of function keys.
+#define KEY_DELETE 0x7F
+#define KEY_ESCAPE 0x1B
 #define KEY_F1 '1'
 #define KEY_F2 '2'
 #define KEY_F3 '3'
@@ -62,14 +63,18 @@
 #define KEY_L 'l'
 #define KEY_N 'n'
 #define KEY_O 'o'
+#define KEY_Q 'q'
 #define KEY_T 't'
+#define KEY_Z 'z'
 
-#elif defined(VK_USE_PLATFORM_MACOS_MVK)
-// For compatibility with iOS UX and absent keypad on MacBook:
+#else // defined(VK_EXAMPLE_XCODE_GENERATED)
+// For cross-platform cmake-generated Xcode project: Use ANSI keyboard keycodes
 // - Use numeric keys instead of function keys
 // - Use main keyboard plus/minus instead of keypad plus/minus
-// - Use Delete key instead of Escape key
-#define KEY_ESCAPE 0x33
+// Note: Carbon kVK_* definitions are used instead of these in vulkanexamplebase.cpp
+//       Currently only KEY_SPACE and KEY_KPADD are used in textoverlay.cpp example
+#define KEY_DELETE 0x33
+#define KEY_ESCAPE 0x35
 #define KEY_F1 0x12
 #define KEY_F2 0x13
 #define KEY_F3 0x14
@@ -87,7 +92,10 @@
 #define KEY_L 0x25
 #define KEY_N 0x2D
 #define KEY_O 0x1F
+#define KEY_Q 0x0C
 #define KEY_T 0x11
+#define KEY_Z 0x06
+#endif
 
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
 #define KEY_ESCAPE DIKS_ESCAPE

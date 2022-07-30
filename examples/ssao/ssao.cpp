@@ -944,6 +944,12 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBufferMatrices();
+		updateUniformBufferSSAOParams();
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {

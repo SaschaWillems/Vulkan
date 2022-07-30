@@ -229,7 +229,7 @@ void VulkanSwapChain::connect(VkInstance instance, VkPhysicalDevice physicalDevi
 * @param height Pointer to the height of the swapchain (may be adjusted to fit the requirements of the swapchain)
 * @param vsync (Optional) Can be used to force vsync-ed rendering (by using VK_PRESENT_MODE_FIFO_KHR as presentation mode)
 */
-void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync)
+void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool fullscreen)
 {
 	// Store the current swap chain handle so we can use it later on to ease up recreation
 	VkSwapchainKHR oldSwapchain = swapChain;
@@ -290,6 +290,17 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync)
 
 	// Determine the number of images
 	uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
+#if (defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_EXAMPLE_XCODE_GENERATED))
+	// SRS - Work around known MoltenVK issue re 2x frame rate when vsync (VK_PRESENT_MODE_FIFO_KHR) enabled
+	struct utsname sysInfo;
+	uname(&sysInfo);
+	// SRS - When vsync is on, use minImageCount when not in fullscreen or when running on Apple Silcon
+	// This forces swapchain image acquire frame rate to match display vsync frame rate
+	if (vsync && (!fullscreen || strcmp(sysInfo.machine, "arm64") == 0))
+	{
+		desiredNumberOfSwapchainImages = surfCaps.minImageCount;
+	}
+#endif
 	if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
 	{
 		desiredNumberOfSwapchainImages = surfCaps.maxImageCount;

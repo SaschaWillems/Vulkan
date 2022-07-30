@@ -262,7 +262,7 @@ public:
 			memcpy(cube.uniformBuffer.mapped, &cube.modelMat, sizeof(glm::mat4));
 		}
 
-		if (animate) {
+		if (animate && !paused) {
 			cubes[0].rotation.x += 2.5f * frameTimer;
 			if (cubes[0].rotation.x > 360.0f)
 				cubes[0].rotation.x -= 360.0f;
@@ -323,7 +323,7 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		if (animate) {
+		if (animate && !paused) {
 			cubes[0].rotation.x += 2.5f * frameTimer;
 			if (cubes[0].rotation.x > 360.0f)
 				cubes[0].rotation.x -= 360.0f;
@@ -335,6 +335,11 @@ public:
 		if (camera.updated) {
 			updateUniformBuffers();
 		}
+	}
+
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

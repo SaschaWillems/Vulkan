@@ -647,6 +647,11 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBufferOffscreen();
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {

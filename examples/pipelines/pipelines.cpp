@@ -334,6 +334,12 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		camera.setPerspective(60.0f, (float)(width / 3.0f) / (float)height, 0.1f, 256.0f);
+		updateUniformBuffers();
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (!deviceFeatures.fillModeNonSolid) {

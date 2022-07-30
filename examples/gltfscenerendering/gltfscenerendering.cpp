@@ -631,6 +631,11 @@ void VulkanExample::render()
 	}
 }
 
+void VulkanExample::viewChanged()
+{
+	updateUniformBuffers();
+}
+
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 {
 	if (overlay->header("Visibility")) {
@@ -647,7 +652,7 @@ void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 		ImGui::NewLine();
 
 		// POI: Create a list of glTF nodes for visibility toggle
-		ImGui::BeginChild("#nodelist", ImVec2(200.0f, 340.0f), false);
+		ImGui::BeginChild("#nodelist", ImVec2(200.0f * overlay->scale, 340.0f * overlay->scale), false);
 		for (auto &node : glTFScene.nodes)
 		{		
 			if (overlay->checkBox(node.name.c_str(), &node.visible))

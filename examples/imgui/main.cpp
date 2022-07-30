@@ -45,6 +45,7 @@ private:
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
 	vks::VulkanDevice *device;
+	VkPhysicalDeviceDriverProperties driverProperties = {};
 	VulkanExampleBase *example;
 public:
 	// UI params are set via push constants
@@ -57,6 +58,12 @@ public:
 	{
 		device = example->vulkanDevice;
 		ImGui::CreateContext();
+		
+		//SRS - Set ImGui font and style scale factors to handle retina and other HiDPI displays
+		ImGuiIO& io = ImGui::GetIO();
+		io.FontGlobalScale = example->UIOverlay.scale;
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.ScaleAllSizes(example->UIOverlay.scale);
 	};
 
 	~ImGUI()
@@ -102,6 +109,16 @@ public:
 		int texWidth, texHeight;
 		io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
 		VkDeviceSize uploadSize = texWidth*texHeight * 4 * sizeof(char);
+
+		//SRS - Get Vulkan device driver information if available, use later for display
+		if (device->extensionSupported(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
+		{
+			VkPhysicalDeviceProperties2 deviceProperties2 = {};
+			deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+			deviceProperties2.pNext = &driverProperties;
+			driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+			vkGetPhysicalDeviceProperties2(device->physicalDevice, &deviceProperties2);
+		}
 
 		// Create target image for copy
 		VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
@@ -325,10 +342,15 @@ public:
 
 		// Init imGui windows and elements
 
-		ImVec4 clear_color = ImColor(114, 144, 154);
-		static float f = 0.0f;
+		// SRS - Set initial position of default Debug window (note: Debug window sets its own initial size, use ImGuiSetCond_Always to override)
+		ImGui::SetWindowPos(ImVec2(20 * example->UIOverlay.scale, 20 * example->UIOverlay.scale), ImGuiSetCond_FirstUseEver);
+        ImGui::SetWindowSize(ImVec2(300 * example->UIOverlay.scale, 300 * example->UIOverlay.scale), ImGuiSetCond_Always);
 		ImGui::TextUnformatted(example->title.c_str());
 		ImGui::TextUnformatted(device->properties.deviceName);
+		
+		//SRS - Display Vulkan API version and device driver information if available (otherwise blank)
+		ImGui::Text("Vulkan API %i.%i.%i", VK_API_VERSION_MAJOR(device->properties.apiVersion), VK_API_VERSION_MINOR(device->properties.apiVersion), VK_API_VERSION_PATCH(device->properties.apiVersion));
+		ImGui::Text("%s %s", driverProperties.driverName, driverProperties.driverInfo);
 
 		// Update frame time display
 		if (updateFrameGraph) {
@@ -349,7 +371,9 @@ public:
 		ImGui::InputFloat3("position", &example->camera.position.x, 2);
 		ImGui::InputFloat3("rotation", &example->camera.rotation.x, 2);
 
-		ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiSetCond_FirstUseEver);
+		// SRS - Set initial position and size of Example settings window
+		ImGui::SetNextWindowPos(ImVec2(20 * example->UIOverlay.scale, 360 * example->UIOverlay.scale), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(300 * example->UIOverlay.scale, 200 * example->UIOverlay.scale), ImGuiSetCond_FirstUseEver);
 		ImGui::Begin("Example settings");
 		ImGui::Checkbox("Render models", &uiSettings.displayModels);
 		ImGui::Checkbox("Display logos", &uiSettings.displayLogos);
@@ -358,7 +382,7 @@ public:
 		ImGui::SliderFloat("Light speed", &uiSettings.lightSpeed, 0.1f, 1.0f);
 		ImGui::End();
 
-		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
+		//SRS - ShowDemoWindow() sets its own initial position and size, cannot override here
 		ImGui::ShowDemoWindow();
 
 		// Render to generate draw buffers
@@ -499,6 +523,10 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.8f));
 		camera.setRotation(glm::vec3(4.5f, -380.0f, 0.0f));
 		camera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
+		
+		//SRS - Enable VK_KHR_get_physical_device_properties2 to retrieve device driver information for display
+		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
 		// Don't use the ImGui overlay of the base framework in this sample
 		settings.overlay = false;
 	}

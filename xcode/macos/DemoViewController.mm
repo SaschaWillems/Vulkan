@@ -6,12 +6,12 @@
  */
 
 #import "DemoViewController.h"
+#import "AppDelegate.h"
 #import <QuartzCore/CAMetalLayer.h>
 
 #include "MVKExample.h"
 
-
-const std::string VulkanExampleBase::getAssetPath() {
+const std::string getAssetPath() {
     return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/data/"].UTF8String;
 }
 
@@ -22,16 +22,18 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                                     CVOptionFlags flagsIn,
                                     CVOptionFlags* flagsOut,
                                     void* target) {
-    ((MVKExample*)target)->renderFrame();
+    //((MVKExample*)target)->renderFrame();
+    ((MVKExample*)target)->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to animate frames vs. renderFrame() for static image
     return kCVReturnSuccess;
 }
 
+CALayer* layer;
+MVKExample* _mvkExample;
 
 #pragma mark -
 #pragma mark DemoViewController
 
 @implementation DemoViewController {
-    MVKExample* _mvkExample;
     CVDisplayLinkRef _displayLink;
 }
 
@@ -39,24 +41,23 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 -(void) viewDidLoad {
 	[super viewDidLoad];
 
-	self.view.wantsLayer = YES;		// Back the view with a layer created by the makeBackingLayer method.
+	self.view.wantsLayer = YES;		// Back the view with a layer created by the makeBackingLayer method (called immediately on set)
 
-    _mvkExample = new MVKExample(self.view);
+    _mvkExample = new MVKExample(self.view, layer.contentsScale);	// SRS - Use backing layer scale factor for UIOverlay on macOS
 
+	// SRS - Enable AppDelegate to call into DemoViewController for handling application lifecycle events (e.g. termination)
+	auto appDelegate = (AppDelegate *)NSApplication.sharedApplication.delegate;
+	appDelegate.viewController = self;
+	
     CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
     CVDisplayLinkSetOutputCallback(_displayLink, &DisplayLinkCallback, _mvkExample);
     CVDisplayLinkStart(_displayLink);
 }
 
--(void) dealloc {
+-(void) shutdownExample {
+	CVDisplayLinkStop(_displayLink);
     CVDisplayLinkRelease(_displayLink);
     delete _mvkExample;
-    [super dealloc];
-}
-
-// Handle keyboard input
--(void) keyDown:(NSEvent*) theEvent {
-    _mvkExample->keyPressed(theEvent.keyCode);
 }
 
 @end
@@ -75,12 +76,104 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
 
 /** If the wantsLayer property is set to YES, this method will be invoked to return a layer instance. */
 -(CALayer*) makeBackingLayer {
-    CALayer* layer = [self.class.layerClass layer];
+    layer = [self.class.layerClass layer];
     CGSize viewScale = [self convertSizeToBacking: CGSizeMake(1.0, 1.0)];
     layer.contentsScale = MIN(viewScale.width, viewScale.height);
     return layer;
 }
 
+// SRS - Activate mouse cursor tracking within the view, set view as window delegate, and center the window
+- (void) viewDidMoveToWindow {
+	auto trackingArea = [[NSTrackingArea alloc] initWithRect:[self bounds] options: (NSTrackingMouseMoved | NSTrackingActiveAlways | NSTrackingInVisibleRect) owner:self userInfo:nil];
+	[self addTrackingArea: trackingArea];
+
+	[self.window setDelegate: self.window.contentView];
+	[self.window center];
+}
+
 -(BOOL) acceptsFirstResponder { return YES; }
+
+// SRS - Handle keyboard events
+-(void) keyDown:(NSEvent*) theEvent {
+	NSString *text = [theEvent charactersIgnoringModifiers];
+	unichar keychar = (text.length > 0) ? [text.lowercaseString characterAtIndex: 0] : 0;
+    _mvkExample->keyDown(keychar);
+}
+
+-(void) keyUp:(NSEvent*) theEvent {
+	NSString *text = [theEvent charactersIgnoringModifiers];
+	unichar keychar = (text.length > 0) ? [text.lowercaseString characterAtIndex: 0] : 0;
+    _mvkExample->keyUp(keychar);
+}
+
+// SRS - Handle mouse events
+-(NSPoint) getMouseLocalPoint:(NSEvent*) theEvent {
+    NSPoint location = [theEvent locationInWindow];
+    NSPoint point = [self convertPointToBacking:location];
+    point.y = self.frame.size.height*self.window.backingScaleFactor - point.y;
+    return point;
+}
+
+-(void) mouseDown:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseDown(point.x, point.y);
+}
+
+-(void) mouseUp:(NSEvent*) theEvent {
+    _mvkExample->mouseUp();
+}
+
+-(void) rightMouseDown:(NSEvent*) theEvent {
+	auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->rightMouseDown(point.x, point.y);
+}
+
+-(void) rightMouseUp:(NSEvent*) theEvent {
+    _mvkExample->rightMouseUp();
+}
+
+-(void) otherMouseDown:(NSEvent*) theEvent {
+	auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->otherMouseDown(point.x, point.y);
+}
+
+-(void) otherMouseUp:(NSEvent*) theEvent {
+    _mvkExample->otherMouseUp();
+}
+
+-(void) mouseDragged:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseDragged(point.x, point.y);
+}
+
+-(void) rightMouseDragged:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseDragged(point.x, point.y);
+}
+
+-(void) otherMouseDragged:(NSEvent*) theEvent {
+    auto point = [self getMouseLocalPoint:theEvent];
+    _mvkExample->mouseDragged(point.x, point.y);
+}
+
+-(void) mouseMoved:(NSEvent*) theEvent {
+	auto point = [self getMouseLocalPoint:theEvent];
+	_mvkExample->mouseDragged(point.x, point.y);
+}
+
+-(void) scrollWheel:(NSEvent*) theEvent {
+    short wheelDelta = [theEvent deltaY];
+    _mvkExample->scrollWheel(wheelDelta);
+}
+
+- (void)windowWillEnterFullScreen:(NSNotification *)notification
+{
+	_mvkExample->fullScreen(true);
+}
+
+- (void)windowWillExitFullScreen:(NSNotification *)notification
+{
+	_mvkExample->fullScreen(false);
+}
 
 @end

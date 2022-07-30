@@ -550,6 +550,10 @@ public:
 			updateUniformBuffersCamera();
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBuffersCamera();
+	}
 };
 
 VULKAN_EXAMPLE_MAIN()

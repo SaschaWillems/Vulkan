@@ -580,6 +580,11 @@ void VulkanExample::render()
 	}
 }
 
+void VulkanExample::viewChanged()
+{
+	updateUniformBuffers();
+}
+
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 {
 	if (overlay->header("Vertex buffer attributes")) {

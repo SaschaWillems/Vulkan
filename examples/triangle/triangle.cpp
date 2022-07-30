@@ -109,7 +109,7 @@ public:
 
 	// Fences
 	// Used to check the completion of queue operations (e.g. command buffer execution)
-	std::vector<VkFence> waitFences;
+	std::vector<VkFence> queueCompleteFences;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -145,7 +145,7 @@ public:
 		vkDestroySemaphore(device, presentCompleteSemaphore, nullptr);
 		vkDestroySemaphore(device, renderCompleteSemaphore, nullptr);
 
-		for (auto& fence : waitFences)
+		for (auto& fence : queueCompleteFences)
 		{
 			vkDestroyFence(device, fence, nullptr);
 		}
@@ -193,8 +193,8 @@ public:
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		// Create in signaled state so we don't wait on first render of each command buffer
 		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		waitFences.resize(drawCmdBuffers.size());
-		for (auto& fence : waitFences)
+		queueCompleteFences.resize(drawCmdBuffers.size());
+		for (auto& fence : queueCompleteFences)
 		{
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
 		}
@@ -334,12 +334,26 @@ public:
 
 	void draw()
 	{
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+		// SRS - on macOS use swapchain helper function with common semaphores/fences for proper resize handling
 		// Get next image in the swap chain (back/front buffer)
-		VK_CHECK_RESULT(swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer));
+		prepareFrame();
 
 		// Use a fence to wait until the command buffer has finished execution before using it again
 		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+#else
+		// SRS - on other platforms use original bare code with local semaphores/fences for illustrative purposes
+		// Get next image in the swap chain (back/front buffer)
+		VkResult acquire = swapChain.acquireNextImage(presentCompleteSemaphore, &currentBuffer);
+		if (!((acquire == VK_SUCCESS) || (acquire == VK_SUBOPTIMAL_KHR))) {
+			VK_CHECK_RESULT(acquire);
+		}
+
+		// Use a fence to wait until the command buffer has finished execution before using it again
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &queueCompleteFences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &queueCompleteFences[currentBuffer]));
+#endif
 
 		// Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
 		VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -347,15 +361,28 @@ public:
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.pWaitDstStageMask = &waitStageMask;               // Pointer to the list of pipeline stages that the semaphore waits will occur at
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;      // Semaphore(s) to wait upon before the submitted command buffer starts executing
 		submitInfo.waitSemaphoreCount = 1;                           // One wait semaphore
-		submitInfo.pSignalSemaphores = &renderCompleteSemaphore;     // Semaphore(s) to be signaled when command buffers have completed
 		submitInfo.signalSemaphoreCount = 1;                         // One signal semaphore
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer]; // Command buffers(s) to execute in this batch (submission)
 		submitInfo.commandBufferCount = 1;                           // One command buffer
 
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+		// SRS - on macOS use swapchain helper function with common semaphores/fences for proper resize handling
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;    // Semaphore(s) to wait upon before the submitted command buffer starts executing
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;   // Semaphore(s) to be signaled when command buffers have completed
+
 		// Submit to the graphics queue passing a wait fence
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+
+		// Present the current buffer to the swap chain
+		submitFrame();
+#else
+		// SRS - on other platforms use original bare code with local semaphores/fences for illustrative purposes
+		submitInfo.pWaitSemaphores = &presentCompleteSemaphore;      // Semaphore(s) to wait upon before the submitted command buffer starts executing
+		submitInfo.pSignalSemaphores = &renderCompleteSemaphore;     // Semaphore(s) to be signaled when command buffers have completed
+
+		// Submit to the graphics queue passing a wait fence
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, queueCompleteFences[currentBuffer]));
 
 		// Present the current buffer to the swap chain
 		// Pass the semaphore signaled by the command buffer submission from the submit info as the wait semaphore for swap chain presentation
@@ -364,7 +391,7 @@ public:
 		if (!((present == VK_SUCCESS) || (present == VK_SUBOPTIMAL_KHR))) {
 			VK_CHECK_RESULT(present);
 		}
-
+#endif
 	}
 
 	// Prepare vertex and index buffers for an indexed triangle
@@ -1229,7 +1256,7 @@ int main(const int argc, const char *argv[])
 		vulkanExample->setupWindow(nullptr);
 		vulkanExample->prepare();
 		vulkanExample->renderLoop();
-		delete(vulkanExample);
+		delete(vulkanExample);			// SRS - handle benchmarking case, normally deleted by applicationWillTerminate() event handler
 	}
 	return 0;
 }

@@ -180,11 +180,23 @@ public:
 			for (auto i = 0; i < attachments.size(); i++) {
 				clearAttachment(&attachments[i].color);
 				clearAttachment(&attachments[i].depth);
+			}
+
+			// SRS - Recreate attachments and descriptors in case number of swapchain images has changed on resize
+			attachments.resize(swapChain.imageCount);
+			for (auto i = 0; i < attachments.size(); i++) {
 				createAttachment(colorFormat, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments[i].color);
 				createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &attachments[i].depth);
-				// Since the framebuffers/attachments are referred in the descriptor sets, these need to be updated too
-				updateAttachmentReadDescriptors(i);
 			}
+
+			vkDestroyPipelineLayout(device, pipelineLayouts.attachmentWrite, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayouts.attachmentRead, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.attachmentWrite, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.attachmentRead, nullptr);
+			vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+
+			// Since the framebuffers/attachments are referred in the descriptor sets, these need to be updated on resize
+			setupDescriptors();
 		}
 
 		VkImageView views[3];
@@ -592,6 +604,11 @@ public:
 		if (camera.updated) {
 			updateUniformBuffers();
 		}
+	}
+
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
