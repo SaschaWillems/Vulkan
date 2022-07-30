@@ -23,7 +23,7 @@ public:
 	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 modelView;
-		glm::vec4 lightPos = glm::vec4(0.0f, 2.0f, 1.0f, 0.0f);
+		glm::vec4 lightPos = glm::vec4(0.0f, -2.0f, 1.0f, 0.0f);
 	} uboVS;
 	vks::Buffer uniformBuffer;
 
