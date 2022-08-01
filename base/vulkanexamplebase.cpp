@@ -291,6 +291,9 @@ void VulkanExampleBase::nextFrame()
 
 void VulkanExampleBase::renderLoop()
 {
+// SRS - for non-apple plaforms, handle benchmarking here within VulkanExampleBase::renderLoop()
+//     - for macOS, handle benchmarking within NSApp rendering loop via displayLinkOutputCb()
+#if !(defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	if (benchmark.active) {
 		benchmark.run([=] { render(); }, vulkanDevice->properties);
 		vkDeviceWaitIdle(device);
@@ -299,6 +302,7 @@ void VulkanExampleBase::renderLoop()
 		}
 		return;
 	}
+#endif
 
 	destWidth = width;
 	destHeight = height;
@@ -1550,6 +1554,12 @@ dispatch_group_t concurrentGroup;
 			vulkanExample->displayLinkOutputCb();
 		}
 	});
+	
+	// SRS - When benchmarking, set up termination notification on main thread when concurrent queue completes
+	if (vulkanExample->benchmark.active) {
+		dispatch_queue_t notifyQueue = dispatch_get_main_queue();
+		dispatch_group_notify(concurrentGroup, notifyQueue, ^{ [NSApp terminate:nil]; });
+	}
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
@@ -1836,6 +1846,17 @@ void* VulkanExampleBase::setupWindow(void* view)
 
 void VulkanExampleBase::displayLinkOutputCb()
 {
+#if defined(VK_EXAMPLE_XCODE_GENERATED)
+	if (benchmark.active) {
+		benchmark.run([=] { render(); }, vulkanDevice->properties);
+		if (benchmark.filename != "") {
+			benchmark.saveResults();
+		}
+		quit = true;	// SRS - quit NSApp rendering loop when benchmarking complete
+		return;
+	}
+#endif
+
 	if (prepared)
 		nextFrame();
 }
