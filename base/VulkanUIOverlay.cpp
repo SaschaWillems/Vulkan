@@ -217,7 +217,7 @@ namespace vks
 	}
 
 	/** Prepare a separate pipeline for the UI overlay rendering decoupled from the main application */
-	void UIOverlay::preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass)
+	void UIOverlay::preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass, const VkFormat colorFormat, const VkFormat depthFormat)
 	{
 		// Pipeline layout
 		// Push constants for UI rendering parameters
@@ -276,6 +276,19 @@ namespace vks
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaders.size());
 		pipelineCreateInfo.pStages = shaders.data();
 		pipelineCreateInfo.subpass = subpass;
+		
+#if defined(VK_KHR_dynamic_rendering)
+		// SRS - if we are using dynamic rendering (i.e. renderPass null), must define color, depth and stencil attachments at pipeline create time
+		VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {};
+		if (renderPass == VK_NULL_HANDLE) {
+			pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+			pipelineRenderingCreateInfo.colorAttachmentCount = 1;
+			pipelineRenderingCreateInfo.pColorAttachmentFormats = &colorFormat;
+			pipelineRenderingCreateInfo.depthAttachmentFormat = depthFormat;
+			pipelineRenderingCreateInfo.stencilAttachmentFormat = depthFormat;
+			pipelineCreateInfo.pNext = &pipelineRenderingCreateInfo;
+		}
+#endif
 
 		// Vertex bindings an attributes based on ImGui vertex definition
 		std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
