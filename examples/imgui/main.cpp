@@ -596,7 +596,9 @@ public:
 			}
 
 			// Render imGui
-			imGui->drawFrame(drawCmdBuffers[i]);
+			if (UIOverlay.visible) {
+				imGui->drawFrame(drawCmdBuffers[i]);
+			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -748,8 +750,9 @@ public:
 		io.DeltaTime = frameTimer;
 
 		io.MousePos = ImVec2(mousePos.x, mousePos.y);
-		io.MouseDown[0] = mouseButtons.left;
-		io.MouseDown[1] = mouseButtons.right;
+		io.MouseDown[0] = mouseButtons.left && UIOverlay.visible;
+		io.MouseDown[1] = mouseButtons.right && UIOverlay.visible;
+		io.MouseDown[2] = mouseButtons.middle && UIOverlay.visible;
 
 		draw();
 
@@ -765,7 +768,7 @@ public:
 	virtual void mouseMoved(double x, double y, bool &handled)
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		handled = io.WantCaptureMouse;
+		handled = io.WantCaptureMouse && UIOverlay.visible;
 	}
 
 };

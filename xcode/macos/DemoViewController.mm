@@ -97,7 +97,16 @@ MVKExample* _mvkExample;
 -(void) keyDown:(NSEvent*) theEvent {
 	NSString *text = [theEvent charactersIgnoringModifiers];
 	unichar keychar = (text.length > 0) ? [text.lowercaseString characterAtIndex: 0] : 0;
-    _mvkExample->keyDown(keychar);
+	switch (keychar)
+	{
+		case KEY_DELETE:					// support keyboards with no escape key
+		case KEY_ESCAPE:
+			[NSApp terminate:nil];
+			break;
+		default:
+			_mvkExample->keyDown(keychar);
+			break;
+	}
 }
 
 -(void) keyUp:(NSEvent*) theEvent {
