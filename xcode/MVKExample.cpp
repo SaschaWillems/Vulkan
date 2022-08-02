@@ -23,6 +23,11 @@ void MVKExample::keyPressed(uint32_t keyChar) {					// SRS - handle keyboard key
 		case KEY_P:
 			_vulkanExample->paused = !_vulkanExample->paused;
 			break;
+		case KEY_1:												// SRS - support keyboards with no function keys
+		case KEY_F1:
+			_vulkanExample->UIOverlay.visible = !_vulkanExample->UIOverlay.visible;
+			_vulkanExample->UIOverlay.updated = true;
+			break;
 		default:
 			_vulkanExample->keyPressed(keyChar);
 			break;

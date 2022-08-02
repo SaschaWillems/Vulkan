@@ -915,7 +915,6 @@ public:
 		updateTextOverlay();
 	}
 
-#if !defined(__ANDROID__)
 	virtual void keyPressed(uint32_t keyCode)
 	{
 		switch (keyCode)
@@ -925,7 +924,6 @@ public:
 			textOverlay->visible = !textOverlay->visible;
 		}
 	}
-#endif
 };
 
 VULKAN_EXAMPLE_MAIN()

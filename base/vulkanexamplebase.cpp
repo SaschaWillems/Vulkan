@@ -10,7 +10,6 @@
 
 #if (defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_EXAMPLE_XCODE_GENERATED))
 #include <Cocoa/Cocoa.h>
-#include <Carbon/Carbon.h>
 #include <QuartzCore/CAMetalLayer.h>
 #include <CoreVideo/CVDisplayLink.h>
 #endif
@@ -218,7 +217,7 @@ void VulkanExampleBase::prepare()
 			loadShader(getShadersPath() + "base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
 		};
 		UIOverlay.prepareResources();
-		UIOverlay.preparePipeline(pipelineCache, renderPass);
+		UIOverlay.preparePipeline(pipelineCache, renderPass, swapChain.colorFormat, depthFormat);
 	}
 }
 
@@ -292,6 +291,9 @@ void VulkanExampleBase::nextFrame()
 
 void VulkanExampleBase::renderLoop()
 {
+// SRS - for non-apple plaforms, handle benchmarking here within VulkanExampleBase::renderLoop()
+//     - for macOS, handle benchmarking within NSApp rendering loop via displayLinkOutputCb()
+#if !(defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	if (benchmark.active) {
 		benchmark.run([=] { render(); }, vulkanDevice->properties);
 		vkDeviceWaitIdle(device);
@@ -300,6 +302,7 @@ void VulkanExampleBase::renderLoop()
 		}
 		return;
 	}
+#endif
 
 	destWidth = width;
 	destHeight = height;
@@ -667,8 +670,9 @@ void VulkanExampleBase::updateOverlay()
 	io.DeltaTime = frameTimer;
 
 	io.MousePos = ImVec2(mousePos.x, mousePos.y);
-	io.MouseDown[0] = mouseButtons.left;
-	io.MouseDown[1] = mouseButtons.right;
+	io.MouseDown[0] = mouseButtons.left && UIOverlay.visible;
+	io.MouseDown[1] = mouseButtons.right && UIOverlay.visible;
+	io.MouseDown[2] = mouseButtons.middle && UIOverlay.visible;
 
 	ImGui::NewFrame();
 
@@ -708,7 +712,7 @@ void VulkanExampleBase::updateOverlay()
 
 void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 {
-	if (settings.overlay) {
+	if (settings.overlay && UIOverlay.visible) {
 		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -1217,9 +1221,8 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			paused = !paused;
 			break;
 		case KEY_F1:
-			if (settings.overlay) {
-				UIOverlay.visible = !UIOverlay.visible;
-			}
+			UIOverlay.visible = !UIOverlay.visible;
+			UIOverlay.updated = true;
 			break;
 		case KEY_ESCAPE:
 			PostQuitMessage(0);
@@ -1396,7 +1399,7 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						bool handled = false;
 						if (vulkanExample->settings.overlay) {
 							ImGuiIO& io = ImGui::GetIO();
-							handled = io.WantCaptureMouse;
+							handled = io.WantCaptureMouse && vulkanExample->UIOverlay.visible;
 						}
 						if (!handled) {
 							int32_t eventX = AMotionEvent_getX(event, 0);
@@ -1448,14 +1451,21 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 		case AKEYCODE_BUTTON_Y:
 			vulkanExample->keyPressed(GAMEPAD_BUTTON_Y);
 			break;
+		case AKEYCODE_1:							// support keyboards with no function keys
+		case AKEYCODE_F1:
 		case AKEYCODE_BUTTON_L1:
-			vulkanExample->keyPressed(GAMEPAD_BUTTON_L1);
+			vulkanExample->UIOverlay.visible = !vulkanExample->UIOverlay.visible;
+			vulkanExample->UIOverlay.updated = true;
 			break;
 		case AKEYCODE_BUTTON_R1:
 			vulkanExample->keyPressed(GAMEPAD_BUTTON_R1);
 			break;
+		case AKEYCODE_P:
 		case AKEYCODE_BUTTON_START:
 			vulkanExample->paused = !vulkanExample->paused;
+			break;
+		default:
+			vulkanExample->keyPressed(keyCode);		// handle example-specific key press events
 			break;
 		};
 
@@ -1544,6 +1554,12 @@ dispatch_group_t concurrentGroup;
 			vulkanExample->displayLinkOutputCb();
 		}
 	});
+	
+	// SRS - When benchmarking, set up termination notification on main thread when concurrent queue completes
+	if (vulkanExample->benchmark.active) {
+		dispatch_queue_t notifyQueue = dispatch_get_main_queue();
+		dispatch_group_notify(concurrentGroup, notifyQueue, ^{ [NSApp terminate:nil]; });
+	}
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
@@ -1625,23 +1641,28 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 {
 	switch (event.keyCode)
 	{
-		case kVK_ANSI_P:
+		case KEY_P:
 			vulkanExample->paused = !vulkanExample->paused;
 			break;
-		case kVK_Delete:								// support keyboards with no escape key
-		case kVK_Escape:
+		case KEY_1:										// support keyboards with no function keys
+		case KEY_F1:
+			vulkanExample->UIOverlay.visible = !vulkanExample->UIOverlay.visible;
+			vulkanExample->UIOverlay.updated = true;
+			break;
+		case KEY_DELETE:								// support keyboards with no escape key
+		case KEY_ESCAPE:
 			[NSApp terminate:nil];
 			break;
-		case kVK_ANSI_W:
+		case KEY_W:
 			vulkanExample->camera.keys.up = true;
 			break;
-		case kVK_ANSI_S:
+		case KEY_S:
 			vulkanExample->camera.keys.down = true;
 			break;
-		case kVK_ANSI_A:
+		case KEY_A:
 			vulkanExample->camera.keys.left = true;
 			break;
-		case kVK_ANSI_D:
+		case KEY_D:
 			vulkanExample->camera.keys.right = true;
 			break;
 		default:
@@ -1654,16 +1675,16 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 {
 	switch (event.keyCode)
 	{
-		case kVK_ANSI_W:
+		case KEY_W:
 			vulkanExample->camera.keys.up = false;
 			break;
-		case kVK_ANSI_S:
+		case KEY_S:
 			vulkanExample->camera.keys.down = false;
 			break;
-		case kVK_ANSI_A:
+		case KEY_A:
 			vulkanExample->camera.keys.left = false;
 			break;
-		case kVK_ANSI_D:
+		case KEY_D:
 			vulkanExample->camera.keys.right = false;
 			break;
 		default:
@@ -1825,6 +1846,17 @@ void* VulkanExampleBase::setupWindow(void* view)
 
 void VulkanExampleBase::displayLinkOutputCb()
 {
+#if defined(VK_EXAMPLE_XCODE_GENERATED)
+	if (benchmark.active) {
+		benchmark.run([=] { render(); }, vulkanDevice->properties);
+		if (benchmark.filename != "") {
+			benchmark.saveResults();
+		}
+		quit = true;	// SRS - quit NSApp rendering loop when benchmarking complete
+		return;
+	}
+#endif
+
 	if (prepared)
 		nextFrame();
 }
@@ -2004,9 +2036,8 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				if (settings.overlay) {
-					settings.overlay = !settings.overlay;
-				}
+				UIOverlay.visible = !UIOverlay.visible;
+				UIOverlay.updated = true;
 				break;
 			default:
 				break;
@@ -2179,10 +2210,12 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 			paused = !paused;
 		break;
 	case KEY_F1:
-		if (state && settings.overlay)
-			settings.overlay = !settings.overlay;
+		if (state) {
+			UIOverlay.visible = !UIOverlay.visible;
+			UIOverlay.updated = true;
+		}
 		break;
-	case KEY_ESC:
+	case KEY_ESCAPE:
 		quit = true;
 		break;
 	}
@@ -2540,9 +2573,8 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				if (settings.overlay) {
-					settings.overlay = !settings.overlay;
-				}
+				UIOverlay.visible = !UIOverlay.visible;
+				UIOverlay.updated = true;
 				break;
 		}
 	}
@@ -2833,7 +2865,7 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 
 	if (settings.overlay) {
 		ImGuiIO& io = ImGui::GetIO();
-		handled = io.WantCaptureMouse;
+		handled = io.WantCaptureMouse && UIOverlay.visible;
 	}
 	mouseMoved((float)x, (float)y, handled);
 
