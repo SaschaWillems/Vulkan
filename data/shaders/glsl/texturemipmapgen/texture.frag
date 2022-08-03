@@ -5,16 +5,25 @@ layout (set = 0, binding = 2) uniform sampler samplers[3];
 
 layout (location = 0) in vec2 inUV;
 layout (location = 1) in float inLodBias;
-layout (location = 2) flat in int inSamplerIndex;
-layout (location = 3) in vec3 inNormal;
-layout (location = 4) in vec3 inViewVec;
-layout (location = 5) in vec3 inLightVec;
+layout (location = 2) in vec3 inNormal;
+layout (location = 3) in vec3 inViewVec;
+layout (location = 4) in vec3 inLightVec;
+
+layout (binding = 0) uniform UBO 
+{
+	mat4 projection;
+	mat4 view;
+	mat4 model;
+	vec4 viewPos;
+	float lodBias;
+	int samplerIndex;
+} ubo;
 
 layout (location = 0) out vec4 outFragColor;
 
 void main() 
 {
-	vec4 color = texture(sampler2D(textureColor, samplers[inSamplerIndex]), inUV, inLodBias);
+	vec4 color = texture(sampler2D(textureColor, samplers[uniform.samplerIndex]), inUV, inLodBias);
 
 	vec3 N = normalize(inNormal);
 	vec3 L = normalize(inLightVec);
