@@ -5,8 +5,7 @@ SamplerState samplerColor : register(s1);
 
 struct VSOutput
 {
-[[vk::location(0)]] float2 UV : TEXCOORD0;
-[[vk::location(1)]] float4 ProjCoord : POSITION0;
+[[vk::location(0)]] float4 ProjCoord : POSITION0;
 };
 
 float4 main(VSOutput input, bool FrontFacing : SV_IsFrontFace) : SV_TARGET
