@@ -65,6 +65,12 @@ public:
 		physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
 
 		deviceCreatepNextChain = &physicalDeviceDescriptorIndexingFeatures;
+		
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+		// SRS - on macOS set environment variable to configure MoltenVK for using Metal argument buffers (needed for descriptor indexing)
+		//     - MoltenVK supports Metal argument buffers on macOS, iOS possible in future (see https://github.com/KhronosGroup/MoltenVK/issues/1651)
+		setenv("MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS", "1", 1);
+#endif
 	}
 
 	~VulkanExample()
@@ -203,6 +209,10 @@ public:
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(textures.size()))
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+		// SRS - increase the per-stage descriptor samplers limit on macOS (maxPerStageDescriptorUpdateAfterBindSamplers > maxPerStageDescriptorSamplers)
+		descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+#endif
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Descriptor set layout
@@ -228,6 +238,10 @@ public:
 		setLayoutBindingFlags.pBindingFlags = descriptorBindingFlags.data();
 
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+		// SRS - increase the per-stage descriptor samplers limit on macOS (maxPerStageDescriptorUpdateAfterBindSamplers > maxPerStageDescriptorSamplers)
+		descriptorSetLayoutCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+#endif
 		descriptorSetLayoutCI.pNext = &setLayoutBindingFlags;
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout));
 
