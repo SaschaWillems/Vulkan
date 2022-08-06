@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - glTF scene loading and rendering
 *
-* Copyright (C) 2020-2021 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2022 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -78,9 +78,14 @@ public:
 	// A node represents an object in the glTF scene graph
 	struct Node {
 		Node* parent;
-		std::vector<Node> children;
+		std::vector<Node*> children;
 		Mesh mesh;
 		glm::mat4 matrix;
+		~Node() {
+			for (auto& child : children) {
+				delete child;
+			}
+		}
 	};
 
 	// A glTF material stores information in e.g. the texture that is attached to it and colors
@@ -109,10 +114,13 @@ public:
 	std::vector<Image> images;
 	std::vector<Texture> textures;
 	std::vector<Material> materials;
-	std::vector<Node> nodes;
+	std::vector<Node*> nodes;
 
 	~VulkanglTFModel()
 	{
+		for (auto node : nodes) {
+			delete node;
+		}
 		// Release all Vulkan resources allocated for the model
 		vkDestroyBuffer(vulkanDevice->logicalDevice, vertices.buffer, nullptr);
 		vkFreeMemory(vulkanDevice->logicalDevice, vertices.memory, nullptr);
@@ -195,29 +203,30 @@ public:
 
 	void loadNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, VulkanglTFModel::Node* parent, std::vector<uint32_t>& indexBuffer, std::vector<VulkanglTFModel::Vertex>& vertexBuffer)
 	{
-		VulkanglTFModel::Node node{};
-		node.matrix = glm::mat4(1.0f);
+		VulkanglTFModel::Node* node = new VulkanglTFModel::Node{};
+		node->matrix = glm::mat4(1.0f);
+		node->parent = parent;
 
 		// Get the local node matrix
 		// It's either made up from translation, rotation, scale or a 4x4 matrix
 		if (inputNode.translation.size() == 3) {
-			node.matrix = glm::translate(node.matrix, glm::vec3(glm::make_vec3(inputNode.translation.data())));
+			node->matrix = glm::translate(node->matrix, glm::vec3(glm::make_vec3(inputNode.translation.data())));
 		}
 		if (inputNode.rotation.size() == 4) {
 			glm::quat q = glm::make_quat(inputNode.rotation.data());
-			node.matrix *= glm::mat4(q);
+			node->matrix *= glm::mat4(q);
 		}
 		if (inputNode.scale.size() == 3) {
-			node.matrix = glm::scale(node.matrix, glm::vec3(glm::make_vec3(inputNode.scale.data())));
+			node->matrix = glm::scale(node->matrix, glm::vec3(glm::make_vec3(inputNode.scale.data())));
 		}
 		if (inputNode.matrix.size() == 16) {
-			node.matrix = glm::make_mat4x4(inputNode.matrix.data());
+			node->matrix = glm::make_mat4x4(inputNode.matrix.data());
 		};
 
 		// Load node's children
 		if (inputNode.children.size() > 0) {
 			for (size_t i = 0; i < inputNode.children.size(); i++) {
-				loadNode(input.nodes[inputNode.children[i]], input , &node, indexBuffer, vertexBuffer);
+				loadNode(input.nodes[inputNode.children[i]], input , node, indexBuffer, vertexBuffer);
 			}
 		}
 
@@ -309,7 +318,7 @@ public:
 				primitive.firstIndex = firstIndex;
 				primitive.indexCount = indexCount;
 				primitive.materialIndex = glTFPrimitive.material;
-				node.mesh.primitives.push_back(primitive);
+				node->mesh.primitives.push_back(primitive);
 			}
 		}
 
@@ -326,20 +335,20 @@ public:
 	*/
 
 	// Draw a single node including child nodes (if present)
-	void drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFModel::Node node)
+	void drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFModel::Node* node)
 	{
-		if (node.mesh.primitives.size() > 0) {
+		if (node->mesh.primitives.size() > 0) {
 			// Pass the node's matrix via push constants
 			// Traverse the node hierarchy to the top-most parent to get the final matrix of the current node
-			glm::mat4 nodeMatrix = node.matrix;
-			VulkanglTFModel::Node* currentParent = node.parent;
+			glm::mat4 nodeMatrix = node->matrix;
+			VulkanglTFModel::Node* currentParent = node->parent;
 			while (currentParent) {
 				nodeMatrix = currentParent->matrix * nodeMatrix;
 				currentParent = currentParent->parent;
 			}
 			// Pass the final matrix to the vertex shader using push constants
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &nodeMatrix);
-			for (VulkanglTFModel::Primitive& primitive : node.mesh.primitives) {
+			for (VulkanglTFModel::Primitive& primitive : node->mesh.primitives) {
 				if (primitive.indexCount > 0) {
 					// Get the texture index for this primitive
 					VulkanglTFModel::Texture texture = textures[materials[primitive.materialIndex].baseColorTextureIndex];
@@ -349,7 +358,7 @@ public:
 				}
 			}
 		}
-		for (auto& child : node.children) {
+		for (auto& child : node->children) {
 			drawNode(commandBuffer, pipelineLayout, child);
 		}
 	}
@@ -382,6 +391,7 @@ public:
 			glm::mat4 projection;
 			glm::mat4 model;
 			glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, -5.0f, 1.0f);
+			glm::vec4 viewPos;
 		} values;
 	} shaderData;
 
@@ -404,7 +414,7 @@ public:
 		camera.type = Camera::CameraType::lookat;
 		camera.flipY = true;
 		camera.setPosition(glm::vec3(0.0f, -0.1f, -1.0f));
-		camera.setRotation(glm::vec3(0.0f, -135.0f, 0.0f));
+		camera.setRotation(glm::vec3(0.0f, 45.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 	}
 
@@ -707,6 +717,7 @@ public:
 	{
 		shaderData.values.projection = camera.matrices.perspective;
 		shaderData.values.model = camera.matrices.view;
+		shaderData.values.viewPos = camera.viewPos;
 		memcpy(shaderData.buffer.mapped, &shaderData.values, sizeof(shaderData.values));
 	}
 
