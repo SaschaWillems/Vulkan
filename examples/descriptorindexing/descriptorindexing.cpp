@@ -126,15 +126,27 @@ public:
 		std::uniform_int_distribution<int32_t> rndDist(0, static_cast<uint32_t>(textures.size()) - 1);
 
 		// Generate cubes with random per-face texture indices
-		const uint32_t count = 6;
+		const uint32_t count = 5;
 		for (uint32_t i = 0; i < count; i++) {
+			// Push indices to buffer
+			const std::vector<uint32_t> cubeIndices = {
+				0,1,2,0,2,3,
+				4,5,6,4,6,7,
+				8,9,10,8,10,11,
+				12,13,14,12,14,15,
+				16,17,18,16,18,19,
+				20,21,22,20,22,23
+			};
+			for (auto& index : cubeIndices) {
+				indices.push_back(index + static_cast<uint32_t>(vertices.size()));
+			}
 			// Get random per-Face texture indices that the shader will sample from
 			int32_t textureIndices[6];
 			for (uint32_t j = 0; j < 6; j++) {
 				textureIndices[j] = rndDist(rndEngine);
 			}
 			// Push vertices to buffer
-			float pos = 2.5f * i - (count * 2.5f / 2.0f);
+			float pos = 2.5f * i - (count * 2.5f / 2.0f) + 1.25f;
 			const std::vector<Vertex> cube = {
 				{ { -1.0f + pos, -1.0f,  1.0f }, { 0.0f, 0.0f }, textureIndices[0] },
 				{ {  1.0f + pos, -1.0f,  1.0f }, { 1.0f, 0.0f }, textureIndices[0] },
@@ -168,18 +180,6 @@ public:
 			};
 			for (auto& vertex : cube) {
 				vertices.push_back(vertex);
-			}
-			// Push indices to buffer
-			const std::vector<uint32_t> cubeIndices = {
-				0,1,2,0,2,3,
-				4,5,6,4,6,7,
-				8,9,10,8,10,11,
-				12,13,14,12,14,15,
-				16,17,18,16,18,19,
-				20,21,22,20,22,23
-			};
-			for (auto& index : cubeIndices) {
-				indices.push_back(index + static_cast<uint32_t>(vertices.size()));
 			}
 		}
 
