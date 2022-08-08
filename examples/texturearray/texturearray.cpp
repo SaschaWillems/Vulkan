@@ -12,6 +12,8 @@
 
 #define ENABLE_VALIDATION false
 
+#define MAX_LAYERS 8
+
 // Vertex layout for this example
 struct Vertex {
 	float pos[3];
@@ -120,6 +122,7 @@ public:
 		textureArray.width = ktxTexture->baseWidth;
 		textureArray.height = ktxTexture->baseHeight;
 		layerCount = ktxTexture->numLayers;
+        assert(layerCount <= MAX_LAYERS);
 		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
 		ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
@@ -475,7 +478,7 @@ public:
 	{
 		uboVS.instance = new UboInstanceData[layerCount];
 
-		uint32_t uboSize = sizeof(uboVS.matrices) + (layerCount * sizeof(UboInstanceData));
+		uint32_t uboSize = sizeof(uboVS.matrices) + (MAX_LAYERS * sizeof(UboInstanceData));
 
 		// Vertex shader uniform buffer block
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(

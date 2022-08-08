@@ -11,7 +11,7 @@
 
 #define ENABLE_VALIDATION false
 
-#define SSAO_KERNEL_SIZE 32
+#define SSAO_KERNEL_SIZE 64
 #define SSAO_RADIUS 0.3f
 
 #if defined(__ANDROID__)

@@ -55,6 +55,7 @@ public:
 				glm::vec3 lookat = glm::vec3(0.0f, 0.5f, 0.0f);
 				float fov = 10.0f;
 			} camera;
+            glm::mat4 _pad;
 		} ubo;
 	} compute;
 
