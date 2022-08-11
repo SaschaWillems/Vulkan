@@ -326,6 +326,12 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		camera.setPerspective(45.0f, (float)(width * ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.1f, 256.0f);
+		updateUniformBuffers();
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {

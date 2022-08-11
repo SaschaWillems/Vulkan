@@ -903,6 +903,12 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBufferDeferredMatrices();
+		updateUniformBufferDeferredLights();
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Subpasses")) {

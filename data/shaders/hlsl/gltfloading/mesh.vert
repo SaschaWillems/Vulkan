@@ -13,6 +13,7 @@ struct UBO
 	float4x4 projection;
 	float4x4 view;
 	float4 lightPos;
+	float4 viewPos;
 };
 
 cbuffer ubo : register(b0) { UBO ubo; }
@@ -42,8 +43,7 @@ VSOutput main(VSInput input)
 
 	float4 pos = mul(ubo.view, float4(input.Pos, 1.0));
 	output.Normal = mul((float3x3)ubo.view, input.Normal);
-	float3 lPos = mul((float3x3)ubo.view, ubo.lightPos.xyz);
-	output.LightVec = lPos - pos.xyz;
-	output.ViewVec = -pos.xyz;
+	output.LightVec = ubo.lightPos.xyz - pos.xyz;
+	output.ViewVec = ubo.viewPos.xyz - pos.xyz;
 	return output;
 }

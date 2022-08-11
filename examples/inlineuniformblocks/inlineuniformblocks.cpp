@@ -357,6 +357,11 @@ public:
 			updateUniformBuffers();
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
+	}
+
 	/*
 		[POI] Update descriptor sets at runtime
 	*/

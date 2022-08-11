@@ -16,7 +16,7 @@
 		A9532B761EF99894000A09E2 /* libMoltenVK.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A9532B751EF99894000A09E2 /* libMoltenVK.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		A9532B771EF9991A000A09E2 /* libMoltenVK.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A9532B751EF99894000A09E2 /* libMoltenVK.dylib */; };
 		A9532B781EF99937000A09E2 /* libMoltenVK.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */; };
-		A9581BA81EEB648C00247309 /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A9581BA71EEB648C00247309 /* libzlibstatic.a */; };
+		A9581BA81EEB648C00247309 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		A9581BAC1EEB64EC00247309 /* libMoltenVK.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		A98703D91E9D382A0066959C /* data in Resources */ = {isa = PBXBuildFile; fileRef = A98703D81E9D382A0066959C /* data */; };
 		A98703DA1E9D382A0066959C /* data in Resources */ = {isa = PBXBuildFile; fileRef = A98703D81E9D382A0066959C /* data */; };
@@ -34,16 +34,53 @@
 		A9B67B911C3AAEA200373FFD /* macOS.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A9B67B8B1C3AAEA200373FFD /* macOS.xcassets */; };
 		A9BC9B1C1EE8421F00384233 /* MVKExample.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A9BC9B1A1EE8421F00384233 /* MVKExample.cpp */; };
 		A9BC9B1D1EE8421F00384233 /* MVKExample.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A9BC9B1A1EE8421F00384233 /* MVKExample.cpp */; };
+		AA54A1B426E5274500485C4A /* VulkanBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1B226E5274500485C4A /* VulkanBuffer.cpp */; };
+		AA54A1B526E5274500485C4A /* VulkanBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1B226E5274500485C4A /* VulkanBuffer.cpp */; };
+		AA54A1B826E5275300485C4A /* VulkanDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1B626E5275300485C4A /* VulkanDevice.cpp */; };
+		AA54A1B926E5275300485C4A /* VulkanDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1B626E5275300485C4A /* VulkanDevice.cpp */; };
+		AA54A1C026E5276C00485C4A /* VulkanSwapChain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1BF26E5276C00485C4A /* VulkanSwapChain.cpp */; };
+		AA54A1C126E5276C00485C4A /* VulkanSwapChain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1BF26E5276C00485C4A /* VulkanSwapChain.cpp */; };
+		AA54A1C426E5277600485C4A /* VulkanTexture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1C326E5277600485C4A /* VulkanTexture.cpp */; };
+		AA54A1C526E5277600485C4A /* VulkanTexture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1C326E5277600485C4A /* VulkanTexture.cpp */; };
+		AA54A6B826E52CE300485C4A /* memstream.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1DD26E52CE100485C4A /* memstream.c */; };
+		AA54A6B926E52CE300485C4A /* memstream.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1DD26E52CE100485C4A /* memstream.c */; };
+		AA54A6BA26E52CE300485C4A /* vk_funclist.inl in Resources */ = {isa = PBXBuildFile; fileRef = AA54A1DE26E52CE100485C4A /* vk_funclist.inl */; };
+		AA54A6BB26E52CE300485C4A /* vk_funclist.inl in Resources */ = {isa = PBXBuildFile; fileRef = AA54A1DE26E52CE100485C4A /* vk_funclist.inl */; };
+		AA54A6BC26E52CE300485C4A /* etcdec.cxx in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E026E52CE100485C4A /* etcdec.cxx */; };
+		AA54A6BD26E52CE300485C4A /* etcdec.cxx in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E026E52CE100485C4A /* etcdec.cxx */; };
+		AA54A6BE26E52CE300485C4A /* checkheader.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E126E52CE100485C4A /* checkheader.c */; };
+		AA54A6BF26E52CE300485C4A /* checkheader.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E126E52CE100485C4A /* checkheader.c */; };
+		AA54A6C026E52CE300485C4A /* errstr.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E226E52CE100485C4A /* errstr.c */; };
+		AA54A6C126E52CE300485C4A /* errstr.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E226E52CE100485C4A /* errstr.c */; };
+		AA54A6C226E52CE300485C4A /* writer.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E326E52CE100485C4A /* writer.c */; };
+		AA54A6C326E52CE300485C4A /* writer.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E326E52CE100485C4A /* writer.c */; };
+		AA54A6C426E52CE300485C4A /* filestream.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E426E52CE100485C4A /* filestream.c */; };
+		AA54A6C526E52CE300485C4A /* filestream.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1E426E52CE100485C4A /* filestream.c */; };
+		AA54A6C626E52CE300485C4A /* mainpage.md in Resources */ = {isa = PBXBuildFile; fileRef = AA54A1E626E52CE100485C4A /* mainpage.md */; };
+		AA54A6C726E52CE300485C4A /* mainpage.md in Resources */ = {isa = PBXBuildFile; fileRef = AA54A1E626E52CE100485C4A /* mainpage.md */; };
+		AA54A6CA26E52CE300485C4A /* texture.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1EA26E52CE100485C4A /* texture.c */; };
+		AA54A6CB26E52CE300485C4A /* texture.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1EA26E52CE100485C4A /* texture.c */; };
+		AA54A6CC26E52CE300485C4A /* hashlist.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1ED26E52CE100485C4A /* hashlist.c */; };
+		AA54A6CD26E52CE400485C4A /* hashlist.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1ED26E52CE100485C4A /* hashlist.c */; };
+		AA54A6CE26E52CE400485C4A /* vk_funcs.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1EE26E52CE100485C4A /* vk_funcs.c */; };
+		AA54A6CF26E52CE400485C4A /* vk_funcs.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1EE26E52CE100485C4A /* vk_funcs.c */; };
+		AA54A6D226E52CE400485C4A /* hashtable.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1F626E52CE100485C4A /* hashtable.c */; };
+		AA54A6D326E52CE400485C4A /* hashtable.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1F626E52CE100485C4A /* hashtable.c */; };
+		AA54A6D826E52CE400485C4A /* swap.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1F926E52CE100485C4A /* swap.c */; };
+		AA54A6D926E52CE400485C4A /* swap.c in Sources */ = {isa = PBXBuildFile; fileRef = AA54A1F926E52CE100485C4A /* swap.c */; };
+		AA54A6DE26E52CE400485C4A /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20426E52CE100485C4A /* imgui_widgets.cpp */; };
+		AA54A6DF26E52CE400485C4A /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20426E52CE100485C4A /* imgui_widgets.cpp */; };
+		AA54A6E026E52CE400485C4A /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20626E52CE100485C4A /* imgui.cpp */; };
+		AA54A6E126E52CE400485C4A /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20626E52CE100485C4A /* imgui.cpp */; };
+		AA54A6E226E52CE400485C4A /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = AA54A20926E52CE100485C4A /* LICENSE.txt */; };
+		AA54A6E326E52CE400485C4A /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = AA54A20926E52CE100485C4A /* LICENSE.txt */; };
+		AA54A6E426E52CE400485C4A /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20A26E52CE100485C4A /* imgui_demo.cpp */; };
+		AA54A6E526E52CE400485C4A /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20A26E52CE100485C4A /* imgui_demo.cpp */; };
+		AA54A6E626E52CE400485C4A /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20B26E52CE100485C4A /* imgui_draw.cpp */; };
+		AA54A6E726E52CE400485C4A /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AA54A20B26E52CE100485C4A /* imgui_draw.cpp */; };
+		AAB0D0BF26F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AAB0D0BE26F24001005DC611 /* VulkanRaytracingSample.cpp */; };
+		AAB0D0C026F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AAB0D0BE26F24001005DC611 /* VulkanRaytracingSample.cpp */; };
 		C9788FD52044D78D00AB0892 /* VulkanAndroid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9788FD32044D78D00AB0892 /* VulkanAndroid.cpp */; };
-		C9A79EF12045045E00696219 /* stb_textedit.h in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EE82045045D00696219 /* stb_textedit.h */; };
-		C9A79EF22045045E00696219 /* imconfig.h in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EE92045045D00696219 /* imconfig.h */; };
-		C9A79EF32045045E00696219 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EEA2045045D00696219 /* imgui_demo.cpp */; };
-		C9A79EF42045045E00696219 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EEB2045045D00696219 /* imgui_draw.cpp */; };
-		C9A79EF52045045E00696219 /* imgui_internal.h in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EEC2045045E00696219 /* imgui_internal.h */; };
-		C9A79EF62045045E00696219 /* stb_rect_pack.h in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EED2045045E00696219 /* stb_rect_pack.h */; };
-		C9A79EF72045045E00696219 /* imgui.h in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EEE2045045E00696219 /* imgui.h */; };
-		C9A79EF82045045E00696219 /* stb_truetype.h in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EEF2045045E00696219 /* stb_truetype.h */; };
-		C9A79EF92045045E00696219 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EF02045045E00696219 /* imgui.cpp */; };
 		C9A79EFC204504E000696219 /* VulkanUIOverlay.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EFB204504E000696219 /* VulkanUIOverlay.cpp */; };
 		C9A79EFD2045051D00696219 /* VulkanUIOverlay.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EFB204504E000696219 /* VulkanUIOverlay.cpp */; };
 		C9A79EFE2045051D00696219 /* VulkanUIOverlay.h in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EFA204504E000696219 /* VulkanUIOverlay.h */; };
@@ -78,44 +115,35 @@
 		1D6058910D05DD3D006BFB54 /* examples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = examples.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D500B990D5A79CF00DBA0E3 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		A92F37071C7E1B2B008F8BC9 /* examples.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = examples.h; sourceTree = "<group>"; };
-		A94A67231B7BDE9B00F6D7C4 /* MetalGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalGL.framework; path = ../../MetalGL/macOS/MetalGL.framework; sourceTree = "<group>"; };
-		A94A67241B7BDE9B00F6D7C4 /* MetalGLShaderConverter.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalGLShaderConverter.framework; path = ../../MetalGLShaderConverter/macOS/MetalGLShaderConverter.framework; sourceTree = "<group>"; };
 		A951FF001E9C349000FA9144 /* camera.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = camera.hpp; sourceTree = "<group>"; };
 		A951FF011E9C349000FA9144 /* frustum.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = frustum.hpp; sourceTree = "<group>"; };
 		A951FF021E9C349000FA9144 /* keycodes.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = keycodes.hpp; sourceTree = "<group>"; };
 		A951FF031E9C349000FA9144 /* threadpool.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = threadpool.hpp; sourceTree = "<group>"; };
-		A951FF061E9C349000FA9144 /* VulkanBuffer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = VulkanBuffer.hpp; sourceTree = "<group>"; };
 		A951FF071E9C349000FA9144 /* VulkanDebug.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanDebug.cpp; sourceTree = "<group>"; };
 		A951FF081E9C349000FA9144 /* VulkanDebug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanDebug.h; sourceTree = "<group>"; };
-		A951FF091E9C349000FA9144 /* VulkanDevice.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = VulkanDevice.hpp; sourceTree = "<group>"; };
 		A951FF0A1E9C349000FA9144 /* vulkanexamplebase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vulkanexamplebase.cpp; sourceTree = "<group>"; };
 		A951FF0B1E9C349000FA9144 /* vulkanexamplebase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vulkanexamplebase.h; sourceTree = "<group>"; };
 		A951FF0C1E9C349000FA9144 /* VulkanFrameBuffer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = VulkanFrameBuffer.hpp; sourceTree = "<group>"; };
 		A951FF0D1E9C349000FA9144 /* VulkanHeightmap.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = VulkanHeightmap.hpp; sourceTree = "<group>"; };
 		A951FF0E1E9C349000FA9144 /* VulkanInitializers.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = VulkanInitializers.hpp; sourceTree = "<group>"; };
-		A951FF0F1E9C349000FA9144 /* VulkanModel.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = VulkanModel.hpp; sourceTree = "<group>"; };
-		A951FF101E9C349000FA9144 /* VulkanSwapChain.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = VulkanSwapChain.hpp; sourceTree = "<group>"; };
-		A951FF121E9C349000FA9144 /* VulkanTexture.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = VulkanTexture.hpp; sourceTree = "<group>"; };
 		A951FF131E9C349000FA9144 /* VulkanTools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanTools.cpp; sourceTree = "<group>"; };
 		A951FF141E9C349000FA9144 /* VulkanTools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanTools.h; sourceTree = "<group>"; };
-		A9532B751EF99894000A09E2 /* libMoltenVK.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libMoltenVK.dylib; path = MoltenVK/iOS/libMoltenVK.dylib; sourceTree = "<group>"; };
-		A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libMoltenVK.dylib; path = MoltenVK/macOS/libMoltenVK.dylib; sourceTree = "<group>"; };
+		A9532B751EF99894000A09E2 /* libMoltenVK.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libMoltenVK.dylib; path = MoltenVK/dylib/iOS/libMoltenVK.dylib; sourceTree = "<group>"; };
+		A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libMoltenVK.dylib; path = MoltenVK/dylib/macOS/libMoltenVK.dylib; sourceTree = "<group>"; };
 		A977BCFE1B66BB010067E5BF /* examples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = examples.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A977BD211B67186B0067E5BF /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/AppKit.framework; sourceTree = DEVELOPER_DIR; };
-		A977BD221B67186B0067E5BF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
-		A977BD231B67186B0067E5BF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		A977BD251B67186B0067E5BF /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		A977BD261B67186B0067E5BF /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
+		A977BD211B67186B0067E5BF /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		A977BD221B67186B0067E5BF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		A977BD231B67186B0067E5BF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		A977BD251B67186B0067E5BF /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		A977BD261B67186B0067E5BF /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		A98703D81E9D382A0066959C /* data */ = {isa = PBXFileReference; lastKnownFileType = folder; name = data; path = ../data; sourceTree = "<group>"; };
 		A9A222171B5D69F40050A5F9 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		A9B5D09B1CF8830B00D7CBDD /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
 		A9B67B6B1C3AAE9800373FFD /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		A9B67B6C1C3AAE9800373FFD /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		A9B67B6E1C3AAE9800373FFD /* DemoViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DemoViewController.h; sourceTree = "<group>"; };
 		A9B67B6F1C3AAE9800373FFD /* DemoViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DemoViewController.mm; sourceTree = "<group>"; };
 		A9B67B701C3AAE9800373FFD /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A9B67B711C3AAE9800373FFD /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		A9B67B721C3AAE9800373FFD /* Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Prefix.pch; sourceTree = "<group>"; };
 		A9B67B741C3AAE9800373FFD /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-568h@2x.png"; sourceTree = "<group>"; };
 		A9B67B751C3AAE9800373FFD /* Default~ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default~ipad.png"; sourceTree = "<group>"; };
 		A9B67B761C3AAE9800373FFD /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
@@ -126,26 +154,58 @@
 		A9B67B851C3AAEA200373FFD /* DemoViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DemoViewController.mm; sourceTree = "<group>"; };
 		A9B67B861C3AAEA200373FFD /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A9B67B871C3AAEA200373FFD /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		A9B67B881C3AAEA200373FFD /* Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Prefix.pch; sourceTree = "<group>"; };
 		A9B67B8A1C3AAEA200373FFD /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
 		A9B67B8B1C3AAEA200373FFD /* macOS.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = macOS.xcassets; sourceTree = "<group>"; };
 		A9B6B7641C0F795D00A9E33A /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		A9BC9B1A1EE8421F00384233 /* MVKExample.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MVKExample.cpp; sourceTree = "<group>"; };
 		A9BC9B1B1EE8421F00384233 /* MVKExample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVKExample.h; sourceTree = "<group>"; };
 		A9CDEA271B6A782C00F7B008 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
-		A9E264761B671B0A00FE691A /* libc++.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libc++.dylib"; path = "Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/lib/libc++.dylib"; sourceTree = DEVELOPER_DIR; };
+		AA54A1B226E5274500485C4A /* VulkanBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanBuffer.cpp; sourceTree = "<group>"; };
+		AA54A1B326E5274500485C4A /* VulkanBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanBuffer.h; sourceTree = "<group>"; };
+		AA54A1B626E5275300485C4A /* VulkanDevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanDevice.cpp; sourceTree = "<group>"; };
+		AA54A1B726E5275300485C4A /* VulkanDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanDevice.h; sourceTree = "<group>"; };
+		AA54A1BA26E5276000485C4A /* VulkanglTFModel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanglTFModel.cpp; sourceTree = "<group>"; };
+		AA54A1BB26E5276000485C4A /* VulkanglTFModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanglTFModel.h; sourceTree = "<group>"; };
+		AA54A1BE26E5276C00485C4A /* VulkanSwapChain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanSwapChain.h; sourceTree = "<group>"; };
+		AA54A1BF26E5276C00485C4A /* VulkanSwapChain.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanSwapChain.cpp; sourceTree = "<group>"; };
+		AA54A1C226E5277600485C4A /* VulkanTexture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanTexture.h; sourceTree = "<group>"; };
+		AA54A1C326E5277600485C4A /* VulkanTexture.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanTexture.cpp; sourceTree = "<group>"; };
+		AA54A1DD26E52CE100485C4A /* memstream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = memstream.c; sourceTree = "<group>"; };
+		AA54A1DE26E52CE100485C4A /* vk_funclist.inl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = vk_funclist.inl; sourceTree = "<group>"; };
+		AA54A1E026E52CE100485C4A /* etcdec.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = etcdec.cxx; sourceTree = "<group>"; };
+		AA54A1E126E52CE100485C4A /* checkheader.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = checkheader.c; sourceTree = "<group>"; };
+		AA54A1E226E52CE100485C4A /* errstr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = errstr.c; sourceTree = "<group>"; };
+		AA54A1E326E52CE100485C4A /* writer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = writer.c; sourceTree = "<group>"; };
+		AA54A1E426E52CE100485C4A /* filestream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = filestream.c; sourceTree = "<group>"; };
+		AA54A1E626E52CE100485C4A /* mainpage.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = mainpage.md; sourceTree = "<group>"; };
+		AA54A1E926E52CE100485C4A /* vk_format.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vk_format.h; sourceTree = "<group>"; };
+		AA54A1EA26E52CE100485C4A /* texture.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = texture.c; sourceTree = "<group>"; };
+		AA54A1EB26E52CE100485C4A /* ktxint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ktxint.h; sourceTree = "<group>"; };
+		AA54A1EC26E52CE100485C4A /* stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stream.h; sourceTree = "<group>"; };
+		AA54A1ED26E52CE100485C4A /* hashlist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hashlist.c; sourceTree = "<group>"; };
+		AA54A1EE26E52CE100485C4A /* vk_funcs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vk_funcs.c; sourceTree = "<group>"; };
+		AA54A1F026E52CE100485C4A /* uthash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = uthash.h; sourceTree = "<group>"; };
+		AA54A1F226E52CE100485C4A /* memstream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = memstream.h; sourceTree = "<group>"; };
+		AA54A1F526E52CE100485C4A /* filestream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = filestream.h; sourceTree = "<group>"; };
+		AA54A1F626E52CE100485C4A /* hashtable.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hashtable.c; sourceTree = "<group>"; };
+		AA54A1F926E52CE100485C4A /* swap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = swap.c; sourceTree = "<group>"; };
+		AA54A1FB26E52CE100485C4A /* vk_funcs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vk_funcs.h; sourceTree = "<group>"; };
+		AA54A20126E52CE100485C4A /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui.h; sourceTree = "<group>"; };
+		AA54A20226E52CE100485C4A /* imstb_textedit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_textedit.h; sourceTree = "<group>"; };
+		AA54A20326E52CE100485C4A /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imconfig.h; sourceTree = "<group>"; };
+		AA54A20426E52CE100485C4A /* imgui_widgets.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_widgets.cpp; sourceTree = "<group>"; };
+		AA54A20526E52CE100485C4A /* imstb_truetype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_truetype.h; sourceTree = "<group>"; };
+		AA54A20626E52CE100485C4A /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui.cpp; sourceTree = "<group>"; };
+		AA54A20726E52CE100485C4A /* imgui_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_internal.h; sourceTree = "<group>"; };
+		AA54A20826E52CE100485C4A /* imstb_rectpack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_rectpack.h; sourceTree = "<group>"; };
+		AA54A20926E52CE100485C4A /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		AA54A20A26E52CE100485C4A /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_demo.cpp; sourceTree = "<group>"; };
+		AA54A20B26E52CE100485C4A /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_draw.cpp; sourceTree = "<group>"; };
+		AAB0D0BE26F24001005DC611 /* VulkanRaytracingSample.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanRaytracingSample.cpp; sourceTree = "<group>"; };
+		AAB0D0C126F2400E005DC611 /* VulkanRaytracingSample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanRaytracingSample.h; sourceTree = "<group>"; };
 		C9788FD02044D78D00AB0892 /* benchmark.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = benchmark.hpp; sourceTree = "<group>"; };
 		C9788FD22044D78D00AB0892 /* VulkanAndroid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanAndroid.h; sourceTree = "<group>"; };
 		C9788FD32044D78D00AB0892 /* VulkanAndroid.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanAndroid.cpp; sourceTree = "<group>"; };
-		C9A79EE82045045D00696219 /* stb_textedit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stb_textedit.h; path = ../external/imgui/stb_textedit.h; sourceTree = "<group>"; };
-		C9A79EE92045045D00696219 /* imconfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = imconfig.h; path = ../external/imgui/imconfig.h; sourceTree = "<group>"; };
-		C9A79EEA2045045D00696219 /* imgui_demo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_demo.cpp; path = ../external/imgui/imgui_demo.cpp; sourceTree = "<group>"; };
-		C9A79EEB2045045D00696219 /* imgui_draw.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_draw.cpp; path = ../external/imgui/imgui_draw.cpp; sourceTree = "<group>"; };
-		C9A79EEC2045045E00696219 /* imgui_internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = imgui_internal.h; path = ../external/imgui/imgui_internal.h; sourceTree = "<group>"; };
-		C9A79EED2045045E00696219 /* stb_rect_pack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stb_rect_pack.h; path = ../external/imgui/stb_rect_pack.h; sourceTree = "<group>"; };
-		C9A79EEE2045045E00696219 /* imgui.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = imgui.h; path = ../external/imgui/imgui.h; sourceTree = "<group>"; };
-		C9A79EEF2045045E00696219 /* stb_truetype.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stb_truetype.h; path = ../external/imgui/stb_truetype.h; sourceTree = "<group>"; };
-		C9A79EF02045045E00696219 /* imgui.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = imgui.cpp; path = ../external/imgui/imgui.cpp; sourceTree = "<group>"; };
 		C9A79EFA204504E000696219 /* VulkanUIOverlay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanUIOverlay.h; sourceTree = "<group>"; };
 		C9A79EFB204504E000696219 /* VulkanUIOverlay.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanUIOverlay.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -156,7 +216,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A9532B771EF9991A000A09E2 /* libMoltenVK.dylib in Frameworks */,
-				A9581BA81EEB648C00247309 /* libzlibstatic.a in Frameworks */,
+				A9581BA81EEB648C00247309 /* (null) in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -183,19 +243,11 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
-				C9A79EE92045045D00696219 /* imconfig.h */,
-				C9A79EEA2045045D00696219 /* imgui_demo.cpp */,
-				C9A79EEB2045045D00696219 /* imgui_draw.cpp */,
-				C9A79EEC2045045E00696219 /* imgui_internal.h */,
-				C9A79EF02045045E00696219 /* imgui.cpp */,
-				C9A79EEE2045045E00696219 /* imgui.h */,
-				C9A79EED2045045E00696219 /* stb_rect_pack.h */,
-				C9A79EE82045045D00696219 /* stb_textedit.h */,
-				C9A79EEF2045045E00696219 /* stb_truetype.h */,
 				A92F37071C7E1B2B008F8BC9 /* examples.h */,
 				A9BC9B1B1EE8421F00384233 /* MVKExample.h */,
 				A9BC9B1A1EE8421F00384233 /* MVKExample.cpp */,
 				A951FEFF1E9C349000FA9144 /* base */,
+				AA54A1CF26E52CE100485C4A /* external */,
 				A98703D81E9D382A0066959C /* data */,
 				A9B67B6A1C3AAE9800373FFD /* iOS */,
 				A9B67B811C3AAEA200373FFD /* macOS */,
@@ -210,8 +262,6 @@
 			children = (
 				A9581BAB1EEB64EC00247309 /* libMoltenVK.dylib */,
 				A9532B751EF99894000A09E2 /* libMoltenVK.dylib */,
-				A9581BA71EEB648C00247309 /* libzlibstatic.a */,
-				A9B5D09B1CF8830B00D7CBDD /* libc++.tbd */,
 				A9B6B7641C0F795D00A9E33A /* CoreAudio.framework */,
 				A9ADEC601B6EC2EB00DBA48C /* iOS */,
 				A9ADEC611B6EC2F300DBA48C /* macOS */,
@@ -231,18 +281,25 @@
 				A951FF011E9C349000FA9144 /* frustum.hpp */,
 				A951FF021E9C349000FA9144 /* keycodes.hpp */,
 				A951FF031E9C349000FA9144 /* threadpool.hpp */,
-				A951FF061E9C349000FA9144 /* VulkanBuffer.hpp */,
+				AA54A1B226E5274500485C4A /* VulkanBuffer.cpp */,
+				AA54A1B326E5274500485C4A /* VulkanBuffer.h */,
 				A951FF071E9C349000FA9144 /* VulkanDebug.cpp */,
 				A951FF081E9C349000FA9144 /* VulkanDebug.h */,
-				A951FF091E9C349000FA9144 /* VulkanDevice.hpp */,
+				AA54A1B626E5275300485C4A /* VulkanDevice.cpp */,
+				AA54A1B726E5275300485C4A /* VulkanDevice.h */,
 				A951FF0A1E9C349000FA9144 /* vulkanexamplebase.cpp */,
 				A951FF0B1E9C349000FA9144 /* vulkanexamplebase.h */,
 				A951FF0C1E9C349000FA9144 /* VulkanFrameBuffer.hpp */,
 				A951FF0D1E9C349000FA9144 /* VulkanHeightmap.hpp */,
 				A951FF0E1E9C349000FA9144 /* VulkanInitializers.hpp */,
-				A951FF0F1E9C349000FA9144 /* VulkanModel.hpp */,
-				A951FF101E9C349000FA9144 /* VulkanSwapChain.hpp */,
-				A951FF121E9C349000FA9144 /* VulkanTexture.hpp */,
+				AA54A1BA26E5276000485C4A /* VulkanglTFModel.cpp */,
+				AA54A1BB26E5276000485C4A /* VulkanglTFModel.h */,
+				AAB0D0BE26F24001005DC611 /* VulkanRaytracingSample.cpp */,
+				AAB0D0C126F2400E005DC611 /* VulkanRaytracingSample.h */,
+				AA54A1BF26E5276C00485C4A /* VulkanSwapChain.cpp */,
+				AA54A1BE26E5276C00485C4A /* VulkanSwapChain.h */,
+				AA54A1C326E5277600485C4A /* VulkanTexture.cpp */,
+				AA54A1C226E5277600485C4A /* VulkanTexture.h */,
 				A951FF131E9C349000FA9144 /* VulkanTools.cpp */,
 				A951FF141E9C349000FA9144 /* VulkanTools.h */,
 			);
@@ -265,14 +322,11 @@
 		A9ADEC611B6EC2F300DBA48C /* macOS */ = {
 			isa = PBXGroup;
 			children = (
-				A94A67231B7BDE9B00F6D7C4 /* MetalGL.framework */,
-				A94A67241B7BDE9B00F6D7C4 /* MetalGLShaderConverter.framework */,
-				A9E264761B671B0A00FE691A /* libc++.dylib */,
 				A977BD251B67186B0067E5BF /* Metal.framework */,
-				A977BD261B67186B0067E5BF /* QuartzCore.framework */,
-				A977BD211B67186B0067E5BF /* AppKit.framework */,
 				A977BD221B67186B0067E5BF /* CoreGraphics.framework */,
+				A977BD261B67186B0067E5BF /* QuartzCore.framework */,
 				A977BD231B67186B0067E5BF /* Foundation.framework */,
+				A977BD211B67186B0067E5BF /* AppKit.framework */,
 			);
 			name = macOS;
 			sourceTree = "<group>";
@@ -286,7 +340,6 @@
 				A9B67B6F1C3AAE9800373FFD /* DemoViewController.mm */,
 				A9B67B701C3AAE9800373FFD /* Info.plist */,
 				A9B67B711C3AAE9800373FFD /* main.m */,
-				A9B67B721C3AAE9800373FFD /* Prefix.pch */,
 				A9B67B731C3AAE9800373FFD /* Resources */,
 			);
 			path = iOS;
@@ -312,7 +365,6 @@
 				A9B67B851C3AAEA200373FFD /* DemoViewController.mm */,
 				A9B67B861C3AAEA200373FFD /* Info.plist */,
 				A9B67B871C3AAEA200373FFD /* main.m */,
-				A9B67B881C3AAEA200373FFD /* Prefix.pch */,
 				A9B67B891C3AAEA200373FFD /* Resources */,
 			);
 			path = macOS;
@@ -325,6 +377,69 @@
 				A9B67B8B1C3AAEA200373FFD /* macOS.xcassets */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		AA54A1CF26E52CE100485C4A /* external */ = {
+			isa = PBXGroup;
+			children = (
+				AA54A1D626E52CE100485C4A /* ktx */,
+				AA54A20026E52CE100485C4A /* imgui */,
+			);
+			name = external;
+			path = ../external;
+			sourceTree = "<group>";
+		};
+		AA54A1D626E52CE100485C4A /* ktx */ = {
+			isa = PBXGroup;
+			children = (
+				AA54A1DC26E52CE100485C4A /* lib */,
+			);
+			path = ktx;
+			sourceTree = "<group>";
+		};
+		AA54A1DC26E52CE100485C4A /* lib */ = {
+			isa = PBXGroup;
+			children = (
+				AA54A1E126E52CE100485C4A /* checkheader.c */,
+				AA54A1E226E52CE100485C4A /* errstr.c */,
+				AA54A1E026E52CE100485C4A /* etcdec.cxx */,
+				AA54A1E426E52CE100485C4A /* filestream.c */,
+				AA54A1F526E52CE100485C4A /* filestream.h */,
+				AA54A1ED26E52CE100485C4A /* hashlist.c */,
+				AA54A1F626E52CE100485C4A /* hashtable.c */,
+				AA54A1EB26E52CE100485C4A /* ktxint.h */,
+				AA54A1E626E52CE100485C4A /* mainpage.md */,
+				AA54A1DD26E52CE100485C4A /* memstream.c */,
+				AA54A1F226E52CE100485C4A /* memstream.h */,
+				AA54A1EC26E52CE100485C4A /* stream.h */,
+				AA54A1F926E52CE100485C4A /* swap.c */,
+				AA54A1EA26E52CE100485C4A /* texture.c */,
+				AA54A1F026E52CE100485C4A /* uthash.h */,
+				AA54A1E926E52CE100485C4A /* vk_format.h */,
+				AA54A1DE26E52CE100485C4A /* vk_funclist.inl */,
+				AA54A1EE26E52CE100485C4A /* vk_funcs.c */,
+				AA54A1FB26E52CE100485C4A /* vk_funcs.h */,
+				AA54A1E326E52CE100485C4A /* writer.c */,
+			);
+			path = lib;
+			sourceTree = "<group>";
+		};
+		AA54A20026E52CE100485C4A /* imgui */ = {
+			isa = PBXGroup;
+			children = (
+				AA54A20326E52CE100485C4A /* imconfig.h */,
+				AA54A20A26E52CE100485C4A /* imgui_demo.cpp */,
+				AA54A20B26E52CE100485C4A /* imgui_draw.cpp */,
+				AA54A20726E52CE100485C4A /* imgui_internal.h */,
+				AA54A20426E52CE100485C4A /* imgui_widgets.cpp */,
+				AA54A20626E52CE100485C4A /* imgui.cpp */,
+				AA54A20126E52CE100485C4A /* imgui.h */,
+				AA54A20826E52CE100485C4A /* imstb_rectpack.h */,
+				AA54A20226E52CE100485C4A /* imstb_textedit.h */,
+				AA54A20526E52CE100485C4A /* imstb_truetype.h */,
+				AA54A20926E52CE100485C4A /* LICENSE.txt */,
+			);
+			path = imgui;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -409,6 +524,9 @@
 			files = (
 				A9B67B7F1C3AAE9800373FFD /* Icon.png in Resources */,
 				A9B67B801C3AAE9800373FFD /* Main.storyboard in Resources */,
+				AA54A6C626E52CE300485C4A /* mainpage.md in Resources */,
+				AA54A6E226E52CE400485C4A /* LICENSE.txt in Resources */,
+				AA54A6BA26E52CE300485C4A /* vk_funclist.inl in Resources */,
 				A9B67B7E1C3AAE9800373FFD /* Default~ipad.png in Resources */,
 				A9B67B7D1C3AAE9800373FFD /* Default-568h@2x.png in Resources */,
 				A98703D91E9D382A0066959C /* data in Resources */,
@@ -419,6 +537,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA54A6E326E52CE400485C4A /* LICENSE.txt in Resources */,
+				AA54A6BB26E52CE300485C4A /* vk_funclist.inl in Resources */,
+				AA54A6C726E52CE300485C4A /* mainpage.md in Resources */,
 				A9B67B911C3AAEA200373FFD /* macOS.xcassets in Resources */,
 				A98703DA1E9D382A0066959C /* data in Resources */,
 				A9B67B901C3AAEA200373FFD /* Main.storyboard in Resources */,
@@ -432,15 +553,35 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA54A1C426E5277600485C4A /* VulkanTexture.cpp in Sources */,
+				AA54A6CE26E52CE400485C4A /* vk_funcs.c in Sources */,
+				AA54A6C426E52CE300485C4A /* filestream.c in Sources */,
+				AA54A6C026E52CE300485C4A /* errstr.c in Sources */,
 				A951FF171E9C349000FA9144 /* VulkanDebug.cpp in Sources */,
+				AA54A6E626E52CE400485C4A /* imgui_draw.cpp in Sources */,
 				A9BC9B1C1EE8421F00384233 /* MVKExample.cpp in Sources */,
+				AA54A6BC26E52CE300485C4A /* etcdec.cxx in Sources */,
+				AA54A6D226E52CE400485C4A /* hashtable.c in Sources */,
+				AA54A6B826E52CE300485C4A /* memstream.c in Sources */,
+				AA54A6C226E52CE300485C4A /* writer.c in Sources */,
 				C9A79EFC204504E000696219 /* VulkanUIOverlay.cpp in Sources */,
+				AA54A6DE26E52CE400485C4A /* imgui_widgets.cpp in Sources */,
 				A9B67B7A1C3AAE9800373FFD /* DemoViewController.mm in Sources */,
 				A9B67B781C3AAE9800373FFD /* AppDelegate.m in Sources */,
+				AA54A6CA26E52CE300485C4A /* texture.c in Sources */,
+				AAB0D0BF26F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */,
 				C9788FD52044D78D00AB0892 /* VulkanAndroid.cpp in Sources */,
 				A951FF1B1E9C349000FA9144 /* VulkanTools.cpp in Sources */,
+				AA54A6CC26E52CE300485C4A /* hashlist.c in Sources */,
 				A951FF191E9C349000FA9144 /* vulkanexamplebase.cpp in Sources */,
+				AA54A1B426E5274500485C4A /* VulkanBuffer.cpp in Sources */,
+				AA54A6D826E52CE400485C4A /* swap.c in Sources */,
+				AA54A6BE26E52CE300485C4A /* checkheader.c in Sources */,
 				A9B67B7C1C3AAE9800373FFD /* main.m in Sources */,
+				AA54A1B826E5275300485C4A /* VulkanDevice.cpp in Sources */,
+				AA54A1C026E5276C00485C4A /* VulkanSwapChain.cpp in Sources */,
+				AA54A6E426E52CE400485C4A /* imgui_demo.cpp in Sources */,
+				AA54A6E026E52CE400485C4A /* imgui.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -449,23 +590,34 @@
 			buildActionMask = 2147483647;
 			files = (
 				C9A79EFD2045051D00696219 /* VulkanUIOverlay.cpp in Sources */,
+				AA54A6CF26E52CE400485C4A /* vk_funcs.c in Sources */,
+				AA54A6C526E52CE300485C4A /* filestream.c in Sources */,
+				AA54A6C126E52CE300485C4A /* errstr.c in Sources */,
 				C9A79EFE2045051D00696219 /* VulkanUIOverlay.h in Sources */,
-				C9A79EF12045045E00696219 /* stb_textedit.h in Sources */,
-				C9A79EF22045045E00696219 /* imconfig.h in Sources */,
-				C9A79EF32045045E00696219 /* imgui_demo.cpp in Sources */,
-				C9A79EF42045045E00696219 /* imgui_draw.cpp in Sources */,
-				C9A79EF52045045E00696219 /* imgui_internal.h in Sources */,
-				C9A79EF62045045E00696219 /* stb_rect_pack.h in Sources */,
-				C9A79EF72045045E00696219 /* imgui.h in Sources */,
-				C9A79EF82045045E00696219 /* stb_truetype.h in Sources */,
-				C9A79EF92045045E00696219 /* imgui.cpp in Sources */,
+				AA54A6E726E52CE400485C4A /* imgui_draw.cpp in Sources */,
+				AA54A1B526E5274500485C4A /* VulkanBuffer.cpp in Sources */,
+				AA54A6BD26E52CE300485C4A /* etcdec.cxx in Sources */,
+				AA54A6D326E52CE400485C4A /* hashtable.c in Sources */,
+				AA54A6B926E52CE300485C4A /* memstream.c in Sources */,
+				AA54A6C326E52CE300485C4A /* writer.c in Sources */,
+				AA54A1B926E5275300485C4A /* VulkanDevice.cpp in Sources */,
+				AA54A6DF26E52CE400485C4A /* imgui_widgets.cpp in Sources */,
 				A951FF181E9C349000FA9144 /* VulkanDebug.cpp in Sources */,
+				AA54A6CB26E52CE300485C4A /* texture.c in Sources */,
+				AAB0D0C026F24001005DC611 /* VulkanRaytracingSample.cpp in Sources */,
 				A9BC9B1D1EE8421F00384233 /* MVKExample.cpp in Sources */,
 				A9B67B8C1C3AAEA200373FFD /* AppDelegate.m in Sources */,
+				AA54A1C126E5276C00485C4A /* VulkanSwapChain.cpp in Sources */,
+				AA54A6CD26E52CE400485C4A /* hashlist.c in Sources */,
 				A9B67B8F1C3AAEA200373FFD /* main.m in Sources */,
+				AA54A1C526E5277600485C4A /* VulkanTexture.cpp in Sources */,
+				AA54A6D926E52CE400485C4A /* swap.c in Sources */,
+				AA54A6BF26E52CE300485C4A /* checkheader.c in Sources */,
 				A951FF1C1E9C349000FA9144 /* VulkanTools.cpp in Sources */,
 				A951FF1A1E9C349000FA9144 /* vulkanexamplebase.cpp in Sources */,
 				A9B67B8D1C3AAEA200373FFD /* DemoViewController.mm in Sources */,
+				AA54A6E526E52CE400485C4A /* imgui_demo.cpp in Sources */,
+				AA54A6E126E52CE400485C4A /* imgui.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -477,7 +629,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = VU3TCKU48B;
-				GCC_PREFIX_HEADER = "$(SRCROOT)/iOS/Prefix.pch";
+				GCC_PREFIX_HEADER = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DEBUG=1",
@@ -486,14 +638,13 @@
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
-				LIBRARY_SEARCH_PATHS = (
-					"\"$(SRCROOT)/MoltenVK/iOS\"",
-				);
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/MoltenVK/dylib/iOS\"";
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				TARGETED_DEVICE_FAMILY = "1,2";
-				VALID_ARCHS = arm64;
+				VALID_ARCHS = "$(ARCHS_STANDARD)";
 			};
 			name = Debug;
 		};
@@ -502,21 +653,20 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = VU3TCKU48B;
-				GCC_PREFIX_HEADER = "$(SRCROOT)/iOS/Prefix.pch";
+				GCC_PREFIX_HEADER = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					VK_USE_PLATFORM_IOS_MVK,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
-				LIBRARY_SEARCH_PATHS = (
-					"\"$(SRCROOT)/MoltenVK/iOS\"",
-				);
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/MoltenVK/dylib/iOS\"";
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				TARGETED_DEVICE_FAMILY = "1,2";
-				VALID_ARCHS = arm64;
+				VALID_ARCHS = "$(ARCHS_STANDARD)";
 			};
 			name = Release;
 		};
@@ -526,23 +676,16 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				GCC_PREFIX_HEADER = "$(SRCROOT)/macOS/Prefix.pch";
+				GCC_PREFIX_HEADER = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					_DEBUG,
-					VK_USE_PLATFORM_MACOS_MVK,
-				);
-				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
+					"$(inherited)",
 					"DEBUG=1",
 					_DEBUG,
 					VK_USE_PLATFORM_MACOS_MVK,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/macOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
-				LIBRARY_SEARCH_PATHS = (
-					"\"$(SRCROOT)/MoltenVK/macOS\"",
-					"$(PROJECT_DIR)/MoltenVK/macOS",
-				);
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/MoltenVK/dylib/macOS\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				SDKROOT = macosx;
 			};
@@ -554,16 +697,16 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				GCC_PREFIX_HEADER = "$(SRCROOT)/macOS/Prefix.pch";
-				GCC_PREPROCESSOR_DEFINITIONS = VK_USE_PLATFORM_MACOS_MVK;
-				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = VK_USE_PLATFORM_MACOS_MVK;
+				GCC_PREFIX_HEADER = "";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					VK_USE_PLATFORM_MACOS_MVK,
+				);
 				INFOPLIST_FILE = "$(SRCROOT)/macOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
-				LIBRARY_SEARCH_PATHS = (
-					"\"$(SRCROOT)/MoltenVK/macOS\"",
-					"$(PROJECT_DIR)/MoltenVK/macOS",
-				);
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/MoltenVK/dylib/macOS\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -611,6 +754,7 @@
 				HEADER_SEARCH_PATHS = (
 					"\"$(SRCROOT)/MoltenVK/include\"",
 					"\"$(SRCROOT)/../external\"/**",
+					"\"$(SRCROOT)/../base\"",
 				);
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.moltenvk.${PRODUCT_NAME:identifier}";
@@ -658,6 +802,7 @@
 				HEADER_SEARCH_PATHS = (
 					"\"$(SRCROOT)/MoltenVK/include\"",
 					"\"$(SRCROOT)/../external\"/**",
+					"\"$(SRCROOT)/../base\"",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.moltenvk.${PRODUCT_NAME:identifier}";
 				PRODUCT_NAME = "${PROJECT}";

@@ -708,6 +708,11 @@ void VulkanExample::render()
 	}
 }
 
+void VulkanExample::viewChanged()
+{
+	updateUniformBuffers();
+}
+
 // Fills a buffer with random colors
 void VulkanExample::randomPattern(uint8_t* buffer, uint32_t width, uint32_t height)
 {

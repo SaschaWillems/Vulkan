@@ -654,6 +654,12 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		camera.setPerspective(60.0f, (float)width * 0.5f / (float)height, 1.0f, 256.0f);
+		updateUniformBuffers();
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {

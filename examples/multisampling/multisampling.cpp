@@ -48,6 +48,7 @@ public:
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
+	VkExtent2D attachmentSize;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -186,7 +187,9 @@ public:
 		viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
 		viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
 		viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT)
+			viewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
 
@@ -199,6 +202,8 @@ public:
 	void setupRenderPass()
 	{
 		// Overrides the virtual function of the base class
+		
+		attachmentSize = { width, height };
 
 		std::array<VkAttachmentDescription, 3> attachments = {};
 
@@ -290,6 +295,20 @@ public:
 	{
 		// Overrides the virtual function of the base class
 
+		// SRS - If the window is resized, the MSAA attachments need to be released and recreated
+		if (attachmentSize.width != width || attachmentSize.height != height)
+		{
+			attachmentSize = { width, height };
+			
+			// Destroy MSAA target
+			vkDestroyImage(device, multisampleTarget.color.image, nullptr);
+			vkDestroyImageView(device, multisampleTarget.color.view, nullptr);
+			vkFreeMemory(device, multisampleTarget.color.memory, nullptr);
+			vkDestroyImage(device, multisampleTarget.depth.image, nullptr);
+			vkDestroyImageView(device, multisampleTarget.depth.view, nullptr);
+			vkFreeMemory(device, multisampleTarget.depth.memory, nullptr);
+		}
+		
 		std::array<VkImageView, 3> attachments;
 
 		setupMultisampleTarget();
@@ -522,6 +541,11 @@ public:
 		if (camera.updated) {
 			updateUniformBuffers();
 		}
+	}
+
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
 	}
 
 	// Returns the maximum sample count usable by the platform

@@ -6,6 +6,7 @@
  */
 
 #import "AppDelegate.h"
+#import "DemoViewController.h"
 
 @interface AppDelegate ()
 
@@ -19,6 +20,7 @@
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
     // Insert code here to tear down your application
+	[(DemoViewController *)_viewController shutdownExample];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {

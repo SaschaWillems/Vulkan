@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Scene rendering
 *
-* Copyright (C) 2020-2021 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-202- by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
@@ -20,6 +20,9 @@
 
 VulkanglTFScene::~VulkanglTFScene()
 {
+	for (auto node : nodes) {
+		delete node;
+	}
 	// Release all Vulkan resources allocated for the model
 	vkDestroyBuffer(vulkanDevice->logicalDevice, vertices.buffer, nullptr);
 	vkFreeMemory(vulkanDevice->logicalDevice, vertices.memory, nullptr);
@@ -87,30 +90,31 @@ void VulkanglTFScene::loadMaterials(tinygltf::Model& input)
 
 void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, VulkanglTFScene::Node* parent, std::vector<uint32_t>& indexBuffer, std::vector<VulkanglTFScene::Vertex>& vertexBuffer)
 {
-	VulkanglTFScene::Node node{};
-	node.name = inputNode.name;
+	VulkanglTFScene::Node* node = new VulkanglTFScene::Node{};
+	node->name = inputNode.name;
+	node->parent = parent;
 	
 	// Get the local node matrix
 	// It's either made up from translation, rotation, scale or a 4x4 matrix
-	node.matrix = glm::mat4(1.0f);
+	node->matrix = glm::mat4(1.0f);
 	if (inputNode.translation.size() == 3) {
-		node.matrix = glm::translate(node.matrix, glm::vec3(glm::make_vec3(inputNode.translation.data())));
+		node->matrix = glm::translate(node->matrix, glm::vec3(glm::make_vec3(inputNode.translation.data())));
 	}
 	if (inputNode.rotation.size() == 4) {
 		glm::quat q = glm::make_quat(inputNode.rotation.data());
-		node.matrix *= glm::mat4(q);
+		node->matrix *= glm::mat4(q);
 	}
 	if (inputNode.scale.size() == 3) {
-		node.matrix = glm::scale(node.matrix, glm::vec3(glm::make_vec3(inputNode.scale.data())));
+		node->matrix = glm::scale(node->matrix, glm::vec3(glm::make_vec3(inputNode.scale.data())));
 	}
 	if (inputNode.matrix.size() == 16) {
-		node.matrix = glm::make_mat4x4(inputNode.matrix.data());
+		node->matrix = glm::make_mat4x4(inputNode.matrix.data());
 	};
 
 	// Load node's children
 	if (inputNode.children.size() > 0) {
 		for (size_t i = 0; i < inputNode.children.size(); i++) {
-			loadNode(input.nodes[inputNode.children[i]], input, &node, indexBuffer, vertexBuffer);
+			loadNode(input.nodes[inputNode.children[i]], input, node, indexBuffer, vertexBuffer);
 		}
 	}
 
@@ -210,7 +214,7 @@ void VulkanglTFScene::loadNode(const tinygltf::Node& inputNode, const tinygltf::
 			primitive.firstIndex = firstIndex;
 			primitive.indexCount = indexCount;
 			primitive.materialIndex = glTFPrimitive.material;
-			node.mesh.primitives.push_back(primitive);
+			node->mesh.primitives.push_back(primitive);
 		}
 	}
 
@@ -232,23 +236,23 @@ VkDescriptorImageInfo VulkanglTFScene::getTextureDescriptor(const size_t index)
 */
 
 // Draw a single node including child nodes (if present)
-void VulkanglTFScene::drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFScene::Node node)
+void VulkanglTFScene::drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFScene::Node* node)
 {
-	if (!node.visible) {
+	if (!node->visible) {
 		return;
 	}
-	if (node.mesh.primitives.size() > 0) {
+	if (node->mesh.primitives.size() > 0) {
 		// Pass the node's matrix via push constants
 		// Traverse the node hierarchy to the top-most parent to get the final matrix of the current node
-		glm::mat4 nodeMatrix = node.matrix;
-		VulkanglTFScene::Node* currentParent = node.parent;
+		glm::mat4 nodeMatrix = node->matrix;
+		VulkanglTFScene::Node* currentParent = node->parent;
 		while (currentParent) {
 			nodeMatrix = currentParent->matrix * nodeMatrix;
 			currentParent = currentParent->parent;
 		}
 		// Pass the final matrix to the vertex shader using push constants
 		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &nodeMatrix);
-		for (VulkanglTFScene::Primitive& primitive : node.mesh.primitives) {
+		for (VulkanglTFScene::Primitive& primitive : node->mesh.primitives) {
 			if (primitive.indexCount > 0) {
 				VulkanglTFScene::Material& material = materials[primitive.materialIndex];
 				// POI: Bind the pipeline for the node's material
@@ -258,7 +262,7 @@ void VulkanglTFScene::drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout p
 			}
 		}
 	}
-	for (auto& child : node.children) {
+	for (auto& child : node->children) {
 		drawNode(commandBuffer, pipelineLayout, child);
 	}
 }
@@ -631,26 +635,31 @@ void VulkanExample::render()
 	}
 }
 
+void VulkanExample::viewChanged()
+{
+	updateUniformBuffers();
+}
+
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 {
 	if (overlay->header("Visibility")) {
 
 		if (overlay->button("All")) {
-			std::for_each(glTFScene.nodes.begin(), glTFScene.nodes.end(), [](VulkanglTFScene::Node &node) { node.visible = true; });
+			std::for_each(glTFScene.nodes.begin(), glTFScene.nodes.end(), [](VulkanglTFScene::Node* node) { node->visible = true; });
 			buildCommandBuffers();
 		}
 		ImGui::SameLine();
 		if (overlay->button("None")) {
-			std::for_each(glTFScene.nodes.begin(), glTFScene.nodes.end(), [](VulkanglTFScene::Node &node) { node.visible = false; });
+			std::for_each(glTFScene.nodes.begin(), glTFScene.nodes.end(), [](VulkanglTFScene::Node* node) { node->visible = false; });
 			buildCommandBuffers();
 		}
 		ImGui::NewLine();
 
 		// POI: Create a list of glTF nodes for visibility toggle
-		ImGui::BeginChild("#nodelist", ImVec2(200.0f, 340.0f), false);
-		for (auto &node : glTFScene.nodes)
+		ImGui::BeginChild("#nodelist", ImVec2(200.0f * overlay->scale, 340.0f * overlay->scale), false);
+		for (auto& node : glTFScene.nodes)
 		{		
-			if (overlay->checkBox(node.name.c_str(), &node.visible))
+			if (overlay->checkBox(node->name.c_str(), &node->visible))
 			{
 				buildCommandBuffers();
 			}

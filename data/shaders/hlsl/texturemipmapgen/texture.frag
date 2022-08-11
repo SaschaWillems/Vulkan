@@ -3,19 +3,30 @@
 Texture2D textureColor : register(t1);
 SamplerState samplers[3] : register(s2);
 
+struct UBO
+{
+	float4x4 projection;
+	float4x4 view;
+	float4x4 model;
+	float4 viewPos;
+	float lodBias;
+	int samplerIndex;
+};
+
+cbuffer ubo : register(b0) { UBO ubo; }
+
 struct VSOutput
 {
 [[vk::location(0)]] float2 UV : TEXCOORD0;
 [[vk::location(1)]] float LodBias : TEXCOORD3;
-[[vk::location(2)]] int SamplerIndex : TEXCOORD4;
-[[vk::location(3)]] float3 Normal : NORMAL0;
-[[vk::location(4)]] float3 ViewVec : TEXCOORD1;
-[[vk::location(5)]] float3 LightVec : TEXCOORD2;
+[[vk::location(2)]] float3 Normal : NORMAL0;
+[[vk::location(3)]] float3 ViewVec : TEXCOORD1;
+[[vk::location(4)]] float3 LightVec : TEXCOORD2;
 };
 
 float4 main(VSOutput input) : SV_TARGET
 {
-	float4 color = textureColor.Sample(samplers[input.SamplerIndex], input.UV, int2(0, 0), input.LodBias);
+	float4 color = textureColor.Sample(samplers[ubo.samplerIndex], input.UV, int2(0, 0), input.LodBias);
 
 	float3 N = normalize(input.Normal);
 	float3 L = normalize(input.LightVec);

@@ -116,6 +116,7 @@ public:
 	void updateUniformBuffers();
 	void prepare();
 	virtual void render();
+	virtual void viewChanged();
 	void uploadContent(VirtualTexturePage page, VkImage image);
 	void fillRandomPages();
 	void fillMipTail();

@@ -69,7 +69,7 @@ namespace vks
 		UIOverlay();
 		~UIOverlay();
 
-		void preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass);
+		void preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass, const VkFormat colorFormat, const VkFormat depthFormat);
 		void prepareResources();
 
 		bool update();

@@ -499,6 +499,11 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBuffer(true);
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (!vulkanDevice->features.multiDrawIndirect) {

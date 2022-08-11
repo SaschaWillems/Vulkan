@@ -96,7 +96,6 @@ class VulkanExampleBase
 {
 private:
 	std::string getWindowTitle();
-	bool viewUpdated = false;
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;
@@ -119,7 +118,7 @@ protected:
 	// Frame counter to display fps
 	uint32_t frameCounter = 0;
 	uint32_t lastFPS = 0;
-	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp;
+	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp, tPrevEnd;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
 	std::vector<std::string> supportedInstanceExtensions;
@@ -177,6 +176,7 @@ protected:
 public:
 	bool prepared = false;
 	bool resized = false;
+	bool viewUpdated = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
 
@@ -254,6 +254,9 @@ public:
 	int64_t lastTapTime = 0;
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	void* view;
+#if defined(VK_EXAMPLE_XCODE_GENERATED)
+	bool quit = false;
+#endif
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
 	bool quit = false;
 	IDirectFB *dfb = nullptr;

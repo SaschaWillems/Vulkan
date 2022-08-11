@@ -314,7 +314,9 @@ public:
 		}
 		if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
 		{
-			aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+			aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (format >= VK_FORMAT_D16_UNORM_S8_UINT)
+				aspectMask |=VK_IMAGE_ASPECT_STENCIL_BIT;
 			imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		}
 
@@ -868,6 +870,11 @@ public:
 		draw();
 		if (camera.updated)
 			updateUniformBuffers();
+	}
+
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

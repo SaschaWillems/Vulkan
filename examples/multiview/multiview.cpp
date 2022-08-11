@@ -98,6 +98,7 @@ public:
 		vkDestroySampler(device, multiviewPass.sampler, nullptr);
 		vkDestroyFramebuffer(device, multiviewPass.frameBuffer, nullptr);
 
+		vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(multiviewPass.commandBuffers.size()), multiviewPass.commandBuffers.data());
 		vkDestroySemaphore(device, multiviewPass.semaphore, nullptr);
 		for (auto& fence : multiviewPass.waitFences) {
 			vkDestroyFence(device, fence, nullptr);
@@ -150,7 +151,9 @@ public:
 			depthStencilView.format = depthFormat;
 			depthStencilView.flags = 0;
 			depthStencilView.subresourceRange = {};
-			depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+			depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT)
+				depthStencilView.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 			depthStencilView.subresourceRange.baseMipLevel = 0;
 			depthStencilView.subresourceRange.levelCount = 1;
 			depthStencilView.subresourceRange.baseArrayLayer = 0;
@@ -337,6 +340,9 @@ public:
 
 	void buildCommandBuffers()
 	{
+		if (resized)
+			return;
+
 		/*
 			View display
 		*/
@@ -391,11 +397,6 @@ public:
 		/*
 			Multiview layered attachment scene rendering
 		*/
-
-		multiviewPass.commandBuffers.resize(drawCmdBuffers.size());
-
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, multiviewPass.commandBuffers.data()));
 
 		{
 			VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -467,13 +468,18 @@ public:
 		*/
 		VkDescriptorSetAllocateInfo allocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocateInfo, &descriptorSet));
+		updateDescriptors();
+	}
+
+	void updateDescriptors()
+	{
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &multiviewPass.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
-
+	
 	void preparePipelines()
 	{
 
@@ -669,6 +675,11 @@ public:
 		prepareUniformBuffers();
 		prepareDescriptors();
 		preparePipelines();
+		
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
+		multiviewPass.commandBuffers.resize(drawCmdBuffers.size());
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, multiviewPass.commandBuffers.data()));
+
 		buildCommandBuffers();
 
 		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
@@ -680,6 +691,45 @@ public:
 		prepared = true;
 	}
 
+	// SRS - Recreate and update Multiview resources when window size has changed
+	virtual void windowResized()
+	{
+		vkDestroyImageView(device, multiviewPass.color.view, nullptr);
+		vkDestroyImage(device, multiviewPass.color.image, nullptr);
+		vkFreeMemory(device, multiviewPass.color.memory, nullptr);
+		vkDestroyImageView(device, multiviewPass.depth.view, nullptr);
+		vkDestroyImage(device, multiviewPass.depth.image, nullptr);
+		vkFreeMemory(device, multiviewPass.depth.memory, nullptr);
+
+		vkDestroyRenderPass(device, multiviewPass.renderPass, nullptr);
+		vkDestroySampler(device, multiviewPass.sampler, nullptr);
+		vkDestroyFramebuffer(device, multiviewPass.frameBuffer, nullptr);
+
+		prepareMultiview();
+		updateDescriptors();
+		
+		// SRS - Recreate Multiview command buffers in case number of swapchain images has changed on resize
+		vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(multiviewPass.commandBuffers.size()), multiviewPass.commandBuffers.data());
+
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
+		multiviewPass.commandBuffers.resize(drawCmdBuffers.size());
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, multiviewPass.commandBuffers.data()));
+
+		resized = false;
+		buildCommandBuffers();
+		
+		// SRS - Recreate Multiview fences in case number of swapchain images has changed on resize
+		for (auto& fence : multiviewPass.waitFences) {
+			vkDestroyFence(device, fence, nullptr);
+		}
+		
+		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+		multiviewPass.waitFences.resize(multiviewPass.commandBuffers.size());
+		for (auto& fence : multiviewPass.waitFences) {
+			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+		}
+	}
+
 	virtual void render()
 	{
 		if (!prepared)
@@ -688,6 +738,11 @@ public:
 		if (camera.updated) {
 			updateUniformBuffers();
 		}
+	}
+
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

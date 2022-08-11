@@ -232,5 +232,6 @@ class VulkanExample : public VulkanExampleBase
 	void         updateUniformBuffers();
 	void         prepare();
 	virtual void render();
+	virtual void viewChanged();
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);
 };

@@ -1340,6 +1340,11 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBuffers();
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {

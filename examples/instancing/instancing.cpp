@@ -482,6 +482,11 @@ public:
 		}
 	}
 
+	virtual void viewChanged()
+	{
+		updateUniformBuffer(true);
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Statistics")) {

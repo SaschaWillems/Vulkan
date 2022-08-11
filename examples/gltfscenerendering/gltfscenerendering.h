@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Scene rendering
 *
-* Copyright (C) 2020 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2022 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
@@ -76,11 +76,16 @@ public:
 	// A node represents an object in the glTF scene graph
 	struct Node {
 		Node* parent;
-		std::vector<Node> children;
+		std::vector<Node*> children;
 		Mesh mesh;
 		glm::mat4 matrix;
 		std::string name;
 		bool visible = true;
+		~Node() {
+			for (auto& child : children) {
+				delete child;
+			}
+		}
 	};
 
 	// A glTF material stores information in e.g. the texture that is attached to it and colors
@@ -113,7 +118,7 @@ public:
 	std::vector<Image> images;
 	std::vector<Texture> textures;
 	std::vector<Material> materials;
-	std::vector<Node> nodes;
+	std::vector<Node*> nodes;
 
 	std::string path;
 
@@ -123,7 +128,7 @@ public:
 	void loadTextures(tinygltf::Model& input);
 	void loadMaterials(tinygltf::Model& input);
 	void loadNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, VulkanglTFScene::Node* parent, std::vector<uint32_t>& indexBuffer, std::vector<VulkanglTFScene::Vertex>& vertexBuffer);
-	void drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFScene::Node node);
+	void drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VulkanglTFScene::Node* node);
 	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout);
 };
 
@@ -162,5 +167,6 @@ public:
 	void updateUniformBuffers();
 	void prepare();
 	virtual void render();
+	virtual void viewChanged();
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay);
 };

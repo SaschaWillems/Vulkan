@@ -10,7 +10,6 @@
 
 #if (defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_EXAMPLE_XCODE_GENERATED))
 #include <Cocoa/Cocoa.h>
-#include <Carbon/Carbon.h>
 #include <QuartzCore/CAMetalLayer.h>
 #include <CoreVideo/CVDisplayLink.h>
 #endif
@@ -54,12 +53,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 #elif defined(VK_USE_PLATFORM_HEADLESS_EXT)
 	instanceExtensions.push_back(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
 #endif
-
-#if defined(VK_USE_PLATFORM_MACOS_MVK) && (VK_HEADER_VERSION >= 216)
-    instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-    instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-#endif
-
+	
 	// Get extensions supported by the instance and store for later use
 	uint32_t extCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extCount, nullptr);
@@ -74,6 +68,14 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 			}
 		}
 	}
+
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+	// SRS - When running on iOS/macOS with MoltenVK, enable VK_KHR_get_physical_device_properties2 if not already enabled by the example (required by VK_KHR_portability_subset)
+	if (std::find(enabledInstanceExtensions.begin(), enabledInstanceExtensions.end(), VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == enabledInstanceExtensions.end())
+	{
+		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+	}
+#endif
 
 	// Enabled requested instance extensions
 	if (enabledInstanceExtensions.size() > 0) 
@@ -94,14 +96,20 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceCreateInfo.pNext = NULL;
 	instanceCreateInfo.pApplicationInfo = &appInfo;
 
-#if defined(VK_USE_PLATFORM_MACOS_MVK) && (VK_HEADER_VERSION >= 216)
-    instanceCreateInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK)) && defined(VK_KHR_portability_enumeration)
+	// SRS - When running on iOS/macOS with MoltenVK and VK_KHR_portability_enumeration is defined and supported by the instance, enable the extension and the flag
+	if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) != supportedInstanceExtensions.end())
+	{
+		instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+		instanceCreateInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+	}
 #endif
 
 	if (instanceExtensions.size() > 0)
 	{
 		if (settings.validation)
 		{
+			instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);	// SRS - Dependency when VK_EXT_DEBUG_MARKER is enabled
 			instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
@@ -209,7 +217,7 @@ void VulkanExampleBase::prepare()
 			loadShader(getShadersPath() + "base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
 		};
 		UIOverlay.prepareResources();
-		UIOverlay.preparePipeline(pipelineCache, renderPass);
+		UIOverlay.preparePipeline(pipelineCache, renderPass, swapChain.colorFormat, depthFormat);
 	}
 }
 
@@ -241,7 +249,12 @@ void VulkanExampleBase::nextFrame()
 	render();
 	frameCounter++;
 	auto tEnd = std::chrono::high_resolution_clock::now();
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || (defined(VK_USE_PLATFORM_MACOS_MVK) && !defined(VK_EXAMPLE_XCODE_GENERATED)))
+	// SRS - Calculate tDiff as time between frames vs. rendering time for iOS/macOS displayLink-driven examples project
+	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tPrevEnd).count();
+#else
 	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+#endif
 	frameTimer = (float)tDiff / 1000.0f;
 	camera.update(frameTimer);
 	if (camera.moving())
@@ -270,12 +283,17 @@ void VulkanExampleBase::nextFrame()
 		frameCounter = 0;
 		lastTimestamp = tEnd;
 	}
+	tPrevEnd = tEnd;
+	
 	// TODO: Cap UI overlay update rates
 	updateOverlay();
 }
 
 void VulkanExampleBase::renderLoop()
 {
+// SRS - for non-apple plaforms, handle benchmarking here within VulkanExampleBase::renderLoop()
+//     - for macOS, handle benchmarking within NSApp rendering loop via displayLinkOutputCb()
+#if !(defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	if (benchmark.active) {
 		benchmark.run([=] { render(); }, vulkanDevice->properties);
 		vkDeviceWaitIdle(device);
@@ -284,10 +302,12 @@ void VulkanExampleBase::renderLoop()
 		}
 		return;
 	}
+#endif
 
 	destWidth = width;
 	destHeight = height;
 	lastTimestamp = std::chrono::high_resolution_clock::now();
+	tPrevEnd = lastTimestamp;
 #if defined(_WIN32)
 	MSG msg;
 	bool quitMessageReceived = false;
@@ -650,13 +670,14 @@ void VulkanExampleBase::updateOverlay()
 	io.DeltaTime = frameTimer;
 
 	io.MousePos = ImVec2(mousePos.x, mousePos.y);
-	io.MouseDown[0] = mouseButtons.left;
-	io.MouseDown[1] = mouseButtons.right;
+	io.MouseDown[0] = mouseButtons.left && UIOverlay.visible;
+	io.MouseDown[1] = mouseButtons.right && UIOverlay.visible;
+	io.MouseDown[2] = mouseButtons.middle && UIOverlay.visible;
 
 	ImGui::NewFrame();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-	ImGui::SetNextWindowPos(ImVec2(10, 10));
+	ImGui::SetNextWindowPos(ImVec2(10 * UIOverlay.scale, 10 * UIOverlay.scale));
 	ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiSetCond_FirstUseEver);
 	ImGui::Begin("Vulkan Example", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 	ImGui::TextUnformatted(title.c_str());
@@ -691,7 +712,7 @@ void VulkanExampleBase::updateOverlay()
 
 void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 {
-	if (settings.overlay) {
+	if (settings.overlay && UIOverlay.visible) {
 		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -705,9 +726,13 @@ void VulkanExampleBase::prepareFrame()
 {
 	// Acquire the next image from the swap chain
 	VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
-	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
+	// SRS - If no longer optimal (VK_SUBOPTIMAL_KHR), wait until submitFrame() in case number of swapchain images will change on resize
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-		windowResize();
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			windowResize();
+		}
+		return;
 	}
 	else {
 		VK_CHECK_RESULT(result);
@@ -717,14 +742,15 @@ void VulkanExampleBase::prepareFrame()
 void VulkanExampleBase::submitFrame()
 {
 	VkResult result = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
+	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+		windowResize();
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			// Swap chain is no longer compatible with the surface and needs to be recreated
-			windowResize();
 			return;
-		} else {
-			VK_CHECK_RESULT(result);
 		}
+	}
+	else {
+		VK_CHECK_RESULT(result);
 	}
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
@@ -1195,9 +1221,8 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			paused = !paused;
 			break;
 		case KEY_F1:
-			if (settings.overlay) {
-				UIOverlay.visible = !UIOverlay.visible;
-			}
+			UIOverlay.visible = !UIOverlay.visible;
+			UIOverlay.updated = true;
 			break;
 		case KEY_ESCAPE:
 			PostQuitMessage(0);
@@ -1374,7 +1399,7 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						bool handled = false;
 						if (vulkanExample->settings.overlay) {
 							ImGuiIO& io = ImGui::GetIO();
-							handled = io.WantCaptureMouse;
+							handled = io.WantCaptureMouse && vulkanExample->UIOverlay.visible;
 						}
 						if (!handled) {
 							int32_t eventX = AMotionEvent_getX(event, 0);
@@ -1426,14 +1451,21 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 		case AKEYCODE_BUTTON_Y:
 			vulkanExample->keyPressed(GAMEPAD_BUTTON_Y);
 			break;
+		case AKEYCODE_1:							// support keyboards with no function keys
+		case AKEYCODE_F1:
 		case AKEYCODE_BUTTON_L1:
-			vulkanExample->keyPressed(GAMEPAD_BUTTON_L1);
+			vulkanExample->UIOverlay.visible = !vulkanExample->UIOverlay.visible;
+			vulkanExample->UIOverlay.updated = true;
 			break;
 		case AKEYCODE_BUTTON_R1:
 			vulkanExample->keyPressed(GAMEPAD_BUTTON_R1);
 			break;
+		case AKEYCODE_P:
 		case AKEYCODE_BUTTON_START:
 			vulkanExample->paused = !vulkanExample->paused;
+			break;
+		default:
+			vulkanExample->keyPressed(keyCode);		// handle example-specific key press events
 			break;
 		};
 
@@ -1496,6 +1528,8 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 #if defined(VK_EXAMPLE_XCODE_GENERATED)
 @interface AppDelegate : NSObject<NSApplicationDelegate>
 {
+@public
+	VulkanExampleBase *vulkanExample;
 }
 
 @end
@@ -1504,12 +1538,49 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 {
 }
 
+// SRS - Dispatch rendering loop onto a queue for max frame rate concurrent rendering vs displayLink vsync rendering
+//     - vsync command line option (-vs) on macOS now works like other platforms (using VK_PRESENT_MODE_FIFO_KHR)
+dispatch_group_t concurrentGroup;
+
+- (void)applicationDidFinishLaunching:(NSNotification *)aNotification
+{
+	[NSApp activateIgnoringOtherApps:YES];		// SRS - Make sure app window launches in front of Xcode window
+	
+	concurrentGroup = dispatch_group_create();
+	dispatch_queue_t concurrentQueue = dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0);
+	dispatch_group_async(concurrentGroup, concurrentQueue, ^{
+
+		while (!vulkanExample->quit) {
+			vulkanExample->displayLinkOutputCb();
+		}
+	});
+	
+	// SRS - When benchmarking, set up termination notification on main thread when concurrent queue completes
+	if (vulkanExample->benchmark.active) {
+		dispatch_queue_t notifyQueue = dispatch_get_main_queue();
+		dispatch_group_notify(concurrentGroup, notifyQueue, ^{ [NSApp terminate:nil]; });
+	}
+}
+
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
 {
 	return YES;
 }
 
+// SRS - Tell rendering loop to quit, then wait for concurrent queue to terminate before deleting vulkanExample
+- (void)applicationWillTerminate:(NSNotification *)aNotification
+{
+	vulkanExample->quit = YES;
+	dispatch_group_wait(concurrentGroup, DISPATCH_TIME_FOREVER);
+	vkDeviceWaitIdle(vulkanExample->vulkanDevice->logicalDevice);
+	delete(vulkanExample);
+}
+
 @end
+
+const std::string getAssetPath() {
+    return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../data/"].UTF8String;
+}
 
 static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
 	const CVTimeStamp *inOutputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut,
@@ -1550,7 +1621,9 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 - (void)viewDidMoveToWindow
 {
 	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
-	CVDisplayLinkSetOutputCallback(displayLink, &displayLinkOutputCallback, vulkanExample);
+	// SRS - Disable displayLink vsync rendering in favour of max frame rate concurrent rendering
+	//     - vsync command line option (-vs) on macOS now works like other platforms (using VK_PRESENT_MODE_FIFO_KHR)
+	//CVDisplayLinkSetOutputCallback(displayLink, &displayLinkOutputCallback, vulkanExample);
 	CVDisplayLinkStart(displayLink);
 }
 
@@ -1559,29 +1632,41 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 	return YES;
 }
 
+- (BOOL)acceptsFirstMouse:(NSEvent *)event
+{
+	return YES;
+}
+
 - (void)keyDown:(NSEvent*)event
 {
 	switch (event.keyCode)
 	{
-		case kVK_ANSI_P:
+		case KEY_P:
 			vulkanExample->paused = !vulkanExample->paused;
 			break;
-		case kVK_Escape:
+		case KEY_1:										// support keyboards with no function keys
+		case KEY_F1:
+			vulkanExample->UIOverlay.visible = !vulkanExample->UIOverlay.visible;
+			vulkanExample->UIOverlay.updated = true;
+			break;
+		case KEY_DELETE:								// support keyboards with no escape key
+		case KEY_ESCAPE:
 			[NSApp terminate:nil];
 			break;
-		case kVK_ANSI_W:
+		case KEY_W:
 			vulkanExample->camera.keys.up = true;
 			break;
-		case kVK_ANSI_S:
+		case KEY_S:
 			vulkanExample->camera.keys.down = true;
 			break;
-		case kVK_ANSI_A:
+		case KEY_A:
 			vulkanExample->camera.keys.left = true;
 			break;
-		case kVK_ANSI_D:
+		case KEY_D:
 			vulkanExample->camera.keys.right = true;
 			break;
 		default:
+			vulkanExample->keyPressed(event.keyCode);	// handle example-specific key press events
 			break;
 	}
 }
@@ -1590,17 +1675,17 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 {
 	switch (event.keyCode)
 	{
-		case kVK_ANSI_W:
+		case KEY_W:
 			vulkanExample->camera.keys.up = false;
 			break;
-		case kVK_ANSI_S:
+		case KEY_S:
 			vulkanExample->camera.keys.down = false;
 			break;
-		case kVK_ANSI_A:
+		case KEY_A:
 			vulkanExample->camera.keys.left = false;
-		break;
-			case kVK_ANSI_D:
-		vulkanExample->camera.keys.right = false;
+			break;
+		case KEY_D:
+			vulkanExample->camera.keys.right = false;
 			break;
 		default:
 			break;
@@ -1624,22 +1709,46 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 
 - (void)mouseUp:(NSEvent *)event
 {
-	auto point = [self getMouseLocalPoint:event];
-	vulkanExample->mousePos = glm::vec2(point.x, point.y);
 	vulkanExample->mouseButtons.left = false;
 }
 
-- (void)otherMouseDown:(NSEvent *)event
+- (void)rightMouseDown:(NSEvent *)event
 {
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mousePos = glm::vec2(point.x, point.y);
 	vulkanExample->mouseButtons.right = true;
 }
 
-- (void)otherMouseUp:(NSEvent *)event
+- (void)rightMouseUp:(NSEvent *)event
 {
 	vulkanExample->mouseButtons.right = false;
 }
 
+- (void)otherMouseDown:(NSEvent *)event
+{
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mousePos = glm::vec2(point.x, point.y);
+	vulkanExample->mouseButtons.middle = true;
+}
+
+- (void)otherMouseUp:(NSEvent *)event
+{
+	vulkanExample->mouseButtons.middle = false;
+}
+
 - (void)mouseDragged:(NSEvent *)event
+{
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mouseDragged(point.x, point.y);
+}
+
+- (void)rightMouseDragged:(NSEvent *)event
+{
+	auto point = [self getMouseLocalPoint:event];
+	vulkanExample->mouseDragged(point.x, point.y);
+}
+
+- (void)otherMouseDragged:(NSEvent *)event
 {
 	auto point = [self getMouseLocalPoint:event];
 	vulkanExample->mouseDragged(point.x, point.y);
@@ -1656,8 +1765,12 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 	short wheelDelta = [event deltaY];
 	vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f,
 		-(float)wheelDelta * 0.05f * vulkanExample->camera.movementSpeed));
+	vulkanExample->viewUpdated = true;
 }
 
+// SRS - Window resizing already handled by windowResize() in VulkanExampleBase::submitFrame()
+//	   - handling window resize events here is redundant and can cause thread interaction problems
+/*
 - (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
 {
 	CVDisplayLinkStop(displayLink);
@@ -1670,6 +1783,17 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 	vulkanExample->windowDidResize();
 	CVDisplayLinkStart(displayLink);
 }
+*/
+
+- (void)windowWillEnterFullScreen:(NSNotification *)notification
+{
+	vulkanExample->settings.fullscreen = true;
+}
+
+- (void)windowWillExitFullScreen:(NSNotification *)notification
+{
+	vulkanExample->settings.fullscreen = false;
+}
 
 - (BOOL)windowShouldClose:(NSWindow *)sender
 {
@@ -1679,6 +1803,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 - (void)windowWillClose:(NSNotification *)notification
 {
 	CVDisplayLinkStop(displayLink);
+	CVDisplayLinkRelease(displayLink);
 }
 
 @end
@@ -1689,7 +1814,9 @@ void* VulkanExampleBase::setupWindow(void* view)
 #if defined(VK_EXAMPLE_XCODE_GENERATED)
 	NSApp = [NSApplication sharedApplication];
 	[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-	[NSApp setDelegate:[AppDelegate new]];
+	auto nsAppDelegate = [AppDelegate new];
+	nsAppDelegate->vulkanExample = this;
+	[NSApp setDelegate:nsAppDelegate];
 
 	const auto kContentRect = NSMakeRect(0.0f, 0.0f, width, height);
 	const auto kWindowStyle = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
@@ -1702,6 +1829,9 @@ void* VulkanExampleBase::setupWindow(void* view)
 	[window setAcceptsMouseMovedEvents:YES];
 	[window center];
 	[window makeKeyAndOrderFront:nil];
+	if (settings.fullscreen) {
+		[window toggleFullScreen:nil];
+	}
 
 	auto nsView = [[View alloc] initWithFrame:kContentRect];
 	nsView->vulkanExample = this;
@@ -1716,6 +1846,17 @@ void* VulkanExampleBase::setupWindow(void* view)
 
 void VulkanExampleBase::displayLinkOutputCb()
 {
+#if defined(VK_EXAMPLE_XCODE_GENERATED)
+	if (benchmark.active) {
+		benchmark.run([=] { render(); }, vulkanDevice->properties);
+		if (benchmark.filename != "") {
+			benchmark.saveResults();
+		}
+		quit = true;	// SRS - quit NSApp rendering loop when benchmarking complete
+		return;
+	}
+#endif
+
 	if (prepared)
 		nextFrame();
 }
@@ -1895,9 +2036,8 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				if (settings.overlay) {
-					settings.overlay = !settings.overlay;
-				}
+				UIOverlay.visible = !UIOverlay.visible;
+				UIOverlay.updated = true;
 				break;
 			default:
 				break;
@@ -2070,10 +2210,12 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 			paused = !paused;
 		break;
 	case KEY_F1:
-		if (state && settings.overlay)
-			settings.overlay = !settings.overlay;
+		if (state) {
+			UIOverlay.visible = !UIOverlay.visible;
+			UIOverlay.updated = true;
+		}
 		break;
-	case KEY_ESC:
+	case KEY_ESCAPE:
 		quit = true;
 		break;
 	}
@@ -2431,9 +2573,8 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				if (settings.overlay) {
-					settings.overlay = !settings.overlay;
-				}
+				UIOverlay.visible = !UIOverlay.visible;
+				UIOverlay.updated = true;
 				break;
 		}
 	}
@@ -2695,6 +2836,12 @@ void VulkanExampleBase::windowResize()
 	destroyCommandBuffers();
 	createCommandBuffers();
 	buildCommandBuffers();
+	
+	// SRS - Recreate fences in case number of swapchain images has changed on resize
+	for (auto& fence : waitFences) {
+		vkDestroyFence(device, fence, nullptr);
+	}
+	createSynchronizationPrimitives();
 
 	vkDeviceWaitIdle(device);
 
@@ -2718,7 +2865,7 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 
 	if (settings.overlay) {
 		ImGuiIO& io = ImGui::GetIO();
-		handled = io.WantCaptureMouse;
+		handled = io.WantCaptureMouse && UIOverlay.visible;
 	}
 	mouseMoved((float)x, (float)y, handled);
 
@@ -2736,7 +2883,7 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 		viewUpdated = true;
 	}
 	if (mouseButtons.middle) {
-		camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+		camera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
 		viewUpdated = true;
 	}
 	mousePos = glm::vec2((float)x, (float)y);
@@ -2765,7 +2912,7 @@ void VulkanExampleBase::initSwapchain()
 
 void VulkanExampleBase::setupSwapChain()
 {
-	swapChain.create(&width, &height, settings.vsync);
+	swapChain.create(&width, &height, settings.vsync, settings.fullscreen);
 }
 
 void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}

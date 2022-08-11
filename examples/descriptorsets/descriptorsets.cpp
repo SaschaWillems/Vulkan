@@ -362,7 +362,7 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		if (animate) {
+		if (animate && !paused) {
 			cubes[0].rotation.x += 2.5f * frameTimer;
 			if (cubes[0].rotation.x > 360.0f)
 				cubes[0].rotation.x -= 360.0f;
@@ -370,7 +370,7 @@ public:
 			if (cubes[1].rotation.x > 360.0f)
 				cubes[1].rotation.x -= 360.0f;
 		}
-		if ((camera.updated) || (animate)) {
+		if ((camera.updated) || (animate && !paused)) {
 			updateUniformBuffers();
 		}
 	}
