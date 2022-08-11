@@ -57,6 +57,7 @@ void VulkanExample::handleResize()
 	vkFreeMemory(device, shadingRateImage.memory, nullptr);
 	// Recreate image
 	prepareShadingRateImage();
+	resized = false;
 }
 
 void VulkanExample::buildCommandBuffers()
