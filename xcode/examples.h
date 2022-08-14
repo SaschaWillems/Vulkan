@@ -191,7 +191,7 @@
 #   include "../examples/vertexattributes/vertexattributes.cpp"
 #endif
 
-// Does not run.  MoltenVK/Metal does not support stores and atomic operations in the fragment stage.
+// Runs, but some Apple GPUs may not support stores and atomic operations in the fragment stage.
 #ifdef MVK_oit
 #   include "../examples/oit/oit.cpp"
 #endif
@@ -222,7 +222,7 @@
 #   include "../examples/pushdescriptors/pushdescriptors.cpp"
 #endif
 
-// Does not run.  Shader compilation fails with MoltenVK.
+// Runs on macOS 11.0 or later with Metal argument buffers enabled.  Not yet supported on iOS.
 #ifdef MVK_descriptorindexing
 #   include "../examples/descriptorindexing/descriptorindexing.cpp"
 #endif
@@ -358,7 +358,7 @@
 #   include "../examples/graphicspipelinelibrary/graphicspipelinelibrary.cpp"
 #endif
 
-// Does not run yet. Requires VK_KHR_dynamic_rendering (under development in MoltenVK)
+// Runs on MoltenVK 1.1.10 (SDK 1.3.216) or later. Requires VK_KHR_dynamic_rendering and dependencies.
 #ifdef MVK_dynamicrendering
 #   include "../examples/dynamicrendering/dynamicrendering.cpp"
 #endif

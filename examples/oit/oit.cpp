@@ -234,7 +234,12 @@ private:
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+		// SRS - On macOS/iOS use linear tiling for atomic image access, see https://github.com/KhronosGroup/MoltenVK/issues/1027
+		imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
+#else
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+#endif
 		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 
 		VK_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &geometryPass.headIndex.image));
