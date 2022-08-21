@@ -97,9 +97,7 @@ void VulkanRaytracingSample::enableExtensions()
 
 	// Required by VK_KHR_acceleration_structure
 	enabledDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
-	if (!rayQueryOnly) {
-		enabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-	}
+	enabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
 	enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 
 	// Required for VK_KHR_ray_tracing_pipeline
