@@ -172,7 +172,6 @@ void VulkanExample::getEnabledFeatures()
 {
 	if (deviceFeatures.sparseBinding && deviceFeatures.sparseResidencyImage2D) {
 		enabledFeatures.shaderResourceResidency = VK_TRUE;
-		enabledFeatures.shaderResourceMinLod = VK_TRUE;
 		enabledFeatures.sparseBinding = VK_TRUE;
 		enabledFeatures.sparseResidencyImage2D = VK_TRUE;
 	}
