@@ -678,7 +678,8 @@ public:
 			glm::mat4 invCam = glm::inverse(camera.matrices.perspective * camera.matrices.view);
 			for (uint32_t i = 0; i < 8; i++) {
 				glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
-				frustumCorners[i] = invCorner / invCorner.w;
+				glm::vec4 frustumCornerConv = invCorner / invCorner.w;
+				frustumCorners[i] = glm::vec3(frustumCornerConv.x, frustumCornerConv.y, frustumCornerConv.z);
 			}
 
 			for (uint32_t i = 0; i < 4; i++) {

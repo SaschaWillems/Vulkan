@@ -776,7 +776,7 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 	glm::mat4 rotation = glm::mat4(1.0f);
 	if (node.rotation.size() == 4) {
 		glm::quat q = glm::make_quat(node.rotation.data());
-		newNode->rotation = glm::mat4(q);
+		newNode->rotation = q;
 	}
 	glm::vec3 scale = glm::vec3(1.0f);
 	if (node.scale.size() == 3) {
@@ -882,9 +882,9 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 
 				for (size_t v = 0; v < posAccessor.count; v++) {
 					Vertex vert{};
-					vert.pos = glm::vec4(glm::make_vec3(&bufferPos[v * 3]), 1.0f);
+					vert.pos = glm::make_vec3(&bufferPos[v * 3]);
 					vert.normal = glm::normalize(glm::vec3(bufferNormals ? glm::make_vec3(&bufferNormals[v * 3]) : glm::vec3(0.0f)));
-					vert.uv = bufferTexCoords ? glm::make_vec2(&bufferTexCoords[v * 2]) : glm::vec3(0.0f);
+					vert.uv = bufferTexCoords ? glm::make_vec2(&bufferTexCoords[v * 2]) : glm::vec2(0.0f);
 					if (bufferColors) {
 						switch (numColorComponents) {
 							case 3: 

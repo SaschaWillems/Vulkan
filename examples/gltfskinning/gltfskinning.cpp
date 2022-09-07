@@ -316,8 +316,7 @@ void VulkanglTFModel::loadNode(const tinygltf::Node &inputNode, const tinygltf::
 	}
 	if (inputNode.rotation.size() == 4)
 	{
-		glm::quat q    = glm::make_quat(inputNode.rotation.data());
-		node->rotation = glm::mat4(q);
+		node->rotation = glm::make_quat(inputNode.rotation.data());
 	}
 	if (inputNode.scale.size() == 3)
 	{
@@ -405,9 +404,9 @@ void VulkanglTFModel::loadNode(const tinygltf::Node &inputNode, const tinygltf::
 				for (size_t v = 0; v < vertexCount; v++)
 				{
 					Vertex vert{};
-					vert.pos          = glm::vec4(glm::make_vec3(&positionBuffer[v * 3]), 1.0f);
+					vert.pos          = glm::make_vec3(&positionBuffer[v * 3]);
 					vert.normal       = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f)));
-					vert.uv           = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f);
+					vert.uv           = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec2(0.0f);
 					vert.color        = glm::vec3(1.0f);
 					vert.jointIndices = hasSkin ? glm::vec4(glm::make_vec4(&jointIndicesBuffer[v * 4])) : glm::vec4(0.0f);
 					vert.jointWeights = hasSkin ? glm::make_vec4(&jointWeightsBuffer[v * 4]) : glm::vec4(0.0f);
@@ -546,7 +545,8 @@ void VulkanglTFModel::updateAnimation(float deltaTime)
 				float a = (animation.currentTime - sampler.inputs[i]) / (sampler.inputs[i + 1] - sampler.inputs[i]);
 				if (channel.path == "translation")
 				{
-					channel.node->translation = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], a);
+				  glm::vec4 mixedTranslation = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], a);
+				  channel.node->translation = glm::vec3(mixedTranslation.x, mixedTranslation.y, mixedTranslation.z);
 				}
 				if (channel.path == "rotation")
 				{
@@ -566,7 +566,8 @@ void VulkanglTFModel::updateAnimation(float deltaTime)
 				}
 				if (channel.path == "scale")
 				{
-					channel.node->scale = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], a);
+				        glm::vec4 mixedScale = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], a);
+					channel.node->scale = glm::vec3(mixedScale.x, mixedScale.y, mixedScale.z);
 				}
 			}
 		}
