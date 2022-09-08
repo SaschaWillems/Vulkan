@@ -131,6 +131,7 @@ set(EXAMPLES
 	raytracingbasic
 	raytracingcallable
 	raytracingreflections
+	raytracingsbtdata
 	raytracingshadows	
 	renderheadless
 	screenshot
