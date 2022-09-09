@@ -527,7 +527,7 @@ public:
 		const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 		const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &raygenShaderBindingTable, handleSize + sizeof(float) * 3));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &missShaderBindingTable, handleSize + sizeof(float) * 3));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &missShaderBindingTable, handleSize));
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &hitShaderBindingTable, handleSize + sizeof(float) * 3));
 
 		// Copy handles
@@ -755,7 +755,7 @@ public:
 			VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
 			raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(raygenShaderBindingTable.buffer);
 			raygenShaderSbtEntry.stride = handleSizeAligned;
-			raygenShaderSbtEntry.size = handleSizeAligned;
+			raygenShaderSbtEntry.size =  vks::tools::alignedSize(handleSizeAligned + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
 
 			VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
 			missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(missShaderBindingTable.buffer);
@@ -765,7 +765,7 @@ public:
 			VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
 			hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(hitShaderBindingTable.buffer);
 			hitShaderSbtEntry.stride = handleSizeAligned;
-			hitShaderSbtEntry.size = handleSizeAligned;
+			hitShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
 
 			VkStridedDeviceAddressRegionKHR callableShaderSbtEntry{};
 
