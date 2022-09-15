@@ -71,6 +71,7 @@ public:
 		}
 		else {
 			vks::tools::exitFatal("Selected GPU does not support multi viewports!", VK_ERROR_FEATURE_NOT_PRESENT);
+			exit(VK_ERROR_FEATURE_NOT_PRESENT);
 		}
 	}
 
