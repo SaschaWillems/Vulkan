@@ -25,7 +25,7 @@ void main()
 	outFragColor = vec4(diffuse, 1.0);
 
 	rayQueryEXT rayQuery;
-	rayQueryInitializeEXT(rayQuery, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsSkipAABBEXT, 0xFF, inWorldPos, 0.01, L, 1000.0);
+	rayQueryInitializeEXT(rayQuery, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, inWorldPos, 0.01, L, 1000.0);
 
 	// Traverse the acceleration structure and store information about the first intersection (if any)
 	rayQueryProceedEXT(rayQuery);
