@@ -50,7 +50,7 @@ public:
 		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 		vkDestroyPipeline(device, pipelines.phong, nullptr);
-		if (deviceFeatures.fillModeNonSolid)
+		if (enabledFeatures.fillModeNonSolid)
 		{
 			vkDestroyPipeline(device, pipelines.wireframe, nullptr);
 		}
@@ -68,11 +68,12 @@ public:
 		// Fill mode non solid is required for wireframe display
 		if (deviceFeatures.fillModeNonSolid) {
 			enabledFeatures.fillModeNonSolid = VK_TRUE;
-			// Wide lines must be present for line width > 1.0f
-			if (deviceFeatures.wideLines) {
-				enabledFeatures.wideLines = VK_TRUE;
-			}
 		};
+
+		// Wide lines must be present for line width > 1.0f
+		if (deviceFeatures.wideLines) {
+			enabledFeatures.wideLines = VK_TRUE;
+		}
 	}
 
 	void buildCommandBuffers()
@@ -114,6 +115,7 @@ public:
 			viewport.width = (float)width / 3.0;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
+			vkCmdSetLineWidth(drawCmdBuffers[i], 1.0f);
 			scene.draw(drawCmdBuffers[i]);
 
 			// Center : Toon
@@ -121,12 +123,12 @@ public:
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toon);
 			// Line width > 1.0f only if wide lines feature is supported
-			if (deviceFeatures.wideLines) {
+			if (enabledFeatures.wideLines) {
 				vkCmdSetLineWidth(drawCmdBuffers[i], 2.0f);
 			}
 			scene.draw(drawCmdBuffers[i]);
 
-			if (deviceFeatures.fillModeNonSolid)
+			if (enabledFeatures.fillModeNonSolid)
 			{
 				// Right : Wireframe
 				viewport.x = (float)width / 3.0 + (float)width / 3.0;
@@ -268,7 +270,7 @@ public:
 
 		// Pipeline for wire frame rendering
 		// Non solid rendering is not a mandatory Vulkan feature
-		if (deviceFeatures.fillModeNonSolid)
+		if (enabledFeatures.fillModeNonSolid)
 		{
 			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 			shaderStages[0] = loadShader(getShadersPath() + "pipelines/wireframe.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -342,7 +344,7 @@ public:
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		if (!deviceFeatures.fillModeNonSolid) {
+		if (!enabledFeatures.fillModeNonSolid) {
 			if (overlay->header("Info")) {
 				overlay->text("Non solid fill modes not supported!");
 			}
