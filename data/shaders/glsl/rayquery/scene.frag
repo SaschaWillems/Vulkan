@@ -2,7 +2,7 @@
 #extension GL_EXT_ray_tracing : enable
 #extension GL_EXT_ray_query : enable
 
-layout (binding = 2, set = 0) uniform accelerationStructureEXT topLevelAS;
+layout (binding = 1, set = 0) uniform accelerationStructureEXT topLevelAS;
 
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec3 inColor;
