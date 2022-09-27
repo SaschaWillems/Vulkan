@@ -40,10 +40,26 @@ void main()
 	rayDesc.TMin = 0.001;
 	rayDesc.TMax = 10000.0;
 
-	// Initialize the hit value to the raygen SBT data
 	Payload payload;
-	payload.hitValue = float3(sbt.r, sbt.g, sbt.b);
-	TraceRay(rs, RAY_FLAG_FORCE_OPAQUE, 0xff, 0, 0, 0, rayDesc, payload);
+
+	// use border to demonstrate raygen record data
+	if (all(LaunchID.xy > int2(16, 16)) && all(LaunchID.xy < LaunchSize.xy - int2(16, 16)))
+	{
+		// Generate a checker board pattern to trace out rays or use hit record data
+		int2 pos = int2(LaunchID.xy / 16);
+		if (((pos.x + pos.y % 2) % 2) == 0) {
+			// This will set hit value to either hit or miss SBT record color
+			TraceRay(rs, RAY_FLAG_FORCE_OPAQUE, 0xff, 0, 0, 0, rayDesc, payload);
+		}
+		else {
+			// Set the hit value to the raygen SBT data
+			payload.hitValue = float3(sbt.r, sbt.g, sbt.b);
+		}
+	}
+	else {
+		// Set hit value to black
+		payload.hitValue = float3(0.0, 0.0, 0.0);
+	}
 
 	image[int2(LaunchID.xy)] = float4(payload.hitValue, 0.0);
 }

@@ -3,6 +3,8 @@
 *
 * Uses the data section of each shader binding table record to color the background and geometry
 *
+* Example by Nate Morrical (https://github.com/natevm)
+* 
 * Copyright (C) 2019-2020 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -503,16 +505,23 @@ public:
 
 	/*
 		Create the Shader Binding Tables that binds the programs and top-level acceleration structure
+		In this example, we embed data in each record that can be read by the device during ray tracing
 
 		SBT Layout used in this sample:
 
-			/-----------\
-			| raygen    |
-			|-----------|
-			| miss      |
-			|-----------|
-			| hit       |
-			\-----------/
+			/----------------\
+			| raygen handle  |
+			|  - - - - - - - |
+			| raygen data    |
+			|----------------|
+			| miss handle    |
+			|  - - - - - - - |
+			| miss data      |
+			|----------------|
+			| hit handle     |
+			|  - - - - - - - |
+			| hit data       |
+			\----------------/
 
 	*/
 	void createShaderBindingTable() {
@@ -526,8 +535,11 @@ public:
 
 		const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 		const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+		// We allocate space for the handle (which is like lambda function pointers to call in the ray tracing pipeline) 
+		// as well as the data to pass to those functions (which act as the variables being "captured" by those lambda functions)
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &raygenShaderBindingTable, handleSize + sizeof(float) * 3));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &missShaderBindingTable, handleSize));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &missShaderBindingTable, handleSize + sizeof(float) * 3));
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &hitShaderBindingTable, handleSize + sizeof(float) * 3));
 
 		// Copy handles
@@ -538,17 +550,17 @@ public:
 		memcpy(missShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned, handleSize);
 		memcpy(hitShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned * 2, handleSize);
 
-		// set raygen sbt colors
-		{
-			glm::vec3 color(1.f, 0.f, 0.f);
-			memcpy(((uint8_t*)(raygenShaderBindingTable.mapped)) + handleSize, &color, sizeof(glm::vec3));
-		}
+		// Copy over raygen record data
+		glm::vec3 color1(0.5f, 0.5f, 0.5f);
+		memcpy(((uint8_t*)(raygenShaderBindingTable.mapped)) + handleSize, &color1, sizeof(glm::vec3));
 
-		// set chit sbt colors
-		{
-			glm::vec3 color(0.f, 1.f, 0.f);
-			memcpy(((uint8_t*)(hitShaderBindingTable.mapped)) + handleSize, &color, sizeof(glm::vec3));
-		}
+		// Copy over miss record data
+		glm::vec3 color2(1.f, 1.f, 1.f);
+		memcpy(((uint8_t*)(missShaderBindingTable.mapped)) + handleSize, &color2, sizeof(glm::vec3));
+
+		// Copy over hit group record data
+		glm::vec3 color3(1.f, 0.f, 0.f);
+		memcpy(((uint8_t*)(hitShaderBindingTable.mapped)) + handleSize, &color3, sizeof(glm::vec3));
 	}
 
 	/*
@@ -752,6 +764,8 @@ public:
 
 			const uint32_t handleSizeAligned = vks::tools::alignedSize(rayTracingPipelineProperties.shaderGroupHandleSize, rayTracingPipelineProperties.shaderGroupHandleAlignment);
 
+			// Note, we add 3 * sizeof(float) to each SBT entry size to account for the data sections of these records
+			// that we use to store our color data
 			VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
 			raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(raygenShaderBindingTable.buffer);
 			raygenShaderSbtEntry.stride = handleSizeAligned;
@@ -760,7 +774,7 @@ public:
 			VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
 			missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(missShaderBindingTable.buffer);
 			missShaderSbtEntry.stride = handleSizeAligned;
-			missShaderSbtEntry.size = handleSizeAligned;
+			missShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
 
 			VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
 			hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(hitShaderBindingTable.buffer);

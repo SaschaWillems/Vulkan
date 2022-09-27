@@ -30,10 +30,23 @@ void main()
 	float tmin = 0.001;
 	float tmax = 10000.0;
 
-	// Initialize the hit value to the raygen SBT data
-	hitValue = vec3(r, g, b);
-
-	traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
-
+	// use border to demonstrate raygen record data
+	if (all(greaterThan(gl_LaunchIDEXT.xy, ivec2(16, 16))) && all(lessThan(gl_LaunchIDEXT.xy, gl_LaunchSizeEXT.xy - ivec2(16, 16))))
+	{
+		// Generate a checker board pattern to trace out rays or use hit record data
+		ivec2 pos = ivec2(gl_LaunchIDEXT / 16);
+		if (((pos.x + pos.y % 2) % 2) == 0) {
+			// This will set hit value to either hit or miss SBT record color
+			traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
+		}
+		else {
+			// Set the hit value to the raygen SBT data
+			hitValue = vec3(r, g, b);
+		}
+	}
+	else {
+		// Set hit value to black
+		hitValue = vec3(0.0, 0.0, 0.0);
+	}
 	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(hitValue, 0.0));
 }
