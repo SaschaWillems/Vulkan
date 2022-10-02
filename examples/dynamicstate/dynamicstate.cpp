@@ -38,17 +38,23 @@ public:
 	bool hasDynamicVertexState = false;
 
 	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeaturesEXT{};
+	VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2FeaturesEXT{};
 
 	// Function pointers for dynamic states used in this sample
 	// VK_EXT_dynamic_stte
 	PFN_vkCmdSetCullModeEXT vkCmdSetCullModeEXT = nullptr;
 	PFN_vkCmdSetFrontFaceEXT vkCmdSetFrontFaceEXT = nullptr;
+	// VK_EXT_dynamic_state_2
+	PFN_vkCmdSetRasterizerDiscardEnable vkCmdSetRasterizerDiscardEnableEXT = nullptr;
 
 	// Dynamic state UI toggles
 	struct DynamicState {
 		int32_t cullMode = VK_CULL_MODE_BACK_BIT;
 		int32_t frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	} dynamicState;
+	struct DynamicState2 {
+		bool rasterizerDiscardEnable = false;
+	} dynamicState2;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -115,6 +121,9 @@ public:
 			}
 			if (vkCmdSetFrontFaceEXT) {
 				vkCmdSetFrontFaceEXT(drawCmdBuffers[i], VkFrontFace(dynamicState.frontFace));
+			}
+			if (vkCmdSetRasterizerDiscardEnableEXT) {
+				vkCmdSetRasterizerDiscardEnableEXT(drawCmdBuffers[i], VkBool32(dynamicState2.rasterizerDiscardEnable));
 			}
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -219,6 +228,10 @@ public:
 			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_CULL_MODE_EXT);
 			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_FRONT_FACE);
 		}
+		if (hasDynamicState2) {
+			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE);
+		}
+
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
@@ -307,6 +320,12 @@ public:
 
 	void getEnabledExtensions()
 	{
+		// Check what dynamic states are supported by the current implementation
+		hasDynamicState = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+		hasDynamicState2 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+		hasDynamicState3 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
+		hasDynamicVertexState = vulkanDevice->extensionSupported(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
+
 		// Enable dynamic stat extensions if present. This function is called after physical and before logical device creation, so we can enabled extensions based on a list of supported extensions
 		if (vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME)) {
 			enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
@@ -316,6 +335,13 @@ public:
 		}
 		if (vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME)) {
 			enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+			extendedDynamicState2FeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
+			extendedDynamicState2FeaturesEXT.extendedDynamicState2 = VK_TRUE;
+			if (hasDynamicState) {
+				extendedDynamicStateFeaturesEXT.pNext = &extendedDynamicState2FeaturesEXT;
+			} else {
+				deviceCreatepNextChain = &extendedDynamicState2FeaturesEXT;
+			}
 		}
 		if (vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME)) {
 			enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
@@ -329,15 +355,13 @@ public:
 	{
 		VulkanExampleBase::prepare();
 
-		// Check what dynamic states are supported by the current implementation
-		hasDynamicState = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
-		hasDynamicState2 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
-		hasDynamicState3 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
-		hasDynamicVertexState = vulkanDevice->extensionSupported(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
-
 		if (hasDynamicState) {
 			vkCmdSetCullModeEXT = reinterpret_cast<PFN_vkCmdSetCullModeEXT>(vkGetDeviceProcAddr(device, "vkCmdSetCullModeEXT"));
 			vkCmdSetFrontFaceEXT = reinterpret_cast<PFN_vkCmdSetFrontFaceEXT>(vkGetDeviceProcAddr(device, "vkCmdSetFrontFaceEXT"));
+		}
+
+		if (hasDynamicState2) {
+			vkCmdSetRasterizerDiscardEnableEXT = reinterpret_cast<PFN_vkCmdSetRasterizerDiscardEnableEXT>(vkGetDeviceProcAddr(device, "vkCmdSetRasterizerDiscardEnableEXT"));
 		}
 
 		loadAssets();
@@ -367,10 +391,22 @@ public:
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		bool rebuildCB = false;
+		bool rebuildCB = false;		
 		if (overlay->header("Dynamic state")) {
-			rebuildCB = overlay->comboBox("Cull mode", &dynamicState.cullMode, { "none", "front", "back" });
-			rebuildCB |= overlay->comboBox("Front face", &dynamicState.frontFace, { "Counter clockwise", "Clockwise" });
+			if (hasDynamicState) {
+				rebuildCB = overlay->comboBox("Cull mode", &dynamicState.cullMode, { "none", "front", "back" });
+				rebuildCB |= overlay->comboBox("Front face", &dynamicState.frontFace, { "Counter clockwise", "Clockwise" });
+			} else {
+				overlay->text("Extension not supported");
+			}
+		}
+		if (overlay->header("Dynamic state 2")) {
+			if (hasDynamicState) {
+				rebuildCB |= overlay->checkBox("Rasterizer discard", &dynamicState2.rasterizerDiscardEnable);
+			}
+			else {
+				overlay->text("Extension not supported");
+			}
 		}
 		if (rebuildCB) {
 			buildCommandBuffers();
