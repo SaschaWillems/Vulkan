@@ -97,7 +97,8 @@ set(EXAMPLES
 	displacement
 	distancefieldfonts
 	dynamicrendering
-	dynamicuniformbuffer
+	dynamicstate
+	dynamicuniformbuffer	
 	gears
 	geometryshader
 	gltfloading
