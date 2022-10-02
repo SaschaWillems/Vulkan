@@ -21,9 +21,9 @@ extern "C" {
 
 #define vulkan_video_codec_h265std_encode 1
 // Vulkan 0.9 provisional Vulkan video H.265 encode std specification version number
-#define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_API_VERSION_0_9_7 VK_MAKE_VIDEO_STD_VERSION(0, 9, 7) // Patch version should always be set to 0
+#define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_API_VERSION_0_9_9 VK_MAKE_VIDEO_STD_VERSION(0, 9, 9) // Patch version should always be set to 0
 
-#define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_SPEC_VERSION VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_API_VERSION_0_9_7
+#define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_SPEC_VERSION VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_API_VERSION_0_9_9
 #define VK_STD_VULKAN_VIDEO_CODEC_H265_ENCODE_EXTENSION_NAME "VK_STD_vulkan_video_codec_h265_encode"
 typedef struct StdVideoEncodeH265WeightTableFlags {
     uint16_t    luma_weight_l0_flag;
@@ -58,31 +58,42 @@ typedef struct StdVideoEncodeH265SliceSegmentHeaderFlags {
     uint32_t    num_ref_idx_active_override_flag : 1;
     uint32_t    mvd_l1_zero_flag : 1;
     uint32_t    cabac_init_flag : 1;
-    uint32_t    slice_deblocking_filter_disable_flag : 1;
+    uint32_t    cu_chroma_qp_offset_enabled_flag : 1;
+    uint32_t    deblocking_filter_override_flag : 1;
+    uint32_t    slice_deblocking_filter_disabled_flag : 1;
     uint32_t    collocated_from_l0_flag : 1;
     uint32_t    slice_loop_filter_across_slices_enabled_flag : 1;
 } StdVideoEncodeH265SliceSegmentHeaderFlags;
 
+typedef struct StdVideoEncodeH265SliceSegmentLongTermRefPics {
+    uint8_t     num_long_term_sps;
+    uint8_t     num_long_term_pics;
+    uint8_t     lt_idx_sps[STD_VIDEO_H265_MAX_LONG_TERM_REF_PICS_SPS];
+    uint8_t     poc_lsb_lt[STD_VIDEO_H265_MAX_LONG_TERM_PICS];
+    uint16_t    used_by_curr_pic_lt_flag;
+    uint8_t     delta_poc_msb_present_flag[STD_VIDEO_H265_MAX_DELTA_POC];
+    uint8_t     delta_poc_msb_cycle_lt[STD_VIDEO_H265_MAX_DELTA_POC];
+} StdVideoEncodeH265SliceSegmentLongTermRefPics;
+
 typedef struct StdVideoEncodeH265SliceSegmentHeader {
-    StdVideoEncodeH265SliceSegmentHeaderFlags    flags;
-    StdVideoH265SliceType                        slice_type;
-    uint8_t                                      num_short_term_ref_pic_sets;
-    uint32_t                                     slice_segment_address;
-    uint8_t                                      short_term_ref_pic_set_idx;
-    uint8_t                                      num_long_term_sps;
-    uint8_t                                      num_long_term_pics;
-    uint8_t                                      collocated_ref_idx;
-    uint8_t                                      num_ref_idx_l0_active_minus1;
-    uint8_t                                      num_ref_idx_l1_active_minus1;
-    uint8_t                                      MaxNumMergeCand;
-    int8_t                                       slice_cb_qp_offset;
-    int8_t                                       slice_cr_qp_offset;
-    int8_t                                       slice_beta_offset_div2;
-    int8_t                                       slice_tc_offset_div2;
-    int8_t                                       slice_act_y_qp_offset;
-    int8_t                                       slice_act_cb_qp_offset;
-    int8_t                                       slice_act_cr_qp_offset;
-    const StdVideoEncodeH265WeightTable*         pWeightTable;
+    StdVideoEncodeH265SliceSegmentHeaderFlags               flags;
+    StdVideoH265SliceType                                   slice_type;
+    uint32_t                                                slice_segment_address;
+    uint8_t                                                 short_term_ref_pic_set_idx;
+    uint8_t                                                 collocated_ref_idx;
+    uint8_t                                                 num_ref_idx_l0_active_minus1;
+    uint8_t                                                 num_ref_idx_l1_active_minus1;
+    uint8_t                                                 MaxNumMergeCand;
+    int8_t                                                  slice_cb_qp_offset;
+    int8_t                                                  slice_cr_qp_offset;
+    int8_t                                                  slice_beta_offset_div2;
+    int8_t                                                  slice_tc_offset_div2;
+    int8_t                                                  slice_act_y_qp_offset;
+    int8_t                                                  slice_act_cb_qp_offset;
+    int8_t                                                  slice_act_cr_qp_offset;
+    const StdVideoH265ShortTermRefPicSet*                   pShortTermRefPicSet;
+    const StdVideoEncodeH265SliceSegmentLongTermRefPics*    pLongTermRefPics;
+    const StdVideoEncodeH265WeightTable*                    pWeightTable;
 } StdVideoEncodeH265SliceSegmentHeader;
 
 typedef struct StdVideoEncodeH265ReferenceModificationFlags {

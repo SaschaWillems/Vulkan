@@ -24,7 +24,7 @@ extern "C" {
 #define STD_VIDEO_H264_CPB_CNT_LIST_SIZE  32
 #define STD_VIDEO_H264_SCALING_LIST_4X4_NUM_LISTS 6
 #define STD_VIDEO_H264_SCALING_LIST_4X4_NUM_ELEMENTS 16
-#define STD_VIDEO_H264_SCALING_LIST_8X8_NUM_LISTS 2
+#define STD_VIDEO_H264_SCALING_LIST_8X8_NUM_LISTS 6
 #define STD_VIDEO_H264_SCALING_LIST_8X8_NUM_ELEMENTS 64
 #define STD_VIDEO_H264_MAX_NUM_LIST_REF   32
 #define STD_VIDEO_H264_MAX_CHROMA_PLANES  2
@@ -47,29 +47,29 @@ typedef enum StdVideoH264ProfileIdc {
     STD_VIDEO_H264_PROFILE_IDC_MAX_ENUM = 0x7FFFFFFF
 } StdVideoH264ProfileIdc;
 
-typedef enum StdVideoH264Level {
-    STD_VIDEO_H264_LEVEL_1_0 = 0,
-    STD_VIDEO_H264_LEVEL_1_1 = 1,
-    STD_VIDEO_H264_LEVEL_1_2 = 2,
-    STD_VIDEO_H264_LEVEL_1_3 = 3,
-    STD_VIDEO_H264_LEVEL_2_0 = 4,
-    STD_VIDEO_H264_LEVEL_2_1 = 5,
-    STD_VIDEO_H264_LEVEL_2_2 = 6,
-    STD_VIDEO_H264_LEVEL_3_0 = 7,
-    STD_VIDEO_H264_LEVEL_3_1 = 8,
-    STD_VIDEO_H264_LEVEL_3_2 = 9,
-    STD_VIDEO_H264_LEVEL_4_0 = 10,
-    STD_VIDEO_H264_LEVEL_4_1 = 11,
-    STD_VIDEO_H264_LEVEL_4_2 = 12,
-    STD_VIDEO_H264_LEVEL_5_0 = 13,
-    STD_VIDEO_H264_LEVEL_5_1 = 14,
-    STD_VIDEO_H264_LEVEL_5_2 = 15,
-    STD_VIDEO_H264_LEVEL_6_0 = 16,
-    STD_VIDEO_H264_LEVEL_6_1 = 17,
-    STD_VIDEO_H264_LEVEL_6_2 = 18,
-    STD_VIDEO_H264_LEVEL_INVALID = 0x7FFFFFFF,
-    STD_VIDEO_H264_LEVEL_MAX_ENUM = 0x7FFFFFFF
-} StdVideoH264Level;
+typedef enum StdVideoH264LevelIdc {
+    STD_VIDEO_H264_LEVEL_IDC_1_0 = 0,
+    STD_VIDEO_H264_LEVEL_IDC_1_1 = 1,
+    STD_VIDEO_H264_LEVEL_IDC_1_2 = 2,
+    STD_VIDEO_H264_LEVEL_IDC_1_3 = 3,
+    STD_VIDEO_H264_LEVEL_IDC_2_0 = 4,
+    STD_VIDEO_H264_LEVEL_IDC_2_1 = 5,
+    STD_VIDEO_H264_LEVEL_IDC_2_2 = 6,
+    STD_VIDEO_H264_LEVEL_IDC_3_0 = 7,
+    STD_VIDEO_H264_LEVEL_IDC_3_1 = 8,
+    STD_VIDEO_H264_LEVEL_IDC_3_2 = 9,
+    STD_VIDEO_H264_LEVEL_IDC_4_0 = 10,
+    STD_VIDEO_H264_LEVEL_IDC_4_1 = 11,
+    STD_VIDEO_H264_LEVEL_IDC_4_2 = 12,
+    STD_VIDEO_H264_LEVEL_IDC_5_0 = 13,
+    STD_VIDEO_H264_LEVEL_IDC_5_1 = 14,
+    STD_VIDEO_H264_LEVEL_IDC_5_2 = 15,
+    STD_VIDEO_H264_LEVEL_IDC_6_0 = 16,
+    STD_VIDEO_H264_LEVEL_IDC_6_1 = 17,
+    STD_VIDEO_H264_LEVEL_IDC_6_2 = 18,
+    STD_VIDEO_H264_LEVEL_IDC_INVALID = 0x7FFFFFFF,
+    STD_VIDEO_H264_LEVEL_IDC_MAX_ENUM = 0x7FFFFFFF
+} StdVideoH264LevelIdc;
 
 typedef enum StdVideoH264PocType {
     STD_VIDEO_H264_POC_TYPE_0 = 0,
@@ -194,6 +194,7 @@ typedef struct StdVideoH264HrdParameters {
     uint8_t     cpb_cnt_minus1;
     uint8_t     bit_rate_scale;
     uint8_t     cpb_size_scale;
+    uint8_t     reserved1;
     uint32_t    bit_rate_value_minus1[STD_VIDEO_H264_CPB_CNT_LIST_SIZE];
     uint32_t    cpb_size_value_minus1[STD_VIDEO_H264_CPB_CNT_LIST_SIZE];
     uint8_t     cbr_flag[STD_VIDEO_H264_CPB_CNT_LIST_SIZE];
@@ -209,14 +210,17 @@ typedef struct StdVideoH264SequenceParameterSetVui {
     uint16_t                            sar_width;
     uint16_t                            sar_height;
     uint8_t                             video_format;
-    uint8_t                             color_primaries;
+    uint8_t                             colour_primaries;
     uint8_t                             transfer_characteristics;
     uint8_t                             matrix_coefficients;
     uint32_t                            num_units_in_tick;
     uint32_t                            time_scale;
-    const StdVideoH264HrdParameters*    pHrdParameters;
     uint8_t                             max_num_reorder_frames;
     uint8_t                             max_dec_frame_buffering;
+    uint8_t                             chroma_sample_loc_type_top_field;
+    uint8_t                             chroma_sample_loc_type_bottom_field;
+    uint32_t                            reserved1;
+    const StdVideoH264HrdParameters*    pHrdParameters;
 } StdVideoH264SequenceParameterSetVui;
 
 typedef struct StdVideoH264SpsFlags {
@@ -239,33 +243,35 @@ typedef struct StdVideoH264SpsFlags {
 } StdVideoH264SpsFlags;
 
 typedef struct StdVideoH264ScalingLists {
-    uint8_t    scaling_list_present_mask;
-    uint8_t    use_default_scaling_matrix_mask;
-    uint8_t    ScalingList4x4[STD_VIDEO_H264_SCALING_LIST_4X4_NUM_LISTS][STD_VIDEO_H264_SCALING_LIST_4X4_NUM_ELEMENTS];
-    uint8_t    ScalingList8x8[STD_VIDEO_H264_SCALING_LIST_8X8_NUM_LISTS][STD_VIDEO_H264_SCALING_LIST_8X8_NUM_ELEMENTS];
+    uint16_t    scaling_list_present_mask;
+    uint16_t    use_default_scaling_matrix_mask;
+    uint8_t     ScalingList4x4[STD_VIDEO_H264_SCALING_LIST_4X4_NUM_LISTS][STD_VIDEO_H264_SCALING_LIST_4X4_NUM_ELEMENTS];
+    uint8_t     ScalingList8x8[STD_VIDEO_H264_SCALING_LIST_8X8_NUM_LISTS][STD_VIDEO_H264_SCALING_LIST_8X8_NUM_ELEMENTS];
 } StdVideoH264ScalingLists;
 
 typedef struct StdVideoH264SequenceParameterSet {
     StdVideoH264SpsFlags                          flags;
     StdVideoH264ProfileIdc                        profile_idc;
-    StdVideoH264Level                             level_idc;
-    uint8_t                                       seq_parameter_set_id;
+    StdVideoH264LevelIdc                          level_idc;
     StdVideoH264ChromaFormatIdc                   chroma_format_idc;
+    uint8_t                                       seq_parameter_set_id;
     uint8_t                                       bit_depth_luma_minus8;
     uint8_t                                       bit_depth_chroma_minus8;
     uint8_t                                       log2_max_frame_num_minus4;
     StdVideoH264PocType                           pic_order_cnt_type;
-    uint8_t                                       log2_max_pic_order_cnt_lsb_minus4;
     int32_t                                       offset_for_non_ref_pic;
     int32_t                                       offset_for_top_to_bottom_field;
+    uint8_t                                       log2_max_pic_order_cnt_lsb_minus4;
     uint8_t                                       num_ref_frames_in_pic_order_cnt_cycle;
     uint8_t                                       max_num_ref_frames;
+    uint8_t                                       reserved1;
     uint32_t                                      pic_width_in_mbs_minus1;
     uint32_t                                      pic_height_in_map_units_minus1;
     uint32_t                                      frame_crop_left_offset;
     uint32_t                                      frame_crop_right_offset;
     uint32_t                                      frame_crop_top_offset;
     uint32_t                                      frame_crop_bottom_offset;
+    uint32_t                                      reserved2;
     const int32_t*                                pOffsetForRefFrame;
     const StdVideoH264ScalingLists*               pScalingLists;
     const StdVideoH264SequenceParameterSetVui*    pSequenceParameterSetVui;
@@ -276,9 +282,8 @@ typedef struct StdVideoH264PpsFlags {
     uint32_t    redundant_pic_cnt_present_flag : 1;
     uint32_t    constrained_intra_pred_flag : 1;
     uint32_t    deblocking_filter_control_present_flag : 1;
-    uint32_t    weighted_bipred_idc_flag : 1;
     uint32_t    weighted_pred_flag : 1;
-    uint32_t    pic_order_present_flag : 1;
+    uint32_t    bottom_field_pic_order_in_frame_present_flag : 1;
     uint32_t    entropy_coding_mode_flag : 1;
     uint32_t    pic_scaling_matrix_present_flag : 1;
 } StdVideoH264PpsFlags;
