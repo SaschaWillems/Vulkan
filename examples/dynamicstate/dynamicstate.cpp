@@ -39,22 +39,33 @@ public:
 
 	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeaturesEXT{};
 	VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2FeaturesEXT{};
+	VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extendedDynamicState3FeaturesEXT{};
 
 	// Function pointers for dynamic states used in this sample
 	// VK_EXT_dynamic_stte
 	PFN_vkCmdSetCullModeEXT vkCmdSetCullModeEXT = nullptr;
 	PFN_vkCmdSetFrontFaceEXT vkCmdSetFrontFaceEXT = nullptr;
+	PFN_vkCmdSetDepthTestEnableEXT vkCmdSetDepthTestEnableEXT = nullptr;
+	PFN_vkCmdSetDepthWriteEnableEXT vkCmdSetDepthWriteEnableEXT = nullptr;
 	// VK_EXT_dynamic_state_2
 	PFN_vkCmdSetRasterizerDiscardEnable vkCmdSetRasterizerDiscardEnableEXT = nullptr;
+	// VK_EXT_dynamic_state_3
+	PFN_vkCmdSetColorBlendEnableEXT vkCmdSetColorBlendEnableEXT = nullptr;
+	PFN_vkCmdSetColorBlendEquationEXT vkCmdSetColorBlendEquationEXT = nullptr;
 
 	// Dynamic state UI toggles
 	struct DynamicState {
 		int32_t cullMode = VK_CULL_MODE_BACK_BIT;
 		int32_t frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		bool depthTest = true;
+		bool depthWrite = true;
 	} dynamicState;
 	struct DynamicState2 {
 		bool rasterizerDiscardEnable = false;
 	} dynamicState2;
+	struct DynamicState3 {
+		bool colorBlendEnable = false;
+	} dynamicState3;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -88,7 +99,8 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
+		//clearValues[0].color = defaultClearColor;
+		clearValues[0].color = { { 0.0f, 0.0f, 0.3f, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -116,14 +128,38 @@ public:
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 			// Apply dynamic states
+
 			if (vkCmdSetCullModeEXT) {
 				vkCmdSetCullModeEXT(drawCmdBuffers[i], VkCullModeFlagBits(dynamicState.cullMode));
 			}
 			if (vkCmdSetFrontFaceEXT) {
 				vkCmdSetFrontFaceEXT(drawCmdBuffers[i], VkFrontFace(dynamicState.frontFace));
 			}
+			if (vkCmdSetDepthTestEnableEXT) {
+				vkCmdSetDepthTestEnableEXT(drawCmdBuffers[i], VkFrontFace(dynamicState.depthTest));
+			}
+			if (vkCmdSetDepthWriteEnableEXT) {
+				vkCmdSetDepthWriteEnableEXT(drawCmdBuffers[i], VkFrontFace(dynamicState.depthWrite));
+			}
+
 			if (vkCmdSetRasterizerDiscardEnableEXT) {
 				vkCmdSetRasterizerDiscardEnableEXT(drawCmdBuffers[i], VkBool32(dynamicState2.rasterizerDiscardEnable));
+			}
+
+			if (vkCmdSetColorBlendEnableEXT) {
+				const std::vector<VkBool32> blendEnables = { dynamicState3.colorBlendEnable };
+				vkCmdSetColorBlendEnableEXT(drawCmdBuffers[i], 0, 1, blendEnables.data());
+
+				if (dynamicState3.colorBlendEnable) {
+					VkColorBlendEquationEXT colorBlendEquation{};
+					colorBlendEquation.colorBlendOp = VK_BLEND_OP_ADD;
+					colorBlendEquation.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+					colorBlendEquation.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+					colorBlendEquation.alphaBlendOp = VK_BLEND_OP_ADD;
+					colorBlendEquation.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+					colorBlendEquation.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+					vkCmdSetColorBlendEquationEXT(drawCmdBuffers[i], 0, 1, &colorBlendEquation);
+				}
 			}
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -226,10 +262,16 @@ public:
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, };
 		if (hasDynamicState) {
 			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_CULL_MODE_EXT);
-			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_FRONT_FACE);
+			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_FRONT_FACE_EXT);
+			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT);
+			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT);
 		}
 		if (hasDynamicState2) {
-			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE);
+			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT);
+		}
+		if (hasDynamicState3) {
+			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT);
+			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT);
 		}
 
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
@@ -247,12 +289,6 @@ public:
 		pipelineCI.pVertexInputState  = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Color});
 
 		// Create the graphics pipeline state objects
-
-		// We are using this pipeline as the base for the other pipelines (derivatives)
-		// Pipeline derivatives can be used for pipelines that share most of their state
-		// Depending on the implementation this may result in better performance for pipeline
-		// switching and faster creation time
-		pipelineCI.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
 
 		// Textured pipeline
 		// Phong shading pipeline
@@ -320,6 +356,8 @@ public:
 
 	void getEnabledExtensions()
 	{
+		// @todo: check device support
+
 		// Check what dynamic states are supported by the current implementation
 		hasDynamicState = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 		hasDynamicState2 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
@@ -345,6 +383,16 @@ public:
 		}
 		if (vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME)) {
 			enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
+			extendedDynamicState3FeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+			extendedDynamicState3FeaturesEXT.extendedDynamicState3ColorBlendEnable = VK_TRUE;
+			extendedDynamicState3FeaturesEXT.extendedDynamicState3ColorBlendEquation = VK_TRUE;
+			if (hasDynamicState2) {
+				// @todo: hasDynamicState
+				extendedDynamicState2FeaturesEXT.pNext = &extendedDynamicState3FeaturesEXT;
+			} else {
+				deviceCreatepNextChain = &extendedDynamicState3FeaturesEXT;
+			}
+
 		}
 		if (vulkanDevice->extensionSupported(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME)) {
 			enabledDeviceExtensions.push_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
@@ -358,10 +406,17 @@ public:
 		if (hasDynamicState) {
 			vkCmdSetCullModeEXT = reinterpret_cast<PFN_vkCmdSetCullModeEXT>(vkGetDeviceProcAddr(device, "vkCmdSetCullModeEXT"));
 			vkCmdSetFrontFaceEXT = reinterpret_cast<PFN_vkCmdSetFrontFaceEXT>(vkGetDeviceProcAddr(device, "vkCmdSetFrontFaceEXT"));
+			vkCmdSetDepthWriteEnableEXT = reinterpret_cast<PFN_vkCmdSetDepthWriteEnableEXT>(vkGetDeviceProcAddr(device, "vkCmdSetDepthWriteEnableEXT"));
+			vkCmdSetDepthTestEnableEXT = reinterpret_cast<PFN_vkCmdSetDepthTestEnable>(vkGetDeviceProcAddr(device, "vkCmdSetDepthTestEnableEXT"));
 		}
 
 		if (hasDynamicState2) {
 			vkCmdSetRasterizerDiscardEnableEXT = reinterpret_cast<PFN_vkCmdSetRasterizerDiscardEnableEXT>(vkGetDeviceProcAddr(device, "vkCmdSetRasterizerDiscardEnableEXT"));
+		}
+
+		if (hasDynamicState3) {
+			vkCmdSetColorBlendEnableEXT = reinterpret_cast<PFN_vkCmdSetColorBlendEnableEXT>(vkGetDeviceProcAddr(device, "vkCmdSetColorBlendEnableEXT"));
+			vkCmdSetColorBlendEquationEXT = reinterpret_cast<PFN_vkCmdSetColorBlendEquationEXT>(vkGetDeviceProcAddr(device, "vkCmdSetColorBlendEquationEXT"));
 		}
 
 		loadAssets();
@@ -396,6 +451,8 @@ public:
 			if (hasDynamicState) {
 				rebuildCB = overlay->comboBox("Cull mode", &dynamicState.cullMode, { "none", "front", "back" });
 				rebuildCB |= overlay->comboBox("Front face", &dynamicState.frontFace, { "Counter clockwise", "Clockwise" });
+				rebuildCB |= overlay->checkBox("Depth test", &dynamicState.depthTest);
+				rebuildCB |= overlay->checkBox("Depth write", &dynamicState.depthWrite);
 			} else {
 				overlay->text("Extension not supported");
 			}
@@ -403,6 +460,14 @@ public:
 		if (overlay->header("Dynamic state 2")) {
 			if (hasDynamicState) {
 				rebuildCB |= overlay->checkBox("Rasterizer discard", &dynamicState2.rasterizerDiscardEnable);
+			}
+			else {
+				overlay->text("Extension not supported");
+			}
+		}
+		if (overlay->header("Dynamic state 3")) {
+			if (hasDynamicState) {
+				rebuildCB |= overlay->checkBox("Color blend", &dynamicState3.colorBlendEnable);
 			}
 			else {
 				overlay->text("Extension not supported");
