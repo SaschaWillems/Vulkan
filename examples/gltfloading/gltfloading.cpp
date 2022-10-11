@@ -247,7 +247,7 @@ public:
 					const float* texCoordsBuffer = nullptr;
 					size_t vertexCount = 0;
 
-					// Get buffer data for vertex normals
+					// Get buffer data for vertex positions
 					if (glTFPrimitive.attributes.find("POSITION") != glTFPrimitive.attributes.end()) {
 						const tinygltf::Accessor& accessor = input.accessors[glTFPrimitive.attributes.find("POSITION")->second];
 						const tinygltf::BufferView& view = input.bufferViews[accessor.bufferView];
