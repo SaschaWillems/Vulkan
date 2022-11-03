@@ -439,7 +439,7 @@ Shows usage of the VK_KHR_dynamic_rendering extension, which simplifies the rend
 #### [Graphics pipeline library (VK_EXT_graphics_pipeline_library)](./examples/graphicspipelinelibrary)<br/>
 Uses the graphics pipeline library extensions to improve run-time pipeline creation. Instead of creating the whole pipeline at once, this sample pre builds shared pipeline parts like like vertex input state and fragment output state. These are then used to create full pipelines at runtime, reducing build times and possible hick-ups.
 
-#### [Mesh shaders (VK_EXT_mesh_shader)](./examples/meshshaders)<br/>
+#### [Mesh shaders (VK_EXT_mesh_shader)](./examples/meshshader)<br/>
 
 Basic sample demonstrating how to use the mesh shading pipeline as a replacement for the traditional vertex pipeline.
 
