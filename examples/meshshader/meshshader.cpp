@@ -8,7 +8,6 @@
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
-#include "meshoptimizer/meshoptimizer.h"
 
 #define ENABLE_VALIDATION false
 
