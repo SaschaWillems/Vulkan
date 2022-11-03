@@ -111,6 +111,7 @@ set(EXAMPLES
 	inlineuniformblocks
 	inputattachments
 	instancing
+	meshshader
 	multisampling
 	multithreading
 	multiview
