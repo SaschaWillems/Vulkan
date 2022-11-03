@@ -10,10 +10,10 @@ layout (location = 0) in VertexInput {
   vec4 color;
 } vertexInput;
 
-layout(location = 0) out vec4 FragColor;
+layout(location = 0) out vec4 outFragColor;
  
 
 void main()
 {
-  FragColor = vertexInput.color;
+	outFragColor = vertexInput.color;
 }
