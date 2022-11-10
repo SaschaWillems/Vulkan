@@ -38,8 +38,8 @@ public:
 		timerSpeed *= 0.25f;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
-		camera.setRotation(glm::vec3(0.0f));
-		camera.setTranslation(glm::vec3(0.0f, 0.0f, -2.0f));
+		camera.setRotation(glm::vec3(0.0f, 15.0f, 0.0f));
+		camera.setTranslation(glm::vec3(0.0f, 0.0f, -5.0f));
 
 		// Extension require at least Vulkan 1.1
 		apiVersion = VK_API_VERSION_1_1;
@@ -65,7 +65,7 @@ public:
 	{
 		enabledMeshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
 		enabledMeshShaderFeatures.meshShader = VK_TRUE;
-		enabledMeshShaderFeatures.taskShader = VK_FALSE;
+		enabledMeshShaderFeatures.taskShader = VK_TRUE;
 
 		deviceCreatepNextChain = &enabledMeshShaderFeatures;
 	}
@@ -158,7 +158,7 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 3> shaderStages;
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 
@@ -176,7 +176,8 @@ public:
 		pipelineCI.pStages = shaderStages.data();
 
 		shaderStages[0] = loadShader(getShadersPath() + "meshshader/meshshader.mesh.spv", VK_SHADER_STAGE_MESH_BIT_EXT);
-		shaderStages[1] = loadShader(getShadersPath() + "meshshader/meshshader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "meshshader/meshshader.task.spv", VK_SHADER_STAGE_TASK_BIT_EXT);
+		shaderStages[2] = loadShader(getShadersPath() + "meshshader/meshshader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
 
