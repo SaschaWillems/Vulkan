@@ -673,7 +673,7 @@ public:
 			VkFramebuffer framebuffer;
 		} offscreen;
 
-		// Offfscreen framebuffer
+		// Offscreen framebuffer
 		{
 			// Color attachment
 			VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
