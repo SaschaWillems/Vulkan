@@ -92,6 +92,7 @@ set(EXAMPLES
 	deferred
 	deferredmultisampling
 	deferredshadows
+	descriptorbuffer
 	descriptorindexing
 	descriptorsets
 	displacement
