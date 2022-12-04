@@ -958,7 +958,7 @@ typedef struct VkVideoDecodeH264DpbSlotInfoEXT {
 
 #define VK_EXT_video_decode_h265 1
 #include "vk_video/vulkan_video_codec_h265std_decode.h"
-#define VK_EXT_VIDEO_DECODE_H265_SPEC_VERSION 5
+#define VK_EXT_VIDEO_DECODE_H265_SPEC_VERSION 6
 #define VK_EXT_VIDEO_DECODE_H265_EXTENSION_NAME "VK_EXT_video_decode_h265"
 typedef struct VkVideoDecodeH265ProfileInfoEXT {
     VkStructureType           sType;
@@ -996,8 +996,8 @@ typedef struct VkVideoDecodeH265PictureInfoEXT {
     VkStructureType                   sType;
     const void*                       pNext;
     StdVideoDecodeH265PictureInfo*    pStdPictureInfo;
-    uint32_t                          sliceCount;
-    const uint32_t*                   pSliceOffsets;
+    uint32_t                          sliceSegmentCount;
+    const uint32_t*                   pSliceSegmentOffsets;
 } VkVideoDecodeH265PictureInfoEXT;
 
 typedef struct VkVideoDecodeH265DpbSlotInfoEXT {
