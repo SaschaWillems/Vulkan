@@ -38,7 +38,7 @@ public:
 
 	vks::Buffer resourceDescriptorBuffer;
 	vks::Buffer imageDescriptorBuffer;
-	uint64_t resourceDescriptorBufferDeviceAddress;
+	VkDeviceOrHostAddressConstKHR resourceDescriptorBufferDeviceAddress;
 	VkDeviceOrHostAddressConstKHR imageDescriptorBufferDeviceAddress;
 
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
@@ -94,12 +94,17 @@ public:
 
 	~VulkanExample()
 	{
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayoutBuffers, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayoutImages, nullptr);
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		for (auto cube : cubes) {
 			cube.uniformBuffer.destroy();
 			cube.texture.destroy();
 		}
+		uniformBufferCamera.destroy();
+		resourceDescriptorBuffer.destroy();
+		imageDescriptorBuffer.destroy();
 	}
 
 	virtual void getEnabledFeatures()
@@ -192,6 +197,7 @@ public:
 		vkGetDescriptorSetLayoutBindingOffsetEXT(device, descriptorSetLayoutImages, 1, &img_offset);
 
 		// @todo: check memory sizes
+		// @todo: check support for combined image samplers
 
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -207,9 +213,7 @@ public:
 			2 * descriptorLayoutSizes[1]));
 		imageDescriptorBuffer.map();
 
-		resourceDescriptorBufferDeviceAddress = getBufferDeviceAddress(resourceDescriptorBuffer.buffer);
-		//imageDescriptorBufferDeviceAddress = getBufferDeviceAddress(imageDescriptorBuffer.buffer);
-
+		resourceDescriptorBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(resourceDescriptorBuffer.buffer);
 		imageDescriptorBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(imageDescriptorBuffer.buffer);
 
 		// @todo: sizes
@@ -225,8 +229,7 @@ public:
 		VkDescriptorGetInfoEXT desc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
 
 		// Set descriptors for images
-		// @todo: get from props
-		const uint32_t alignment = 64;
+		const uint32_t alignment = descriptorBufferProperties.descriptorBufferOffsetAlignment;
 
 		char* buf_ptr = (char*)imageDescriptorBuffer.mapped;
 		desc_info.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -305,7 +308,7 @@ public:
 			// Set 0 = uniform buffer
 			VkDescriptorBufferBindingInfoEXT bindingInfos[2]{};
 			bindingInfos[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-			bindingInfos[0].address = resourceDescriptorBufferDeviceAddress;
+			bindingInfos[0].address = resourceDescriptorBufferDeviceAddress.deviceAddress;
 			bindingInfos[0].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;// | VK_BUFFER_USAGE_PUSH_DESCRIPTORS_DESCRIPTOR_BUFFER_BIT_EXT;
 			// Set 1 = Image
 			bindingInfos[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
@@ -314,9 +317,8 @@ public:
 			bindingInfos[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 			vkCmdBindDescriptorBuffersEXT(drawCmdBuffers[i], 2, bindingInfos);
 
-			// @todo: from props
 			uint32_t bufferIndexUbo = 0;
-			VkDeviceSize alignment = 64;
+			VkDeviceSize alignment = descriptorBufferProperties.descriptorBufferOffsetAlignment;
 			VkDeviceSize bufferOffset = 0;
 
 			// Global Matrices (set 0)
@@ -383,9 +385,12 @@ public:
 		cubes[0].matrix = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 0.0f, 0.0f));
 		cubes[1].matrix = glm::translate(glm::mat4(1.0f), glm::vec3( 1.5f, 0.5f, 0.0f));
 
-		for (uint32_t i = 0; i < static_cast<uint32_t>(cubes.size()); i++) {
-			cubes[i].matrix = glm::scale(cubes[i].matrix, glm::vec3(0.25f));
-			memcpy(cubes[i].uniformBuffer.mapped, &cubes[i].matrix, sizeof(glm::mat4));
+		for (auto& cube : cubes) {
+			cube.matrix = glm::rotate(cube.matrix, glm::radians(cube.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+			cube.matrix = glm::rotate(cube.matrix, glm::radians(cube.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+			cube.matrix = glm::rotate(cube.matrix, glm::radians(cube.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+			cube.matrix = glm::scale(cube.matrix, glm::vec3(0.25f));
+			memcpy(cube.uniformBuffer.mapped, &cube.matrix, sizeof(glm::mat4));
 		}
 	}
 
