@@ -289,8 +289,6 @@ public:
 	// Put render commands for the scene into the given command buffer
 	void renderScene(VkCommandBuffer cmdBuffer, bool shadow)
 	{
-		VkDeviceSize offsets[1] = { 0 };
-
 		// Background
 		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, shadow ? &descriptorSets.shadow : &descriptorSets.background, 0, NULL);
 		models.background.draw(cmdBuffer);
@@ -426,7 +424,6 @@ public:
 			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 			// Final composition as full screen quad

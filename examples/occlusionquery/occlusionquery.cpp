@@ -159,8 +159,6 @@ public:
 				0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			VkDeviceSize offsets[1] = { 0 };
-
 			glm::mat4 modelMatrix = glm::mat4(1.0f);
 
 			// Occlusion pass
