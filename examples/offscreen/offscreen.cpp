@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Offscreen rendering using a separate framebuffer
 *
-* Copyright (C) Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2022 Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -210,8 +210,9 @@ public:
 		depthStencilView.flags = 0;
 		depthStencilView.subresourceRange = {};
 		depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		if (fbDepthFormat >= VK_FORMAT_D16_UNORM_S8_UINT)
+		if (fbDepthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
 			depthStencilView.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
 		depthStencilView.subresourceRange.baseMipLevel = 0;
 		depthStencilView.subresourceRange.levelCount = 1;
 		depthStencilView.subresourceRange.baseArrayLayer = 0;
@@ -305,9 +306,6 @@ public:
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[2];
-		VkDeviceSize offsets[1] = { 0 };
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
@@ -336,8 +334,6 @@ public:
 				VkRect2D scissor = vks::initializers::rect2D(offscreenPass.width, offscreenPass.height, 0, 0);
 				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-				VkDeviceSize offsets[1] = { 0 };
-
 				// Mirrored scene
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.shaded, 0, 1, &descriptorSets.offscreen, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shadedOffscreen);
@@ -354,6 +350,7 @@ public:
 				Second render pass: Scene rendering with applied radial blur
 			*/
 			{
+				VkClearValue clearValues[2];
 				clearValues[0].color = defaultClearColor;
 				clearValues[1].depthStencil = { 1.0f, 0 };
 
@@ -372,8 +369,6 @@ public:
 
 				VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-				VkDeviceSize offsets[1] = { 0 };
 
 				if (debugDisplay)
 				{
