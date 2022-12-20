@@ -443,6 +443,10 @@ Uses the graphics pipeline library extensions to improve run-time pipeline creat
 
 Basic sample demonstrating how to use the mesh shading pipeline as a replacement for the traditional vertex pipeline.
 
+#### [Descriptor buffers (VK_EXT_descriptor_buffer)](./examples/descriptorbuffer/)<br/>
+
+Basic sample showing how to use descriptor buffers to replace descriptor sets.
+
 ### Misc
 
 #### [Vulkan Gears](examples/gears/)
