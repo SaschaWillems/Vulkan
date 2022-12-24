@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Variable rate shading
 *
-* Copyright (C) 2020 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2022 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -326,7 +326,7 @@ void VulkanExample::preparePipelines()
 
 	// Properties for alpha masked materials will be passed via specialization constants
 	struct SpecializationData {
-		bool alphaMask;
+		VkBool32 alphaMask;
 		float alphaMaskCutoff;
 	} specializationData;
 	specializationData.alphaMask = false;
