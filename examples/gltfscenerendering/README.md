@@ -115,7 +115,7 @@ For each material we then set constant properties for the fragment shader using 
 
 ```cpp
 	struct MaterialSpecializationData {
-		bool alphaMask;
+		VkBool32 alphaMask;
 		float alphaMaskCutoff;
 	} materialSpecializationData;
 
