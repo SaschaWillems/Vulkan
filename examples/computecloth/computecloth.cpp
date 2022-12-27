@@ -1,5 +1,5 @@
 /*
-* Vulkan Example - Compute shader sloth simulation
+* Vulkan Example - Compute shader cloth simulation
 *
 * Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
 *
