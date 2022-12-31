@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Minimal headless rendering example
 *
-* Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2022 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -35,6 +35,7 @@
 #endif
 #include <vulkan/vulkan.h>
 #include "VulkanTools.h"
+#include "CommandLineParser.hpp"
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 android_app* androidapp;
@@ -63,6 +64,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageCallback(
 	LOG("[VALIDATION]: %s - %s\n", pLayerPrefix, pMessage);
 	return VK_FALSE;
 }
+
+CommandLineParser commandLineParser;
 
 class VulkanExample
 {
@@ -645,10 +648,11 @@ public:
 
 			pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-			// TODO: There is no command line arguments parsing (nor Android settings) for this
-			// example, so we have no way of picking between GLSL or HLSL shaders.
-			// Hard-code to glsl for now.
-			const std::string shadersPath = getAssetPath() + "shaders/glsl/renderheadless/";
+			std::string shaderDir = "glsl";
+			if (commandLineParser.isSet("shaders")) {
+				shaderDir = commandLineParser.getValueAsString("shaders", "glsl");
+			}
+			const std::string shadersPath = getAssetPath() + "shaders/" + shaderDir + "/renderheadless/";
 
 			shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -941,10 +945,18 @@ void android_main(android_app* state) {
 	}
 }
 #else
-int main() {
+int main(int argc, char* argv[]) {
+	commandLineParser.add("help", { "--help" }, 0, "Show help");
+	commandLineParser.add("shaders", { "-s", "--shaders" }, 1, "Select shader type to use (glsl or hlsl)");
+	commandLineParser.parse(argc, argv);
+	if (commandLineParser.isSet("help")) {
+		commandLineParser.printHelp();
+		std::cin.get();
+		return 0;
+	}	
 	VulkanExample *vulkanExample = new VulkanExample();
 	std::cout << "Finished. Press enter to terminate...";
-	getchar();
+	std::cin.get();
 	delete(vulkanExample);
 	return 0;
 }

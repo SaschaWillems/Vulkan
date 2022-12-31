@@ -1,12 +1,10 @@
 /*
 * Vulkan Example - Minimal headless compute example
 *
-* Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2022 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
-
-// TODO: separate transfer queue (if not supported by compute queue) including buffer ownership transfer
 
 #if defined(_WIN32)
 #pragma comment(linker, "/subsystem:console")
@@ -31,6 +29,7 @@
 #endif
 #include <vulkan/vulkan.h>
 #include "VulkanTools.h"
+#include "CommandLineParser.hpp"
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 android_app* androidapp;
@@ -59,6 +58,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageCallback(
 	LOG("[VALIDATION]: %s - %s\n", pLayerPrefix, pMessage);
 	return VK_FALSE;
 }
+
+CommandLineParser commandLineParser;
 
 class VulkanExample
 {
@@ -413,10 +414,11 @@ public:
 			VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
 			VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(SpecializationData), &specializationData);
 
-			// TODO: There is no command line arguments parsing (nor Android settings) for this
-			// example, so we have no way of picking between GLSL or HLSL shaders.
-			// Hard-code to glsl for now.
-			const std::string shadersPath = getAssetPath() + "shaders/glsl/computeheadless/";
+			std::string shaderDir = "glsl";
+			if (commandLineParser.isSet("shaders")) {
+				shaderDir = commandLineParser.getValueAsString("shaders", "glsl");
+			}
+			const std::string shadersPath = getAssetPath() + "shaders/"+shaderDir+"/computeheadless/";
 
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -607,10 +609,18 @@ void android_main(android_app* state) {
 	}
 }
 #else
-int main() {
+int main(int argc, char* argv[]) {
+	commandLineParser.add("help", { "--help" }, 0, "Show help");
+	commandLineParser.add("shaders", { "-s", "--shaders" }, 1, "Select shader type to use (glsl or hlsl)");
+	commandLineParser.parse(argc, argv);
+	if (commandLineParser.isSet("help")) {
+		commandLineParser.printHelp();
+		std::cin.get();
+		return 0;
+	}
 	VulkanExample *vulkanExample = new VulkanExample();
 	std::cout << "Finished. Press enter to terminate...";
-	getchar();
+	std::cin.get();
 	delete(vulkanExample);
 	return 0;
 }
