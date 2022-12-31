@@ -1437,7 +1437,7 @@ void vkglTF::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t
 		}
 	}
 	for (auto& child : node->children) {
-		drawNode(child, commandBuffer, renderFlags);
+		drawNode(child, commandBuffer, renderFlags, pipelineLayout, bindImageSet);
 	}
 }
 
