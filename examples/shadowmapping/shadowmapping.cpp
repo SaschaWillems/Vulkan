@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Shadow mapping for directional light sources
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2022 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -492,7 +492,8 @@ public:
 		pipelineCI.stageCount = 1;
 		// No blend attachment states (no color attachments used)
 		colorBlendStateCI.attachmentCount = 0;
-		// Cull front faces
+		// Disable culling, so all faces contribute to shadows
+		rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
 		depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		// Enable depth bias
 		rasterizationStateCI.depthBiasEnable = VK_TRUE;
