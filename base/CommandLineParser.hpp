@@ -81,8 +81,8 @@ public:
 	void parse(int argc, char* argv[])
 	{
 		std::vector<const char*> args;
-		for (int i = 0; i < __argc; i++) { 
-			args.push_back(__argv[i]); 
+		for (int i = 0; i < argc; i++) { 
+			args.push_back(argv[i]); 
 		};
 		parse(args);
 	}
