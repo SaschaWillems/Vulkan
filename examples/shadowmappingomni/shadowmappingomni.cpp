@@ -72,6 +72,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 
 	vks::Texture shadowCubeMap;
+	std::array<VkImageView, 6> shadowCubeMapFaceImageViews;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -81,8 +82,8 @@ public:
 	};
 	struct OffscreenPass {
 		int32_t width, height;
-		VkFramebuffer frameBuffer;
-		FrameBufferAttachment color, depth;
+		std::array<VkFramebuffer, 6> frameBuffers;
+		FrameBufferAttachment depth;
 		VkRenderPass renderPass;
 		VkSampler sampler;
 		VkDescriptorImageInfo descriptor;
@@ -106,24 +107,25 @@ public:
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		// Cube map
+		for (uint32_t i = 0; i < 6; i++)
+		{
+			vkDestroyImageView(device, shadowCubeMapFaceImageViews[i], nullptr);
+		}
+
 		vkDestroyImageView(device, shadowCubeMap.view, nullptr);
 		vkDestroyImage(device, shadowCubeMap.image, nullptr);
 		vkDestroySampler(device, shadowCubeMap.sampler, nullptr);
 		vkFreeMemory(device, shadowCubeMap.deviceMemory, nullptr);
-
-		// Frame buffer
-
-		// Color attachment
-		vkDestroyImageView(device, offscreenPass.color.view, nullptr);
-		vkDestroyImage(device, offscreenPass.color.image, nullptr);
-		vkFreeMemory(device, offscreenPass.color.mem, nullptr);
 
 		// Depth attachment
 		vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
 		vkDestroyImage(device, offscreenPass.depth.image, nullptr);
 		vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
 
-		vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
+		for (uint32_t i = 0; i < 6; i++)
+		{
+			vkDestroyFramebuffer(device, offscreenPass.frameBuffers[i], nullptr);
+		}
 
 		vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
 
@@ -159,7 +161,7 @@ public:
 		imageCreateInfo.arrayLayers = 6;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -220,6 +222,16 @@ public:
 		view.subresourceRange.layerCount = 6;
 		view.image = shadowCubeMap.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &shadowCubeMap.view));
+
+		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		view.subresourceRange.layerCount = 1;
+		view.image = shadowCubeMap.image;
+
+		for (uint32_t i = 0; i < 6; i++)
+		{
+			view.subresourceRange.baseArrayLayer = i;
+			VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &shadowCubeMapFaceImageViews[i]));
+		}
 	}
 
 	// Prepare a new framebuffer for offscreen rendering
@@ -248,8 +260,6 @@ public:
 		imageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
-
 		VkImageViewCreateInfo colorImageView = vks::initializers::imageViewCreateInfo();
 		colorImageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		colorImageView.format = fbColorFormat;
@@ -261,26 +271,7 @@ public:
 		colorImageView.subresourceRange.baseArrayLayer = 0;
 		colorImageView.subresourceRange.layerCount = 1;
 
-		VkMemoryRequirements memReqs;
-
-		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &offscreenPass.color.image));
-		vkGetImageMemoryRequirements(device, offscreenPass.color.image, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.color.mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, offscreenPass.color.image, offscreenPass.color.mem, 0));
-
 		VkCommandBuffer layoutCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-		vks::tools::setImageLayout(
-			layoutCmd,
-			offscreenPass.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-		colorImageView.image = offscreenPass.color.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &colorImageView, nullptr, &offscreenPass.color.view));
 
 		// Depth stencil attachment
 		imageCreateInfo.format = fbDepthFormat;
@@ -300,7 +291,11 @@ public:
 		depthStencilView.subresourceRange.layerCount = 1;
 
 		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &offscreenPass.depth.image));
+
+		VkMemoryRequirements memReqs;
 		vkGetImageMemoryRequirements(device, offscreenPass.depth.image, &memReqs);
+		
+		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.depth.mem));
@@ -319,7 +314,6 @@ public:
 		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &offscreenPass.depth.view));
 
 		VkImageView attachments[2];
-		attachments[0] = offscreenPass.color.view;
 		attachments[1] = offscreenPass.depth.view;
 
 		VkFramebufferCreateInfo fbufCreateInfo = vks::initializers::framebufferCreateInfo();
@@ -330,11 +324,15 @@ public:
 		fbufCreateInfo.height = offscreenPass.height;
 		fbufCreateInfo.layers = 1;
 
-		VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offscreenPass.frameBuffer));
+		for (uint32_t i = 0; i < 6; i++)
+		{
+			attachments[0] = shadowCubeMapFaceImageViews[i];
+			VK_CHECK_RESULT(vkCreateFramebuffer(device, &fbufCreateInfo, nullptr, &offscreenPass.frameBuffers[i]));
+		}
 	}
 
 	// Updates a single cube map face
-	// Renders the scene with face's view and does a copy from framebuffer to cube face
+	// Renders the scene with face's view directly to the cubemap layer `faceIndex`
 	// Uses push constants for quick update of view matrix for the current cube map face
 	void updateCubeFace(uint32_t faceIndex, VkCommandBuffer commandBuffer)
 	{
@@ -345,7 +343,7 @@ public:
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
 		// Reuse render pass from example pass
 		renderPassBeginInfo.renderPass = offscreenPass.renderPass;
-		renderPassBeginInfo.framebuffer = offscreenPass.frameBuffer;
+		renderPassBeginInfo.framebuffer = offscreenPass.frameBuffers[faceIndex];
 		renderPassBeginInfo.renderArea.extent.width = offscreenPass.width;
 		renderPassBeginInfo.renderArea.extent.height = offscreenPass.height;
 		renderPassBeginInfo.clearValueCount = 2;
@@ -396,73 +394,6 @@ public:
 		models.scene.draw(commandBuffer);
 
 		vkCmdEndRenderPass(commandBuffer);
-		// Make sure color writes to the framebuffer are finished before using it as transfer source
-		vks::tools::setImageLayout(
-			commandBuffer,
-			offscreenPass.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-
-		VkImageSubresourceRange cubeFaceSubresourceRange = {};
-		cubeFaceSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		cubeFaceSubresourceRange.baseMipLevel = 0;
-		cubeFaceSubresourceRange.levelCount = 1;
-		cubeFaceSubresourceRange.baseArrayLayer = faceIndex;
-		cubeFaceSubresourceRange.layerCount = 1;
-
-		// Change image layout of one cubemap face to transfer destination
-		vks::tools::setImageLayout(
-			commandBuffer,
-			shadowCubeMap.image,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			cubeFaceSubresourceRange);
-
-		// Copy region for transfer from framebuffer to cube face
-		VkImageCopy copyRegion = {};
-
-		copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		copyRegion.srcSubresource.baseArrayLayer = 0;
-		copyRegion.srcSubresource.mipLevel = 0;
-		copyRegion.srcSubresource.layerCount = 1;
-		copyRegion.srcOffset = { 0, 0, 0 };
-
-		copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		copyRegion.dstSubresource.baseArrayLayer = faceIndex;
-		copyRegion.dstSubresource.mipLevel = 0;
-		copyRegion.dstSubresource.layerCount = 1;
-		copyRegion.dstOffset = { 0, 0, 0 };
-
-		copyRegion.extent.width = shadowCubeMap.width;
-		copyRegion.extent.height = shadowCubeMap.height;
-		copyRegion.extent.depth = 1;
-
-		// Put image copy into command buffer
-		vkCmdCopyImage(
-			commandBuffer,
-			offscreenPass.color.image,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			shadowCubeMap.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&copyRegion);
-
-		// Transform framebuffer color attachment back
-		vks::tools::setImageLayout(
-			commandBuffer,
-			offscreenPass.color.image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-		// Change image layout of copied face to shader read
-		vks::tools::setImageLayout(
-			commandBuffer,
-			shadowCubeMap.image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			cubeFaceSubresourceRange);
 	}
 
 	void buildCommandBuffers()
@@ -632,8 +563,8 @@ public:
 		osAttachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		osAttachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		osAttachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		osAttachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		osAttachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		osAttachments[0].initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		osAttachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		// Depth attachment
 		osAttachments[1].format = fbDepthFormat;
