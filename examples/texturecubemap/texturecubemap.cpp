@@ -271,7 +271,6 @@ public:
 		// Cube map view type
 		view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
 		view.format = format;
-		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		// 6 array layers (faces)
 		view.subresourceRange.layerCount = 6;

@@ -319,7 +319,6 @@ namespace vks
 		viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewCreateInfo.format = format;
-		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		// Linear tiling usually won't support mip maps
 		// Only set mip map count if optimal tiling is used
@@ -487,7 +486,6 @@ namespace vks
 		viewCreateInfo.pNext = NULL;
 		viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewCreateInfo.format = format;
-		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		viewCreateInfo.subresourceRange.levelCount = 1;
 		viewCreateInfo.image = image;
@@ -666,7 +664,6 @@ namespace vks
 		VkImageViewCreateInfo viewCreateInfo = vks::initializers::imageViewCreateInfo();
 		viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 		viewCreateInfo.format = format;
-		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		viewCreateInfo.subresourceRange.layerCount = layerCount;
 		viewCreateInfo.subresourceRange.levelCount = mipLevels;
@@ -854,7 +851,6 @@ namespace vks
 		VkImageViewCreateInfo viewCreateInfo = vks::initializers::imageViewCreateInfo();
 		viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
 		viewCreateInfo.format = format;
-		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		viewCreateInfo.subresourceRange.layerCount = 6;
 		viewCreateInfo.subresourceRange.levelCount = mipLevels;

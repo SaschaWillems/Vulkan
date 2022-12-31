@@ -193,7 +193,6 @@ The Image View also requires information about how many Mip Levels are used. Thi
   view.image = texture.image;
   view.viewType = VK_IMAGE_VIEW_TYPE_2D;
   view.format = format;
-  view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
   view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   view.subresourceRange.baseMipLevel = 0;
   view.subresourceRange.baseArrayLayer = 0;
