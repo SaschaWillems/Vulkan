@@ -78,16 +78,6 @@ void main()
 {
 	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
 
-	// Clear stats on first invocation
-	if (idx == 0)
-	{
-		atomicExchange(uboOut.drawCount, 0);
-		for (uint i = 0; i < MAX_LOD_LEVEL + 1; i++)
-		{
-			atomicExchange(uboOut.lodCount[i], 0);
-		}
-	}
-
 	vec4 pos = vec4(instances[idx].pos.xyz, 1.0);
 
 	// Check if object is within current viewing frustum
