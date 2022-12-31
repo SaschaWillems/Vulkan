@@ -176,14 +176,9 @@ public:
 		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instanceCreateInfo.pApplicationInfo = &appInfo;
 
-		uint32_t layerCount = 0;
-#if defined(VK_USE_PLATFORM_ANDROID_KHR)
-		const char* validationLayers[] = { "VK_LAYER_GOOGLE_threading",	"VK_LAYER_LUNARG_parameter_validation",	"VK_LAYER_LUNARG_object_tracker","VK_LAYER_LUNARG_core_validation",	"VK_LAYER_LUNARG_swapchain", "VK_LAYER_GOOGLE_unique_objects" };
-		layerCount = 6;
-#else
+		uint32_t layerCount = 1;
 		const char* validationLayers[] = { "VK_LAYER_KHRONOS_validation" };
-		layerCount = 1;
-#endif
+
 		std::vector<const char*> instanceExtensions = {};
 #if DEBUG
 		// Check if layers are available
