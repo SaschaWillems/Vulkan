@@ -66,7 +66,7 @@ namespace vks
 			return VK_FALSE;
 		}
 
-		void setupDebugging(VkInstance instance, VkDebugReportFlagsEXT flags, VkDebugReportCallbackEXT callBack)
+		void setupDebugging(VkInstance instance)
 		{
 
 			vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));

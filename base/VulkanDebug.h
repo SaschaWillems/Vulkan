@@ -38,11 +38,7 @@ namespace vks
 			void* pUserData);
 
 		// Load debug function pointers and set debug callback
-		// if callBack is NULL, default message callback will be used
-		void setupDebugging(
-			VkInstance instance,
-			VkDebugReportFlagsEXT flags,
-			VkDebugReportCallbackEXT callBack);
+		void setupDebugging(VkInstance instance);
 		// Clear debug callback
 		void freeDebugCallback(VkInstance instance);
 	}

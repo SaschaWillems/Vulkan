@@ -968,11 +968,7 @@ bool VulkanExampleBase::initVulkan()
 	// If requested, we enable the default validation layers for debugging
 	if (settings.validation)
 	{
-		// The report flags determine what type of messages for the layers will be displayed
-		// For validating (debugging) an application the error and warning bits should suffice
-		VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-		// Additional flags include performance info, loader and layer debug messages, etc.
-		vks::debug::setupDebugging(instance, debugReportFlags, VK_NULL_HANDLE);
+		vks::debug::setupDebugging(instance);
 	}
 
 	// Physical device
