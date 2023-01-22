@@ -26,10 +26,6 @@ namespace vks
 {
 	namespace debug
 	{
-		// Default validation layers
-		extern int validationLayerCount;
-		extern const char *validationLayerNames[];
-
 		// Default debug callback
 		VKAPI_ATTR VkBool32 VKAPI_CALL messageCallback(
 			VkDebugReportFlagsEXT flags,
