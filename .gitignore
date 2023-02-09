@@ -211,7 +211,7 @@ android/layers/*/*.so
 android/**/jni/
 
 # Downloadable assets
-vulkan_asset_pack.*
+vulkan_asset_pack_gltf.*
 data/textures/hdr/*.*
 data/readme.txt
 data/models/cerberus/*.*
@@ -224,3 +224,13 @@ data/models/cerberus/*.*
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
+
+# Ignore macOS .DS_Store
+.DS_Store
+
+# Assets that are part of the asset pack and should not be stored in the repo
+data/models/**
+data/textures/**
+data/README_asset_pack.md
+data/font*.*
+data/roboto*.*

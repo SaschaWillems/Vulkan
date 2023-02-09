@@ -17,7 +17,7 @@ This example demonstrates the use of indirect draw commands. In addition to draw
 
 This adds several new possibilities of generating (and updating) actual draw commands, as that buffer can be generated and updated offline with no need to actually update the command buffers that contain the actual drawing functions.
 
-Using indirect drawing you can generate the draw commands offline ahead of time on the CPU and even update them using shaders (as they're stored in a device local buffer). This adds lots of new possibilites to update draw commands without the CPU being involved, including GPU-based culling.
+Using indirect drawing you can generate the draw commands offline ahead of time on the CPU and even update them using shaders (as they're stored in a device local buffer). This adds lots of new possibilities to update draw commands without the CPU being involved, including GPU-based culling.
 
 The example generates a single indirect buffer that contains draw commands for 12 different plants at random position, scale and rotation also using instancing to render the objects multiple times. The whole foliage (and trees) seen in the screen are drawn using only one draw call.
 
@@ -105,5 +105,5 @@ for (auto j = 0; j < indirectCommands.size(); j++)
 }
 ```
 
-### Acknowledgements
+### Acknowledgments
 - Plant and foliage models by [Hugues Muller](http://www.yughues-folio.com/)

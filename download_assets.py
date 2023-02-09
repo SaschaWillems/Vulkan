@@ -4,8 +4,8 @@ import sys
 from urllib.request import urlretrieve
 from zipfile import ZipFile
 
-ASSET_PACK_URL = 'http://vulkan.gpuinfo.org/downloads/vulkan_asset_pack.zip'
-ASSET_PACK_FILE_NAME = 'vulkan_asset_pack.zip'
+ASSET_PACK_URL = 'http://vulkan.gpuinfo.org/downloads/vulkan_asset_pack_gltf.zip'
+ASSET_PACK_FILE_NAME = 'vulkan_asset_pack_gltf.zip'
 
 print("Downloading asset pack from '%s'" % ASSET_PACK_URL)    
 

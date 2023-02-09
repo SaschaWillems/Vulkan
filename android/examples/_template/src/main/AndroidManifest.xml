@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="de.saschawillems.%PACKAGE_NAME%">
+
+    <application
+        android:label="%APP_LABEL%"
+        android:icon="@drawable/icon"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        <activity android:name="de.saschawillems.vulkanSample.VulkanActivity"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|keyboardHidden">
+            <meta-data android:name="android.app.lib_name"
+                android:value="native-lib" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+
+</manifest>

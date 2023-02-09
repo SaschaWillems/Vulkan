@@ -12,7 +12,7 @@
 #include <iterator>
 #include <vector>
 #include "vulkan/vulkan.h"
-#include "VulkanDevice.hpp"
+#include "VulkanDevice.h"
 #include "VulkanTools.h"
 
 namespace vks
@@ -80,6 +80,7 @@ namespace vks
 		uint32_t layerCount;
 		VkFormat format;
 		VkImageUsageFlags usage;
+		VkSampleCountFlagBits imageSampleCount = VK_SAMPLE_COUNT_1_BIT;
 	};
 
 	/**
@@ -108,7 +109,7 @@ namespace vks
 		}
 
 		/**
-		* Destroy and free Vulkan resources used for the framebuffer and all of it's attachments
+		* Destroy and free Vulkan resources used for the framebuffer and all of its attachments
 		*/
 		~Framebuffer()
 		{
@@ -127,7 +128,7 @@ namespace vks
 		/**
 		* Add a new attachment described by createinfo to the framebuffer's attachment list
 		*
-		* @param createinfo Structure that specifices the framebuffer to be constructed
+		* @param createinfo Structure that specifies the framebuffer to be constructed
 		*
 		* @return Index of the new attachment
 		*/
@@ -170,7 +171,7 @@ namespace vks
 			image.extent.depth = 1;
 			image.mipLevels = 1;
 			image.arrayLayers = createinfo.layerCount;
-			image.samples = VK_SAMPLE_COUNT_1_BIT;
+			image.samples = createinfo.imageSampleCount;
 			image.tiling = VK_IMAGE_TILING_OPTIMAL;
 			image.usage = createinfo.usage;
 
@@ -201,7 +202,7 @@ namespace vks
 
 			// Fill attachment description
 			attachment.description = {};
-			attachment.description.samples = VK_SAMPLE_COUNT_1_BIT;
+			attachment.description.samples = createinfo.imageSampleCount;
 			attachment.description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachment.description.storeOp = (createinfo.usage & VK_IMAGE_USAGE_SAMPLED_BIT) ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachment.description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -230,7 +231,7 @@ namespace vks
 		*
 		* @param magFilter Magnification filter for lookups
 		* @param minFilter Minification filter for lookups
-		* @param adressMode Adressing mode for the U,V and W coordinates
+		* @param adressMode Addressing mode for the U,V and W coordinates
 		*
 		* @return VkResult for the sampler creation
 		*/

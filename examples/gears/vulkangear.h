@@ -20,10 +20,9 @@
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include "vulkan/vulkan.h"
-
 #include "VulkanTools.h"
-#include "VulkanDevice.hpp"
-#include "VulkanBuffer.hpp"
+#include "VulkanBuffer.h"
+#include "VulkanDevice.h"
 
 struct Vertex
 {
@@ -92,7 +91,7 @@ public:
 	VkDescriptorSet descriptorSet;
 
 	void draw(VkCommandBuffer cmdbuffer, VkPipelineLayout pipelineLayout);
-	void updateUniformBuffer(glm::mat4 perspective, glm::vec3 rotation, float zoom, float timer);
+	void updateUniformBuffer(glm::mat4 perspective, glm::mat4 view, float timer);
 
 	void setupDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout descriptorSetLayout);
 

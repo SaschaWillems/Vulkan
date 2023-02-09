@@ -19,79 +19,83 @@ namespace vks
 	class Benchmark {
 	private:
 		FILE *stream;
+		VkPhysicalDeviceProperties deviceProps;
 	public:
 		bool active = false;
-		uint32_t framesPerIteration = 1000;
-		uint32_t iterationCount = 10;
-		//std::vector<double> iterationTimes;
-		struct Iteration {
-			std::vector<double> frameTimes;
-		};
-		std::vector<Iteration> iterations;
-		std::string filename = "benchmarkresults.csv";
+		bool outputFrameTimes = false;
+		int outputFrames = -1; // -1 means no frames limit
+		uint32_t warmup = 1;
+		uint32_t duration = 10;
+		std::vector<double> frameTimes;
+		std::string filename = "";
 
-		void run(std::function<void()> renderFunc) {
+		double runtime = 0.0;
+		uint32_t frameCount = 0;
+
+		void run(std::function<void()> renderFunc, VkPhysicalDeviceProperties deviceProps) {
 			active = true;
+			this->deviceProps = deviceProps;
 #if defined(_WIN32)
 			AttachConsole(ATTACH_PARENT_PROCESS);
 			freopen_s(&stream, "CONOUT$", "w+", stdout);
 			freopen_s(&stream, "CONOUT$", "w+", stderr);
 #endif
-			// "Warm up" run to get more stable frame rates
-			for (uint32_t f = 0; f < framesPerIteration; f++) {
-				renderFunc();
-			}
+			std::cout << std::fixed << std::setprecision(3);
 
-			iterations.resize(iterationCount);
-			for (uint32_t i = 0; i < iterationCount; i++) {
-				iterations[i].frameTimes.resize(framesPerIteration);
-				for (uint32_t f = 0; f < framesPerIteration; f++) {
+			// Warm up phase to get more stable frame rates
+			{
+				double tMeasured = 0.0;
+				while (tMeasured < (warmup * 1000)) {
 					auto tStart = std::chrono::high_resolution_clock::now();
 					renderFunc();
-					auto tEnd = std::chrono::high_resolution_clock::now();
-					auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-					iterations[i].frameTimes[f] = tDiff;
-				}
+					auto tDiff = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
+					tMeasured += tDiff;
+				};
+			}
+
+			// Benchmark phase
+			{
+				while (runtime < (duration * 1000.0)) {
+					auto tStart = std::chrono::high_resolution_clock::now();
+					renderFunc();
+					auto tDiff = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
+					runtime += tDiff;
+					frameTimes.push_back(tDiff);
+					frameCount++;
+					if (outputFrames != -1 && outputFrames == frameCount) break;
+				};
+				std::cout << "Benchmark finished" << "\n";
+				std::cout << "device : " << deviceProps.deviceName << " (driver version: " << deviceProps.driverVersion << ")" << "\n";
+				std::cout << "runtime: " << (runtime / 1000.0) << "\n";
+				std::cout << "frames : " << frameCount << "\n";
+				std::cout << "fps    : " << frameCount / (runtime / 1000.0) << "\n";
 			}
 		}
 
-		void saveResults(std::string appinfo, std::string deviceinfo) {
+		void saveResults() {
 			std::ofstream result(filename, std::ios::out);
 			if (result.is_open()) {
-				double tMinAll = std::numeric_limits<double>::max();
-				double tMaxAll = std::numeric_limits<double>::min();
-				double tAvgAll = 0.0;
-
 				result << std::fixed << std::setprecision(4);
-				result << "iteration,min(ms),max(ms),avg(ms),min(fps),max(fps),avg(fps)" << std::endl;
-				uint32_t index = 0;
-				for (auto iteration : iterations) {
-					double tMin = *std::min_element(iteration.frameTimes.begin(), iteration.frameTimes.end());
-					double tMax = *std::max_element(iteration.frameTimes.begin(), iteration.frameTimes.end());
-					double tAvg = std::accumulate(iteration.frameTimes.begin(), iteration.frameTimes.end(), 0.0) / framesPerIteration;
-					if (tMin < tMinAll) {
-						tMinAll = tMin;
+
+				result << "device,driverversion,duration (ms),frames,fps" << "\n";
+				result << deviceProps.deviceName << "," << deviceProps.driverVersion << "," << runtime << "," << frameCount << "," << frameCount / (runtime / 1000.0) << "\n";
+
+				if (outputFrameTimes) {
+					result << "\n" << "frame,ms" << "\n";
+					for (size_t i = 0; i < frameTimes.size(); i++) {
+						result << i << "," << frameTimes[i] << "\n";
 					}
-					if (tMax > tMaxAll) {
-						tMaxAll = tMax;
-					}
-					tAvgAll += tAvg;
-					index++;
-					result << index << "," << tMin << "," << tMax << "," << tAvg << "," << (1000.0 / tMax) << "," << (1000.0 / tMin) << "," << (1000.0 / tAvg) << std::endl;
+					double tMin = *std::min_element(frameTimes.begin(), frameTimes.end());
+					double tMax = *std::max_element(frameTimes.begin(), frameTimes.end());
+					double tAvg = std::accumulate(frameTimes.begin(), frameTimes.end(), 0.0) / (double)frameTimes.size();
+					std::cout << "best   : " << (1000.0 / tMin) << " fps (" << tMin << " ms)" << "\n";
+					std::cout << "worst  : " << (1000.0 / tMax) << " fps (" << tMax << " ms)" << "\n";
+					std::cout << "avg    : " << (1000.0 / tAvg) << " fps (" << tAvg << " ms)" << "\n";
+					std::cout << "\n";
 				}
 
-				tAvgAll /= static_cast<uint32_t>(iterations.size());
-				result << "summary,min(ms),max(ms),avg(ms),min(fps),max(fps),avg(fps)" << std::endl;
-				result << index << "," << tMinAll << "," << tMaxAll << "," << tAvgAll << "," << (1000.0 / tMaxAll) << "," << (1000.0 / tMinAll) << "," << (1000.0 / tAvgAll) << std::endl;
-
-				// Output averages to stdout
-				std::cout << std::fixed << std::setprecision(3);
-				std::cout << "best : " << (1000.0 / tMinAll) << " fps (" << tMinAll << " ms)" << std::endl;
-				std::cout << "worst: " << (1000.0 / tMaxAll) << " fps (" << tMaxAll << " ms)" << std::endl;
-				std::cout << "avg  : " << (1000.0 / tAvgAll) << " fps (" << tAvgAll << " ms)" << std::endl;
-				std::cout << std::endl;
+				result.flush();
 #if defined(_WIN32)
-				fclose(stream);
 				FreeConsole();
 #endif
 			}

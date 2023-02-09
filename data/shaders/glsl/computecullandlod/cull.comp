@@ -1,0 +1,110 @@
+#version 450
+
+layout (constant_id = 0) const int MAX_LOD_LEVEL = 5;
+
+struct InstanceData 
+{
+	vec3 pos;
+	float scale;
+};
+
+// Binding 0: Instance input data for culling
+layout (binding = 0, std140) buffer Instances 
+{
+   InstanceData instances[ ];
+};
+
+// Same layout as VkDrawIndexedIndirectCommand
+struct IndexedIndirectCommand 
+{
+	uint indexCount;
+	uint instanceCount;
+	uint firstIndex;
+	uint vertexOffset;
+	uint firstInstance;
+};
+
+// Binding 1: Multi draw output
+layout (binding = 1, std430) writeonly buffer IndirectDraws
+{
+	IndexedIndirectCommand indirectDraws[ ];
+};
+
+// Binding 2: Uniform block object with matrices
+layout (binding = 2) uniform UBO 
+{
+	mat4 projection;
+	mat4 modelview;
+	vec4 cameraPos;
+	vec4 frustumPlanes[6];
+} ubo;
+
+// Binding 3: Indirect draw stats
+layout (binding = 3) buffer UBOOut
+{
+	uint drawCount;
+	uint lodCount[MAX_LOD_LEVEL + 1];
+} uboOut;
+
+// Binding 4: level-of-detail information
+struct LOD
+{
+	uint firstIndex;
+	uint indexCount;
+	float distance;
+	float _pad0;
+};
+layout (binding = 4) readonly buffer LODs
+{
+	LOD lods[ ];
+};
+
+layout (local_size_x = 16) in;
+
+bool frustumCheck(vec4 pos, float radius)
+{
+	// Check sphere against frustum planes
+	for (int i = 0; i < 6; i++) 
+	{
+		if (dot(pos, ubo.frustumPlanes[i]) + radius < 0.0)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void main()
+{
+	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
+
+	vec4 pos = vec4(instances[idx].pos.xyz, 1.0);
+
+	// Check if object is within current viewing frustum
+	if (frustumCheck(pos, 1.0))
+	{
+		indirectDraws[idx].instanceCount = 1;
+		
+		// Increase number of indirect draw counts
+		atomicAdd(uboOut.drawCount, 1);
+
+		// Select appropriate LOD level based on distance to camera
+		uint lodLevel = MAX_LOD_LEVEL;
+		for (uint i = 0; i < MAX_LOD_LEVEL; i++)
+		{
+			if (distance(instances[idx].pos.xyz, ubo.cameraPos.xyz) < lods[i].distance) 
+			{
+				lodLevel = i;
+				break;
+			}
+		}
+		indirectDraws[idx].firstIndex = lods[lodLevel].firstIndex;
+		indirectDraws[idx].indexCount = lods[lodLevel].indexCount;
+		// Update stats
+		atomicAdd(uboOut.lodCount[lodLevel], 1);
+	}
+	else
+	{
+		indirectDraws[idx].instanceCount = 0;
+	}
+}

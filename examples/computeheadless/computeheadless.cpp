@@ -1,12 +1,10 @@
 /*
-* Vulkan Example - Minimal headless compute example 
+* Vulkan Example - Minimal headless compute example
 *
-* Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2022 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
-
-// TODO: separate transfer queue (if not supported by compute queue) including buffer ownership transfer
 
 #if defined(_WIN32)
 #pragma comment(linker, "/subsystem:console")
@@ -26,8 +24,12 @@
 #include <iostream>
 #include <algorithm>
 
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+#define VK_ENABLE_BETA_EXTENSIONS
+#endif
 #include <vulkan/vulkan.h>
 #include "VulkanTools.h"
+#include "CommandLineParser.hpp"
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 android_app* androidapp;
@@ -51,18 +53,20 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageCallback(
 	int32_t messageCode,
 	const char* pLayerPrefix,
 	const char* pMessage,
-	void* pUserData) 
+	void* pUserData)
 {
 	LOG("[VALIDATION]: %s - %s\n", pLayerPrefix, pMessage);
 	return VK_FALSE;
 }
+
+CommandLineParser commandLineParser;
 
 class VulkanExample
 {
 public:
 	VkInstance instance;
 	VkPhysicalDevice physicalDevice;
-	VkDevice device;	
+	VkDevice device;
 	uint32_t queueFamilyIndex;
 	VkPipelineCache pipelineCache;
 	VkQueue queue;
@@ -74,8 +78,9 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline pipeline;
+	VkShaderModule shaderModule;
 
-	VkDebugReportCallbackEXT debugReportCallback;
+	VkDebugReportCallbackEXT debugReportCallback{};
 
 	VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkBuffer *buffer, VkDeviceMemory *memory, VkDeviceSize size, void *data = nullptr)
 	{
@@ -132,49 +137,95 @@ public:
 		appInfo.pEngineName = "VulkanExample";
 		appInfo.apiVersion = VK_API_VERSION_1_0;
 
-		/* 
-			Vulkan instance creation (without surface extensions) 
+		/*
+			Vulkan instance creation (without surface extensions)
 		*/
 		VkInstanceCreateInfo instanceCreateInfo = {};
 		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instanceCreateInfo.pApplicationInfo = &appInfo;
 
-		uint32_t layerCount = 0;
-#if defined(VK_USE_PLATFORM_ANDROID_KHR)
-		const char* validationlayers[] = { "VK_LAYER_GOOGLE_threading",	"VK_LAYER_LUNARG_parameter_validation",	"VK_LAYER_LUNARG_object_tracker","VK_LAYER_LUNARG_core_validation",	"VK_LAYER_LUNARG_swapchain", "VK_LAYER_GOOGLE_unique_objects" };
-		layerCount = 6;
-#else
-		const char* validationlayers[] = { "VK_LAYER_LUNARG_standard_validation" };
-		layerCount = 1;
-#endif
+		uint32_t layerCount = 1;
+		const char* validationLayers[] = { "VK_LAYER_KHRONOS_validation" };
+
+		std::vector<const char*> instanceExtensions = {};
 #if DEBUG
-		instanceCreateInfo.ppEnabledLayerNames = validationlayers;
-		const char* validationExt = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
-		instanceCreateInfo.enabledLayerCount = layerCount;
-		instanceCreateInfo.enabledExtensionCount = 1;
-		instanceCreateInfo.ppEnabledExtensionNames = &validationExt;
+		// Check if layers are available
+		uint32_t instanceLayerCount;
+		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
+		std::vector<VkLayerProperties> instanceLayers(instanceLayerCount);
+		vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayers.data());
+
+		bool layersAvailable = true;
+		for (auto layerName : validationLayers) {
+			bool layerAvailable = false;
+			for (auto instanceLayer : instanceLayers) {
+				if (strcmp(instanceLayer.layerName, layerName) == 0) {
+					layerAvailable = true;
+					break;
+				}
+			}
+			if (!layerAvailable) {
+				layersAvailable = false;
+				break;
+			}
+		}
+
+		if (layersAvailable) {
+			instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+			instanceCreateInfo.ppEnabledLayerNames = validationLayers;
+			instanceCreateInfo.enabledLayerCount = layerCount;
+		}
 #endif
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+		// SRS - When running on macOS with MoltenVK, enable VK_KHR_get_physical_device_properties2 (required by VK_KHR_portability_subset)
+		instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+#if defined(VK_KHR_portability_enumeration)
+		// SRS - When running on macOS with MoltenVK and VK_KHR_portability_enumeration is defined and supported by the instance, enable the extension and the flag
+		uint32_t instanceExtCount = 0;
+		vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtCount, nullptr);
+		if (instanceExtCount > 0)
+		{
+			std::vector<VkExtensionProperties> extensions(instanceExtCount);
+			if (vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtCount, &extensions.front()) == VK_SUCCESS)
+			{
+				for (VkExtensionProperties extension : extensions)
+				{
+					if (strcmp(extension.extensionName, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
+					{
+						instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+						instanceCreateInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+						break;
+					}
+				}
+			}
+		}
+#endif
+#endif
+		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
+		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 		VK_CHECK_RESULT(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 		vks::android::loadVulkanFunctions(instance);
 #endif
 #if DEBUG
-		VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = {};
-		debugReportCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-		debugReportCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-		debugReportCreateInfo.pfnCallback = (PFN_vkDebugReportCallbackEXT)debugMessageCallback;
+		if (layersAvailable) {
+			VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = {};
+			debugReportCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+			debugReportCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+			debugReportCreateInfo.pfnCallback = (PFN_vkDebugReportCallbackEXT)debugMessageCallback;
 
-		// We have to explicitly load this function.
-		PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
-		assert(vkCreateDebugReportCallbackEXT);
-		VK_CHECK_RESULT(vkCreateDebugReportCallbackEXT(instance, &debugReportCreateInfo, nullptr, &debugReportCallback));
+			// We have to explicitly load this function.
+			PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
+			assert(vkCreateDebugReportCallbackEXT);
+			VK_CHECK_RESULT(vkCreateDebugReportCallbackEXT(instance, &debugReportCreateInfo, nullptr, &debugReportCallback));
+		}
 #endif
 
-		/* 
-			Vulkan device creation 
+		/*
+			Vulkan device creation
 		*/
-		// Physical device (always use first) 
+		// Physical device (always use first)
 		uint32_t deviceCount = 0;
 		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
 		std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
@@ -207,6 +258,29 @@ public:
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.queueCreateInfoCount = 1;
 		deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+		std::vector<const char*> deviceExtensions = {};
+#if defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_KHR_portability_subset)
+		// SRS - When running on macOS with MoltenVK and VK_KHR_portability_subset is defined and supported by the device, enable the extension
+		uint32_t deviceExtCount = 0;
+		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtCount, nullptr);
+		if (deviceExtCount > 0)
+		{
+			std::vector<VkExtensionProperties> extensions(deviceExtCount);
+			if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtCount, &extensions.front()) == VK_SUCCESS)
+			{
+				for (VkExtensionProperties extension : extensions)
+				{
+					if (strcmp(extension.extensionName, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME) == 0)
+					{
+						deviceExtensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+						break;
+					}
+				}
+			}
+		}
+#endif
+		deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
+		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 		VK_CHECK_RESULT(vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device));
 
 		// Get a compute queue
@@ -219,7 +293,7 @@ public:
 		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &commandPool));
 
-		/* 
+		/*
 			Prepare storage buffers
 		*/
 		std::vector<uint32_t> computeInput(BUFFER_ELEMENTS);
@@ -288,7 +362,7 @@ public:
 			vkFreeCommandBuffers(device, commandPool, 1, &copyCmd);
 		}
 
-		/* 
+		/*
 			Prepare compute pipeline
 		*/
 		{
@@ -325,7 +399,7 @@ public:
 			pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 			VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
 
-			// Create pipeline		
+			// Create pipeline
 			VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(pipelineLayout, 0);
 
 			// Pass SSBO size via specialization constant
@@ -335,16 +409,23 @@ public:
 			VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
 			VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(SpecializationData), &specializationData);
 
+			std::string shaderDir = "glsl";
+			if (commandLineParser.isSet("shaders")) {
+				shaderDir = commandLineParser.getValueAsString("shaders", "glsl");
+			}
+			const std::string shadersPath = getAssetPath() + "shaders/"+shaderDir+"/computeheadless/";
+
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, ASSET_PATH "shaders/computeheadless/headless.comp.spv", device);
+			shaderStage.module = vks::tools::loadShader(androidapp->activity->assetManager, (shadersPath + "headless.comp.spv").c_str(), device);
 #else
-			shaderStage.module = vks::tools::loadShader(ASSET_PATH "shaders/computeheadless/headless.comp.spv", device);
+			shaderStage.module = vks::tools::loadShader((shadersPath + "headless.comp.spv").c_str(), device);
 #endif
 			shaderStage.pName = "main";
 			shaderStage.pSpecializationInfo = &specializationInfo;
+			shaderModule = shaderStage.module;
 
 			assert(shaderStage.module != VK_NULL_HANDLE);
 			computePipelineCreateInfo.stage = shaderStage;
@@ -360,7 +441,7 @@ public:
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
 		}
 
-		/* 
+		/*
 			Command buffer creation (for compute work submission)
 		*/
 		{
@@ -476,22 +557,27 @@ public:
 		vkFreeMemory(device, deviceMemory, nullptr);
 		vkDestroyBuffer(device, hostBuffer, nullptr);
 		vkFreeMemory(device, hostMemory, nullptr);
-
-#if DEBUG
-		PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallback = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
-		assert(vkDestroyDebugReportCallback);
-		vkDestroyDebugReportCallback(instance, debugReportCallback, nullptr);
-#endif
 	}
 
 	~VulkanExample()
 	{
-		// todo: all other stuff
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 		vkDestroyPipeline(device, pipeline, nullptr);
+		vkDestroyPipelineCache(device, pipelineCache, nullptr);
 		vkDestroyFence(device, fence, nullptr);
 		vkDestroyCommandPool(device, commandPool, nullptr);
+		vkDestroyShaderModule(device, shaderModule, nullptr);
+		vkDestroyDevice(device, nullptr);
+#if DEBUG
+		if (debugReportCallback) {
+			PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallback = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
+			assert(vkDestroyDebugReportCallback);
+			vkDestroyDebugReportCallback(instance, debugReportCallback, nullptr);
+		}
+#endif
+		vkDestroyInstance(instance, nullptr);
 	}
 };
 
@@ -504,7 +590,6 @@ void handleAppCommand(android_app * app, int32_t cmd) {
 	}
 }
 void android_main(android_app* state) {
-	app_dummy();
 	androidapp = state;
 	androidapp->onAppCmd = handleAppCommand;
 	int ident, events;
@@ -519,10 +604,18 @@ void android_main(android_app* state) {
 	}
 }
 #else
-int main() {
+int main(int argc, char* argv[]) {
+	commandLineParser.add("help", { "--help" }, 0, "Show help");
+	commandLineParser.add("shaders", { "-s", "--shaders" }, 1, "Select shader type to use (glsl or hlsl)");
+	commandLineParser.parse(argc, argv);
+	if (commandLineParser.isSet("help")) {
+		commandLineParser.printHelp();
+		std::cin.get();
+		return 0;
+	}
 	VulkanExample *vulkanExample = new VulkanExample();
 	std::cout << "Finished. Press enter to terminate...";
-	getchar();
+	std::cin.get();
 	delete(vulkanExample);
 	return 0;
 }

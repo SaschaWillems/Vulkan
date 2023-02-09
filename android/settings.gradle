@@ -1,0 +1,9 @@
+file('examples').eachDir { sub ->
+    if (sub.name != '_template') {
+        if (file("examples/$sub.name/build.gradle").exists()) {
+            println("Adding project $sub.name")
+            include ":$sub.name"
+            project(":$sub.name").projectDir = new File("examples/$sub.name")
+        }
+    }
+}

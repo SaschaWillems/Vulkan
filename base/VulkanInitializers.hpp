@@ -390,6 +390,20 @@ namespace vks
 			return pipelineVertexInputStateCreateInfo;
 		}
 
+		inline VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo(
+			const std::vector<VkVertexInputBindingDescription> &vertexBindingDescriptions,
+			const std::vector<VkVertexInputAttributeDescription> &vertexAttributeDescriptions
+		)
+		{
+			VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{};
+			pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+			pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindingDescriptions.size());
+			pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = vertexBindingDescriptions.data();
+			pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributeDescriptions.size());
+			pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = vertexAttributeDescriptions.data();
+			return pipelineVertexInputStateCreateInfo;
+		}
+
 		inline VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo(
 			VkPrimitiveTopology topology,
 			VkPipelineInputAssemblyStateCreateFlags flags,
@@ -451,7 +465,6 @@ namespace vks
 			pipelineDepthStencilStateCreateInfo.depthTestEnable = depthTestEnable;
 			pipelineDepthStencilStateCreateInfo.depthWriteEnable = depthWriteEnable;
 			pipelineDepthStencilStateCreateInfo.depthCompareOp = depthCompareOp;
-			pipelineDepthStencilStateCreateInfo.front = pipelineDepthStencilStateCreateInfo.back;
 			pipelineDepthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
 			return pipelineDepthStencilStateCreateInfo;
 		}
@@ -528,6 +541,15 @@ namespace vks
 			return pipelineCreateInfo;
 		}
 
+		inline VkGraphicsPipelineCreateInfo pipelineCreateInfo()
+		{
+			VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
+			pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			pipelineCreateInfo.basePipelineIndex = -1;
+			pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+			return pipelineCreateInfo;
+		}
+
 		inline VkComputePipelineCreateInfo computePipelineCreateInfo(
 			VkPipelineLayout layout, 
 			VkPipelineCreateFlags flags = 0)
@@ -578,5 +600,60 @@ namespace vks
 			specializationInfo.pData = data;
 			return specializationInfo;
 		}
+
+		/** @brief Initialize a specialization constant info structure to pass to a shader stage */
+		inline VkSpecializationInfo specializationInfo(const std::vector<VkSpecializationMapEntry> &mapEntries, size_t dataSize, const void* data)
+		{
+			VkSpecializationInfo specializationInfo{};
+			specializationInfo.mapEntryCount = static_cast<uint32_t>(mapEntries.size());
+			specializationInfo.pMapEntries = mapEntries.data();
+			specializationInfo.dataSize = dataSize;
+			specializationInfo.pData = data;
+			return specializationInfo;
+		}
+
+		// Ray tracing related
+		inline VkAccelerationStructureGeometryKHR accelerationStructureGeometryKHR()
+		{
+			VkAccelerationStructureGeometryKHR accelerationStructureGeometryKHR{};
+			accelerationStructureGeometryKHR.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+			return accelerationStructureGeometryKHR;
+		}
+
+		inline VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfoKHR()
+		{
+			VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfoKHR{};
+			accelerationStructureBuildGeometryInfoKHR.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+			return accelerationStructureBuildGeometryInfoKHR;
+		}
+
+		inline VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfoKHR()
+		{
+			VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfoKHR{};
+			accelerationStructureBuildSizesInfoKHR.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+			return accelerationStructureBuildSizesInfoKHR;
+		}
+
+		inline VkRayTracingShaderGroupCreateInfoKHR rayTracingShaderGroupCreateInfoKHR()
+		{
+			VkRayTracingShaderGroupCreateInfoKHR rayTracingShaderGroupCreateInfoKHR{};
+			rayTracingShaderGroupCreateInfoKHR.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+			return rayTracingShaderGroupCreateInfoKHR;
+		}
+
+		inline VkRayTracingPipelineCreateInfoKHR rayTracingPipelineCreateInfoKHR()
+		{
+			VkRayTracingPipelineCreateInfoKHR rayTracingPipelineCreateInfoKHR{};
+			rayTracingPipelineCreateInfoKHR.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
+			return rayTracingPipelineCreateInfoKHR;
+		}
+
+		inline VkWriteDescriptorSetAccelerationStructureKHR writeDescriptorSetAccelerationStructureKHR()
+		{
+			VkWriteDescriptorSetAccelerationStructureKHR writeDescriptorSetAccelerationStructureKHR{};
+			writeDescriptorSetAccelerationStructureKHR.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+			return writeDescriptorSetAccelerationStructureKHR;
+		}
+
 	}
 }

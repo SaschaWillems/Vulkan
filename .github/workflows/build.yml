@@ -1,0 +1,42 @@
+name: Build Project
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build_ubuntu_x11:
+    name: Build Ubuntu
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+
+      - name: Build
+        run: |
+          cmake .
+          make
+
+  build_windows:
+    name: Build Windows
+    runs-on: windows-latest
+
+    steps:
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+
+      - name: Build
+        env:
+          TARGET_PLATFORM: windows
+        run: |
+          cmake .
+          cmake --build .

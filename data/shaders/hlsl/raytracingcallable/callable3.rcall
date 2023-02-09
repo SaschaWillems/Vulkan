@@ -1,0 +1,15 @@
+// Copyright 2021 Sascha Willems
+
+struct CallData
+{
+    float3 outColor;
+};
+
+[shader("callable")]
+void main(inout CallData data)
+{
+    // Generate a checker board pattern
+	float2 pos = float2(DispatchRaysIndex().x / 8, DispatchRaysIndex().y / 8);
+	float col = pos.y % 2.0;
+	data.outColor = float3(col, col, col);
+}

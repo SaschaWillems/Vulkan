@@ -1,6 +1,3 @@
 [submodule "external/glm"]
 	path = external/glm
 	url = https://github.com/g-truc/glm
-[submodule "external/gli"]
-	path = external/gli
-	url = https://github.com/g-truc/gli

@@ -13,6 +13,7 @@
 
 /** The main view controller for the demo storyboard. */
 @interface DemoViewController : NSViewController
+-(void) shutdownExample;
 @end
 
 

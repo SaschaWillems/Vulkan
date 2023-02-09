@@ -23,11 +23,15 @@ private:
 		glm::mat4 rotM = glm::mat4(1.0f);
 		glm::mat4 transM;
 
-		rotM = glm::rotate(rotM, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		rotM = glm::rotate(rotM, glm::radians(rotation.x * (flipY ? -1.0f : 1.0f)), glm::vec3(1.0f, 0.0f, 0.0f));
 		rotM = glm::rotate(rotM, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		transM = glm::translate(glm::mat4(1.0f), position);
+		glm::vec3 translation = position;
+		if (flipY) {
+			translation.y *= -1.0f;
+		}
+		transM = glm::translate(glm::mat4(1.0f), translation);
 
 		if (type == CameraType::firstperson)
 		{
@@ -37,6 +41,10 @@ private:
 		{
 			matrices.view = transM * rotM;
 		}
+
+		viewPos = glm::vec4(position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+
+		updated = true;
 	};
 public:
 	enum CameraType { lookat, firstperson };
@@ -44,9 +52,13 @@ public:
 
 	glm::vec3 rotation = glm::vec3();
 	glm::vec3 position = glm::vec3();
+	glm::vec4 viewPos = glm::vec4();
 
 	float rotationSpeed = 1.0f;
 	float movementSpeed = 1.0f;
+
+	bool updated = false;
+	bool flipY = false;
 
 	struct
 	{
@@ -81,11 +93,17 @@ public:
 		this->znear = znear;
 		this->zfar = zfar;
 		matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+		if (flipY) {
+			matrices.perspective[1][1] *= -1.0f;
+		}
 	};
 
 	void updateAspectRatio(float aspect)
 	{
 		matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+		if (flipY) {
+			matrices.perspective[1][1] *= -1.0f;
+		}
 	}
 
 	void setPosition(glm::vec3 position)
@@ -98,7 +116,7 @@ public:
 	{
 		this->rotation = rotation;
 		updateViewMatrix();
-	};
+	}
 
 	void rotate(glm::vec3 delta)
 	{
@@ -118,8 +136,19 @@ public:
 		updateViewMatrix();
 	}
 
+	void setRotationSpeed(float rotationSpeed)
+	{
+		this->rotationSpeed = rotationSpeed;
+	}
+
+	void setMovementSpeed(float movementSpeed)
+	{
+		this->movementSpeed = movementSpeed;
+	}
+
 	void update(float deltaTime)
 	{
+		updated = false;
 		if (type == CameraType::firstperson)
 		{
 			if (moving())

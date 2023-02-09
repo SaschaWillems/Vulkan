@@ -265,29 +265,17 @@ void VulkanGear::draw(VkCommandBuffer cmdbuffer, VkPipelineLayout pipelineLayout
 	vkCmdDrawIndexed(cmdbuffer, indexCount, 1, 0, 0, 1);
 }
 
-void VulkanGear::updateUniformBuffer(glm::mat4 perspective, glm::vec3 rotation, float zoom, float timer)
+void VulkanGear::updateUniformBuffer(glm::mat4 perspective, glm::mat4 view, float timer)
 {
 	ubo.projection = perspective;
-
-	ubo.view = glm::lookAt(
-		glm::vec3(0, 0, -zoom),
-		glm::vec3(-1.0, -1.5, 0),
-		glm::vec3(0, 1, 0)
-		);
-	ubo.view = glm::rotate(ubo.view, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-	ubo.view = glm::rotate(ubo.view, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-
+	ubo.view = view;
 	ubo.model = glm::mat4(1.0f);
 	ubo.model = glm::translate(ubo.model, pos);
-	rotation.z = (rotSpeed * timer) + rotOffset;
-	ubo.model = glm::rotate(ubo.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
+	ubo.model = glm::rotate(ubo.model, glm::radians((rotSpeed * timer) + rotOffset), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
-
 	ubo.lightPos = glm::vec3(0.0f, 0.0f, 2.5f);
 	ubo.lightPos.x = sin(glm::radians(timer)) * 8.0f;
 	ubo.lightPos.z = cos(glm::radians(timer)) * 8.0f;
-
 	memcpy(uniformBuffer.mapped, &ubo, sizeof(ubo));
 }
 

@@ -6,25 +6,7 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <vector>
-#include <random>
-#include <numeric>
-#include <ctime>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
-#include "VulkanDevice.hpp"
-#include "VulkanBuffer.hpp"
-#include "VulkanModel.hpp"
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
@@ -42,18 +24,18 @@ class PerlinNoise
 {
 private:
 	uint32_t permutations[512];
-	T fade(T t) 
-	{ 
-		return t * t * t * (t * (t * (T)6 - (T)15) + (T)10); 
+	T fade(T t)
+	{
+		return t * t * t * (t * (t * (T)6 - (T)15) + (T)10);
 	}
-	T lerp(T t, T a, T b) 
-	{ 
-		return a + t * (b - a); 
+	T lerp(T t, T a, T b)
+	{
+		return a + t * (b - a);
 	}
-	T grad(int hash, T x, T y, T z) 
+	T grad(int hash, T x, T y, T z)
 	{
 		// Convert LO 4 bits of hash code into 12 gradient directions
-		int h = hash & 15;                     
+		int h = hash & 15;
 		T u = h < 8 ? x : y;
 		T v = h < 4 ? y : h == 12 || h == 14 ? x : z;
 		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
@@ -71,7 +53,7 @@ public:
 		for (uint32_t i = 0; i < 256; i++)
 		{
 			permutations[i] = permutations[256 + i] = plookup[i];
-		}		
+		}
 	}
 	T noise(T x, T y, T z)
 	{
@@ -98,7 +80,7 @@ public:
 		uint32_t BB = permutations[B + 1] + Z;
 
 		// And add blended results for 8 corners of the cube;
-		T res = lerp(w, lerp(v, 
+		T res = lerp(w, lerp(v,
 			lerp(u, grad(permutations[AA], x, y, z), grad(permutations[BA], x - 1, y, z)), lerp(u, grad(permutations[AB], x, y - 1, z), grad(permutations[BB], x - 1, y - 1, z))),
 			lerp(v, lerp(u, grad(permutations[AA + 1], x, y, z - 1), grad(permutations[BA + 1], x - 1, y, z - 1)), lerp(u, grad(permutations[AB + 1], x, y - 1, z - 1), grad(permutations[BB + 1], x - 1, y - 1, z - 1))));
 		return res;
@@ -111,13 +93,13 @@ class FractalNoise
 {
 private:
 	PerlinNoise<float> perlinNoise;
-	uint32_t octaves; 
+	uint32_t octaves;
 	T frequency;
 	T amplitude;
 	T persistence;
 public:
 
-	FractalNoise(const PerlinNoise<T> &perlinNoise) 
+	FractalNoise(const PerlinNoise<T> &perlinNoise)
 	{
 		this->perlinNoise = perlinNoise;
 		octaves = 6;
@@ -129,8 +111,8 @@ public:
 		T sum = 0;
 		T frequency = (T)1;
 		T amplitude = (T)1;
-		T max = (T)0;  
-		for (int32_t i = 0; i < octaves; i++)
+		T max = (T)0;
+		for (uint32_t i = 0; i < octaves; i++)
 		{
 			sum += perlinNoise.noise(x * frequency, y * frequency, z * frequency) * amplitude;
 			max += amplitude;
@@ -159,12 +141,6 @@ public:
 		uint32_t mipLevels;
 	} texture;
 
-	bool regenerateNoise = true;
-
-	struct {
-		vks::Model cube;
-	} models;
-
 	struct {
 		VkPipelineVertexInputStateCreateInfo inputState;
 		std::vector<VkVertexInputBindingDescription> inputBinding;
@@ -179,7 +155,7 @@ public:
 
 	struct UboVS {
 		glm::mat4 projection;
-		glm::mat4 model;
+		glm::mat4 modelView;
 		glm::vec4 viewPos;
 		float depth = 0.0f;
 	} uboVS;
@@ -194,16 +170,17 @@ public:
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		zoom = -2.5f;
-		rotation = { 0.0f, 15.0f, 0.0f };
 		title = "3D textures";
-		settings.overlay = true;
+		camera.type = Camera::CameraType::lookat;
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+		camera.setRotation(glm::vec3(0.0f, 15.0f, 0.0f));
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		srand((unsigned int)time(NULL));
 	}
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources 
+		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
 
 		destroyTextureImage(texture);
@@ -234,7 +211,7 @@ public:
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, texture.format, &formatProperties);
 		// Check if format supports transfer
-		if (!formatProperties.optimalTilingFeatures && VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_DST_BIT))
 		{
 			std::cout << "Error: Device does not support flag TRANSFER_DST for selected texture format!" << std::endl;
 			return;
@@ -255,10 +232,9 @@ public:
 		imageCreateInfo.arrayLayers = 1;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageCreateInfo.extent.width = texture.width;
-		imageCreateInfo.extent.height = texture.width;
+		imageCreateInfo.extent.height = texture.height;
 		imageCreateInfo.extent.depth = texture.depth;
 		// Set initial layout of the image to undefined
 		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -296,7 +272,6 @@ public:
 		view.image = texture.image;
 		view.viewType = VK_IMAGE_VIEW_TYPE_3D;
 		view.format = texture.format;
-		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		view.subresourceRange.baseMipLevel = 0;
 		view.subresourceRange.baseArrayLayer = 0;
@@ -308,6 +283,8 @@ public:
 		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		texture.descriptor.imageView = texture.view;
 		texture.descriptor.sampler = texture.sampler;
+
+		updateNoiseTexture();
 	}
 
 	// Generate randomized noise and upload it to the 3D texture using staging
@@ -326,14 +303,12 @@ public:
 		PerlinNoise<float> perlinNoise;
 		FractalNoise<float> fractalNoise(perlinNoise);
 
-		std::default_random_engine rndEngine(std::random_device{}());
-		const int32_t noiseType = rand() % 2;
 		const float noiseScale = static_cast<float>(rand() % 10) + 4.0f;
 
 #pragma omp parallel for
 		for (int32_t z = 0; z < texture.depth; z++)
 		{
-			for (uint32_t y = 0; y < texture.height; y++)
+			for (int32_t y = 0; y < texture.height; y++)
 			{
 				for (int32_t x = 0; x < texture.width; x++)
 				{
@@ -366,7 +341,7 @@ public:
 		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
 		bufferCreateInfo.size = texMemSize;
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;			
+		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &stagingBuffer));
 
 		// Allocate host visible memory for data upload
@@ -384,11 +359,9 @@ public:
 		memcpy(mapped, data, texMemSize);
 		vkUnmapMemory(device, stagingMemory);
 
-		VkCommandBuffer copyCmd = VulkanExampleBase::createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		// Image barrier for optimal image
-
-		// The sub resource range describes the regions of the image we will be transition
+		// The sub resource range describes the regions of the image we will be transitioned
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		subresourceRange.baseMipLevel = 0;
@@ -421,7 +394,7 @@ public:
 			stagingBuffer,
 			texture.image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1, 
+			1,
 			&bufferCopyRegion);
 
 		// Change texture image layout to shader read after all mip levels have been copied
@@ -433,13 +406,12 @@ public:
 			texture.imageLayout,
 			subresourceRange);
 
-		VulkanExampleBase::flushCommandBuffer(copyCmd, queue, true);
+		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
 		// Clean up staging resources
 		delete[] data;
 		vkFreeMemory(device, stagingMemory, nullptr);
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		regenerateNoise = false;
 	}
 
 	// Free all Vulkan resources used a texture object
@@ -495,6 +467,8 @@ public:
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 
+			drawUI(drawCmdBuffers[i]);
+
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
@@ -505,7 +479,7 @@ public:
 	{
 		VulkanExampleBase::prepareFrame();
 
-		// Command buffer to be sumitted to the queue
+		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
@@ -554,8 +528,8 @@ public:
 		vertices.inputBinding.resize(1);
 		vertices.inputBinding[0] =
 			vks::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID, 
-				sizeof(Vertex), 
+				VERTEX_BUFFER_BIND_ID,
+				sizeof(Vertex),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
 		// Attribute descriptions
@@ -567,7 +541,7 @@ public:
 				VERTEX_BUFFER_BIND_ID,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
-				offsetof(Vertex, pos));			
+				offsetof(Vertex, pos));
 		// Location 1 : Texture coordinates
 		vertices.inputAttributes[1] =
 			vks::initializers::vertexInputAttributeDescription(
@@ -599,7 +573,7 @@ public:
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = 
+		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(
 				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
@@ -610,21 +584,21 @@ public:
 
 	void setupDescriptorSetLayout()
 	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = 
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
 		{
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
-				VK_SHADER_STAGE_VERTEX_BIT, 
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				VK_SHADER_STAGE_VERTEX_BIT,
 				0),
 			// Binding 1 : Fragment shader image sampler
 			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-				VK_SHADER_STAGE_FRAGMENT_BIT, 
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
 				1)
 		};
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout = 
+		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vks::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
 				static_cast<uint32_t>(setLayoutBindings.size()));
@@ -641,7 +615,7 @@ public:
 
 	void setupDescriptorSet()
 	{
-		VkDescriptorSetAllocateInfo allocInfo = 
+		VkDescriptorSetAllocateInfo allocInfo =
 			vks::initializers::descriptorSetAllocateInfo(
 				descriptorPool,
 				&descriptorSetLayout,
@@ -653,15 +627,15 @@ public:
 		{
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(
-				descriptorSet, 
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
-				0, 
+				descriptorSet,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				0,
 				&uniformBufferVS.descriptor),
 			// Binding 1 : Fragment shader texture sampler
 			vks::initializers::writeDescriptorSet(
-				descriptorSet, 
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-				1, 
+				descriptorSet,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				1,
 				&texture.descriptor)
 		};
 
@@ -690,7 +664,7 @@ public:
 
 		VkPipelineColorBlendStateCreateInfo colorBlendState =
 			vks::initializers::pipelineColorBlendStateCreateInfo(
-				1, 
+				1,
 				&blendAttachmentState);
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState =
@@ -720,8 +694,8 @@ public:
 		// Load shaders
 		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
 
-		shaderStages[0] = loadShader(getAssetPath() + "shaders/texture3d/texture3d.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getAssetPath() + "shaders/texture3d/texture3d.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "texture3d/texture3d.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "texture3d/texture3d.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
 			vks::initializers::pipelineCreateInfo(
@@ -753,7 +727,7 @@ public:
 			&uniformBufferVS,
 			sizeof(uboVS),
 			&uboVS));
-
+		VK_CHECK_RESULT(uniformBufferVS.map());
 		updateUniformBuffers();
 	}
 
@@ -761,15 +735,9 @@ public:
 	{
 		if (viewchanged)
 		{
-			uboVS.projection = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.001f, 256.0f);
-			glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom));
-
-			uboVS.model = viewMatrix * glm::translate(glm::mat4(1.0f), cameraPos);
-			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-			uboVS.model = glm::rotate(uboVS.model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-
-			uboVS.viewPos = glm::vec4(0.0f, 0.0f, -zoom, 0.0f);
+			uboVS.projection = camera.matrices.perspective;
+			uboVS.modelView = camera.matrices.view;
+			uboVS.viewPos = camera.viewPos;
 		}
 		else
 		{
@@ -777,10 +745,7 @@ public:
 			if (uboVS.depth > 1.0f)
 				uboVS.depth = uboVS.depth - 1.0f;
 		}
-
-		VK_CHECK_RESULT(uniformBufferVS.map());
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
-		uniformBufferVS.unmap();
 	}
 
 	void prepare()
@@ -789,7 +754,7 @@ public:
 		generateQuad();
 		setupVertexDescriptions();
 		prepareUniformBuffers();
-		prepareNoiseTexture(256, 256, 256);
+		prepareNoiseTexture(128, 128, 128);
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
@@ -803,28 +768,20 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		if (regenerateNoise)
-		{
-			updateNoiseTexture();
-		}
-		if (!paused)
-			updateUniformBuffers(false);
+		if (!paused || camera.updated)
+			updateUniformBuffers(camera.updated);
 	}
 
 	virtual void viewChanged()
 	{
-		updateUniformBuffers();
+		updateUniformBuffers(true);
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (regenerateNoise) {
-				overlay->text("Generating new noise texture...");
-			} else {
-				if (overlay->button("Generate new texture")) {
-					regenerateNoise = true;
-				}
+			if (overlay->button("Generate new texture")) {
+				updateNoiseTexture();
 			}
 		}
 	}

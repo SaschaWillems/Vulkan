@@ -1,0 +1,74 @@
+
+#version 450
+
+struct Particle
+{
+	vec4 pos;
+	vec4 vel;
+};
+
+// Binding 0 : Position storage buffer
+layout(std140, binding = 0) buffer Pos 
+{
+   Particle particles[ ];
+};
+
+layout (local_size_x = 256) in;
+
+layout (binding = 1) uniform UBO 
+{
+	float deltaT;
+	int particleCount;
+} ubo;
+
+layout (constant_id = 0) const int SHARED_DATA_SIZE = 512;
+layout (constant_id = 1) const float GRAVITY = 0.002;
+layout (constant_id = 2) const float POWER = 0.75;
+layout (constant_id = 3) const float SOFTEN = 0.0075;
+
+// Share data between computer shader invocations to speed up caluclations
+shared vec4 sharedData[SHARED_DATA_SIZE];
+
+void main() 
+{
+	// Current SSBO index
+	uint index = gl_GlobalInvocationID.x;
+	if (index >= ubo.particleCount) 
+		return;	
+
+	vec4 position = particles[index].pos;
+	vec4 velocity = particles[index].vel;
+	vec4 acceleration = vec4(0.0);
+
+	for (int i = 0; i < ubo.particleCount; i += SHARED_DATA_SIZE)
+	{
+		if (i + gl_LocalInvocationID.x < ubo.particleCount)
+		{
+			sharedData[gl_LocalInvocationID.x] = particles[i + gl_LocalInvocationID.x].pos;
+		}
+		else
+		{
+			sharedData[gl_LocalInvocationID.x] = vec4(0.0);
+		}
+
+		memoryBarrierShared();
+		barrier();
+
+		for (int j = 0; j < gl_WorkGroupSize.x; j++)
+		{
+			vec4 other = sharedData[j];
+			vec3 len = other.xyz - position.xyz;
+			acceleration.xyz += GRAVITY * len * other.w / pow(dot(len, len) + SOFTEN, POWER);
+		}
+
+		memoryBarrierShared();
+		barrier();
+	}
+
+	particles[index].vel.xyz += ubo.deltaT * acceleration.xyz;
+
+	// Gradient texture position
+	particles[index].vel.w += 0.1 * ubo.deltaT;
+	if (particles[index].vel.w > 1.0)
+		particles[index].vel.w -= 1.0;
+}

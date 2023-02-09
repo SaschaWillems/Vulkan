@@ -1,0 +1,74 @@
+// Copyright 2020 Google LLC
+
+struct Particle
+{
+	float2 pos;
+	float2 vel;
+	float4 gradientPos;
+};
+
+// Binding 0 : Position storage buffer
+RWStructuredBuffer<Particle> particles : register(u0);
+
+struct UBO
+{
+	float deltaT;
+	float destX;
+	float destY;
+	int particleCount;
+};
+
+cbuffer ubo : register(b1) { UBO ubo; }
+
+float2 attraction(float2 pos, float2 attractPos)
+{
+    float2 delta = attractPos - pos;
+	const float damp = 0.5;
+    float dDampedDot = dot(delta, delta) + damp;
+    float invDist = 1.0f / sqrt(dDampedDot);
+    float invDistCubed = invDist*invDist*invDist;
+    return delta * invDistCubed * 0.0035;
+}
+
+float2 repulsion(float2 pos, float2 attractPos)
+{
+	float2 delta = attractPos - pos;
+	float targetDistance = sqrt(dot(delta, delta));
+	return delta * (1.0 / (targetDistance * targetDistance * targetDistance)) * -0.000035;
+}
+
+[numthreads(256, 1, 1)]
+void main(uint3 GlobalInvocationID : SV_DispatchThreadID)
+{
+    // Current SSBO index
+    uint index = GlobalInvocationID.x;
+	// Don't try to write beyond particle count
+    if (index >= ubo.particleCount)
+		return;
+
+    // Read position and velocity
+    float2 vVel = particles[index].vel.xy;
+    float2 vPos = particles[index].pos.xy;
+
+    float2 destPos = float2(ubo.destX, ubo.destY);
+
+    float2 delta = destPos - vPos;
+    float targetDistance = sqrt(dot(delta, delta));
+    vVel += repulsion(vPos, destPos.xy) * 0.05;
+
+    // Move by velocity
+    vPos += vVel * ubo.deltaT;
+
+    // collide with boundary
+    if ((vPos.x < -1.0) || (vPos.x > 1.0) || (vPos.y < -1.0) || (vPos.y > 1.0))
+    	vVel = (-vVel * 0.1) + attraction(vPos, destPos) * 12;
+    else
+    	particles[index].pos.xy = vPos;
+
+    // Write back
+    particles[index].vel.xy = vVel;
+	particles[index].gradientPos.x += 0.02 * ubo.deltaT;
+	if (particles[index].gradientPos.x > 1.0)
+		particles[index].gradientPos.x -= 1.0;
+}
+

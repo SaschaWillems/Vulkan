@@ -26,10 +26,6 @@ namespace vks
 {
 	namespace debug
 	{
-		// Default validation layers
-		extern int validationLayerCount;
-		extern const char *validationLayerNames[];
-
 		// Default debug callback
 		VKAPI_ATTR VkBool32 VKAPI_CALL messageCallback(
 			VkDebugReportFlagsEXT flags,
@@ -42,11 +38,7 @@ namespace vks
 			void* pUserData);
 
 		// Load debug function pointers and set debug callback
-		// if callBack is NULL, default message callback will be used
-		void setupDebugging(
-			VkInstance instance,
-			VkDebugReportFlagsEXT flags,
-			VkDebugReportCallbackEXT callBack);
+		void setupDebugging(VkInstance instance);
 		// Clear debug callback
 		void freeDebugCallback(VkInstance instance);
 	}

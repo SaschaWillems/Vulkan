@@ -1,0 +1,70 @@
+// Copyright 2020 Google LLC
+
+struct Particle
+{
+	float4 pos;
+	float4 vel;
+};
+
+// Binding 0 : Position storage buffer
+RWStructuredBuffer<Particle> particles : register(u0);
+
+struct UBO
+{
+	float deltaT;
+	int particleCount;
+};
+
+cbuffer ubo : register(b1) { UBO ubo; }
+
+#define MAX_SHARED_DATA_SIZE 1024
+[[vk::constant_id(0)]] const int SHARED_DATA_SIZE = 512;
+[[vk::constant_id(1)]] const float GRAVITY = 0.002;
+[[vk::constant_id(2)]] const float POWER = 0.75;
+[[vk::constant_id(3)]] const float SOFTEN = 0.0075;
+
+// Share data between computer shader invocations to speed up caluclations
+groupshared float4 sharedData[MAX_SHARED_DATA_SIZE];
+
+[numthreads(256, 1, 1)]
+void main(uint3 GlobalInvocationID : SV_DispatchThreadID, uint3 LocalInvocationID : SV_GroupThreadID)
+{
+	// Current SSBO index
+	uint index = GlobalInvocationID.x;
+	if (index >= ubo.particleCount)
+		return;
+
+	float4 position = particles[index].pos;
+	float4 velocity = particles[index].vel;
+	float4 acceleration = float4(0, 0, 0, 0);
+
+	for (int i = 0; i < ubo.particleCount; i += SHARED_DATA_SIZE)
+	{
+		if (i + LocalInvocationID.x < ubo.particleCount)
+		{
+			sharedData[LocalInvocationID.x] = particles[i + LocalInvocationID.x].pos;
+		}
+		else
+		{
+			sharedData[LocalInvocationID.x] = float4(0, 0, 0, 0);
+		}
+
+		GroupMemoryBarrierWithGroupSync();
+
+		for (int j = 0; j < 256; j++)
+		{
+			float4 other = sharedData[j];
+			float3 len = other.xyz - position.xyz;
+			acceleration.xyz += GRAVITY * len * other.w / pow(dot(len, len) + SOFTEN, POWER);
+		}
+
+		GroupMemoryBarrierWithGroupSync();
+	}
+
+	particles[index].vel.xyz += ubo.deltaT * acceleration.xyz;
+
+	// Gradient texture position
+	particles[index].vel.w += 0.1 * ubo.deltaT;
+	if (particles[index].vel.w > 1.0)
+		particles[index].vel.w -= 1.0;
+}

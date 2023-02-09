@@ -1,0 +1,12 @@
+// Copyright 2021 Sascha Willems
+
+struct CallData
+{
+    float3 outColor;
+};
+
+[shader("callable")]
+void main(inout CallData data)
+{
+	data.outColor = float3(0.0, 1.0, 0.0);
+}

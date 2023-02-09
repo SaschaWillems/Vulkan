@@ -26,6 +26,7 @@
 #include <android_native_app_glue.h>
 #include <android/configuration.h>
 #include <memory>
+#include <string>
 
 // Missing from the NDK
 namespace std
@@ -53,10 +54,12 @@ extern PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 extern PFN_vkCreateDevice vkCreateDevice;
 extern PFN_vkEnumeratePhysicalDevices vkEnumeratePhysicalDevices;
 extern PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
+extern PFN_vkGetPhysicalDeviceProperties2 vkGetPhysicalDeviceProperties2;
 extern PFN_vkEnumerateDeviceExtensionProperties vkEnumerateDeviceExtensionProperties;
 extern PFN_vkEnumerateDeviceLayerProperties vkEnumerateDeviceLayerProperties;
 extern PFN_vkGetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
 extern PFN_vkGetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures;
+extern PFN_vkGetPhysicalDeviceFeatures2 vkGetPhysicalDeviceFeatures2;
 extern PFN_vkGetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
 extern PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
 extern PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
@@ -88,6 +91,7 @@ extern PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass;
 extern PFN_vkCmdEndRenderPass vkCmdEndRenderPass;
 extern PFN_vkCmdNextSubpass vkCmdNextSubpass;
 extern PFN_vkCmdExecuteCommands vkCmdExecuteCommands;
+extern PFN_vkCmdClearColorImage vkCmdClearColorImage;
 extern PFN_vkCreateImage vkCreateImage;
 extern PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements;
 extern PFN_vkCreateImageView vkCreateImageView;
@@ -98,6 +102,7 @@ extern PFN_vkCreateFence vkCreateFence;
 extern PFN_vkDestroyFence vkDestroyFence;
 extern PFN_vkWaitForFences vkWaitForFences;
 extern PFN_vkResetFences vkResetFences;
+extern PFN_vkResetDescriptorPool vkResetDescriptorPool;
 extern PFN_vkCreateCommandPool vkCreateCommandPool;
 extern PFN_vkDestroyCommandPool vkDestroyCommandPool;
 extern PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
@@ -151,6 +156,7 @@ extern PFN_vkCmdCopyQueryPoolResults vkCmdCopyQueryPoolResults;
 
 extern PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
 extern PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
+extern PFN_vkCmdFillBuffer vkCmdFillBuffer;
 
 namespace vks
 {
@@ -169,6 +175,7 @@ namespace vks
 		void loadVulkanFunctions(VkInstance instance);
 		void freeVulkanLibrary();
 		void getDeviceConfig();
+		void showAlert(const char* message);
 	}
 }
 
