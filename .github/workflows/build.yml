@@ -11,7 +11,7 @@ on:
 jobs:
   build_ubuntu_x11:
     name: Build Ubuntu
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
