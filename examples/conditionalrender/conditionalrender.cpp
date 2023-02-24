@@ -6,7 +6,7 @@
 * With conditional rendering it's possible to execute certain rendering commands based on a buffer value instead of having to rebuild the command buffers.
 * This example sets up a conditional buffer with one value per glTF part, that is used to toggle visibility of single model parts.
 *
-* Copyright (C) 2018 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -73,12 +73,7 @@ public:
 				};
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, static_cast<uint32_t>(descriptorsets.size()), descriptorsets.data(), 0, NULL);
 
-				struct PushBlock {
-					glm::vec4 baseColorFactor;
-				} pushBlock;
-				pushBlock.baseColorFactor = primitive->material.baseColorFactor;
-
-				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushBlock), &pushBlock);
+				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(primitive->material.baseColorFactor), &primitive->material.baseColorFactor);
 
 				/*
 					[POI] Setup the conditional rendering
@@ -181,7 +176,7 @@ public:
 			descriptorSetLayout, vkglTF::descriptorSetLayoutUbo
 		};
 		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), 2);
-		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec4) * 2,	0);
+		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec4),	0);
 		pipelineLayoutCI.pushConstantRangeCount = 1;
 		pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
