@@ -501,6 +501,12 @@ namespace vks
 		return res;
 	}
 
+	bool UIOverlay::colorPicker(const char* caption, float* color) {
+		bool res = ImGui::ColorEdit4(caption, color, ImGuiColorEditFlags_NoInputs);
+		if (res) { updated = true; };
+		return res;
+	}
+
 	void UIOverlay::text(const char *formatstr, ...)
 	{
 		va_list args;

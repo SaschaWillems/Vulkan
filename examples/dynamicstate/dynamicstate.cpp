@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Using dynamic state
 *
-* Copyright (C) 2022 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2022-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -24,6 +24,8 @@ public:
 		glm::mat4 modelView;
 		glm::vec4 lightPos = glm::vec4(0.0f, 2.0f, 1.0f, 0.0f);
 	} uboVS;
+
+	float clearColor[4] = { 0.0f, 0.0f, 0.2f, 1.0f };
 
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
@@ -79,15 +81,6 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources
-		// Note : Inherited destructor cleans up resources stored in base class
-		//vkDestroyPipeline(device, pipelines.phong, nullptr);
-		//if (enabledFeatures.fillModeNonSolid)
-		//{
-		//	vkDestroyPipeline(device, pipelines.wireframe, nullptr);
-		//}
-		//vkDestroyPipeline(device, pipelines.toon, nullptr);
-
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
@@ -99,8 +92,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2];
-		//clearValues[0].color = defaultClearColor;
-		clearValues[0].color = { { 0.0f, 0.0f, 0.3f, 1.0f } };
+		clearValues[0].color = { { clearColor[0], clearColor[1], clearColor[2], clearColor[3] } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -150,16 +142,18 @@ public:
 				const std::vector<VkBool32> blendEnables = { dynamicState3.colorBlendEnable };
 				vkCmdSetColorBlendEnableEXT(drawCmdBuffers[i], 0, 1, blendEnables.data());
 
+				VkColorBlendEquationEXT colorBlendEquation{};
+
 				if (dynamicState3.colorBlendEnable) {
-					VkColorBlendEquationEXT colorBlendEquation{};
 					colorBlendEquation.colorBlendOp = VK_BLEND_OP_ADD;
-					colorBlendEquation.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-					colorBlendEquation.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+					colorBlendEquation.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+					colorBlendEquation.dstColorBlendFactor = VK_BLEND_FACTOR_DST_COLOR;
 					colorBlendEquation.alphaBlendOp = VK_BLEND_OP_ADD;
 					colorBlendEquation.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 					colorBlendEquation.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-					vkCmdSetColorBlendEquationEXT(drawCmdBuffers[i], 0, 1, &colorBlendEquation);
 				}
+
+				vkCmdSetColorBlendEquationEXT(drawCmdBuffers[i], 0, 1, &colorBlendEquation);
 			}
 
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -258,7 +252,6 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		// @todo
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, };
 		if (hasDynamicState) {
 			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_CULL_MODE_EXT);
@@ -295,29 +288,6 @@ public:
 		shaderStages[0] = loadShader(getShadersPath() + "pipelines/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "pipelines/phong.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
-
-		// All pipelines created after the base pipeline will be derivatives
-		//pipelineCI.flags = VK_PIPELINE_CREATE_DERIVATIVE_BIT;
-		//// Base pipeline will be our first created pipeline
-		//pipelineCI.basePipelineHandle = pipeline;
-		//// It's only allowed to either use a handle or index for the base pipeline
-		//// As we use the handle, we must set the index to -1 (see section 9.5 of the specification)
-		//pipelineCI.basePipelineIndex = -1;
-
-		//// Toon shading pipeline
-		//shaderStages[0] = loadShader(getShadersPath() + "pipelines/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		//shaderStages[1] = loadShader(getShadersPath() + "pipelines/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		//VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.toon));
-
-		//// Pipeline for wire frame rendering
-		//// Non solid rendering is not a mandatory Vulkan feature
-		//if (enabledFeatures.fillModeNonSolid)
-		//{
-		//	rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		//	shaderStages[0] = loadShader(getShadersPath() + "pipelines/wireframe.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		//	shaderStages[1] = loadShader(getShadersPath() + "pipelines/wireframe.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		//	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.wireframe));
-		//}
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -356,15 +326,13 @@ public:
 
 	void getEnabledExtensions()
 	{
-		// @todo: check device support
-
 		// Check what dynamic states are supported by the current implementation
 		hasDynamicState = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 		hasDynamicState2 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
 		hasDynamicState3 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
 		hasDynamicVertexState = vulkanDevice->extensionSupported(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
 
-		// Enable dynamic stat extensions if present. This function is called after physical and before logical device creation, so we can enabled extensions based on a list of supported extensions
+		// Enable dynamic state extensions if present. This function is called after physical and before logical device creation, so we can enabled extensions based on a list of supported extensions
 		if (vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME)) {
 			enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 			extendedDynamicStateFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
@@ -387,7 +355,6 @@ public:
 			extendedDynamicState3FeaturesEXT.extendedDynamicState3ColorBlendEnable = VK_TRUE;
 			extendedDynamicState3FeaturesEXT.extendedDynamicState3ColorBlendEquation = VK_TRUE;
 			if (hasDynamicState2) {
-				// @todo: hasDynamicState
 				extendedDynamicState2FeaturesEXT.pNext = &extendedDynamicState3FeaturesEXT;
 			} else {
 				deviceCreatepNextChain = &extendedDynamicState3FeaturesEXT;
@@ -458,7 +425,7 @@ public:
 			}
 		}
 		if (overlay->header("Dynamic state 2")) {
-			if (hasDynamicState) {
+			if (hasDynamicState2) {
 				rebuildCB |= overlay->checkBox("Rasterizer discard", &dynamicState2.rasterizerDiscardEnable);
 			}
 			else {
@@ -466,8 +433,9 @@ public:
 			}
 		}
 		if (overlay->header("Dynamic state 3")) {
-			if (hasDynamicState) {
+			if (hasDynamicState3) {
 				rebuildCB |= overlay->checkBox("Color blend", &dynamicState3.colorBlendEnable);
+				rebuildCB |= overlay->colorPicker("Clear color", clearColor);
 			}
 			else {
 				overlay->text("Extension not supported");
