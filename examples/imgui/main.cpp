@@ -106,6 +106,8 @@ public:
 		io.KeyMap[ImGuiKey_DownArrow] = VK_DOWN;
 		io.KeyMap[ImGuiKey_Backspace] = VK_BACK;
 		io.KeyMap[ImGuiKey_Enter] = VK_RETURN;
+		io.KeyMap[ImGuiKey_Space] = VK_SPACE;
+		io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
 #endif
 	}
 
