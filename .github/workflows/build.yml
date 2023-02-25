@@ -40,3 +40,19 @@ jobs:
         run: |
           cmake .
           cmake --build .
+
+  build_android:
+    name: Build Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+
+      - name: Build
+        env:
+          TARGET_PLATFORM: android
+        run: |
+          cd android
+          ./gradlew build
