@@ -47,6 +47,8 @@ private:
 	vks::VulkanDevice *device;
 	VkPhysicalDeviceDriverProperties driverProperties = {};
 	VulkanExampleBase *example;
+	ImGuiStyle vulkanStyle;
+	int selectedStyle = 0;
 public:
 	// UI params are set via push constants
 	struct PushConstBlock {
@@ -87,12 +89,15 @@ public:
 	void init(float width, float height)
 	{
 		// Color scheme
-		ImGuiStyle& style = ImGui::GetStyle();
-		style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
-		style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
-		style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-		style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-		style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+		vulkanStyle = ImGui::GetStyle();
+		vulkanStyle.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
+		vulkanStyle.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
+		vulkanStyle.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+		vulkanStyle.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+		vulkanStyle.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+		setStyle(0);
+		
 		// Dimensions
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2(width, height);
@@ -109,6 +114,28 @@ public:
 		io.KeyMap[ImGuiKey_Space] = VK_SPACE;
 		io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
 #endif
+	}
+
+	void setStyle(uint32_t index)
+	{
+		switch (index)
+		{
+		case 0:
+		{
+			ImGuiStyle& style = ImGui::GetStyle();
+			style = vulkanStyle;
+			break;
+		}
+		case 1:
+			ImGui::StyleColorsClassic();
+			break;
+		case 2:
+			ImGui::StyleColorsDark();
+			break;
+		case 3:
+			ImGui::StyleColorsLight();
+			break;
+		}
 	}
 
 	// Initialize all Vulkan resources used by the ui
@@ -354,7 +381,7 @@ public:
 
 		// Init imGui windows and elements
 
-		// SRS - Set initial position of default Debug window (note: Debug window sets its own initial size, use ImGuiSetCond_Always to override)
+		// Debug window
 		ImGui::SetWindowPos(ImVec2(20 * example->UIOverlay.scale, 20 * example->UIOverlay.scale), ImGuiSetCond_FirstUseEver);
         ImGui::SetWindowSize(ImVec2(300 * example->UIOverlay.scale, 300 * example->UIOverlay.scale), ImGuiSetCond_Always);
 		ImGui::TextUnformatted(example->title.c_str());
@@ -383,7 +410,7 @@ public:
 		ImGui::InputFloat3("position", &example->camera.position.x, 2);
 		ImGui::InputFloat3("rotation", &example->camera.rotation.x, 2);
 
-		// SRS - Set initial position and size of Example settings window
+		// Example settings window
 		ImGui::SetNextWindowPos(ImVec2(20 * example->UIOverlay.scale, 360 * example->UIOverlay.scale), ImGuiSetCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(300 * example->UIOverlay.scale, 200 * example->UIOverlay.scale), ImGuiSetCond_FirstUseEver);
 		ImGui::Begin("Example settings");
@@ -392,6 +419,12 @@ public:
 		ImGui::Checkbox("Display background", &uiSettings.displayBackground);
 		ImGui::Checkbox("Animate light", &uiSettings.animateLight);
 		ImGui::SliderFloat("Light speed", &uiSettings.lightSpeed, 0.1f, 1.0f);
+		//ImGui::ShowStyleSelector("UI style");
+
+		if (ImGui::Combo("UI style", &selectedStyle, "Vulkan\0Classic\0Dark\0Light\0")) {
+			setStyle(selectedStyle);
+		}
+
 		ImGui::End();
 
 		//SRS - ShowDemoWindow() sets its own initial position and size, cannot override here
