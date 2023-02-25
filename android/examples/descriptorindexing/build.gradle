@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 29
     defaultConfig {
         applicationId "de.saschawillems.vulkanDescriptorindexing"
         minSdkVersion 19
