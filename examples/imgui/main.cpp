@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - imGui (https://github.com/ocornut/imgui)
 *
-* Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -97,6 +97,16 @@ public:
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2(width, height);
 		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+#if defined(_WIN32)
+		// If we directly work with os specific key codes, we need to map special key types like tab
+		io.KeyMap[ImGuiKey_Tab] = VK_TAB;
+		io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
+		io.KeyMap[ImGuiKey_RightArrow] = VK_RIGHT;
+		io.KeyMap[ImGuiKey_UpArrow] = VK_UP;
+		io.KeyMap[ImGuiKey_DownArrow] = VK_DOWN;
+		io.KeyMap[ImGuiKey_Backspace] = VK_BACK;
+		io.KeyMap[ImGuiKey_Enter] = VK_RETURN;
+#endif
 	}
 
 	// Initialize all Vulkan resources used by the ui
@@ -560,7 +570,6 @@ public:
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		imGui->newFrame(this, (frameCounter == 0));
-
 		imGui->updateBuffers();
 
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
@@ -743,6 +752,8 @@ public:
 		if (!prepared)
 			return;
 
+		updateUniformBuffers();
+
 		// Update imGui
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -755,14 +766,6 @@ public:
 		io.MouseDown[2] = mouseButtons.middle && UIOverlay.visible;
 
 		draw();
-
-		if (uiSettings.animateLight)
-			updateUniformBuffers();
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffers();
 	}
 
 	virtual void mouseMoved(double x, double y, bool &handled)
@@ -770,6 +773,29 @@ public:
 		ImGuiIO& io = ImGui::GetIO();
 		handled = io.WantCaptureMouse && UIOverlay.visible;
 	}
+
+// Input handling is platform specific, to show how it's basically done this sample implements it for Windows
+#if defined(_WIN32)
+	virtual void OnHandleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+		ImGuiIO& io = ImGui::GetIO();
+		// Only react to keyboard input if ImGui is active
+		if (io.WantCaptureKeyboard) {
+			// Character input
+			if (uMsg == WM_CHAR) {
+				if (wParam > 0 && wParam < 0x10000) {
+					io.AddInputCharacter((unsigned short)wParam);
+				}
+			}
+			// Special keys (tab, cursor, etc.)
+			if ((wParam < 256) && (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN)) {
+				io.KeysDown[wParam] = true;
+			}
+			if ((wParam < 256) && (uMsg == WM_KEYUP || uMsg == WM_SYSKEYUP)) {
+				io.KeysDown[wParam] = false;
+			}
+		}
+	}
+#endif
 
 };
 

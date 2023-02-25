@@ -169,10 +169,9 @@ public:
 					position -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
 				if (keys.right)
 					position += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
-
-				updateViewMatrix();
 			}
 		}
+		updateViewMatrix();
 	};
 
 	// Update camera passing separate axis data (gamepad)
