@@ -143,23 +143,29 @@ public:
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
-		// Create font texture
+		// ImGui comes with a simple font that we'll replace by loading our own font file
 		unsigned char* fontData;
 		int texWidth, texHeight;
-		io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
-		VkDeviceSize uploadSize = texWidth*texHeight * 4 * sizeof(char);
-
-		//SRS - Get Vulkan device driver information if available, use later for display
-		if (device->extensionSupported(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
-		{
-			VkPhysicalDeviceProperties2 deviceProperties2 = {};
-			deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-			deviceProperties2.pNext = &driverProperties;
-			driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
-			vkGetPhysicalDeviceProperties2(device->physicalDevice, &deviceProperties2);
+#if defined(__ANDROID__)
+		float scale = (float)vks::android::screenDensity / (float)ACONFIGURATION_DENSITY_MEDIUM;
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, "Roboto-Medium.ttf", AASSET_MODE_STREAMING);
+		if (asset) {
+			size_t size = AAsset_getLength(asset);
+			assert(size > 0);
+			char* fontAsset = new char[size];
+			AAsset_read(asset, fontAsset, size);
+			AAsset_close(asset);
+			io.Fonts->AddFontFromMemoryTTF(fontAsset, size, 14.0f * scale);
+			delete[] fontAsset;
 		}
+#else
+		const std::string filename = getAssetPath() + "Roboto-Medium.ttf";
+		io.Fonts->AddFontFromFileTTF(filename.c_str(), 16.0f);
+#endif
+		io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
+		VkDeviceSize uploadSize = texWidth * texHeight * 4 * sizeof(char);
 
-		// Create target image for copy
+		// The font data we just loaded will be uloaded to an image
 		VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -182,7 +188,7 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &fontMemory));
 		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, fontImage, fontMemory, 0));
 
-		// Image view
+		// To access the font for drawing we need an image view into the font image
 		VkImageViewCreateInfo viewInfo = vks::initializers::imageViewCreateInfo();
 		viewInfo.image = fontImage;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -192,7 +198,7 @@ public:
 		viewInfo.subresourceRange.layerCount = 1;
 		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewInfo, nullptr, &fontView));
 
-		// Staging buffers for font data upload
+		// Upload the font data to the GPU using a staging buffer
 		vks::Buffer stagingBuffer;
 
 		VK_CHECK_RESULT(device->createBuffer(
@@ -249,7 +255,7 @@ public:
 
 		stagingBuffer.destroy();
 
-		// Font texture Sampler
+		// Set up a sampler to sample from our font image in the fragment shader
 		VkSamplerCreateInfo samplerInfo = vks::initializers::samplerCreateInfo();
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
 		samplerInfo.minFilter = VK_FILTER_LINEAR;
@@ -372,6 +378,16 @@ public:
 		shaderStages[1] = example->loadShader(shadersPath + "imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
+
+		//SRS - Get Vulkan device driver information if available, use later for display
+		if (device->extensionSupported(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
+		{
+			VkPhysicalDeviceProperties2 deviceProperties2 = {};
+			deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+			deviceProperties2.pNext = &driverProperties;
+			driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+			vkGetPhysicalDeviceProperties2(device->physicalDevice, &deviceProperties2);
+		}
 	}
 
 	// Starts a new imGui frame and sets up windows and ui elements
