@@ -209,11 +209,9 @@ void VulkanSwapChain::connect(VkInstance instance, VkPhysicalDevice physicalDevi
 /** 
 * Create the swapchain and get its images with given width and height
 * 
-* @param width Pointer to the width of the swapchain (may be adjusted to fit the requirements of the swapchain)
-* @param height Pointer to the height of the swapchain (may be adjusted to fit the requirements of the swapchain)
-* @param vsync (Optional) Can be used to force vsync-ed rendering (by using VK_PRESENT_MODE_FIFO_KHR as presentation mode)
+* @param createInfo Structure containing the properties of the swap chain to be (re)create
 */
-void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool fullscreen)
+void VulkanSwapChain::create(SwapChainCreateInfo& createInfo)
 {
 	// Store the current swap chain handle so we can use it later on to ease up recreation
 	VkSwapchainKHR oldSwapchain = swapChain;
@@ -236,15 +234,15 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 	{
 		// If the surface size is undefined, the size is set to
 		// the size of the images requested.
-		swapchainExtent.width = *width;
-		swapchainExtent.height = *height;
+		swapchainExtent.width = *createInfo.width;
+		swapchainExtent.height = *createInfo.height;
 	}
 	else
 	{
 		// If the surface size is defined, the swap chain size must match
 		swapchainExtent = surfCaps.currentExtent;
-		*width = surfCaps.currentExtent.width;
-		*height = surfCaps.currentExtent.height;
+		*createInfo.width = surfCaps.currentExtent.width;
+		*createInfo.height = surfCaps.currentExtent.height;
 	}
 
 
@@ -256,7 +254,7 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 
 	// If v-sync is not requested, try to find a mailbox mode
 	// It's the lowest latency non-tearing present mode available
-	if (!vsync)
+	if (!createInfo.vsync)
 	{
 		for (size_t i = 0; i < presentModeCount; i++)
 		{
@@ -280,7 +278,7 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 	uname(&sysInfo);
 	// SRS - When vsync is on, use minImageCount when not in fullscreen or when running on Apple Silcon
 	// This forces swapchain image acquire frame rate to match display vsync frame rate
-	if (vsync && (!fullscreen || strcmp(sysInfo.machine, "arm64") == 0))
+	if (createInfo.vsync && (!createInfo.fullscreen || strcmp(sysInfo.machine, "arm64") == 0))
 	{
 		desiredNumberOfSwapchainImages = surfCaps.minImageCount;
 	}

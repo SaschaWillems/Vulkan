@@ -2932,7 +2932,12 @@ void VulkanExampleBase::initSwapchain()
 
 void VulkanExampleBase::setupSwapChain()
 {
-	swapChain.create(&width, &height, settings.vsync, settings.fullscreen);
+	SwapChainCreateInfo swapChainCI{};
+	swapChainCI.width = &width;
+	swapChainCI.height = &height;
+	swapChainCI.vsync = settings.vsync;
+	swapChainCI.fullscreen = settings.fullscreen;
+	swapChain.create(swapChainCI);
 }
 
 void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}
