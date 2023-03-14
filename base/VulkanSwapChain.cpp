@@ -1,12 +1,12 @@
 /*
-* Class wrapping access to the swap chain
-* 
-* A swap chain is a collection of framebuffers used for rendering and presentation to the windowing system
-*
-* Copyright (C) 2016-2021 by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+ * Class wrapping access to the swap chain
+ * 
+ * A swap chain is a collection of framebuffers used for rendering and presentation to the windowing system
+ *
+ * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 
 #include "VulkanSwapChain.h"
 
@@ -163,38 +163,22 @@ void VulkanSwapChain::initSurface(uint32_t width, uint32_t height)
 	std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
 	VK_CHECK_RESULT(fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data()));
 
-	// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
-	// there is no preferred format, so we assume VK_FORMAT_B8G8R8A8_UNORM
-	if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED))
-	{
-		colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
+	// We ideally want to use an 8-Bit per channel RGBA format, so we try to find it in the list of available formats aaa
+	bool foundPreferredFormat = false;
+	for (auto& surfaceFormat : surfaceFormats) {
+		if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM) {
+			colorFormat = surfaceFormat.format;
+			colorSpace = surfaceFormat.colorSpace;
+			foundPreferredFormat = true;
+			break;
+		}
+	}
+
+	// In case our preferred 8-bit per channel RGBA format isn't available, we just select the first available format
+	if (!foundPreferredFormat) {
+		colorFormat = surfaceFormats[0].format;
 		colorSpace = surfaceFormats[0].colorSpace;
 	}
-	else
-	{
-		// iterate over the list of available surface format and
-		// check for the presence of VK_FORMAT_B8G8R8A8_UNORM
-		bool found_B8G8R8A8_UNORM = false;
-		for (auto&& surfaceFormat : surfaceFormats)
-		{
-			if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM)
-			{
-				colorFormat = surfaceFormat.format;
-				colorSpace = surfaceFormat.colorSpace;
-				found_B8G8R8A8_UNORM = true;
-				break;
-			}
-		}
-
-		// in case VK_FORMAT_B8G8R8A8_UNORM is not available
-		// select the first available color format
-		if (!found_B8G8R8A8_UNORM)
-		{
-			colorFormat = surfaceFormats[0].format;
-			colorSpace = surfaceFormats[0].colorSpace;
-		}
-	}
-
 }
 
 /**
