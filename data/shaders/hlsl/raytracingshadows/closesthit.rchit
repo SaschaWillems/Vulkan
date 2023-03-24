@@ -78,7 +78,7 @@ void main(in InPayload inPayload, inout InOutPayload inOutPayload, in float2 att
 
 	inOutPayload.shadowed = true;
 	// Offset indices to match shadow hit/miss index
-	TraceRay(topLevelAS, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xff, 1, 0, 1, rayDesc, inOutPayload);
+	TraceRay(topLevelAS, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xff, 0, 0, 1, rayDesc, inOutPayload);
 	if (inOutPayload.shadowed) {
 		inPayload.hitValue *= 0.3;
 	}
