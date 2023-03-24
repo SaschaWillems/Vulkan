@@ -1,9 +1,7 @@
 /*
  * Vulkan Example - Using descriptor buffers via VK_EXT_descriptor_buffer
  *
- * Code is work-in-progress
- *
- * Copyright (C) 2022 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2022-2023 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -74,7 +72,6 @@ public:
 
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 		
-		enabledDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
@@ -196,9 +193,6 @@ public:
 		VkDeviceSize img_offset{ 0 };
 		vkGetDescriptorSetLayoutBindingOffsetEXT(device, descriptorSetLayoutImages, 1, &img_offset);
 
-		// @todo: check memory sizes
-		// @todo: check support for combined image samplers
-
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -215,8 +209,6 @@ public:
 
 		resourceDescriptorBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(resourceDescriptorBuffer.buffer);
 		imageDescriptorBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(imageDescriptorBuffer.buffer);
-
-		// @todo: sizes
 
 		PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2KHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR"));
 		assert(vkGetPhysicalDeviceProperties2KHR);
@@ -338,8 +330,7 @@ public:
 				model.draw(drawCmdBuffers[i]);
 			}
 
-			// @todo: UI still uses descriptors, mix and match problematic
-			//drawUI(drawCmdBuffers[i]);
+			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
