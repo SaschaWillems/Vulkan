@@ -731,19 +731,14 @@ public:
 		updateUniformBuffers();
 	}
 
-	void updateUniformBuffers(bool viewchanged = true)
+	void updateUniformBuffers()
 	{
-		if (viewchanged)
-		{
-			uboVS.projection = camera.matrices.perspective;
-			uboVS.modelView = camera.matrices.view;
-			uboVS.viewPos = camera.viewPos;
-		}
-		else
-		{
-			uboVS.depth += frameTimer * 0.15f;
-			if (uboVS.depth > 1.0f)
-				uboVS.depth = uboVS.depth - 1.0f;
+		uboVS.projection = camera.matrices.perspective;
+		uboVS.modelView = camera.matrices.view;
+		uboVS.viewPos = camera.viewPos;
+		uboVS.depth += frameTimer * 0.15f;
+		if (uboVS.depth > 1.0f) {
+			uboVS.depth = uboVS.depth - 1.0f;
 		}
 		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
 	}
@@ -768,13 +763,9 @@ public:
 		if (!prepared)
 			return;
 		draw();
-		if (!paused || camera.updated)
-			updateUniformBuffers(camera.updated);
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffers(true);
+		if (!paused) {
+			updateUniformBuffers();
+		}
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
