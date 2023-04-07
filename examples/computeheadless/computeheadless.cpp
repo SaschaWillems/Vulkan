@@ -103,6 +103,7 @@ public:
 				if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags) {
 					memAlloc.memoryTypeIndex = i;
 					memTypeFound = true;
+					break;
 				}
 			}
 			memReqs.memoryTypeBits >>= 1;
