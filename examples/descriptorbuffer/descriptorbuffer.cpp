@@ -52,6 +52,9 @@ public:
 	PFN_vkGetDescriptorEXT vkGetDescriptorEXT;
 	PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT vkCmdBindDescriptorBufferEmbeddedSamplersEXT;
 
+	VkDeviceSize uniformDescriptorOffset;
+	VkDeviceSize imageDescriptorOffset;
+
 	uint64_t getBufferDeviceAddress(VkBuffer buffer)
 	{
 		VkBufferDeviceAddressInfoKHR bufferDeviceAI{};
@@ -218,21 +221,23 @@ public:
 		deviceProps2.pNext = &descriptorBufferProperties;
 		vkGetPhysicalDeviceProperties2KHR(physicalDevice, &deviceProps2);
 
+		// We need buffer offsets in some places, which are implementation depenendend, so we get them from the decsriptor buffer properties structure
+		uniformDescriptorOffset = vks::tools::alignedSize(descriptorBufferProperties.uniformBufferDescriptorSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
+		imageDescriptorOffset = vks::tools::alignedSize(descriptorBufferProperties.combinedImageSamplerDescriptorSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
+
 		VkDescriptorGetInfoEXT desc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
 
 		// Set descriptors for images
-		const uint32_t alignment = descriptorBufferProperties.descriptorBufferOffsetAlignment;
-
-		char* buf_ptr = (char*)imageDescriptorBuffer.mapped;
+		char* imageDescriptorBufPtr = (char*)imageDescriptorBuffer.mapped;
 		desc_info.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		for (uint32_t i = 0; i < static_cast<uint32_t>(cubes.size()); i++) {
 			desc_info.data.pCombinedImageSampler = &cubes[i].texture.descriptor;
-			vkGetDescriptorEXT(device, &desc_info, descriptorBufferProperties.combinedImageSamplerDescriptorSize, buf_ptr + i * alignment);
+			vkGetDescriptorEXT(device, &desc_info, descriptorBufferProperties.combinedImageSamplerDescriptorSize, imageDescriptorBufPtr + i * imageDescriptorOffset);
 		}
 
 		// For uniform buffers we only need buffer device addresses
 		// Global uniform buffer
-		buf_ptr = (char*)resourceDescriptorBuffer.mapped;
+		char* uniformDescriptorBufPtr = (char*)resourceDescriptorBuffer.mapped;
 
 		VkDescriptorAddressInfoEXT descriptorAddressInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
 		descriptorAddressInfo.address = getBufferDeviceAddress(uniformBufferCamera.buffer);
@@ -242,10 +247,9 @@ public:
 		desc_info.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		desc_info.data.pCombinedImageSampler = nullptr;
 		desc_info.data.pUniformBuffer = &descriptorAddressInfo;
-		vkGetDescriptorEXT(device, &desc_info, descriptorBufferProperties.uniformBufferDescriptorSize, buf_ptr);
+		vkGetDescriptorEXT(device, &desc_info, descriptorBufferProperties.uniformBufferDescriptorSize, uniformDescriptorBufPtr);
 
 		// Per-model uniform buffers
-		buf_ptr += alignment;
 		for (uint32_t i = 0; i < static_cast<uint32_t>(cubes.size()); i++) {
 			VkDescriptorAddressInfoEXT addr_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
 			addr_info.address = getBufferDeviceAddress(cubes[i].uniformBuffer.buffer);
@@ -255,8 +259,7 @@ public:
 			desc_info.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			desc_info.data.pCombinedImageSampler = nullptr;
 			desc_info.data.pUniformBuffer = &addr_info;
-			vkGetDescriptorEXT(device, &desc_info, descriptorBufferProperties.uniformBufferDescriptorSize, buf_ptr);
-			buf_ptr += alignment;
+			vkGetDescriptorEXT(device, &desc_info, descriptorBufferProperties.uniformBufferDescriptorSize, uniformDescriptorBufPtr + (i + 1) * uniformDescriptorOffset);
 		}
 	}
 
@@ -310,7 +313,6 @@ public:
 			vkCmdBindDescriptorBuffersEXT(drawCmdBuffers[i], 2, bindingInfos);
 
 			uint32_t bufferIndexUbo = 0;
-			VkDeviceSize alignment = descriptorBufferProperties.descriptorBufferOffsetAlignment;
 			VkDeviceSize bufferOffset = 0;
 
 			// Global Matrices (set 0)
@@ -321,11 +323,11 @@ public:
 			for (uint32_t j = 0; j < static_cast<uint32_t>(cubes.size()); j++) {
 				// Uniform buffer (set 1)
 				// Model ubos start at offset * 1 (slot 0 is global matrices)
-				bufferOffset = alignment + j * alignment;
+				bufferOffset = (j + 1) * uniformDescriptorOffset;
 				vkCmdSetDescriptorBufferOffsetsEXT(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &bufferIndexUbo, &bufferOffset);
 				// Image (set 2)
 				uint32_t bufferIndexImage = 1;
-				bufferOffset = j * alignment;
+				bufferOffset = j * imageDescriptorOffset;
 				vkCmdSetDescriptorBufferOffsetsEXT(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 2, 1, &bufferIndexImage, &bufferOffset);
 				model.draw(drawCmdBuffers[i]);
 			}
