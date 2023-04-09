@@ -1,12 +1,21 @@
 /*
-* Vulkan Example - Texture mapping with transparency using accelerated ray tracing example
-*
-* Copyright (C) 2023 by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+ * Vulkan Example - Texture mapping with transparency using accelerated ray tracing example
+ *
+ * Copyright (C) 2023 by Sascha Willems - www.saschawillems.de
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 
-// @todo: add some comment on how this sample works
+/*
+ * This hardware accelerated ray tracing sample renders a texture mapped quad with transparency
+ * The sample also makes use of buffer device addresses to pass references for vertex and index buffers
+ * to the shader, making data access a bit more straightforward than using descriptors.
+ * Buffer references themselves are then simply set at draw time using push constants.
+ * In addition to a closest hit shader, that now samples from the texture, an any hit shader is
+ * added to the closest hit shader group. We use this shader to check if the texel we want to
+ * sample at the currently hit ray position is transparent, and if that's the case the any hit
+ * shader will cancel the intersection.
+ */
 
 #include "VulkanRaytracingSample.h"
 
@@ -49,8 +58,7 @@ public:
 		camera.setRotation(glm::vec3(45.0f, 0.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
 		enableExtensions();
-
-		// @todo
+		// Buffer device address requires the 64-bit integer feature to be enabled
 		enabledFeatures.shaderInt64 = VK_TRUE;
 	}
 
@@ -157,7 +165,6 @@ public:
 		// Build
 		VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
 		accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-		//accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR; // @todo: do not enable if anyhit shader is used
 		accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
 		accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
 		accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
@@ -577,7 +584,8 @@ public:
 			bufferReferences.vertices = getBufferDeviceAddress(vertexBuffer.buffer);
 			bufferReferences.indices = getBufferDeviceAddress(indexBuffer.buffer);
 
-			// @todo: comment
+			// We set the buffer references for the mesh to be rendered using a push constant
+			// If we wanted to render multiple objecets this would make it very easy to access their vertex and index buffers
 			vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 0, sizeof(uint64_t) * 2, &bufferReferences);
 
 			VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
