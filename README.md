@@ -340,6 +340,10 @@ Adds ray traced shadows casting using the new ray tracing extensions to a more c
 
 Renders a complex scene with reflective surfaces using the new ray tracing extensions. Shows how to do recursion inside of the ray tracing shaders for implementing real time reflections.
 
+#### [Ray traced texture mapping](examples/raytracingtextures)
+
+Renders a texture mapped quad with transparency using the new ray tracing extensions. Shows how to do texture mapping in a closes hit shader, how to cancel intersections for transparency in an any hit shader and how to access mesh data in those shaders using buffer device addresses.
+
 #### [Callable ray tracing shaders](examples/raytracingcallable)
 
 Callable shaders can be dynamically invoked from within other ray tracing shaders to execute different shaders based on dynamic conditions. The example ray traces multiple geometries, with each calling a different callable shader from the closest hit shader.
