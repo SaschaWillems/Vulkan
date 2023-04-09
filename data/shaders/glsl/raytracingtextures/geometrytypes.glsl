@@ -1,3 +1,9 @@
+/* Copyright (c) 2023, Sascha Willems
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ */
+
 struct Vertex
 {
   vec3 pos;
@@ -9,6 +15,7 @@ struct Triangle {
 	vec2 uv;
 };
 
+// This function will unpack our vertex buffer data into a single triangle and calculates uv coordinates
 Triangle unpackTriangle(uint index, int vertexSize) {
 	Triangle tri;
 	const uint triIndex = index * 3;

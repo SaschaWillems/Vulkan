@@ -487,7 +487,6 @@ public:
 		}
 
 		// Closest hit group for doing texture lookups
-		// This group also uses an anyhit shader for doing transparency
 		{
 			shaderStages.push_back(loadShader(getShadersPath() + "raytracingbasic/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
 			VkRayTracingShaderGroupCreateInfoKHR shaderGroup{};
@@ -496,7 +495,7 @@ public:
 			shaderGroup.generalShader = VK_SHADER_UNUSED_KHR;
 			shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 			shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
-			// @todo: comment
+			// This group also uses an anyhit shader for doing transparency (see anyhit.rahit for details)
 			shaderStages.push_back(loadShader(getShadersPath() + "raytracingbasic/anyhit.rahit.spv", VK_SHADER_STAGE_ANY_HIT_BIT_KHR));
 			shaderGroup.anyHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;
 			shaderGroups.push_back(shaderGroup);

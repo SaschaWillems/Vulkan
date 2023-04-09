@@ -1,3 +1,9 @@
+/* Copyright (c) 2023, Sascha Willems
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ */
+
 #version 460
 #extension GL_EXT_ray_tracing : enable
 

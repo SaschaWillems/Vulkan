@@ -1,3 +1,9 @@
+/* Copyright (c) 2023, Sascha Willems
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ */
+
 layout(push_constant) uniform BufferReferences {
 	uint64_t vertices;
 	uint64_t indices;
