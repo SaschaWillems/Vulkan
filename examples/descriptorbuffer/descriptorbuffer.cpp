@@ -194,7 +194,7 @@ public:
 		vkGetDescriptorSetLayoutBindingOffsetEXT(device, descriptorSetLayoutBuffers, 0, &offset);
 
 		VkDeviceSize img_offset{ 0 };
-		vkGetDescriptorSetLayoutBindingOffsetEXT(device, descriptorSetLayoutImages, 1, &img_offset);
+		vkGetDescriptorSetLayoutBindingOffsetEXT(device, descriptorSetLayoutImages, 0, &img_offset);
 
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
