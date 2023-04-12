@@ -1,6 +1,6 @@
 # glTF scene rendering
 
-<img src="../../screenshots/gltf_scene.jpg" height="256px">
+<img src="../../screenshots/gltfscenerendering.jpg" height="256px">
 
 ## Synopsis
 

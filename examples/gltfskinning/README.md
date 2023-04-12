@@ -1,6 +1,6 @@
 # glTF vertex skinning
 
-<img src="../../screenshots/gltf_skinning.jpg" height="256px">
+<img src="../../screenshots/gltfskinning.jpg" height="256px">
 
 ## Synopsis
 
