@@ -422,8 +422,8 @@ public:
 			if (cubes[0].rotation.x > 360.0f)
 				cubes[0].rotation.x -= 360.0f;
 			cubes[1].rotation.y += 2.0f * frameTimer;
-			if (cubes[1].rotation.x > 360.0f)
-				cubes[1].rotation.x -= 360.0f;
+			if (cubes[1].rotation.y > 360.0f)
+				cubes[1].rotation.y -= 360.0f;
 		}
 		if ((camera.updated) || (animate && !paused)) {
 			updateUniformBuffers();
