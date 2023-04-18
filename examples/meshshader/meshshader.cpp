@@ -63,7 +63,7 @@ public:
 
 	void getEnabledFeatures()
 	{
-		enabledMeshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+		enabledMeshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
 		enabledMeshShaderFeatures.meshShader = VK_TRUE;
 		enabledMeshShaderFeatures.taskShader = VK_TRUE;
 
