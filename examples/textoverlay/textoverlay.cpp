@@ -120,9 +120,9 @@ public:
 	void prepareResources()
 	{
 		const uint32_t fontWidth = STB_FONT_consolas_24_latin1_BITMAP_WIDTH;
-		const uint32_t fontHeight = STB_FONT_consolas_24_latin1_BITMAP_WIDTH;
+		const uint32_t fontHeight = STB_FONT_consolas_24_latin1_BITMAP_HEIGHT;
 
-		static unsigned char font24pixels[fontWidth][fontHeight];
+		static unsigned char font24pixels[fontHeight][fontWidth];
 		stb_font_consolas_24_latin1(stbFontData, font24pixels, fontHeight);
 
 		// Command buffer
