@@ -33,7 +33,8 @@ public:
 	VkPhysicalDeviceShaderObjectFeaturesEXT enabledDeviceShaderObjectFeaturesEXT{};
 
 	PFN_vkCreateShadersEXT vkCreateShadersEXT;
-	PFN_vkCmdBindShadersEXT vkCmdBindShadersEXT;	
+	PFN_vkCmdBindShadersEXT vkCmdBindShadersEXT;
+	PFN_vkGetShaderBinaryDataEXT vkGetShaderBinaryDataEXT;
 
 	// With VK_EXT_shader_object pipeline state must be set at command buffer creation using these functions
 	// VK_EXT_dynamic_state
@@ -109,6 +110,7 @@ public:
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
+	// Loads a binary shader file
 	void _loadShader(std::string filename, char* &code, size_t &size) {
 		// @todo: Android
 		std::ifstream is(filename, std::ios::binary | std::ios::in | std::ios::ate);
@@ -134,33 +136,97 @@ public:
 
 		VkShaderCreateInfoEXT shaderCreateInfos[2]{};
 
-		// VS
-		_loadShader(getShadersPath() + "pipelines/phong.vert.spv", shaderCodes[0], shaderCodeSizes[0]);
-		shaderCreateInfos[0].sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
-		shaderCreateInfos[0].flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT;
-		shaderCreateInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-		shaderCreateInfos[0].nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		shaderCreateInfos[0].codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
-		shaderCreateInfos[0].pCode = shaderCodes[0];
-		shaderCreateInfos[0].codeSize = shaderCodeSizes[0];
-		shaderCreateInfos[0].pName = "main";
-		shaderCreateInfos[0].setLayoutCount = 1;
-		shaderCreateInfos[0].pSetLayouts = &descriptorSetLayout;
+		// With VK_EXT_shader_object we can generate an implementation dependent binary file that's faster to load
+		// So we check if the binray files exist and if we can load it instead of the SPIR-V
+		bool binaryShadersLoaded = false;
 
-		// FS
-		_loadShader(getShadersPath() + "pipelines/phong.frag.spv", shaderCodes[1], shaderCodeSizes[1]);
-		shaderCreateInfos[1].sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
-		shaderCreateInfos[1].flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT;
-		shaderCreateInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		shaderCreateInfos[1].nextStage = 0;
-		shaderCreateInfos[1].codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
-		shaderCreateInfos[1].pCode = shaderCodes[1];
-		shaderCreateInfos[1].codeSize = shaderCodeSizes[1];
-		shaderCreateInfos[1].pName = "main";
-		shaderCreateInfos[1].setLayoutCount = 1;
-		shaderCreateInfos[1].pSetLayouts = &descriptorSetLayout;
+		if (vks::tools::fileExists(getShadersPath() + "shaderobjects/phong.vert.bin") && vks::tools::fileExists(getShadersPath() + "shaderobjects/phong.frag.bin")) {
+			// VS
+			_loadShader(getShadersPath() + "shaderobjects/phong.vert.bin", shaderCodes[0], shaderCodeSizes[0]);
+			shaderCreateInfos[0].sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+			shaderCreateInfos[0].flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT;
+			shaderCreateInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+			shaderCreateInfos[0].nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			shaderCreateInfos[0].codeType = VK_SHADER_CODE_TYPE_BINARY_EXT;
+			shaderCreateInfos[0].pCode = shaderCodes[0];
+			shaderCreateInfos[0].codeSize = shaderCodeSizes[0];
+			shaderCreateInfos[0].pName = "main";
+			shaderCreateInfos[0].setLayoutCount = 1;
+			shaderCreateInfos[0].pSetLayouts = &descriptorSetLayout;
 
-		vkCreateShadersEXT(device, 2, shaderCreateInfos, nullptr, shaders);
+			// FS
+			_loadShader(getShadersPath() + "shaderobjects/phong.frag.bin", shaderCodes[1], shaderCodeSizes[1]);
+			shaderCreateInfos[1].sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+			shaderCreateInfos[1].flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT;
+			shaderCreateInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			shaderCreateInfos[1].nextStage = 0;
+			shaderCreateInfos[1].codeType = VK_SHADER_CODE_TYPE_BINARY_EXT;
+			shaderCreateInfos[1].pCode = shaderCodes[1];
+			shaderCreateInfos[1].codeSize = shaderCodeSizes[1];
+			shaderCreateInfos[1].pName = "main";
+			shaderCreateInfos[1].setLayoutCount = 1;
+			shaderCreateInfos[1].pSetLayouts = &descriptorSetLayout;
+
+			VkResult result = vkCreateShadersEXT(device, 2, shaderCreateInfos, nullptr, shaders);
+			// If the function returns e.g. VK_ERROR_INCOMPATIBLE_SHADER_BINARY_EXT, the binary file is no longer (or not at all) compatible with the current implementation
+			if (result == VK_SUCCESS) {
+				binaryShadersLoaded = true;
+			} else {
+				std::cout << "Could not load binary shader files (" << vks::tools::errorString(result) << ", loading SPIR - V instead\n";
+			}
+		}
+
+		// If the binary files weren't present, or we could not load them, we load from SPIR-V
+		if (!binaryShadersLoaded) {
+			// VS
+			_loadShader(getShadersPath() + "shaderobjects/phong.vert.spv", shaderCodes[0], shaderCodeSizes[0]);
+			shaderCreateInfos[0].sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+			shaderCreateInfos[0].flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT;
+			shaderCreateInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+			shaderCreateInfos[0].nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			shaderCreateInfos[0].codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+			shaderCreateInfos[0].pCode = shaderCodes[0];
+			shaderCreateInfos[0].codeSize = shaderCodeSizes[0];
+			shaderCreateInfos[0].pName = "main";
+			shaderCreateInfos[0].setLayoutCount = 1;
+			shaderCreateInfos[0].pSetLayouts = &descriptorSetLayout;
+
+			// FS
+			_loadShader(getShadersPath() + "shaderobjects/phong.frag.spv", shaderCodes[1], shaderCodeSizes[1]);
+			shaderCreateInfos[1].sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+			shaderCreateInfos[1].flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT;
+			shaderCreateInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			shaderCreateInfos[1].nextStage = 0;
+			shaderCreateInfos[1].codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+			shaderCreateInfos[1].pCode = shaderCodes[1];
+			shaderCreateInfos[1].codeSize = shaderCodeSizes[1];
+			shaderCreateInfos[1].pName = "main";
+			shaderCreateInfos[1].setLayoutCount = 1;
+			shaderCreateInfos[1].pSetLayouts = &descriptorSetLayout;
+
+			VK_CHECK_RESULT(vkCreateShadersEXT(device, 2, shaderCreateInfos, nullptr, shaders));
+
+			// Store the binary shader files so we can try to load them at the next start
+			size_t dataSize{ 0 };
+			char* data{ nullptr };
+			std::fstream is;
+
+			vkGetShaderBinaryDataEXT(device, shaders[0], &dataSize, nullptr);
+			data = new char[dataSize];
+			vkGetShaderBinaryDataEXT(device, shaders[0], &dataSize, data);
+			is.open(getShadersPath() + "shaderobjects/phong.vert.bin", std::ios::binary | std::ios::out);
+			is.write(data, dataSize);
+			is.close();
+			delete[] data;
+
+			vkGetShaderBinaryDataEXT(device, shaders[1], &dataSize, nullptr);
+			data = new char[dataSize];
+			vkGetShaderBinaryDataEXT(device, shaders[1], &dataSize, data);
+			is.open(getShadersPath() + "shaderobjects/phong.frag.bin", std::ios::binary | std::ios::out);
+			is.write(data, dataSize);
+			is.close();
+			delete[] data;
+		}
 	}
 
 	void buildCommandBuffers()
@@ -260,6 +326,7 @@ public:
 
 		vkCreateShadersEXT = reinterpret_cast<PFN_vkCreateShadersEXT>(vkGetDeviceProcAddr(device, "vkCreateShadersEXT"));
 		vkCmdBindShadersEXT = reinterpret_cast<PFN_vkCmdBindShadersEXT>(vkGetDeviceProcAddr(device, "vkCmdBindShadersEXT"));
+		vkGetShaderBinaryDataEXT = reinterpret_cast<PFN_vkGetShaderBinaryDataEXT>(vkGetDeviceProcAddr(device, "vkGetShaderBinaryDataEXT"));
 
 		vkCmdSetViewportWithCountEXT = reinterpret_cast<PFN_vkCmdSetViewportWithCountEXT>(vkGetDeviceProcAddr(device, "vkCmdSetViewportWithCountEXT"));;
 		vkCmdSetScissorWithCountEXT = reinterpret_cast<PFN_vkCmdSetScissorWithCountEXT>(vkGetDeviceProcAddr(device, "vkCmdSetScissorWithCountEXT"));

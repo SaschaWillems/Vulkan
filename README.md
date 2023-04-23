@@ -453,7 +453,7 @@ Basic sample showing how to use descriptor buffers to replace descriptor sets.
 
 #### [Shader objects (VK_EXT_shader_object)](./examples/shaderobjects/)<br/>
 
-Basic sample showing how to use shader objects that can be used to replace pipeline state objects. Instead of baking all state in a PSO, shaders are explicitly loaded and bound as separate objects and state is set using dynamic state extensions.
+Basic sample showing how to use shader objects that can be used to replace pipeline state objects. Instead of baking all state in a PSO, shaders are explicitly loaded and bound as separate objects and state is set using dynamic state extensions. The sample also stores binary shader objets and loads them on consecutive runs.
 
 ### Misc
 
