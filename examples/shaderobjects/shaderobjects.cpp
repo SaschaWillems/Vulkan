@@ -34,16 +34,18 @@ public:
 
 	PFN_vkCreateShadersEXT vkCreateShadersEXT;
 	PFN_vkCmdBindShadersEXT vkCmdBindShadersEXT;	
+
 	// With VK_EXT_shader_object pipeline state must be set at command buffer creation using these functions
-	PFN_vkCmdSetViewportWithCount vkCmdSetViewportWithCount;
-	PFN_vkCmdSetScissorWithCount vkCmdSetScissorWithCount;
-	PFN_vkCmdSetPolygonModeEXT vkCmdSetPolygonModeEXT;
-	PFN_vkCmdSetDepthCompareOp vkCmdSetDepthCompareOp;
-	PFN_vkCmdSetCullMode vkCmdSetCullMode;
-	PFN_vkCmdSetDepthTestEnable vkCmdSetDepthTestEnable;
-	PFN_vkCmdSetDepthWriteEnable vkCmdSetDepthWriteEnable;
-	PFN_vkCmdSetFrontFace vkCmdSetFrontFace;
-	PFN_vkCmdSetPrimitiveTopology vkCmdSetPrimitiveTopology;
+	// VK_EXT_dynamic_state
+	PFN_vkCmdSetViewportWithCountEXT vkCmdSetViewportWithCountEXT;
+	PFN_vkCmdSetScissorWithCountEXT vkCmdSetScissorWithCountEXT;
+	PFN_vkCmdSetDepthCompareOpEXT vkCmdSetDepthCompareOpEXT;
+	PFN_vkCmdSetCullModeEXT vkCmdSetCullModeEXT;
+	PFN_vkCmdSetDepthTestEnableEXT vkCmdSetDepthTestEnableEXT;
+	PFN_vkCmdSetDepthWriteEnableEXT vkCmdSetDepthWriteEnableEXT;
+	PFN_vkCmdSetFrontFaceEXT vkCmdSetFrontFaceEXT;
+	PFN_vkCmdSetPrimitiveTopologyEXT vkCmdSetPrimitiveTopologyEXT;
+	// VK_EXT_vertex_input_dynamic_state
 	PFN_vkCmdSetVertexInputEXT vkCmdSetVertexInputEXT;
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
@@ -56,6 +58,9 @@ public:
 		camera.setPerspective(60.0f, (float)(width) / (float)height, 0.1f, 256.0f);
 
 		enabledDeviceExtensions.push_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+		// With VK_EXT_shader_object all baked pipeline state is set dynamically at command buffer creation, so we need to enable additional extensions
+		enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+		enabledDeviceExtensions.push_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
 
 		enabledDeviceShaderObjectFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
 		enabledDeviceShaderObjectFeaturesEXT.shaderObject = VK_TRUE;
@@ -190,7 +195,6 @@ public:
 			vkCmdSetScissorWithCount(drawCmdBuffers[i], 1, &scissor);
 			vkCmdSetCullMode(drawCmdBuffers[i], VK_CULL_MODE_BACK_BIT);
 			vkCmdSetFrontFace(drawCmdBuffers[i], VK_FRONT_FACE_COUNTER_CLOCKWISE);
-			vkCmdSetPolygonModeEXT(drawCmdBuffers[i], VK_POLYGON_MODE_FILL);
 			vkCmdSetDepthTestEnable(drawCmdBuffers[i], VK_TRUE);
 			vkCmdSetDepthWriteEnable(drawCmdBuffers[i], VK_TRUE);
 			vkCmdSetDepthCompareOp(drawCmdBuffers[i], VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -257,15 +261,14 @@ public:
 		vkCreateShadersEXT = reinterpret_cast<PFN_vkCreateShadersEXT>(vkGetDeviceProcAddr(device, "vkCreateShadersEXT"));
 		vkCmdBindShadersEXT = reinterpret_cast<PFN_vkCmdBindShadersEXT>(vkGetDeviceProcAddr(device, "vkCmdBindShadersEXT"));
 
-		vkCmdSetViewportWithCount = reinterpret_cast<PFN_vkCmdSetViewportWithCount>(vkGetDeviceProcAddr(device, "vkCmdSetViewportWithCountEXT"));;
-		vkCmdSetScissorWithCount = reinterpret_cast<PFN_vkCmdSetScissorWithCount>(vkGetDeviceProcAddr(device, "vkCmdSetScissorWithCountEXT"));
-		vkCmdSetPolygonModeEXT = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(vkGetDeviceProcAddr(device, "vkCmdSetPolygonModeEXT"));
-		vkCmdSetDepthCompareOp = reinterpret_cast<PFN_vkCmdSetDepthCompareOp>(vkGetDeviceProcAddr(device, "vkCmdSetDepthCompareOp"));
-		vkCmdSetCullMode = reinterpret_cast<PFN_vkCmdSetCullMode>(vkGetDeviceProcAddr(device, "vkCmdSetCullModeEXT"));
-		vkCmdSetDepthTestEnable = reinterpret_cast<PFN_vkCmdSetDepthTestEnable>(vkGetDeviceProcAddr(device, "vkCmdSetDepthTestEnableEXT"));
-		vkCmdSetDepthWriteEnable = reinterpret_cast<PFN_vkCmdSetDepthWriteEnable>(vkGetDeviceProcAddr(device, "vkCmdSetDepthWriteEnableEXT"));
-		vkCmdSetFrontFace = reinterpret_cast<PFN_vkCmdSetFrontFace>(vkGetDeviceProcAddr(device, "vkCmdSetFrontFaceEXT"));
-		vkCmdSetPrimitiveTopology = reinterpret_cast<PFN_vkCmdSetPrimitiveTopology>(vkGetDeviceProcAddr(device, "vkCmdSetPrimitiveTopologyEXT"));
+		vkCmdSetViewportWithCountEXT = reinterpret_cast<PFN_vkCmdSetViewportWithCountEXT>(vkGetDeviceProcAddr(device, "vkCmdSetViewportWithCountEXT"));;
+		vkCmdSetScissorWithCountEXT = reinterpret_cast<PFN_vkCmdSetScissorWithCountEXT>(vkGetDeviceProcAddr(device, "vkCmdSetScissorWithCountEXT"));
+		vkCmdSetDepthCompareOpEXT = reinterpret_cast<PFN_vkCmdSetDepthCompareOpEXT>(vkGetDeviceProcAddr(device, "vkCmdSetDepthCompareOpEXT"));
+		vkCmdSetCullModeEXT = reinterpret_cast<PFN_vkCmdSetCullModeEXT>(vkGetDeviceProcAddr(device, "vkCmdSetCullModeEXT"));
+		vkCmdSetDepthTestEnableEXT = reinterpret_cast<PFN_vkCmdSetDepthTestEnableEXT>(vkGetDeviceProcAddr(device, "vkCmdSetDepthTestEnableEXT"));
+		vkCmdSetDepthWriteEnableEXT = reinterpret_cast<PFN_vkCmdSetDepthWriteEnableEXT>(vkGetDeviceProcAddr(device, "vkCmdSetDepthWriteEnableEXT"));
+		vkCmdSetFrontFaceEXT = reinterpret_cast<PFN_vkCmdSetFrontFaceEXT>(vkGetDeviceProcAddr(device, "vkCmdSetFrontFaceEXT"));
+		vkCmdSetPrimitiveTopologyEXT = reinterpret_cast<PFN_vkCmdSetPrimitiveTopologyEXT>(vkGetDeviceProcAddr(device, "vkCmdSetPrimitiveTopologyEXT"));
 		vkCmdSetVertexInputEXT = reinterpret_cast<PFN_vkCmdSetVertexInputEXT>(vkGetDeviceProcAddr(device, "vkCmdSetVertexInputEXT"));
 
 		loadAssets();
