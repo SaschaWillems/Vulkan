@@ -191,14 +191,14 @@ public:
 
 			// No more pipelines required, everything is bound at command buffer level
 
-			vkCmdSetViewportWithCount(drawCmdBuffers[i], 1, &viewport);
-			vkCmdSetScissorWithCount(drawCmdBuffers[i], 1, &scissor);
-			vkCmdSetCullMode(drawCmdBuffers[i], VK_CULL_MODE_BACK_BIT);
-			vkCmdSetFrontFace(drawCmdBuffers[i], VK_FRONT_FACE_COUNTER_CLOCKWISE);
-			vkCmdSetDepthTestEnable(drawCmdBuffers[i], VK_TRUE);
-			vkCmdSetDepthWriteEnable(drawCmdBuffers[i], VK_TRUE);
-			vkCmdSetDepthCompareOp(drawCmdBuffers[i], VK_COMPARE_OP_LESS_OR_EQUAL);
-			vkCmdSetPrimitiveTopology(drawCmdBuffers[i], VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+			vkCmdSetViewportWithCountEXT(drawCmdBuffers[i], 1, &viewport);
+			vkCmdSetScissorWithCountEXT(drawCmdBuffers[i], 1, &scissor);
+			vkCmdSetCullModeEXT(drawCmdBuffers[i], VK_CULL_MODE_BACK_BIT);
+			vkCmdSetFrontFaceEXT(drawCmdBuffers[i], VK_FRONT_FACE_COUNTER_CLOCKWISE);
+			vkCmdSetDepthTestEnableEXT(drawCmdBuffers[i], VK_TRUE);
+			vkCmdSetDepthWriteEnableEXT(drawCmdBuffers[i], VK_TRUE);
+			vkCmdSetDepthCompareOpEXT(drawCmdBuffers[i], VK_COMPARE_OP_LESS_OR_EQUAL);
+			vkCmdSetPrimitiveTopologyEXT(drawCmdBuffers[i], VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
 			VkVertexInputBindingDescription2EXT vertexInputBinding{};
 			vertexInputBinding.sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
