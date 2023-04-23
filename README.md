@@ -451,6 +451,10 @@ Basic sample demonstrating how to use the mesh shading pipeline as a replacement
 
 Basic sample showing how to use descriptor buffers to replace descriptor sets.
 
+#### [Shader objects (VK_EXT_shader_object)](./examples/shaderobjects/)<br/>
+
+Basic sample showing how to use shader objects that can be used to replace pipeline state objects. Instead of baking all state in a PSO, shaders are explicitly loaded and bound as separate objects and state is set using dynamic state extensions.
+
 ### Misc
 
 #### [Vulkan Gears](examples/gears/)
