@@ -30,11 +30,16 @@ public:
 
 	VkShaderEXT shaders[2];
 
-	VkPhysicalDeviceShaderObjectFeaturesEXT enabledDeviceShaderObjectFeaturesEXT{};
+	VkPhysicalDeviceShaderObjectFeaturesEXT enabledShaderObjectFeaturesEXT{};
+	VkPhysicalDeviceDynamicRenderingFeaturesKHR enabledDynamicRenderingFeaturesKHR{};
 
 	PFN_vkCreateShadersEXT vkCreateShadersEXT;
 	PFN_vkCmdBindShadersEXT vkCmdBindShadersEXT;
 	PFN_vkGetShaderBinaryDataEXT vkGetShaderBinaryDataEXT;
+
+	// VK_EXT_shader_objects requires render passes to be dynamic
+	PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR;
+	PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR;
 
 	// With VK_EXT_shader_object pipeline state must be set at command buffer creation using these functions
 	// VK_EXT_dynamic_state
@@ -59,14 +64,27 @@ public:
 		camera.setPerspective(60.0f, (float)(width) / (float)height, 0.1f, 256.0f);
 
 		enabledDeviceExtensions.push_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+
+		enabledDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+
 		// With VK_EXT_shader_object all baked pipeline state is set dynamically at command buffer creation, so we need to enable additional extensions
 		enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
 
-		enabledDeviceShaderObjectFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
-		enabledDeviceShaderObjectFeaturesEXT.shaderObject = VK_TRUE;
+		// Since we are not requiring Vulkan 1.2, we need to enable some additional extensios for dynamic rendering
+		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE2_EXTENSION_NAME);
+		enabledDeviceExtensions.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
+		enabledDeviceExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+		enabledDeviceExtensions.push_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
 
-		deviceCreatepNextChain = &enabledDeviceShaderObjectFeaturesEXT;
+		enabledShaderObjectFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+		enabledShaderObjectFeaturesEXT.shaderObject = VK_TRUE;
+
+		enabledDynamicRenderingFeaturesKHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+		enabledDynamicRenderingFeaturesKHR.dynamicRendering = VK_TRUE;
+		enabledDynamicRenderingFeaturesKHR.pNext = &enabledShaderObjectFeaturesEXT;
+
+		deviceCreatepNextChain = &enabledDynamicRenderingFeaturesKHR;
 	}
 
 	~VulkanExample()
@@ -233,24 +251,62 @@ public:
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			
+			// Transition color and depth images for drawing
+			vks::tools::insertImageMemoryBarrier(
+				drawCmdBuffers[i],
+				swapChain.buffers[i].image,
+				0,
+				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+			vks::tools::insertImageMemoryBarrier(
+				drawCmdBuffers[i],
+				depthStencil.image,
+				0,
+				VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+				VkImageSubresourceRange{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 });
+
+			// New structures are used to define the attachments used in dynamic rendering
+			VkRenderingAttachmentInfoKHR colorAttachment{};
+			colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+			colorAttachment.imageView = swapChain.buffers[i].view;
+			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachment.clearValue.color = { 0.0f,0.0f,0.0f,0.0f };
+
+			// A single depth stencil attachment info can be used, but they can also be specified separately.
+			// When both are specified separately, the only requirement is that the image view is identical.			
+			VkRenderingAttachmentInfoKHR depthStencilAttachment{};
+			depthStencilAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+			depthStencilAttachment.imageView = depthStencil.view;
+			depthStencilAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			depthStencilAttachment.clearValue.depthStencil = { 1.0f,  0 };
+
+			VkRenderingInfoKHR renderingInfo{};
+			renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+			renderingInfo.renderArea = { 0, 0, width, height };
+			renderingInfo.layerCount = 1;
+			renderingInfo.colorAttachmentCount = 1;
+			renderingInfo.pColorAttachments = &colorAttachment;
+			renderingInfo.pDepthAttachment = &depthStencilAttachment;
+			renderingInfo.pStencilAttachment = &depthStencilAttachment;
+
+			// Begin dynamic rendering
+			vkCmdBeginRenderingKHR(drawCmdBuffers[i], &renderingInfo);
 
 			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
@@ -290,7 +346,21 @@ public:
 
 			drawUI(drawCmdBuffers[i]);
 
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
+			// End dynamic rendering
+			vkCmdEndRenderingKHR(drawCmdBuffers[i]);
+
+			// Transition color image for presentation
+			vks::tools::insertImageMemoryBarrier(
+				drawCmdBuffers[i],
+				swapChain.buffers[i].image,
+				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+				0,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
@@ -327,6 +397,9 @@ public:
 		vkCreateShadersEXT = reinterpret_cast<PFN_vkCreateShadersEXT>(vkGetDeviceProcAddr(device, "vkCreateShadersEXT"));
 		vkCmdBindShadersEXT = reinterpret_cast<PFN_vkCmdBindShadersEXT>(vkGetDeviceProcAddr(device, "vkCmdBindShadersEXT"));
 		vkGetShaderBinaryDataEXT = reinterpret_cast<PFN_vkGetShaderBinaryDataEXT>(vkGetDeviceProcAddr(device, "vkGetShaderBinaryDataEXT"));
+
+		vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdBeginRenderingKHR"));
+		vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR"));
 
 		vkCmdSetViewportWithCountEXT = reinterpret_cast<PFN_vkCmdSetViewportWithCountEXT>(vkGetDeviceProcAddr(device, "vkCmdSetViewportWithCountEXT"));;
 		vkCmdSetScissorWithCountEXT = reinterpret_cast<PFN_vkCmdSetScissorWithCountEXT>(vkGetDeviceProcAddr(device, "vkCmdSetScissorWithCountEXT"));
