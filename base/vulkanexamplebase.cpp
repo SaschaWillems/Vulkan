@@ -1,7 +1,7 @@
 /*
 * Vulkan Example base class
 *
-* Copyright (C) by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -1043,9 +1043,15 @@ bool VulkanExampleBase::initVulkan()
 	// Get a graphics queue from the device
 	vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
 
-	// Find a suitable depth format
-	VkBool32 validDepthFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
-	assert(validDepthFormat);
+	// Find a suitable depth and/or stencil format
+	VkBool32 validFormat{ false };
+	// Sample that make use of stencil will require a depth + stencil format, so we select from a different list
+	if (requiresStencil) {
+		validFormat = vks::tools::getSupportedDepthStencilFormat(physicalDevice, &depthFormat);
+	} else {
+		validFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
+	}
+	assert(validFormat);
 
 	swapChain.connect(instance, physicalDevice, device);
 

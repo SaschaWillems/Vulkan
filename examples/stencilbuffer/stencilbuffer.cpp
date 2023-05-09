@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Rendering outlines using the stencil buffer
 *
-* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -43,6 +43,8 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(2.5f, -35.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -2.0f));
+		// This samples requires a format that supports depth AND stencil, which will be handled by the base class
+		requiresStencil = true;
 	}
 
 	~VulkanExample()
