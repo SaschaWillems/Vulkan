@@ -1,12 +1,12 @@
 /*
-* Vulkan device class
-*
-* Encapsulates a physical Vulkan device and its logical representation
-*
-* Copyright (C) by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+ * Vulkan device class
+ * 
+ * Encapsulates a physical Vulkan device and its logical representation
+ *
+ * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 // SRS - Enable beta extensions and make VK_KHR_portability_subset visible
@@ -267,13 +267,6 @@ namespace vks
 			physicalDeviceFeatures2.pNext = pNextChain;
 			deviceCreateInfo.pEnabledFeatures = nullptr;
 			deviceCreateInfo.pNext = &physicalDeviceFeatures2;
-		}
-
-		// Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
-		if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
-		{
-			deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
-			enableDebugMarkers = true;
 		}
 
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK)) && defined(VK_KHR_portability_subset)

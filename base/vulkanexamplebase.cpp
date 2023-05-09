@@ -105,13 +105,13 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	}
 #endif
 
+	// Enable the debug utils extension if available (e.g. when debugging tools are present)
+	if (settings.validation || std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedInstanceExtensions.end()) {
+		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	}
+
 	if (instanceExtensions.size() > 0)
 	{
-		if (settings.validation)
-		{
-			instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);	// SRS - Dependency when VK_EXT_DEBUG_MARKER is enabled
-			instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		}
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 	}
@@ -140,7 +140,14 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 			std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled";
 		}
 	}
-	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+	VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+
+	// If the debug utils extension is present we set up debug functions, so samples an label objects for debugging
+	if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedInstanceExtensions.end()) {
+		vks::debugutils::setup(instance);
+	}
+
+	return result;
 }
 
 void VulkanExampleBase::renderFrame()
@@ -196,9 +203,6 @@ void VulkanExampleBase::createPipelineCache()
 
 void VulkanExampleBase::prepare()
 {
-	if (vulkanDevice->enableDebugMarkers) {
-		vks::debugmarker::setup(device);
-	}
 	initSwapchain();
 	createCommandPool();
 	setupSwapChain();

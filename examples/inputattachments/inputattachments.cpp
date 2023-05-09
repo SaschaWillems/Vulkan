@@ -1,14 +1,14 @@
 /*
-* Vulkan Example - Using input attachments
-*
-* Copyright (C) 2018-2021 by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*
-* Summary:
-* Input attachments can be used to read attachment contents from a previous sub pass
-* at the same pixel position within a single render pass
-*/
+ * Vulkan Example - Using input attachments
+ *
+ * Copyright (C) 2018-2023 by Sascha Willems - www.saschawillems.de
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ *
+ * Summary:
+ * Input attachments can be used to read attachment contents from a previous sub pass
+ * at the same pixel position within a single render pass
+ */
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
@@ -379,13 +379,13 @@ public:
 				Fills the attachments
 			*/
 			{
-				vks::debugmarker::beginRegion(drawCmdBuffers[i], "Subpass 0: Writing attachments", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+				vks::debugutils::cmdBeginLabel(drawCmdBuffers[i], "Subpass 0: Writing attachments", { 1.0f, 0.78f, 0.05f, 1.0f });
 
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.attachmentWrite);
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.attachmentWrite, 0, 1, &descriptorSets.attachmentWrite, 0, NULL);
 				scene.draw(drawCmdBuffers[i]);
 
-				vks::debugmarker::endRegion(drawCmdBuffers[i]);
+				vks::debugutils::cmdEndLabel(drawCmdBuffers[i]);
 			}
 
 			/*
@@ -393,7 +393,7 @@ public:
 				Render a full screen quad, reading from the previously written attachments via input attachments
 			*/
 			{
-				vks::debugmarker::beginRegion(drawCmdBuffers[i], "Subpass 1: Reading attachments", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+				vks::debugutils::cmdBeginLabel(drawCmdBuffers[i], "Subpass 1: Reading attachments", { 0.0f, 0.5f, 1.0f, 1.0f });
 
 				vkCmdNextSubpass(drawCmdBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
@@ -401,7 +401,7 @@ public:
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.attachmentRead, 0, 1, &descriptorSets.attachmentRead[i], 0, NULL);
 				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 
-				vks::debugmarker::endRegion(drawCmdBuffers[i]);
+				vks::debugutils::cmdEndLabel(drawCmdBuffers[i]);
 			}
 
 			drawUI(drawCmdBuffers[i]);

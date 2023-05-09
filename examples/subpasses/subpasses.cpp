@@ -1,20 +1,20 @@
 /*
-* Vulkan Example - Using subpasses for G-Buffer compositing
-*
-* Copyright (C) 2016-2022 by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*
-* Summary:
-* Implements a deferred rendering setup with a forward transparency pass using sub passes
-*
-* Sub passes allow reading from the previous framebuffer (in the same render pass) at
-* the same pixel position.
-*
-* This is a feature that was especially designed for tile-based-renderers
-* (mostly mobile GPUs) and is a new optimization feature in Vulkan for those GPU types.
-*
-*/
+ * Vulkan Example - Using subpasses for G-Buffer compositing
+ *
+ * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ *
+ * Summary:
+ * Implements a deferred rendering setup with a forward transparency pass using sub passes
+ *
+ * Sub passes allow reading from the previous framebuffer (in the same render pass) at
+ * the same pixel position.
+ *
+ * This is a feature that was especially designed for tile-based-renderers
+ * (mostly mobile GPUs) and is a new optimization feature in Vulkan for those GPU types.
+ *
+ */
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
@@ -474,19 +474,19 @@ public:
 			// First sub pass
 			// Renders the components of the scene to the G-Buffer attachments
 			{
-				vks::debugmarker::beginRegion(drawCmdBuffers[i], "Subpass 0: Deferred G-Buffer creation", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+				vks::debugutils::cmdBeginLabel(drawCmdBuffers[i], "Subpass 0: Deferred G-Buffer creation", { 1.0f, 0.78f, 0.05f, 1.0f });
 
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.scene, 0, NULL);
 				models.scene.draw(drawCmdBuffers[i]);
 
-				vks::debugmarker::endRegion(drawCmdBuffers[i]);
+				vks::debugutils::cmdEndLabel(drawCmdBuffers[i]);
 			}
 
 			// Second sub pass
 			// This subpass will use the G-Buffer components that have been filled in the first subpass as input attachment for the final compositing
 			{
-				vks::debugmarker::beginRegion(drawCmdBuffers[i], "Subpass 1: Deferred composition", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+				vks::debugutils::cmdBeginLabel(drawCmdBuffers[i], "Subpass 1: Deferred composition", { 0.0f, 0.5f, 1.0f, 1.0f });
 
 				vkCmdNextSubpass(drawCmdBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
@@ -494,13 +494,13 @@ public:
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.composition, 0, 1, &descriptorSets.composition, 0, NULL);
 				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 
-				vks::debugmarker::endRegion(drawCmdBuffers[i]);
+				vks::debugutils::cmdEndLabel(drawCmdBuffers[i]);
 			}
 
 			// Third subpass
 			// Render transparent geometry using a forward pass that compares against depth generated during G-Buffer fill
 			{
-				vks::debugmarker::beginRegion(drawCmdBuffers[i], "Subpass 2: Forward transparency", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+				vks::debugutils::cmdBeginLabel(drawCmdBuffers[i], "Subpass 2: Forward transparency", { 0.5f, 0.76f, 0.34f, 1.0f });
 
 				vkCmdNextSubpass(drawCmdBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
@@ -508,7 +508,7 @@ public:
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.transparent, 0, 1, &descriptorSets.transparent, 0, NULL);
 				models.transparent.draw(drawCmdBuffers[i]);
 
-				vks::debugmarker::endRegion(drawCmdBuffers[i]);
+				vks::debugutils::cmdEndLabel(drawCmdBuffers[i]);
 			}
 
 			drawUI(drawCmdBuffers[i]);
