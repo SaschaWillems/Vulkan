@@ -39,7 +39,7 @@ You can find this repository at https://github.com/KhronosGroup/Vulkan-Samples
 As I've been involved with getting the official repository up and running, I'll be mostly contributing to that repository from now, but may still add samples that don't fit there in here and I'll of course continue to maintain these samples.
 
 ## Cloning
-This repository contains submodules for external dependencies, so when doing a fresh clone you need to clone recursively:
+This repository contains submodules for external dependencies and assets, so when doing a fresh clone you need to clone recursively:
 
 ```
 git clone --recursive https://github.com/SaschaWillems/Vulkan.git
@@ -53,11 +53,8 @@ git submodule update
 ```
 
 ## Assets
-Many examples require assets from the asset pack that is not part of this repository due to file size. A python script is included to download the asset pack that. Run
 
-    python download_assets.py
-
-from the root of the repository after cloning or see [this](data/README.md) for manual download.
+**Important notice:** As of may 2023 assets have been moved to a [submodule](https://github.com/SaschaWillems/Vulkan-Assets). If you have cloned the repository before this date, you may need to initialize and update submodules. If you do a fresh clone, no action is required to get the assets.
 
 ## Building
 
