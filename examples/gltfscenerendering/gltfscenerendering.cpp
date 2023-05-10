@@ -383,7 +383,7 @@ void VulkanExample::loadglTFFile(std::string filename)
 		}
 	}
 	else {
-		vks::tools::exitFatal("Could not open the glTF file.\n\nThe file is part of the additional asset pack.\n\nRun \"download_assets.py\" in the repository root to download the latest version.", -1);
+		vks::tools::exitFatal("Could not open the glTF file.\n\nMake sure the assets submodule has been checked out and is up-to-date.", -1);
 		return;
 	}
 

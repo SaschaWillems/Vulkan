@@ -14,8 +14,8 @@ const std::string getAssetPath()
 {
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	return "";
-#elif defined(DVK_EXAMPLE_ASSETS_DIR)
-	return DVK_EXAMPLE_ASSETS_DIR;
+#elif defined(VK_EXAMPLE_ASSETS_DIR)
+	return VK_EXAMPLE_ASSETS_DIR;
 #else
 	return "./../assets/";
 #endif
@@ -28,8 +28,8 @@ const std::string getShaderBasePath()
 {
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	return "shaders/";
-#elif defined(DVK_EXAMPLE_SHADERS_DIR)
-	return DVK_EXAMPLE_SHADERS_DIR;
+#elif defined(VK_EXAMPLE_SHADERS_DIR)
+	return VK_EXAMPLE_SHADERS_DIR;
 #else
 	return "./../shaders/";
 #endif
