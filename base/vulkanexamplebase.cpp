@@ -191,7 +191,7 @@ void VulkanExampleBase::destroyCommandBuffers()
 
 std::string VulkanExampleBase::getShadersPath() const
 {
-	return getAssetPath() + "shaders/" + shaderDir + "/";
+	return getShaderBasePath() + shaderDir + "/";
 }
 
 void VulkanExampleBase::createPipelineCache()
