@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "de.saschawillems.vulkanPBRTexture"
-        minSdkVersion 19
-        targetSdkVersion 26
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         ndk {
@@ -43,31 +43,31 @@ task copyTask {
     }
 
     copy {
-        from '../../../data/shaders/glsl/base'
+        from rootProject.ext.shaderPath + 'glsl/base'
         into 'assets/shaders/glsl/base'
         include '*.spv'
     }
 
     copy {
-       from '../../../data/shaders/glsl/pbrtexture'
+       from rootProject.ext.shaderPath + 'glsl/pbrtexture'
        into 'assets/shaders/glsl/pbrtexture'
        include '*.*'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'cube.gltf'
     }
 
     copy {
-       from '../../../data/textures/hdr'
+       from rootProject.ext.assetPath + 'textures/hdr'
        into 'assets/textures/hdr'
        include 'gcanyon_cube.ktx'
     }
 
     copy {
-       from '../../../data/models/cerberus'
+       from rootProject.ext.assetPath + 'models/cerberus'
        into 'assets/models/cerberus'
        include '*.*'
     }

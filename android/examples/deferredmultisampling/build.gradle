@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "de.saschawillems.vulkanDeferredmultisampling"
-        minSdkVersion 19
-        targetSdkVersion 26
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         ndk {
@@ -43,37 +43,37 @@ task copyTask {
     }
 
     copy {
-        from '../../../data/shaders/glsl/base'
+        from rootProject.ext.shaderPath + 'glsl/base'
         into 'assets/shaders/glsl/base'
         include '*.spv'
     }
 
     copy {
-       from '../../../data/shaders/glsl/deferredmultisampling'
+       from rootProject.ext.shaderPath + 'glsl/deferredmultisampling'
        into 'assets/shaders/glsl/deferredmultisampling'
        include '*.*'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'deferred_box.gltf'
     }
 
     copy {
-       from '../../../data/textures'
+       from rootProject.ext.assetPath + 'textures'
        into 'assets/textures'
        include 'stonefloor02_color_*.ktx'
     }
 
     copy {
-       from '../../../data/textures'
+       from rootProject.ext.assetPath + 'textures'
        into 'assets/textures'
        include 'stonefloor02_normal_*.ktx'
     }
 
     copy {
-       from '../../../data/models/armor'
+       from rootProject.ext.assetPath + 'models/armor'
        into 'assets/models/armor'
        include '*.*'
     }
