@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "de.saschawillems.vulkanTexturecubemapArray"
-        minSdkVersion 19
-        targetSdkVersion 26
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         ndk {
@@ -43,49 +43,49 @@ task copyTask {
     }
 
     copy {
-        from '../../../data/shaders/glsl/base'
+        from rootProject.ext.shaderPath + 'glsl/base'
         into 'assets/shaders/glsl/base'
         include '*.spv'
     }
 
     copy {
-       from '../../../data/shaders/glsl/texturecubemaparray'
+       from rootProject.ext.shaderPath + 'glsl/texturecubemaparray'
        into 'assets/shaders/glsl/texturecubemaparray'
        include '*.*'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'sphere.gltf'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'teapot.gltf'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'torusknot.gltf'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'cube.gltf'
     }
 
     copy {
-        from '../../../data/models'
+        from rootProject.ext.assetPath + 'models'
         into 'assets/models'
         include 'venus.gltf'
     }
 
     copy {
-       from '../../../data/textures'
+       from rootProject.ext.assetPath + 'textures'
        into 'assets/textures'
        include 'cubemap_array.ktx'
     }

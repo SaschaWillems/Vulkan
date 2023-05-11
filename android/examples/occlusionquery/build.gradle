@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "de.saschawillems.vulkanOcclusionquery"
-        minSdkVersion 19
-        targetSdkVersion 26
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         ndk {
@@ -43,31 +43,31 @@ task copyTask {
     }
 
     copy {
-        from '../../../data/shaders/glsl/base'
+        from rootProject.ext.shaderPath + 'glsl/base'
         into 'assets/shaders/glsl/base'
         include '*.spv'
     }
 
     copy {
-       from '../../../data/shaders/glsl/occlusionquery'
+       from rootProject.ext.shaderPath + 'glsl/occlusionquery'
        into 'assets/shaders/glsl/occlusionquery'
        include '*.*'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'plane_z.gltf'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'teapot.gltf'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'sphere.gltf'
     }

@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "de.saschawillems.vulkanComputenbody"
-        minSdkVersion 19
-        targetSdkVersion 26
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         ndk {
@@ -43,25 +43,25 @@ task copyTask {
     }
 
     copy {
-        from '../../../data/shaders/glsl/base'
+        from rootProject.ext.shaderPath + 'glsl/base'
         into 'assets/shaders/glsl/base'
         include '*.spv'
     }
 
     copy {
-       from '../../../data/shaders/glsl/computenbody'
+       from rootProject.ext.shaderPath + 'glsl/computenbody'
        into 'assets/shaders/glsl/computenbody'
        include '*.*'
     }
 
     copy {
-       from '../../../data/textures'
+       from rootProject.ext.assetPath + 'textures'
        into 'assets/textures'
        include 'particle01_rgba.ktx'
     }
 
     copy {
-       from '../../../data/textures'
+       from rootProject.ext.assetPath + 'textures'
        into 'assets/textures'
        include 'particle_gradient_rgba.ktx'
     }

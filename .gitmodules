@@ -1,3 +1,7 @@
 [submodule "external/glm"]
 	path = external/glm
 	url = https://github.com/g-truc/glm
+[submodule "assets"]
+	path = assets
+	url = https://github.com/SaschaWillems/Vulkan-Assets
+	branch = main

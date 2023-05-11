@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 apply from: '../gradle/outputfilename.gradle'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "de.saschawillems.vulkanIndirectdraw"
-        minSdkVersion 19
-        targetSdkVersion 26
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         ndk {
@@ -43,43 +43,43 @@ task copyTask {
     }
 
     copy {
-        from '../../../data/shaders/glsl/base'
+        from rootProject.ext.shaderPath + 'glsl/base'
         into 'assets/shaders/glsl/base'
         include '*.spv'
     }
 
     copy {
-       from '../../../data/shaders/glsl/indirectdraw'
+       from rootProject.ext.shaderPath + 'glsl/indirectdraw'
        into 'assets/shaders/glsl/indirectdraw'
        include '*.*'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'plants.gltf'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'plane_circle.gltf'
     }
 
     copy {
-       from '../../../data/models'
+       from rootProject.ext.assetPath + 'models'
        into 'assets/models'
        include 'sphere.gltf'
     }
 
     copy {
-       from '../../../data/textures'
+       from rootProject.ext.assetPath + 'textures'
        into 'assets/textures'
        include 'texturearray_plants_rgba.ktx'
     }
 
     copy {
-       from '../../../data/textures'
+       from rootProject.ext.assetPath + 'textures'
        into 'assets/textures'
        include 'ground_dry_rgba.ktx'
     }
