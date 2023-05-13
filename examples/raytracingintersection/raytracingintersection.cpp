@@ -61,7 +61,7 @@ public:
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-		camera.setTranslation(glm::vec3(0.0f, 0.0f, -10.0f));
+		camera.setTranslation(glm::vec3(0.0f, 0.0f, -60.0f));
 		enableExtensions();
 	}
 
@@ -83,10 +83,28 @@ public:
 	{
 		// We'll be using two buffers to describe the procedural geometry
 
-		// A buffer with sphere descriptions (center, radius, material) that'll be passed to the ray tracing shaders as a shader storage buffer object
+		// A buffer with randpmly generatd sphere descriptions (center, radius, material) that'll be passed to the ray tracing shaders as a shader storage buffer object
 		std::vector<Sphere> spheres{};
-		spheres.push_back({ glm::vec3(0.0f), 2.5f, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) });
-		spheres.push_back({ glm::vec3(2.0f), 1.5f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
+		std::default_random_engine rndGenerator(benchmark.active ? 0 : (unsigned)time(nullptr));
+		std::uniform_real_distribution<float> uniformDist(0.0, 1.0);
+		std::uniform_real_distribution<float> sizeDist(1.0, 2.0);
+		for (uint32_t i = 0; i < 1024; i++) {
+			Sphere sphere{};
+			//sphere.center = 
+			sphere.radius = sizeDist(rndGenerator);
+			sphere.color = glm::vec4(uniformDist(rndGenerator), uniformDist(rndGenerator), uniformDist(rndGenerator), 1.0f);
+			// Get a random point in a sphere
+			float x,y,z,d{ 0.0f };
+			do {
+				x = uniformDist(rndGenerator) * 2.0f - 1.0f;
+				y = uniformDist(rndGenerator) * 2.0f - 1.0f;
+				z = uniformDist(rndGenerator) * 2.0f - 1.0f;
+				d = x * x + y * y + z * z;
+
+			} while (d > 1.0);
+			sphere.center = glm::vec3(x, y, z) * 25.0f;
+			spheres.push_back(sphere);
+		}
 
 		// A buffer with the (axis aligned) bounding boxes of our sphere, which is used during the ray tracing traversal for hit detection
 		std::vector<AABB> aabbs{};
@@ -540,9 +558,7 @@ public:
 	{
 		uniformData.projInverse = glm::inverse(camera.matrices.perspective);
 		uniformData.viewInverse = glm::inverse(camera.matrices.view);
-		uniformData.lightPos = glm::vec4(cos(glm::radians(timer * 360.0f)) * 40.0f, -50.0f + sin(glm::radians(timer * 360.0f)) * 20.0f, 25.0f + sin(glm::radians(timer * 360.0f)) * 5.0f, 0.0f);
-		// Pass the vertex size to the shader for unpacking vertices
-		//uniformData.vertexSize = sizeof(vkglTF::Vertex);
+		uniformData.lightPos = glm::vec4(cos(glm::radians(timer * 360.0f)) * 60.0f, 0.0f, 25.0f + sin(glm::radians(timer * 360.0f)) * 60.0f, 0.0f);
 		memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 	}
 
