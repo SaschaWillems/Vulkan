@@ -1,0 +1,39 @@
+/* Copyright (c) 2023, Sascha Willems
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ */
+
+#version 460
+#extension GL_EXT_ray_tracing : require
+
+struct Sphere {
+	vec3 center;
+	float radius;
+	vec4 color;
+};
+layout(binding = 3, set = 0) buffer Spheres { Sphere s[]; } spheres;
+
+// Ray-sphere intersection
+// By Inigo Quilez, from https://iquilezles.org/articles/spherefunctions/
+float sphIntersect(const Sphere s, vec3 ro, vec3 rd)
+{
+    vec3 oc = ro - s.center;
+    float b = dot(oc, rd);
+    float c = dot(oc, oc) - s.radius * s.radius;
+    float h = b * b - c;
+    if (h < 0.0) { 
+        return -1.0;
+    }
+    h = sqrt(h);
+    return -b - h;
+}
+
+void main() {
+    Sphere sphere = spheres.s[gl_PrimitiveID];
+    float hit = sphIntersect(sphere, gl_WorldRayOriginEXT, gl_WorldRayDirectionEXT);
+
+    if (hit > 0) {
+        reportIntersectionEXT(hit, 0);
+    }
+}
