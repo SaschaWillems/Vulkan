@@ -23,8 +23,12 @@ layout(binding = 3, set = 0) uniform sampler2D image;
 struct GeometryNode {
 	uint64_t vertexBufferDeviceAddress;
 	uint64_t indexBufferDeviceAddress;
+	uint textureIndexBaseColor;
+	uint textureIndexOcclusion;
 };
 layout(binding = 4, set = 0) buffer GeometryNodes { GeometryNode nodes[]; } geometryNodes;
+
+layout(binding = 5, set = 0) uniform sampler2D textures[];
 
 #include "bufferreferences.glsl"
 #include "geometrytypes.glsl"
@@ -54,6 +58,16 @@ void main()
 	Triangle tri = unpackTriangle(gl_PrimitiveID, 112);
 	hitValue = vec3(tri.normal);
 
+	GeometryNode geometryNode = geometryNodes.nodes[gl_GeometryIndexEXT];
+
+	color = texture(textures[nonuniformEXT(geometryNode.textureIndexBaseColor)], tri.uv).rgb;
+//	if (geometryNode.textureIndexOcclusion > -1) {
+		float occlusion = texture(textures[nonuniformEXT(geometryNode.textureIndexOcclusion)], tri.uv).r;
+		color *= occlusion;
+//	}
+
+	hitValue = color;
+
 //	hitValue = color;
 	// Fetch the color for this ray hit from the texture at the current uv coordinates
 //	vec4 color = texture(image, tri.uv);
@@ -61,13 +75,13 @@ void main()
 	// Shadow casting
 	float tmin = 0.001;
 	float tmax = 10000.0;
-	float epsilon = 0.01;
-	vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;// + tri.normal * epsilon;
+	float epsilon = 0.001;
+	vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT + tri.normal * epsilon;
 	shadowed = true;  
 	vec3 lightVector = vec3(-5.0, -2.5, -5.0);
 	// Trace shadow ray and offset indices to match shadow hit/miss shader group indices
 	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, origin, tmin, lightVector, tmax, 2);
 	if (shadowed) {
-//		hitValue *= 0.3;
+		//hitValue *= 0.3;
 	}
 }

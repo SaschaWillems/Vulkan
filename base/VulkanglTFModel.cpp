@@ -1,4 +1,3 @@
-
 /*
 * Vulkan glTF model and texture loading class based on tinyglTF (https://github.com/syoyo/tinygltf)
 *
@@ -994,6 +993,7 @@ void vkglTF::Model::loadImages(tinygltf::Model &gltfModel, vks::VulkanDevice *de
 	for (tinygltf::Image &image : gltfModel.images) {
 		vkglTF::Texture texture;
 		texture.fromglTfImage(image, path, device, transferQueue);
+		texture.index = static_cast<uint32_t>(textures.size());
 		textures.push_back(texture);
 	}
 	// Create an empty texture to be used for empty material images

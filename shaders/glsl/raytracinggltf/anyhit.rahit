@@ -19,6 +19,8 @@ layout(binding = 3, set = 0) uniform sampler2D image;
 struct GeometryNode {
 	uint64_t vertexBufferDeviceAddress;
 	uint64_t indexBufferDeviceAddress;
+	uint textureIndexBaseColor;
+	uint textureIndexOcclusion;
 };
 layout(binding = 4, set = 0) buffer GeometryNodes { GeometryNode nodes[]; } geometryNodes;
 

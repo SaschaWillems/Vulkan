@@ -28,6 +28,8 @@ public:
 	struct GeometryNode {
 		uint64_t vertexBufferDeviceAddress;
 		uint64_t indexBufferDeviceAddress;
+		uint32_t textureIndexBaseColor;
+		uint32_t textureIndexOcclusion;
 	};
 	vks::Buffer geometryNodesBuffer;
 
@@ -53,6 +55,8 @@ public:
 
 	vkglTF::Model model;
 
+	VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
+
 	VulkanExample() : VulkanRaytracingSample()
 	{
 		title = "Ray tracing glTF model";
@@ -62,8 +66,18 @@ public:
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, -0.1f, -1.0f));
 		enableExtensions();
+
 		// Buffer device address requires the 64-bit integer feature to be enabled
 		enabledFeatures.shaderInt64 = VK_TRUE;
+
+		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
+		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+		physicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+		physicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+		physicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
+		physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+
+		deviceCreatepNextChain = &physicalDeviceDescriptorIndexingFeatures;
 	}
 
 	~VulkanExample()
@@ -176,6 +190,9 @@ public:
 				GeometryNode geometryNode{};
 				geometryNode.vertexBufferDeviceAddress = vertexBufferDeviceAddress.deviceAddress;
 				geometryNode.indexBufferDeviceAddress = indexBufferDeviceAddress.deviceAddress;
+				geometryNode.textureIndexBaseColor = primitive->material.baseColorTexture->index;
+				geometryNode.textureIndexOcclusion = primitive->material.occlusionTexture->index;
+				// @todo: map material id to global texture array
 				geometryNodes.push_back(geometryNode);
 			}
 		}
@@ -389,57 +406,14 @@ public:
 	}
 
 	/*
-		Create the descriptor sets used for the ray tracing dispatch
-	*/
-	void createDescriptorSets()
-	{
-		std::vector<VkDescriptorPoolSize> poolSizes = {
-			{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
-			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
-		};
-		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool));
-
-		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocateInfo, &descriptorSet));
-
-		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = vks::initializers::writeDescriptorSetAccelerationStructureKHR();
-		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-		descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.handle;
-
-		VkWriteDescriptorSet accelerationStructureWrite{};
-		accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		// The specialized acceleration structure descriptor has to be chained
-		accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
-		accelerationStructureWrite.dstSet = descriptorSet;
-		accelerationStructureWrite.dstBinding = 0;
-		accelerationStructureWrite.descriptorCount = 1;
-		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-
-		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, storageImage.view, VK_IMAGE_LAYOUT_GENERAL };
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			// Binding 0: Top level acceleration structure
-			accelerationStructureWrite,
-			// Binding 1: Ray tracing result image
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor),
-			// Binding 2: Uniform data
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &ubo.descriptor),
-			// Binding 3: Texture image
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texture.descriptor),
-			// Binding 4: Geometry node information SSBO
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &geometryNodesBuffer.descriptor)
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
-	}
-
-	/*
 		Create our ray tracing pipeline
 	*/
 	void createRayTracingPipeline()
 	{
+		// @todo:
+		uint32_t imageCount{ 0 };
+		imageCount = static_cast<uint32_t>(model.textures.size());
+
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0: Top level acceleration structure
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0),
@@ -450,10 +424,28 @@ public:
 			// Binding 3: Texture image
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 3),
 			// Binding 4: Geometry node information SSBO
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 4)
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 4),
+			// Binding 5: All images used by the glTF model
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 5, imageCount)
 		};
 
+		// Unbound set
+		VkDescriptorSetLayoutBindingFlagsCreateInfoEXT setLayoutBindingFlags{};
+		setLayoutBindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+		setLayoutBindingFlags.bindingCount = 6;
+		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags = {
+			0,
+			0,
+			0,
+			0,
+			0,
+			0, 
+			VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
+		};
+		setLayoutBindingFlags.pBindingFlags = descriptorBindingFlags.data();
+
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		descriptorSetLayoutCI.pNext = &setLayoutBindingFlags;
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
@@ -521,6 +513,84 @@ public:
 		rayTracingPipelineCI.maxPipelineRayRecursionDepth = 1;
 		rayTracingPipelineCI.layout = pipelineLayout;
 		VK_CHECK_RESULT(vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &pipeline));
+	}
+
+	/*
+		Create the descriptor sets used for the ray tracing dispatch
+	*/
+	void createDescriptorSets()
+	{
+		// @todo
+		uint32_t imageCount{ 0 };
+		imageCount = static_cast<uint32_t>(model.textures.size());
+
+		std::vector<VkDescriptorPoolSize> poolSizes = {
+			{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
+		};
+		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool));
+
+		VkDescriptorSetVariableDescriptorCountAllocateInfoEXT variableDescriptorCountAllocInfo{};
+		uint32_t variableDescCounts[] = { imageCount };
+		variableDescriptorCountAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
+		variableDescriptorCountAllocInfo.descriptorSetCount = 1;
+		variableDescriptorCountAllocInfo.pDescriptorCounts = variableDescCounts;
+
+		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+		descriptorSetAllocateInfo.pNext = &variableDescriptorCountAllocInfo;
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocateInfo, &descriptorSet));
+
+		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = vks::initializers::writeDescriptorSetAccelerationStructureKHR();
+		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+		descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.handle;
+
+		VkWriteDescriptorSet accelerationStructureWrite{};
+		accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		// The specialized acceleration structure descriptor has to be chained
+		accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
+		accelerationStructureWrite.dstSet = descriptorSet;
+		accelerationStructureWrite.dstBinding = 0;
+		accelerationStructureWrite.descriptorCount = 1;
+		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+
+		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, storageImage.view, VK_IMAGE_LAYOUT_GENERAL };
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			// Binding 0: Top level acceleration structure
+			accelerationStructureWrite,
+			// Binding 1: Ray tracing result image
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor),
+			// Binding 2: Uniform data
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &ubo.descriptor),
+			// Binding 3: Texture image
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texture.descriptor),
+			// Binding 4: Geometry node information SSBO
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &geometryNodesBuffer.descriptor),
+		};
+
+		// Image descriptors for the image array
+		std::vector<VkDescriptorImageInfo> textureDescriptors{};
+		for (auto texture : model.textures) {
+			VkDescriptorImageInfo descriptor{};
+			descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			descriptor.sampler = texture.sampler;;
+			descriptor.imageView = texture.view;
+			textureDescriptors.push_back(descriptor);
+		}
+
+		VkWriteDescriptorSet writeDescriptorImgArray{};
+		writeDescriptorImgArray.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeDescriptorImgArray.dstBinding = 5;
+		writeDescriptorImgArray.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		writeDescriptorImgArray.descriptorCount = imageCount;
+		writeDescriptorImgArray.dstSet = descriptorSet;
+		writeDescriptorImgArray.pImageInfo = textureDescriptors.data();
+		writeDescriptorSets.push_back(writeDescriptorImgArray);
+
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
 	}
 
 	/*
