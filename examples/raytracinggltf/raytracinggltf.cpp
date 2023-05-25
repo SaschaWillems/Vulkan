@@ -28,8 +28,8 @@ public:
 	struct GeometryNode {
 		uint64_t vertexBufferDeviceAddress;
 		uint64_t indexBufferDeviceAddress;
-		uint32_t textureIndexBaseColor;
-		uint32_t textureIndexOcclusion;
+		int32_t textureIndexBaseColor;
+		int32_t textureIndexOcclusion;
 	};
 	vks::Buffer geometryNodesBuffer;
 
@@ -45,6 +45,7 @@ public:
 	struct UniformData {
 		glm::mat4 viewInverse;
 		glm::mat4 projInverse;
+		uint32_t frame{ 0 };
 	} uniformData;
 	vks::Buffer ubo;
 
@@ -62,9 +63,11 @@ public:
 		title = "Ray tracing glTF model";
 		settings.overlay = false;
 		camera.type = Camera::CameraType::lookat;
+		//camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, -0.1f, -1.0f));
+		
 		enableExtensions();
 
 		// Buffer device address requires the 64-bit integer feature to be enabled
@@ -124,28 +127,26 @@ public:
 	*/
 	void createBottomLevelAccelerationStructure()
 	{
-		// @todo: create two new buffers: material/texture buffer, per-node buffer with index/vertex BDA to fetch data from buffer via gl_goemetryIndexExt
+		// Use transform matrices from the glTF nodes
+		std::vector<VkTransformMatrixKHR> transformMatrices{};
+		for (auto node : model.linearNodes) {
+			if (node->mesh && (node->mesh->primitives.size() > 0) && (node->mesh->primitives[0]->indexCount > 0)) {
+				// @todo: all primitives
+				VkTransformMatrixKHR transformMatrix{};
+				auto m = glm::mat3x4(glm::transpose(node->getMatrix()));
+				memcpy(&transformMatrix, (void*)&m, sizeof(glm::mat3x4));
+				transformMatrices.push_back(transformMatrix);
+			}
+		}
 
-		// @todo: maybe take from node?
-		// Setup identity transform matrix
-		VkTransformMatrixKHR transformMatrix = {
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f
-		};
 		// Transform buffer
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&transformBuffer,
-			sizeof(VkTransformMatrixKHR),
-			&transformMatrix));
-
-		VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
+			static_cast<uint32_t>(transformMatrices.size()) * sizeof(VkTransformMatrixKHR),
+			transformMatrices.data()));
 		
-		// @todo		
-		transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(transformBuffer.buffer);
-
 		// Build
 		// One geometry per glTF node, so we can index materials using gl_GeometryIndexEXT
 		uint32_t maxPrimCount{ 0 };
@@ -156,13 +157,16 @@ public:
 		std::vector<GeometryNode> geometryNodes{};
 		for (auto node : model.linearNodes) {
 			if (node->mesh && (node->mesh->primitives.size() > 0) && (node->mesh->primitives[0]->indexCount > 0)) {
+				// @todo: all primitives
 				auto primitive = node->mesh->primitives[0];
 
 				VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
 				VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
+				VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
 
 				vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(model.vertices.buffer);// +primitive->firstVertex * sizeof(vkglTF::Vertex);
 				indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(model.indices.buffer) + primitive->firstIndex * sizeof(uint32_t);
+				transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(transformBuffer.buffer) + static_cast<uint32_t>(geometryNodes.size()) * sizeof(VkTransformMatrixKHR);
 
 				VkAccelerationStructureGeometryKHR geometry{};
 				geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
@@ -191,7 +195,7 @@ public:
 				geometryNode.vertexBufferDeviceAddress = vertexBufferDeviceAddress.deviceAddress;
 				geometryNode.indexBufferDeviceAddress = indexBufferDeviceAddress.deviceAddress;
 				geometryNode.textureIndexBaseColor = primitive->material.baseColorTexture->index;
-				geometryNode.textureIndexOcclusion = primitive->material.occlusionTexture->index;
+				geometryNode.textureIndexOcclusion = primitive->material.occlusionTexture ? primitive->material.occlusionTexture->index : -1;
 				// @todo: map material id to global texture array
 				geometryNodes.push_back(geometryNode);
 			}
@@ -710,6 +714,11 @@ public:
 	{
 		uniformData.projInverse = glm::inverse(camera.matrices.perspective);
 		uniformData.viewInverse = glm::inverse(camera.matrices.view);
+		uniformData.frame++;
+		if (camera.updated) {
+//			uniformData.frame = 0;
+			//camera.updated = false;
+		}
 		memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 	}
 
@@ -735,9 +744,9 @@ public:
 	void loadAssets()
 	{
 		texture.loadFromFile(getAssetPath() + "textures/gratefloor_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
-		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 		vkglTF::memoryPropertyFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		model.loadFromFile(getAssetPath() + "models/FlightHelmet/glTF/FlightHelmet.gltf", vulkanDevice, queue, glTFLoadingFlags);
+		//model.loadFromFile(getAssetPath() + "models/sponza/sponza.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::FlipY);
+		model.loadFromFile(getAssetPath() + "models/FlightHelmet/glTF/FlightHelmet.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::FlipY);
 	}
 
 	void prepare()
@@ -772,9 +781,13 @@ public:
 	{
 		if (!prepared)
 			return;
+		updateUniformBuffers();
 		draw();
-		if (camera.updated)
-			updateUniformBuffers();
+		//if (camera.updated)
+	}
+	virtual void viewChanged()
+	{
+		uniformData.frame = -1;
 	}
 };
 

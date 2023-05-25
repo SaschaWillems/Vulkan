@@ -23,8 +23,8 @@ layout(binding = 3, set = 0) uniform sampler2D image;
 struct GeometryNode {
 	uint64_t vertexBufferDeviceAddress;
 	uint64_t indexBufferDeviceAddress;
-	uint textureIndexBaseColor;
-	uint textureIndexOcclusion;
+	int textureIndexBaseColor;
+	int textureIndexOcclusion;
 };
 layout(binding = 4, set = 0) buffer GeometryNodes { GeometryNode nodes[]; } geometryNodes;
 
@@ -35,36 +35,36 @@ layout(binding = 5, set = 0) uniform sampler2D textures[];
 
 void main()
 {
-	vec3 color = vec3(1.0);
-	if (gl_GeometryIndexEXT == 0) {
-		color = vec3(1.0, 0.0, 0.0);
-	}
-	if (gl_GeometryIndexEXT == 1) {
-		color = vec3(0.0, 1.0, 0.0);
-	}
-	if (gl_GeometryIndexEXT == 2) {
-		color = vec3(0.0, 0.0, 1.0);
-	}
-	if (gl_GeometryIndexEXT == 3) {
-		color = vec3(1.0, 1.0, 0.0);
-	}
-	if (gl_GeometryIndexEXT == 4) {
-		color = vec3(0.0, 1.0, 1.0);
-	}
-	if (gl_GeometryIndexEXT == 5) {
-		color = vec3(1.0, 0.0, 1.0);
-	}
+//	vec3 color = vec3(1.0);
+//	if (gl_GeometryIndexEXT == 0) {
+//		color = vec3(1.0, 0.0, 0.0);
+//	}
+//	if (gl_GeometryIndexEXT == 1) {
+//		color = vec3(0.0, 1.0, 0.0);
+//	}
+//	if (gl_GeometryIndexEXT == 2) {
+//		color = vec3(0.0, 0.0, 1.0);
+//	}
+//	if (gl_GeometryIndexEXT == 3) {
+//		color = vec3(1.0, 1.0, 0.0);
+//	}
+//	if (gl_GeometryIndexEXT == 4) {
+//		color = vec3(0.0, 1.0, 1.0);
+//	}
+//	if (gl_GeometryIndexEXT == 5) {
+//		color = vec3(1.0, 0.0, 1.0);
+//	}
 
 	Triangle tri = unpackTriangle(gl_PrimitiveID, 112);
 	hitValue = vec3(tri.normal);
 
 	GeometryNode geometryNode = geometryNodes.nodes[gl_GeometryIndexEXT];
 
-	color = texture(textures[nonuniformEXT(geometryNode.textureIndexBaseColor)], tri.uv).rgb;
-//	if (geometryNode.textureIndexOcclusion > -1) {
+	vec3 color = texture(textures[nonuniformEXT(geometryNode.textureIndexBaseColor)], tri.uv).rgb;
+	if (geometryNode.textureIndexOcclusion > -1) {
 		float occlusion = texture(textures[nonuniformEXT(geometryNode.textureIndexOcclusion)], tri.uv).r;
 		color *= occlusion;
-//	}
+	}
 
 	hitValue = color;
 
@@ -80,8 +80,8 @@ void main()
 	shadowed = true;  
 	vec3 lightVector = vec3(-5.0, -2.5, -5.0);
 	// Trace shadow ray and offset indices to match shadow hit/miss shader group indices
-	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, origin, tmin, lightVector, tmax, 2);
-	if (shadowed) {
-		//hitValue *= 0.3;
-	}
+//	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, origin, tmin, lightVector, tmax, 2);
+//	if (shadowed) {
+//		hitValue *= 0.7;
+//	}
 }
