@@ -26,6 +26,7 @@ allprojects {
 }
 
 ext {
+    abiFilters = "arm64-v8a"
     minSdkVersion = 19
     targetSdkVersion = 26
     compileSdkVersion = 26
