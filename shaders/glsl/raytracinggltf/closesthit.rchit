@@ -35,26 +35,6 @@ layout(binding = 5, set = 0) uniform sampler2D textures[];
 
 void main()
 {
-//	vec3 color = vec3(1.0);
-//	if (gl_GeometryIndexEXT == 0) {
-//		color = vec3(1.0, 0.0, 0.0);
-//	}
-//	if (gl_GeometryIndexEXT == 1) {
-//		color = vec3(0.0, 1.0, 0.0);
-//	}
-//	if (gl_GeometryIndexEXT == 2) {
-//		color = vec3(0.0, 0.0, 1.0);
-//	}
-//	if (gl_GeometryIndexEXT == 3) {
-//		color = vec3(1.0, 1.0, 0.0);
-//	}
-//	if (gl_GeometryIndexEXT == 4) {
-//		color = vec3(0.0, 1.0, 1.0);
-//	}
-//	if (gl_GeometryIndexEXT == 5) {
-//		color = vec3(1.0, 0.0, 1.0);
-//	}
-
 	Triangle tri = unpackTriangle(gl_PrimitiveID, 112);
 	hitValue = vec3(tri.normal);
 
@@ -68,10 +48,6 @@ void main()
 
 	hitValue = color;
 
-//	hitValue = color;
-	// Fetch the color for this ray hit from the texture at the current uv coordinates
-//	vec4 color = texture(image, tri.uv);
-	//hitValue = color.rgb;
 	// Shadow casting
 	float tmin = 0.001;
 	float tmax = 10000.0;
