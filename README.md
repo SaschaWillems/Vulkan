@@ -86,7 +86,7 @@ Note that some examples require specific device features, and if you are on a mu
 
 ## Shaders
 
-Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](data/shaders/glsl) but thanks to an external contribution you'll also find [HLSL](data/shaders/hlsl) shader sources.
+Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](data/shaders/glsl) but most samples also come with [HLSL](data/shaders/hlsl) shader sources.
 
 ## A note on synchronization
 

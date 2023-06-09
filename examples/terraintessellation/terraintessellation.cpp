@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Dynamic terrain tessellation
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -105,7 +105,7 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-12.0f, 159.0f, 0.0f));
 		camera.setTranslation(glm::vec3(18.0f, 22.5f, 57.5f));
-		camera.movementSpeed = 7.5f;
+		camera.movementSpeed = 10.0f;
 	}
 
 	~VulkanExample()
@@ -420,7 +420,7 @@ public:
 				vertices[index].pos[0] = x * wx + wx / 2.0f - (float)PATCH_SIZE * wx / 2.0f;
 				vertices[index].pos[1] = 0.0f;
 				vertices[index].pos[2] = y * wy + wy / 2.0f - (float)PATCH_SIZE * wy / 2.0f;
-				vertices[index].uv = glm::vec2((float)x / PATCH_SIZE, (float)y / PATCH_SIZE) * UV_SCALE;
+				vertices[index].uv = glm::vec2((float)x / (PATCH_SIZE - 1), (float)y / (PATCH_SIZE - 1)) * UV_SCALE;
 			}
 		}
 
