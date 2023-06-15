@@ -9,7 +9,7 @@
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.0.0'
@@ -21,11 +21,12 @@ buildscript {
 allprojects {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 }
 
 ext {
+    abiFilters = "arm64-v8a"
     minSdkVersion = 19
     targetSdkVersion = 26
     compileSdkVersion = 26

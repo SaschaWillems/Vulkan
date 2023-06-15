@@ -23,15 +23,21 @@ Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a bu
 
 Building on Android is done using the [Gradle Build Tool](https://gradle.org/):
 
+If you want to build it through command line, set Android SDK/NDK by environment variable `ANDROID_SDK_ROOT`/`ANDROID_NDK_HOME`.
+
+On Linux execute:
+
 ```
 cd android
 ./gradlew assembleDebug
 ```
-This will download gradle locally, build all samples and output the apks to ```android\examples\bin```.
+This will download gradle locally, build all samples and output the apks to ```android/examples/bin```.
 
-On Windows execute `gradlew.bat assembleDebug`.
+On Windows execute ```gradlew.bat assembleDebug```.
 
 If you want to build and install on a connected device or emulator image, run ```gradle installDebug``` instead.
+
+If you want to build it through [Android Studio](https://developer.android.com/studio), open project folder ```android``` in Android Studio.
 
 ## <img src="./images/applelogo.png" alt="" height="32px"> [iOS and macOS](xcode/)
 
