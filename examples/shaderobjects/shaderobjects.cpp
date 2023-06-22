@@ -77,6 +77,8 @@ public:
 		enabledDeviceExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
 
+		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
 		enabledShaderObjectFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
 		enabledShaderObjectFeaturesEXT.shaderObject = VK_TRUE;
 
@@ -281,7 +283,7 @@ public:
 			VkRenderingAttachmentInfoKHR colorAttachment{};
 			colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
 			colorAttachment.imageView = swapChain.buffers[i].view;
-			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.clearValue.color = { 0.0f,0.0f,0.0f,0.0f };
@@ -327,6 +329,7 @@ public:
 			vertexInputBinding.binding = 0;
 			vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 			vertexInputBinding.stride = sizeof(vkglTF::Vertex);
+			vertexInputBinding.divisor = 1;
 
 			std::vector<VkVertexInputAttributeDescription2EXT> vertexAttributes = {
 				{ VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT, nullptr, 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, pos) },
@@ -344,7 +347,8 @@ public:
 			vkCmdBindShadersEXT(drawCmdBuffers[i], 2, stages, shaders);
 			scene.draw(drawCmdBuffers[i]);
 
-			drawUI(drawCmdBuffers[i]);
+			// @todo: Currently disabled, the UI needs to be adopated to work with shader objects
+			// drawUI(drawCmdBuffers[i]);
 
 			// End dynamic rendering
 			vkCmdEndRenderingKHR(drawCmdBuffers[i]);
