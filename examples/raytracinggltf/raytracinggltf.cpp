@@ -130,12 +130,15 @@ public:
 		// Use transform matrices from the glTF nodes
 		std::vector<VkTransformMatrixKHR> transformMatrices{};
 		for (auto node : model.linearNodes) {
-			if (node->mesh && (node->mesh->primitives.size() > 0) && (node->mesh->primitives[0]->indexCount > 0)) {
-				// @todo: all primitives
-				VkTransformMatrixKHR transformMatrix{};
-				auto m = glm::mat3x4(glm::transpose(node->getMatrix()));
-				memcpy(&transformMatrix, (void*)&m, sizeof(glm::mat3x4));
-				transformMatrices.push_back(transformMatrix);
+			if (node->mesh) {
+				for (auto primitive : node->mesh->primitives) {
+					if (primitive->indexCount > 0) {
+						VkTransformMatrixKHR transformMatrix{};
+						auto m = glm::mat3x4(glm::transpose(node->getMatrix()));
+						memcpy(&transformMatrix, (void*)&m, sizeof(glm::mat3x4));
+						transformMatrices.push_back(transformMatrix);
+					}
+				}
 			}
 		}
 
@@ -156,48 +159,49 @@ public:
 		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> pBuildRangeInfos{};
 		std::vector<GeometryNode> geometryNodes{};
 		for (auto node : model.linearNodes) {
-			if (node->mesh && (node->mesh->primitives.size() > 0) && (node->mesh->primitives[0]->indexCount > 0)) {
-				// @todo: all primitives
-				auto primitive = node->mesh->primitives[0];
+			if (node->mesh) {
+				for (auto primitive : node->mesh->primitives) {
+					if (primitive->indexCount > 0) {
+						VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
+						VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
+						VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
 
-				VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
-				VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
-				VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
+						vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(model.vertices.buffer);// +primitive->firstVertex * sizeof(vkglTF::Vertex);
+						indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(model.indices.buffer) + primitive->firstIndex * sizeof(uint32_t);
+						transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(transformBuffer.buffer) + static_cast<uint32_t>(geometryNodes.size()) * sizeof(VkTransformMatrixKHR);
 
-				vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(model.vertices.buffer);// +primitive->firstVertex * sizeof(vkglTF::Vertex);
-				indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(model.indices.buffer) + primitive->firstIndex * sizeof(uint32_t);
-				transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(transformBuffer.buffer) + static_cast<uint32_t>(geometryNodes.size()) * sizeof(VkTransformMatrixKHR);
+						VkAccelerationStructureGeometryKHR geometry{};
+						geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+						geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+						geometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+						geometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+						geometry.geometry.triangles.vertexData = vertexBufferDeviceAddress;
+						geometry.geometry.triangles.maxVertex = model.vertices.count;
+						//geometry.geometry.triangles.maxVertex = primitive->vertexCount;
+						geometry.geometry.triangles.vertexStride = sizeof(vkglTF::Vertex);
+						geometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
+						geometry.geometry.triangles.indexData = indexBufferDeviceAddress;
+						geometry.geometry.triangles.transformData = transformBufferDeviceAddress;
+						geometries.push_back(geometry);
+						maxPrimitiveCounts.push_back(primitive->indexCount / 3);
+						maxPrimCount += primitive->indexCount / 3;
 
-				VkAccelerationStructureGeometryKHR geometry{};
-				geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-				geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-				geometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-				geometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-				geometry.geometry.triangles.vertexData = vertexBufferDeviceAddress;
-				geometry.geometry.triangles.maxVertex = model.vertices.count;
-				//geometry.geometry.triangles.maxVertex = primitive->vertexCount;
-				geometry.geometry.triangles.vertexStride = sizeof(vkglTF::Vertex);
-				geometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
-				geometry.geometry.triangles.indexData = indexBufferDeviceAddress;
-				geometry.geometry.triangles.transformData = transformBufferDeviceAddress;
-				geometries.push_back(geometry);
-				maxPrimitiveCounts.push_back(primitive->indexCount / 3);
-				maxPrimCount += primitive->indexCount / 3;
+						VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo{};
+						buildRangeInfo.firstVertex = 0;
+						buildRangeInfo.primitiveOffset = 0; // primitive->firstIndex * sizeof(uint32_t);
+						buildRangeInfo.primitiveCount = primitive->indexCount / 3;
+						buildRangeInfo.transformOffset = 0;
+						buildRangeInfos.push_back(buildRangeInfo);
 
-				VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo{};
-				buildRangeInfo.firstVertex = 0;
-				buildRangeInfo.primitiveOffset = 0; // primitive->firstIndex * sizeof(uint32_t);
-				buildRangeInfo.primitiveCount = primitive->indexCount / 3;
-				buildRangeInfo.transformOffset = 0;
-				buildRangeInfos.push_back(buildRangeInfo);
-
-				GeometryNode geometryNode{};
-				geometryNode.vertexBufferDeviceAddress = vertexBufferDeviceAddress.deviceAddress;
-				geometryNode.indexBufferDeviceAddress = indexBufferDeviceAddress.deviceAddress;
-				geometryNode.textureIndexBaseColor = primitive->material.baseColorTexture->index;
-				geometryNode.textureIndexOcclusion = primitive->material.occlusionTexture ? primitive->material.occlusionTexture->index : -1;
-				// @todo: map material id to global texture array
-				geometryNodes.push_back(geometryNode);
+						GeometryNode geometryNode{};
+						geometryNode.vertexBufferDeviceAddress = vertexBufferDeviceAddress.deviceAddress;
+						geometryNode.indexBufferDeviceAddress = indexBufferDeviceAddress.deviceAddress;
+						geometryNode.textureIndexBaseColor = primitive->material.baseColorTexture->index;
+						geometryNode.textureIndexOcclusion = primitive->material.occlusionTexture ? primitive->material.occlusionTexture->index : -1;
+						// @todo: map material id to global texture array
+						geometryNodes.push_back(geometryNode);
+					}
+				}
 			}
 		}
 		for (auto& rangeInfo : buildRangeInfos) {
