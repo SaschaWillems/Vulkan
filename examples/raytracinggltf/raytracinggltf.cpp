@@ -272,9 +272,10 @@ public:
 	*/
 	void createTopLevelAccelerationStructure()
 	{
+		// We flip the matrix [1][1] = -1.0f to accomodate for the glTF up vector
 		VkTransformMatrixKHR transformMatrix = {
 			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, -1.0f, 0.0f, 0.0f,
 			0.0f, 0.0f, 1.0f, 0.0f };
 
 		VkAccelerationStructureInstanceKHR instance{};
@@ -715,10 +716,6 @@ public:
 		uniformData.projInverse = glm::inverse(camera.matrices.perspective);
 		uniformData.viewInverse = glm::inverse(camera.matrices.view);
 		uniformData.frame++;
-		if (camera.updated) {
-//			uniformData.frame = 0;
-			//camera.updated = false;
-		}
 		memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 	}
 
@@ -745,8 +742,7 @@ public:
 	{
 		texture.loadFromFile(getAssetPath() + "textures/gratefloor_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 		vkglTF::memoryPropertyFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		//model.loadFromFile(getAssetPath() + "models/sponza/sponza.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::FlipY);
-		model.loadFromFile(getAssetPath() + "models/FlightHelmet/glTF/FlightHelmet.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::FlipY);
+		model.loadFromFile(getAssetPath() + "models/FlightHelmet/glTF/FlightHelmet.gltf", vulkanDevice, queue);
 	}
 
 	void prepare()
@@ -783,8 +779,8 @@ public:
 			return;
 		updateUniformBuffers();
 		draw();
-		//if (camera.updated)
 	}
+
 	virtual void viewChanged()
 	{
 		uniformData.frame = -1;
