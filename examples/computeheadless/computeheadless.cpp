@@ -414,7 +414,7 @@ public:
 			if (commandLineParser.isSet("shaders")) {
 				shaderDir = commandLineParser.getValueAsString("shaders", "glsl");
 			}
-			const std::string shadersPath = getAssetPath() + "shaders/"+shaderDir+"/computeheadless/";
+			const std::string shadersPath = getShaderBasePath() + shaderDir + "/computeheadless/";
 
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
