@@ -120,7 +120,7 @@ endfunction(buildExamples)
 
 if(RESOURCE_INSTALL_DIR)
 	add_definitions(-DVK_EXAMPLE_ASSETS_DIR=\"${RESOURCE_INSTALL_DIR}/\")
-	add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${RESOURCE_INSTALL_DIR}/\")
+	add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${RESOURCE_INSTALL_DIR}/shaders/\")
 	install(DIRECTORY assets/ DESTINATION ${RESOURCE_INSTALL_DIR}/assets/)
 	install(DIRECTORY shaders/ DESTINATION ${RESOURCE_INSTALL_DIR}/shaders/)
 else()
