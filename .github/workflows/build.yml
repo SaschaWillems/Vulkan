@@ -50,5 +50,6 @@ jobs:
           submodules: "recursive"  
       - name: Build
         run: |
+          brew --prefix libomp 
           cmake -G "Xcode" -DOpenMP_C_FLAGS=/usr/local/opt/libomp -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp -DOpenMP_CXX_FOUND=/usr/local/opt/libomp
           cmake --build .
