@@ -44,6 +44,15 @@ If you want to build it through [Android Studio](https://developer.android.com/s
 Building for *iOS* and *macOS* is done using the [examples](xcode/examples.xcodeproj) *Xcode* project found in the [xcode](xcode) directory. These examples use the [**MoltenVK**](https://moltengl.com/moltenvk) Vulkan driver to provide Vulkan support on *iOS* and *macOS*, and require an *iOS* or *macOS* device that supports *Metal*. Please see the [MoltenVK Examples readme](xcode/README_MoltenVK_Examples.md) for more info on acquiring **MoltenVK** and building and deploying the examples on *iOS* and *macOS*.
 
 ##### MacOS
+Install Libomp with:
+-brew install libomp
+find the path
+-brew --prefix libomp  
+use the path from the above command to populate the path in the -DOpenMP_C_FLAGS, -DOpenMP_omp_LIBRARY & -DOpenMP_CXX_FOUND statement below
+
+Example of cmake with libraries defined
+cmake -G "Xcode" -DOpenMP_C_FLAGS=/usr/local/opt/libomp -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp -DOpenMP_CXX_FOUND=/usr/local/opt/libomp
+
 Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler, e.g.:
 ```
 cmake -G "Xcode"
