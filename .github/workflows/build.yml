@@ -55,7 +55,7 @@ jobs:
           /Volumes/VulkanSDK/InstallVulkan.app/Contents/MacOS/InstallVulkan in -d --am --al --dl -aa -da --ns -c
           cd /Users/runner/VulkanSDK/1.3.250.1/
           python install_vulkan.py
-          cd ../../../../
+          cd ../../
           brew --prefix libomp 
           cmake -G "Xcode" -DOpenMP_C_FLAGS=/usr/local/opt/libomp -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp -DOpenMP_CXX_FOUND=/usr/local/opt/libomp
           cmake --build .
