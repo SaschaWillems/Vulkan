@@ -50,6 +50,9 @@ jobs:
           submodules: "recursive"  
       - name: Build
         run: |
+          curl -O https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.dmg  
+          hdiutil attach vulkan_sdk.dmg 
+          /Volumes/VulkanSDK/InstallVulkan.app/Contents/MacOS/InstallVulkan in -d --am --al --dl
           brew --prefix libomp 
           cmake -G "Xcode" -DOpenMP_C_FLAGS=/usr/local/opt/libomp -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp -DOpenMP_CXX_FOUND=/usr/local/opt/libomp
           cmake --build .
