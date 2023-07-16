@@ -50,10 +50,19 @@ find the path
 -brew --prefix libomp  
 use the path from the above command to populate the path in the -DOpenMP_C_FLAGS, -DOpenMP_omp_LIBRARY & -DOpenMP_CXX_FOUND statement below
 
-Example of cmake with libraries defined
-cmake -G "Xcode" -DOpenMP_C_FLAGS=/usr/local/opt/libomp -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp -DOpenMP_CXX_FOUND=/usr/local/opt/libomp
+
+
+Download Vulkan SDK and install it note the path as this will need to be configure in Xcode
+curl -O https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.dmg  
+
+Open vulkan_sdk.dmg and install Vulkan SDK
+Navigate to the Vulkan SDK folder and run 'python install_vulkan.py'
 
 Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler, e.g.:
 ```
-cmake -G "Xcode"
+Example of cmake with libraries defined
+cmake -G "Xcode" -DOpenMP_C_FLAGS=/usr/local/opt/libomp -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp -DOpenMP_CXX_FOUND=/usr/local/opt/libomp
 ```
+
+In Xcode configure the search path for the folder where the glm folder is in the Vulkan SDK
+
