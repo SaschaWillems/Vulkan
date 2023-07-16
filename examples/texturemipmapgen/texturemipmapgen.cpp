@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Runtime mip map generation
 *
-* Copyright (C) by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -224,7 +224,7 @@ public:
 		VkCommandBuffer blitCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 		// Copy down mips from n-1 to n
-		for (int32_t i = 1; i < texture.mipLevels; i++)
+		for (uint32_t i = 1; i < texture.mipLevels; i++)
 		{
 			VkImageBlit imageBlit{};
 
