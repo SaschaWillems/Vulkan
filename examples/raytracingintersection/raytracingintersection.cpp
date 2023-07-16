@@ -119,13 +119,13 @@ public:
 
 		// Spheres
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, sizeof(Sphere)* spheres.size(), spheres.data()));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(usageFlags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &spheresBuffer, sizeof(Sphere)* spheres.size()));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(usageFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &spheresBuffer, sizeof(Sphere)* spheres.size()));
 		vulkanDevice->copyBuffer(&stagingBuffer, &spheresBuffer, queue);
 		stagingBuffer.destroy();
 
 		// AABBs
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, sizeof(AABB)* aabbs.size(), aabbs.data()));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(usageFlags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &aabbsBuffer, sizeof(AABB)* aabbs.size()));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(usageFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &aabbsBuffer, sizeof(AABB)* aabbs.size()));
 		vulkanDevice->copyBuffer(&stagingBuffer, &aabbsBuffer, queue);
 		stagingBuffer.destroy();
 	}
