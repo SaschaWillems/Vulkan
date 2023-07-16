@@ -110,8 +110,8 @@
 #   include "../examples/textoverlay/textoverlay.cpp"
 #endif
 
-#ifdef MVK_particlefire
-#   include "../examples/particlefire/particlefire.cpp"
+#ifdef MVK_particlesystem
+#   include "../examples/particlesystem/particlesystem.cpp"
 #endif
 
 // No headless target when using xcode examples project, builds/runs fine using vulkanExamples project.
