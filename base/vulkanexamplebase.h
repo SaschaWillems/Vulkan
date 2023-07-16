@@ -80,7 +80,6 @@ private:
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;
-	void windowResize();
 	void handleMouseMove(int32_t x, int32_t y);
 	void nextFrame();
 	void updateOverlay();
@@ -376,6 +375,8 @@ public:
 
 	/** @brief Loads a SPIR-V shader file for the given shader stage */
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
+
+	void windowResize();
 
 	/** @brief Entry point for the main render loop */
 	void renderLoop();
