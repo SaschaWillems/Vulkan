@@ -220,8 +220,7 @@ public:
 		//	what should be done a real-world application, where you should allocate large chunks of memory at once instead.
 
 		// Setup vertices
-		std::vector<Vertex> vertexBuffer =
-		{
+		std::vector<Vertex> vertexBuffer{
 			{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
 			{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
 			{ {  0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } }
@@ -229,11 +228,11 @@ public:
 		uint32_t vertexBufferSize = static_cast<uint32_t>(vertexBuffer.size()) * sizeof(Vertex);
 
 		// Setup indices
-		std::vector<uint32_t> indexBuffer = { 0, 1, 2 };
+		std::vector<uint32_t> indexBuffer{ 0, 1, 2 };
 		indices.count = static_cast<uint32_t>(indexBuffer.size());
 		uint32_t indexBufferSize = indices.count * sizeof(uint32_t);
 
-		VkMemoryAllocateInfo memAlloc = {};
+		VkMemoryAllocateInfo memAlloc{};
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		VkMemoryRequirements memReqs;
 
@@ -320,7 +319,7 @@ public:
 		// Note: Some devices offer a dedicated transfer queue (with only the transfer bit set) that may be faster when doing lots of copies
 		VkCommandBuffer copyCmd;
 
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = {};
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo{};
 		cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		cmdBufAllocateInfo.commandPool = commandPool;
 		cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -330,7 +329,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 		VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
 		// Put buffer region copies into command buffer
-		VkBufferCopy copyRegion = {};
+		VkBufferCopy copyRegion{};
 		// Vertex buffer
 		copyRegion.size = vertexBufferSize;
 		vkCmdCopyBuffer(copyCmd, stagingBuffers.vertices.buffer, vertices.buffer, 1, &copyRegion);
@@ -340,7 +339,7 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
 
 		// Submit the command buffer to the queue to finish the copy
-		VkSubmitInfo submitInfo = {};
+		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &copyCmd;
@@ -430,7 +429,7 @@ public:
 	{
 		// Allocate one descriptor set per frame from the global descriptor pool
 		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {
-			VkDescriptorSetAllocateInfo allocInfo = {};
+			VkDescriptorSetAllocateInfo allocInfo{};
 			allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			allocInfo.descriptorPool = descriptorPool;
 			allocInfo.descriptorSetCount = 1;
@@ -440,7 +439,7 @@ public:
 			// Update the descriptor set determining the shader binding points
 			// For every binding point used in a shader there needs to be one
 			// descriptor set matching that binding point
-			VkWriteDescriptorSet writeDescriptorSet = {};
+			VkWriteDescriptorSet writeDescriptorSet{};
 			
 			// The buffer's information is passed using a descriptor info structure
 			VkDescriptorBufferInfo bufferInfo{};
@@ -546,7 +545,7 @@ public:
 		// This example will use a single render pass with one subpass
 
 		// Descriptors for the attachments used by this renderpass
-		std::array<VkAttachmentDescription, 2> attachments = {};
+		std::array<VkAttachmentDescription, 2> attachments{};
 
 		// Color attachment
 		attachments[0].format = swapChain.colorFormat;                                  // Use the color format selected by the swapchain
@@ -569,16 +568,16 @@ public:
 		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; // Transition to depth/stencil attachment
 
 		// Setup attachment references
-		VkAttachmentReference colorReference = {};
+		VkAttachmentReference colorReference{};
 		colorReference.attachment = 0;                                    // Attachment 0 is color
 		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Attachment layout used as color during the subpass
 
-		VkAttachmentReference depthReference = {};
+		VkAttachmentReference depthReference{};
 		depthReference.attachment = 1;                                            // Attachment 1 is color
 		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; // Attachment used as depth/stencil used during the subpass
 
 		// Setup a single subpass reference
-		VkSubpassDescription subpassDescription = {};
+		VkSubpassDescription subpassDescription{};
 		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpassDescription.colorAttachmentCount = 1;                            // Subpass uses one color attachment
 		subpassDescription.pColorAttachments = &colorReference;                 // Reference to the color attachment in slot 0
@@ -716,13 +715,13 @@ public:
 
 		// Color blend state describes how blend factors are calculated (if used)
 		// We need one blend attachment state per color attachment (even if blending is not used)
-		VkPipelineColorBlendAttachmentState blendAttachmentState[1] = {};
-		blendAttachmentState[0].colorWriteMask = 0xf;
-		blendAttachmentState[0].blendEnable = VK_FALSE;
+		VkPipelineColorBlendAttachmentState blendAttachmentState{};
+		blendAttachmentState.colorWriteMask = 0xf;
+		blendAttachmentState.blendEnable = VK_FALSE;
 		VkPipelineColorBlendStateCreateInfo colorBlendStateCI{};
 		colorBlendStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		colorBlendStateCI.attachmentCount = 1;
-		colorBlendStateCI.pAttachments = blendAttachmentState;
+		colorBlendStateCI.pAttachments = &blendAttachmentState;
 
 		// Viewport state sets the number of viewports and scissor used in this pipeline
 		// Note: This is actually overridden by the dynamic states (see below)
@@ -852,8 +851,8 @@ public:
 		VkMemoryRequirements memReqs;
 
 		// Vertex shader uniform buffer block
-		VkBufferCreateInfo bufferInfo = {};
-		VkMemoryAllocateInfo allocInfo = {};
+		VkBufferCreateInfo bufferInfo{};
+		VkMemoryAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.pNext = nullptr;
 		allocInfo.allocationSize = 0;
@@ -937,7 +936,7 @@ public:
 
 		vkResetCommandBuffer(commandBuffers[currentBuffer], 0);
 
-		VkCommandBufferBeginInfo cmdBufInfo = {};
+		VkCommandBufferBeginInfo cmdBufInfo{};
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
 		// Set clear values for all framebuffer attachments with loadOp set to clear
@@ -946,7 +945,7 @@ public:
 		clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
-		VkRenderPassBeginInfo renderPassBeginInfo = {};
+		VkRenderPassBeginInfo renderPassBeginInfo{};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
 		renderPassBeginInfo.renderPass = renderPass;
@@ -963,14 +962,14 @@ public:
 		// This will clear the color and depth attachment
 		vkCmdBeginRenderPass(commandBuffers[currentBuffer], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		// Update dynamic viewport state
-		VkViewport viewport = {};
+		VkViewport viewport{};
 		viewport.height = (float)height;
 		viewport.width = (float)width;
 		viewport.minDepth = (float)0.0f;
 		viewport.maxDepth = (float)1.0f;
 		vkCmdSetViewport(commandBuffers[currentBuffer], 0, 1, &viewport);
 		// Update dynamic scissor state
-		VkRect2D scissor = {};
+		VkRect2D scissor{};
 		scissor.extent.width = width;
 		scissor.extent.height = height;
 		scissor.offset.x = 0;
@@ -982,7 +981,7 @@ public:
 		// The pipeline (state object) contains all states of the rendering pipeline, binding it will set all the states specified at pipeline creation time
 		vkCmdBindPipeline(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		// Bind triangle vertex buffer (contains position and colors)
-		VkDeviceSize offsets[1] = { 0 };
+		VkDeviceSize offsets[1]{ 0 };
 		vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, &vertices.buffer, offsets);
 		// Bind triangle index buffer
 		vkCmdBindIndexBuffer(commandBuffers[currentBuffer], indices.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -998,7 +997,7 @@ public:
 		// Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
 		VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		// The submit info structure specifies a command buffer queue submission batch
-		VkSubmitInfo submitInfo = {};
+		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.pWaitDstStageMask = &waitStageMask;               // Pointer to the list of pipeline stages that the semaphore waits will occur at
 		submitInfo.waitSemaphoreCount = 1;                           // One wait semaphore
@@ -1037,7 +1036,7 @@ public:
 	}
 };
 
-// OS specific macros for the example main entry points
+// OS specific main entry points
 // Most of the code base is shared for the different supported operating systems, but stuff like message handling differs
 
 #if defined(_WIN32)
