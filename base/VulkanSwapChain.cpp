@@ -163,38 +163,24 @@ void VulkanSwapChain::initSurface(uint32_t width, uint32_t height)
 	std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data()));
 
-	// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
-	// there is no preferred format, so we assume VK_FORMAT_B8G8R8A8_UNORM
-	if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED))
-	{
-		colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
-		colorSpace = surfaceFormats[0].colorSpace;
-	}
-	else
-	{
-		// iterate over the list of available surface format and
-		// check for the presence of VK_FORMAT_B8G8R8A8_UNORM
-		bool found_B8G8R8A8_UNORM = false;
-		for (auto&& surfaceFormat : surfaceFormats)
-		{
-			if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM)
-			{
-				colorFormat = surfaceFormat.format;
-				colorSpace = surfaceFormat.colorSpace;
-				found_B8G8R8A8_UNORM = true;
-				break;
-			}
-		}
+	// We want to get a format that best suits our needs, so we try to get one from a set of preferred formats
+	// Initialize the format to the first one returned by the implementation in case we can't find one of the preffered formats
+	VkSurfaceFormatKHR selectedFormat = surfaceFormats[0];
+	std::vector<VkFormat> preferredImageFormats = { 
+		VK_FORMAT_B8G8R8A8_UNORM,
+		VK_FORMAT_R8G8B8A8_UNORM, 
+		VK_FORMAT_A8B8G8R8_UNORM_PACK32 
+	};
 
-		// in case VK_FORMAT_B8G8R8A8_UNORM is not available
-		// select the first available color format
-		if (!found_B8G8R8A8_UNORM)
-		{
-			colorFormat = surfaceFormats[0].format;
-			colorSpace = surfaceFormats[0].colorSpace;
+	for (auto& availableFormat : surfaceFormats) {
+		if (std::find(preferredImageFormats.begin(), preferredImageFormats.end(), availableFormat.format) != preferredImageFormats.end()) {
+			selectedFormat = availableFormat;
+			break;
 		}
 	}
 
+	colorFormat = selectedFormat.format;
+	colorSpace = selectedFormat.colorSpace;
 }
 
 /**
