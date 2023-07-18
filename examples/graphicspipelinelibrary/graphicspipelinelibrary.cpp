@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Using VK_EXT_graphics_pipeline_library
 * 
-* Copyright (C) 2022 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2022-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -207,7 +207,6 @@ public:
 	{
 #if defined(__ANDROID__)
 		// Load shader from compressed asset
-		// @todo
 		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, fileName, AASSET_MODE_STREAMING);
 		assert(asset);
 		size_t size = AAsset_getLength(asset);
@@ -280,7 +279,6 @@ public:
 
 			VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 
-			// @todo: we can skip the pipeline shader module info and directly consume the shader module
 			ShaderInfo shaderInfo{};
 			loadShaderFile(getShadersPath() + "graphicspipelinelibrary/shared.vert.spv", shaderInfo);
 
@@ -307,6 +305,8 @@ public:
 			pipelineLibraryCI.pViewportState = &viewportState;
 			pipelineLibraryCI.pRasterizationState = &rasterizationState;
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineLibraryCI, nullptr, &pipelineLibrary.preRasterizationShaders));
+
+			delete[] shaderInfo.code;
 		}
 
 		// Create a pipeline library for the fragment output interface
@@ -442,6 +442,8 @@ public:
 		pipelines.push_back(executable);
 		// Push fragment shader to list for deletion in the sample's destructor
 		pipelineLibrary.fragmentShaders.push_back(fragmentShader);
+
+		delete[] shaderInfo.code;
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
