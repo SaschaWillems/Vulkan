@@ -64,5 +64,5 @@ Example of cmake with libraries defined
 cmake -G "Xcode" -DOpenMP_C_FLAGS=/usr/local/opt/libomp -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp -DOpenMP_CXX_FOUND=/usr/local/opt/libomp
 ```
 
-In Xcode configure the search path for the folder where the glm folder is in the Vulkan SDK
+
 
