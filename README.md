@@ -152,7 +152,7 @@ Advanced example that uses sub passes and input attachments to write and read ba
 
 Basic offscreen rendering in two passes. First pass renders the mirrored scene to a separate framebuffer with color and depth attachments, second pass samples from that color attachment for rendering a mirror surface.
 
-#### [CPU particle system](examples/particlefire/)
+#### [CPU particle system](examples/particlesystem/)
 
 Implements a simple CPU based particle system. Particle data is stored in host memory, updated on the CPU per-frame and synchronized with the device before it's rendered using pre-multiplied alpha.
 

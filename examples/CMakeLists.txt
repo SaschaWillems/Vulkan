@@ -121,7 +121,7 @@ set(EXAMPLES
 	offscreen
 	oit
 	parallaxmapping
-	particlefire
+	particlesystem
 	pbrbasic
 	pbribl
 	pbrtexture
