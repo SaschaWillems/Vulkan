@@ -1617,8 +1617,10 @@ dispatch_group_t concurrentGroup;
 @end
 
 const std::string getAssetPath() {
-    return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../data/"].UTF8String;
+    return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../assets/"].UTF8String;
 }
+
+const std::string getShaderBasePath() { return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../shaders/"].UTF8String; }
 
 static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
 	const CVTimeStamp *inOutputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut,

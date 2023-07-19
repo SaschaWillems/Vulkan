@@ -61,7 +61,7 @@ function(buildExample EXAMPLE_NAME)
 		endif()
 		find_package(OpenMP)
 		if(OpenMP_CXX_FOUND)
-   			target_link_libraries(${EXAMPLE_NAME} OpenMP::OpenMP_CXX)
+			link_directories(${OpenMP_CXX_LIBRARY_DIRS})
 		endif()
 	endif()
 
