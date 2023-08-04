@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Retrieving pipeline statistics
 *
-* Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -122,22 +122,26 @@ public:
 				VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_CONTROL_SHADER_PATCHES_BIT |
 				VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT;
 		}
-		queryPoolInfo.queryCount = deviceFeatures.tessellationShader ? 8 : 6;
+		queryPoolInfo.queryCount = 1;
 		VK_CHECK_RESULT(vkCreateQueryPool(device, &queryPoolInfo, NULL, &queryPool));
 	}
 
 	// Retrieves the results of the pipeline statistics query submitted to the command buffer
 	void getQueryResults()
 	{
-		uint32_t count = static_cast<uint32_t>(pipelineStats.size());
+		// The size of the data we want to fetch ist based on the count of statistics values
+		uint32_t dataSize = static_cast<uint32_t>(pipelineStats.size()) * sizeof(uint64_t);
+		// The stride between queries is the no. of unique value entries
+		uint32_t stride = static_cast<uint32_t>(pipelineStatNames.size()) * sizeof(uint64_t);
+		// Note: for one query both values have the same size, but to make it easier to expand this sample these are properly calculated
 		vkGetQueryPoolResults(
 			device,
 			queryPool,
 			0,
 			1,
-			count * sizeof(uint64_t),
+			dataSize,
 			pipelineStats.data(),
-			sizeof(uint64_t),
+			stride,
 			VK_QUERY_RESULT_64_BIT);
 	}
 
@@ -164,7 +168,7 @@ public:
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
 
 			// Reset timestamp query pool
-			vkCmdResetQueryPool(drawCmdBuffers[i], queryPool, 0, static_cast<uint32_t>(pipelineStats.size()));
+			vkCmdResetQueryPool(drawCmdBuffers[i], queryPool, 0, 1);
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
