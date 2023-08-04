@@ -5,7 +5,7 @@
 *
 * Example by Nate Morrical (https://github.com/natevm)
 * 
-* Copyright (C) 2019-2020 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2019-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -538,9 +538,10 @@ public:
 
 		// We allocate space for the handle (which is like lambda function pointers to call in the ray tracing pipeline) 
 		// as well as the data to pass to those functions (which act as the variables being "captured" by those lambda functions)
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &raygenShaderBindingTable, handleSize + sizeof(float) * 3));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &missShaderBindingTable, handleSize + sizeof(float) * 3));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &hitShaderBindingTable, handleSize + sizeof(float) * 3));
+		uint32_t bufferSize = vks::tools::alignedSize(handleSize + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &raygenShaderBindingTable, bufferSize));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &missShaderBindingTable, bufferSize));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, memoryUsageFlags, &hitShaderBindingTable, bufferSize));
 
 		// Copy handles
 		raygenShaderBindingTable.map();
@@ -768,18 +769,18 @@ public:
 			// that we use to store our color data
 			VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
 			raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(raygenShaderBindingTable.buffer);
-			raygenShaderSbtEntry.stride = handleSizeAligned;
 			raygenShaderSbtEntry.size =  vks::tools::alignedSize(handleSizeAligned + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
+			raygenShaderSbtEntry.stride = raygenShaderSbtEntry.size;
 
 			VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
 			missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(missShaderBindingTable.buffer);
-			missShaderSbtEntry.stride = handleSizeAligned;
 			missShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
+			missShaderSbtEntry.stride = missShaderSbtEntry.size;
 
 			VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
 			hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(hitShaderBindingTable.buffer);
-			hitShaderSbtEntry.stride = handleSizeAligned;
 			hitShaderSbtEntry.size = vks::tools::alignedSize(handleSizeAligned + 3 * sizeof(float), rayTracingPipelineProperties.shaderGroupBaseAlignment);
+			hitShaderSbtEntry.stride = hitShaderSbtEntry.size;
 
 			VkStridedDeviceAddressRegionKHR callableShaderSbtEntry{};
 
