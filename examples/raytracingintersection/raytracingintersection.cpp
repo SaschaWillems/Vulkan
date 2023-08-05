@@ -77,6 +77,8 @@ public:
 		shaderBindingTables.miss.destroy();
 		shaderBindingTables.hit.destroy();
 		ubo.destroy();
+		spheresBuffer.destroy();
+		aabbsBuffer.destroy();
 	}
 
 	void createBuffers()
