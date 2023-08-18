@@ -1,13 +1,13 @@
 /*
 * Vulkan Example - Sparse texture residency example
 *
-* Copyright (C) 2016-2021 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 /*
-* Note : This sample is work-in-progress and works basically, but it's not yet finished
+* Important note : This sample is work-in-progress and works basically, but it's not finished
 */
 
 #include "texturesparseresidency.h"
@@ -315,11 +315,6 @@ void VulkanExample::prepareSparseTexture(uint32_t width, uint32_t height, uint32
 	// Calculate number of required sparse memory bindings by alignment
 	assert((sparseImageMemoryReqs.size % sparseImageMemoryReqs.alignment) == 0);
 	texture.memoryTypeIndex = vulkanDevice->getMemoryType(sparseImageMemoryReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	// Get sparse bindings
-	uint32_t sparseBindsCount = static_cast<uint32_t>(sparseImageMemoryReqs.size / sparseImageMemoryReqs.alignment);
-	std::vector<VkSparseMemoryBind>	sparseMemoryBinds(sparseBindsCount);
-
 	texture.sparseImageMemoryRequirements = sparseMemoryReq;
 
 	// The mip tail contains all mip levels > sparseMemoryReq.imageMipTailFirstLod
