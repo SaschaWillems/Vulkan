@@ -303,7 +303,7 @@ public:
 		viewInfo.image = depth.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &depth.view));
 
-		// One image and framebuffer per cascade
+		// One image view and framebuffer per cascade
 		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
 			// Image view for this cascade's layer (inside the depth map)
 			// This view is used to render to that specific depth image layer
