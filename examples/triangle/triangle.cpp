@@ -1170,4 +1170,6 @@ int main(const int argc, const char *argv[])
 	}
 	return 0;
 }
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+VULKAN_EXAMPLE_MAIN()
 #endif

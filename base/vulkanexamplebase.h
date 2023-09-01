@@ -269,6 +269,11 @@ public:
 	xcb_intern_atom_reply_t *atom_wm_delete_window;
 #elif defined(VK_USE_PLATFORM_HEADLESS_EXT)
 	bool quit = false;
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+	screen_context_t screen_context = nullptr;
+	screen_window_t screen_window = nullptr;
+	screen_event_t screen_event = nullptr;
+	bool quit = false;
 #endif
 
 	VulkanExampleBase(bool enableValidation = false);
@@ -342,6 +347,9 @@ public:
 	xcb_window_t setupWindow();
 	void initxcbConnection();
 	void handleEvent(const xcb_generic_event_t *event);
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+	void setupWindow();
+	void handleEvent();
 #else
 	void setupWindow();
 #endif
@@ -532,4 +540,19 @@ int main(const int argc, const char *argv[])														\
 #else
 #define VULKAN_EXAMPLE_MAIN()
 #endif
+
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+#define VULKAN_EXAMPLE_MAIN()												\
+VulkanExample *vulkanExample;												\
+int main(const int argc, const char *argv[])										\
+{															\
+	for (int i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };					\
+	vulkanExample = new VulkanExample();										\
+	vulkanExample->initVulkan();											\
+	vulkanExample->setupWindow();											\
+	vulkanExample->prepare();											\
+	vulkanExample->renderLoop();											\
+	delete(vulkanExample);												\
+	return 0;													\
+}
 #endif
