@@ -50,14 +50,12 @@ jobs:
           submodules: "recursive"  
       - name: Setup
         run: |
-          curl -O https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.dmg  
-          hdiutil attach vulkan_sdk.dmg 
-          /Volumes/VulkanSDK/InstallVulkan.app/Contents/MacOS/InstallVulkan in -d --am --al --dl -aa -da --ns -c
-          ls
-          cd /Users/runner/VulkanSDK/1.3.250.1/
-          python install_vulkan.py
-          cd ../../
-          ls
+          curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg" -o /tmp/vulkan-sdk.dmg
+          hdiutil attach /tmp/vulkan-sdk.dmg -mountpoint /Volumes/vulkan-sdk
+          /Volumes/vulkan-sdk/InstallVulkan.app/Contents/MacOS/InstallVulkan \
+              --root ~/VulkanSDK/latest --accept-licenses --default-answer --confirm-command install
+          cd ~/VulkanSDK/latest
+          sudo python ./install_vulkan.py
           brew --prefix libomp 
       - name: Build
         run: |
