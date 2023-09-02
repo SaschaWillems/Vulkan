@@ -53,7 +53,9 @@ jobs:
           curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg" -o /tmp/vulkan-sdk.dmg
           hdiutil attach /tmp/vulkan-sdk.dmg -mountpoint /Volumes/vulkan-sdk
           /Volumes/vulkan-sdk/InstallVulkan.app/Contents/MacOS/InstallVulkan \
-              --accept-licenses --default-answer --confirm-command install
+              --root "~/VulkanSDK" --accept-licenses --default-answer --confirm-command install
+          cd ~/VulkanSDK
+          sudo python ./install_vulkan.py
           brew --prefix libomp 
       - name: Build
         run: |
