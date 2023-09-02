@@ -42,7 +42,7 @@ public:
 	PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR;
 	PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR;
 
-	// With VK_EXT_shader_object pipeline state must be set at command buffer creation using these functions
+	// With VK_EXT_shader_object pipeline state must be set at command buffer record using these functions
 	// VK_EXT_dynamic_state
 	PFN_vkCmdSetViewportWithCountEXT vkCmdSetViewportWithCountEXT;
 	PFN_vkCmdSetScissorWithCountEXT vkCmdSetScissorWithCountEXT;
