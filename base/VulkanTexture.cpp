@@ -211,8 +211,8 @@ namespace vks
 			device->flushCommandBuffer(copyCmd, copyQueue);
 
 			// Clean up staging resources
-			vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 			vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+			vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 		}
 		else
 		{
@@ -461,8 +461,8 @@ namespace vks
 		device->flushCommandBuffer(copyCmd, copyQueue);
 
 		// Clean up staging resources
-		vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 		vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+		vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 
 		// Create sampler
 		VkSamplerCreateInfo samplerCreateInfo = {};
@@ -672,8 +672,8 @@ namespace vks
 
 		// Clean up staging resources
 		ktxTexture_Destroy(ktxTexture);
-		vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 		vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+		vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 
 		// Update descriptor image info member that can be used for setting up descriptor sets
 		updateDescriptor();
@@ -859,8 +859,8 @@ namespace vks
 
 		// Clean up staging resources
 		ktxTexture_Destroy(ktxTexture);
-		vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 		vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+		vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 
 		// Update descriptor image info member that can be used for setting up descriptor sets
 		updateDescriptor();
