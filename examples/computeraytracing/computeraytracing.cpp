@@ -781,8 +781,8 @@ public:
 
 		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fence));
 		
-        vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
-        vkResetFences(device, 1, &compute.fence);
+                vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
+                vkResetFences(device, 1, &compute.fence);
 
 		VulkanExampleBase::prepareFrame();
 
