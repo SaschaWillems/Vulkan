@@ -430,7 +430,7 @@ namespace vks
 			std::ifstream f(filename.c_str());
 			return !f.fail();
 		}
-#if !defined(_WIN32)
+#if defined(_WIN64)
 		uint32_t alignedSize(uint32_t value, uint32_t alignment)
         {
 	        return (value + alignment - 1) & ~(alignment - 1);
