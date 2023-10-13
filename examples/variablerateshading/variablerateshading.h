@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Variable rate shading
 *
-* Copyright (C) 2020 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -49,9 +49,12 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VkPhysicalDeviceShadingRateImagePropertiesNV physicalDeviceShadingRateImagePropertiesNV{};
-	VkPhysicalDeviceShadingRateImageFeaturesNV enabledPhysicalDeviceShadingRateImageFeaturesNV{};
-	PFN_vkCmdBindShadingRateImageNV vkCmdBindShadingRateImageNV;
+	VkPhysicalDeviceFragmentShadingRatePropertiesKHR physicalDeviceShadingRateImageProperties{};
+	VkPhysicalDeviceFragmentShadingRateFeaturesKHR enabledPhysicalDeviceShadingRateImageFeaturesKHR{};
+
+	PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR vkGetPhysicalDeviceFragmentShadingRatesKHR{ nullptr };
+	PFN_vkCmdSetFragmentShadingRateKHR vkCmdSetFragmentShadingRateKHR{ nullptr };
+	PFN_vkCreateRenderPass2KHR vkCreateRenderPass2KHR{ nullptr };
 
 	VulkanExample();
 	~VulkanExample();
@@ -66,6 +69,8 @@ public:
 	void prepareUniformBuffers();
 	void updateUniformBuffers();
 	void prepare();
+	void setupFrameBuffer() override;
+	void setupRenderPass() override;
 	virtual void render();
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay);
 };
