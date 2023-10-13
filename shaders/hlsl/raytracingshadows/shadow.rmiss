@@ -1,7 +1,13 @@
 // Copyright 2020 Google LLC
 
-[shader("miss")]
-void main([[vk::location(2)]] in bool shadowed)
+struct Payload
 {
-	shadowed = false;
+	[[vk::location(0)]] float3 hitValue;
+	[[vk::location(1)]] bool shadowed;
+};
+
+[shader("miss")]
+void main(inout Payload payload)
+{
+	payload.shadowed = false;
 }

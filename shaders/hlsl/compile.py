@@ -43,7 +43,7 @@ for root, dirs, files in os.walk(dir_path):
             if(hlsl_file.find('.vert') != -1):
                 profile = 'vs_6_1'
             elif(hlsl_file.find('.frag') != -1):
-                profile = 'ps_6_1'
+                profile = 'ps_6_4'
             elif(hlsl_file.find('.comp') != -1):
                 profile = 'cs_6_1'
             elif(hlsl_file.find('.geom') != -1):
@@ -71,6 +71,8 @@ for root, dirs, files in os.walk(dir_path):
                 '-fspv-extension=SPV_KHR_multiview',
                 '-fspv-extension=SPV_KHR_shader_draw_parameters',
                 '-fspv-extension=SPV_EXT_descriptor_indexing',
+                '-fspv-extension=SPV_KHR_ray_query',
+                '-fspv-extension=SPV_KHR_fragment_shading_rate',
                 target,
                 hlsl_file,
                 '-Fo', spv_out])

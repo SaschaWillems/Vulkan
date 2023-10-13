@@ -1,8 +1,8 @@
 // Copyright 2020 Google LLC
 
-struct Attribute
+struct Attributes
 {
-  float2 attribs;
+  float2 bary;
 };
 
 struct Payload
@@ -19,7 +19,7 @@ struct SBT {
 ConstantBuffer<SBT> sbt;
 
 [shader("closesthit")]
-void main(inout Payload p, in float2 attribs)
+void main(inout Payload p, in Attributes attribs)
 {
   // Update the hit value to the hit record SBT data associated with this 
   // geometry ID and ray ID
