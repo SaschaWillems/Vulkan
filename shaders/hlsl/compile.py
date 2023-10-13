@@ -1,4 +1,5 @@
 # Copyright 2020 Google LLC
+# Copyright 2023 Sascha Willems
 
 import argparse
 import fileinput
@@ -33,7 +34,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
 for root, dirs, files in os.walk(dir_path):
     for file in files:
-        if file.endswith(".vert") or file.endswith(".frag") or file.endswith(".comp") or file.endswith(".geom") or file.endswith(".tesc") or file.endswith(".tese") or file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss"):
+        if file.endswith(".vert") or file.endswith(".frag") or file.endswith(".comp") or file.endswith(".geom") or file.endswith(".tesc") or file.endswith(".tese") or file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss") or file.endswith(".mesh") :
             hlsl_file = os.path.join(root, file)
             spv_out = hlsl_file + ".spv"
 
@@ -56,6 +57,9 @@ for root, dirs, files in os.walk(dir_path):
 				hlsl_file.find('.rmiss') != -1):
                 target='-fspv-target-env=vulkan1.2'
                 profile = 'lib_6_3'
+            elif(hlsl_file.find('.mesh') != -1):
+                target='-fspv-target-env=vulkan1.2'
+                profile = 'ms_6_6'                
 
             print('Compiling %s' % (hlsl_file))
             subprocess.check_output([
