@@ -429,7 +429,7 @@ An updated version using ```VK_EXT_debug_utils``` along with an in-depth tutoria
 
 Shows how to render a scene using a negative viewport height, making the Vulkan render setup more similar to other APIs like OpenGL. Also has several options for changing relevant pipeline state, and displaying meshes with OpenGL or Vulkan style coordinates. Details can be found in [this tutorial](https://www.saschawillems.de/tutorials/vulkan/flipping-viewport).
 
-#### [Variable rate shading (VK_NV_shading_rate_image)](examples/variablerateshading/)
+#### [Variable rate shading (VK_KHR_fragment_shading_rate)](examples/variablerateshading/)
 
 Uses a special image that contains variable shading rates to vary the number of fragment shader invocations across the framebuffer. This makes it possible to lower fragment shader invocations for less important/less noisy parts of the framebuffer.
 

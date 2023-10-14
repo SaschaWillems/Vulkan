@@ -25,10 +25,8 @@ VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 
 VulkanExample::~VulkanExample()
 {
-	vkDestroyPipeline(device, basePipelines.masked, nullptr);
-	vkDestroyPipeline(device, basePipelines.opaque, nullptr);
-	vkDestroyPipeline(device, shadingRatePipelines.masked, nullptr);
-	vkDestroyPipeline(device, shadingRatePipelines.opaque, nullptr);
+	vkDestroyPipeline(device, pipelines.masked, nullptr);
+	vkDestroyPipeline(device, pipelines.opaque, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 	vkDestroyImageView(device, shadingRateImage.view, nullptr);
@@ -263,7 +261,6 @@ void VulkanExample::buildCommandBuffers()
 		vkCmdSetFragmentShadingRateKHR(drawCmdBuffers[i], &fragmentSize, combinerOps);
 
 		// Render the scene
-		Pipelines& pipelines = enableShadingRate ? shadingRatePipelines : basePipelines;
 		vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.opaque);
 		scene.draw(drawCmdBuffers[i], vkglTF::RenderFlags::BindImages | vkglTF::RenderFlags::RenderOpaqueNodes, pipelineLayout);
 		vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.masked);
@@ -543,17 +540,12 @@ void VulkanExample::preparePipelines()
 	shaderStages[1].pSpecializationInfo = &specializationInfo;
 
 	// Create pipeline without shading rate 
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &basePipelines.opaque));
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.opaque));
 	specializationData.alphaMask = true;
 	rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &basePipelines.masked));
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.masked));
 	rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
 	specializationData.alphaMask = false;
-
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &shadingRatePipelines.opaque));
-	specializationData.alphaMask = true;
-	rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &shadingRatePipelines.masked));
 }
 
 void VulkanExample::prepareUniformBuffers()

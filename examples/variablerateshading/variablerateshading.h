@@ -40,10 +40,7 @@ public:
 	struct Pipelines {
 		VkPipeline opaque;
 		VkPipeline masked;
-	};
-
-	Pipelines basePipelines;
-	Pipelines shadingRatePipelines;
+	} pipelines;
 
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSet descriptorSet;
