@@ -17,7 +17,7 @@ public:
 	vkglTF::Model scene;
 
 	struct ShadingRateImage {
-		VkImage image;
+		VkImage image{ VK_NULL_HANDLE };
 		VkDeviceMemory memory;
 		VkImageView view;
 	} shadingRateImage;
@@ -58,7 +58,6 @@ public:
 	virtual void getEnabledFeatures();
 	void handleResize();
 	void buildCommandBuffers();
-	void loadglTFFile(std::string filename);
 	void loadAssets();
 	void prepareShadingRateImage();
 	void setupDescriptors();

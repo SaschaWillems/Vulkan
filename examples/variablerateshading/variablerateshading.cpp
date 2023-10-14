@@ -47,21 +47,33 @@ void VulkanExample::getEnabledFeatures()
 }
 
 /*
-	If the window has been resized, we need to recreate the shading rate image
+	If the window has been resized, we need to recreate the shading rate image and the render pass. That's because the render pass holds information on the fragment shading rate image resolution
+	
 */
 void VulkanExample::handleResize()
 {
-	// Delete allocated resources
+	vkDeviceWaitIdle(device);
+	// Invalidate the shading rate image, will be recreated in the renderpass setup
 	vkDestroyImageView(device, shadingRateImage.view, nullptr);
 	vkDestroyImage(device, shadingRateImage.image, nullptr);
 	vkFreeMemory(device, shadingRateImage.memory, nullptr);
-	// Recreate image
 	prepareShadingRateImage();
+	// Recreate the render pass and update it with the new fragment shading rate image resolution
+	vkDestroyRenderPass(device, renderPass, nullptr);
+	setupRenderPass();
 	resized = false;
 }
 
 void VulkanExample::setupFrameBuffer()
 {
+	if (resized) {
+		handleResize();
+	}
+
+	if (shadingRateImage.image == VK_NULL_HANDLE) {
+		prepareShadingRateImage();
+	}
+
 	VkImageView attachments[3];
 
 	// Depth/Stencil attachment is the same for all frame buffers
@@ -94,8 +106,9 @@ void VulkanExample::setupRenderPass()
 		vkCreateRenderPass2KHR = reinterpret_cast<PFN_vkCreateRenderPass2KHR>(vkGetInstanceProcAddr(instance, "vkCreateRenderPass2KHR"));
 	}
 
-	// Create an image with the shading rates to be used during rendering
-	prepareShadingRateImage();
+	if (shadingRateImage.image == VK_NULL_HANDLE) {
+		prepareShadingRateImage();
+	}
 
 	std::array<VkAttachmentDescription2KHR, 3> attachments = {};
 	// Color attachment
@@ -202,11 +215,6 @@ void VulkanExample::setupRenderPass()
 
 void VulkanExample::buildCommandBuffers()
 {
-	if (resized)
-	{
-		handleResize();
-	}
-
 	// As this is an extension, we need to manually load the extension pointers
 	if (!vkCmdSetFragmentShadingRateKHR) {
 		vkCmdSetFragmentShadingRateKHR = reinterpret_cast<PFN_vkCmdSetFragmentShadingRateKHR>(vkGetDeviceProcAddr(device, "vkCmdSetFragmentShadingRateKHR"));
@@ -538,14 +546,11 @@ void VulkanExample::preparePipelines()
 	};
 	VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(specializationMapEntries, sizeof(specializationData), &specializationData);
 	shaderStages[1].pSpecializationInfo = &specializationInfo;
-
-	// Create pipeline without shading rate 
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.opaque));
+
 	specializationData.alphaMask = true;
 	rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.masked));
-	rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
-	specializationData.alphaMask = false;
 }
 
 void VulkanExample::prepareUniformBuffers()
