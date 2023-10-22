@@ -149,6 +149,9 @@ public:
 			vkDestroyBuffer(device, uniformBuffers[i].buffer, nullptr);
 			vkFreeMemory(device, uniformBuffers[i].memory, nullptr);
 		}
+
+		vkFreeCommandBuffers(device, commandPool, commandBuffers.size(), commandBuffers.data());
+		vkDestroyCommandPool(device, commandPool, nullptr);
 	}
 
 	// This function is used to request a device memory type that supports all the property flags we request (e.g. device local, host visible)

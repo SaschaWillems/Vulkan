@@ -85,6 +85,8 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		uniformBuffer.destroy();
+
+		vkDestroyPipeline(device, pipeline, nullptr);
 	}
 
 	void buildCommandBuffers()
