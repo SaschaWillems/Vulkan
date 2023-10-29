@@ -31,14 +31,6 @@ public:
 	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
 
-	VkDescriptorSetLayout descriptorSetLayoutBuffers;
-	VkDescriptorSetLayout descriptorSetLayoutImages;
-
-	vks::Buffer resourceDescriptorBuffer;
-	vks::Buffer imageDescriptorBuffer;
-	VkDeviceOrHostAddressConstKHR resourceDescriptorBufferDeviceAddress;
-	VkDeviceOrHostAddressConstKHR imageDescriptorBufferDeviceAddress;
-
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 
 	VkPhysicalDeviceDescriptorBufferFeaturesEXT enabledDeviceDescriptorBufferFeaturesEXT{};
@@ -52,8 +44,16 @@ public:
 	PFN_vkGetDescriptorEXT vkGetDescriptorEXT;
 	PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT vkCmdBindDescriptorBufferEmbeddedSamplersEXT;
 
-	VkDeviceSize uniformDescriptorOffset;
-	VkDeviceSize imageDescriptorOffset;
+	// Stores all values that are required to setup a descriptor buffer for a resource buffer
+	struct DescriptorInfo {
+		VkDeviceSize layoutOffset;
+		VkDeviceSize layoutSize;
+		VkDescriptorSetLayout setLayout;
+		VkDeviceOrHostAddressConstKHR bufferDeviceAddress;
+		vks::Buffer buffer;
+	};
+	DescriptorInfo uniformDescriptor{};
+	DescriptorInfo combinedImageDescriptor{};
 
 	uint64_t getBufferDeviceAddress(VkBuffer buffer)
 	{
@@ -94,8 +94,8 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayoutBuffers, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayoutImages, nullptr);
+		vkDestroyDescriptorSetLayout(device, uniformDescriptor.setLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, combinedImageDescriptor.setLayout, nullptr);
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		for (auto cube : cubes) {
@@ -103,8 +103,8 @@ public:
 			cube.texture.destroy();
 		}
 		uniformBufferCamera.destroy();
-		resourceDescriptorBuffer.destroy();
-		imageDescriptorBuffer.destroy();
+		uniformDescriptor.buffer.destroy();
+		combinedImageDescriptor.buffer.destroy();
 	}
 
 	virtual void getEnabledFeatures()
@@ -129,7 +129,7 @@ public:
 		setLayoutBinding.descriptorCount = 1;
 
 		descriptorLayoutCI.pBindings = &setLayoutBinding;
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayoutBuffers));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &uniformDescriptor.setLayout));
 
 		setLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		setLayoutBinding.binding = 0;
@@ -137,7 +137,7 @@ public:
 		setLayoutBinding.descriptorCount = 1;
 
 		descriptorLayoutCI.pBindings = &setLayoutBinding;
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayoutImages));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &combinedImageDescriptor.setLayout));
 	}
 
 	void preparePipelines()
@@ -145,7 +145,7 @@ public:
 		// Set 0 = Camera UBO
 		// Set 1 = Model UBO
 		// Set 2 = Model image
-		const std::array<VkDescriptorSetLayout, 3> setLayouts = { descriptorSetLayoutBuffers, descriptorSetLayoutBuffers, descriptorSetLayoutImages };
+		const std::array<VkDescriptorSetLayout, 3> setLayouts = { uniformDescriptor.setLayout, uniformDescriptor.setLayout, combinedImageDescriptor.setLayout };
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCI{};
 		pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -186,27 +186,9 @@ public:
 
 	void prepareDescriptorBuffer()
 	{
-		std::array<VkDeviceSize, 2> descriptorLayoutSizes{};
-		vkGetDescriptorSetLayoutSizeEXT(device, descriptorSetLayoutBuffers, &descriptorLayoutSizes[0]);
-		vkGetDescriptorSetLayoutSizeEXT(device, descriptorSetLayoutImages, &descriptorLayoutSizes[1]);
+		// We need to get sizes and offsets for the descriptor layouts
 
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&resourceDescriptorBuffer,
-			3 * descriptorLayoutSizes[0]));
-		resourceDescriptorBuffer.map();
-
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, // Flags 1 & 2 are required for combined images
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&imageDescriptorBuffer,
-			2 * descriptorLayoutSizes[1]));
-		imageDescriptorBuffer.map();
-
-		resourceDescriptorBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(resourceDescriptorBuffer.buffer);
-		imageDescriptorBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(imageDescriptorBuffer.buffer);
-
+		// This is done using a new extension structures and features
 		PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2KHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR"));
 		assert(vkGetPhysicalDeviceProperties2KHR);
 		VkPhysicalDeviceProperties2KHR deviceProps2{};
@@ -215,33 +197,59 @@ public:
 		deviceProps2.pNext = &descriptorBufferProperties;
 		vkGetPhysicalDeviceProperties2KHR(physicalDevice, &deviceProps2);
 
-		// We need buffer offsets in some places, which are implementation depenendend, so we get them from the decsriptor buffer properties structure
-		uniformDescriptorOffset = vks::tools::alignedSize(descriptorBufferProperties.uniformBufferDescriptorSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
-		imageDescriptorOffset = vks::tools::alignedSize(descriptorBufferProperties.combinedImageSamplerDescriptorSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
+		vkGetDescriptorSetLayoutSizeEXT(device, uniformDescriptor.setLayout, &uniformDescriptor.layoutSize);
+		vkGetDescriptorSetLayoutSizeEXT(device, combinedImageDescriptor.setLayout, &combinedImageDescriptor.layoutSize);
 
-		VkDescriptorGetInfoEXT desc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+		vkGetDescriptorSetLayoutBindingOffsetEXT(device, uniformDescriptor.setLayout, 0, &uniformDescriptor.layoutOffset);
+		vkGetDescriptorSetLayoutBindingOffsetEXT(device, combinedImageDescriptor.setLayout, 0, &combinedImageDescriptor.layoutOffset);
 
-		// Set descriptors for images
-		char* imageDescriptorBufPtr = (char*)imageDescriptorBuffer.mapped;
-		desc_info.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		// In order to copy resource descriptors to the correct place, we need to calculate aligned sizes
+		uniformDescriptor.layoutSize = vks::tools::alignedSize(uniformDescriptor.layoutSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
+		combinedImageDescriptor.layoutSize = vks::tools::alignedSize(combinedImageDescriptor.layoutSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
+
+		// This buffer will contain resource descriptors for all the uniform buffers (one per cube and one with global matrices)
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniformDescriptor.buffer,
+			(static_cast<uint32_t>(cubes.size()) + 1) * uniformDescriptor.layoutSize));
+		uniformDescriptor.buffer.map();
+
+		// This buffer contains resource descriptors for the combined images (one per cube)
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, // Flags 1 & 2 are required for combined images
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&combinedImageDescriptor.buffer,
+			static_cast<uint32_t>(cubes.size()) * combinedImageDescriptor.layoutSize));
+		combinedImageDescriptor.buffer.map();
+
+		uniformDescriptor.bufferDeviceAddress.deviceAddress = getBufferDeviceAddress(uniformDescriptor.buffer.buffer);
+		combinedImageDescriptor.bufferDeviceAddress.deviceAddress = getBufferDeviceAddress(combinedImageDescriptor.buffer.buffer);
+
+		VkDescriptorGetInfoEXT descriptorInfo{};
+		descriptorInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT;
+
+		// Put image descriptors into the corresponding resource buffer
+		char* imageDescriptorBufPtr = (char*)combinedImageDescriptor.buffer.mapped;
+		descriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		for (uint32_t i = 0; i < static_cast<uint32_t>(cubes.size()); i++) {
-			desc_info.data.pCombinedImageSampler = &cubes[i].texture.descriptor;
-			vkGetDescriptorEXT(device, &desc_info, descriptorBufferProperties.combinedImageSamplerDescriptorSize, imageDescriptorBufPtr + i * imageDescriptorOffset);
+			descriptorInfo.data.pCombinedImageSampler = &cubes[i].texture.descriptor;
+			vkGetDescriptorEXT(device, &descriptorInfo, descriptorBufferProperties.combinedImageSamplerDescriptorSize, imageDescriptorBufPtr + i * uniformDescriptor.layoutSize + uniformDescriptor.layoutOffset);
 		}
 
 		// For uniform buffers we only need buffer device addresses
 		// Global uniform buffer
-		char* uniformDescriptorBufPtr = (char*)resourceDescriptorBuffer.mapped;
+		char* uniformDescriptorBufPtr = (char*)uniformDescriptor.buffer.mapped;
 
 		VkDescriptorAddressInfoEXT descriptorAddressInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
 		descriptorAddressInfo.address = getBufferDeviceAddress(uniformBufferCamera.buffer);
 		descriptorAddressInfo.range = uniformBufferCamera.size;
 		descriptorAddressInfo.format = VK_FORMAT_UNDEFINED;
 
-		desc_info.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		desc_info.data.pCombinedImageSampler = nullptr;
-		desc_info.data.pUniformBuffer = &descriptorAddressInfo;
-		vkGetDescriptorEXT(device, &desc_info, descriptorBufferProperties.uniformBufferDescriptorSize, uniformDescriptorBufPtr);
+		descriptorInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorInfo.data.pCombinedImageSampler = nullptr;
+		descriptorInfo.data.pUniformBuffer = &descriptorAddressInfo;
+		vkGetDescriptorEXT(device, &descriptorInfo, descriptorBufferProperties.uniformBufferDescriptorSize, uniformDescriptorBufPtr);
 
 		// Per-model uniform buffers
 		for (uint32_t i = 0; i < static_cast<uint32_t>(cubes.size()); i++) {
@@ -250,13 +258,12 @@ public:
 			addr_info.range = cubes[i].uniformBuffer.size;
 			addr_info.format = VK_FORMAT_UNDEFINED;
 
-			desc_info.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			desc_info.data.pCombinedImageSampler = nullptr;
-			desc_info.data.pUniformBuffer = &addr_info;
-			vkGetDescriptorEXT(device, &desc_info, descriptorBufferProperties.uniformBufferDescriptorSize, uniformDescriptorBufPtr + (i + 1) * uniformDescriptorOffset);
+			descriptorInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorInfo.data.pCombinedImageSampler = nullptr;
+			descriptorInfo.data.pUniformBuffer = &addr_info;
+			vkGetDescriptorEXT(device, &descriptorInfo, descriptorBufferProperties.uniformBufferDescriptorSize, uniformDescriptorBufPtr + (i + 1) * uniformDescriptor.layoutSize + uniformDescriptor.layoutOffset);
 		}
 	}
-
 
 	void buildCommandBuffers()
 	{
@@ -297,12 +304,12 @@ public:
 			// Set 0 = uniform buffer
 			VkDescriptorBufferBindingInfoEXT bindingInfos[2]{};
 			bindingInfos[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-			bindingInfos[0].address = resourceDescriptorBufferDeviceAddress.deviceAddress;
+			bindingInfos[0].address = uniformDescriptor.bufferDeviceAddress.deviceAddress;
 			bindingInfos[0].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;// | VK_BUFFER_USAGE_PUSH_DESCRIPTORS_DESCRIPTOR_BUFFER_BIT_EXT;
 			// Set 1 = Image
 			bindingInfos[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
 			bindingInfos[1].pNext = nullptr;
-			bindingInfos[1].address = imageDescriptorBufferDeviceAddress.deviceAddress;
+			bindingInfos[1].address = combinedImageDescriptor.bufferDeviceAddress.deviceAddress;
 			bindingInfos[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 			vkCmdBindDescriptorBuffersEXT(drawCmdBuffers[i], 2, bindingInfos);
 
@@ -317,11 +324,11 @@ public:
 			for (uint32_t j = 0; j < static_cast<uint32_t>(cubes.size()); j++) {
 				// Uniform buffer (set 1)
 				// Model ubos start at offset * 1 (slot 0 is global matrices)
-				bufferOffset = (j + 1) * uniformDescriptorOffset;
+				bufferOffset = (j + 1) * uniformDescriptor.layoutSize;
 				vkCmdSetDescriptorBufferOffsetsEXT(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &bufferIndexUbo, &bufferOffset);
 				// Image (set 2)
 				uint32_t bufferIndexImage = 1;
-				bufferOffset = j * imageDescriptorOffset;
+				bufferOffset = j * combinedImageDescriptor.layoutSize;
 				vkCmdSetDescriptorBufferOffsetsEXT(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 2, 1, &bufferIndexImage, &bufferOffset);
 				model.draw(drawCmdBuffers[i]);
 			}
