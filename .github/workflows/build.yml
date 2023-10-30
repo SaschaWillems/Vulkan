@@ -40,3 +40,24 @@ jobs:
         run: |
           cmake .
           cmake --build .
+
+  build_macOS:
+    name: Build Mac
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"  
+      - name: Setup
+        run: |
+          curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg" -o /tmp/vulkan-sdk.dmg
+          hdiutil attach /tmp/vulkan-sdk.dmg -mountpoint /Volumes/vulkan-sdk
+          /Volumes/vulkan-sdk/InstallVulkan.app/Contents/MacOS/InstallVulkan \
+              --root ~/VulkanSDK/latest --accept-licenses --default-answer --confirm-command install
+          cd ~/VulkanSDK/latest
+          sudo python ./install_vulkan.py
+          brew --prefix libomp 
+      - name: Build
+        run: |
+          cmake -G "Xcode" -DOpenMP_C_FLAGS=/usr/local/opt/libomp -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp -DOpenMP_CXX_FOUND=/usr/local/opt/libomp
+          cmake --build .

@@ -6,7 +6,7 @@ These can be compiled with [DXC](https://github.com/microsoft/DirectXShaderCompi
 ### Known issues
 
 - specialization constants can't be used to specify array size.
-- `gl_PointCoord` not supported. HLSL has no equivalent. We changed the shaders to calulate the PointCoord manually in the shader. (`computenbody`, `computeparticles`, `particlefire` examples).
+- `gl_PointCoord` not supported. HLSL has no equivalent. We changed the shaders to calulate the PointCoord manually in the shader. (`computenbody`, `computeparticles`, `particlesystem` examples).
 - HLSL doesn't have inverse operation (`deferred`, `hdr`, `instancing`, `skeletalanimation` & `texturecubemap` examples).
 - `modf` causes compilation to fail without errors or warnings. (`modf` not used by any examples, easily confused with fmod)
 - In `specializationconstants` example, shader compilation fails with error:

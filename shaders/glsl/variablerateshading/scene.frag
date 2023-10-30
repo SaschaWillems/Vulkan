@@ -1,6 +1,6 @@
 #version 450
 
-#extension GL_NV_shading_rate_image : require
+#extension GL_EXT_fragment_shading_rate : require
 
 layout (set = 1, binding = 0) uniform sampler2D samplerColorMap;
 layout (set = 1, binding = 1) uniform sampler2D samplerNormalMap;
@@ -52,33 +52,34 @@ void main()
 	outFragColor = vec4(diffuse * color.rgb + specular, color.a);
 
 	if (uboScene.colorShadingRates == 1) {
-		if (gl_FragmentSizeNV.x == 1 && gl_FragmentSizeNV.y == 1) {
-			outFragColor.rgb *= vec3(0.0, 0.8, 0.4);
-			return;
+		int v = 1;
+		int h = 1;
+	
+		if ((gl_ShadingRateEXT & gl_ShadingRateFlag2VerticalPixelsEXT) == gl_ShadingRateFlag2VerticalPixelsEXT) {
+			v = 2;
 		}
-		if (gl_FragmentSizeNV.x == 2 && gl_FragmentSizeNV.y == 1) {
-			outFragColor.rgb *= vec3(0.2, 0.6, 1.0);
-			return;
+		if ((gl_ShadingRateEXT & gl_ShadingRateFlag4VerticalPixelsEXT) == gl_ShadingRateFlag4VerticalPixelsEXT) {
+			v = 4;
 		}
-		if (gl_FragmentSizeNV.x == 1 && gl_FragmentSizeNV.y == 2) {
-			outFragColor.rgb *= vec3(0.0, 0.4, 0.8);
-			return;
+		if ((gl_ShadingRateEXT & gl_ShadingRateFlag2HorizontalPixelsEXT) == gl_ShadingRateFlag2HorizontalPixelsEXT) {
+			h = 2;
 		}
-		if (gl_FragmentSizeNV.x == 2 && gl_FragmentSizeNV.y == 2) {
-			outFragColor.rgb *= vec3(1.0, 1.0, 0.2);
-			return;
+		if ((gl_ShadingRateEXT & gl_ShadingRateFlag4HorizontalPixelsEXT) == gl_ShadingRateFlag4HorizontalPixelsEXT) {
+			h = 4;
 		}
-		if (gl_FragmentSizeNV.x == 4 && gl_FragmentSizeNV.y == 2) {
-			outFragColor.rgb *= vec3(0.8, 0.8, 0.0);
-			return;
-		}
-		if (gl_FragmentSizeNV.x == 2 && gl_FragmentSizeNV.y == 4) {
-			outFragColor.rgb *= vec3(1.0, 0.4, 0.2);
-			return;
-		}
-		if (gl_FragmentSizeNV.x == 4 && gl_FragmentSizeNV.y == 4) {
-			outFragColor.rgb *= vec3(0.8, 0.0, 0.0);
-			return;
-		}
+
+		if (v == 1 && h == 1) { outFragColor *= vec4(0.0, 0.8, 0.4, 1.0); return; }
+
+		if (v == 2 && h == 1) { outFragColor *= vec4(0.2, 0.6, 1.0, 1.0); return; }
+
+		if (v == 1 && h == 2) { outFragColor *= vec4(0.0, 0.4, 0.8, 1.0); return; }
+
+		if (v == 2 && h == 2) { outFragColor *= vec4(1.0, 1.0, 0.2, 1.0); return; }
+
+		if (v == 4 && h == 2) { outFragColor *= vec4(0.8, 0.8, 0.0, 1.0); return; }
+
+		if (v == 2 && h == 4) { outFragColor *= vec4(1.0, 0.4, 0.2, 1.0); return; }
+
+		outFragColor *= vec4(0.0, 0.8, 0.4, 1.0);
 	}
 }

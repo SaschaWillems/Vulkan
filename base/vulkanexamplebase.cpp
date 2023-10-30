@@ -52,6 +52,8 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_HEADLESS_EXT)
 	instanceExtensions.push_back(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+	instanceExtensions.push_back(VK_QNX_SCREEN_SURFACE_EXTENSION_NAME);
 #endif
 	
 	// Get extensions supported by the instance and store for later use
@@ -666,6 +668,14 @@ void VulkanExampleBase::renderLoop()
 	}
 #elif (defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_EXAMPLE_XCODE_GENERATED))
 	[NSApp run];
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+	while (!quit) {
+		handleEvent();
+
+		if (prepared) {
+			nextFrame();
+		}
+	}
 #endif
 	// Flush device to make sure all resources can be freed
 	if (device != VK_NULL_HANDLE) {
@@ -821,7 +831,7 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 		settings.vsync = true;
 	}
 	if (commandLineParser.isSet("height")) {
-		height = commandLineParser.getValueAsInt("height", width);
+		height = commandLineParser.getValueAsInt("height", height);
 	}
 	if (commandLineParser.isSet("width")) {
 		width = commandLineParser.getValueAsInt("width", width);
@@ -961,6 +971,10 @@ VulkanExampleBase::~VulkanExampleBase()
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_destroy_window(connection, window);
 	xcb_disconnect(connection);
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+	screen_destroy_event(screen_event);
+	screen_destroy_window(screen_window);
+	screen_destroy_context(screen_context);
 #endif
 }
 
@@ -1617,8 +1631,10 @@ dispatch_group_t concurrentGroup;
 @end
 
 const std::string getAssetPath() {
-    return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../data/"].UTF8String;
+    return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../assets/"].UTF8String;
 }
+
+const std::string getShaderBasePath() { return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../shaders/"].UTF8String; }
 
 static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
 	const CVTimeStamp *inOutputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut,
@@ -2662,6 +2678,283 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 		break;
 	}
 }
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+void VulkanExampleBase::handleEvent()
+{
+	int size[2] = { 0, 0 };
+	screen_window_t win;
+	static int mouse_buttons = 0;
+	int pos[2];
+	int val;
+	int keyflags;
+	int rc;
+
+	while (!screen_get_event(screen_context, screen_event, paused ? ~0 : 0)) {
+		rc = screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_TYPE, &val);
+		if (rc) {
+			printf("Cannot get SCREEN_PROPERTY_TYPE of the event! (%s)\n", strerror(errno));
+			fflush(stdout);
+			quit = true;
+			break;
+		}
+		if (val == SCREEN_EVENT_NONE) {
+			break;
+		}
+		switch (val) {
+			case SCREEN_EVENT_KEYBOARD:
+				rc = screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_FLAGS, &keyflags);
+				if (rc) {
+					printf("Cannot get SCREEN_PROPERTY_FLAGS of the event! (%s)\n", strerror(errno));
+					fflush(stdout);
+					quit = true;
+					break;
+				}
+				rc = screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_SYM, &val);
+				if (rc) {
+					printf("Cannot get SCREEN_PROPERTY_SYM of the event! (%s)\n", strerror(errno));
+					fflush(stdout);
+					quit = true;
+					break;
+				}
+				if ((keyflags & KEY_SYM_VALID) == KEY_SYM_VALID) {
+					switch (val) {
+						case KEYCODE_ESCAPE:
+							quit = true;
+							break;
+						case KEYCODE_W:
+							if (keyflags & KEY_DOWN) {
+								camera.keys.up = true;
+							} else {
+								camera.keys.up = false;
+							}
+							break;
+						case KEYCODE_S:
+							if (keyflags & KEY_DOWN) {
+								camera.keys.down = true;
+							} else {
+								camera.keys.down = false;
+							}
+							break;
+						case KEYCODE_A:
+							if (keyflags & KEY_DOWN) {
+								camera.keys.left = true;
+							} else {
+								camera.keys.left = false;
+							}
+							break;
+						case KEYCODE_D:
+							if (keyflags & KEY_DOWN) {
+								camera.keys.right = true;
+							} else {
+								camera.keys.right = false;
+							}
+							break;
+						case KEYCODE_P:
+							paused = !paused;
+							break;
+						case KEYCODE_F1:
+							UIOverlay.visible = !UIOverlay.visible;
+							UIOverlay.updated = true;
+							break;
+						default:
+							break;
+					}
+
+					if ((keyflags & KEY_DOWN) == KEY_DOWN) {
+						if ((val >= 0x20) && (val <= 0xFF)) {
+							keyPressed(val);
+						}
+					}
+				}
+				break;
+			case SCREEN_EVENT_PROPERTY:
+				rc = screen_get_event_property_pv(screen_event, SCREEN_PROPERTY_WINDOW, (void **)&win);
+				if (rc) {
+					printf("Cannot get SCREEN_PROPERTY_WINDOW of the event! (%s)\n", strerror(errno));
+					fflush(stdout);
+					quit = true;
+					break;
+				}
+				rc = screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_NAME, &val);
+				if (rc) {
+					printf("Cannot get SCREEN_PROPERTY_NAME of the event! (%s)\n", strerror(errno));
+					fflush(stdout);
+					quit = true;
+					break;
+				}
+				if (win == screen_window) {
+					switch(val) {
+						case SCREEN_PROPERTY_SIZE:
+							rc = screen_get_window_property_iv(win, SCREEN_PROPERTY_SIZE, size);
+							if (rc) {
+								printf("Cannot get SCREEN_PROPERTY_SIZE of the window in the event! (%s)\n", strerror(errno));
+								fflush(stdout);
+								quit = true;
+								break;
+							}
+							width = size[0];
+							height = size[1];
+							windowResize();
+							break;
+						default:
+							/* We are not interested in any other events for now */
+							break;
+						}
+				}
+				break;
+			case SCREEN_EVENT_POINTER:
+				rc = screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_BUTTONS, &val);
+				if (rc) {
+					printf("Cannot get SCREEN_PROPERTY_BUTTONS of the event! (%s)\n", strerror(errno));
+					fflush(stdout);
+					quit = true;
+					break;
+				}
+				if ((mouse_buttons & SCREEN_LEFT_MOUSE_BUTTON) == 0) {
+					if ((val & SCREEN_LEFT_MOUSE_BUTTON) == SCREEN_LEFT_MOUSE_BUTTON) {
+						mouseButtons.left = true;
+					}
+				} else {
+					if ((val & SCREEN_LEFT_MOUSE_BUTTON) == 0) {
+						mouseButtons.left = false;
+					}
+				}
+				if ((mouse_buttons & SCREEN_RIGHT_MOUSE_BUTTON) == 0) {
+					if ((val & SCREEN_RIGHT_MOUSE_BUTTON) == SCREEN_RIGHT_MOUSE_BUTTON) {
+						mouseButtons.right = true;
+					}
+				} else {
+					if ((val & SCREEN_RIGHT_MOUSE_BUTTON) == 0) {
+						mouseButtons.right = false;
+					}
+				}
+				if ((mouse_buttons & SCREEN_MIDDLE_MOUSE_BUTTON) == 0) {
+					if ((val & SCREEN_MIDDLE_MOUSE_BUTTON) == SCREEN_MIDDLE_MOUSE_BUTTON) {
+						mouseButtons.middle = true;
+					}
+				} else {
+					if ((val & SCREEN_MIDDLE_MOUSE_BUTTON) == 0) {
+						mouseButtons.middle = false;
+					}
+				}
+				mouse_buttons = val;
+
+				rc = screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_MOUSE_WHEEL, &val);
+				if (rc) {
+					printf("Cannot get SCREEN_PROPERTY_MOUSE_WHEEL of the event! (%s)\n", strerror(errno));
+					fflush(stdout);
+					quit = true;
+					break;
+				}
+				if (val != 0) {
+					camera.translate(glm::vec3(0.0f, 0.0f, (float)val * 0.005f));
+					viewUpdated = true;
+				}
+
+				rc = screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_POSITION, pos);
+				if (rc) {
+					printf("Cannot get SCREEN_PROPERTY_DISPLACEMENT of the event! (%s)\n", strerror(errno));
+					fflush(stdout);
+					quit = true;
+					break;
+				}
+				if ((pos[0] != 0) || (pos[1] != 0)) {
+					handleMouseMove(pos[0], pos[1]);
+				}
+				updateOverlay();
+				break;
+		}
+	}
+}
+
+void VulkanExampleBase::setupWindow()
+{
+	const char *idstr = name.c_str();
+	int size[2];
+	int usage = SCREEN_USAGE_VULKAN;
+	int rc;
+
+	if (screen_pipeline_set) {
+		usage |= SCREEN_USAGE_OVERLAY;
+	}
+
+	rc = screen_create_context(&screen_context, 0);
+	if (rc) {
+		printf("Cannot create QNX Screen context!\n");
+		fflush(stdout);
+		exit(EXIT_FAILURE);
+	}
+	rc = screen_create_window(&screen_window, screen_context);
+	if (rc) {
+		printf("Cannot create QNX Screen window!\n");
+		fflush(stdout);
+		exit(EXIT_FAILURE);
+	}
+	rc = screen_create_event(&screen_event);
+	if (rc) {
+		printf("Cannot create QNX Screen event!\n");
+		fflush(stdout);
+		exit(EXIT_FAILURE);
+	}
+
+	/* Set window caption */
+	screen_set_window_property_cv(screen_window, SCREEN_PROPERTY_ID_STRING, strlen(idstr), idstr);
+
+	/* Setup VULKAN usage flags */
+	rc = screen_set_window_property_iv(screen_window, SCREEN_PROPERTY_USAGE, &usage);
+	if (rc) {
+		printf("Cannot set SCREEN_USAGE_VULKAN flag!\n");
+		fflush(stdout);
+		exit(EXIT_FAILURE);
+	}
+
+	if ((width == 0) || (height == 0) || (settings.fullscreen) || use_window_size) {
+		rc = screen_get_window_property_iv(screen_window, SCREEN_PROPERTY_SIZE, size);
+		if (rc) {
+			printf("Cannot obtain current window size!\n");
+			fflush(stdout);
+			exit(EXIT_FAILURE);
+		}
+		width = size[0];
+		height = size[1];
+	} else {
+		size[0] = width;
+		size[1] = height;
+		rc = screen_set_window_property_iv(screen_window, SCREEN_PROPERTY_SIZE, size);
+		if (rc) {
+			printf("Cannot set window size!\n");
+			fflush(stdout);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	if (screen_pos_set) {
+		rc = screen_set_window_property_iv(screen_window, SCREEN_PROPERTY_POSITION, screen_pos);
+		if (rc) {
+			printf("Cannot set window position!\n");
+			fflush(stdout);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	if (screen_pipeline_set) {
+		rc = screen_set_window_property_iv(screen_window, SCREEN_PROPERTY_PIPELINE, &screen_pipeline);
+		if (rc) {
+			printf("Cannot set pipeline id!\n");
+			fflush(stdout);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	if (screen_zorder_set) {
+		rc = screen_set_window_property_iv(screen_window, SCREEN_PROPERTY_ZORDER, &screen_zorder);
+		if (rc) {
+			printf("Cannot set z-order of the window!\n");
+			fflush(stdout);
+			exit(EXIT_FAILURE);
+		}
+	}
+}
 #else
 void VulkanExampleBase::setupWindow()
 {
@@ -2947,6 +3240,8 @@ void VulkanExampleBase::initSwapchain()
 	swapChain.initSurface(connection, window);
 #elif (defined(_DIRECT2DISPLAY) || defined(VK_USE_PLATFORM_HEADLESS_EXT))
 	swapChain.initSurface(width, height);
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+	swapChain.initSurface(screen_context, screen_window);
 #endif
 }
 

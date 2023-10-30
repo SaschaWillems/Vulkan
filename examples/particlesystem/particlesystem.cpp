@@ -1,7 +1,7 @@
 /*
-* Vulkan Example - CPU based fire particle system
+* Vulkan Example - CPU based particle system
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -402,7 +402,7 @@ public:
 			// Binding 1: Fire texture array
 			vks::initializers::writeDescriptorSet(descriptorSets.particles, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &texDescriptorFire)
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
 		// Environment
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.environment));
@@ -415,7 +415,7 @@ public:
 			// Binding 2: Normal map
 			vks::initializers::writeDescriptorSet(descriptorSets.environment, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textures.floor.normalMap.descriptor),
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
@@ -439,7 +439,7 @@ public:
 		pipelineCI.pViewportState = &viewportState;
 		pipelineCI.pDepthStencilState = &depthStencilState;
 		pipelineCI.pDynamicState = &dynamicState;
-		pipelineCI.stageCount = shaderStages.size();
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 
 		// Particle rendering pipeline
@@ -478,8 +478,8 @@ public:
 			blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 			blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-			shaderStages[0] = loadShader(getShadersPath() + "particlefire/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-			shaderStages[1] = loadShader(getShadersPath() + "particlefire/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+			shaderStages[0] = loadShader(getShadersPath() + "particlesystem/particle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+			shaderStages[1] = loadShader(getShadersPath() + "particlesystem/particle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.particles));
 		}
 
@@ -492,8 +492,8 @@ public:
 			depthStencilState.depthWriteEnable = VK_TRUE;
 			inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-			shaderStages[0] = loadShader(getShadersPath() + "particlefire/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-			shaderStages[1] = loadShader(getShadersPath() + "particlefire/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+			shaderStages[0] = loadShader(getShadersPath() + "particlesystem/normalmap.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+			shaderStages[1] = loadShader(getShadersPath() + "particlesystem/normalmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.environment));
 		}
 	}

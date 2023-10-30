@@ -1,13 +1,14 @@
 // Copyright 2020 Google LLC
 
-struct InPayload
+struct Payload
 {
 	[[vk::location(0)]] float3 hitValue;
+	[[vk::location(1)]] bool shadowed;
 };
 
-struct InOutPayload
+struct Attributes
 {
-	[[vk::location(2)]] bool shadowed;
+  float2 bary;
 };
 
 RaytracingAccelerationStructure topLevelAS : register(t0);
@@ -52,7 +53,7 @@ Vertex unpack(uint index)
 }
 
 [shader("closesthit")]
-void main(in InPayload inPayload, inout InOutPayload inOutPayload, in float2 attribs)
+void main(inout Payload payload, in Attributes attribs)
 {
 	uint PrimitiveID = PrimitiveIndex();
 	int3 index = int3(indices[3 * PrimitiveID], indices[3 * PrimitiveID + 1], indices[3 * PrimitiveID + 2]);
@@ -62,13 +63,13 @@ void main(in InPayload inPayload, inout InOutPayload inOutPayload, in float2 att
 	Vertex v2 = unpack(index.z);
 
 	// Interpolate normal
-	const float3 barycentricCoords = float3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
+	const float3 barycentricCoords = float3(1.0f - attribs.bary.x - attribs.bary.y, attribs.bary.x, attribs.bary.y);
 	float3 normal = normalize(v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z);
 
 	// Basic lighting
 	float3 lightVector = normalize(ubo.lightPos.xyz);
 	float dot_product = max(dot(lightVector, normal), 0.2);
-	inPayload.hitValue = v0.color.rgb * dot_product;
+	payload.hitValue = v0.color.rgb * dot_product;
 
 	RayDesc rayDesc;
 	rayDesc.Origin = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
@@ -76,10 +77,10 @@ void main(in InPayload inPayload, inout InOutPayload inOutPayload, in float2 att
 	rayDesc.TMin = 0.001;
 	rayDesc.TMax = 100.0;
 
-	inOutPayload.shadowed = true;
+	payload.shadowed = true;
 	// Offset indices to match shadow hit/miss index
-	TraceRay(topLevelAS, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xff, 0, 0, 1, rayDesc, inOutPayload);
-	if (inOutPayload.shadowed) {
-		inPayload.hitValue *= 0.3;
+	TraceRay(topLevelAS, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xff, 0, 0, 1, rayDesc, payload);
+	if (payload.shadowed) {
+		payload.hitValue *= 0.3;
 	}
 }

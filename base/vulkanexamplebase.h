@@ -80,7 +80,6 @@ private:
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;
-	void windowResize();
 	void handleMouseMove(int32_t x, int32_t y);
 	void nextFrame();
 	void updateOverlay();
@@ -270,6 +269,11 @@ public:
 	xcb_intern_atom_reply_t *atom_wm_delete_window;
 #elif defined(VK_USE_PLATFORM_HEADLESS_EXT)
 	bool quit = false;
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+	screen_context_t screen_context = nullptr;
+	screen_window_t screen_window = nullptr;
+	screen_event_t screen_event = nullptr;
+	bool quit = false;
 #endif
 
 	VulkanExampleBase(bool enableValidation = false);
@@ -343,6 +347,9 @@ public:
 	xcb_window_t setupWindow();
 	void initxcbConnection();
 	void handleEvent(const xcb_generic_event_t *event);
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+	void setupWindow();
+	void handleEvent();
 #else
 	void setupWindow();
 #endif
@@ -376,6 +383,8 @@ public:
 
 	/** @brief Loads a SPIR-V shader file for the given shader stage */
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
+
+	void windowResize();
 
 	/** @brief Entry point for the main render loop */
 	void renderLoop();
@@ -531,4 +540,19 @@ int main(const int argc, const char *argv[])														\
 #else
 #define VULKAN_EXAMPLE_MAIN()
 #endif
+
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+#define VULKAN_EXAMPLE_MAIN()												\
+VulkanExample *vulkanExample;												\
+int main(const int argc, const char *argv[])										\
+{															\
+	for (int i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };					\
+	vulkanExample = new VulkanExample();										\
+	vulkanExample->initVulkan();											\
+	vulkanExample->setupWindow();											\
+	vulkanExample->prepare();											\
+	vulkanExample->renderLoop();											\
+	delete(vulkanExample);												\
+	return 0;													\
+}
 #endif

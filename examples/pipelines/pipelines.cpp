@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Using different pipelines in one single renderpass
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -112,14 +112,14 @@ public:
 			scene.bindBuffers(drawCmdBuffers[i]);
 
 			// Left : Solid colored
-			viewport.width = (float)width / 3.0;
+			viewport.width = (float)width / 3.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.phong);
 			vkCmdSetLineWidth(drawCmdBuffers[i], 1.0f);
 			scene.draw(drawCmdBuffers[i]);
 
 			// Center : Toon
-			viewport.x = (float)width / 3.0;
+			viewport.x = (float)width / 3.0f;
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toon);
 			// Line width > 1.0f only if wide lines feature is supported
@@ -131,7 +131,7 @@ public:
 			if (enabledFeatures.fillModeNonSolid)
 			{
 				// Right : Wireframe
-				viewport.x = (float)width / 3.0 + (float)width / 3.0;
+				viewport.x = (float)width / 3.0f + (float)width / 3.0f;
 				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireframe);
 				scene.draw(drawCmdBuffers[i]);
@@ -159,10 +159,7 @@ public:
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
-				poolSizes.data(),
-				2);
+			vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
@@ -213,7 +210,7 @@ public:
 				&uniformBuffer.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
@@ -237,7 +234,7 @@ public:
 		pipelineCI.pViewportState = &viewportState;
 		pipelineCI.pDepthStencilState = &depthStencilState;
 		pipelineCI.pDynamicState = &dynamicState;
-		pipelineCI.stageCount = shaderStages.size();
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 		pipelineCI.pVertexInputState  = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Color});
 

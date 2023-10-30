@@ -37,6 +37,7 @@ function(buildExample EXAMPLE_NAME)
 		target_link_libraries(${EXAMPLE_NAME} base )
 	endif(WIN32)
 
+	file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 	set_target_properties(${EXAMPLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 	if(${EXAMPLE_NAME} STREQUAL "texture3d")
 		if(APPLE)
@@ -61,7 +62,7 @@ function(buildExample EXAMPLE_NAME)
 		endif()
 		find_package(OpenMP)
 		if(OpenMP_CXX_FOUND)
-   			target_link_libraries(${EXAMPLE_NAME} OpenMP::OpenMP_CXX)
+			link_directories(${OpenMP_CXX_LIBRARY_DIRS})
 		endif()
 	endif()
 
@@ -121,7 +122,7 @@ set(EXAMPLES
 	offscreen
 	oit
 	parallaxmapping
-	particlefire
+	particlesystem
 	pbrbasic
 	pbribl
 	pbrtexture

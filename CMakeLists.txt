@@ -111,18 +111,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB SOURCE *.cpp )
 
-# Build all examples
-function(buildExamples)
-	foreach(EXAMPLE ${EXAMPLES})
-		buildExample(${EXAMPLE})
-	endforeach(EXAMPLE)
-endfunction(buildExamples)
-
 if(RESOURCE_INSTALL_DIR)
 	add_definitions(-DVK_EXAMPLE_ASSETS_DIR=\"${RESOURCE_INSTALL_DIR}/\")
-	add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${RESOURCE_INSTALL_DIR}/\")
+	add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${RESOURCE_INSTALL_DIR}/shaders/\")
 	install(DIRECTORY assets/ DESTINATION ${RESOURCE_INSTALL_DIR}/)
-	install(DIRECTORY shaders/ DESTINATION ${RESOURCE_INSTALL_DIR}/)
+	install(DIRECTORY shaders/ DESTINATION ${RESOURCE_INSTALL_DIR}/shaders/)
 else()
 	add_definitions(-DVK_EXAMPLE_ASSETS_DIR=\"${CMAKE_SOURCE_DIR}/assets/\")
 	add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${CMAKE_SOURCE_DIR}/shaders/\")

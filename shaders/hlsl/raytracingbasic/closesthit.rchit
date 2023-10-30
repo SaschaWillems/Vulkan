@@ -1,8 +1,8 @@
 // Copyright 2020 Google LLC
 
-struct Attribute
+struct Attributes
 {
-  float2 attribs;
+  float2 bary;
 };
 
 struct Payload
@@ -11,8 +11,8 @@ struct Payload
 };
 
 [shader("closesthit")]
-void main(inout Payload p, in float2 attribs)
+void main(inout Payload p, in Attributes attribs)
 {
-  const float3 barycentricCoords = float3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
+  const float3 barycentricCoords = float3(1.0f - attribs.bary.x - attribs.bary.y, attribs.bary.x, attribs.bary.y);
   p.hitValue = barycentricCoords;
 }

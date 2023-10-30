@@ -8,6 +8,11 @@ struct RayPayload
 	float reflector;
 };
 
+struct Attributes
+{
+  float2 bary;
+};
+
 RaytracingAccelerationStructure topLevelAS : register(t0);
 struct UBO
 {
@@ -50,7 +55,7 @@ Vertex unpack(uint index)
 }
 
 [shader("closesthit")]
-void main(inout RayPayload rayPayload, in float2 attribs)
+void main(inout RayPayload rayPayload, in Attributes attribs)
 {
 	uint PrimitiveID = PrimitiveIndex();
 	int3 index = int3(indices[3 * PrimitiveID], indices[3 * PrimitiveID + 1], indices[3 * PrimitiveID + 2]);
@@ -60,7 +65,7 @@ void main(inout RayPayload rayPayload, in float2 attribs)
 	Vertex v2 = unpack(index.z);
 
 	// Interpolate normal
-	const float3 barycentricCoords = float3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
+	const float3 barycentricCoords = float3(1.0f - attribs.bary.x - attribs.bary.y, attribs.bary.x, attribs.bary.y);
 	float3 normal = normalize(v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z);
 
 	// Basic lighting

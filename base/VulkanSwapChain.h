@@ -3,7 +3,7 @@
 * 
 * A swap chain is a collection of framebuffers used for rendering and presentation to the windowing system
 *
-* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -39,16 +39,6 @@ private:
 	VkDevice device;
 	VkPhysicalDevice physicalDevice;
 	VkSurfaceKHR surface;
-	// Function pointers
-	PFN_vkGetPhysicalDeviceSurfaceSupportKHR fpGetPhysicalDeviceSurfaceSupportKHR;
-	PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fpGetPhysicalDeviceSurfaceCapabilitiesKHR; 
-	PFN_vkGetPhysicalDeviceSurfaceFormatsKHR fpGetPhysicalDeviceSurfaceFormatsKHR;
-	PFN_vkGetPhysicalDeviceSurfacePresentModesKHR fpGetPhysicalDeviceSurfacePresentModesKHR;
-	PFN_vkCreateSwapchainKHR fpCreateSwapchainKHR;
-	PFN_vkDestroySwapchainKHR fpDestroySwapchainKHR;
-	PFN_vkGetSwapchainImagesKHR fpGetSwapchainImagesKHR;
-	PFN_vkAcquireNextImageKHR fpAcquireNextImageKHR;
-	PFN_vkQueuePresentKHR fpQueuePresentKHR;
 public:
 	VkFormat colorFormat;
 	VkColorSpaceKHR colorSpace;
@@ -75,6 +65,8 @@ public:
 #if defined(_DIRECT2DISPLAY)
 	void createDirect2DisplaySurface(uint32_t width, uint32_t height);
 #endif
+#elif defined(VK_USE_PLATFORM_SCREEN_QNX)
+	void initSurface(screen_context_t screen_context, screen_window_t screen_window);
 #endif
 	void connect(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device);
 	void create(uint32_t* width, uint32_t* height, bool vsync = false, bool fullscreen = false);

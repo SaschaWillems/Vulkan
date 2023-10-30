@@ -101,16 +101,16 @@ public:
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewports[2];
-			// Left
-			viewports[0] = { 0, 0, (float)width / 2.0f, (float)height, 0.0, 1.0f };
 			// Right
-			viewports[1] = { (float)width / 2.0f, 0, (float)width / 2.0f, (float)height, 0.0, 1.0f };
+			viewports[0] = { (float)width / 2.0f, 0, (float)width / 2.0f, (float)height, 0.0, 1.0f };
+			// Left
+			viewports[1] = { 0, 0, (float)width / 2.0f, (float)height, 0.0, 1.0f };
 
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 2, viewports);
 
 			VkRect2D scissorRects[2] = {
-				vks::initializers::rect2D(width/2, height, 0, 0),
 				vks::initializers::rect2D(width/2, height, width / 2, 0),
+				vks::initializers::rect2D(width/2, height, 0, 0),
 			};
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 2, scissorRects);
 

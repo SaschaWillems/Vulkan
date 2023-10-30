@@ -4,7 +4,7 @@ apply from: '../gradle/outputfilename.gradle'
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "de.saschawillems.vulkanParticlefire"
+        applicationId "de.saschawillems.vulkanParticlesystem"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -49,8 +49,8 @@ task copyTask {
     }
 
     copy {
-       from rootProject.ext.shaderPath + 'glsl/particlefire'
-       into 'assets/shaders/glsl/particlefire'
+       from rootProject.ext.shaderPath + 'glsl/particlesystem'
+       into 'assets/shaders/glsl/particlesystem'
        include '*.*'
     }
 

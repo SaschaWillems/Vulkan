@@ -34,6 +34,7 @@ public:
 	VkPhysicalDeviceDynamicRenderingFeaturesKHR enabledDynamicRenderingFeaturesKHR{};
 
 	PFN_vkCreateShadersEXT vkCreateShadersEXT;
+	PFN_vkDestroyShaderEXT vkDestroyShaderEXT;
 	PFN_vkCmdBindShadersEXT vkCmdBindShadersEXT;
 	PFN_vkGetShaderBinaryDataEXT vkGetShaderBinaryDataEXT;
 
@@ -93,8 +94,9 @@ public:
 	{
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		// @todo: destroy shaders
 		uniformBuffer.destroy();
+		vkDestroyShaderEXT(device, shaders[0], nullptr);
+		vkDestroyShaderEXT(device, shaders[1], nullptr);
 	}
 
 	void loadAssets()
@@ -399,6 +401,7 @@ public:
 		VulkanExampleBase::prepare();
 
 		vkCreateShadersEXT = reinterpret_cast<PFN_vkCreateShadersEXT>(vkGetDeviceProcAddr(device, "vkCreateShadersEXT"));
+		vkDestroyShaderEXT = reinterpret_cast<PFN_vkDestroyShaderEXT>(vkGetDeviceProcAddr(device, "vkDestroyShaderEXT"));
 		vkCmdBindShadersEXT = reinterpret_cast<PFN_vkCmdBindShadersEXT>(vkGetDeviceProcAddr(device, "vkCmdBindShadersEXT"));
 		vkGetShaderBinaryDataEXT = reinterpret_cast<PFN_vkGetShaderBinaryDataEXT>(vkGetDeviceProcAddr(device, "vkGetShaderBinaryDataEXT"));
 
