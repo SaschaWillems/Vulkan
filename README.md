@@ -86,7 +86,7 @@ Note that some examples require specific device features, and if you are on a mu
 
 ## Shaders
 
-Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](data/shaders/glsl) but most samples also come with [HLSL](data/shaders/hlsl) shader sources.
+Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](shaders/glsl) but most samples also come with [HLSL](shaders/hlsl) shader sources.
 
 ## A note on synchronization
 
@@ -429,7 +429,7 @@ An updated version using ```VK_EXT_debug_utils``` along with an in-depth tutoria
 
 Shows how to render a scene using a negative viewport height, making the Vulkan render setup more similar to other APIs like OpenGL. Also has several options for changing relevant pipeline state, and displaying meshes with OpenGL or Vulkan style coordinates. Details can be found in [this tutorial](https://www.saschawillems.de/tutorials/vulkan/flipping-viewport).
 
-#### [Variable rate shading (VK_NV_shading_rate_image)](examples/variablerateshading/)
+#### [Variable rate shading (VK_KHR_fragment_shading_rate)](examples/variablerateshading/)
 
 Uses a special image that contains variable shading rates to vary the number of fragment shader invocations across the framebuffer. This makes it possible to lower fragment shader invocations for less important/less noisy parts of the framebuffer.
 

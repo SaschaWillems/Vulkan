@@ -1,4 +1,5 @@
 # Copyright 2020 Google LLC
+# Copyright 2023 Sascha Willems
 
 import argparse
 import fileinput
@@ -33,7 +34,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
 for root, dirs, files in os.walk(dir_path):
     for file in files:
-        if file.endswith(".vert") or file.endswith(".frag") or file.endswith(".comp") or file.endswith(".geom") or file.endswith(".tesc") or file.endswith(".tese") or file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss"):
+        if file.endswith(".vert") or file.endswith(".frag") or file.endswith(".comp") or file.endswith(".geom") or file.endswith(".tesc") or file.endswith(".tese") or file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss") or file.endswith(".mesh") :
             hlsl_file = os.path.join(root, file)
             spv_out = hlsl_file + ".spv"
 
@@ -42,7 +43,7 @@ for root, dirs, files in os.walk(dir_path):
             if(hlsl_file.find('.vert') != -1):
                 profile = 'vs_6_1'
             elif(hlsl_file.find('.frag') != -1):
-                profile = 'ps_6_1'
+                profile = 'ps_6_4'
             elif(hlsl_file.find('.comp') != -1):
                 profile = 'cs_6_1'
             elif(hlsl_file.find('.geom') != -1):
@@ -56,6 +57,9 @@ for root, dirs, files in os.walk(dir_path):
 				hlsl_file.find('.rmiss') != -1):
                 target='-fspv-target-env=vulkan1.2'
                 profile = 'lib_6_3'
+            elif(hlsl_file.find('.mesh') != -1):
+                target='-fspv-target-env=vulkan1.2'
+                profile = 'ms_6_6'                
 
             print('Compiling %s' % (hlsl_file))
             subprocess.check_output([
@@ -67,6 +71,8 @@ for root, dirs, files in os.walk(dir_path):
                 '-fspv-extension=SPV_KHR_multiview',
                 '-fspv-extension=SPV_KHR_shader_draw_parameters',
                 '-fspv-extension=SPV_EXT_descriptor_indexing',
+                '-fspv-extension=SPV_KHR_ray_query',
+                '-fspv-extension=SPV_KHR_fragment_shading_rate',
                 target,
                 hlsl_file,
                 '-Fo', spv_out])
