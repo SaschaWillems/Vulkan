@@ -24,19 +24,31 @@ namespace vks
 			void* pUserData)
 		{
 			// Select prefix depending on flags passed to the callback
-			std::string prefix("");
+			std::string prefix;
 
 			if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
+#if defined(_WIN32)
+				prefix = "\033[32m" + prefix + "\033[0m";
+#endif
 				prefix = "VERBOSE: ";
 			}
 			else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
 				prefix = "INFO: ";
+#if defined(_WIN32)
+				prefix = "\033[36m" + prefix + "\033[0m";
+#endif
 			}
 			else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
 				prefix = "WARNING: ";
+#if defined(_WIN32)
+				prefix = "\033[33m" + prefix + "\033[0m";
+#endif
 			}
 			else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
 				prefix = "ERROR: ";
+#if defined(_WIN32)
+				prefix = "\033[31m" + prefix + "\033[0m";
+#endif
 			}
 
 
@@ -52,9 +64,9 @@ namespace vks
 			}
 #else
 			if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-				std::cerr << debugMessage.str() << "\n";
+				std::cerr << debugMessage.str() << "\n\n";
 			} else {
-				std::cout << debugMessage.str() << "\n";
+				std::cout << debugMessage.str() << "\n\n";
 			}
 			fflush(stdout);
 #endif
