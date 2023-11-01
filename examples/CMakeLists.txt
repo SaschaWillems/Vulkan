@@ -134,6 +134,7 @@ set(EXAMPLES
 	rayquery
 	raytracingbasic
 	raytracingcallable
+	raytracinggltf
 	raytracingintersection
 	raytracingreflections
 	raytracingsbtdata

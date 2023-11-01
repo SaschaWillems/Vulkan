@@ -7,7 +7,7 @@
 */
 
 /*
-* Note : This sample is work-in-progress and works basically, but it's not yet finished
+* Important note : This sample is work-in-progress and works basically, but it's not finished
 */
 
 #include "texturesparseresidency.h"

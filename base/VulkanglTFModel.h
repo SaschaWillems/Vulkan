@@ -63,6 +63,7 @@ namespace vkglTF
 		uint32_t layerCount;
 		VkDescriptorImageInfo descriptor;
 		VkSampler sampler;
+		uint32_t index;
 		void updateDescriptor();
 		void destroy();
 		void fromglTfImage(tinygltf::Image& gltfimage, std::string path, vks::VulkanDevice* device, VkQueue copyQueue);
