@@ -1,0 +1,49 @@
+/* Copyright (c) 2023, Sascha Willems
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ */
+#version 460
+
+#extension GL_EXT_ray_tracing : require
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_buffer_reference2 : require
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+layout(location = 0) rayPayloadInEXT vec3 hitValue;
+layout(location = 3) rayPayloadInEXT uint payloadSeed;
+
+hitAttributeEXT vec2 attribs;
+
+layout(binding = 3, set = 0) uniform sampler2D image;
+
+struct GeometryNode {
+	uint64_t vertexBufferDeviceAddress;
+	uint64_t indexBufferDeviceAddress;
+	int textureIndexBaseColor;
+	int textureIndexOcclusion;
+};
+layout(binding = 4, set = 0) buffer GeometryNodes { GeometryNode nodes[]; } geometryNodes;
+
+layout(binding = 5, set = 0) uniform sampler2D textures[];
+
+#include "bufferreferences.glsl"
+#include "geometrytypes.glsl"
+#include "random.glsl"
+
+void main()
+{
+	Triangle tri = unpackTriangle(gl_PrimitiveID, 112);
+	GeometryNode geometryNode = geometryNodes.nodes[gl_GeometryIndexEXT];
+	vec4 color = texture(textures[nonuniformEXT(geometryNode.textureIndexBaseColor)], tri.uv);
+	// If the alpha value of the texture at the current UV coordinates is below a given threshold, we'll ignore this intersection
+	// That way ray traversal will be stopped and the miss shader will be invoked
+//	if (color.a < 0.9) {
+		//if (((gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x) % 4) == 0) {
+		 if(rnd(payloadSeed) > color.a) {
+			ignoreIntersectionEXT;
+		}
+//	}
+}
