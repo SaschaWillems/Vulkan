@@ -1,5 +1,5 @@
 /*
- * Vulkan Example - Rendering a glTF model using hardware accelerated ray tracing example
+ * Vulkan Example - Rendering a glTF model using hardware accelerated ray tracing example /for proper transparency, this sample does frame accumulation)
  *
  * Copyright (C) 2023 by Sascha Willems - www.saschawillems.de
  *
@@ -98,7 +98,6 @@ public:
 		shaderBindingTables.miss.destroy();
 		shaderBindingTables.hit.destroy();
 		ubo.destroy();
-		texture.destroy();
 	}
 
 	void createAccelerationStructureBuffer(AccelerationStructure &accelerationStructure, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo)
@@ -574,8 +573,6 @@ public:
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor),
 			// Binding 2: Uniform data
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &ubo.descriptor),
-			// Binding 3: Texture image
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texture.descriptor),
 			// Binding 4: Geometry node information SSBO
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &geometryNodesBuffer.descriptor),
 		};
@@ -744,7 +741,6 @@ public:
 
 	void loadAssets()
 	{
-		texture.loadFromFile(getAssetPath() + "textures/gratefloor_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 		vkglTF::memoryPropertyFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		model.loadFromFile(getAssetPath() + "models/FlightHelmet/glTF/FlightHelmet.gltf", vulkanDevice, queue);
 	}
