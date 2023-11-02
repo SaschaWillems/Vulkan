@@ -349,6 +349,10 @@ Callable shaders can be dynamically invoked from within other ray tracing shader
 
 Uses an intersection shader for procedural geometry. Instead of using actual geometry, this sample on passes bounding boxes and object definitions. An intersection shader is then used to trace against the procedural objects.
 
+#### [Ray traced glTF](examples/raytracinggltf/)
+
+Renders a textured glTF model using ray traycing instead of rasterization. Makes use of frame accumulation for transparency and anti aliasing.
+
 #### [Ray query](examples/rayquery)
 
 Ray queries add acceleration structure intersection functionality to non ray tracing shader stages. This allows for combining ray tracing with rasterization. This example makes uses ray queries to add ray casted shadows to a rasterized sample in the fragment shader.
