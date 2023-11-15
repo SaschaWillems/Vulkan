@@ -232,7 +232,7 @@ public:
 				vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.albedo.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
 			};
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-			for (size_t i = 0; i < descriptorImageInfos.size(); i++) {
+			for (uint32_t i = 0; i < descriptorImageInfos.size(); i++) {
 				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, i, &descriptorImageInfos[i]));
 			}
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);

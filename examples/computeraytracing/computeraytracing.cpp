@@ -486,7 +486,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				3);
 
@@ -507,7 +507,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vks::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &graphics.descriptorSetLayout));
 
@@ -539,7 +539,7 @@ public:
 				&textureComputeTarget.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
@@ -588,7 +588,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState =
 			vks::initializers::pipelineDynamicStateCreateInfo(
 				dynamicStateEnables.data(),
-				dynamicStateEnables.size(),
+				static_cast<uint32_t>(dynamicStateEnables.size()),
 				0);
 
 		// Display pipeline
@@ -618,7 +618,7 @@ public:
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
 		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 		pipelineCreateInfo.renderPass = renderPass;
 
@@ -665,7 +665,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vks::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr,	&compute.descriptorSetLayout));
 
@@ -712,7 +712,7 @@ public:
 				&compute.storageBuffers.planes.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, computeWriteDescriptorSets.size(), computeWriteDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
 
 		// Create compute shader pipelines
 		VkComputePipelineCreateInfo computePipelineCreateInfo =

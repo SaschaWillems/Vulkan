@@ -95,19 +95,18 @@ public:
 
 			// [POI] Viewport setup
 			VkViewport viewport{};
+			viewport.x = static_cast<float>(offsetx);
+			viewport.width = static_cast<float>(width);
+
 			if (negativeViewport) {
-				viewport.x = offsetx;
 				// [POI] When using a negative viewport height, the origin needs to be adjusted too
 				viewport.y = (float)height - offsety;
-				viewport.width = (float)width;
 				// [POI] Flip the sign of the viewport's height
 				viewport.height = -(float)height;
 			}
 			else {
-				viewport.x = offsetx;
-				viewport.y = offsety;
-				viewport.width = (float)width;
-				viewport.height = (float)height;
+				viewport.y = static_cast<float>(offsety);
+				viewport.height = static_cast<float>(height);
 			}
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;

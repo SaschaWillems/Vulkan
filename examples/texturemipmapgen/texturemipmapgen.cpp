@@ -114,7 +114,7 @@ public:
 		// calculate num of mip maps
 		// numLevels = 1 + floor(log2(max(w, h, d)))
 		// Calculated as log2(max(width, height, depth))c + 1 (see specs)
-		texture.mipLevels = floor(log2(std::max(texture.width, texture.height))) + 1;
+		texture.mipLevels = static_cast<uint32_t>(floor(log2(std::max(texture.width, texture.height))) + 1);
 
 		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;

@@ -259,7 +259,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				3);
 
@@ -280,7 +280,7 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			vks::initializers::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
@@ -313,19 +313,19 @@ public:
 				&uniformBuffers.occluder.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
 		// Teapot
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.teapot));
 		writeDescriptorSets[0].dstSet = descriptorSets.teapot;
 		writeDescriptorSets[0].pBufferInfo = &uniformBuffers.teapot.descriptor;
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
 		// Sphere
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.sphere));
 		writeDescriptorSets[0].dstSet = descriptorSets.sphere;
 		writeDescriptorSets[0].pBufferInfo = &uniformBuffers.sphere.descriptor;
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
@@ -349,7 +349,7 @@ public:
 		pipelineCI.pViewportState = &viewportState;
 		pipelineCI.pDepthStencilState = &depthStencilState;
 		pipelineCI.pDynamicState = &dynamicState;
-		pipelineCI.stageCount = shaderStages.size();
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Color });;
 
@@ -412,7 +412,6 @@ public:
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
 
-		uint8_t *pData;
 		// Occluder
 		uboVS.visible = 1.0f;
 		uboVS.model = glm::scale(glm::mat4(1.0f), glm::vec3(6.0f));

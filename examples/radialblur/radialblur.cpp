@@ -404,7 +404,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
 
@@ -458,7 +458,7 @@ public:
 			// Binding 1: Color gradient sampler
 			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.gradient.descriptor),
 		};
-		vkUpdateDescriptorSets(device, offScreenWriteDescriptorSets.size(), offScreenWriteDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(offScreenWriteDescriptorSets.size()), offScreenWriteDescriptorSets.data(), 0, nullptr);
 
 		// Fullscreen radial blur
 		descriptorSetAllocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.radialBlur, 1);
@@ -471,7 +471,7 @@ public:
 			vks::initializers::writeDescriptorSet(descriptorSets.radialBlur, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	1, &offscreenPass.descriptor),
 		};
 
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
@@ -484,7 +484,7 @@ public:
 		VkPipelineViewportStateCreateInfo viewportStateCI = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), dynamicStateEnables.size(), 0);
+		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
@@ -496,7 +496,7 @@ public:
 		pipelineCI.pViewportState = &viewportStateCI;
 		pipelineCI.pDepthStencilState = &depthStencilStateCI;
 		pipelineCI.pDynamicState = &dynamicStateCI;
-		pipelineCI.stageCount = shaderStages.size();
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 
 		// Radial blur pipeline

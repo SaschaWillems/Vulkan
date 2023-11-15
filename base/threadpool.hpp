@@ -102,7 +102,7 @@ namespace vks
 		void setThreadCount(uint32_t count)
 		{
 			threads.clear();
-			for (auto i = 0; i < count; i++)
+			for (auto i = 0U; i < count; i++)
 			{
 				threads.push_back(make_unique<Thread>());
 			}

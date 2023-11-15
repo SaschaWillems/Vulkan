@@ -162,9 +162,6 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 
-		VkViewport viewport;
-		VkRect2D scissor;
-
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));

@@ -42,7 +42,7 @@ void VulkanGear::generate(GearInfo *gearinfo, VkQueue queue)
 	std::vector<Vertex> vBuffer;
 	std::vector<uint32_t> iBuffer;
 
-	int i, j;
+	int i;
 	float r0, r1, r2;
 	float ta, da;
 	float u1, v1, u2, v2, len;
@@ -53,13 +53,13 @@ void VulkanGear::generate(GearInfo *gearinfo, VkQueue queue)
 	r0 = gearinfo->innerRadius;
 	r1 = gearinfo->outerRadius - gearinfo->toothDepth / 2.0f;
 	r2 = gearinfo->outerRadius + gearinfo->toothDepth / 2.0f;
-	da = 2.0f * M_PI / gearinfo->numTeeth / 4.0f;
+	da = static_cast<float>(2.0f * M_PI / gearinfo->numTeeth / 4.0f);
 
 	glm::vec3 normal;
 
 	for (i = 0; i < gearinfo->numTeeth; i++)
 	{
-		ta = i * 2.0f * M_PI / gearinfo->numTeeth;
+		ta = static_cast<float>(i * 2.0f * M_PI / gearinfo->numTeeth);
 
 		cos_ta = cos(ta);
 		cos_ta_1da = cos(ta + da);
@@ -251,7 +251,7 @@ void VulkanGear::generate(GearInfo *gearinfo, VkQueue queue)
 			iBuffer.data());
 	}
 
-	indexCount = iBuffer.size();
+	indexCount = static_cast<uint32_t>(iBuffer.size());
 
 	prepareUniformBuffer();
 }

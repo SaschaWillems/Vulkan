@@ -98,7 +98,7 @@ public:
 	void setupMultisampleTarget()
 	{
 		// Check if device supports requested sample count for color and depth frame buffer
-		assert((deviceProperties.limits.framebufferColorSampleCounts >= sampleCount) && (deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount));
+		assert((deviceProperties.limits.framebufferColorSampleCounts >= static_cast<unsigned>(sampleCount)) && (deviceProperties.limits.framebufferDepthSampleCounts >= static_cast<unsigned>(sampleCount)));
 
 		// Color target
 		VkImageCreateInfo info = vks::initializers::imageCreateInfo();
@@ -279,7 +279,7 @@ public:
 		dependencies[1].dependencyFlags = 0;
 
 		VkRenderPassCreateInfo renderPassInfo = vks::initializers::renderPassCreateInfo();
-		renderPassInfo.attachmentCount = attachments.size();
+		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		renderPassInfo.pAttachments = attachments.data();
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
@@ -320,9 +320,9 @@ public:
 
 		VkFramebufferCreateInfo frameBufferCreateInfo = {};
 		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		frameBufferCreateInfo.pNext = NULL;
+		frameBufferCreateInfo.pNext = nullptr;
 		frameBufferCreateInfo.renderPass = renderPass;
-		frameBufferCreateInfo.attachmentCount = attachments.size();
+		frameBufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		frameBufferCreateInfo.pAttachments = attachments.data();
 		frameBufferCreateInfo.width = width;
 		frameBufferCreateInfo.height = height;
@@ -397,7 +397,7 @@ public:
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(
-				poolSizes.size(),
+				static_cast<uint32_t>(poolSizes.size()),
 				poolSizes.data(),
 				2);
 
@@ -430,7 +430,7 @@ public:
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
@@ -459,7 +459,7 @@ public:
 		pipelineCI.pViewportState = &viewportState;
 		pipelineCI.pDepthStencilState = &depthStencilState;
 		pipelineCI.pDynamicState = &dynamicState;
-		pipelineCI.stageCount = shaderStages.size();
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color });
 
