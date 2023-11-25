@@ -48,7 +48,6 @@ public:
 	};
 
 	struct {
-		glm::vec4 viewPos;
 		Light lights[NUM_LIGHTS];
 	} uboLights;
 
@@ -766,7 +765,6 @@ public:
 
 		// Update
 		updateUniformBufferDeferredMatrices();
-		updateUniformBufferDeferredLights();
 	}
 
 	void updateUniformBufferDeferredMatrices()
@@ -794,16 +792,11 @@ public:
 
 		for (auto& light : uboLights.lights)
 		{
-			light.position = glm::vec4(rndDist(rndGen) * 6.0f, 0.25f + std::abs(rndDist(rndGen)) * 4.0f, rndDist(rndGen) * 6.0f, 1.0f);
+			light.position = glm::vec4(rndDist(rndGen) * 8.0f, 0.25f + std::abs(rndDist(rndGen)) * 4.0f, rndDist(rndGen) * 8.0f, 1.0f);
 			light.color = colors[rndCol(rndGen)];
 			light.radius = 1.0f + std::abs(rndDist(rndGen));
 		}
-	}
 
-	// Update fragment shader light position uniform block
-	void updateUniformBufferDeferredLights()
-	{
-		uboLights.viewPos = glm::vec4(camera.position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 		memcpy(uniformBuffers.lights.mapped, &uboLights, sizeof(uboLights));
 	}
 
@@ -825,8 +818,8 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
-		initLights();
 		prepareUniformBuffers();
+		initLights();
 		setupDescriptorSetLayout();
 		preparePipelines();
 		setupDescriptorPool();
@@ -843,14 +836,7 @@ public:
 		draw();
 		if (camera.updated) {
 			updateUniformBufferDeferredMatrices();
-			updateUniformBufferDeferredLights();
 		}
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBufferDeferredMatrices();
-		updateUniformBufferDeferredLights();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
@@ -863,7 +849,6 @@ public:
 		if (overlay->header("Settings")) {
 			if (overlay->button("Randomize lights")) {
 				initLights();
-				updateUniformBufferDeferredLights();
 			}
 		}
 	}
