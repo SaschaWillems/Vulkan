@@ -21,8 +21,6 @@
 
 #define ENABLE_VALIDATION false
 
-#define NUM_LIGHTS 64
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -47,14 +45,12 @@ public:
 		float radius;
 	};
 
-	struct {
-		Light lights[NUM_LIGHTS];
-	} uboLights;
+	std::array<Light, 64> lights;
 
 	struct {
 		vks::Buffer GBuffer;
 		vks::Buffer lights;
-	} uniformBuffers;
+	} buffers;
 
 	struct {
 		VkPipeline offscreen;
@@ -128,8 +124,8 @@ public:
 		clearAttachment(&attachments.albedo);
 
 		textures.glass.destroy();
-		uniformBuffers.GBuffer.destroy();
-		uniformBuffers.lights.destroy();
+		buffers.GBuffer.destroy();
+		buffers.lights.destroy();
 	}
 
 	// Enable physical device features required for this example
@@ -526,6 +522,7 @@ public:
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 4),
 		};
@@ -556,7 +553,7 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
 		writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.GBuffer.descriptor)
+			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &buffers.GBuffer.descriptor)
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
@@ -617,7 +614,7 @@ public:
 			// Binding 2: Albedo input attachment
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
 			// Binding 3: Light positions
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
 		};
 
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
@@ -648,7 +645,7 @@ public:
 			// Binding 2: Albedo texture target
 			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2, &texDescriptorAlbedo),
 			// Binding 4: Fragment shader lights
-			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &uniformBuffers.lights.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &buffers.lights.descriptor),
 		};
 
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
@@ -667,22 +664,6 @@ public:
 
 		shaderStages[0] = loadShader(getShadersPath() + "subpasses/composition.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "subpasses/composition.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-		// Use specialization constants to pass number of lights to the shader
-		VkSpecializationMapEntry specializationEntry{};
-		specializationEntry.constantID = 0;
-		specializationEntry.offset = 0;
-		specializationEntry.size = sizeof(uint32_t);
-
-		uint32_t specializationData = NUM_LIGHTS;
-
-		VkSpecializationInfo specializationInfo;
-		specializationInfo.mapEntryCount = 1;
-		specializationInfo.pMapEntries = &specializationEntry;
-		specializationInfo.dataSize = sizeof(specializationData);
-		specializationInfo.pData = &specializationData;
-
-		shaderStages[1].pSpecializationInfo = &specializationInfo;
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayouts.composition, renderPass, 0);
 
@@ -727,7 +708,7 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.transparent));
 
 		writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSets.transparent, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.GBuffer.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.transparent, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &buffers.GBuffer.descriptor),
 			vks::initializers::writeDescriptorSet(descriptorSets.transparent, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &texDescriptorPosition),
 			vks::initializers::writeDescriptorSet(descriptorSets.transparent, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textures.glass.descriptor),
 		};
@@ -755,13 +736,13 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Deferred vertex shader
-		vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.GBuffer, sizeof(uboGBuffer));
-		VK_CHECK_RESULT(uniformBuffers.GBuffer.map());
+		// Matrices
+		vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffers.GBuffer, sizeof(uboGBuffer));
+		VK_CHECK_RESULT(buffers.GBuffer.map());
 
-		// Deferred fragment shader
-		vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.lights, sizeof(uboLights));
-		VK_CHECK_RESULT(uniformBuffers.lights.map());
+		// Lights
+		vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffers.lights, lights.size() * sizeof(Light));
+		VK_CHECK_RESULT(buffers.lights.map());
 
 		// Update
 		updateUniformBufferDeferredMatrices();
@@ -772,7 +753,7 @@ public:
 		uboGBuffer.projection = camera.matrices.perspective;
 		uboGBuffer.view = camera.matrices.view;
 		uboGBuffer.model = glm::mat4(1.0f);
-		memcpy(uniformBuffers.GBuffer.mapped, &uboGBuffer, sizeof(uboGBuffer));
+		memcpy(buffers.GBuffer.mapped, &uboGBuffer, sizeof(uboGBuffer));
 	}
 
 	void initLights()
@@ -786,18 +767,20 @@ public:
 			glm::vec3(1.0f, 1.0f, 0.0f),
 		};
 
-		std::default_random_engine rndGen(benchmark.active ? 0 : (unsigned)time(nullptr));
+		std::random_device rndDevice;
+		std::default_random_engine rndGen(benchmark.active ? 0 : rndDevice());
 		std::uniform_real_distribution<float> rndDist(-1.0f, 1.0f);
-		std::uniform_int_distribution<uint32_t> rndCol(0, static_cast<uint32_t>(colors.size()-1));
+		std::uniform_real_distribution<float> rndCol(0.0f, 0.5f);
 
-		for (auto& light : uboLights.lights)
+		for (auto& light : lights)
 		{
 			light.position = glm::vec4(rndDist(rndGen) * 8.0f, 0.25f + std::abs(rndDist(rndGen)) * 4.0f, rndDist(rndGen) * 8.0f, 1.0f);
-			light.color = colors[rndCol(rndGen)];
+			//light.color = colors[rndCol(rndGen)];
+			light.color = glm::vec3(rndCol(rndGen), rndCol(rndGen), rndCol(rndGen)) * 2.0f;
 			light.radius = 1.0f + std::abs(rndDist(rndGen));
 		}
 
-		memcpy(uniformBuffers.lights.mapped, &uboLights, sizeof(uboLights));
+		memcpy(buffers.lights.mapped, lights.data(), lights.size() * sizeof(Light));
 	}
 
 	void draw()
