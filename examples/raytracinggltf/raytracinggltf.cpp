@@ -1,13 +1,9 @@
 /*
- * Vulkan Example - Rendering a glTF model using hardware accelerated ray tracing example /for proper transparency, this sample does frame accumulation)
+ * Vulkan Example - Rendering a glTF model using hardware accelerated ray tracing example (for proper transparency, this sample does frame accumulation)
  *
  * Copyright (C) 2023 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
- */
-
-/*
- * @todo
  */
 
 #include "VulkanRaytracingSample.h"
@@ -75,12 +71,6 @@ public:
 
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
-		physicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
-		physicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-		physicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
-		physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
-
-		deviceCreatepNextChain = &physicalDeviceDescriptorIndexingFeatures;
 	}
 
 	~VulkanExample()
@@ -98,6 +88,7 @@ public:
 		shaderBindingTables.miss.destroy();
 		shaderBindingTables.hit.destroy();
 		ubo.destroy();
+		geometryNodesBuffer.destroy();
 	}
 
 	void createAccelerationStructureBuffer(AccelerationStructure &accelerationStructure, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo)
@@ -220,7 +211,7 @@ public:
 		accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
 		accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 		accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-		accelerationStructureBuildGeometryInfo.geometryCount = geometries.size();
+		accelerationStructureBuildGeometryInfo.geometryCount = static_cast<uint32_t>(geometries.size());
 		accelerationStructureBuildGeometryInfo.pGeometries = geometries.data();
 		
 		const uint32_t numTriangles = maxPrimitiveCounts[0];
@@ -373,7 +364,6 @@ public:
 		VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
 		accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
 		accelerationDeviceAddressInfo.accelerationStructure = topLevelAS.handle;
-		topLevelAS.deviceAddress = vkGetAccelerationStructureDeviceAddressKHR(device, &accelerationDeviceAddressInfo);
 
 		deleteScratchBuffer(scratchBuffer);
 		instancesBuffer.destroy();
@@ -447,7 +437,6 @@ public:
 			0,
 			0,
 			0,
-			0, 
 			VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
 		};
 		setLayoutBindingFlags.pBindingFlags = descriptorBindingFlags.data();
@@ -716,6 +705,10 @@ public:
 	{
 		uniformData.projInverse = glm::inverse(camera.matrices.perspective);
 		uniformData.viewInverse = glm::inverse(camera.matrices.view);
+		// This value is used to accumulate multiple frames into the finale picture
+		// It's required as ray tracing needs to do multiple passes for transparency
+		// In this sample we use noise offset by this frame index to shoot rays for transparency into different directions
+		// Once enough frames with random ray directions have been accumulated, it looks like proper transparency
 		uniformData.frame++;
 		memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 	}
@@ -734,7 +727,13 @@ public:
 		enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
 		enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
 
-		deviceCreatepNextChain = &enabledAccelerationStructureFeatures;
+		physicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+		physicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+		physicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
+		physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+		physicalDeviceDescriptorIndexingFeatures.pNext = &enabledAccelerationStructureFeatures;
+
+		deviceCreatepNextChain = &physicalDeviceDescriptorIndexingFeatures;
 
 		enabledFeatures.samplerAnisotropy = VK_TRUE;
 	}

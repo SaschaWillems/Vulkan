@@ -4,7 +4,7 @@ apply from: '../gradle/outputfilename.gradle'
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "de.saschawillems.vulkanParallaxmapping"
+        applicationId "de.saschawillems.vulkanRaytracinggltf"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -49,29 +49,16 @@ task copyTask {
     }
 
     copy {
-       from rootProject.ext.shaderPath + 'glsl/parallaxmapping'
-       into 'assets/shaders/glsl/parallaxmapping'
+       from rootProject.ext.shaderPath + 'glsl/raytracinggltf'
+       into 'assets/shaders/glsl/raytracinggltf'
        include '*.*'
     }
 
     copy {
-       from rootProject.ext.assetPath + 'models'
-       into 'assets/models'
-       include 'plane.gltf'
-    }
-
-    copy {
-       from rootProject.ext.assetPath + 'textures'
-       into 'assets/textures'
-       include 'rocks_normal_height_rgba.ktx'
-    }
-
-    copy {
-       from rootProject.ext.assetPath + 'textures'
-       into 'assets/textures'
-       include 'rocks_color*.ktx'
-    }
-
+       from rootProject.ext.assetPath + 'models/FlightHelmet/glTF'
+       into 'assets/models/FlightHelmet/glTF'
+       include '*.*'
+    } 
 
 }
 

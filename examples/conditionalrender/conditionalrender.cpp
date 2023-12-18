@@ -52,6 +52,7 @@ public:
 		/*
 			[POI] Enable extension required for conditional rendering
 		*/
+		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME);
 	}
 

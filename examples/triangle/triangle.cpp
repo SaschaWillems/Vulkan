@@ -141,6 +141,8 @@ public:
 		vkDestroyBuffer(device, indices.buffer, nullptr);
 		vkFreeMemory(device, indices.memory, nullptr);
 
+		vkDestroyCommandPool(device, commandPool, nullptr);
+
 		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++)
 		{
 			vkDestroyFence(device, waitFences[i], nullptr);
