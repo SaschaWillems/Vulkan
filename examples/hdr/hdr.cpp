@@ -1,9 +1,7 @@
 /*
 * Vulkan Example - High dynamic range rendering
 *
-* Note: Requires the separate asset pack (see data/README.md)
-*
-* Copyright by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -161,9 +159,6 @@ public:
 		renderPassBeginInfo.renderArea.offset.y = 0;
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
-
-		VkViewport viewport;
-		VkRect2D scissor;
 
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{

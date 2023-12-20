@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Compute shader cloth simulation
 *
-* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -673,7 +673,7 @@ public:
 			//compute.ubo.deltaT = 0.000005f;
 			// todo: base on frametime
 			// SRS - Clamp frameTimer to max 20ms refresh period (e.g. if blocked on resize), otherwise image breakup can occur
-			compute.ubo.deltaT = fmin(frameTimer, 0.02) * 0.0025f;
+			compute.ubo.deltaT = fmin(frameTimer, 0.02f) * 0.0025f;
 
 			if (simulateWind) {
 				std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
