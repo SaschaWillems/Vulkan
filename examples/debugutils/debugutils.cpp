@@ -1,173 +1,35 @@
 /*
-* Vulkan Example - Example for VK_EXT_debug_marker extension. To be used in conjunction with a debugging app like RenderDoc (https://renderdoc.org)
+* Vulkan Example - Example for the VK_EXT_debug_utils extension. Can be used in conjunction with a debugging app like RenderDoc (https://renderdoc.org)
 *
-* Copyright (C) by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-/*
- * Note: This sample is deprecated!
- * An updated version using VK_EXT_debug_utils along with an in-depth tutorial is available in the official Khronos Vulkan Samples repository at
- * https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/extensions/debug_utils.
- */
+// @todo: rework
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
 #define ENABLE_VALIDATION false
 
-// Offscreen properties
-#define OFFSCREEN_DIM 256
-#define OFFSCREEN_FORMAT VK_FORMAT_R8G8B8A8_UNORM
-#define OFFSCREEN_FILTER VK_FILTER_LINEAR;
-
-// Setup and functions for the VK_EXT_debug_marker_extension
-// Extension spec can be found at https://github.com/KhronosGroup/Vulkan-Docs/blob/1.0-VK_EXT_debug_marker/doc/specs/vulkan/appendices/VK_EXT_debug_marker.txt
-// Note that the extension will only be present if run from an offline debugging application
-namespace DebugMarker
-{
-	bool active = false;
-	bool extensionPresent = false;
-
-	PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTag = VK_NULL_HANDLE;
-	PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectName = VK_NULL_HANDLE;
-	PFN_vkCmdDebugMarkerBeginEXT vkCmdDebugMarkerBegin = VK_NULL_HANDLE;
-	PFN_vkCmdDebugMarkerEndEXT vkCmdDebugMarkerEnd = VK_NULL_HANDLE;
-	PFN_vkCmdDebugMarkerInsertEXT vkCmdDebugMarkerInsert = VK_NULL_HANDLE;
-
-	// Get function pointers for the debug report extensions from the device
-	void setup(VkDevice device, VkPhysicalDevice physicalDevice)
-	{
-		// Check if the debug marker extension is present (which is the case if run from a graphics debugger)
-		uint32_t extensionCount;
-		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
-		std::vector<VkExtensionProperties> extensions(extensionCount);
-		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, extensions.data());
-		for (auto extension : extensions) {
-			if (strcmp(extension.extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME) == 0) {
-				extensionPresent = true;
-				break;
-			}
-		}
-
-		if (extensionPresent) {
-			// The debug marker extension is not part of the core, so function pointers need to be loaded manually
-			vkDebugMarkerSetObjectTag = (PFN_vkDebugMarkerSetObjectTagEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectTagEXT");
-			vkDebugMarkerSetObjectName = (PFN_vkDebugMarkerSetObjectNameEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectNameEXT");
-			vkCmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerBeginEXT");
-			vkCmdDebugMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerEndEXT");
-			vkCmdDebugMarkerInsert = (PFN_vkCmdDebugMarkerInsertEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerInsertEXT");
-			// Set flag if at least one function pointer is present
-			active = (vkDebugMarkerSetObjectName != VK_NULL_HANDLE);
-		}
-		else {
-			std::cout << "Warning: " << VK_EXT_DEBUG_MARKER_EXTENSION_NAME << " not present, debug markers are disabled.";
-			std::cout << "Try running from inside a Vulkan graphics debugger (e.g. RenderDoc)" << std::endl;
-		}
-	}
-
-	// Sets the debug name of an object
-	// All Objects in Vulkan are represented by their 64-bit handles which are passed into this function
-	// along with the object type
-	void setObjectName(VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, const char *name)
-	{
-		// Check for valid function pointer (may not be present if not running in a debugging application)
-		if (active)
-		{
-			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
-			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
-			nameInfo.objectType = objectType;
-			nameInfo.object = object;
-			nameInfo.pObjectName = name;
-			vkDebugMarkerSetObjectName(device, &nameInfo);
-		}
-	}
-
-	// Set the tag for an object
-	void setObjectTag(VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, uint64_t name, size_t tagSize, const void* tag)
-	{
-		// Check for valid function pointer (may not be present if not running in a debugging application)
-		if (active)
-		{
-			VkDebugMarkerObjectTagInfoEXT tagInfo = {};
-			tagInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_TAG_INFO_EXT;
-			tagInfo.objectType = objectType;
-			tagInfo.object = object;
-			tagInfo.tagName = name;
-			tagInfo.tagSize = tagSize;
-			tagInfo.pTag = tag;
-			vkDebugMarkerSetObjectTag(device, &tagInfo);
-		}
-	}
-
-	// Start a new debug marker region
-	void beginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, glm::vec4 color)
-	{
-		// Check for valid function pointer (may not be present if not running in a debugging application)
-		if (active)
-		{
-			VkDebugMarkerMarkerInfoEXT markerInfo = {};
-			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-			memcpy(markerInfo.color, &color[0], sizeof(float) * 4);
-			markerInfo.pMarkerName = pMarkerName;
-			vkCmdDebugMarkerBegin(cmdbuffer, &markerInfo);
-		}
-	}
-
-	// Insert a new debug marker into the command buffer
-	void insert(VkCommandBuffer cmdbuffer, std::string markerName, glm::vec4 color)
-	{
-		// Check for valid function pointer (may not be present if not running in a debugging application)
-		if (active)
-		{
-			VkDebugMarkerMarkerInfoEXT markerInfo = {};
-			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-			memcpy(markerInfo.color, &color[0], sizeof(float) * 4);
-			markerInfo.pMarkerName = markerName.c_str();
-			vkCmdDebugMarkerInsert(cmdbuffer, &markerInfo);
-		}
-	}
-
-	// End the current debug marker region
-	void endRegion(VkCommandBuffer cmdBuffer)
-	{
-		// Check for valid function (may not be present if not running in a debugging application)
-		if (vkCmdDebugMarkerEnd)
-		{
-			vkCmdDebugMarkerEnd(cmdBuffer);
-		}
-	}
-};
-
-struct Scene {
-
-	vkglTF::Model model;
-	std::vector<std::string> modelPartNames;
-
-	void draw(VkCommandBuffer cmdBuffer)
-	{
-		model.bindBuffers(cmdBuffer);
-		for (auto i = 0; i < model.nodes.size(); i++)
-		{
-			// Add debug marker the name of this glTF node
-			DebugMarker::insert(cmdBuffer, "Draw \"" + model.nodes[i]->name + "\"", glm::vec4(0.0f));
-			model.drawNode(model.nodes[i], cmdBuffer);
-		}
-	}
-
-	void loadFromFile(std::string filename, vks::VulkanDevice* vulkanDevice, VkQueue queue)
-	{
-		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-		model.loadFromFile(filename, vulkanDevice, queue, glTFLoadingFlags);
-	}
-};
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool wireframe = true;
 	bool glow = true;
+
+	struct Scene {
+
+		vkglTF::Model model;
+		std::vector<std::string> modelPartNames;
+
+		void loadFromFile(std::string filename, vks::VulkanDevice* vulkanDevice, VkQueue queue)
+		{
+			const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+			model.loadFromFile(filename, vulkanDevice, queue, glTFLoadingFlags);
+		}
+	};
 
 	Scene scene, sceneGlow;
 
@@ -188,11 +50,7 @@ public:
 
 	VkPipelineLayout pipelineLayout;
 	VkDescriptorSetLayout descriptorSetLayout;
-
-	struct {
-		VkDescriptorSet scene;
-		VkDescriptorSet fullscreen;
-	} descriptorSets;
+	VkDescriptorSet descriptorSet;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -209,14 +67,23 @@ public:
 		VkDescriptorImageInfo descriptor;
 	} offscreenPass;
 
-	// Random tag data
-	struct DemoTag {
-		const char name[17] = "debug marker tag";
-	} demoTag;
+	// Function pointers for the VK_EXT_debug_utils_extension
+
+	bool debugUtilsSupported = false;
+
+	PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT{ nullptr };
+	PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT{ nullptr };
+	PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT{ nullptr };
+	PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXT{ nullptr };
+	PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT{ nullptr };
+	PFN_vkQueueBeginDebugUtilsLabelEXT vkQueueBeginDebugUtilsLabelEXT{ nullptr };
+	PFN_vkQueueInsertDebugUtilsLabelEXT vkQueueInsertDebugUtilsLabelEXT{ nullptr };
+	PFN_vkQueueEndDebugUtilsLabelEXT vkQueueEndDebugUtilsLabelEXT{ nullptr };
+	PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT{ nullptr };
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
-		title = "Debugging with VK_EXT_debug_marker";
+		title = "Debugging with VK_EXT_debug_utils";
 		camera.setRotation(glm::vec3(-4.35f, 16.25f, 0.0f));
 		camera.setRotationSpeed(0.5f);
 		camera.setPosition(glm::vec3(0.1f, 1.1f, -8.5f));
@@ -265,11 +132,141 @@ public:
 		vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
 	}
 
+	/*
+		Debug utils functions
+	*/
+
+	// Checks if debug utils are supported (usually only when a graphics debugger is active) and does the setup necessary to use this debug utils
+	void setupDebugUtils()
+	{
+		// Check if the debug utils extension is present (which is the case if run from a graphics debugger)
+		bool extensionPresent = false;
+		uint32_t extensionCount;
+		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+		std::vector<VkExtensionProperties> extensions(extensionCount);
+		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+		for (auto& extension : extensions) {
+			if (strcmp(extension.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0) {
+				extensionPresent = true;
+				break;
+			}
+		}
+
+		if (extensionPresent) {
+			// As with an other extension, function pointers need to be manually loaded
+			vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+			vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+			vkCmdBeginDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkCmdBeginDebugUtilsLabelEXT"));
+			vkCmdInsertDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkCmdInsertDebugUtilsLabelEXT"));
+			vkCmdEndDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkCmdEndDebugUtilsLabelEXT"));
+			vkQueueBeginDebugUtilsLabelEXT = reinterpret_cast<PFN_vkQueueBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkQueueBeginDebugUtilsLabelEXT"));
+			vkQueueInsertDebugUtilsLabelEXT = reinterpret_cast<PFN_vkQueueInsertDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkQueueInsertDebugUtilsLabelEXT"));
+			vkQueueEndDebugUtilsLabelEXT = reinterpret_cast<PFN_vkQueueEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkQueueEndDebugUtilsLabelEXT"));
+			vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));
+
+			// Set flag if at least one function pointer is present
+			debugUtilsSupported = (vkCreateDebugUtilsMessengerEXT != VK_NULL_HANDLE);
+		}
+		else {
+			std::cout << "Warning: " << VK_EXT_DEBUG_UTILS_EXTENSION_NAME << " not present, debug utils are disabled.";
+			std::cout << "Try running the sample from inside a Vulkan graphics debugger (e.g. RenderDoc)" << std::endl;
+		}
+	}
+
+	// The debug utils extensions allows us to put labels into command buffers and queues (to e.g. mark regions of interest) and to name Vulkan objects
+	// We wrap these into functions for convenience
+
+	// Functions for putting labels into a command buffer
+	// Labels consist of a name and an optional color
+	// How or if these are diplayed depends on the debugger used (RenderDoc e.g. displays both)
+
+	void cmdBeginLabel(VkCommandBuffer command_buffer, const char* label_name, std::vector<float> color)
+	{
+		if (!debugUtilsSupported) {
+			return;
+		}
+		VkDebugUtilsLabelEXT label = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+		label.pLabelName = label_name;
+		memcpy(label.color, color.data(), sizeof(float) * 4);
+		vkCmdBeginDebugUtilsLabelEXT(command_buffer, &label);
+	}
+
+	void cmdInsertLabel(VkCommandBuffer command_buffer, const char* label_name, std::vector<float> color)
+	{
+		if (!debugUtilsSupported) {
+			return;
+		}
+		VkDebugUtilsLabelEXT label = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+		label.pLabelName = label_name;
+		memcpy(label.color, color.data(), sizeof(float) * 4);
+		vkCmdInsertDebugUtilsLabelEXT(command_buffer, &label);
+	}
+
+	void cmdEndLabel(VkCommandBuffer command_buffer)
+	{
+		if (!debugUtilsSupported) {
+			return;
+		}
+		vkCmdEndDebugUtilsLabelEXT(command_buffer);
+	}
+
+	// Functions for putting labels into a queue
+	// Labels consist of a name and an optional color
+	// How or if these are diplayed depends on the debugger used (RenderDoc e.g. displays both)
+
+	void queueBeginLabel(VkQueue queue, const char* label_name, std::vector<float> color)
+	{
+		if (!debugUtilsSupported) {
+			return;
+		}
+		VkDebugUtilsLabelEXT label = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+		label.pLabelName = label_name;
+		memcpy(label.color, color.data(), sizeof(float) * 4);
+		vkQueueBeginDebugUtilsLabelEXT(queue, &label);
+	}
+
+	void queueInsertLabel(VkQueue queue, const char* label_name, std::vector<float> color)
+	{
+		if (!debugUtilsSupported) {
+			return;
+		}
+		VkDebugUtilsLabelEXT label = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+		label.pLabelName = label_name;
+		memcpy(label.color, color.data(), sizeof(float) * 4);
+		vkQueueInsertDebugUtilsLabelEXT(queue, &label);
+	}
+
+	void queueEndLabel(VkQueue queue)
+	{
+		if (!debugUtilsSupported) {
+			return;
+		}
+		vkQueueEndDebugUtilsLabelEXT(queue);
+	}
+
+	// Function for naming Vulkan objects
+	// In Vulkan, all objects (that can be named) are opaque unsigned 64 bit handles, and can be cased to uint64_t
+
+	void setObjectName(VkDevice device, VkObjectType object_type, uint64_t object_handle, const char* object_name)
+	{
+		if (!debugUtilsSupported) {
+			return;
+		}
+		VkDebugUtilsObjectNameInfoEXT name_info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
+		name_info.objectType = object_type;
+		name_info.objectHandle = object_handle;
+		name_info.pObjectName = object_name;
+		vkSetDebugUtilsObjectNameEXT(device, &name_info);
+	}
+
 	// Prepare a texture target and framebuffer for offscreen rendering
 	void prepareOffscreen()
 	{
-		offscreenPass.width = OFFSCREEN_DIM;
-		offscreenPass.height = OFFSCREEN_DIM;
+		const uint32_t dim = 256;
+		const VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
+
+		offscreenPass.width = 256;
+		offscreenPass.height = 256;
 
 		// Find a suitable depth format
 		VkFormat fbDepthFormat;
@@ -279,7 +276,7 @@ public:
 		// Color attachment
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
 		image.imageType = VK_IMAGE_TYPE_2D;
-		image.format = OFFSCREEN_FORMAT;
+		image.format = colorFormat;
 		image.extent.width = offscreenPass.width;
 		image.extent.height = offscreenPass.height;
 		image.extent.depth = 1;
@@ -302,7 +299,7 @@ public:
 
 		VkImageViewCreateInfo colorImageView = vks::initializers::imageViewCreateInfo();
 		colorImageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		colorImageView.format = OFFSCREEN_FORMAT;
+		colorImageView.format = colorFormat;
 		colorImageView.subresourceRange = {};
 		colorImageView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		colorImageView.subresourceRange.baseMipLevel = 0;
@@ -314,8 +311,8 @@ public:
 
 		// Create sampler to sample from the attachment in the fragment shader
 		VkSamplerCreateInfo samplerInfo = vks::initializers::samplerCreateInfo();
-		samplerInfo.magFilter = OFFSCREEN_FILTER;
-		samplerInfo.minFilter = OFFSCREEN_FILTER;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerInfo.addressModeV = samplerInfo.addressModeU;
@@ -355,7 +352,7 @@ public:
 
 		std::array<VkAttachmentDescription, 2> attchmentDescriptions = {};
 		// Color attachment
-		attchmentDescriptions[0].format = OFFSCREEN_FORMAT;
+		attchmentDescriptions[0].format = colorFormat;
 		attchmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
 		attchmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attchmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -431,32 +428,29 @@ public:
 		offscreenPass.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		offscreenPass.descriptor.imageView = offscreenPass.color.view;
 		offscreenPass.descriptor.sampler = offscreenPass.sampler;
-
-		// Name some objects for debugging
-		DebugMarker::setObjectName(device, (uint64_t)offscreenPass.color.image, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, "Off-screen color framebuffer");
-		DebugMarker::setObjectName(device, (uint64_t)offscreenPass.depth.image, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, "Off-screen depth framebuffer");
-		DebugMarker::setObjectName(device, (uint64_t)offscreenPass.sampler, VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT, "Off-screen framebuffer default sampler");
 	}
 
 	void loadAssets()
 	{
 		scene.loadFromFile(getAssetPath() + "models/treasure_smooth.gltf", vulkanDevice, queue);
 		sceneGlow.loadFromFile(getAssetPath() + "models/treasure_glow.gltf", vulkanDevice, queue);
-		// Name the buffers for debugging
-		// Scene
-		DebugMarker::setObjectName(device, (uint64_t)scene.model.vertices.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene vertex buffer");
-		DebugMarker::setObjectName(device, (uint64_t)scene.model.indices.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene index buffer");
-		// Glow
-		DebugMarker::setObjectName(device, (uint64_t)sceneGlow.model.vertices.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Glow vertex buffer");
-		DebugMarker::setObjectName(device, (uint64_t)sceneGlow.model.indices.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Glow index buffer");
+	}
+
+	void drawScene(Scene& scene, VkCommandBuffer cmdBuffer)
+	{
+		scene.model.bindBuffers(cmdBuffer);
+		for (auto i = 0; i < scene.model.nodes.size(); i++)
+		{
+			// Insert a label for the current model's name
+			cmdInsertLabel(cmdBuffer, scene.model.nodes[i]->name.c_str(), { 0.0f, 0.0f, 0.0f, 0.0f });
+			scene.model.drawNode(scene.model.nodes[i], cmdBuffer);
+		}
 	}
 
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 		VkClearValue clearValues[2];
-		VkViewport viewport;
-		VkRect2D scissor;
 
 		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{
@@ -479,8 +473,7 @@ public:
 				renderPassBeginInfo.clearValueCount = 2;
 				renderPassBeginInfo.pClearValues = clearValues;
 
-				// Start a new debug marker region
-				DebugMarker::beginRegion(drawCmdBuffers[i], "Off-screen scene rendering", glm::vec4(1.0f, 0.78f, 0.05f, 1.0f));
+				cmdBeginLabel(drawCmdBuffers[i], "Off-screen scene rendering", { 1.0f, 0.78f, 0.05f, 1.0f });
 
 				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -490,14 +483,14 @@ public:
 				VkRect2D scissor = vks::initializers::rect2D(offscreenPass.width, offscreenPass.height, 0, 0);
 				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.scene, 0, NULL);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.color);
 
-				sceneGlow.draw(drawCmdBuffers[i]);
+				drawScene(sceneGlow, drawCmdBuffers[i]);
 
 				vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-				DebugMarker::endRegion(drawCmdBuffers[i]);
+				cmdEndLabel(drawCmdBuffers[i]);
 			}
 
 			/*
@@ -519,8 +512,7 @@ public:
 				renderPassBeginInfo.clearValueCount = 2;
 				renderPassBeginInfo.pClearValues = clearValues;
 
-				// Start a new debug marker region
-				DebugMarker::beginRegion(drawCmdBuffers[i], "Render scene", glm::vec4(0.5f, 0.76f, 0.34f, 1.0f));
+				cmdBeginLabel(drawCmdBuffers[i], "Render scene", { 0.5f, 0.76f, 0.34f, 1.0f });
 
 				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -530,31 +522,29 @@ public:
 				VkRect2D scissor = vks::initializers::rect2D(wireframe ? width / 2 : width, height, 0, 0);
 				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.scene, 0, NULL);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 				// Solid rendering
 
-				// Start a new debug marker region
-				DebugMarker::beginRegion(drawCmdBuffers[i], "Toon shading draw", glm::vec4(0.78f, 0.74f, 0.9f, 1.0f));
+				cmdBeginLabel(drawCmdBuffers[i], "Toon shading draw", { 0.78f, 0.74f, 0.9f, 1.0f });
 
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toonshading);
-				scene.draw(drawCmdBuffers[i]);
+				drawScene(scene, drawCmdBuffers[i]);
 
-				DebugMarker::endRegion(drawCmdBuffers[i]);
+				cmdEndLabel(drawCmdBuffers[i]);
 
 				// Wireframe rendering
 				if (wireframe)
 				{
-					// Insert debug marker
-					DebugMarker::beginRegion(drawCmdBuffers[i], "Wireframe draw", glm::vec4(0.53f, 0.78f, 0.91f, 1.0f));
+					cmdBeginLabel(drawCmdBuffers[i], "Wireframe draw", { 0.53f, 0.78f, 0.91f, 1.0f });
 
 					scissor.offset.x = width / 2;
 					vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireframe);
-					scene.draw(drawCmdBuffers[i]);
+					drawScene(scene, drawCmdBuffers[i]);
 
-					DebugMarker::endRegion(drawCmdBuffers[i]);
+					cmdEndLabel(drawCmdBuffers[i]);
 
 					scissor.offset.x = 0;
 					scissor.extent.width = width;
@@ -564,21 +554,20 @@ public:
 				// Post processing
 				if (glow)
 				{
-					DebugMarker::beginRegion(drawCmdBuffers[i], "Apply post processing", glm::vec4(0.93f, 0.89f, 0.69f, 1.0f));
+					cmdBeginLabel(drawCmdBuffers[i], "Apply post processing", { 0.93f, 0.89f, 0.69f, 1.0f });
 
 					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.postprocess);
 					// Full screen quad is generated by the vertex shaders, so we reuse four vertices (for four invocations) from current vertex buffer
 					vkCmdDraw(drawCmdBuffers[i], 4, 1, 0, 0);
 
-					DebugMarker::endRegion(drawCmdBuffers[i]);
+					cmdEndLabel(drawCmdBuffers[i]);
 				}
 
 				drawUI(drawCmdBuffers[i]);
 
 				vkCmdEndRenderPass(drawCmdBuffers[i]);
 
-				// End current debug marker region
-				DebugMarker::endRegion(drawCmdBuffers[i]);
+				cmdEndLabel(drawCmdBuffers[i]);
 
 			}
 
@@ -593,7 +582,7 @@ public:
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes.size(), poolSizes.data(), 1);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
@@ -605,29 +594,25 @@ public:
 			// Binding 1 : Fragment shader combined sampler
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 		};
-		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), setLayoutBindings.size());
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-
-		// Name for debugging
-		DebugMarker::setObjectName(device, (uint64_t)pipelineLayout, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT, "Shared pipeline layout");
-		DebugMarker::setObjectName(device, (uint64_t)descriptorSetLayout, VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT, "Shared descriptor set layout");
 	}
 
 	void setupDescriptorSet()
 	{
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 			// Binding 1 : Color map
-			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &offscreenPass.descriptor)
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &offscreenPass.descriptor)
 		};
-		vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
@@ -640,7 +625,7 @@ public:
 		VkPipelineViewportStateCreateInfo viewportStateCI = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR	};
-		VkPipelineDynamicStateCreateInfo dynamicStateCI =	vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), dynamicStateEnables.size(), 0);
+		VkPipelineDynamicStateCreateInfo dynamicStateCI =	vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
@@ -651,18 +636,18 @@ public:
 		pipelineCI.pViewportState = &viewportStateCI;
 		pipelineCI.pDepthStencilState = &depthStencilStateCI;
 		pipelineCI.pDynamicState = &dynamicStateCI;
-		pipelineCI.stageCount = shaderStages.size();
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
-		pipelineCI.pVertexInputState            = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color});
+		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color});
 
 		// Toon shading pipeline
-		shaderStages[0] = loadShader(getShadersPath() + "debugmarker/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "debugmarker/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "debugutils/toon.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "debugutils/toon.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.toonshading));
 
 		// Color only pipeline
-		shaderStages[0] = loadShader(getShadersPath() + "debugmarker/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "debugmarker/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "debugutils/colorpass.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "debugutils/colorpass.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		pipelineCI.renderPass = offscreenPass.renderPass;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.color));
 
@@ -675,8 +660,8 @@ public:
 		}
 
 		// Post processing effect
-		shaderStages[0] = loadShader(getShadersPath() + "debugmarker/postprocess.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "debugmarker/postprocess.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "debugutils/postprocess.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "debugutils/postprocess.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		depthStencilStateCI.depthTestEnable = VK_FALSE;
 		depthStencilStateCI.depthWriteEnable = VK_FALSE;
 		rasterizationStateCI.polygonMode = VK_POLYGON_MODE_FILL;
@@ -690,27 +675,41 @@ public:
 		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_DST_ALPHA;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.postprocess));
+	}
 
-		// Name shader modules for debugging
+	// For convencience we name our Vulkan objects in a single place
+	void nameDebugObjects()
+	{
+		// Name some objects for debugging
+		setObjectName(device, VK_OBJECT_TYPE_IMAGE, (uint64_t)offscreenPass.color.image, "Off-screen color framebuffer");
+		setObjectName(device, VK_OBJECT_TYPE_IMAGE, (uint64_t)offscreenPass.depth.image, "Off-screen depth framebuffer");
+		setObjectName(device, VK_OBJECT_TYPE_SAMPLER, (uint64_t)offscreenPass.sampler, "Off-screen framebuffer default sampler");
+
+		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)uniformBuffer.buffer, "Scene uniform buffer block");
+		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)scene.model.vertices.buffer, "Scene vertex buffer");
+		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)scene.model.indices.buffer, "Scene index buffer");
+		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)sceneGlow.model.vertices.buffer, "Glow vertex buffer");
+		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)sceneGlow.model.indices.buffer, "Glow index buffer");
+		
 		// Shader module count starts at 2 when UI overlay in base class is enabled
 		uint32_t moduleIndex = settings.overlay ? 2 : 0;
-		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 0], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Toon shading vertex shader");
-		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 1], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Toon shading fragment shader");
-		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 2], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Color-only vertex shader");
-		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 3], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Color-only fragment shader");
-		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 4], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Postprocess vertex shader");
-		DebugMarker::setObjectName(device, (uint64_t)shaderModules[moduleIndex + 5], VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT, "Postprocess fragment shader");
+		setObjectName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)shaderModules[moduleIndex + 0], "Toon shading vertex shader");
+		setObjectName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)shaderModules[moduleIndex + 1], "Toon shading fragment shader");
+		setObjectName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)shaderModules[moduleIndex + 2], "Color-only vertex shader");
+		setObjectName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)shaderModules[moduleIndex + 3], "Color-only fragment shader");
+		setObjectName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)shaderModules[moduleIndex + 4], "Postprocess vertex shader");
+		setObjectName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)shaderModules[moduleIndex + 5], "Postprocess fragment shader");
 
-		// Name pipelines for debugging
-		DebugMarker::setObjectName(device, (uint64_t)pipelines.toonshading, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Toon shading pipeline");
-		DebugMarker::setObjectName(device, (uint64_t)pipelines.color, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Color only pipeline");
-
-		if (deviceFeatures.fillModeNonSolid)
-		{
-			DebugMarker::setObjectName(device, (uint64_t)pipelines.wireframe, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Wireframe rendering pipeline");
+		setObjectName(device, VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)pipelineLayout, "Shared pipeline layout");
+		setObjectName(device, VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipelines.toonshading, "Toon shading pipeline");
+		setObjectName(device, VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipelines.color, "Color only pipeline");
+		if (deviceFeatures.fillModeNonSolid) {
+			setObjectName(device, VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipelines.wireframe, "Wireframe rendering pipeline");
 		}
+		setObjectName(device, VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipelines.postprocess, "Post processing pipeline");
 
-		DebugMarker::setObjectName(device, (uint64_t)pipelines.postprocess, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, "Post processing pipeline");
+		setObjectName(device, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (uint64_t)descriptorSetLayout, "Shared descriptor set layout");
+		setObjectName(device, VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64_t)descriptorSet, "Shared descriptor set");
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -726,12 +725,6 @@ public:
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffer.map());
 
-
-		// Name uniform buffer for debugging
-		DebugMarker::setObjectName(device, (uint64_t)uniformBuffer.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, "Scene uniform buffer block");
-		// Add some random tag
-		DebugMarker::setObjectTag(device, (uint64_t)uniformBuffer.buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, 0, sizeof(demoTag), &demoTag);
-
 		updateUniformBuffers();
 	}
 
@@ -744,17 +737,19 @@ public:
 
 	void draw()
 	{
+		queueBeginLabel(queue, "Graphics queue command buffer submission", { 1.0f, 1.0f, 1.0f, 1.0f });
 		VulkanExampleBase::prepareFrame();
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 		VulkanExampleBase::submitFrame();
+		queueEndLabel(queue);
 	}
 
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		DebugMarker::setup(device, physicalDevice);
+		setupDebugUtils();
 		loadAssets();
 		prepareOffscreen();
 		prepareUniformBuffers();
@@ -763,6 +758,7 @@ public:
 		setupDescriptorPool();
 		setupDescriptorSet();
 		buildCommandBuffers();
+		nameDebugObjects();
 		prepared = true;
 	}
 
@@ -783,7 +779,7 @@ public:
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Info")) {
-			overlay->text("VK_EXT_debug_marker %s", (DebugMarker::active ? "active" : "not present"));
+			overlay->text("VK_EXT_debug_utils %s", (debugUtilsSupported? "active" : "not present"));
 		}
 		if (overlay->header("Settings")) {
 			if (overlay->checkBox("Glow", &glow)) {

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4.1 FATAL_ERROR)
 
-set(NAME debugmarker)
+set(NAME debugutils)
 
 set(SRC_DIR ../../../examples/${NAME})
 set(BASE_DIR ../../../base)

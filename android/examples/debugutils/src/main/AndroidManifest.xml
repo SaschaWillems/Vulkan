@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.saschawillems.vulkanDebugmarker">
+    package="de.saschawillems.vulkanDebugutils">
 
     <application
-        android:label="Vulkan debug markers"
+        android:label="Vulkan debug utils"
         android:icon="@drawable/icon"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity android:name="de.saschawillems.vulkanSample.VulkanActivity"

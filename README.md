@@ -423,9 +423,9 @@ Renders a scene to to multiple views (layers) of a single framebuffer to simulat
 
 Demonstrates the use of VK_EXT_conditional_rendering to conditionally dispatch render commands based on values from a dedicated buffer. This allows e.g. visibility toggles without having to rebuild command buffers ([blog post](https://www.saschawillems.de/tutorials/vulkan/conditional_rendering)).
 
-#### [Debug markers (VK_EXT_debug_marker)](examples/debugmarker/)
+#### [Debug utils (VK_EXT_debug_utils)](examples/debugutils/)
 
-<span style="color:red">This sample is deprecated</span>
+Shows how to use debug utils for adding labels and colors to Vulkan objects for graphics debuggers. This information helps to identify resources in tools like RenderDoc.
 
 An updated version using ```VK_EXT_debug_utils``` along with an in-depth tutorial is available in the [Official Khronos Vulkan Samples repository](https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/extensions/debug_utils).
 
