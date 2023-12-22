@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - 3D texture loading (and generation using perlin noise) example
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -306,11 +306,11 @@ public:
 		const float noiseScale = static_cast<float>(rand() % 10) + 4.0f;
 
 #pragma omp parallel for
-		for (int32_t z = 0; z < texture.depth; z++)
+		for (int32_t z = 0; z < static_cast<int32_t>(texture.depth); z++)
 		{
-			for (int32_t y = 0; y < texture.height; y++)
+			for (int32_t y = 0; y < static_cast<int32_t>(texture.height); y++)
 			{
-				for (int32_t x = 0; x < texture.width; x++)
+				for (int32_t x = 0; x < static_cast<int32_t>(texture.width); x++)
 				{
 					float nx = (float)x / (float)texture.width;
 					float ny = (float)y / (float)texture.height;

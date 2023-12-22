@@ -3,7 +3,7 @@
 *
 * Note: Requires a device that supports VK_KHR_MAINTENANCE1
 *
-* Copyright (C) by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -16,8 +16,8 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool negativeViewport = true;
-	int32_t offsety = 0;
-	int32_t offsetx = 0;
+	float offsety = 0.0f;
+	float offsetx = 0.0f;
 	int32_t windingOrder = 1;
 	int32_t cullMode = (int32_t)VK_CULL_MODE_BACK_BIT;
 	int32_t quadType = 0;
@@ -303,10 +303,10 @@ public:
 			if (overlay->checkBox("Negative viewport height", &negativeViewport)) {
 				buildCommandBuffers();
 			}
-			if (overlay->sliderInt("offset x", &offsetx, -(int32_t)width, (int32_t)width)) {
+			if (overlay->sliderFloat("offset x", &offsetx, -(float)width, (float)width)) {
 				buildCommandBuffers();
 			}
-			if (overlay->sliderInt("offset y", &offsety, -(int32_t)height, (int32_t)height)) {
+			if (overlay->sliderFloat("offset y", &offsety, -(float)height, (float)height)) {
 				buildCommandBuffers();
 			}
 		}
