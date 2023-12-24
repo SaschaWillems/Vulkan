@@ -423,11 +423,17 @@ Renders a scene to to multiple views (layers) of a single framebuffer to simulat
 
 Demonstrates the use of VK_EXT_conditional_rendering to conditionally dispatch render commands based on values from a dedicated buffer. This allows e.g. visibility toggles without having to rebuild command buffers ([blog post](https://www.saschawillems.de/tutorials/vulkan/conditional_rendering)).
 
+#### [Debug shader printf (VK_KHR_shader_non_semantic_info)](examples/debugprintf/)
+
+Shows how to use printf in a shader to output additional information per invocation. This information can help debugging shader related issues in tools like RenderDoc.
+
+**Note:** This sample should be run from a graphics debugger like RenderDoc.
+
 #### [Debug utils (VK_EXT_debug_utils)](examples/debugutils/)
 
 Shows how to use debug utils for adding labels and colors to Vulkan objects for graphics debuggers. This information helps to identify resources in tools like RenderDoc.
 
-An updated version using ```VK_EXT_debug_utils``` along with an in-depth tutorial is available in the [Official Khronos Vulkan Samples repository](https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/extensions/debug_utils).
+**Note:** This sample should be run from a graphics debugger like RenderDoc.
 
 #### [Negative viewport height (VK_KHR_Maintenance1 or Vulkan 1.1)](examples/negativeviewportheight/)
 

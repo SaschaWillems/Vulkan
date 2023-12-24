@@ -89,6 +89,7 @@ set(EXAMPLES
 	computeshader
 	conditionalrender
 	conservativeraster
+	debugprintf
 	debugutils
 	deferred
 	deferredmultisampling
