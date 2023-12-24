@@ -42,13 +42,13 @@ public:
 	struct Pipelines {
 		VkPipeline toonshading;
 		VkPipeline color;
-		VkPipeline wireframe = VK_NULL_HANDLE;
+		VkPipeline wireframe;
 		VkPipeline postprocess;
-	} pipelines;
+	} pipelines{};
 
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkDescriptorSet descriptorSet;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -63,7 +63,7 @@ public:
 		VkRenderPass renderPass;
 		VkSampler sampler;
 		VkDescriptorImageInfo descriptor;
-	} offscreenPass;
+	} offscreenPass{};
 
 	// Function pointers for the VK_EXT_debug_utils_extension
 
