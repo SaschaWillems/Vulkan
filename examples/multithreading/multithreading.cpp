@@ -126,7 +126,7 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
 		for (auto& thread : threadData) {
-			vkFreeCommandBuffers(device, thread.commandPool, thread.commandBuffer.size(), thread.commandBuffer.data());
+			vkFreeCommandBuffers(device, thread.commandPool, static_cast<uint32_t>(thread.commandBuffer.size()), thread.commandBuffer.data());
 			vkDestroyCommandPool(device, thread.commandPool, nullptr);
 		}
 
@@ -159,7 +159,7 @@ public:
 
 		threadData.resize(numThreads);
 
-		float maxX = std::floor(std::sqrt(numThreads * numObjectsPerThread));
+		float maxX = static_cast<float>(std::floor(std::sqrt(numThreads * numObjectsPerThread)));
 		uint32_t posX = 0;
 		uint32_t posZ = 0;
 
@@ -179,7 +179,7 @@ public:
 				vks::initializers::commandBufferAllocateInfo(
 					thread->commandPool,
 					VK_COMMAND_BUFFER_LEVEL_SECONDARY,
-					thread->commandBuffer.size());
+					static_cast<uint32_t>(thread->commandBuffer.size()));
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &secondaryCmdBufAllocateInfo, thread->commandBuffer.data()));
 
 			thread->pushConstBlock.resize(numObjectsPerThread);
@@ -400,7 +400,7 @@ public:
 		}
 
 		// Execute render commands from the secondary command buffer
-		vkCmdExecuteCommands(primaryCommandBuffer, commandBuffers.size(), commandBuffers.data());
+		vkCmdExecuteCommands(primaryCommandBuffer, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
 		vkCmdEndRenderPass(primaryCommandBuffer);
 
