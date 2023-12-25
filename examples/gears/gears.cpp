@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Animated gears using multiple uniform buffers
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -9,7 +9,6 @@
 #include "vulkangear.h"
 #include "vulkanexamplebase.h"
 
-#define VERTEX_BUFFER_BIND_ID 0
 #define ENABLE_VALIDATION false
 
 class VulkanExample : public VulkanExampleBase
@@ -21,14 +20,11 @@ public:
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 	} vertices;
 
-	struct {
-		VkPipeline solid;
-	} pipelines;
-
 	std::vector<VulkanGear*> gears;
 
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -44,7 +40,7 @@ public:
 	{
 		// Clean up used Vulkan resources
 		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		vkDestroyPipeline(device, pipeline, nullptr);
 
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -86,7 +82,7 @@ public:
 			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 			for (auto& gear : gears)
 			{
@@ -144,7 +140,7 @@ public:
 		vertices.bindingDescriptions.resize(1);
 		vertices.bindingDescriptions[0] =
 			vks::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				sizeof(Vertex),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
@@ -154,21 +150,21 @@ public:
 		// Location 0 : Position
 		vertices.attributeDescriptions[0] =
 			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
 				0);
 		// Location 1 : Normal
 		vertices.attributeDescriptions[1] =
 			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				1,
 				VK_FORMAT_R32G32B32_SFLOAT,
 				sizeof(float) * 3);
 		// Location 2 : Color
 		vertices.attributeDescriptions[2] =
 			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				2,
 				VK_FORMAT_R32G32B32_SFLOAT,
 				sizeof(float) * 6);
@@ -183,18 +179,10 @@ public:
 	void setupDescriptorPool()
 	{
 		// One UBO for each gear
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
+		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
 		};
-
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(
-				static_cast<uint32_t>(poolSizes.size()),
-				poolSizes.data(),
-				// Three descriptor sets (for each gear)
-				3);
-
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, static_cast<uint32_t>(gears.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
@@ -203,25 +191,13 @@ public:
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
 		{
 			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0)
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0)
 		};
-
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				static_cast<uint32_t>(setLayoutBindings.size()));
-
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(
-				&descriptorSetLayout,
-				1);
-
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 	}
 
 	void setupDescriptorSets()
@@ -288,12 +264,7 @@ public:
 		shaderStages[0] = loadShader(getShadersPath() + "gears/gears.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "gears/gears.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vks::initializers::pipelineCreateInfo(
-				pipelineLayout,
-				renderPass,
-				0);
-
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
@@ -305,7 +276,7 @@ public:
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.solid));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
 	void updateUniformBuffers()
@@ -319,14 +290,9 @@ public:
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
 		VulkanExampleBase::submitFrame();
 	}
 
@@ -347,13 +313,8 @@ public:
 	{
 		if (!prepared)
 			return;
-		vkDeviceWaitIdle(device);
+		updateUniformBuffers();
 		draw();
-		vkDeviceWaitIdle(device);
-		if (!paused)
-		{
-			updateUniformBuffers();
-		}
 	}
 
 	virtual void viewChanged()

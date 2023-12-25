@@ -1,8 +1,6 @@
 /*
 * Vulkan Example - Animated gears using multiple uniform buffers
 *
-* See readme.md for details
-*
 * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -169,87 +167,65 @@ void VulkanGear::generate(GearInfo *gearinfo, VkQueue queue)
 	size_t vertexBufferSize = vBuffer.size() * sizeof(Vertex);
 	size_t indexBufferSize = iBuffer.size() * sizeof(uint32_t);
 
-	bool useStaging = true;
+	vks::Buffer vertexStaging, indexStaging;
 
-	if (useStaging)
-	{
-		vks::Buffer vertexStaging, indexStaging;
+	// Create staging buffers
+	// Vertex data
+	vulkanDevice->createBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		&vertexStaging,
+		vertexBufferSize,
+		vBuffer.data());
+	// Index data
+	vulkanDevice->createBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		&indexStaging,
+		indexBufferSize,
+		iBuffer.data());
 
-		// Create staging buffers
-		// Vertex data
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			&vertexStaging,
-			vertexBufferSize,
-			vBuffer.data());
-		// Index data
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			&indexStaging,
-			indexBufferSize,
-			iBuffer.data());
+	// Create device local buffers
+	// Vertex buffer
+	vulkanDevice->createBuffer(
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		&vertexBuffer,
+		vertexBufferSize);
+	// Index buffer
+	vulkanDevice->createBuffer(
+		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		&indexBuffer,
+		indexBufferSize);
 
-		// Create device local buffers
-		// Vertex buffer
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&vertexBuffer,
-			vertexBufferSize);
-		// Index buffer
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&indexBuffer,
-			indexBufferSize);
+	// Copy from staging buffers
+	VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		// Copy from staging buffers
-		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+	VkBufferCopy copyRegion = {};
 
-		VkBufferCopy copyRegion = {};
+	copyRegion.size = vertexBufferSize;
+	vkCmdCopyBuffer(
+		copyCmd,
+		vertexStaging.buffer,
+		vertexBuffer.buffer,
+		1,
+		&copyRegion);
 
-		copyRegion.size = vertexBufferSize;
-		vkCmdCopyBuffer(
-			copyCmd,
-			vertexStaging.buffer,
-			vertexBuffer.buffer,
-			1,
-			&copyRegion);
+	copyRegion.size = indexBufferSize;
+	vkCmdCopyBuffer(
+		copyCmd,
+		indexStaging.buffer,
+		indexBuffer.buffer,
+		1,
+		&copyRegion);
 
-		copyRegion.size = indexBufferSize;
-		vkCmdCopyBuffer(
-			copyCmd,
-			indexStaging.buffer,
-			indexBuffer.buffer,
-			1,
-			&copyRegion);
+	vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
-		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
-
-		vkDestroyBuffer(vulkanDevice->logicalDevice, vertexStaging.buffer, nullptr);
-		vkFreeMemory(vulkanDevice->logicalDevice, vertexStaging.memory, nullptr);
-		vkDestroyBuffer(vulkanDevice->logicalDevice, indexStaging.buffer, nullptr);
-		vkFreeMemory(vulkanDevice->logicalDevice, indexStaging.memory, nullptr);
-	}
-	else
-	{
-		// Vertex buffer
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			&vertexBuffer,
-			vertexBufferSize,
-			vBuffer.data());
-		// Index buffer
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			&indexBuffer,
-			indexBufferSize,
-			iBuffer.data());
-	}
+	vkDestroyBuffer(vulkanDevice->logicalDevice, vertexStaging.buffer, nullptr);
+	vkFreeMemory(vulkanDevice->logicalDevice, vertexStaging.memory, nullptr);
+	vkDestroyBuffer(vulkanDevice->logicalDevice, indexStaging.buffer, nullptr);
+	vkFreeMemory(vulkanDevice->logicalDevice, indexStaging.memory, nullptr);
 
 	indexCount = static_cast<uint32_t>(iBuffer.size());
 
