@@ -31,6 +31,7 @@
 #define ENABLE_VALIDATION false
 // We want to keep GPU and CPU busy. To do that we may start building a new command buffer while the previous one is still being executed
 // This number defines how many frames may be worked on simultaneously at once
+// Increasing this number may improve performance but will also introduce additional latency
 #define MAX_CONCURRENT_FRAMES 2
 
 class VulkanExample : public VulkanExampleBase
@@ -44,15 +45,15 @@ public:
 
 	// Vertex buffer and attributes
 	struct {
-		VkDeviceMemory memory; // Handle to the device memory for this buffer
-		VkBuffer buffer;       // Handle to the Vulkan buffer object that the memory is bound to
+		VkDeviceMemory memory{ VK_NULL_HANDLE }; // Handle to the device memory for this buffer
+		VkBuffer buffer;						 // Handle to the Vulkan buffer object that the memory is bound to
 	} vertices;
 
 	// Index buffer
 	struct {
-		VkDeviceMemory memory;
+		VkDeviceMemory memory{ VK_NULL_HANDLE };
 		VkBuffer buffer;
-		uint32_t count;
+		uint32_t count{ 0 };
 	} indices;
 
 	// Uniform buffer block object
@@ -88,30 +89,31 @@ public:
 	// The pipeline layout is used by a pipeline to access the descriptor sets
 	// It defines interface (without binding any actual data) between the shader stages used by the pipeline and the shader resources
 	// A pipeline layout can be shared among multiple pipelines as long as their interfaces match
-	VkPipelineLayout pipelineLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 
 	// Pipelines (often called "pipeline state objects") are used to bake all states that affect a pipeline
 	// While in OpenGL every state can be changed at (almost) any time, Vulkan requires to layout the graphics (and compute) pipeline states upfront
 	// So for each combination of non-dynamic pipeline states you need a new pipeline (there are a few exceptions to this not discussed here)
 	// Even though this adds a new dimension of planning ahead, it's a great opportunity for performance optimizations by the driver
-	VkPipeline pipeline;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
 
 	// The descriptor set layout describes the shader binding layout (without actually referencing descriptor)
 	// Like the pipeline layout it's pretty much a blueprint and can be used with different descriptor sets as long as their layout matches
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	// Synchronization primitives
 	// Synchronization is an important concept of Vulkan that OpenGL mostly hid away. Getting this right is crucial to using Vulkan.
 
 	// Semaphores are used to coordinate operations within the graphics queue and ensure correct command ordering
-	std::array<VkSemaphore, MAX_CONCURRENT_FRAMES> presentCompleteSemaphores;
-	std::array<VkSemaphore, MAX_CONCURRENT_FRAMES> renderCompleteSemaphores;
+	std::array<VkSemaphore, MAX_CONCURRENT_FRAMES> presentCompleteSemaphores{};
+	std::array<VkSemaphore, MAX_CONCURRENT_FRAMES> renderCompleteSemaphores{};
 
-	VkCommandPool commandPool;
-	std::array<VkCommandBuffer, MAX_CONCURRENT_FRAMES> commandBuffers;
-	std::array<VkFence, MAX_CONCURRENT_FRAMES> waitFences;
+	VkCommandPool commandPool{ VK_NULL_HANDLE };
+	std::array<VkCommandBuffer, MAX_CONCURRENT_FRAMES> commandBuffers{};
+	std::array<VkFence, MAX_CONCURRENT_FRAMES> waitFences{};
 
-	uint32_t currentFrame = 0;
+	// To select the correct sync objects, we need to keep track of the current frame
+	uint32_t currentFrame{ 0 };
 
 	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
 	{
@@ -143,8 +145,7 @@ public:
 
 		vkDestroyCommandPool(device, commandPool, nullptr);
 
-		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++)
-		{
+		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {
 			vkDestroyFence(device, waitFences[i], nullptr);
 			vkDestroySemaphore(device, presentCompleteSemaphores[i], nullptr);
 			vkDestroySemaphore(device, renderCompleteSemaphores[i], nullptr);
@@ -176,26 +177,27 @@ public:
 		throw "Could not find a suitable memory type!";
 	}
 
-	// Create the Vulkan synchronization primitives used in this example
+	// Create the per-frame (in flight) sVulkan synchronization primitives used in this example
 	void createSynchronizationPrimitives()
 	{
-		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {
-			
-			// Semaphores (Used for correct command ordering)
-			VkSemaphoreCreateInfo semaphoreCI{};
-			semaphoreCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		// Semaphores are used for correct command ordering within a queue
+		VkSemaphoreCreateInfo semaphoreCI{};
+		semaphoreCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		// Fences are used to check draw command buffer completion on the host
+		VkFenceCreateInfo fenceCI{};
+		fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		// Create the fences in signaled state (so we don't wait on first render of each command buffer)
+		fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {		
 			// Semaphore used to ensure that image presentation is complete before starting to submit again
 			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentCompleteSemaphores[i]));
 			// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
 			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &renderCompleteSemaphores[i]));
 
-			// Fences (Used to check draw command buffer completion)
-			VkFenceCreateInfo fenceCI{};
-			fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-			// Create in signaled state so we don't wait on first render of each command buffer
-			fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+			// Fence used to ensure that command buffer has completed exection before using it again
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCI, nullptr, &waitFences[i]));
-
 		}
 	}
 
@@ -907,15 +909,17 @@ public:
 
 		// Use a fence to wait until the command buffer has finished execution before using it again
 		vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX);
+		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentFrame]));
 
 		// Get the next swap chain image from the implementation
-		// Note that the implementation is free to return the images in any order, so we must use the acquire function and can't just cycle through the images
+		// Note that the implementation is free to return the images in any order, so we must use the acquire function and can't just cycle through the images/imageIndex on our own
 		uint32_t imageIndex;
 		VkResult result = vkAcquireNextImageKHR(device, swapChain.swapChain, UINT64_MAX, presentCompleteSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			windowResize();
 			return;
-		} else if ((result != VK_SUCCESS) && (result != VK_SUBOPTIMAL_KHR)) {
+		}
+		else if ((result != VK_SUCCESS) && (result != VK_SUBOPTIMAL_KHR)) {
 			throw "Could not acquire the next swap chain image!";
 		}
 
@@ -927,16 +931,14 @@ public:
 
 		// Copy the current matrices to the current frame's uniform buffer
 		// Note: Since we requested a host coherent memory type for the uniform buffer, the write is instantly visible to the GPU
-		memcpy(uniformBuffers[currentBuffer].mapped, &shaderData, sizeof(ShaderData));
-
-		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentFrame]));
+		memcpy(uniformBuffers[currentFrame].mapped, &shaderData, sizeof(ShaderData));
 
 		// Build the command buffer
 		// Unlike in OpenGL all rendering commands are recorded into command buffers that are then submitted to the queue
 		// This allows to generate work upfront in a separate thread
 		// For basic command buffers (like in this sample), recording is so fast that there is no need to offload this
 
-		vkResetCommandBuffer(commandBuffers[currentBuffer], 0);
+		vkResetCommandBuffer(commandBuffers[currentFrame], 0);
 
 		VkCommandBufferBeginInfo cmdBufInfo{};
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -958,41 +960,43 @@ public:
 		renderPassBeginInfo.clearValueCount = 2;
 		renderPassBeginInfo.pClearValues = clearValues;
 		renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
-		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentBuffer], &cmdBufInfo));
+
+		const VkCommandBuffer commandBuffer = commandBuffers[currentFrame];
+		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 
 		// Start the first sub pass specified in our default render pass setup by the base class
 		// This will clear the color and depth attachment
-		vkCmdBeginRenderPass(commandBuffers[currentBuffer], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		// Update dynamic viewport state
 		VkViewport viewport{};
 		viewport.height = (float)height;
 		viewport.width = (float)width;
 		viewport.minDepth = (float)0.0f;
 		viewport.maxDepth = (float)1.0f;
-		vkCmdSetViewport(commandBuffers[currentBuffer], 0, 1, &viewport);
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		// Update dynamic scissor state
 		VkRect2D scissor{};
 		scissor.extent.width = width;
 		scissor.extent.height = height;
 		scissor.offset.x = 0;
 		scissor.offset.y = 0;
-		vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &scissor);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 		// Bind descriptor set for the currrent frame's uniform buffer, so the shader uses the data from that buffer for this draw
-		vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &uniformBuffers[currentBuffer].descriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &uniformBuffers[currentFrame].descriptorSet, 0, nullptr);
 		// Bind the rendering pipeline
 		// The pipeline (state object) contains all states of the rendering pipeline, binding it will set all the states specified at pipeline creation time
-		vkCmdBindPipeline(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		// Bind triangle vertex buffer (contains position and colors)
 		VkDeviceSize offsets[1]{ 0 };
-		vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, &vertices.buffer, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
 		// Bind triangle index buffer
-		vkCmdBindIndexBuffer(commandBuffers[currentBuffer], indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 		// Draw indexed triangle
-		vkCmdDrawIndexed(commandBuffers[currentBuffer], indices.count, 1, 0, 0, 1);
-		vkCmdEndRenderPass(commandBuffers[currentBuffer]);
+		vkCmdDrawIndexed(commandBuffer, indices.count, 1, 0, 0, 1);
+		vkCmdEndRenderPass(commandBuffer);
 		// Ending the render pass will add an implicit barrier transitioning the frame buffer color attachment to
 		// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR for presenting it to the windowing system
-		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentBuffer]));
+		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
 		// Submit the command buffer to the graphics queue
 
@@ -1001,16 +1005,16 @@ public:
 		// The submit info structure specifies a command buffer queue submission batch
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.pWaitDstStageMask = &waitStageMask;               // Pointer to the list of pipeline stages that the semaphore waits will occur at
-		submitInfo.waitSemaphoreCount = 1;                           // One wait semaphore
-		submitInfo.signalSemaphoreCount = 1;                         // One signal semaphore
-		submitInfo.pCommandBuffers = &commandBuffers[currentBuffer]; // Command buffers(s) to execute in this batch (submission)
-		submitInfo.commandBufferCount = 1;                           // One command buffer
+		submitInfo.pWaitDstStageMask = &waitStageMask;      // Pointer to the list of pipeline stages that the semaphore waits will occur at
+		submitInfo.pCommandBuffers = &commandBuffer;		// Command buffers(s) to execute in this batch (submission)
+		submitInfo.commandBufferCount = 1;                  // We submit a single command buffer
 
 		// Semaphore to wait upon before the submitted command buffer starts executing
 		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame]; 
+		submitInfo.waitSemaphoreCount = 1;
 		// Semaphore to be signaled when command buffers have completed
 		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentFrame];
+		submitInfo.signalSemaphoreCount = 1;
 
 		// Submit to the graphics queue passing a wait fence
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentFrame]));
@@ -1035,6 +1039,8 @@ public:
 			throw "Could not present the image to the swap chain!";
 		}
 
+		// Select the next frame to render to, based on the max. no. of concurrent frames
+		currentFrame = (currentFrame + 1) % MAX_CONCURRENT_FRAMES;
 	}
 };
 
