@@ -441,5 +441,11 @@ namespace vks
 			return (value + alignment - 1) & ~(alignment - 1);
 		}
 
+
+		VkDeviceSize alignedVkSize(VkDeviceSize value, VkDeviceSize alignment)
+		{
+			return (value + alignment - 1) & ~(alignment - 1);
+		}
+
 	}
 }

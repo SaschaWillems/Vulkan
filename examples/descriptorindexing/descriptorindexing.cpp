@@ -100,7 +100,7 @@ public:
 		for (size_t i = 0; i < textures.size(); i++) {
 			std::random_device rndDevice;
 			std::default_random_engine rndEngine(rndDevice());
-			std::uniform_int_distribution<short> rndDist(50, 255);
+			std::uniform_int_distribution<> rndDist(50, UCHAR_MAX);
 			const int32_t dim = 3;
 			const size_t bufferSize = dim * dim * 4;
 			std::vector<uint8_t> texture(bufferSize);

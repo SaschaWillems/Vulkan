@@ -98,7 +98,7 @@ public:
 	void setupMultisampleTarget()
 	{
 		// Check if device supports requested sample count for color and depth frame buffer
-		assert((deviceProperties.limits.framebufferColorSampleCounts >= sampleCount) && (deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount));
+		assert((deviceProperties.limits.framebufferColorSampleCounts & sampleCount) && (deviceProperties.limits.framebufferDepthSampleCounts & sampleCount));
 
 		// Color target
 		VkImageCreateInfo info = vks::initializers::imageCreateInfo();
@@ -503,20 +503,31 @@ public:
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be sumitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
 		VulkanExampleBase::submitFrame();
+	}
+
+	// Select the highest sample count usable by the platform
+	// In a realworld application, this would be a user setting instead
+	VkSampleCountFlagBits getMaxAvailableSampleCount()
+	{
+		VkSampleCountFlags supportedSampleCount = std::min(deviceProperties.limits.framebufferColorSampleCounts, deviceProperties.limits.framebufferDepthSampleCounts);
+		std::vector< VkSampleCountFlagBits> possibleSampleCounts {
+			VK_SAMPLE_COUNT_64_BIT, VK_SAMPLE_COUNT_32_BIT, VK_SAMPLE_COUNT_16_BIT, VK_SAMPLE_COUNT_8_BIT, VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_2_BIT
+		};
+		for (auto& possibleSampleCount : possibleSampleCounts) {
+			if (supportedSampleCount & possibleSampleCount) {
+				return possibleSampleCount;
+			}
+		}
+		return VK_SAMPLE_COUNT_1_BIT;
 	}
 
 	void prepare()
 	{
-		sampleCount = getMaxUsableSampleCount();
+		sampleCount = getMaxAvailableSampleCount();
 		UIOverlay.rasterizationSamples = sampleCount;
 		VulkanExampleBase::prepare();
 		loadAssets();
@@ -542,19 +553,6 @@ public:
 	virtual void viewChanged()
 	{
 		updateUniformBuffers();
-	}
-
-	// Returns the maximum sample count usable by the platform
-	VkSampleCountFlagBits getMaxUsableSampleCount()
-	{
-		VkSampleCountFlags counts = std::min(deviceProperties.limits.framebufferColorSampleCounts, deviceProperties.limits.framebufferDepthSampleCounts);
-		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
-		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
-		if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
-		if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
-		if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
-		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
-		return VK_SAMPLE_COUNT_1_BIT;
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

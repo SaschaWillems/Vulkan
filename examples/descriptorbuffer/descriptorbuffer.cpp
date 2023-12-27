@@ -204,8 +204,8 @@ public:
 		vkGetDescriptorSetLayoutBindingOffsetEXT(device, combinedImageDescriptor.setLayout, 0, &combinedImageDescriptor.layoutOffset);
 
 		// In order to copy resource descriptors to the correct place, we need to calculate aligned sizes
-		uniformDescriptor.layoutSize = vks::tools::alignedSize(uniformDescriptor.layoutSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
-		combinedImageDescriptor.layoutSize = vks::tools::alignedSize(combinedImageDescriptor.layoutSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
+		uniformDescriptor.layoutSize = vks::tools::alignedVkSize(uniformDescriptor.layoutSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
+		combinedImageDescriptor.layoutSize = vks::tools::alignedVkSize(combinedImageDescriptor.layoutSize, descriptorBufferProperties.descriptorBufferOffsetAlignment);
 
 		// This buffer will contain resource descriptors for all the uniform buffers (one per cube and one with global matrices)
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
