@@ -670,8 +670,6 @@ public:
 	void updateComputeUBO()
 	{
 		if (!paused) {
-			//compute.ubo.deltaT = 0.000005f;
-			// todo: base on frametime
 			// SRS - Clamp frameTimer to max 20ms refresh period (e.g. if blocked on resize), otherwise image breakup can occur
 			compute.ubo.deltaT = fmin(frameTimer, 0.02f) * 0.0025f;
 

@@ -1,9 +1,7 @@
 /*
 * Vulkan Example - Physical based rendering with image based lighting
 *
-* Note: Requires the separate asset pack (see data/README.md)
-*
-* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -548,7 +546,6 @@ public:
 
 		vkQueueWaitIdle(queue);
 
-		// todo: cleanup
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelinelayout, nullptr);
 		vkDestroyRenderPass(device, renderpass, nullptr);

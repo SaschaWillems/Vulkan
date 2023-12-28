@@ -157,7 +157,6 @@ void VulkanSwapChain::initSurface(screen_context_t screen_context, screen_window
 		vks::tools::exitFatal("Could not find a graphics and/or presenting queue!", -1);
 	}
 
-	// todo : Add support for separate graphics and presenting queue
 	if (graphicsQueueNodeIndex != presentQueueNodeIndex) 
 	{
 		vks::tools::exitFatal("Separate graphics and presenting queues are not supported yet!", -1);

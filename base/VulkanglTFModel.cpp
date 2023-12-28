@@ -6,6 +6,13 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
+/*
+ * Note that this isn't a complete glTF loader and not all features of the glTF 2.0 spec are supported
+ * For details on how glTF 2.0 works, see the official spec at https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
+ *
+ * If you are looking for a complete glTF implementation, check out https://github.com/SaschaWillems/Vulkan-glTF-PBR/
+ */
+
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
@@ -1215,7 +1222,6 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 		}
 	}
 	else {
-		// TODO: throw
 		vks::tools::exitFatal("Could not load glTF file \"" + filename + "\": " + error, -1);
 		return;
 	}

@@ -1,8 +1,6 @@
 /*
 * Vulkan Example - Order Independent Transparency rendering
 *
-* Note: Requires the separate asset pack (see data/README.md)
-*
 * Copyright by Sascha Willems - www.saschawillems.de
 * Copyright by Daemyung Jang  - dm86.jang@gmail.com
 *
