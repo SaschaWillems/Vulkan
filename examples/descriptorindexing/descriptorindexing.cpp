@@ -1,11 +1,11 @@
 /*
 * Vulkan Example - Descriptor indexing (VK_EXT_descriptor_indexing)
 *
-* Demonstrates use of descriptor indexing to dynamically index into a variable sized array of samples
+* Demonstrates use of descriptor indexing to dynamically index into a variable sized array of images
 * 
 * Relevant code parts are marked with [POI]
 *
-* Copyright (C) 2021 Sascha Willems - www.saschawillems.de
+* Copyright (C) 2021-2023 Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -18,12 +18,12 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	// We will be dynamically indexing into an array of samplers
+	// We will be dynamically indexing into an array of images
 	std::vector<vks::Texture2D> textures;
 
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
-	uint32_t indexCount;
+	uint32_t indexCount{ 0 };
 
 	vks::Buffer uniformBufferVS;
 	struct {
@@ -32,10 +32,10 @@ public:
 		glm::mat4 model;
 	} uboVS;
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
 
@@ -85,13 +85,6 @@ public:
 		indexBuffer.destroy();
 		uniformBufferVS.destroy();
 	}
-
-	struct V {
-		uint8_t r;
-		uint8_t g;
-		uint8_t b;
-		uint8_t a;
-	};
 
 	// Generate some random textures
 	void generateTextures()
@@ -226,11 +219,13 @@ public:
 		};
 
 		// [POI] The fragment shader will be using an unsized array of samplers, which has to be marked with the VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
-		// In the fragment shader:
-		//	layout (set = 0, binding = 1) uniform sampler2D textures[];
 		VkDescriptorSetLayoutBindingFlagsCreateInfoEXT setLayoutBindingFlags{};
 		setLayoutBindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
 		setLayoutBindingFlags.bindingCount = 2;
+		// Binding 0 is the vertex shader uniform buffer, which does not use indexing
+		// Binding 1 are the fragment shader images, which use indexing
+		// In the fragment shader:
+		//	layout (set = 0, binding = 1) uniform sampler2D textures[];
 		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags = {
 			0,
 			VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
@@ -245,14 +240,16 @@ public:
 		descriptorSetLayoutCI.pNext = &setLayoutBindingFlags;
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout));
 
-		// Descriptor sets
+		// [POI] Descriptor sets
+		// We need to provide the descriptor counts for bindings with variable counts using a new structure
+		std::vector<uint32_t> variableDesciptorCounts = { 
+			static_cast<uint32_t>(textures.size())
+		};
+
 		VkDescriptorSetVariableDescriptorCountAllocateInfoEXT variableDescriptorCountAllocInfo = {};
-
-		uint32_t variableDescCounts[] = { static_cast<uint32_t>(textures.size())};
-
 		variableDescriptorCountAllocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
-		variableDescriptorCountAllocInfo.descriptorSetCount = 1;
-		variableDescriptorCountAllocInfo.pDescriptorCounts  = variableDescCounts;
+		variableDescriptorCountAllocInfo.descriptorSetCount = static_cast<uint32_t>(variableDesciptorCounts.size());
+		variableDescriptorCountAllocInfo.pDescriptorCounts  = variableDesciptorCounts.data();
 
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		allocInfo.pNext = &variableDescriptorCountAllocInfo;
@@ -319,7 +316,7 @@ public:
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 		shaderStages[0] = loadShader(getShadersPath() + "descriptorindexing/descriptorindexing.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		// [POI] The fragment shader does non-uniform access into our sampler array, so we need to use nonuniformEXT: texture(textures[nonuniformEXT(inTexIndex)], inUV)
+		// [POI] The fragment shader does non-uniform access into our sampler array, so we need to use nonuniformEXT: texture(textures[nonuniformEXT(inTexIndex)], inUV) in it (see descriptorindexing.frag)
 		shaderStages[1] = loadShader(getShadersPath() + "descriptorindexing/descriptorindexing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
