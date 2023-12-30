@@ -64,7 +64,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		std::vector<VkExtensionProperties> extensions(extCount);
 		if (vkEnumerateInstanceExtensionProperties(nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
 		{
-			for (VkExtensionProperties extension : extensions)
+			for (VkExtensionProperties& extension : extensions)
 			{
 				supportedInstanceExtensions.push_back(extension.extensionName);
 			}
@@ -129,7 +129,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
 		bool validationLayerPresent = false;
-		for (VkLayerProperties layer : instanceLayerProperties) {
+		for (VkLayerProperties& layer : instanceLayerProperties) {
 			if (strcmp(layer.layerName, validationLayerName) == 0) {
 				validationLayerPresent = true;
 				break;
