@@ -11,8 +11,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -52,7 +50,7 @@ public:
 
 	glm::vec4 lightPos = glm::vec4(1.0f, 4.0f, 0.0f, 0.0f);
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Vulkan Demo Scene - (c) by Sascha Willems";
 		camera.type = Camera::CameraType::lookat;

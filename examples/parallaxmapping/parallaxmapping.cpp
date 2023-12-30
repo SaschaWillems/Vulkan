@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -62,7 +60,7 @@ public:
 		"Parallax occlusion mapping",
 	};
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Parallax Mapping";
 		timerSpeed *= 0.5f;

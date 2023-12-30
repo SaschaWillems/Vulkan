@@ -24,7 +24,6 @@
 
 #include "vulkanexamplebase.h"
 
-#define ENABLE_VALIDATION false
 
  // Contains everything required to render a basic glTF scene in Vulkan
  // This class is heavily simplified (compared to glTF's feature set) but retains the basic glTF structure

@@ -141,7 +141,7 @@ void VulkanExample::loadSceneNode(const tinygltf::Node& inputNode, const tinyglt
 	}
 }
 
-VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+VulkanExample::VulkanExample() : VulkanExampleBase()
 {
 	title = "Separate/interleaved vertex attribute buffers";
 	camera.type = Camera::CameraType::firstperson;

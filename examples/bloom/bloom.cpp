@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 
 // Offscreen frame buffer properties
 #define FB_DIM 256
@@ -93,7 +92,7 @@ public:
 		std::array<FrameBuffer, 2> framebuffers;
 	} offscreenPass;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Bloom (offscreen rendering)";
 		timerSpeed *= 0.5f;

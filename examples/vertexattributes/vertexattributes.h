@@ -18,8 +18,6 @@
 
 #include "vulkanexamplebase.h"
 
-#define ENABLE_VALIDATION false
-
 struct PushConstBlock {
 	glm::mat4 nodeMatrix;
 	uint32_t alphaMask;

@@ -13,8 +13,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 // Virtual texture page as a part of the partially resident texture
 // Contains memory bindings, offsets and status information
 struct VirtualTexturePage

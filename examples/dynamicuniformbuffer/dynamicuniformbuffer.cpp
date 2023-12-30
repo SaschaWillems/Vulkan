@@ -19,7 +19,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
 #define OBJECT_INSTANCES 125
 
 // Vertex layout for this example
@@ -94,7 +93,7 @@ public:
 
 	size_t dynamicAlignment;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Dynamic uniform buffers";
 		camera.type = Camera::CameraType::lookat;

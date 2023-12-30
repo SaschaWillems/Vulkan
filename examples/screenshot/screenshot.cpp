@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -31,7 +29,7 @@ public:
 
 	bool screenshotSaved = false;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Saving framebuffer to screenshot";
 		camera.type = Camera::CameraType::lookat;

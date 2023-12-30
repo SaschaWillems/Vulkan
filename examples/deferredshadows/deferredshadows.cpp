@@ -11,7 +11,6 @@
 #include "VulkanglTFModel.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
 
 // Shadowmap properties
 #if defined(__ANDROID__)
@@ -129,7 +128,7 @@ public:
 	// Semaphore used to synchronize between offscreen and final scene rendering
 	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Deferred shading with shadows";
 		camera.type = Camera::CameraType::firstperson;

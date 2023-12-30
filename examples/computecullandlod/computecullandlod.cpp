@@ -11,7 +11,6 @@
 #include "VulkanglTFModel.h"
 #include "frustum.hpp"
 
-#define ENABLE_VALIDATION false
 
 // Total number of objects (^3) in the scene
 #if defined(__ANDROID__)
@@ -89,7 +88,7 @@ public:
 
 	uint32_t objectCount = 0;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Vulkan Example - Compute cull and lod";
 		camera.type = Camera::CameraType::firstperson;

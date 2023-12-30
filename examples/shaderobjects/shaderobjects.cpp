@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample: public VulkanExampleBase
 {
 public:
@@ -65,7 +63,7 @@ public:
 	// VK_EXT_vertex_input_dynamic_state
 	PFN_vkCmdSetVertexInputEXT vkCmdSetVertexInputEXT;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Shader objects (VK_EXT_shader_object)";
 		camera.type = Camera::CameraType::lookat;

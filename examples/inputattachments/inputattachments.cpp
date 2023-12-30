@@ -13,8 +13,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -71,7 +69,7 @@ public:
 
 	const VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Input attachments";
 		camera.type = Camera::CameraType::firstperson;

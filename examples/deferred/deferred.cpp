@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 
 // Texture properties
 #define TEX_DIM 2048
@@ -100,7 +99,7 @@ public:
 	// Semaphore used to synchronize between offscreen and final scene rendering
 	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Deferred shading";
 		camera.type = Camera::CameraType::firstperson;

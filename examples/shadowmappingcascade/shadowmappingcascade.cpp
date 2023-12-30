@@ -20,8 +20,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 #if defined(__ANDROID__)
 #define SHADOWMAP_DIM 2048
 #else
@@ -132,7 +130,7 @@ public:
 	};
 	std::array<Cascade, SHADOW_MAP_CASCADE_COUNT> cascades;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Cascaded shadow mapping";
 		timerSpeed *= 0.025f;

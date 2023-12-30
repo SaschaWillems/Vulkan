@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 // Texture properties
 #define TEX_DIM 1024
 #define TEX_FILTER VK_FILTER_LINEAR
@@ -91,7 +89,7 @@ public:
 
 	VkFormat fbDepthFormat;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Point light shadows (cubemap)";
 		camera.type = Camera::CameraType::lookat;

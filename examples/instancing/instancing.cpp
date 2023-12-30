@@ -11,7 +11,6 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define INSTANCE_BUFFER_BIND_ID 1
-#define ENABLE_VALIDATION false
 #if defined(__ANDROID__)
 #define INSTANCE_COUNT 4096
 #else
@@ -72,7 +71,7 @@ public:
 		VkDescriptorSet planet;
 	} descriptorSets;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Instanced mesh rendering";
 		camera.type = Camera::CameraType::lookat;

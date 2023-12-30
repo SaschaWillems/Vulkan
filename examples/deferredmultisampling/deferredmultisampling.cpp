@@ -10,7 +10,6 @@
 #include "VulkanFrameBuffer.hpp"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 
 #if defined(__ANDROID__)
 // Use max. screen dimension as deferred framebuffer size
@@ -90,7 +89,7 @@ public:
 	// Semaphore used to synchronize between offscreen and final scene rendering
 	VkSemaphore offscreenSemaphore = VK_NULL_HANDLE;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Multi sampled deferred shading";
 		camera.type = Camera::CameraType::firstperson;

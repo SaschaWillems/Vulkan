@@ -10,8 +10,6 @@
 
 #include "vulkanexamplebase.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -49,7 +47,7 @@ public:
 		}
 	} quad;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Negative Viewport height";
 		// [POI] VK_KHR_MAINTENANCE1 is required for using negative viewport heights

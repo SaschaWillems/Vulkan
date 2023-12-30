@@ -22,6 +22,7 @@ OPTION(USE_DIRECTFB_WSI "Build the project using DirectFB swapchain" OFF)
 OPTION(USE_WAYLAND_WSI "Build the project using Wayland swapchain" OFF)
 OPTION(USE_HEADLESS "Build the project using headless extension swapchain" OFF)
 OPTION(USE_RELATIVE_ASSET_PATH "Load assets (shaders, models, textures) from a fixed path relative to the binar" OFF)
+OPTION(FORCE_VALIDATION "Forces validation on for all samples at compile time (prefer using the -v / --validation command line arguments)" OFF)
 
 set(RESOURCE_INSTALL_DIR "" CACHE PATH "Path to install resources to (leave empty for running uninstalled)")
 
@@ -126,6 +127,11 @@ else()
 		add_definitions(-DVK_EXAMPLE_ASSETS_DIR=\"${CMAKE_SOURCE_DIR}/assets/\")
 		add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${CMAKE_SOURCE_DIR}/shaders/\")
 	endif()
+endif()
+
+# Force validation at compile time
+if (FORCE_VALIDATION)
+	add_definitions(-DFORCE_VALIDATION)
 endif()
 
 # Compiler specific stuff

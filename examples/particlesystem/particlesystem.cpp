@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 #define PARTICLE_COUNT 512
 #define PARTICLE_SIZE 10.0f
 
@@ -97,7 +96,7 @@ public:
 
 	std::default_random_engine rndEngine;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "CPU based particle system";
 		camera.type = Camera::CameraType::lookat;

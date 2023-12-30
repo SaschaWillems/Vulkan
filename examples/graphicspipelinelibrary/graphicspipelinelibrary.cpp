@@ -11,8 +11,6 @@
 #include <thread>
 #include <mutex>
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample: public VulkanExampleBase
 {
 public:
@@ -58,7 +56,7 @@ public:
 	std::vector<glm::vec3> colors{};
 	float rotation{ 0.0f };
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Graphics pipeline library";
 		camera.type = Camera::CameraType::lookat;

@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
 
 #if defined(__ANDROID__)
 #define TEX_DIM 1024
@@ -79,7 +78,7 @@ public:
 		glm::ivec3 _pad;
 	};
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Compute shader ray tracing";
 		compute.ubo.aspectRatio = (float)width / (float)height;

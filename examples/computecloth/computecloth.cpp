@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -89,7 +88,7 @@ public:
 		glm::vec2 size = glm::vec2(5.0f);
 	} cloth;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Compute shader cloth simulation";
 		camera.type = Camera::CameraType::lookat;

@@ -17,8 +17,6 @@
 #include "VulkanglTFModel.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
-
 float rnd()
 {
 	return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
@@ -49,7 +47,7 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Push constants";
 		camera.type = Camera::CameraType::lookat;

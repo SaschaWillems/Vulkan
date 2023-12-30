@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample: public VulkanExampleBase
 {
 public:
@@ -35,7 +33,7 @@ public:
 		VkPipeline toon;
 	} pipelines;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Pipeline state objects";
 		camera.type = Camera::CameraType::lookat;

@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
 #if defined(__ANDROID__)
 // Lower particle count on Android for performance reasons
 #define PARTICLES_PER_ATTRACTOR 3 * 1024
@@ -79,7 +78,7 @@ public:
 		glm::vec4 vel;								// xyz = velocity, w = gradient texture position
 	};
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Compute shader N-body system";
 		camera.type = Camera::CameraType::lookat;

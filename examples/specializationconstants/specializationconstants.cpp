@@ -11,8 +11,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample: public VulkanExampleBase
 {
 public:
@@ -37,7 +35,7 @@ public:
 		VkPipeline textured;
 	} pipelines;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Specialization constants";
 		camera.type = Camera::CameraType::lookat;

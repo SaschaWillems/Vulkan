@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 
 class VulkanExample: public VulkanExampleBase
 {
@@ -69,7 +68,7 @@ public:
 		bool colorBlendEnable = false;
 	} dynamicState3;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Dynamic state";
 		camera.type = Camera::CameraType::lookat;

@@ -19,8 +19,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -89,7 +87,7 @@ public:
 		int32_t height;
 	} attachments;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Subpasses";
 		camera.type = Camera::CameraType::firstperson;

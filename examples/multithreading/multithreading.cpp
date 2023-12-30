@@ -13,8 +13,6 @@
 
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -95,7 +93,7 @@ public:
 
 	std::default_random_engine rndEngine;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Multi threaded command buffer";
 		camera.type = Camera::CameraType::lookat;

@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 struct {
 	struct {
 		VkImage image;
@@ -50,7 +48,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkExtent2D attachmentSize;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Multisampling";
 		camera.type = Camera::CameraType::lookat;

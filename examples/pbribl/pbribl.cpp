@@ -11,7 +11,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 #define GRID_DIM 7
 
 struct Material {
@@ -89,7 +88,7 @@ public:
 	std::vector<std::string> materialNames;
 	std::vector<std::string> objectNames;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "PBR with image based lighting";
 

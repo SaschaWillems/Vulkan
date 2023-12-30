@@ -12,7 +12,6 @@
 
 #include "vulkanexamplebase.h"
 
-#define ENABLE_VALIDATION false
 
 #define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
 #define ZOOM_FACTOR 16
@@ -84,7 +83,7 @@ public:
 		VkDescriptorImageInfo descriptor;
 	} offscreenPass;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Conservative rasterization";
 

@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 #define OBJ_DIM 0.05f
 
 class VulkanExample : public VulkanExampleBase
@@ -51,7 +50,7 @@ public:
 
 	int32_t gridSize = 3;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Pipeline statistics";
 		camera.type = Camera::CameraType::firstperson;

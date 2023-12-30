@@ -11,7 +11,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
 #if defined(__ANDROID__)
 // Lower particle count on Android for performance reasons
 #define PARTICLE_COUNT 128 * 1024
@@ -75,7 +74,7 @@ public:
 		glm::vec4 gradientPos;						// Texture coordinates for the gradient ramp map
 	};
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Compute shader particle system";
 	}

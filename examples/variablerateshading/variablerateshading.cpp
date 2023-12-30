@@ -8,7 +8,7 @@
 
 #include "variablerateshading.h"
 
-VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+VulkanExample::VulkanExample() : VulkanExampleBase()
 {
 	title = "Variable rate shading";
 	apiVersion = VK_API_VERSION_1_1;

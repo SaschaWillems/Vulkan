@@ -10,8 +10,6 @@
 #include <ktx.h>
 #include <ktxvulkan.h>
 
-#define ENABLE_VALIDATION false
-
 #define MAX_LAYERS 8
 
 // Vertex layout for this example
@@ -58,7 +56,7 @@ public:
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Texture arrays";
 		camera.type = Camera::CameraType::lookat;

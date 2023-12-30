@@ -276,7 +276,8 @@ public:
 	bool quit = false;
 #endif
 
-	VulkanExampleBase(bool enableValidation = false);
+	/** @brief Default base class constructor */
+	VulkanExampleBase();
 	virtual ~VulkanExampleBase();
 	/** @brief Setup the vulkan instance, enable required extensions and connect to the physical device (GPU) */
 	bool initVulkan();

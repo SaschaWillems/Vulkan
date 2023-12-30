@@ -38,7 +38,6 @@
 #include "vulkanexamplebase.h"
 #include <vulkan/vulkan.h>
 
-#define ENABLE_VALIDATION false
 
 // Contains everything required to render a glTF model in Vulkan
 // This class is heavily simplified (compared to glTF's feature set) but retains the basic glTF structure

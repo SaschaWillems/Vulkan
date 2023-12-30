@@ -27,8 +27,6 @@
 #include <vulkan/vulkan.h>
 #include "vulkanexamplebase.h"
 
-// Set to "true" to enable Vulkan's validation layers (see vulkandebug.cpp for details)
-#define ENABLE_VALIDATION false
 // We want to keep GPU and CPU busy. To do that we may start building a new command buffer while the previous one is still being executed
 // This number defines how many frames may be worked on simultaneously at once
 // Increasing this number may improve performance but will also introduce additional latency
@@ -115,7 +113,7 @@ public:
 	// To select the correct sync objects, we need to keep track of the current frame
 	uint32_t currentFrame{ 0 };
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Vulkan Example - Basic indexed triangle";
 		// To keep things simple, we don't use the UI overlay from the framework

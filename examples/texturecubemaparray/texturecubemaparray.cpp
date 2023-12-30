@@ -11,8 +11,6 @@
 #include <ktx.h>
 #include <ktxvulkan.h>
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -54,7 +52,7 @@ public:
 
 	std::vector<std::string> objectNames;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Cube map textures";
 		camera.type = Camera::CameraType::lookat;

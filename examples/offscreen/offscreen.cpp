@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 // Offscreen frame buffer properties
 #define FB_DIM 512
 #define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
@@ -79,7 +77,7 @@ public:
 	glm::vec3 modelPosition = glm::vec3(0.0f, -1.0f, 0.0f);
 	glm::vec3 modelRotation = glm::vec3(0.0f);
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Offscreen rendering";
 		timerSpeed *= 0.25f;

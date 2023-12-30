@@ -637,8 +637,7 @@ void VulkanglTFModel::draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipel
 
 */
 
-VulkanExample::VulkanExample() :
-    VulkanExampleBase(ENABLE_VALIDATION)
+VulkanExample::VulkanExample() : VulkanExampleBase()
 {
 	title        = "glTF vertex skinning";
 	camera.type  = Camera::CameraType::lookat;

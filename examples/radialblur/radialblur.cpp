@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 // Offscreen frame buffer properties
 #define FB_DIM 512
 #define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
@@ -81,7 +79,7 @@ public:
 		VkDescriptorImageInfo descriptor;
 	} offscreenPass;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Full screen radial blur effect";
 		camera.type = Camera::CameraType::lookat;

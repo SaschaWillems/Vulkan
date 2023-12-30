@@ -12,8 +12,6 @@
 #include "VulkanglTFModel.h"
 #include "../external/stb/stb_font_consolas_24_latin1.inl"
 
-#define ENABLE_VALIDATION false
-
 // Max. number of chars the text overlay buffer can hold
 #define TEXTOVERLAY_MAX_CHAR_COUNT 2048
 
@@ -636,7 +634,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Vulkan Example - Text overlay";
 		camera.type = Camera::CameraType::lookat;

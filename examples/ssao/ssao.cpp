@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 #define SSAO_KERNEL_SIZE 64
 #define SSAO_RADIUS 0.3f
 
@@ -121,7 +119,7 @@ public:
 	// One sampler for the frame buffer color attachments
 	VkSampler colorSampler;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Screen space ambient occlusion";
 		camera.type = Camera::CameraType::firstperson;

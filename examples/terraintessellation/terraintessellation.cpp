@@ -12,8 +12,6 @@
 #include <ktx.h>
 #include <ktxvulkan.h>
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -98,7 +96,7 @@ public:
 	// View frustum passed to tessellation control shader for culling
 	vks::Frustum frustum;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Dynamic terrain tessellation";
 		camera.type = Camera::CameraType::firstperson;

@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 // 16 bits of depth is enough for such a small scene
 #define DEPTH_FORMAT VK_FORMAT_D16_UNORM
 
@@ -97,7 +95,7 @@ public:
 		VkDescriptorImageInfo descriptor;
 	} offscreenPass;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Projected shadow mapping";
 		camera.type = Camera::CameraType::lookat;

@@ -13,7 +13,6 @@
 
 #include "vulkanexamplebase.h"
 
-#define ENABLE_VALIDATION false
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -45,7 +44,7 @@ public:
 		int32_t textureIndex;
 	};
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Descriptor indexing";
 		camera.type = Camera::CameraType::lookat;

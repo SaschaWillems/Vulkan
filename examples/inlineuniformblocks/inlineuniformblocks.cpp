@@ -13,8 +13,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 float rnd() {
 	return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 }
@@ -65,7 +63,7 @@ public:
 		VkDescriptorSetLayout object;
 	} descriptorSetLayouts;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Inline uniform blocks";
 		camera.type = Camera::CameraType::firstperson;

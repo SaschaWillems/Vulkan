@@ -10,8 +10,6 @@
 #include "VulkanglTFModel.h"
 #include "VulkanRaytracingSample.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanRaytracingSample
 {
 public:

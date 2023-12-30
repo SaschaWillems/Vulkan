@@ -10,7 +10,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 #define NODE_COUNT 20
 
 class VulkanExample : public VulkanExampleBase
@@ -74,7 +73,7 @@ public:
 		VkDescriptorSet color;
 	} descriptorSets;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Order independent transparency rendering";
 		camera.type = Camera::CameraType::lookat;

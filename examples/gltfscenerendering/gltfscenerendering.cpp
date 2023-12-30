@@ -284,7 +284,7 @@ void VulkanglTFScene::draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipel
 	Vulkan Example class
 */
 
-VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+VulkanExample::VulkanExample() : VulkanExampleBase()
 {
 	title = "glTF scene rendering";
 	camera.type = Camera::CameraType::firstperson;

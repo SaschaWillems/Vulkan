@@ -779,7 +779,7 @@ void VulkanExampleBase::submitFrame()
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
 
-VulkanExampleBase::VulkanExampleBase(bool enableValidation)
+VulkanExampleBase::VulkanExampleBase()
 {
 #if !defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// Check for a valid asset path
@@ -796,7 +796,10 @@ VulkanExampleBase::VulkanExampleBase(bool enableValidation)
 	}
 #endif
 
-	settings.validation = enableValidation;
+	// Validation for all samples can be forced at compile time using the FORCE_VALIDATION define
+#if defined(FORCE_VALIDATION) 
+	settings.validation = true;
+#endif
 	
 	// Command line arguments
 	commandLineParser.add("help", { "--help" }, 0, "Show help");

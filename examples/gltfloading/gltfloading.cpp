@@ -27,7 +27,6 @@
 
 #include "vulkanexamplebase.h"
 
-#define ENABLE_VALIDATION false
 
 // Contains everything required to render a glTF model in Vulkan
 // This class is heavily simplified (compared to glTF's feature set) but retains the basic glTF structure
@@ -408,7 +407,7 @@ public:
 		VkDescriptorSetLayout textures;
 	} descriptorSetLayouts;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "glTF model rendering";
 		camera.type = Camera::CameraType::lookat;

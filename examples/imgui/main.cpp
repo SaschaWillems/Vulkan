@@ -10,8 +10,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 // Options and values to display/toggle from the UI
 struct UISettings {
 	bool displayModels = true;
@@ -561,7 +559,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Vulkan Example - ImGui";
 		camera.type = Camera::CameraType::lookat;

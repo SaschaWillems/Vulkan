@@ -12,7 +12,6 @@
 #include "VulkanglTFModel.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
 #define GRID_DIM 7
 #define OBJ_DIM 0.05f
 
@@ -70,7 +69,7 @@ public:
 	std::vector<std::string> materialNames;
 	std::vector<std::string> objectNames;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Physical based shading basics";
 		camera.type = Camera::CameraType::firstperson;

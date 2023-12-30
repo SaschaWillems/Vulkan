@@ -17,7 +17,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -36,7 +35,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Debug output with shader printf";
 		camera.setRotation(glm::vec3(-4.35f, 16.25f, 0.0f));

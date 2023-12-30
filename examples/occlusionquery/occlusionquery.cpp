@@ -10,8 +10,6 @@
 #include "VulkanglTFModel.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -59,7 +57,7 @@ public:
 	// Passed query samples
 	uint64_t passedSamples[2] = { 1,1 };
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Occlusion queries";
 		camera.type = Camera::CameraType::lookat;

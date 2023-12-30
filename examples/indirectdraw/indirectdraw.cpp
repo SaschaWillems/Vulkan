@@ -24,8 +24,6 @@
 
 #define VERTEX_BUFFER_BIND_ID 0
 #define INSTANCE_BUFFER_BIND_ID 1
-#define ENABLE_VALIDATION false
-
 // Number of instances per object
 #if defined(__ANDROID__)
 #define OBJECT_INSTANCE_COUNT 1024
@@ -91,7 +89,7 @@ public:
 	// Store the indirect draw commands containing index offsets and instance count per object
 	std::vector<VkDrawIndexedIndirectCommand> indirectCommands;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Indirect rendering";
 		camera.type = Camera::CameraType::firstperson;

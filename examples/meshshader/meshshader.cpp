@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define ENABLE_VALIDATION false
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -32,7 +30,7 @@ public:
 
 	VkPhysicalDeviceMeshShaderFeaturesEXT enabledMeshShaderFeatures{};
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Mesh shaders";
 		timerSpeed *= 0.25f;

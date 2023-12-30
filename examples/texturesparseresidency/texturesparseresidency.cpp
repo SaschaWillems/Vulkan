@@ -146,7 +146,7 @@ void VirtualTexture::destroy()
 /*
 	Vulkan Example class
 */
-VulkanExample::VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+VulkanExample::VulkanExample() : VulkanExampleBase()
 {
 	title = "Sparse texture residency";
 	std::cout.imbue(std::locale(""));

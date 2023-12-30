@@ -9,7 +9,6 @@
 #include "vulkanexamplebase.h"
 
 #define VERTEX_BUFFER_BIND_ID 0
-#define ENABLE_VALIDATION false
 
 // Vertex layout for this example
 struct Vertex {
@@ -67,7 +66,7 @@ public:
 
 	std::vector<std::string> shaderNames;
 
-	VulkanExample() : VulkanExampleBase(ENABLE_VALIDATION)
+	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Compute shader image load/store";
 		camera.type = Camera::CameraType::lookat;
