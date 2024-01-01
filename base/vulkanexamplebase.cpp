@@ -144,7 +144,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	}
 	VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 
-	// If the debug utils extension is present we set up debug functions, so samples an label objects for debugging
+	// If the debug utils extension is present we set up debug functions, so samples can label objects for debugging
 	if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedInstanceExtensions.end()) {
 		vks::debugutils::setup(instance);
 	}
@@ -1076,7 +1076,7 @@ bool VulkanExampleBase::initVulkan()
 
 	// Find a suitable depth and/or stencil format
 	VkBool32 validFormat{ false };
-	// Sample that make use of stencil will require a depth + stencil format, so we select from a different list
+	// Samples that make use of stencil will require a depth + stencil format, so we select from a different list
 	if (requiresStencil) {
 		validFormat = vks::tools::getSupportedDepthStencilFormat(physicalDevice, &depthFormat);
 	} else {
