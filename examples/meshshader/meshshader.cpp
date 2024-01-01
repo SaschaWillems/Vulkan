@@ -1,7 +1,7 @@
 /*
- * Vulkan Example - Using mesh shaders
+ * Vulkan Example - Basic sample for using mesh and task shader to replace the traditional vertex pipeline
  *
- * Copyright (C) 2022 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2022-2023 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -19,14 +19,14 @@ public:
 	} uniformData;
 	vks::Buffer uniformBuffer;
 
-	uint32_t indexCount;
+	uint32_t indexCount{ 0 };
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
-	PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasksEXT;
+	PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasksEXT{ VK_NULL_HANDLE };
 
 	VkPhysicalDeviceMeshShaderFeaturesEXT enabledMeshShaderFeatures{};
 
@@ -39,7 +39,7 @@ public:
 		camera.setRotation(glm::vec3(0.0f, 15.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -5.0f));
 
-		// Extension require at least Vulkan 1.1
+		// The mesh shader extension requires at least Vulkan Core 1.1
 		apiVersion = VK_API_VERSION_1_1;
 
 		// Extensions required by mesh shading
@@ -49,18 +49,8 @@ public:
 
 		// Required by VK_KHR_spirv_1_4
 		enabledDeviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
-	}
 
-	~VulkanExample()
-	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		uniformBuffer.destroy();
-	}
-
-	void getEnabledFeatures()
-	{
+		// We need to enable the mesh and task shader feature using a new struct introduced with the extension
 		enabledMeshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
 		enabledMeshShaderFeatures.meshShader = VK_TRUE;
 		enabledMeshShaderFeatures.taskShader = VK_TRUE;
@@ -68,6 +58,15 @@ public:
 		deviceCreatepNextChain = &enabledMeshShaderFeatures;
 	}
 
+	~VulkanExample()
+	{
+		if (device) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			uniformBuffer.destroy();
+		}
+	}
 
 	void buildCommandBuffers()
 	{
@@ -103,6 +102,8 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+			// Use mesh and task shader to draw the scene
 			vkCmdDrawMeshTasksEXT(drawCmdBuffers[i], 1, 1, 1);
 
 			drawUI(drawCmdBuffers[i]);
@@ -158,10 +159,6 @@ public:
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 
-		// Mesh shading doesn't require vertex input state
-		pipelineCI.pInputAssemblyState = nullptr;
-		pipelineCI.pVertexInputState = nullptr;
-
 		pipelineCI.pRasterizationState = &rasterizationState;
 		pipelineCI.pColorBlendState = &colorBlendState;
 		pipelineCI.pMultisampleState = &multisampleState;
@@ -171,8 +168,14 @@ public:
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 
+		// Not using a vertex shader, mesh shading doesn't require vertex input state
+		pipelineCI.pInputAssemblyState = nullptr;
+		pipelineCI.pVertexInputState = nullptr;
+
+		// Instead of a vertex shader, we use a mesh and task shader
 		shaderStages[0] = loadShader(getShadersPath() + "meshshader/meshshader.mesh.spv", VK_SHADER_STAGE_MESH_BIT_EXT);
 		shaderStages[1] = loadShader(getShadersPath() + "meshshader/meshshader.task.spv", VK_SHADER_STAGE_TASK_BIT_EXT);
+
 		shaderStages[2] = loadShader(getShadersPath() + "meshshader/meshshader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
@@ -196,11 +199,9 @@ public:
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
-
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
 		VulkanExampleBase::submitFrame();
 	}
 
@@ -222,12 +223,8 @@ public:
 	{
 		if (!prepared)
 			return;
-		draw();
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		draw();
 	}
 };
 

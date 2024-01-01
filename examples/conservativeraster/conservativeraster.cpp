@@ -5,16 +5,12 @@
 *
 * Uses an offscreen buffer with lower resolution to demonstrate the effect of conservative rasterization
 *
-* Copyright by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 #include "vulkanexamplebase.h"
-
-
-#define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
-#define ZOOM_FACTOR 16
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -32,40 +28,35 @@ public:
 	struct Triangle {
 		vks::Buffer vertices;
 		vks::Buffer indices;
-		uint32_t indexCount;
+		uint32_t indexCount{ 0 };
 	} triangle;
 
-	vks::Buffer uniformBuffer;
-
-	struct UniformBuffers {
-		vks::Buffer scene;
-	} uniformBuffers;
-
-	struct UboScene {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 model;
-	} uboScene;
+	} uniformData;
+	vks::Buffer uniformBuffer;
 
 	struct PipelineLayouts {
-		VkPipelineLayout scene;
-		VkPipelineLayout fullscreen;
+		VkPipelineLayout scene{ VK_NULL_HANDLE };
+		VkPipelineLayout fullscreen{ VK_NULL_HANDLE };
 	} pipelineLayouts;
 
 	struct Pipelines {
-		VkPipeline triangle;
-		VkPipeline triangleConservativeRaster;
-		VkPipeline triangleOverlay;
-		VkPipeline fullscreen;
+		VkPipeline triangle{ VK_NULL_HANDLE };
+		VkPipeline triangleConservativeRaster{ VK_NULL_HANDLE };
+		VkPipeline triangleOverlay{ VK_NULL_HANDLE };
+		VkPipeline fullscreen{ VK_NULL_HANDLE };
 	} pipelines;
 
 	struct DescriptorSetLayouts {
-		VkDescriptorSetLayout scene;
-		VkDescriptorSetLayout fullscreen;
+		VkDescriptorSetLayout scene{ VK_NULL_HANDLE };
+		VkDescriptorSetLayout fullscreen{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
 
 	struct DescriptorSets {
-		VkDescriptorSet scene;
-		VkDescriptorSet fullscreen;
+		VkDescriptorSet scene{ VK_NULL_HANDLE };
+		VkDescriptorSet fullscreen{ VK_NULL_HANDLE };
 	} descriptorSets;
 
 	// Framebuffer for offscreen rendering
@@ -81,7 +72,7 @@ public:
 		VkRenderPass renderPass;
 		VkSampler sampler;
 		VkDescriptorImageInfo descriptor;
-	} offscreenPass;
+	} offscreenPass{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -101,33 +92,33 @@ public:
 
 	~VulkanExample()
 	{
-		// Frame buffer
+		if (device) {
+			vkDestroyImageView(device, offscreenPass.color.view, nullptr);
+			vkDestroyImage(device, offscreenPass.color.image, nullptr);
+			vkFreeMemory(device, offscreenPass.color.mem, nullptr);
+			vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
+			vkDestroyImage(device, offscreenPass.depth.image, nullptr);
+			vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
 
-		vkDestroyImageView(device, offscreenPass.color.view, nullptr);
-		vkDestroyImage(device, offscreenPass.color.image, nullptr);
-		vkFreeMemory(device, offscreenPass.color.mem, nullptr);
-		vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
-		vkDestroyImage(device, offscreenPass.depth.image, nullptr);
-		vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
+			vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
+			vkDestroySampler(device, offscreenPass.sampler, nullptr);
+			vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
 
-		vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
-		vkDestroySampler(device, offscreenPass.sampler, nullptr);
-		vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
+			vkDestroyPipeline(device, pipelines.triangle, nullptr);
+			vkDestroyPipeline(device, pipelines.triangleOverlay, nullptr);
+			vkDestroyPipeline(device, pipelines.triangleConservativeRaster, nullptr);
+			vkDestroyPipeline(device, pipelines.fullscreen, nullptr);
 
-		vkDestroyPipeline(device, pipelines.triangle, nullptr);
-		vkDestroyPipeline(device, pipelines.triangleOverlay, nullptr);
-		vkDestroyPipeline(device, pipelines.triangleConservativeRaster, nullptr);
-		vkDestroyPipeline(device, pipelines.fullscreen, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayouts.fullscreen, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayouts.scene, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayouts.fullscreen, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayouts.scene, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.fullscreen, nullptr);
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.fullscreen, nullptr);
-
-		uniformBuffers.scene.destroy();
-		triangle.vertices.destroy();
-		triangle.indices.destroy();
+			uniformBuffer.destroy();
+			triangle.vertices.destroy();
+			triangle.indices.destroy();
+		}
 	}
 
 	void getEnabledFeatures()
@@ -141,8 +132,13 @@ public:
 	*/
 	void prepareOffscreen()
 	{
-		offscreenPass.width = width / ZOOM_FACTOR;
-		offscreenPass.height = height / ZOOM_FACTOR;
+		// We "magnify" the offscreen rendered triangle so that the conservative rasterization feature is easier to see
+		const int32_t magnification = 16;
+
+		offscreenPass.width = width / magnification;
+		offscreenPass.height = height / magnification;
+
+		const VkFormat fbColorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 		// Find a suitable depth format
 		VkFormat fbDepthFormat;
@@ -152,7 +148,7 @@ public:
 		// Color attachment
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
 		image.imageType = VK_IMAGE_TYPE_2D;
-		image.format = FB_COLOR_FORMAT;
+		image.format = fbColorFormat;
 		image.extent.width = offscreenPass.width;
 		image.extent.height = offscreenPass.height;
 		image.extent.depth = 1;
@@ -175,7 +171,7 @@ public:
 
 		VkImageViewCreateInfo colorImageView = vks::initializers::imageViewCreateInfo();
 		colorImageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		colorImageView.format = FB_COLOR_FORMAT;
+		colorImageView.format = fbColorFormat;
 		colorImageView.subresourceRange = {};
 		colorImageView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		colorImageView.subresourceRange.baseMipLevel = 0;
@@ -228,7 +224,7 @@ public:
 
 		std::array<VkAttachmentDescription, 2> attchmentDescriptions = {};
 		// Color attachment
-		attchmentDescriptions[0].format = FB_COLOR_FORMAT;
+		attchmentDescriptions[0].format = fbColorFormat;
 		attchmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
 		attchmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attchmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -457,8 +453,9 @@ public:
 		stagingBuffers.indices.destroy();
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
+		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
@@ -466,13 +463,10 @@ public:
 		VkDescriptorPoolCreateInfo descriptorPoolInfo =
 			vks::initializers::descriptorPoolCreateInfo(poolSizes,	2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
+		// Layouts
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
 		VkDescriptorSetLayoutCreateInfo descriptorLayout;
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo;
 
 		// Scene rendering
 		setLayoutBindings = {
@@ -480,8 +474,6 @@ public:
 		};
 		descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.scene));
-		pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.scene, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene));
 
 		// Fullscreen pass
 		setLayoutBindings = {
@@ -489,19 +481,15 @@ public:
 		};
 		descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.fullscreen));
-		pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.fullscreen, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.fullscreen));
-	}
 
-	void setupDescriptorSet()
-	{
+		// Sets
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo;
 
 		// Scene rendering
 		descriptorSetAllocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.scene, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocInfo, &descriptorSets.scene));
 		std::vector<VkWriteDescriptorSet> offScreenWriteDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(offScreenWriteDescriptorSets.size()), offScreenWriteDescriptorSets.data(), 0, nullptr);
 
@@ -516,38 +504,25 @@ public:
 
 	void preparePipelines()
 	{
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo;
+		pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.scene, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene));
 
-		VkPipelineColorBlendAttachmentState blendAttachmentState =
-			vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.fullscreen, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayouts.fullscreen));
 
-		VkPipelineColorBlendStateCreateInfo colorBlendStateCI =
-			vks::initializers::pipelineColorBlendStateCreateInfo(1,	&blendAttachmentState);
 
-		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		VkPipelineViewportStateCreateInfo viewportStateCI =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		VkPipelineMultisampleStateCreateInfo multisampleStateCI =
-			vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR,
-		};
-		VkPipelineDynamicStateCreateInfo dynamicStateCI =
-			vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vks::initializers::pipelineColorBlendStateCreateInfo(1,	&blendAttachmentState);
+		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		VkPipelineViewportStateCreateInfo viewportStateCI = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, };
+		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vks::initializers::pipelineCreateInfo(pipelineLayouts.fullscreen, renderPass, 0);
-
-		VkPipelineRasterizationStateCreateInfo rasterizationStateCI =
-			vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE, 0);
+		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE, 0);
 
 		/*
 			Conservative rasterization setup
@@ -579,6 +554,7 @@ public:
 		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
 		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayouts.fullscreen, renderPass, 0);
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyStateCI;
 		pipelineCreateInfo.pRasterizationState = &rasterizationStateCI;
 		pipelineCreateInfo.pColorBlendState = &colorBlendStateCI;
@@ -643,17 +619,17 @@ public:
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.scene,
-			sizeof(uboScene)));
-		VK_CHECK_RESULT(uniformBuffers.scene.map());
+			&uniformBuffer,
+			sizeof(UniformData)));
+		VK_CHECK_RESULT(uniformBuffer.map());
 		updateUniformBuffersScene();
 	}
 
 	void updateUniformBuffersScene()
 	{
-		uboScene.projection = camera.matrices.perspective;
-		uboScene.model = camera.matrices.view;
-		memcpy(uniformBuffers.scene.mapped, &uboScene, sizeof(uboScene));
+		uniformData.projection = camera.matrices.perspective;
+		uniformData.model = camera.matrices.view;
+		memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void draw()
@@ -671,10 +647,8 @@ public:
 		loadAssets();
 		prepareOffscreen();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
 	}
@@ -683,9 +657,8 @@ public:
 	{
 		if (!prepared)
 			return;
+		updateUniformBuffersScene();
 		draw();
-		if (camera.updated)
-			updateUniformBuffersScene();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

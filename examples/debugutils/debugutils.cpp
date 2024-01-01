@@ -15,27 +15,16 @@ public:
 	bool wireframe = true;
 	bool glow = true;
 
-	struct Scene {
-
-		vkglTF::Model model;
-		std::vector<std::string> modelPartNames;
-
-		void loadFromFile(std::string filename, vks::VulkanDevice* vulkanDevice, VkQueue queue)
-		{
-			const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-			model.loadFromFile(filename, vulkanDevice, queue, glTFLoadingFlags);
-		}
-	};
-
-	Scene scene, sceneGlow;
-
-	vks::Buffer uniformBuffer;
+	struct Models {
+		vkglTF::Model scene, sceneGlow;
+	} models;
 
 	struct UBOVS {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0f, 5.0f, 15.0f, 1.0f);
-	} uboVS;
+	} uniformData;
+	vks::Buffer uniformBuffer;
 
 	struct Pipelines {
 		VkPipeline toonshading;
@@ -51,7 +40,7 @@ public:
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
 		VkImage image;
-		VkDeviceMemory mem;
+		VkDeviceMemory memory;
 		VkImageView view;
 	};
 	struct OffscreenPass {
@@ -98,34 +87,34 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources
-		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipelines.toonshading, nullptr);
-		vkDestroyPipeline(device, pipelines.color, nullptr);
-		vkDestroyPipeline(device, pipelines.postprocess, nullptr);
-		if (pipelines.wireframe != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		if (device) {
+			vkDestroyPipeline(device, pipelines.toonshading, nullptr);
+			vkDestroyPipeline(device, pipelines.color, nullptr);
+			vkDestroyPipeline(device, pipelines.postprocess, nullptr);
+			if (pipelines.wireframe != VK_NULL_HANDLE) {
+				vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+			}
+
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+
+			uniformBuffer.destroy();
+
+			// Offscreen
+			// Color attachment
+			vkDestroyImageView(device, offscreenPass.color.view, nullptr);
+			vkDestroyImage(device, offscreenPass.color.image, nullptr);
+			vkFreeMemory(device, offscreenPass.color.memory, nullptr);
+
+			// Depth attachment
+			vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
+			vkDestroyImage(device, offscreenPass.depth.image, nullptr);
+			vkFreeMemory(device, offscreenPass.depth.memory, nullptr);
+
+			vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
+			vkDestroySampler(device, offscreenPass.sampler, nullptr);
+			vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
 		}
-
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-		uniformBuffer.destroy();
-
-		// Offscreen
-		// Color attachment
-		vkDestroyImageView(device, offscreenPass.color.view, nullptr);
-		vkDestroyImage(device, offscreenPass.color.image, nullptr);
-		vkFreeMemory(device, offscreenPass.color.mem, nullptr);
-
-		// Depth attachment
-		vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
-		vkDestroyImage(device, offscreenPass.depth.image, nullptr);
-		vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
-
-		vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
-		vkDestroySampler(device, offscreenPass.sampler, nullptr);
-		vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
 	}
 
 	/*
@@ -290,8 +279,8 @@ public:
 		vkGetImageMemoryRequirements(device, offscreenPass.color.image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.color.mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, offscreenPass.color.image, offscreenPass.color.mem, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.color.memory));
+		VK_CHECK_RESULT(vkBindImageMemory(device, offscreenPass.color.image, offscreenPass.color.memory, 0));
 
 		VkImageViewCreateInfo colorImageView = vks::initializers::imageViewCreateInfo();
 		colorImageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -328,8 +317,8 @@ public:
 		vkGetImageMemoryRequirements(device, offscreenPass.depth.image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.depth.mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, offscreenPass.depth.image, offscreenPass.depth.mem, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &offscreenPass.depth.memory));
+		VK_CHECK_RESULT(vkBindImageMemory(device, offscreenPass.depth.image, offscreenPass.depth.memory, 0));
 
 		VkImageViewCreateInfo depthStencilView = vks::initializers::imageViewCreateInfo();
 		depthStencilView.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -428,18 +417,20 @@ public:
 
 	void loadAssets()
 	{
-		scene.loadFromFile(getAssetPath() + "models/treasure_smooth.gltf", vulkanDevice, queue);
-		sceneGlow.loadFromFile(getAssetPath() + "models/treasure_glow.gltf", vulkanDevice, queue);
+		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+		models.scene.loadFromFile(getAssetPath() + "models/treasure_smooth.gltf", vulkanDevice, queue, glTFLoadingFlags);
+		models.sceneGlow.loadFromFile(getAssetPath() + "models/treasure_glow.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
-	void drawScene(Scene& scene, VkCommandBuffer cmdBuffer)
+	// We use a custom draw function so we can insert debug labels with the names of the glTF nodes
+	void drawModel(vkglTF::Model &model, VkCommandBuffer cmdBuffer)
 	{
-		scene.model.bindBuffers(cmdBuffer);
-		for (auto i = 0; i < scene.model.nodes.size(); i++)
+		model.bindBuffers(cmdBuffer);
+		for (auto i = 0; i < model.nodes.size(); i++)
 		{
 			// Insert a label for the current model's name
-			cmdInsertLabel(cmdBuffer, scene.model.nodes[i]->name.c_str(), { 0.0f, 0.0f, 0.0f, 0.0f });
-			scene.model.drawNode(scene.model.nodes[i], cmdBuffer);
+			cmdInsertLabel(cmdBuffer, model.nodes[i]->name.c_str(), { 0.0f, 0.0f, 0.0f, 0.0f });
+			model.drawNode(model.nodes[i], cmdBuffer);
 		}
 	}
 
@@ -482,7 +473,7 @@ public:
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.color);
 
-				drawScene(sceneGlow, drawCmdBuffers[i]);
+				drawModel(models.sceneGlow, drawCmdBuffers[i]);
 
 				vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -525,7 +516,7 @@ public:
 				cmdBeginLabel(drawCmdBuffers[i], "Toon shading draw", { 0.78f, 0.74f, 0.9f, 1.0f });
 
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toonshading);
-				drawScene(scene, drawCmdBuffers[i]);
+				drawModel(models.scene, drawCmdBuffers[i]);
 
 				cmdEndLabel(drawCmdBuffers[i]);
 
@@ -538,7 +529,7 @@ public:
 					vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireframe);
-					drawScene(scene, drawCmdBuffers[i]);
+					drawModel(models.scene, drawCmdBuffers[i]);
 
 					cmdEndLabel(drawCmdBuffers[i]);
 
@@ -559,7 +550,9 @@ public:
 					cmdEndLabel(drawCmdBuffers[i]);
 				}
 
+				cmdBeginLabel(drawCmdBuffers[i], "UI overlay", { 0.23f, 0.65f, 0.28f, 1.0f });
 				drawUI(drawCmdBuffers[i]);
+				cmdEndLabel(drawCmdBuffers[i]);
 
 				vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -682,10 +675,10 @@ public:
 		setObjectName(device, VK_OBJECT_TYPE_SAMPLER, (uint64_t)offscreenPass.sampler, "Off-screen framebuffer default sampler");
 
 		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)uniformBuffer.buffer, "Scene uniform buffer block");
-		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)scene.model.vertices.buffer, "Scene vertex buffer");
-		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)scene.model.indices.buffer, "Scene index buffer");
-		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)sceneGlow.model.vertices.buffer, "Glow vertex buffer");
-		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)sceneGlow.model.indices.buffer, "Glow index buffer");
+		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)models.scene.vertices.buffer, "Scene vertex buffer");
+		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)models.scene.indices.buffer, "Scene index buffer");
+		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)models.sceneGlow.vertices.buffer, "Glow vertex buffer");
+		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)models.sceneGlow.indices.buffer, "Glow index buffer");
 		
 		// Shader module count starts at 2 when UI overlay in base class is enabled
 		uint32_t moduleIndex = settings.overlay ? 2 : 0;
@@ -716,7 +709,7 @@ public:
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&uniformBuffer,
-			sizeof(uboVS)));
+			sizeof(uniformData)));
 
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffer.map());
@@ -726,9 +719,9 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = camera.matrices.perspective;
-		uboVS.model = camera.matrices.view;
-		memcpy(uniformBuffer.mapped, &uboVS, sizeof(uboVS));
+		uniformData.projection = camera.matrices.perspective;
+		uniformData.model = camera.matrices.view;
+		memcpy(uniformBuffer.mapped, &uniformData, sizeof(uniformData));
 	}
 
 	void draw()
@@ -762,20 +755,14 @@ public:
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (camera.updated)
-			updateUniformBuffers();
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Info")) {
-			overlay->text("VK_EXT_debug_utils %s", (debugUtilsSupported? "active" : "not present"));
+			overlay->text("VK_EXT_debug_utils %s", (debugUtilsSupported? "supported" : "not supported"));
 		}
 		if (overlay->header("Settings")) {
 			if (overlay->checkBox("Glow", &glow)) {
