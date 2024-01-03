@@ -36,36 +36,36 @@ public:
 	} uniformBuffers;
 
 	struct {
-		VkPipeline attachmentWrite;
-		VkPipeline attachmentRead;
+		VkPipeline attachmentWrite{ VK_NULL_HANDLE };
+		VkPipeline attachmentRead{ VK_NULL_HANDLE };
 	} pipelines;
 
 	struct {
-		VkPipelineLayout attachmentWrite;
-		VkPipelineLayout attachmentRead;
+		VkPipelineLayout attachmentWrite{ VK_NULL_HANDLE };
+		VkPipelineLayout attachmentRead{ VK_NULL_HANDLE };
 	} pipelineLayouts;
 
 	struct {
-		VkDescriptorSet attachmentWrite;
-		std::vector<VkDescriptorSet> attachmentRead;
+		VkDescriptorSet attachmentWrite{ VK_NULL_HANDLE };
+		std::vector<VkDescriptorSet> attachmentRead{ VK_NULL_HANDLE };
 	} descriptorSets;
 
 	struct {
-		VkDescriptorSetLayout attachmentWrite;
-		VkDescriptorSetLayout attachmentRead;
+		VkDescriptorSetLayout attachmentWrite{ VK_NULL_HANDLE };
+		VkDescriptorSetLayout attachmentRead{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
 
 	struct FrameBufferAttachment {
-		VkImage image = VK_NULL_HANDLE;
-		VkDeviceMemory memory = VK_NULL_HANDLE;
-		VkImageView view = VK_NULL_HANDLE;
+		VkImage image{ VK_NULL_HANDLE };
+		VkDeviceMemory memory{ VK_NULL_HANDLE };
+		VkImageView view{ VK_NULL_HANDLE };
 		VkFormat format;
 	};
 	struct Attachments {
 		FrameBufferAttachment color, depth;
 	};
 	std::vector<Attachments> attachments;
-	VkExtent2D attachmentSize;
+	VkExtent2D attachmentSize{};
 
 	const VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
@@ -82,29 +82,28 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources
-		// Note : Inherited destructor cleans up resources stored in base class
+		if (device) {
+			for (uint32_t i = 0; i < attachments.size(); i++) {
+				vkDestroyImageView(device, attachments[i].color.view, nullptr);
+				vkDestroyImage(device, attachments[i].color.image, nullptr);
+				vkFreeMemory(device, attachments[i].color.memory, nullptr);
+				vkDestroyImageView(device, attachments[i].depth.view, nullptr);
+				vkDestroyImage(device, attachments[i].depth.image, nullptr);
+				vkFreeMemory(device, attachments[i].depth.memory, nullptr);
+			}
 
-		for (uint32_t i = 0; i < attachments.size(); i++) {
-			vkDestroyImageView(device, attachments[i].color.view, nullptr);
-			vkDestroyImage(device, attachments[i].color.image, nullptr);
-			vkFreeMemory(device, attachments[i].color.memory, nullptr);
-			vkDestroyImageView(device, attachments[i].depth.view, nullptr);
-			vkDestroyImage(device, attachments[i].depth.image, nullptr);
-			vkFreeMemory(device, attachments[i].depth.memory, nullptr);
+			vkDestroyPipeline(device, pipelines.attachmentRead, nullptr);
+			vkDestroyPipeline(device, pipelines.attachmentWrite, nullptr);
+
+			vkDestroyPipelineLayout(device, pipelineLayouts.attachmentWrite, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayouts.attachmentRead, nullptr);
+
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.attachmentWrite, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.attachmentRead, nullptr);
+
+			uniformBuffers.matrices.destroy();
+			uniformBuffers.params.destroy();
 		}
-
-		vkDestroyPipeline(device, pipelines.attachmentRead, nullptr);
-		vkDestroyPipeline(device, pipelines.attachmentWrite, nullptr);
-
-		vkDestroyPipelineLayout(device, pipelineLayouts.attachmentWrite, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayouts.attachmentRead, nullptr);
-
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.attachmentWrite, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.attachmentRead, nullptr);
-
-		uniformBuffers.matrices.destroy();
-		uniformBuffers.params.destroy();
 	}
 
 	void clearAttachment(FrameBufferAttachment* attachment)
@@ -596,15 +595,8 @@ public:
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (camera.updated) {
-			updateUniformBuffers();
-		}
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

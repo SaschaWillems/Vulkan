@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Dynamic uniform buffers
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
@@ -54,15 +54,9 @@ void alignedFree(void* data)
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	struct {
-		VkPipelineVertexInputStateCreateInfo inputState;
-		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	} vertices;
-
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
-	uint32_t indexCount;
+	uint32_t indexCount{ 0 };
 
 	struct {
 		vks::Buffer view;
@@ -81,17 +75,17 @@ public:
 	// One big uniform buffer that contains all matrices
 	// Note that we need to manually allocate the data to cope for GPU-specific uniform buffer offset alignments
 	struct UboDataDynamic {
-		glm::mat4 *model = nullptr;
+		glm::mat4* model{ nullptr };
 	} uboDataDynamic;
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
-	float animationTimer = 0.0f;
+	float animationTimer{ 0.0f };
 
-	size_t dynamicAlignment;
+	size_t dynamicAlignment{ 0 };
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -104,22 +98,18 @@ public:
 
 	~VulkanExample()
 	{
-		if (uboDataDynamic.model) {
-			alignedFree(uboDataDynamic.model);
+		if (device) {
+			if (uboDataDynamic.model) {
+				alignedFree(uboDataDynamic.model);
+			}
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			vertexBuffer.destroy();
+			indexBuffer.destroy();
+			uniformBuffers.view.destroy();
+			uniformBuffers.dynamic.destroy();
 		}
-
-		// Clean up used Vulkan resources
-		// Note : Inherited destructor cleans up resources stored in base class
-		vkDestroyPipeline(device, pipeline, nullptr);
-
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-		vertexBuffer.destroy();
-		indexBuffer.destroy();
-
-		uniformBuffers.view.destroy();
-		uniformBuffers.dynamic.destroy();
 	}
 
 	void buildCommandBuffers()
@@ -178,20 +168,6 @@ public:
 		}
 	}
 
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be submitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
-	}
-
 	void generateCube()
 	{
 		// Setup vertices indices for a colored cube
@@ -229,150 +205,78 @@ public:
 			indices.size() * sizeof(uint32_t),
 			indices.data()));
 	}
-
-	void setupVertexDescriptions()
+	void setupDescriptors()
 	{
-		// Binding description
-		vertices.bindingDescriptions = {
-			vks::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
-		};
-
-		// Attribute descriptions
-		vertices.attributeDescriptions = {
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)),	// Location 0 : Position
-			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)),	// Location 1 : Color
-		};
-
-		vertices.inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertices.inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertices.bindingDescriptions.size());
-		vertices.inputState.pVertexBindingDescriptions = vertices.bindingDescriptions.data();
-		vertices.inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertices.attributeDescriptions.size());
-		vertices.inputState.pVertexAttributeDescriptions = vertices.attributeDescriptions.data();
-	}
-
-	void setupDescriptorPool()
-	{
-		// Example uses one ubo and one image sampler
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
+		// Pool
+		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			// Dynamic uniform buffer
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1)
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(
-				static_cast<uint32_t>(poolSizes.size()),
-				poolSizes.data(),
-				2);
-
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-		{
+		// Layout
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+			// Dynamic uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT, 1)
 		};
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				static_cast<uint32_t>(setLayoutBindings.size()));
-
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(
-				&descriptorSetLayout,
-				1);
-
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-	}
-
-	void setupDescriptorSet()
-	{
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
-
+		// Set
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			// Binding 0 : Projection/View matrix uniform buffer
+			// Binding 0 : Projection/View matrix as uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.view.descriptor),
 			// Binding 1 : Instance matrix as dynamic uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &uniformBuffers.dynamic.descriptor),
 		};
-
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
 	{
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(
-				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-				0,
-				VK_FALSE);
+		// Layout
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
-		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vks::initializers::pipelineRasterizationStateCreateInfo(
-				VK_POLYGON_MODE_FILL,
-				VK_CULL_MODE_NONE,
-				VK_FRONT_FACE_COUNTER_CLOCKWISE,
-				0);
-
-		VkPipelineColorBlendAttachmentState blendAttachmentState =
-			vks::initializers::pipelineColorBlendAttachmentState(
-				0xf,
-				VK_FALSE);
-
-		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vks::initializers::pipelineColorBlendStateCreateInfo(
-				1,
-				&blendAttachmentState);
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(
-				VK_TRUE,
-				VK_TRUE,
-				VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		VkPipelineViewportStateCreateInfo viewportState =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vks::initializers::pipelineMultisampleStateCreateInfo(
-				VK_SAMPLE_COUNT_1_BIT,
-				0);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(
-				dynamicStateEnables.data(),
-				static_cast<uint32_t>(dynamicStateEnables.size()),
-				0);
-
-		// Load shaders
+		// Pipeline
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0,  VK_FALSE);
+		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+
+		// Vertex bindings and attributes
+		VkVertexInputBindingDescription vertexInputBinding = { 
+			vks::initializers::vertexInputBindingDescription(VERTEX_BUFFER_BIND_ID, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+		};
+		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)),	// Location 0 : Position
+			vks::initializers::vertexInputAttributeDescription(VERTEX_BUFFER_BIND_ID, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)),	// Location 1 : Color
+		};
+		VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo();
+		vertexInputStateCI.vertexBindingDescriptionCount = 1;
+		vertexInputStateCI.pVertexBindingDescriptions = &vertexInputBinding;
+		vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
 		shaderStages[0] = loadShader(getShadersPath() + "dynamicuniformbuffer/base.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "dynamicuniformbuffer/base.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-			vks::initializers::pipelineCreateInfo(
-				pipelineLayout,
-				renderPass,
-				0);
-
-		pipelineCreateInfo.pVertexInputState = &vertices.inputState;
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
+		pipelineCreateInfo.pVertexInputState = &vertexInputStateCI;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -382,7 +286,6 @@ public:
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
-
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
@@ -439,7 +342,7 @@ public:
 		}
 
 		updateUniformBuffers();
-		updateDynamicUniformBuffer(true);
+		updateDynamicUniformBuffer();
 	}
 
 	void updateUniformBuffers()
@@ -451,11 +354,11 @@ public:
 		memcpy(uniformBuffers.view.mapped, &uboVS, sizeof(uboVS));
 	}
 
-	void updateDynamicUniformBuffer(bool force = false)
+	void updateDynamicUniformBuffer()
 	{
 		// Update at max. 60 fps
-		animationTimer += frameTimer;
-		if ((animationTimer <= 1.0f / 60.0f) && (!force)) {
+		animationTimer += frameTimer;	
+		if (animationTimer <= 1.0f / 60.0f) {
 			return;
 		}
 
@@ -501,28 +404,29 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		generateCube();
-		setupVertexDescriptions();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (!paused)
-			updateDynamicUniformBuffer();
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		updateDynamicUniformBuffer();
+		draw();
 	}
 };
 

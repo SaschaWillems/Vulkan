@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Viewport array with single pass rendering using geometry shaders
 *
-* Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -14,18 +14,17 @@ class VulkanExample : public VulkanExampleBase
 public:
 	vkglTF::Model scene;
 
-	struct UBOGS {
+	struct UniformDataGS {
 		glm::mat4 projection[2];
 		glm::mat4 modelview[2];
 		glm::vec4 lightPos = glm::vec4(-2.5f, -3.5f, 0.0f, 1.0f);
-	} uboGS;
-
+	} uniformDataGS;
 	vks::Buffer uniformBufferGS;
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	// Camera and view properties
 	float eyeSeparation = 0.08f;
@@ -45,12 +44,12 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-		uniformBufferGS.destroy();
+		if (device) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			uniformBufferGS.destroy();
+		}
 	}
 
 	// Enable physical device features required for this example
@@ -98,12 +97,12 @@ public:
 
 			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport viewports[2];
-			// Right
-			viewports[0] = { (float)width / 2.0f, 0, (float)width / 2.0f, (float)height, 0.0, 1.0f };
-			// Left
-			viewports[1] = { 0, 0, (float)width / 2.0f, (float)height, 0.0, 1.0f };
-
+			// We render to two viewports simultaneously, so we need to viewports and two scissor rectangles
+			// 0 = right, 1 = left
+			VkViewport viewports[2] = {
+				{ (float)width / 2.0f, 0, (float)width / 2.0f, (float)height, 0.0, 1.0f },
+				{ 0, 0, (float)width / 2.0f, (float)height, 0.0, 1.0f },
+			};
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 2, viewports);
 
 			VkRect2D scissorRects[2] = {
@@ -131,55 +130,39 @@ public:
 		scene.loadFromFile(getAssetPath() + "models/sampleroom.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY);
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
-		// Example uses two ubos
+		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
 		};
-
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), 1);
-
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), 1);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
+		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT, 0)	// Binding 1: Geometry shader ubo
 		};
-
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
-
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-	}
-
-	void setupDescriptorSet()
-	{
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(
-				descriptorPool,
-				&descriptorSetLayout,
-				1);
-
+		
+		// Set
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBufferGS.descriptor),	// Binding 0 :Geometry shader ubo
 		};
-
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
 	{
+		// Layout
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+
+		// Pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -217,16 +200,9 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Geometry shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBufferGS,
-			sizeof(uboGS)));
-
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBufferGS, sizeof(UniformDataGS)));
 		// Map persistent
 		VK_CHECK_RESULT(uniformBufferGS.map());
-
-		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
@@ -262,8 +238,8 @@ public:
 
 		transM = glm::translate(glm::mat4(1.0f), camera.position - camRight * (eyeSeparation / 2.0f));
 
-		uboGS.projection[0] = glm::frustum(left, right, bottom, top, zNear, zFar);
-		uboGS.modelview[0] = rotM * transM;
+		uniformDataGS.projection[0] = glm::frustum(left, right, bottom, top, zNear, zFar);
+		uniformDataGS.modelview[0] = rotM * transM;
 
 		// Right eye
 		left = -aspectRatio * wd2 - 0.5f * eyeSeparation * ndfl;
@@ -271,10 +247,21 @@ public:
 
 		transM = glm::translate(glm::mat4(1.0f), camera.position + camRight * (eyeSeparation / 2.0f));
 
-		uboGS.projection[1] = glm::frustum(left, right, bottom, top, zNear, zFar);
-		uboGS.modelview[1] = rotM * transM;
+		uniformDataGS.projection[1] = glm::frustum(left, right, bottom, top, zNear, zFar);
+		uniformDataGS.modelview[1] = rotM * transM;
 
-		memcpy(uniformBufferGS.mapped, &uboGS, sizeof(uboGS));
+		memcpy(uniformBufferGS.mapped, &uniformDataGS, sizeof(uniformDataGS));
+	}
+
+	void prepare()
+	{
+		VulkanExampleBase::prepare();
+		loadAssets();
+		prepareUniformBuffers();
+		setupDescriptors();
+		preparePipelines();
+		buildCommandBuffers();
+		prepared = true;
 	}
 
 	void draw()
@@ -286,29 +273,12 @@ public:
 		VulkanExampleBase::submitFrame();
 	}
 
-	void prepare()
-	{
-		VulkanExampleBase::prepare();
-		loadAssets();
-		prepareUniformBuffers();
-		setupDescriptorSetLayout();
-		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSet();
-		buildCommandBuffers();
-		prepared = true;
-	}
-
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
