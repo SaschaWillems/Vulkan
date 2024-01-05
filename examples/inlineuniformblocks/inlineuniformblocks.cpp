@@ -5,17 +5,13 @@
 *
 * Relevant code parts are marked with [POI]
 *
-* Copyright (C) 2018-2021 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
-
-float rnd() {
-	return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-}
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -33,34 +29,34 @@ public:
 		} material;
 		VkDescriptorSet descriptorSet;
 		void setRandomMaterial() {
-			material.r = rnd();
-			material.g = rnd();
-			material.b = rnd();
+			std::random_device rndDevice;
+			std::default_random_engine rndEngine(rndDevice());
+			std::uniform_real_distribution<float> rndDist(0.1f, 1.0f);
+			material.r = rndDist(rndEngine);
+			material.g = rndDist(rndEngine);
+			material.b = rndDist(rndEngine);
 			material.ambient = 0.0025f;
-			material.roughness = glm::clamp(rnd(), 0.005f, 1.0f);
-			material.metallic = glm::clamp(rnd(), 0.005f, 1.0f);
+			material.roughness = glm::clamp(rndDist(rndEngine), 0.005f, 1.0f);
+			material.metallic = glm::clamp(rndDist(rndEngine), 0.005f, 1.0f);
 		}
 	};
-	std::array<Object, 16> objects;
+	std::array<Object, 16> objects{};
 
-	struct {
-		vks::Buffer scene;
-	} uniformBuffers;
-
-	struct UBOMatrices {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::mat4 view;
 		glm::vec3 camPos;
-	} uboMatrices;
+	} uniformData;
+	vks::Buffer uniformBuffer;
 
-	VkPipelineLayout pipelineLayout;
-	VkPipeline pipeline;
-	VkDescriptorSet descriptorSet;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 
 	struct DescriptorSetLaysts {
-		VkDescriptorSetLayout scene;
-		VkDescriptorSetLayout object;
+		VkDescriptorSetLayout scene{ VK_NULL_HANDLE };
+		VkDescriptorSetLayout object{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
 
 	VulkanExample() : VulkanExampleBase()
@@ -73,23 +69,30 @@ public:
 		camera.movementSpeed = 4.0f;
 		camera.rotationSpeed = 0.25f;
 
-		srand((unsigned int)time(0));
-
 		/*
 			[POI] Enable extensions required for inline uniform blocks
 		*/
 		enabledDeviceExtensions.push_back(VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
+		/*
+			[POI] We also need to enable the inline uniform block feature (using the dedicated physical device structure)
+		*/
+		enabledInlineUniformBlockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT;
+		enabledInlineUniformBlockFeatures.inlineUniformBlock = VK_TRUE;
+		deviceCreatepNextChain = &enabledInlineUniformBlockFeatures;
 	}
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.object, nullptr);
-		uniformBuffers.scene.destroy();
+		if (device) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.object, nullptr);
+			uniformBuffer.destroy();
+		}
 	}
 
 	void buildCommandBuffers()
@@ -162,49 +165,7 @@ public:
 		}
 	}
 
-	void setupDescriptorSetLayout()
-	{
-		// Scene
-		{
-			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-			};
-			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayouts.scene));
-		}
-
-		// Objects
-		{
-			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				/*
-					[POI] Setup inline uniform block for set 1 at binding 0 (see fragment shader)
-					Descriptor count for an inline uniform block contains data sizes of the block (last parameter)
-				*/
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Object::Material)),
-			};
-			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayouts.object));
-		}
-
-		/*
-			[POI] Pipeline layout
-		*/
-		std::vector<VkDescriptorSetLayout> setLayouts = {
-			descriptorSetLayouts.scene, // Set 0 = Scene matrices
-			descriptorSetLayouts.object // Set 1 = Object inline uniform block
-		};
-		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
-
-		std::vector<VkPushConstantRange> pushConstantRanges = {
-			vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec3), 0),
-		};
-		pipelineLayoutCI.pushConstantRangeCount = 1;
-		pipelineLayoutCI.pPushConstantRanges = pushConstantRanges.data();
-
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
-	}
-
-	void setupDescriptorSets()
+	void setupDescriptors()
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -213,7 +174,6 @@ public:
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, static_cast<uint32_t>(objects.size()) * sizeof(Object::Material)),
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolCI = vks::initializers::descriptorPoolCreateInfo(poolSizes, static_cast<uint32_t>(objects.size()) + 1);
-
 		/*
 			[POI] New structure that has to be chained into the descriptor pool's createinfo if you want to allocate inline uniform blocks
 		*/
@@ -224,19 +184,35 @@ public:
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
 
-		// Sets
+		// Layouts
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
+		VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
+		// Scene matrices
+		setLayoutBindings = {
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+		};
+		descriptorLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayouts.scene));
+		setLayoutBindings = {
+			/*
+				[POI] Setup inline uniform block for set 1 at binding 0 (see fragment shader)
+				Descriptor count for an inline uniform block contains data sizes of the block (last parameter)
+			*/
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Object::Material)),
+		};
+		descriptorLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayouts.object));
 
+		// Sets
 		// Scene
 		VkDescriptorSetAllocateInfo descriptorAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.scene, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &descriptorSet));
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-
 		// Objects
-		for (auto &object : objects) {
+		for (auto& object : objects) {
 			VkDescriptorSetAllocateInfo descriptorAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.object, 1);
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &object.descriptorSet));
 
@@ -269,6 +245,25 @@ public:
 
 	void preparePipelines()
 	{
+		/*
+			[POI] Pipeline layout usin two sets, one for the scene matrices and one for the per-object inline uniform blocks
+		*/
+		std::vector<VkDescriptorSetLayout> setLayouts = {
+			descriptorSetLayouts.scene, // Set 0 = Scene matrices
+			descriptorSetLayouts.object // Set 1 = Object inline uniform block
+		};
+		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
+
+		// We use push constants for passing object positions
+		std::vector<VkPushConstantRange> pushConstantRanges = {
+			vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec3), 0),
+		};
+		pipelineLayoutCI.pushConstantRangeCount = 1;
+		pipelineLayoutCI.pPushConstantRanges = pushConstantRanges.data();
+
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
+
+		// Pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -299,37 +294,18 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.scene, sizeof(uboMatrices)));
-		VK_CHECK_RESULT(uniformBuffers.scene.map());
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(UniformData)));
+		VK_CHECK_RESULT(uniformBuffer.map());
 		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
 	{
-		uboMatrices.projection = camera.matrices.perspective;
-		uboMatrices.view = camera.matrices.view;
-		uboMatrices.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
-		uboMatrices.camPos = camera.position * glm::vec3(-1.0f, 1.0f, -1.0f);
-		memcpy(uniformBuffers.scene.mapped, &uboMatrices, sizeof(uboMatrices));
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
-	}
-
-	void getEnabledFeatures()
-	{
-		// Enable the inline uniform block feature using the dedicated physical device structure
-		enabledInlineUniformBlockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT;
-		enabledInlineUniformBlockFeatures.inlineUniformBlock = VK_TRUE;
-		deviceCreatepNextChain = &enabledInlineUniformBlockFeatures;
+		uniformData.projection = camera.matrices.perspective;
+		uniformData.view = camera.matrices.view;
+		uniformData.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
+		uniformData.camPos = camera.position * glm::vec3(-1.0f, 1.0f, -1.0f);
+		memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void prepare()
@@ -337,29 +313,31 @@ public:
 		VulkanExampleBase::prepare();
 		loadAssets();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorSets();
 		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (camera.updated)
-			updateUniformBuffers();
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		draw();
 	}
 
 	/*
-		[POI] Update descriptor sets at runtime
+		[POI] Update descriptor sets at runtime, called from the UI to randomize materials
 	*/
 	void updateMaterials() {
 		// Setup random materials for every object in the scene
