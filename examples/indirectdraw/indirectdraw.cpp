@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Indirect drawing
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
@@ -61,28 +61,25 @@ public:
 	vks::Buffer instanceBuffer;
 	// Contains the indirect drawing commands
 	vks::Buffer indirectCommandsBuffer;
-	uint32_t indirectDrawCount;
+	uint32_t indirectDrawCount{ 0 };
 
-	struct {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 view;
-	} uboVS;
-
-	struct {
-		vks::Buffer scene;
 	} uniformData;
+	vks::Buffer uniformBuffer;
 
 	struct {
-		VkPipeline plants;
-		VkPipeline ground;
-		VkPipeline skysphere;
+		VkPipeline plants{ VK_NULL_HANDLE };
+		VkPipeline ground{ VK_NULL_HANDLE };
+		VkPipeline skysphere{ VK_NULL_HANDLE };
 	} pipelines;
 
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
-	VkSampler samplerRepeat;
+	VkSampler samplerRepeat{ VK_NULL_HANDLE };
 
 	uint32_t objectCount = 0;
 
@@ -101,16 +98,18 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipelines.plants, nullptr);
-		vkDestroyPipeline(device, pipelines.ground, nullptr);
-		vkDestroyPipeline(device, pipelines.skysphere, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		textures.plants.destroy();
-		textures.ground.destroy();
-		instanceBuffer.destroy();
-		indirectCommandsBuffer.destroy();
-		uniformData.scene.destroy();
+		if (device) {
+			vkDestroyPipeline(device, pipelines.plants, nullptr);
+			vkDestroyPipeline(device, pipelines.ground, nullptr);
+			vkDestroyPipeline(device, pipelines.skysphere, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			textures.plants.destroy();
+			textures.ground.destroy();
+			instanceBuffer.destroy();
+			indirectCommandsBuffer.destroy();
+			uniformBuffer.destroy();
+		}
 	}
 
 	// Enable physical device features required for this example
@@ -245,7 +244,7 @@ public:
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformData.scene.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 			// Binding 1: Plants texture array combined
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.plants.descriptor),
 			// Binding 2: Ground texture combined
@@ -433,40 +432,15 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformData.scene,
-			sizeof(uboVS)));
-
-		VK_CHECK_RESULT(uniformData.scene.map());
-
-		updateUniformBuffer(true);
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(uniformData)));
+		VK_CHECK_RESULT(uniformBuffer.map());
 	}
 
-	void updateUniformBuffer(bool viewChanged)
+	void updateUniformBuffer()
 	{
-		if (viewChanged)
-		{
-			uboVS.projection = camera.matrices.perspective;
-			uboVS.view = camera.matrices.view;
-		}
-
-		memcpy(uniformData.scene.mapped, &uboVS, sizeof(uboVS));
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be submitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
+		uniformData.projection = camera.matrices.perspective;
+		uniformData.view = camera.matrices.view;
+		memcpy(uniformBuffer.mapped, &uniformData, sizeof(uniformData));
 	}
 
 	void prepare()
@@ -484,22 +458,23 @@ public:
 		prepared = true;
 	}
 
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
+	}
+
 	virtual void render()
 	{
 		if (!prepared)
 		{
 			return;
 		}
+		updateUniformBuffer();
 		draw();
-		if (camera.updated)
-		{
-			updateUniformBuffer(true);
-		}
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffer(true);
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
