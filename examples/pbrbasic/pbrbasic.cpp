@@ -3,7 +3,7 @@
 *
 * See http://graphicrants.blogspot.de/2013/08/specular-brdf-reference.html for a good reference to the different functions that make up a specular BRDF
 *
-* Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -11,7 +11,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define VERTEX_BUFFER_BIND_ID 0
 #define GRID_DIM 7
 #define OBJ_DIM 0.05f
 
@@ -21,7 +20,7 @@ struct Material {
 		float roughness;
 		float metallic;
 		float r, g, b;
-	} params;
+	} params{};
 	std::string name;
 	Material() {};
 	Material(std::string n, glm::vec3 c, float r, float m) : name(n) {
@@ -57,10 +56,10 @@ public:
 		glm::vec4 lights[4];
 	} uboParams;
 
-	VkPipelineLayout pipelineLayout;
-	VkPipeline pipeline;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkDescriptorSet descriptorSet;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 
 	// Default materials to select from
 	std::vector<Material> materials;
@@ -78,7 +77,6 @@ public:
 		camera.movementSpeed = 4.0f;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.rotationSpeed = 0.25f;
-		paused = true;
 		timerSpeed *= 0.25f;
 
 		// Setup some default materials (source: https://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
@@ -105,13 +103,13 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-		uniformBuffers.object.destroy();
-		uniformBuffers.params.destroy();
+		if (device) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			uniformBuffers.object.destroy();
+			uniformBuffers.params.destroy();
+		}
 	}
 
 	void buildCommandBuffers()
@@ -146,36 +144,24 @@ public:
 			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-			// Objects
+			// Draw a grid of spheres using varying material parameters
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			Material mat = materials[materialIndex];
 
-//#define SINGLE_ROW 1
-#ifdef SINGLE_ROW
-			mat.params.metallic = 1.0;
-
-			uint32_t objcount = 10;
-			for (uint32_t x = 0; x < objcount; x++) {
-				glm::vec3 pos = glm::vec3(float(x - (objcount / 2.0f)) * 2.5f, 0.0f, 0.0f);
-				mat.params.roughness = glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
-				models.objects[models.objectIndex].draw(drawCmdBuffers[i]);
-			}
-#else
 			for (uint32_t y = 0; y < GRID_DIM; y++) {
 				for (uint32_t x = 0; x < GRID_DIM; x++) {
 					glm::vec3 pos = glm::vec3(float(x - (GRID_DIM / 2.0f)) * 2.5f, 0.0f, float(y - (GRID_DIM / 2.0f)) * 2.5f);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
+					// Vary metallic and roughness, two important PBR parameters
 					mat.params.metallic = glm::clamp((float)x / (float)(GRID_DIM - 1), 0.1f, 1.0f);
 					mat.params.roughness = glm::clamp((float)y / (float)(GRID_DIM - 1), 0.05f, 1.0f);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
 					models.objects[models.objectIndex].draw(drawCmdBuffers[i]);
 				}
 			}
-#endif
+
 			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -193,50 +179,25 @@ public:
 		}
 	}
 
-	void setupDescriptorSetLayout()
+	void setupDescriptors()
 	{
+		// Pool
+		std::vector<VkDescriptorPoolSize> poolSizes = {
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4),
+		};
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
+
+		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 		};
-
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-
-		std::vector<VkPushConstantRange> pushConstantRanges = {
-			vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec3), 0),
-			vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(Material::PushBlock), sizeof(glm::vec3)),
-		};
-
-		pipelineLayoutCreateInfo.pushConstantRangeCount = 2;
-		pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-	}
-
-	void setupDescriptorSets()
-	{
-		// Descriptor Pool
-		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4),
-		};
-
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
-
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-
-		// Descriptor sets
-
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-
-		// 3D object descriptor set
+		// Set
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
@@ -248,6 +209,18 @@ public:
 
 	void preparePipelines()
 	{
+		// Layout
+		// We use push constant to pass material information
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		std::vector<VkPushConstantRange> pushConstantRanges = {
+			vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec3), 0),
+			vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(Material::PushBlock), sizeof(glm::vec3)),
+		};
+		pipelineLayoutCreateInfo.pushConstantRangeCount = 2;
+		pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+
+		// Pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =  vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -284,25 +257,14 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Object vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.object,
-			sizeof(uboMatrices)));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.object, sizeof(uboMatrices)));
 
 		// Shared parameter uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.params,
-			sizeof(uboParams)));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.params, sizeof(uboParams)));
 
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffers.object.map());
 		VK_CHECK_RESULT(uniformBuffers.params.map());
-
-		updateUniformBuffers();
-		updateLights();
 	}
 
 	void updateUniformBuffers()
@@ -350,9 +312,8 @@ public:
 		VulkanExampleBase::prepare();
 		loadAssets();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorSets();
 		buildCommandBuffers();
 		prepared = true;
 	}
@@ -361,14 +322,11 @@ public:
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (!paused)
-			updateLights();
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		if (!paused) {
+			updateLights();
+		}
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
