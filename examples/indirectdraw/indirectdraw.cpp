@@ -22,7 +22,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define 0 0
 #define INSTANCE_BUFFER_BIND_ID 1
 // Number of instances per object
 #if defined(__ANDROID__)
