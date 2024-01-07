@@ -1,11 +1,11 @@
 // Copyright 2020 Google LLC
+// Copyright 2023 Sascha Willems
 
 struct Particle {
 	float4 pos;
 	float4 vel;
 	float4 uv;
 	float4 normal;
-	float pinned;
 };
 
 [[vk::binding(0)]]
@@ -53,13 +53,6 @@ void main(uint3 id : SV_DispatchThreadID)
 	uint index = id.y * params.particleCount.x + id.x;
 	if (index > params.particleCount.x * params.particleCount.y)
 		return;
-
-	// Pinned?
-	if (particleIn[index].pinned == 1.0) {
-		particleOut[index].pos = particleOut[index].pos;
-		particleOut[index].vel = float4(0, 0, 0, 0);
-		return;
-	}
 
 	// Initial force from gravity
 	float3 force = params.gravity.xyz * params.particleMass;

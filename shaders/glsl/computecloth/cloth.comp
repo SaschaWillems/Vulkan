@@ -5,7 +5,6 @@ struct Particle {
 	vec4 vel;
 	vec4 uv;
 	vec4 normal;
-	float pinned;
 };
 
 layout(std430, binding = 0) buffer ParticleIn {
@@ -52,13 +51,6 @@ void main()
 	uint index = id.y * params.particleCount.x + id.x;
 	if (index > params.particleCount.x * params.particleCount.y) 
 		return;
-
-	// Pinned?
-	if (particleIn[index].pinned == 1.0) {
-		particleOut[index].pos = particleOut[index].pos;
-		particleOut[index].vel = vec4(0.0);
-		return;
-	}
 
 	// Initial force from gravity
 	vec3 force = params.gravity.xyz * params.particleMass;

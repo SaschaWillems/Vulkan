@@ -1,6 +1,9 @@
 /*
 * Vulkan Example - Compute shader cloth simulation
 *
+* A compute shader updates a shader storage buffer that contains particles held together by springs and also does basic
+* collision detection against a sphere. This storage buffer is then used as the vertex input for the graphics part of the sample
+*
 * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -13,80 +16,89 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	uint32_t sceneSetup = 0;
-	uint32_t readSet = 0;
-	uint32_t indexCount;
-	bool simulateWind = false;
-	bool specializedComputeQueue = false;
+	uint32_t readSet{ 0 };
+	uint32_t indexCount{ 0 };
+	bool simulateWind{ false };
+	// This will be set to true, if the device has a dedicated queue from a compute only queue family
+	// With such a queue graphics and compute workloads can run in parallel, but this also requires additional barriers (often called "async compute")
+	// These barriers will release and acquire the resources used in graphics and compute between the different queue families
+	bool dedicatedComputeQueue{ false };
 
 	vks::Texture2D textureCloth;
 	vkglTF::Model modelSphere;
 
-	// Resources for the graphics part of the example
-	struct {
-		VkDescriptorSetLayout descriptorSetLayout;
-		VkDescriptorSet descriptorSet;
-		VkPipelineLayout pipelineLayout;
-		struct Pipelines {
-			VkPipeline cloth;
-			VkPipeline sphere;
-		} pipelines;
-		vks::Buffer indices;
-		vks::Buffer uniformBuffer;
-		struct graphicsUBO {
-			glm::mat4 projection;
-			glm::mat4 view;
-			glm::vec4 lightPos = glm::vec4(-2.0f, 4.0f, -2.0f, 1.0f);
-		} ubo;
-	} graphics;
-
-	// Resources for the compute part of the example
-	struct {
-		struct StorageBuffers {
-			vks::Buffer input;
-			vks::Buffer output;
-		} storageBuffers;
-		struct Semaphores {
-			VkSemaphore ready{ 0L };
-			VkSemaphore complete{ 0L };
-		} semaphores;
-		vks::Buffer uniformBuffer;
-		VkQueue queue;
-		VkCommandPool commandPool;
-		std::array<VkCommandBuffer,2> commandBuffers;
-		VkDescriptorSetLayout descriptorSetLayout;
-		std::array<VkDescriptorSet,2> descriptorSets;
-		VkPipelineLayout pipelineLayout;
-		VkPipeline pipeline;
-		struct computeUBO {
-			float deltaT = 0.0f;
-			float particleMass = 0.1f;
-			float springStiffness = 2000.0f;
-			float damping = 0.25f;
-			float restDistH;
-			float restDistV;
-			float restDistD;
-			float sphereRadius = 1.0f;
-			glm::vec4 spherePos = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-			glm::vec4 gravity = glm::vec4(0.0f, 9.8f, 0.0f, 0.0f);
-			glm::ivec2 particleCount;
-		} ubo;
-	} compute;
-
-	// SSBO cloth grid particle declaration
+	// The cloth is made from a grid of particles
 	struct Particle {
 		glm::vec4 pos;
 		glm::vec4 vel;
 		glm::vec4 uv;
 		glm::vec4 normal;
-		float pinned;
-		glm::vec3 _pad0;
 	};
 
+	// Cloth definition parameters
 	struct Cloth {
-		glm::uvec2 gridsize = glm::uvec2(60, 60);
-		glm::vec2 size = glm::vec2(5.0f);
+		glm::uvec2 gridsize{ 60, 60 };
+		glm::vec2 size{ 5.0f, 5.0f };
 	} cloth;
+
+	// We put the resource "types" into structs to make this sample easier to understand
+
+	// We use two buffers for our cloth simulation: One with the input cloth data and one for outputting updated values
+	// The compute pipeline will update the output buffer, and the graphics pipeline will it as a vertex buffer
+	struct StorageBuffers {
+		vks::Buffer input;
+		vks::Buffer output;
+	} storageBuffers;
+
+	// Resources for the graphics part of the example
+	struct Graphics {
+		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+		struct Pipelines {
+			VkPipeline cloth{ VK_NULL_HANDLE };
+			VkPipeline sphere{ VK_NULL_HANDLE };
+		} pipelines;
+		// The vertices will be stored in the shader storage buffers, so we only need an index buffer in this structure
+		vks::Buffer indices;
+		struct UniformData {
+			glm::mat4 projection;
+			glm::mat4 view;
+			glm::vec4 lightPos{ -2.0f, 4.0f, -2.0f, 1.0f };
+		} uniformData;
+		vks::Buffer uniformBuffer;
+	} graphics;
+
+	// Resources for the compute part of the example
+	struct Compute {
+		struct Semaphores {
+			VkSemaphore ready{ VK_NULL_HANDLE };
+			VkSemaphore complete{ VK_NULL_HANDLE };
+		} semaphores;
+		VkQueue queue{ VK_NULL_HANDLE };
+		VkCommandPool commandPool{ VK_NULL_HANDLE };
+		std::array<VkCommandBuffer, 2> commandBuffers{};
+		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+		std::array<VkDescriptorSet, 2> descriptorSets{ VK_NULL_HANDLE };
+		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+		VkPipeline pipeline{ VK_NULL_HANDLE };
+		struct UniformData {
+			float deltaT{ 0.0f };
+			// These arguments define the spring setup for the cloth piece
+			// Changing these changes how the cloth reacts
+			float particleMass{ 0.1f };
+			float springStiffness{ 2000.0f };
+			float damping{ 0.25f };
+			float restDistH{ 0 };
+			float restDistV{ 0 };
+			float restDistD{ 0 };
+			float sphereRadius{ 1.0f };
+			glm::vec4 spherePos{ 0.0f, 0.0f, 0.0f, 0.0f };
+			glm::vec4 gravity{ 0.0f, 9.8f, 0.0f, 0.0f };
+			glm::ivec2 particleCount{ 0 };
+		} uniformData;
+		vks::Buffer uniformBuffer;
+	} compute;
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -99,25 +111,29 @@ public:
 
 	~VulkanExample()
 	{
-		// Graphics
-		graphics.indices.destroy();
-		graphics.uniformBuffer.destroy();
-		vkDestroyPipeline(device, graphics.pipelines.cloth, nullptr);
-		vkDestroyPipeline(device, graphics.pipelines.sphere, nullptr);
-		vkDestroyPipelineLayout(device, graphics.pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, graphics.descriptorSetLayout, nullptr);
-		textureCloth.destroy();
+		if (device) {
+			// Graphics
+			graphics.indices.destroy();
+			graphics.uniformBuffer.destroy();
+			vkDestroyPipeline(device, graphics.pipelines.cloth, nullptr);
+			vkDestroyPipeline(device, graphics.pipelines.sphere, nullptr);
+			vkDestroyPipelineLayout(device, graphics.pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, graphics.descriptorSetLayout, nullptr);
+			textureCloth.destroy();
 
-		// Compute
-		compute.storageBuffers.input.destroy();
-		compute.storageBuffers.output.destroy();
-		compute.uniformBuffer.destroy();
-		vkDestroyPipelineLayout(device, compute.pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
-		vkDestroyPipeline(device, compute.pipeline, nullptr);
-		vkDestroySemaphore(device, compute.semaphores.ready, nullptr);
-		vkDestroySemaphore(device, compute.semaphores.complete, nullptr);
-		vkDestroyCommandPool(device, compute.commandPool, nullptr);
+			// Compute
+			compute.uniformBuffer.destroy();
+			vkDestroyPipelineLayout(device, compute.pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
+			vkDestroyPipeline(device, compute.pipeline, nullptr);
+			vkDestroySemaphore(device, compute.semaphores.ready, nullptr);
+			vkDestroySemaphore(device, compute.semaphores.complete, nullptr);
+			vkDestroyCommandPool(device, compute.commandPool, nullptr);
+
+			// SSBOs
+			storageBuffers.input.destroy();
+			storageBuffers.output.destroy();
+		}
 	}
 
 	// Enable physical device features required for this example
@@ -137,7 +153,7 @@ public:
 
 	void addGraphicsToComputeBarriers(VkCommandBuffer commandBuffer, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
 	{
-		if (specializedComputeQueue) {
+		if (dedicatedComputeQueue) {
 			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
 			bufferBarrier.srcAccessMask = srcAccessMask;
 			bufferBarrier.dstAccessMask = dstAccessMask;
@@ -146,9 +162,9 @@ public:
 			bufferBarrier.size = VK_WHOLE_SIZE;
 
 			std::vector<VkBufferMemoryBarrier> bufferBarriers;
-			bufferBarrier.buffer = compute.storageBuffers.input.buffer;
+			bufferBarrier.buffer = storageBuffers.input.buffer;
 			bufferBarriers.push_back(bufferBarrier);
-			bufferBarrier.buffer = compute.storageBuffers.output.buffer;
+			bufferBarrier.buffer = storageBuffers.output.buffer;
 			bufferBarriers.push_back(bufferBarrier);
 			vkCmdPipelineBarrier(commandBuffer,
 				srcStageMask,
@@ -169,9 +185,9 @@ public:
 		bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		bufferBarrier.size = VK_WHOLE_SIZE;
 		std::vector<VkBufferMemoryBarrier> bufferBarriers;
-		bufferBarrier.buffer = compute.storageBuffers.input.buffer;
+		bufferBarrier.buffer = storageBuffers.input.buffer;
 		bufferBarriers.push_back(bufferBarrier);
-		bufferBarrier.buffer = compute.storageBuffers.output.buffer;
+		bufferBarrier.buffer = storageBuffers.output.buffer;
 		bufferBarriers.push_back(bufferBarrier);
 		vkCmdPipelineBarrier(
 			commandBuffer,
@@ -185,7 +201,7 @@ public:
 
 	void addComputeToGraphicsBarriers(VkCommandBuffer commandBuffer, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
 	{
-		if (specializedComputeQueue) {
+		if (dedicatedComputeQueue) {
 			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
 			bufferBarrier.srcAccessMask = srcAccessMask;
 			bufferBarrier.dstAccessMask = dstAccessMask;
@@ -193,9 +209,9 @@ public:
 			bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
 			bufferBarrier.size = VK_WHOLE_SIZE;
 			std::vector<VkBufferMemoryBarrier> bufferBarriers;
-			bufferBarrier.buffer = compute.storageBuffers.input.buffer;
+			bufferBarrier.buffer = storageBuffers.input.buffer;
 			bufferBarriers.push_back(bufferBarrier);
-			bufferBarrier.buffer = compute.storageBuffers.output.buffer;
+			bufferBarrier.buffer = storageBuffers.output.buffer;
 			bufferBarriers.push_back(bufferBarrier);
 			vkCmdPipelineBarrier(
 				commandBuffer,
@@ -248,17 +264,15 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 
 			// Render sphere
-			if (sceneSetup == 0) {
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelines.sphere);
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, NULL);
-				modelSphere.draw(drawCmdBuffers[i]);
-			}
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelines.sphere);
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, NULL);
+			modelSphere.draw(drawCmdBuffers[i]);
 
 			// Render cloth
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelines.cloth);
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, NULL);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], graphics.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &compute.storageBuffers.output.buffer, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &storageBuffers.output.buffer, offsets);
 			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 
 			drawUI(drawCmdBuffers[i]);
@@ -273,7 +287,6 @@ public:
 
 	}
 
-	// todo: check barriers (validation, separate compute queue)
 	void buildComputeCommandBuffer()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -317,46 +330,24 @@ public:
 		}
 	}
 
-	// Setup and fill the compute shader storage buffers containing the particles
+	// Setup and fill the shader storage buffers containing the particles
+	// These buffers are used as shader storage buffers in the compute shader (to update them) and as vertex input in the vertex shader (to display them)
 	void prepareStorageBuffers()
 	{
-		std::vector<Particle> particleBuffer(cloth.gridsize.x *  cloth.gridsize.y);
+		std::vector<Particle> particleBuffer(cloth.gridsize.x * cloth.gridsize.y);
 
-		float dx =  cloth.size.x / (cloth.gridsize.x - 1);
-		float dy =  cloth.size.y / (cloth.gridsize.y - 1);
+		float dx = cloth.size.x / (cloth.gridsize.x - 1);
+		float dy = cloth.size.y / (cloth.gridsize.y - 1);
 		float du = 1.0f / (cloth.gridsize.x - 1);
 		float dv = 1.0f / (cloth.gridsize.y - 1);
 
-		switch (sceneSetup) {
-			case 0 :
-			{
-				// Horz. cloth falls onto sphere
-				glm::mat4 transM = glm::translate(glm::mat4(1.0f), glm::vec3(- cloth.size.x / 2.0f, -2.0f, - cloth.size.y / 2.0f));
-				for (uint32_t i = 0; i <  cloth.gridsize.y; i++) {
-					for (uint32_t j = 0; j <  cloth.gridsize.x; j++) {
-						particleBuffer[i + j * cloth.gridsize.y].pos = transM * glm::vec4(dx * j, 0.0f, dy * i, 1.0f);
-						particleBuffer[i + j * cloth.gridsize.y].vel = glm::vec4(0.0f);
-						particleBuffer[i + j * cloth.gridsize.y].uv = glm::vec4(1.0f - du * i, dv * j, 0.0f, 0.0f);
-					}
-				}
-				break;
-			}
-			case 1:
-			{
-				// Vert. Pinned cloth
-				glm::mat4 transM = glm::translate(glm::mat4(1.0f), glm::vec3(- cloth.size.x / 2.0f, - cloth.size.y / 2.0f, 0.0f));
-				for (uint32_t i = 0; i <  cloth.gridsize.y; i++) {
-					for (uint32_t j = 0; j <  cloth.gridsize.x; j++) {
-						particleBuffer[i + j * cloth.gridsize.y].pos = transM * glm::vec4(dx * j, dy * i, 0.0f, 1.0f);
-						particleBuffer[i + j * cloth.gridsize.y].vel = glm::vec4(0.0f);
-						particleBuffer[i + j * cloth.gridsize.y].uv = glm::vec4(du * j, dv * i, 0.0f, 0.0f);
-						// Pin some particles
-						particleBuffer[i + j * cloth.gridsize.y].pinned = (i == 0) && ((j == 0) || (j ==  cloth.gridsize.x / 3) || (j ==  cloth.gridsize.x -  cloth.gridsize.x / 3) || (j ==  cloth.gridsize.x - 1));
-						// Remove sphere
-						compute.ubo.spherePos.z = -10.0f;
-					}
-				}
-				break;
+		// Set up a flat cloth that falls onto sphere
+		glm::mat4 transM = glm::translate(glm::mat4(1.0f), glm::vec3(-cloth.size.x / 2.0f, -2.0f, -cloth.size.y / 2.0f));
+		for (uint32_t i = 0; i < cloth.gridsize.y; i++) {
+			for (uint32_t j = 0; j < cloth.gridsize.x; j++) {
+				particleBuffer[i + j * cloth.gridsize.y].pos = transM * glm::vec4(dx * j, 0.0f, dy * i, 1.0f);
+				particleBuffer[i + j * cloth.gridsize.y].vel = glm::vec4(0.0f);
+				particleBuffer[i + j * cloth.gridsize.y].uv = glm::vec4(1.0f - du * i, dv * j, 0.0f, 0.0f);
 			}
 		}
 
@@ -374,23 +365,24 @@ public:
 			storageBufferSize,
 			particleBuffer.data());
 
+		// SSBOs will be used both as storage buffers (compute) and vertex buffers (graphics)
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&compute.storageBuffers.input,
+			&storageBuffers.input,
 			storageBufferSize);
 
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&compute.storageBuffers.output,
+			&storageBuffers.output,
 			storageBufferSize);
 
 		// Copy from staging buffer
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		VkBufferCopy copyRegion = {};
 		copyRegion.size = storageBufferSize;
-		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.storageBuffers.output.buffer, 1, &copyRegion);
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, storageBuffers.output.buffer, 1, &copyRegion);
 		// Add an initial release barrier to the graphics queue,
 		// so that when the compute command buffer executes for the first time
 		// it doesn't complain about a lack of a corresponding "release" to its "acquire"
@@ -401,10 +393,10 @@ public:
 
 		// Indices
 		std::vector<uint32_t> indices;
-		for (uint32_t y = 0; y <  cloth.gridsize.y - 1; y++) {
-			for (uint32_t x = 0; x <  cloth.gridsize.x; x++) {
-				indices.push_back((y + 1) *  cloth.gridsize.x + x);
-				indices.push_back((y)*  cloth.gridsize.x + x);
+		for (uint32_t y = 0; y < cloth.gridsize.y - 1; y++) {
+			for (uint32_t x = 0; x < cloth.gridsize.x; x++) {
+				indices.push_back((y + 1) * cloth.gridsize.x + x);
+				indices.push_back((y)*cloth.gridsize.x + x);
 			}
 			// Primitive restart (signaled by special value 0xFFFFFFFF)
 			indices.push_back(0xFFFFFFFF);
@@ -435,93 +427,67 @@ public:
 		stagingBuffer.destroy();
 	}
 
-	void setupDescriptorPool()
+	// Prepare the resources used for the graphics part of the sample
+	void prepareGraphics()
 	{
+		// Uniform buffer for passing data to the vertex shader
+		vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &graphics.uniformBuffer, sizeof(Graphics::UniformData));
+		VK_CHECK_RESULT(graphics.uniformBuffer.map());
+
+		// Descriptor pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
 		};
-
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(poolSizes, 3);
-
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 3);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupLayoutsAndDescriptors()
-	{
-		// Set layout
+		// Descriptor layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
 		};
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &graphics.descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(&graphics.descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &graphics.pipelineLayout));
-
-		// Set
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &graphics.descriptorSetLayout, 1);
+		// Decscriptor set
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &graphics.descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &graphics.descriptorSet));
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(graphics.descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &graphics.uniformBuffer.descriptor),
 			vks::initializers::writeDescriptorSet(graphics.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureCloth.descriptor)
 		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
-	}
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
-	void preparePipelines()
-	{
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, 0, VK_TRUE);
+		// Layout
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&graphics.descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &graphics.pipelineLayout));
 
-		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
-
-		VkPipelineColorBlendAttachmentState blendAttachmentState =
-			vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
-
-		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		VkPipelineViewportStateCreateInfo viewportState =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables, 0);
+		// Pipeline
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, 0, VK_TRUE);
+		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 
 		// Rendering pipeline
-		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 		shaderStages[0] = loadShader(getShadersPath() + "computecloth/cloth.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "computecloth/cloth.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(graphics.pipelineLayout, renderPass);
 
-		// Input attributes
-
-		// Binding description
+		// Vertex Input
 		std::vector<VkVertexInputBindingDescription> inputBindings = {
 			vks::initializers::vertexInputBindingDescription(0, sizeof(Particle), VK_VERTEX_INPUT_RATE_VERTEX)
 		};
-
-		// Attribute descriptions
+		// Attribute descriptions based on the particles of the cloth
 		std::vector<VkVertexInputAttributeDescription> inputAttributes = {
 			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Particle, pos)),
 			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Particle, uv)),
@@ -557,12 +523,28 @@ public:
 		shaderStages[0] = loadShader(getShadersPath() + "computecloth/sphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "computecloth/sphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &graphics.pipelines.sphere));
+
+		buildCommandBuffers();
 	}
 
+	// Prepare the resources used for the compute part of the sample
 	void prepareCompute()
 	{
 		// Create a compute capable device queue
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.compute, 0, &compute.queue);
+
+		// Uniform buffer for passing data to the compute shader
+		vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &compute.uniformBuffer, sizeof(Compute::UniformData));
+		VK_CHECK_RESULT(compute.uniformBuffer.map());
+
+		// Set some initial values
+		float dx = cloth.size.x / (cloth.gridsize.x - 1);
+		float dy = cloth.size.y / (cloth.gridsize.y - 1);
+
+		compute.uniformData.restDistH = dx;
+		compute.uniformData.restDistV = dy;
+		compute.uniformData.restDistD = sqrtf(dx * dx + dy * dy);
+		compute.uniformData.particleCount = cloth.gridsize;
 
 		// Create compute pipeline
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
@@ -571,36 +553,30 @@ public:
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
 		};
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &compute.descriptorSetLayout));
 
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device,	&descriptorLayout, nullptr,	&compute.descriptorSetLayout));
-
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =
-			vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayout, 1);
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayout, 1);
 
 		// Push constants used to pass some parameters
-		VkPushConstantRange pushConstantRange =
-			vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(uint32_t), 0);
+		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, sizeof(uint32_t), 0);
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &compute.pipelineLayout));
 
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr,	&compute.pipelineLayout));
-
-		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayout, 1);
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayout, 1);
 
 		// Create two descriptor sets with input and output buffers switched
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets[0]));
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets[1]));
 
 		std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets = {
-			vks::initializers::writeDescriptorSet(compute.descriptorSets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &compute.storageBuffers.input.descriptor),
-			vks::initializers::writeDescriptorSet(compute.descriptorSets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &compute.storageBuffers.output.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &storageBuffers.input.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &storageBuffers.output.descriptor),
 			vks::initializers::writeDescriptorSet(compute.descriptorSets[0], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &compute.uniformBuffer.descriptor),
 
-			vks::initializers::writeDescriptorSet(compute.descriptorSets[1], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &compute.storageBuffers.output.descriptor),
-			vks::initializers::writeDescriptorSet(compute.descriptorSets[1], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &compute.storageBuffers.input.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets[1], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &storageBuffers.output.descriptor),
+			vks::initializers::writeDescriptorSet(compute.descriptorSets[1], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &storageBuffers.input.descriptor),
 			vks::initializers::writeDescriptorSet(compute.descriptorSets[1], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &compute.uniformBuffer.descriptor)
 		};
 
@@ -619,9 +595,7 @@ public:
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
 
 		// Create a command buffer for compute operations
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-			vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 2);
-
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 2);
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffers[0]));
 
 		// Semaphores for graphics / compute synchronization
@@ -633,80 +607,50 @@ public:
 		buildComputeCommandBuffer();
 	}
 
-	// Prepare and initialize uniform buffer containing shader uniforms
-	void prepareUniformBuffers()
-	{
-		// Compute shader uniform buffer block
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&compute.uniformBuffer,
-			sizeof(compute.ubo));
-		VK_CHECK_RESULT(compute.uniformBuffer.map());
-
-		// Initial values
-		float dx = cloth.size.x / (cloth.gridsize.x - 1);
-		float dy = cloth.size.y / (cloth.gridsize.y - 1);
-
-		compute.ubo.restDistH = dx;
-		compute.ubo.restDistV = dy;
-		compute.ubo.restDistD = sqrtf(dx * dx + dy * dy);
-		compute.ubo.particleCount = cloth.gridsize;
-
-		updateComputeUBO();
-
-		// Vertex shader uniform buffer block
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&graphics.uniformBuffer,
-			sizeof(graphics.ubo));
-		VK_CHECK_RESULT(graphics.uniformBuffer.map());
-
-		updateGraphicsUBO();
-	}
-
 	void updateComputeUBO()
 	{
 		if (!paused) {
 			// SRS - Clamp frameTimer to max 20ms refresh period (e.g. if blocked on resize), otherwise image breakup can occur
-			compute.ubo.deltaT = fmin(frameTimer, 0.02f) * 0.0025f;
+			compute.uniformData.deltaT = fmin(frameTimer, 0.02f) * 0.0025f;
 
 			if (simulateWind) {
 				std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
 				std::uniform_real_distribution<float> rd(1.0f, 12.0f);
-				compute.ubo.gravity.x = cos(glm::radians(-timer * 360.0f)) * (rd(rndEngine) - rd(rndEngine));
-				compute.ubo.gravity.z = sin(glm::radians(timer * 360.0f)) * (rd(rndEngine) - rd(rndEngine));
+				compute.uniformData.gravity.x = cos(glm::radians(-timer * 360.0f)) * (rd(rndEngine) - rd(rndEngine));
+				compute.uniformData.gravity.z = sin(glm::radians(timer * 360.0f)) * (rd(rndEngine) - rd(rndEngine));
 			}
 			else {
-				compute.ubo.gravity.x = 0.0f;
-				compute.ubo.gravity.z = 0.0f;
+				compute.uniformData.gravity.x = 0.0f;
+				compute.uniformData.gravity.z = 0.0f;
 			}
 		}
 		else {
-			compute.ubo.deltaT = 0.0f;
+			compute.uniformData.deltaT = 0.0f;
 		}
-		memcpy(compute.uniformBuffer.mapped, &compute.ubo, sizeof(compute.ubo));
+		memcpy(compute.uniformBuffer.mapped, &compute.uniformData, sizeof(Compute::UniformData));
 	}
 
 	void updateGraphicsUBO()
 	{
-		graphics.ubo.projection = camera.matrices.perspective;
-		graphics.ubo.view = camera.matrices.view;
-		memcpy(graphics.uniformBuffer.mapped, &graphics.ubo, sizeof(graphics.ubo));
+		graphics.uniformData.projection = camera.matrices.perspective;
+		graphics.uniformData.view = camera.matrices.view;
+		memcpy(graphics.uniformBuffer.mapped, &graphics.uniformData, sizeof(Graphics::UniformData));
 	}
 
 	void draw()
 	{
+		// As we use both graphics and compute, frame submission is a bit more involved
+		// We'll be using semaphores to synchronize between the compute shader updating the cloth and the graphics pipeline drawing it
+
 		static bool firstDraw = true;
 		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
-		// FIXME find a better way to do this (without using fences, which is much slower)
 		VkPipelineStageFlags computeWaitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		if (!firstDraw) {
 			computeSubmitInfo.waitSemaphoreCount = 1;
 			computeSubmitInfo.pWaitSemaphores = &compute.semaphores.ready;
 			computeSubmitInfo.pWaitDstStageMask = &computeWaitDstStageMask;
-		} else {
+		}
+		else {
 			firstDraw = false;
 		}
 		computeSubmitInfo.signalSemaphoreCount = 1;
@@ -714,7 +658,7 @@ public:
 		computeSubmitInfo.commandBufferCount = 1;
 		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[readSet];
 
-		VK_CHECK_RESULT( vkQueueSubmit( compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE) );
+		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
 
 		// Submit graphics commands
 		VulkanExampleBase::prepareFrame();
@@ -745,19 +689,16 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		// Make sure the code works properly both with different queues families for graphics and compute and the same queue family
+		// You can use DEBUG_FORCE_SHARED_GRAPHICS_COMPUTE_QUEUE preprocessor define to force graphics and compute from the same queue family 
 #ifdef DEBUG_FORCE_SHARED_GRAPHICS_COMPUTE_QUEUE
 		vulkanDevice->queueFamilyIndices.compute = vulkanDevice->queueFamilyIndices.graphics;
 #endif
 		// Check whether the compute queue family is distinct from the graphics queue family
-		specializedComputeQueue = vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute;
+		dedicatedComputeQueue = vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute;
 		loadAssets();
 		prepareStorageBuffers();
-		prepareUniformBuffers();
-		setupDescriptorPool();
-		setupLayoutsAndDescriptors();
-		preparePipelines();
+		prepareGraphics();
 		prepareCompute();
-		buildCommandBuffers();
 		prepared = true;
 	}
 
@@ -765,17 +706,12 @@ public:
 	{
 		if (!prepared)
 			return;
-		draw();
-
-		updateComputeUBO();
-	}
-
-	virtual void viewChanged()
-	{
 		updateGraphicsUBO();
+		updateComputeUBO();
+		draw();
 	}
 
-	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay)
 	{
 		if (overlay->header("Settings")) {
 			overlay->checkBox("Simulate wind", &simulateWind);
