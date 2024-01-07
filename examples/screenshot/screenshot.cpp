@@ -1,5 +1,7 @@
 /*
 * Vulkan Example - Taking screenshots
+* 
+* This sample shows how to get the conents of the swapchain (render output) and store them to disk (see saveScreenshot)
 *
 * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
@@ -13,21 +15,21 @@ class VulkanExample : public VulkanExampleBase
 {
 public:
 	vkglTF::Model model;
-	vks::Buffer uniformBuffer;
 
-	struct {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::mat4 view;
 		int32_t texIndex = 0;
-	} uboVS;
+	} uniformData;
+	vks::Buffer uniformBuffer;
 
-	VkPipelineLayout pipelineLayout;
-	VkPipeline pipeline;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkDescriptorSet descriptorSet;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 
-	bool screenshotSaved = false;
+	bool screenshotSaved{ false };
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -40,10 +42,12 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		uniformBuffer.destroy();
+		if (device) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			uniformBuffer.destroy();
+		}
 	}
 
 	void loadAssets()
@@ -95,29 +99,23 @@ public:
 		}
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
+		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
+		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),		// Binding 0: Vertex shader uniform buffer
 		};
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-	}
-
-	void setupDescriptorSet()
-	{
+		// Set
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
@@ -128,6 +126,11 @@ public:
 
 	void preparePipelines()
 	{
+		// Layout
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+
+		// Pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -160,21 +163,16 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffer,
-			sizeof(uboVS));
+		vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(UniformData));
 		VK_CHECK_RESULT(uniformBuffer.map());
-		updateUniformBuffers();
 	}
 
 	void updateUniformBuffers()
 	{
-		uboVS.projection = camera.matrices.perspective;
-		uboVS.view = camera.matrices.view;
-		uboVS.model = glm::mat4(1.0f);
-		uniformBuffer.copyTo(&uboVS, sizeof(uboVS));
+		uniformData.projection = camera.matrices.perspective;
+		uniformData.view = camera.matrices.view;
+		uniformData.model = glm::mat4(1.0f);
+		uniformBuffer.copyTo(&uniformData, sizeof(UniformData));
 	}
 
 	// Take a screenshot from the current swapchain image
@@ -390,40 +388,32 @@ public:
 		screenshotSaved = true;
 	}
 
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
-	}
-
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
