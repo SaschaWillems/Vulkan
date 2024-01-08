@@ -8,7 +8,6 @@
 
 #include "vulkanexamplebase.h"
 
-#define VERTEX_BUFFER_BIND_ID 0
 // Vertex layout for this example
 struct Vertex {
 	float pos[3];
@@ -461,7 +460,7 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.solid);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &vertexBuffer.buffer, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &vertexBuffer.buffer, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
 
@@ -526,7 +525,7 @@ public:
 		vertices.inputBinding.resize(1);
 		vertices.inputBinding[0] =
 			vks::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				sizeof(Vertex),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
@@ -536,21 +535,21 @@ public:
 		// Location 0 : Position
 		vertices.inputAttributes[0] =
 			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				0,
 				VK_FORMAT_R32G32B32_SFLOAT,
 				offsetof(Vertex, pos));
 		// Location 1 : Texture coordinates
 		vertices.inputAttributes[1] =
 			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				1,
 				VK_FORMAT_R32G32_SFLOAT,
 				offsetof(Vertex, uv));
 		// Location 1 : Vertex normal
 		vertices.inputAttributes[2] =
 			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				2,
 				VK_FORMAT_R32G32B32_SFLOAT,
 				offsetof(Vertex, normal));

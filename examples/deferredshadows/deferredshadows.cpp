@@ -10,8 +10,6 @@
 #include "VulkanFrameBuffer.hpp"
 #include "VulkanglTFModel.h"
 
-#define VERTEX_BUFFER_BIND_ID 0
-
 // Shadowmap properties
 #if defined(__ANDROID__)
 #define SHADOWMAP_DIM 1024

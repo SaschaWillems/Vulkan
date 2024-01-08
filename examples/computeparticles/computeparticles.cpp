@@ -10,7 +10,6 @@
 
 #include "vulkanexamplebase.h"
 
-#define VERTEX_BUFFER_BIND_ID 0
 #if defined(__ANDROID__)
 // Lower particle count on Android for performance reasons
 #define PARTICLE_COUNT 128 * 1024
@@ -169,7 +168,7 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, NULL);
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &compute.storageBuffer.buffer, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &compute.storageBuffer.buffer, offsets);
 			vkCmdDraw(drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
 
 			drawUI(drawCmdBuffers[i]);
@@ -349,7 +348,7 @@ public:
 		vertices.bindingDescriptions.resize(1);
 		vertices.bindingDescriptions[0] =
 			vks::initializers::vertexInputBindingDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				sizeof(Particle),
 				VK_VERTEX_INPUT_RATE_VERTEX);
 
@@ -359,14 +358,14 @@ public:
 		// Location 0 : Position
 		vertices.attributeDescriptions[0] =
 			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				0,
 				VK_FORMAT_R32G32_SFLOAT,
 				offsetof(Particle, pos));
 		// Location 1 : Gradient position
 		vertices.attributeDescriptions[1] =
 			vks::initializers::vertexInputAttributeDescription(
-				VERTEX_BUFFER_BIND_ID,
+				0,
 				1,
 				VK_FORMAT_R32G32B32A32_SFLOAT,
 				offsetof(Particle, gradientPos));

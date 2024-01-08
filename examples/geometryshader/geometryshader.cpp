@@ -9,8 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-#define VERTEX_BUFFER_BIND_ID 0
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
