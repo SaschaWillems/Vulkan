@@ -1,4 +1,5 @@
 // Copyright 2020 Google LLC
+// Copyright 2023 Sascha Willems
 
 struct Particle
 {
@@ -13,6 +14,9 @@ struct UBO
 {
 	float deltaT;
 	int particleCount;
+	float gravity;
+	float power;
+	float soften;
 };
 
 cbuffer ubo : register(b1) { UBO ubo; }
@@ -55,7 +59,7 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID, uint3 LocalInvocationI
 		{
 			float4 other = sharedData[j];
 			float3 len = other.xyz - position.xyz;
-			acceleration.xyz += GRAVITY * len * other.w / pow(dot(len, len) + SOFTEN, POWER);
+			acceleration.xyz += ubo.gravity * len * other.w / pow(dot(len, len) + ubo.soften, ubo.power);
 		}
 
 		GroupMemoryBarrierWithGroupSync();
@@ -65,6 +69,7 @@ void main(uint3 GlobalInvocationID : SV_DispatchThreadID, uint3 LocalInvocationI
 
 	// Gradient texture position
 	particles[index].vel.w += 0.1 * ubo.deltaT;
-	if (particles[index].vel.w > 1.0)
+	if (particles[index].vel.w > 1.0) {
 		particles[index].vel.w -= 1.0;
+	}
 }

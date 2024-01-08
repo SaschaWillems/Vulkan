@@ -19,12 +19,12 @@ layout (binding = 1) uniform UBO
 {
 	float deltaT;
 	int particleCount;
+	float gravity;
+	float power;
+	float soften;
 } ubo;
 
 layout (constant_id = 0) const int SHARED_DATA_SIZE = 512;
-layout (constant_id = 1) const float GRAVITY = 0.002;
-layout (constant_id = 2) const float POWER = 0.75;
-layout (constant_id = 3) const float SOFTEN = 0.0075;
 
 // Share data between computer shader invocations to speed up caluclations
 shared vec4 sharedData[SHARED_DATA_SIZE];
@@ -58,7 +58,7 @@ void main()
 		{
 			vec4 other = sharedData[j];
 			vec3 len = other.xyz - position.xyz;
-			acceleration.xyz += GRAVITY * len * other.w / pow(dot(len, len) + SOFTEN, POWER);
+			acceleration.xyz += ubo.gravity * len * other.w / pow(dot(len, len) + ubo.soften, ubo.power);
 		}
 
 		memoryBarrierShared();
@@ -69,6 +69,7 @@ void main()
 
 	// Gradient texture position
 	particles[index].vel.w += 0.1 * ubo.deltaT;
-	if (particles[index].vel.w > 1.0)
+	if (particles[index].vel.w > 1.0) {
 		particles[index].vel.w -= 1.0;
+	}
 }
