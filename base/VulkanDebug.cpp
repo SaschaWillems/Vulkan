@@ -17,7 +17,7 @@ namespace vks
 		PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
 		VkDebugUtilsMessengerEXT debugUtilsMessenger;
 
-		VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
+		VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessageCallback(
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT messageType,
 			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -88,7 +88,7 @@ namespace vks
 			debugUtilsMessengerCI.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 			debugUtilsMessengerCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 			debugUtilsMessengerCI.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-			debugUtilsMessengerCI.pfnUserCallback = debugUtilsMessengerCallback;
+			debugUtilsMessengerCI.pfnUserCallback = debugUtilsMessageCallback;
 			VkResult result = vkCreateDebugUtilsMessengerEXT(instance, &debugUtilsMessengerCI, nullptr, &debugUtilsMessenger);
 			assert(result == VK_SUCCESS);
 		}
