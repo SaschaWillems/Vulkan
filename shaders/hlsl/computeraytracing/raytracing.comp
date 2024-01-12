@@ -1,4 +1,5 @@
 // Copyright 2020 Google LLC
+// Copyright 2023 Sascha Willems
 
 // Shader is looseley based on the ray tracing coding session by Inigo Quilez (www.iquilezles.org)
 
@@ -11,6 +12,9 @@ RWTexture2D<float4> resultImage : register(u0);
 #define REFLECTIONS true
 #define REFLECTIONSTRENGTH 0.4
 #define REFLECTIONFALLOFF 0.5
+
+#define SceneObjectTypeSphere 0
+#define SceneObjectTypePlane 1
 
 struct Camera
 {
@@ -30,26 +34,16 @@ struct UBO
 
 cbuffer ubo : register(b1) { UBO ubo; }
 
-struct Sphere
+struct SceneObject
 {
-	float3 pos;
-	float radius;
+	float4 objectProperties;
 	float3 diffuse;
 	float specular;
 	int id;
+	int objectType;
 };
 
-struct Plane
-{
-	float3 normal;
-	float distance;
-	float3 diffuse;
-	float specular;
-	int id;
-};
-
-StructuredBuffer<Sphere> spheres : register(t2);
-StructuredBuffer<Plane> planes : register(t3);
+StructuredBuffer<SceneObject> sceneObjects : register(t2);
 
 void reflectRay(inout float3 rayD, in float3 mormal)
 {
@@ -72,11 +66,11 @@ float lightSpecular(float3 normal, float3 lightDir, float specularFactor)
 
 // Sphere ===========================================================
 
-float sphereIntersect(in float3 rayO, in float3 rayD, in Sphere sphere)
+float sphereIntersect(in float3 rayO, in float3 rayD, in SceneObject sphere)
 {
-	float3 oc = rayO - sphere.pos;
+	float3 oc = rayO - sphere.objectProperties.xyz;
 	float b = 2.0 * dot(oc, rayD);
-	float c = dot(oc, oc) - sphere.radius*sphere.radius;
+	float c = dot(oc, oc) - sphere.objectProperties.w * sphere.objectProperties.w;
 	float h = b*b - 4.0*c;
 	if (h < 0.0)
 	{
@@ -87,21 +81,21 @@ float sphereIntersect(in float3 rayO, in float3 rayD, in Sphere sphere)
 	return t;
 }
 
-float3 sphereNormal(in float3 pos, in Sphere sphere)
+float3 sphereNormal(in float3 pos, in SceneObject sphere)
 {
-	return (pos - sphere.pos) / sphere.radius;
+	return (pos - sphere.objectProperties.xyz) / sphere.objectProperties.w;
 }
 
 // Plane ===========================================================
 
-float planeIntersect(float3 rayO, float3 rayD, Plane plane)
+float planeIntersect(float3 rayO, float3 rayD, SceneObject plane)
 {
-	float d = dot(rayD, plane.normal);
+	float d = dot(rayD, plane.objectProperties.xyz);
 
 	if (d == 0.0)
 		return 0.0;
 
-	float t = -(plane.distance + dot(rayO, plane.normal)) / d;
+	float t = -(plane.objectProperties.w + dot(rayO, plane.objectProperties.xyz)) / d;
 
 	if (t < 0.0)
 		return 0.0;
@@ -113,33 +107,25 @@ float planeIntersect(float3 rayO, float3 rayD, Plane plane)
 int intersect(in float3 rayO, in float3 rayD, inout float resT)
 {
 	int id = -1;
+	float t = MAXLEN;
 
-	uint spheresLength;
-	uint spheresStride;
-	spheres.GetDimensions(spheresLength, spheresStride);
+	uint sceneObjectsLength;
+	uint sceneObjectsStride;
+	sceneObjects.GetDimensions(sceneObjectsLength, sceneObjectsStride);
 
-	int i;
-	for (i = 0; i < spheresLength; i++)
-	{
-		float tSphere = sphereIntersect(rayO, rayD, spheres[i]);
-		if ((tSphere > EPSILON) && (tSphere < resT))
-		{
-			id = spheres[i].id;
-			resT = tSphere;
+	for (int i = 0; i < sceneObjectsLength; i++) {
+		// Sphere
+		if (sceneObjects[i].objectType == SceneObjectTypeSphere) {
+			t = sphereIntersect(rayO, rayD, sceneObjects[i]);
 		}
-	}
-
-	uint planesLength;
-	uint planesStride;
-	planes.GetDimensions(planesLength, planesStride);
-
-	for (i = 0; i < planesLength; i++)
-	{
-		float tplane = planeIntersect(rayO, rayD, planes[i]);
-		if ((tplane > EPSILON) && (tplane < resT))
+		// Plane
+		if (sceneObjects[i].objectType == SceneObjectTypePlane) {
+			t = planeIntersect(rayO, rayD, sceneObjects[i]);
+		}
+		if ((t > EPSILON) && (t < resT))
 		{
-			id = planes[i].id;
-			resT = tplane;
+			id = sceneObjects[i].id;
+			resT = t;
 		}
 	}
 
@@ -148,18 +134,29 @@ int intersect(in float3 rayO, in float3 rayD, inout float resT)
 
 float calcShadow(in float3 rayO, in float3 rayD, in int objectId, inout float t)
 {
-	uint spheresLength;
-	uint spheresStride;
-	spheres.GetDimensions(spheresLength, spheresStride);
+	uint sceneObjectsLength;
+	uint sceneObjectsStride;
+	sceneObjects.GetDimensions(sceneObjectsLength, sceneObjectsStride);
 
-	for (int i = 0; i < spheresLength; i++)
-	{
-		if (spheres[i].id == objectId)
+	for (int i = 0; i < sceneObjectsLength; i++) {
+		if (sceneObjects[i].id == objectId)
 			continue;
-		float tSphere = sphereIntersect(rayO, rayD, spheres[i]);
-		if ((tSphere > EPSILON) && (tSphere < t))
+
+		float tLoc = MAXLEN;
+
+		// Sphere
+		if (sceneObjects[i].objectType == SceneObjectTypeSphere)
 		{
-			t = tSphere;
+			tLoc = sphereIntersect(rayO, rayD, sceneObjects[i]);
+		}
+		// Plane
+		if (sceneObjects[i].objectType == SceneObjectTypePlane)
+		{
+			tLoc = planeIntersect(rayO, rayD, sceneObjects[i]);
+		}
+		if ((tLoc > EPSILON) && (tLoc < t))
+		{
+			t = tLoc;
 			return SHADOW;
 		}
 	}
@@ -188,38 +185,25 @@ float3 renderScene(inout float3 rayO, inout float3 rayD, inout int id)
 	float3 lightVec = normalize(ubo.lightPos - pos);
 	float3 normal;
 
-	// Planes
+	uint sceneObjectsLength;
+	uint sceneObjectsStride;
+	sceneObjects.GetDimensions(sceneObjectsLength, sceneObjectsStride);
 
-	// Spheres
-
-	uint planesLength;
-	uint planesStride;
-	planes.GetDimensions(planesLength, planesStride);
-
-	int i;
-	for (i = 0; i < planesLength; i++)
-	{
-		if (objectID == planes[i].id)
+	for (int i = 0; i < sceneObjectsLength; i++) {
+		if (objectID == sceneObjects[i].id)
 		{
-			normal = planes[i].normal;
+			// Sphere
+			if (sceneObjects[i].objectType == SceneObjectTypeSphere) {
+				normal = sphereNormal(pos, sceneObjects[i]);
+			}
+			// Plane
+			if (sceneObjects[i].objectType == SceneObjectTypePlane) {
+				normal = sceneObjects[i].objectProperties.xyz;
+			}
+			// Lighting
 			float diffuse = lightDiffuse(normal, lightVec);
-			float specular = lightSpecular(normal, lightVec, planes[i].specular);
-			color = diffuse * planes[i].diffuse + specular;
-		}
-	}
-
-	uint spheresLength;
-	uint spheresStride;
-	spheres.GetDimensions(spheresLength, spheresStride);
-
-	for (i = 0; i < spheresLength; i++)
-	{
-		if (objectID == spheres[i].id)
-		{
-			normal = sphereNormal(pos, spheres[i]);
-			float diffuse = lightDiffuse(normal, lightVec);
-			float specular = lightSpecular(normal, lightVec, spheres[i].specular);
-			color = diffuse * spheres[i].diffuse + specular;
+			float specular = lightSpecular(normal, lightVec, sceneObjects[i].specular);
+			color = diffuse * sceneObjects[i].diffuse + specular;
 		}
 	}
 
