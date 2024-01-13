@@ -1,7 +1,7 @@
 /*
 * Basic camera class
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -20,6 +20,8 @@ private:
 
 	void updateViewMatrix()
 	{
+		glm::mat4 currentMatrix = matrices.view;
+
 		glm::mat4 rotM = glm::mat4(1.0f);
 		glm::mat4 transM;
 
@@ -44,7 +46,9 @@ private:
 
 		viewPos = glm::vec4(position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
-		updated = true;
+		if (matrices.view != currentMatrix) {
+			updated = true;
+		}
 	};
 public:
 	enum CameraType { lookat, firstperson };
@@ -57,7 +61,7 @@ public:
 	float rotationSpeed = 1.0f;
 	float movementSpeed = 1.0f;
 
-	bool updated = false;
+	bool updated = true;
 	bool flipY = false;
 
 	struct
@@ -89,6 +93,7 @@ public:
 
 	void setPerspective(float fov, float aspect, float znear, float zfar)
 	{
+		glm::mat4 currentMatrix = matrices.perspective;
 		this->fov = fov;
 		this->znear = znear;
 		this->zfar = zfar;
@@ -96,13 +101,20 @@ public:
 		if (flipY) {
 			matrices.perspective[1][1] *= -1.0f;
 		}
+		if (matrices.view != currentMatrix) {
+			updated = true;
+		}
 	};
 
 	void updateAspectRatio(float aspect)
 	{
+		glm::mat4 currentMatrix = matrices.perspective;
 		matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
 		if (flipY) {
 			matrices.perspective[1][1] *= -1.0f;
+		}
+		if (matrices.view != currentMatrix) {
+			updated = true;
 		}
 	}
 
