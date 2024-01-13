@@ -18,7 +18,7 @@ public:
 
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
-	uint32_t indexCount;
+	uint32_t indexCount{ 0 };
 	vks::Buffer transformBuffer;
 	
 	struct GeometryNode {
@@ -43,12 +43,12 @@ public:
 		glm::mat4 projInverse;
 		uint32_t frame{ 0 };
 	} uniformData;
-	vks::Buffer ubo;
+	vks::Buffer uniformBuffer;
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	vkglTF::Model model;
 
@@ -75,20 +75,22 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		deleteStorageImage();
-		deleteAccelerationStructure(bottomLevelAS);
-		deleteAccelerationStructure(topLevelAS);
-		vertexBuffer.destroy();
-		indexBuffer.destroy();
-		transformBuffer.destroy();
-		shaderBindingTables.raygen.destroy();
-		shaderBindingTables.miss.destroy();
-		shaderBindingTables.hit.destroy();
-		ubo.destroy();
-		geometryNodesBuffer.destroy();
+		if (device) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			deleteStorageImage();
+			deleteAccelerationStructure(bottomLevelAS);
+			deleteAccelerationStructure(topLevelAS);
+			vertexBuffer.destroy();
+			indexBuffer.destroy();
+			transformBuffer.destroy();
+			shaderBindingTables.raygen.destroy();
+			shaderBindingTables.miss.destroy();
+			shaderBindingTables.hit.destroy();
+			uniformBuffer.destroy();
+			geometryNodesBuffer.destroy();
+		}
 	}
 
 	void createAccelerationStructureBuffer(AccelerationStructure &accelerationStructure, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo)
@@ -561,7 +563,7 @@ public:
 			// Binding 1: Ray tracing result image
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor),
 			// Binding 2: Uniform data
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &ubo.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffer.descriptor),
 			// Binding 4: Geometry node information SSBO
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &geometryNodesBuffer.descriptor),
 		};
@@ -596,10 +598,10 @@ public:
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&ubo,
+			&uniformBuffer,
 			sizeof(uniformData),
 			&uniformData));
-		VK_CHECK_RESULT(ubo.map());
+		VK_CHECK_RESULT(uniformBuffer.map());
 
 		updateUniformBuffers();
 	}
@@ -710,7 +712,7 @@ public:
 		// In this sample we use noise offset by this frame index to shoot rays for transparency into different directions
 		// Once enough frames with random ray directions have been accumulated, it looks like proper transparency
 		uniformData.frame++;
-		memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
+		memcpy(uniformBuffer.mapped, &uniformData, sizeof(uniformData));
 	}
 
 	void getEnabledFeatures()
@@ -777,12 +779,12 @@ public:
 		if (!prepared)
 			return;
 		updateUniformBuffers();
+		if (camera.updated) {
+			// If the camera's view has been updated we reset the frame accumulation
+			std::cout << "Cam updated\n";
+			uniformData.frame = -1;
+		}
 		draw();
-	}
-
-	virtual void viewChanged()
-	{
-		uniformData.frame = -1;
 	}
 };
 
