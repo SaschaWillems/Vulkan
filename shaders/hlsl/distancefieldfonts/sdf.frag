@@ -1,16 +1,19 @@
 // Copyright 2020 Google LLC
+// Copyright 2023 Sascha Willems
 
 Texture2D textureColor : register(t1);
 SamplerState samplerColor : register(s1);
 
 struct UBO
 {
+	float4x4 projection;
+	float4x4 model;
 	float4 outlineColor;
 	float outlineWidth;
 	float outline;
 };
 
-cbuffer ubo : register(b2) { UBO ubo; }
+cbuffer ubo : register(b0) { UBO ubo; }
 
 float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 {

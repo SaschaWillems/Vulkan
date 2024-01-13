@@ -1,4 +1,5 @@
 // Copyright 2020 Google LLC
+// Copyright 2023 Sascha Willems
 
 struct VSInput
 {
@@ -10,6 +11,9 @@ struct UBO
 {
 	float4x4 projection;
 	float4x4 model;
+	float4 outlineColor;
+	float outlineWidth;
+	float outline;
 };
 
 cbuffer ubo : register(b0) { UBO ubo; }

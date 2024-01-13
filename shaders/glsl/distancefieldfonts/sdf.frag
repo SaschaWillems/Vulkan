@@ -2,8 +2,10 @@
 
 layout (binding = 1) uniform sampler2D samplerColor;
 
-layout (binding = 2) uniform UBO 
+layout (binding = 0) uniform UBO 
 {
+	mat4 projection;
+	mat4 model;
 	vec4 outlineColor;
 	float outlineWidth;
 	float outline;

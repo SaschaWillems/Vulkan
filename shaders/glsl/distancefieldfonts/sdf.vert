@@ -7,6 +7,9 @@ layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
+	vec4 outlineColor;
+	float outlineWidth;
+	float outline;
 } ubo;
 
 layout (location = 0) out vec2 outUV;
