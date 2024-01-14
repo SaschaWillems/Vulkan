@@ -45,6 +45,8 @@ namespace vks
 		void setupDebugging(VkInstance instance);
 		// Clear debug callback
 		void freeDebugCallback(VkInstance instance);
+		// Used to populate a VkDebugUtilsMessengerCreateInfoEXT with our example messenger function and desired flags
+		void setupDebugingMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& debugUtilsMessengerCI);
 	}
 
 	// Wrapper for the VK_EXT_debug_utils extension
