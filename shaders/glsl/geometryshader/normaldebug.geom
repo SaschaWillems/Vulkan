@@ -3,7 +3,7 @@
 layout (triangles) in;
 layout (line_strip, max_vertices = 6) out;
 
-layout (binding = 1) uniform UBO 
+layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
 	mat4 model;

@@ -6,7 +6,7 @@ struct UBO
 	float4x4 model;
 };
 
-cbuffer ubo : register(b1) { UBO ubo; }
+cbuffer ubo : register(b0) { UBO ubo; }
 
 struct VSOutput
 {
