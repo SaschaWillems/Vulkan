@@ -1,5 +1,7 @@
 /*
 * Vulkan Example - CPU based particle system
+* 
+* This sample renders a particle system that is updated on the host (by the CPU) and rendered by the GPU using a vertex buffer
 *
 * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
@@ -10,10 +12,11 @@
 #include "VulkanglTFModel.h"
 
 #define PARTICLE_COUNT 512
-#define PARTICLE_SIZE 10.0f
 
 #define FLAME_RADIUS 8.0f
 
+// The particle system is made from two different particle types
+// That type defines how a particle is rendered
 #define PARTICLE_TYPE_FLAME 0
 #define PARTICLE_TYPE_SMOKE 1
 
@@ -24,7 +27,6 @@ struct Particle {
 	float size;
 	float rotation;
 	uint32_t type;
-	// Attributes not used in shader
 	glm::vec4 vel;
 	float rotationSpeed;
 };
@@ -43,56 +45,60 @@ public:
 			vks::Texture2D colorMap;
 			vks::Texture2D normalMap;
 		} floor;
-	} textures;
+	} textures{};
 
 	vkglTF::Model environment;
 
+	// These parameters define the particle system behaviour
 	glm::vec3 emitterPos = glm::vec3(0.0f, -FLAME_RADIUS + 2.0f, 0.0f);
 	glm::vec3 minVel = glm::vec3(-3.0f, 0.5f, -3.0f);
 	glm::vec3 maxVel = glm::vec3(3.0f, 7.0f, 3.0f);
 
-	struct {
-		VkBuffer buffer;
-		VkDeviceMemory memory;
+	struct Particles {
+		VkBuffer buffer{ VK_NULL_HANDLE };
+		VkDeviceMemory memory{ VK_NULL_HANDLE };
 		// Store the mapped address of the particle data for reuse
 		void *mappedMemory;
 		// Size of the particle buffer in bytes
-		size_t size;
+		size_t size{ 0 };
 	} particles;
 
 	struct {
-		vks::Buffer fire;
+		vks::Buffer particles;
 		vks::Buffer environment;
 	} uniformBuffers;
 
-	struct UBOVS {
+	struct UniformDataParticles {
 		glm::mat4 projection;
 		glm::mat4 modelView;
+		// The viewport dimension is used by the particle system vertex shader 
+		// to calculate the absolute point size based on the current viewport size
 		glm::vec2 viewportDim;
-		float pointSize = PARTICLE_SIZE;
-	} uboVS;
+		// This is the base point size for all particles
+		float pointSize{ 10.0f };
+	} uniformDataParticles;
 
-	struct UBOEnv {
+	struct UniformDataEnvironment {
 		glm::mat4 projection;
 		glm::mat4 modelView;
 		glm::mat4 normal;
 		glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-	} uboEnv;
+	} uniformDataEnvironment;
 
 	struct {
-		VkPipeline particles;
-		VkPipeline environment;
+		VkPipeline particles{ VK_NULL_HANDLE };
+		VkPipeline environment{ VK_NULL_HANDLE };
 	} pipelines;
 
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	struct {
-		VkDescriptorSet particles;
-		VkDescriptorSet environment;
+		VkDescriptorSet particles{ VK_NULL_HANDLE };
+		VkDescriptorSet environment{ VK_NULL_HANDLE };
 	} descriptorSets;
 
-	std::vector<Particle> particleBuffer;
+	std::vector<Particle> particleBuffer{};
 
 	std::default_random_engine rndEngine;
 
@@ -109,28 +115,27 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources
-		// Note : Inherited destructor cleans up resources stored in base class
+		if (device) {
+			textures.particles.smoke.destroy();
+			textures.particles.fire.destroy();
+			textures.floor.colorMap.destroy();
+			textures.floor.normalMap.destroy();
 
-		textures.particles.smoke.destroy();
-		textures.particles.fire.destroy();
-		textures.floor.colorMap.destroy();
-		textures.floor.normalMap.destroy();
+			vkDestroyPipeline(device, pipelines.particles, nullptr);
+			vkDestroyPipeline(device, pipelines.environment, nullptr);
 
-		vkDestroyPipeline(device, pipelines.particles, nullptr);
-		vkDestroyPipeline(device, pipelines.environment, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			vkUnmapMemory(device, particles.memory);
+			vkDestroyBuffer(device, particles.buffer, nullptr);
+			vkFreeMemory(device, particles.memory, nullptr);
 
-		vkUnmapMemory(device, particles.memory);
-		vkDestroyBuffer(device, particles.buffer, nullptr);
-		vkFreeMemory(device, particles.memory, nullptr);
+			uniformBuffers.environment.destroy();
+			uniformBuffers.particles.destroy();
 
-		uniformBuffers.environment.destroy();
-		uniformBuffers.fire.destroy();
-
-		vkDestroySampler(device, textures.particles.sampler, nullptr);
+			vkDestroySampler(device, textures.particles.sampler, nullptr);
+		}
 	}
 
 	virtual void getEnabledFeatures()
@@ -184,7 +189,7 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.particles, 0, nullptr);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.particles);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &particles.buffer, offsets);
-			vkCmdDraw(drawCmdBuffers[i], PARTICLE_COUNT, 1, 0, 0);
+			vkCmdDraw(drawCmdBuffers[i], static_cast<uint32_t>(particles.size), 1, 0, 0);
 
 			drawUI(drawCmdBuffers[i]);
 
@@ -222,6 +227,7 @@ public:
 		particle->pos += glm::vec4(emitterPos, 0.0f);
 	}
 
+	// Change the type of a particle, e.g. from flame to smoke
 	void transitionParticle(Particle *particle)
 	{
 		switch (particle->type)
@@ -251,6 +257,7 @@ public:
 		}
 	}
 
+	// Initialize the particle system and create a vertex buffer for rendering the particles
 	void prepareParticles()
 	{
 		particleBuffer.resize(PARTICLE_COUNT);
@@ -274,6 +281,7 @@ public:
 		VK_CHECK_RESULT(vkMapMemory(device, particles.memory, 0, particles.size, 0, &particles.mappedMemory));
 	}
 
+	// Update the state of all particles
 	void updateParticles()
 	{
 		float particleTimer = frameTimer * 0.45f;
@@ -294,12 +302,14 @@ public:
 				break;
 			}
 			particle.rotation += particleTimer * particle.rotationSpeed;
-			// Transition particle state
+			// If a particle has faded out, turn it into the other type (e.g. flame to smoke and vice versa)
 			if (particle.alpha > 2.0f)
 			{
 				transitionParticle(&particle);
 			}
 		}
+		
+		// Copy the updated particles to the vertex buffer
 		size_t size = particleBuffer.size() * sizeof(Particle);
 		memcpy(particles.mappedMemory, particleBuffer.data(), size);
 	}
@@ -345,18 +355,17 @@ public:
 		environment.loadFromFile(getAssetPath() + "models/fireplace.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
+		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4)
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
+		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
@@ -365,16 +374,10 @@ public:
 			// Binding 1 : Fragment shader image sampler
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,2)
 		};
-
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
-
-		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
-	}
-
-	void setupDescriptorSets()
-	{
+		
+		// Sets
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
@@ -382,20 +385,12 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.particles));
 
 		// Image descriptor for the color map texture
-		VkDescriptorImageInfo texDescriptorSmoke =
-			vks::initializers::descriptorImageInfo(
-				textures.particles.sampler,
-				textures.particles.smoke.view,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		VkDescriptorImageInfo texDescriptorFire =
-			vks::initializers::descriptorImageInfo(
-				textures.particles.sampler,
-				textures.particles.fire.view,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VkDescriptorImageInfo texDescriptorSmoke = vks::initializers::descriptorImageInfo(textures.particles.sampler, textures.particles.smoke.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VkDescriptorImageInfo texDescriptorFire = vks::initializers::descriptorImageInfo(textures.particles.sampler, textures.particles.fire.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSets.particles, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.fire.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.particles, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.particles.descriptor),
 			// Binding 1: Smoke texture
 			vks::initializers::writeDescriptorSet(descriptorSets.particles, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texDescriptorSmoke),
 			// Binding 1: Fire texture array
@@ -405,7 +400,6 @@ public:
 
 		// Environment
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.environment));
-
 		writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSets.environment, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.environment.descriptor),
@@ -419,6 +413,11 @@ public:
 
 	void preparePipelines()
 	{
+		// Layout
+		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
+
+		// Pipelines
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_POINT_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -501,62 +500,33 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.fire,
-			sizeof(uboVS)));
-
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.particles, sizeof(UniformDataParticles)));
 		// Vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.environment,
-			sizeof(uboEnv)));
-
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.environment, sizeof(UniformDataEnvironment)));
 		// Map persistent
-		VK_CHECK_RESULT(uniformBuffers.fire.map());
+		VK_CHECK_RESULT(uniformBuffers.particles.map());
 		VK_CHECK_RESULT(uniformBuffers.environment.map());
-
-		updateUniformBuffers();
-	}
-
-	void updateUniformBufferLight()
-	{
-		// Environment
-		uboEnv.lightPos.x = sin(timer * 2.0f * float(M_PI)) * 1.5f;
-		uboEnv.lightPos.y = 0.0f;
-		uboEnv.lightPos.z = cos(timer * 2.0f * float(M_PI)) * 1.5f;
-		memcpy(uniformBuffers.environment.mapped, &uboEnv, sizeof(uboEnv));
 	}
 
 	void updateUniformBuffers()
 	{
 		// Particle system fire
-		uboVS.projection = camera.matrices.perspective;
-		uboVS.modelView = camera.matrices.view;
-		uboVS.viewportDim = glm::vec2((float)width, (float)height);
-		memcpy(uniformBuffers.fire.mapped, &uboVS, sizeof(uboVS));
+		uniformDataParticles.projection = camera.matrices.perspective;
+		uniformDataParticles.modelView = camera.matrices.view;
+		uniformDataParticles.viewportDim = glm::vec2((float)width, (float)height);
+		memcpy(uniformBuffers.particles.mapped, &uniformDataParticles, sizeof(UniformDataParticles));
 
 		// Environment
-		uboEnv.projection = camera.matrices.perspective;
-		uboEnv.modelView = camera.matrices.view;
-		uboEnv.normal = glm::inverseTranspose(uboEnv.modelView);
-		memcpy(uniformBuffers.environment.mapped, &uboEnv, sizeof(uboEnv));
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be submitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
+		uniformDataEnvironment.projection = camera.matrices.perspective;
+		uniformDataEnvironment.modelView = camera.matrices.view;
+		uniformDataEnvironment.normal = glm::inverseTranspose(uniformDataEnvironment.modelView);
+		// Update light position
+		if (!paused) {
+			uniformDataEnvironment.lightPos.x = sin(timer * 2.0f * float(M_PI)) * 1.5f;
+			uniformDataEnvironment.lightPos.y = 0.0f;
+			uniformDataEnvironment.lightPos.z = cos(timer * 2.0f * float(M_PI)) * 1.5f;
+		}
+		memcpy(uniformBuffers.environment.mapped, &uniformDataEnvironment, sizeof(UniformDataEnvironment));
 	}
 
 	void prepare()
@@ -565,33 +535,30 @@ public:
 		loadAssets();
 		prepareParticles();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSets();
 		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (!paused)
-		{
-			updateUniformBufferLight();
+		updateUniformBuffers();
+		if (!paused) {
 			updateParticles();
 		}
-		if (camera.updated)
-		{
-			updateUniformBuffers();
-		}
-	}
-
-	virtual void viewChanged()
-	{
-		updateUniformBuffers();
+		draw();
 	}
 };
 

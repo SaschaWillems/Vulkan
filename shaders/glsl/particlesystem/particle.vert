@@ -20,12 +20,6 @@ layout (binding = 0) uniform UBO
 	float pointSize;
 } ubo;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-	float gl_PointSize;
-};
-
 void main () 
 {
 	outColor = inColor;
