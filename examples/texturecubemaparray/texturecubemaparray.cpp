@@ -1,7 +1,10 @@
 /*
 * Vulkan Example - Cube map array texture loading and displaying
 *
-* Copyright (C) 2020 by Sascha Willems - www.saschawillems.de
+* This sample shows how load and render an cubemap array texture. A single image contains multiple cube maps.
+* The cubemap to be displayed is selected in the fragment shader
+*
+* Copyright (C) 2020-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -24,31 +27,24 @@ public:
 		int32_t objectIndex = 0;
 	} models;
 
-	struct {
-		vks::Buffer object;
-		vks::Buffer skybox;
-	} uniformBuffers;
-
-	struct ShaderData {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 modelView;
 		glm::mat4 inverseModelview;
 		float lodBias = 0.0f;
+		// Used by the fragment shader to select the cubemap from the array cubemap
 		int cubeMapIndex = 1;
-	} shaderData;
+	} uniformData;
+	vks::Buffer uniformBuffer;
 
 	struct {
-		VkPipeline skybox;
-		VkPipeline reflect;
+		VkPipeline skybox{ VK_NULL_HANDLE };
+		VkPipeline reflect{ VK_NULL_HANDLE };
 	} pipelines;
 
-	struct {
-		VkDescriptorSet object;
-		VkDescriptorSet skybox;
-	} descriptorSets;
-
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	std::vector<std::string> objectNames;
 
@@ -63,25 +59,23 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up texture resources
-		vkDestroyImageView(device, cubeMapArray.view, nullptr);
-		vkDestroyImage(device, cubeMapArray.image, nullptr);
-		vkDestroySampler(device, cubeMapArray.sampler, nullptr);
-		vkFreeMemory(device, cubeMapArray.deviceMemory, nullptr);
-
-		vkDestroyPipeline(device, pipelines.skybox, nullptr);
-		vkDestroyPipeline(device, pipelines.reflect, nullptr);
-
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-		uniformBuffers.object.destroy();
-		uniformBuffers.skybox.destroy();
+		if (device) {
+			vkDestroyImageView(device, cubeMapArray.view, nullptr);
+			vkDestroyImage(device, cubeMapArray.image, nullptr);
+			vkDestroySampler(device, cubeMapArray.sampler, nullptr);
+			vkFreeMemory(device, cubeMapArray.deviceMemory, nullptr);
+			vkDestroyPipeline(device, pipelines.skybox, nullptr);
+			vkDestroyPipeline(device, pipelines.reflect, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			uniformBuffer.destroy();
+		}
 	}
 
 	// Enable physical device features required for this example
 	virtual void getEnabledFeatures()
 	{
+		// This sample requires support for cube map arrays
 		if (deviceFeatures.imageCubeArray) {
 			enabledFeatures.imageCubeArray = VK_TRUE;
 		} else {
@@ -93,7 +87,8 @@ public:
 		}
 	};
 
-	void loadCubemapArray(std::string filename, VkFormat format, bool forceLinearTiling)
+	// Loads a cubemap array from a file, uploads it to the device and create all Vulkan resources required to display it
+	void loadCubemapArray(std::string filename, VkFormat format)
 	{
 		ktxResult result;
 		ktxTexture* ktxTexture;
@@ -320,16 +315,16 @@ public:
 			VkRect2D scissor = vks::initializers::rect2D(width,	height,	0, 0);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+			
 			// Skybox
 			if (displaySkybox)
 			{
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.skybox, 0, NULL);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skybox);
 				models.skybox.draw(drawCmdBuffers[i]);
 			}
 
 			// 3D object
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.object, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.reflect);
 			models.objects[models.objectIndex].draw(drawCmdBuffers[i]);
 
@@ -354,66 +349,53 @@ public:
 			models.objects[i].loadFromFile(getAssetPath() + "models/" + filenames[i], vulkanDevice, queue, glTFLoadingFlags);
 		}
 		// Load the cube map array from a ktx texture file
-		loadCubemapArray(getAssetPath() + "textures/cubemap_array.ktx", VK_FORMAT_R8G8B8A8_UNORM, false);
+		loadCubemapArray(getAssetPath() + "textures/cubemap_array.ktx", VK_FORMAT_R8G8B8A8_UNORM);
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
-		const std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
+		// Pool
+		std::vector<VkDescriptorPoolSize> poolSizes = {
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
 		};
-		const VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
-		const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-			// Binding 0 : Uniform buffer
+		// Layout
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
 			// Binding 1 : Fragment shader image sampler
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
 		};
-
-		const VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		const VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
-	}
-
-	void setupDescriptorSets()
-	{
-		// Image descriptor for the cube map texture
-		VkDescriptorImageInfo textureDescriptor = vks::initializers::descriptorImageInfo(cubeMapArray.sampler, cubeMapArray.view, cubeMapArray.imageLayout);
+		// Set
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		// 3D object descriptor set
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.object));
+		// Image descriptor for the cube map array texture
+		VkDescriptorImageInfo textureDescriptor = vks::initializers::descriptorImageInfo(cubeMapArray.sampler, cubeMapArray.view, cubeMapArray.imageLayout);
+
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
 			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSets.object, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.object.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 			// Binding 1 : Fragment shader cubemap sampler
-			vks::initializers::writeDescriptorSet(descriptorSets.object, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureDescriptor)
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-
-		// Sky box descriptor set
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.skybox));
-		writeDescriptorSets =
-		{
-			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSets.skybox, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.skybox.descriptor),
-			// Binding 1 : Fragment shader cubemap sampler
-			vks::initializers::writeDescriptorSet(descriptorSets.skybox, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureDescriptor)
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureDescriptor)
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
 	{
+		// Layout
+		const VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
+
+		// Pipelines
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -457,39 +439,28 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Object vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.object,
-			sizeof(ShaderData)));
-
-		// Skybox vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.skybox,
-			sizeof(ShaderData)));
-
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(UniformData)));
 		// Map persistent
-		VK_CHECK_RESULT(uniformBuffers.object.map());
-		VK_CHECK_RESULT(uniformBuffers.skybox.map());
-
-		updateUniformBuffers();
+		VK_CHECK_RESULT(uniformBuffer.map());
 	}
 
 	void updateUniformBuffers()
 	{
-		// 3D object
-		shaderData.projection = camera.matrices.perspective;
-		shaderData.modelView = camera.matrices.view;
-		shaderData.inverseModelview = glm::inverse(camera.matrices.view);
-		memcpy(uniformBuffers.object.mapped, &shaderData, sizeof(ShaderData));
+		uniformData.projection = camera.matrices.perspective;
+		uniformData.modelView = camera.matrices.view;
+		uniformData.inverseModelview = glm::inverse(camera.matrices.view);
+		memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
+	}
 
-		// Skybox
-		shaderData.modelView = camera.matrices.view;
-		// Cancel out translation
-		shaderData.modelView[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-		memcpy(uniformBuffers.skybox.mapped, &shaderData, sizeof(ShaderData));
+	void prepare()
+	{
+		VulkanExampleBase::prepare();
+		loadAssets();
+		prepareUniformBuffers();
+		setupDescriptors();
+		preparePipelines();
+		buildCommandBuffers();
+		prepared = true;
 	}
 
 	void draw()
@@ -501,43 +472,19 @@ public:
 		VulkanExampleBase::submitFrame();
 	}
 
-	void prepare()
-	{
-		VulkanExampleBase::prepare();
-		loadAssets();
-		prepareUniformBuffers();
-		setupDescriptorSetLayout();
-		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSets();
-		buildCommandBuffers();
-		prepared = true;
-	}
-
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (camera.updated) {
-			updateUniformBuffers();
-		}
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (overlay->sliderInt("Cube map", &shaderData.cubeMapIndex, 0, cubeMapArray.layerCount - 1)) {
-				updateUniformBuffers();
-			}
-			if (overlay->sliderFloat("LOD bias", &shaderData.lodBias, 0.0f, (float)cubeMapArray.mipLevels)) {
-				updateUniformBuffers();
-			}
+			overlay->sliderInt("Cube map", &uniformData.cubeMapIndex, 0, cubeMapArray.layerCount - 1);
+			overlay->sliderFloat("LOD bias", &uniformData.lodBias, 0.0f, (float)cubeMapArray.mipLevels);
 			if (overlay->comboBox("Object type", &models.objectIndex, objectNames)) {
 				buildCommandBuffers();
 			}

@@ -15,5 +15,7 @@ void main()
 	outUVW = inPos;
 	// Convert cubemap coordinates into Vulkan coordinate space
 	outUVW.xy *= -1.0;
-	gl_Position = ubo.projection * ubo.model * vec4(inPos.xyz, 1.0);
+	// Remove translation from view matrix
+	mat4 viewMat = mat4(mat3(ubo.model));
+	gl_Position = ubo.projection * viewMat * vec4(inPos.xyz, 1.0);
 }

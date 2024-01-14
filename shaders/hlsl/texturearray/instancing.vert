@@ -9,7 +9,7 @@ struct VSInput
 struct Instance
 {
 	float4x4 model;
-	float4 arrayIndex;
+	float arrayIndex;
 };
 
 struct UBO
@@ -30,7 +30,7 @@ struct VSOutput
 VSOutput main(VSInput input, uint InstanceIndex : SV_InstanceID)
 {
 	VSOutput output = (VSOutput)0;
-	output.UV = float3(input.UV, ubo.instance[InstanceIndex].arrayIndex.x);
+	output.UV = float3(input.UV, ubo.instance[InstanceIndex].arrayIndex);
 	float4x4 modelView = mul(ubo.view, ubo.instance[InstanceIndex].model);
 	output.Pos = mul(ubo.projection, mul(modelView, float4(input.Pos, 1.0)));
 	return output;
