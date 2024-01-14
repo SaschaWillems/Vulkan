@@ -20,9 +20,10 @@ struct UBO
     float4x4 projection;
     float4x4 model;
     float tessAlpha;
+    float tessLevel;
 };
 
-cbuffer ubo : register(b1) { UBO ubo; }
+cbuffer ubo : register(b0) { UBO ubo; }
 
 struct HSOutput
 {

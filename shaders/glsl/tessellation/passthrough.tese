@@ -2,11 +2,12 @@
 
 layout (triangles, fractional_odd_spacing, cw) in;
 
-layout (binding = 1) uniform UBO 
+layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
 	mat4 model;
 	float tessAlpha;
+	float tessLevel;
 } ubo; 
 
 layout (location = 0) in vec3 inNormal[];

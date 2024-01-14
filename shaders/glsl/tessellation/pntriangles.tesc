@@ -18,7 +18,10 @@ struct PnPatch
 // tessellation levels
 layout (binding = 0) uniform UBO 
 {
-	float tessLevel;
+    mat4 projection;
+    mat4 model;
+    float tessAlpha;
+    float tessLevel;
 } ubo; 
 
 layout(vertices=3) out;

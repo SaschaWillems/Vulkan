@@ -15,11 +15,12 @@ struct PnPatch
  float n101;
 };
 
-layout (binding = 1) uniform UBO 
+layout (binding = 0) uniform UBO 
 {
     mat4 projection;
     mat4 model;
     float tessAlpha;
+    float tessLevel;
 } ubo;
 
 layout(triangles, fractional_odd_spacing, cw) in;

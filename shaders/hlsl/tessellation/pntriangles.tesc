@@ -18,7 +18,10 @@ struct PnPatch
 // tessellation levels
 struct UBO
 {
-	float tessLevel;
+    float4x4 projection;
+    float4x4 model;
+    float tessAlpha;
+    float tessLevel;
 };
 
 cbuffer ubo : register(b0) { UBO ubo; }
@@ -83,7 +86,7 @@ ConstantsHSOutput ConstantsHS(InputPatch<VSOutput, 3> patch, uint InvocationID :
 
 [domain("tri")]
 [partitioning("fractional_odd")]
-[outputtopology("triangle_ccw")]
+[outputtopology("triangle_cw")]
 [outputcontrolpoints(3)]
 [patchconstantfunc("ConstantsHS")]
 [maxtessfactor(20.0f)]
