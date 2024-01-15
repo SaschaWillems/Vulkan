@@ -1,7 +1,13 @@
 // Copyright 2020 Google LLC
+// Copyright 2023 Sascha Willems
 
 struct UBO
 {
+	float4x4 projection;
+	float4x4 model;
+	float4 lightPos;
+	float tessAlpha;
+	float tessStrength;
 	float tessLevel;
 };
 

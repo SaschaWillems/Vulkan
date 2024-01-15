@@ -1,15 +1,16 @@
 #version 450
 
-layout (binding = 1) uniform UBO 
+layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
 	mat4 modelview;
 	vec4 lightPos;
 	float tessAlpha;
 	float tessStrength;
+	float tessLevel;
 } ubo; 
 
-layout (binding = 2) uniform sampler2D displacementMap; 
+layout (binding = 1) uniform sampler2D displacementMap; 
 
 layout(triangles, equal_spacing, cw) in;
 

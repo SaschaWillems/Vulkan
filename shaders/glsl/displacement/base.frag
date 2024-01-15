@@ -1,6 +1,6 @@
 #version 450
 
-layout (binding = 2) uniform sampler2D colorMap;
+layout (binding = 1) uniform sampler2D colorMap;
 
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec2 inUV;

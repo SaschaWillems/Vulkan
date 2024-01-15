@@ -1,4 +1,5 @@
 // Copyright 2020 Google LLC
+// Copyright 2023 Sascha Willems
 
 struct UBO
 {
@@ -7,12 +8,13 @@ struct UBO
 	float4 lightPos;
 	float tessAlpha;
 	float tessStrength;
+	float tessLevel;
 };
 
-cbuffer ubo : register(b1) { UBO ubo; }
+cbuffer ubo : register(b0) { UBO ubo; }
 
-Texture2D textureDisplacementMap : register(t2);
-SamplerState samplerDisplacementMap : register(s2);
+Texture2D textureDisplacementMap : register(t1);
+SamplerState samplerDisplacementMap : register(s1);
 
 struct HSOutput
 {
