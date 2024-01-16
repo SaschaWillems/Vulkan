@@ -1,13 +1,13 @@
 /*
 * Vulkan Example - Sparse texture residency example
 *
-* Copyright (C) 2016-2020 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 /*
-* Note : This sample is work-in-progress and works basically, but it's not yet finished
+* Important note : This sample is work-in-progress and works basically, but it's not finished
 */
 
 #include "vulkanexamplebase.h"
@@ -79,21 +79,21 @@ public:
 
 	vkglTF::Model plane;
 
-	struct UboVS {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 viewPos;
 		float lodBias = 0.0f;
-	} uboVS;
-	vks::Buffer uniformBufferVS;
+	} uniformData;
+	vks::Buffer uniformBuffer;
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	//todo: comment
-	VkSemaphore bindSparseSemaphore = VK_NULL_HANDLE;
+	VkSemaphore bindSparseSemaphore{ VK_NULL_HANDLE };
 
 	VulkanExample();
 	~VulkanExample();
@@ -106,15 +106,12 @@ public:
 	void buildCommandBuffers();
 	void draw();
 	void loadAssets();
-	void setupDescriptorPool();
-	void setupDescriptorSetLayout();
-	void setupDescriptorSet();
+	void setupDescriptors();
 	void preparePipelines();
 	void prepareUniformBuffers();
 	void updateUniformBuffers();
 	void prepare();
 	virtual void render();
-	virtual void viewChanged();
 	void uploadContent(VirtualTexturePage page, VkImage image);
 	void fillRandomPages();
 	void fillMipTail();

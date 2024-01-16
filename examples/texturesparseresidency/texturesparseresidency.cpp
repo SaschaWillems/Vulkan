@@ -165,7 +165,7 @@ VulkanExample::~VulkanExample()
 	vkDestroyPipeline(device, pipeline, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-	uniformBufferVS.destroy();
+	uniformBuffer.destroy();
 }
 
 void VulkanExample::getEnabledFeatures()
@@ -524,43 +524,24 @@ void VulkanExample::buildCommandBuffers()
 	}
 }
 
-void VulkanExample::draw()
-{
-	VulkanExampleBase::prepareFrame();
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-	VulkanExampleBase::submitFrame();
-}
-
 void VulkanExample::loadAssets()
 {
 	const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 	plane.loadFromFile(getAssetPath() + "models/plane.gltf", vulkanDevice, queue, glTFLoadingFlags);
 }
 
-void VulkanExample::setupDescriptorPool()
+void VulkanExample::setupDescriptors()
 {
-	// Example uses one ubo and one image sampler
-	std::vector<VkDescriptorPoolSize> poolSizes =
-	{
+	// Pool
+	std::vector<VkDescriptorPoolSize> poolSizes = {
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
 	};
-
-	VkDescriptorPoolCreateInfo descriptorPoolInfo =
-		vks::initializers::descriptorPoolCreateInfo(
-			static_cast<uint32_t>(poolSizes.size()),
-			poolSizes.data(),
-			2);
-
+	VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-}
 
-void VulkanExample::setupDescriptorSetLayout()
-{
-	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-	{
+	// Layout
+	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		// Binding 0 : Vertex shader uniform buffer
 		vks::initializers::descriptorSetLayoutBinding(
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -572,53 +553,29 @@ void VulkanExample::setupDescriptorSetLayout()
 			VK_SHADER_STAGE_FRAGMENT_BIT,
 			1)
 	};
-
-	VkDescriptorSetLayoutCreateInfo descriptorLayout =
-		vks::initializers::descriptorSetLayoutCreateInfo(
-			setLayoutBindings.data(),
-			static_cast<uint32_t>(setLayoutBindings.size()));
-
+	VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-	VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-		vks::initializers::pipelineLayoutCreateInfo(
-			&descriptorSetLayout,
-			1);
-
-	VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-}
-
-void VulkanExample::setupDescriptorSet()
-{
-	VkDescriptorSetAllocateInfo allocInfo =
-		vks::initializers::descriptorSetAllocateInfo(
-			descriptorPool,
-			&descriptorSetLayout,
-			1);
-
+	// Sets
+	VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 	VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-	std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-	{
+	std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 		// Binding 0 : Vertex shader uniform buffer
-		vks::initializers::writeDescriptorSet(
-			descriptorSet,
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			0,
-			&uniformBufferVS.descriptor),
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 		// Binding 1 : Fragment shader texture sampler
-		vks::initializers::writeDescriptorSet(
-			descriptorSet,
-			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			1,
-			&texture.descriptor)
+		vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texture.descriptor)
 	};
-
-	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 }
 
 void VulkanExample::preparePipelines()
 {
+	// Layout
+	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+	VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+
+	// Pipeline
 	VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 	VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 	VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -651,25 +608,19 @@ void VulkanExample::preparePipelines()
 void VulkanExample::prepareUniformBuffers()
 {
 	// Vertex shader uniform buffer block
-	VK_CHECK_RESULT(vulkanDevice->createBuffer(
-		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		&uniformBufferVS,
-		sizeof(uboVS),
-		&uboVS));
-
+	VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(UniformData), &uniformData));
 	updateUniformBuffers();
 }
 
 void VulkanExample::updateUniformBuffers()
 {
-	uboVS.projection = camera.matrices.perspective;
-	uboVS.model = camera.matrices.view;
-	uboVS.viewPos = camera.viewPos;
+	uniformData.projection = camera.matrices.perspective;
+	uniformData.model = camera.matrices.view;
+	uniformData.viewPos = camera.viewPos;
 
-	VK_CHECK_RESULT(uniformBufferVS.map());
-	memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
-	uniformBufferVS.unmap();
+	VK_CHECK_RESULT(uniformBuffer.map());
+	memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
+	uniformBuffer.unmap();
 }
 
 void VulkanExample::prepare()
@@ -683,27 +634,27 @@ void VulkanExample::prepare()
 	prepareUniformBuffers();
 	// Create a virtual texture with max. possible dimension (does not take up any VRAM yet)
 	prepareSparseTexture(4096, 4096, 1, VK_FORMAT_R8G8B8A8_UNORM);
-	setupDescriptorSetLayout();
+	setupDescriptors();
 	preparePipelines();
-	setupDescriptorPool();
-	setupDescriptorSet();
 	buildCommandBuffers();
 	prepared = true;
+}
+
+void VulkanExample::draw()
+{
+	VulkanExampleBase::prepareFrame();
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+	VulkanExampleBase::submitFrame();
 }
 
 void VulkanExample::render()
 {
 	if (!prepared)
 		return;
-	draw();
-	if (camera.updated) {
-		updateUniformBuffers();
-	}
-}
-
-void VulkanExample::viewChanged()
-{
 	updateUniformBuffers();
+	draw();
 }
 
 // Fills a buffer with random colors
@@ -895,7 +846,7 @@ void VulkanExample::flushRandomPages()
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 {
 	if (overlay->header("Settings")) {
-		if (overlay->sliderFloat("LOD bias", &uboVS.lodBias, -(float)texture.mipLevels, (float)texture.mipLevels)) {
+		if (overlay->sliderFloat("LOD bias", &uniformData.lodBias, -(float)texture.mipLevels, (float)texture.mipLevels)) {
 			updateUniformBuffers();
 		}
 		if (overlay->button("Fill random pages")) {
