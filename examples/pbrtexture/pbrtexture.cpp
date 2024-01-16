@@ -55,17 +55,17 @@ public:
 	} uboParams;
 
 	struct {
-		VkPipeline skybox;
-		VkPipeline pbr;
+		VkPipeline skybox{ VK_NULL_HANDLE };
+		VkPipeline pbr{ VK_NULL_HANDLE };
 	} pipelines;
 
 	struct {
-		VkDescriptorSet object;
-		VkDescriptorSet skybox;
+		VkDescriptorSet object{ VK_NULL_HANDLE };
+		VkDescriptorSet skybox{ VK_NULL_HANDLE };
 	} descriptorSets;
 
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -82,25 +82,27 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipelines.skybox, nullptr);
-		vkDestroyPipeline(device, pipelines.pbr, nullptr);
+		if (device) {
+			vkDestroyPipeline(device, pipelines.skybox, nullptr);
+			vkDestroyPipeline(device, pipelines.pbr, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		uniformBuffers.object.destroy();
-		uniformBuffers.skybox.destroy();
-		uniformBuffers.params.destroy();
+			uniformBuffers.object.destroy();
+			uniformBuffers.skybox.destroy();
+			uniformBuffers.params.destroy();
 
-		textures.environmentCube.destroy();
-		textures.irradianceCube.destroy();
-		textures.prefilteredCube.destroy();
-		textures.lutBrdf.destroy();
-		textures.albedoMap.destroy();
-		textures.normalMap.destroy();
-		textures.aoMap.destroy();
-		textures.metallicMap.destroy();
-		textures.roughnessMap.destroy();
+			textures.environmentCube.destroy();
+			textures.irradianceCube.destroy();
+			textures.prefilteredCube.destroy();
+			textures.lutBrdf.destroy();
+			textures.albedoMap.destroy();
+			textures.normalMap.destroy();
+			textures.aoMap.destroy();
+			textures.metallicMap.destroy();
+			textures.roughnessMap.destroy();
+		}
 	}
 
 	virtual void getEnabledFeatures()
@@ -1300,17 +1302,6 @@ public:
 		memcpy(uniformBuffers.params.mapped, &uboParams, sizeof(uboParams));
 	}
 
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
-	}
-
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
@@ -1325,20 +1316,21 @@ public:
 		prepared = true;
 	}
 
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
+	}
+
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (camera.updated)
-		{
-			updateUniformBuffers();
-		}
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffers();
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
