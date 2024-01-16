@@ -128,7 +128,7 @@ void main()
 	F0 = mix(F0, ALBEDO, metallic);
 
 	vec3 Lo = vec3(0.0);
-	for(int i = 0; i < uboParams.lights[i].length(); i++) {
+	for(int i = 0; i < uboParams.lights.length(); i++) {
 		vec3 L = normalize(uboParams.lights[i].xyz - inWorldPos);
 		Lo += specularContribution(L, V, N, F0, metallic, roughness);
 	}   
