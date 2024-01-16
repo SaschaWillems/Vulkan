@@ -3,6 +3,8 @@
 *
 * Demonstrates use of descriptor indexing to dynamically index into a variable sized array of images
 * 
+* The sample renders multiple objects with the index of the texture (descriptor) to use passed as a vertex attribute (aka "descriptor indexing")
+* 
 * Relevant code parts are marked with [POI]
 *
 * Copyright (C) 2021-2023 Sascha Willems - www.saschawillems.de
@@ -24,12 +26,12 @@ public:
 	vks::Buffer indexBuffer;
 	uint32_t indexCount{ 0 };
 
-	vks::Buffer uniformBufferVS;
-	struct {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 model;
-	} uboVS;
+	} uniformData;
+	vks::Buffer uniformBuffer;
 
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
@@ -74,15 +76,17 @@ public:
 
 	~VulkanExample()
 	{
-		for (auto &texture : textures) {
-			texture.destroy();
+		if (device) {
+			for (auto& texture : textures) {
+				texture.destroy();
+			}
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			vertexBuffer.destroy();
+			indexBuffer.destroy();
+			uniformBuffer.destroy();
 		}
-		vkDestroyPipeline(device, pipeline, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		vertexBuffer.destroy();
-		indexBuffer.destroy();
-		uniformBufferVS.destroy();
 	}
 
 	// Generate some random textures
@@ -106,7 +110,7 @@ public:
 		}
 	}
 
-	// Generates a line of cubes with randomized per-face texture indices
+	// Generates a line of cubes with randomized per-face texture indices and uploads them to the GPU
 	void generateCubes()
 	{
 		std::vector<Vertex> vertices;
@@ -177,19 +181,27 @@ public:
 
 		indexCount = static_cast<uint32_t>(indices.size());
 
-		// For the sake of simplicity we won't stage the vertex data to the gpu memory
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&vertexBuffer,
-			vertices.size() * sizeof(Vertex),
-			vertices.data()));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&indexBuffer,
-			indices.size() * sizeof(uint32_t),
-			indices.data()));
+		// Create buffers and upload data to the GPU
+		struct StagingBuffers {
+			vks::Buffer vertices;
+			vks::Buffer indices;
+		} stagingBuffers;
+
+		// Host visible source buffers (staging)
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffers.vertices, vertices.size() * sizeof(Vertex), vertices.data()));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffers.indices, indices.size() * sizeof(uint32_t), indices.data()));
+
+		// Device local destination buffers
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertexBuffer, vertices.size() * sizeof(Vertex)));
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &indexBuffer, indices.size() * sizeof(uint32_t)));
+
+		// Copy from host do device
+		vulkanDevice->copyBuffer(&stagingBuffers.vertices, &vertexBuffer, queue);
+		vulkanDevice->copyBuffer(&stagingBuffers.indices, &indexBuffer, queue);
+
+		// Clean up
+		stagingBuffers.vertices.destroy();
+		stagingBuffers.indices.destroy();
 	}
 
 	// [POI] Set up descriptor sets and set layout
@@ -211,8 +223,7 @@ public:
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
-			// [POI] Binding 1 contains a texture array that is dynamically non-uniform sampled from
-			// In the fragment shader:
+			// [POI] Binding 1 contains a texture array that is dynamically non-uniform sampled from in the fragment shader:
 			//	outFragColor = texture(textures[nonuniformEXT(inTexIndex)], inUV);
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, static_cast<uint32_t>(textures.size()))
 		};
@@ -257,7 +268,7 @@ public:
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets(2);
 
-		writeDescriptorSets[0] = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBufferVS.descriptor);
+		writeDescriptorSets[0] = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor);
 
 		// Image descriptors for the texture array
 		std::vector<VkDescriptorImageInfo> textureDescriptors(textures.size());
@@ -284,10 +295,11 @@ public:
 
 	void preparePipelines()
 	{
-
+		// Layout
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
+		// Pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -335,21 +347,17 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBufferVS,
-			sizeof(uboVS)));
-		VK_CHECK_RESULT(uniformBufferVS.map());
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(UniformData)));
+		VK_CHECK_RESULT(uniformBuffer.map());
 		updateUniformBuffersCamera();
 	}
 
 	void updateUniformBuffersCamera()
 	{
-		uboVS.projection = camera.matrices.perspective;
-		uboVS.view = camera.matrices.view;
-		uboVS.model = glm::mat4(1.0f);
-		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
+		uniformData.projection = camera.matrices.perspective;
+		uniformData.view = camera.matrices.view;
+		uniformData.model = glm::mat4(1.0f);
+		memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void buildCommandBuffers()
@@ -389,15 +397,6 @@ public:
 		}
 	}
 
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
-	}
-
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
@@ -410,18 +409,21 @@ public:
 		prepared = true;
 	}
 
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
+	}
+
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (camera.updated)
-			updateUniformBuffersCamera();
-	}
-
-	virtual void viewChanged()
-	{
 		updateUniformBuffersCamera();
+		draw();
 	}
 
 };

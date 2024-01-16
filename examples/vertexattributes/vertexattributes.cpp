@@ -1,7 +1,7 @@
 /*
  * Vulkan Example - Passing vertex attributes using interleaved and separate buffers
  *
- * Copyright (C) 2022 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2022-2023 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -153,29 +153,58 @@ VulkanExample::VulkanExample() : VulkanExampleBase()
 
 VulkanExample::~VulkanExample()
 {
-	vkDestroyPipeline(device, pipelines.vertexAttributesInterleaved, nullptr);
-	vkDestroyPipeline(device, pipelines.vertexAttributesSeparate, nullptr);
-	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
-	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
-	indices.destroy();
-	shaderData.buffer.destroy();
-	separateVertexBuffers.normal.destroy();
-	separateVertexBuffers.pos.destroy();
-	separateVertexBuffers.tangent.destroy();
-	separateVertexBuffers.uv.destroy();
-	interleavedVertexBuffer.destroy();
-	for (Image image : scene.images) {
-		vkDestroyImageView(vulkanDevice->logicalDevice, image.texture.view, nullptr);
-		vkDestroyImage(vulkanDevice->logicalDevice, image.texture.image, nullptr);
-		vkDestroySampler(vulkanDevice->logicalDevice, image.texture.sampler, nullptr);
-		vkFreeMemory(vulkanDevice->logicalDevice, image.texture.deviceMemory, nullptr);
+	if (device) {
+		vkDestroyPipeline(device, pipelines.vertexAttributesInterleaved, nullptr);
+		vkDestroyPipeline(device, pipelines.vertexAttributesSeparate, nullptr);
+		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
+		indices.destroy();
+		shaderData.buffer.destroy();
+		separateVertexBuffers.normal.destroy();
+		separateVertexBuffers.pos.destroy();
+		separateVertexBuffers.tangent.destroy();
+		separateVertexBuffers.uv.destroy();
+		interleavedVertexBuffer.destroy();
+		for (Image image : scene.images) {
+			vkDestroyImageView(vulkanDevice->logicalDevice, image.texture.view, nullptr);
+			vkDestroyImage(vulkanDevice->logicalDevice, image.texture.image, nullptr);
+			vkDestroySampler(vulkanDevice->logicalDevice, image.texture.sampler, nullptr);
+			vkFreeMemory(vulkanDevice->logicalDevice, image.texture.deviceMemory, nullptr);
+		}
 	}
 }
 
 void VulkanExample::getEnabledFeatures()
 {
 	enabledFeatures.samplerAnisotropy = deviceFeatures.samplerAnisotropy;
+}
+
+void VulkanExample::drawSceneNode(VkCommandBuffer commandBuffer, Node node)
+{
+	if (node.mesh.primitives.size() > 0) {
+		PushConstBlock pushConstBlock;
+		glm::mat4 nodeMatrix = node.matrix;
+		Node* currentParent = node.parent;
+		while (currentParent) {
+			nodeMatrix = currentParent->matrix * nodeMatrix;
+			currentParent = currentParent->parent;
+		}
+		for (Primitive& primitive : node.mesh.primitives) {
+			if (primitive.indexCount > 0) {
+				Material& material = scene.materials[primitive.materialIndex];
+				pushConstBlock.nodeMatrix = nodeMatrix;
+				pushConstBlock.alphaMask = (material.alphaMode == "MASK");
+				pushConstBlock.alphaMaskCutoff = material.alphaCutOff;
+				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &material.descriptorSet, 0, nullptr);
+				vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+			}
+		}
+	}
+	for (auto& child : node.children) {
+		drawSceneNode(commandBuffer, child);
+	}
 }
 
 void VulkanExample::buildCommandBuffers()
@@ -545,44 +574,10 @@ void VulkanExample::prepare()
 	prepared = true;
 }
 
-void VulkanExample::drawSceneNode(VkCommandBuffer commandBuffer, Node node)
-{
-	if (node.mesh.primitives.size() > 0) {
-		PushConstBlock pushConstBlock;
-		glm::mat4 nodeMatrix = node.matrix;
-		Node* currentParent = node.parent;
-		while (currentParent) {
-			nodeMatrix = currentParent->matrix * nodeMatrix;
-			currentParent = currentParent->parent;
-		}
-		for (Primitive& primitive : node.mesh.primitives) {
-			if (primitive.indexCount > 0) {
-				Material& material = scene.materials[primitive.materialIndex];
-				pushConstBlock.nodeMatrix = nodeMatrix;
-				pushConstBlock.alphaMask = (material.alphaMode == "MASK");
-				pushConstBlock.alphaMaskCutoff = material.alphaCutOff;
-				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &material.descriptorSet, 0, nullptr);
-				vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
-			}
-		}
-	}
-	for (auto& child : node.children) {
-		drawSceneNode(commandBuffer, child);
-	}
-}
-
 void VulkanExample::render()
 {
-	renderFrame();
-	if (camera.updated) {
-		updateUniformBuffers();
-	}
-}
-
-void VulkanExample::viewChanged()
-{
 	updateUniformBuffers();
+	renderFrame();
 }
 
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)

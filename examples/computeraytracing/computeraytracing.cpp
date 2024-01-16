@@ -128,7 +128,7 @@ public:
 		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
-		// Check if requested image format supports image storage operations required for storing pixesl fromn the compute shader
+		// Check if requested image format supports image storage operations required for storing pixel from the compute shader
 		assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT);
 
 		// Prepare blit target texture
