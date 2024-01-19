@@ -94,7 +94,6 @@ public:
 		camera.position = { 2.15f, 0.3f, -8.75f };
 		camera.setRotation(glm::vec3(-0.75f, 12.5f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		paused = true;
 	}
 
 	~VulkanExample()
@@ -503,7 +502,7 @@ public:
 		VK_CHECK_RESULT(uniformBuffers.offscreen.map());
 		VK_CHECK_RESULT(uniformBuffers.composition.map());
 
-		// Init some values
+		// Setup instanced model positions
 		uniformDataOffscreen.instancePos[0] = glm::vec4(0.0f);
 		uniformDataOffscreen.instancePos[1] = glm::vec4(-4.0f, 0.0, -4.0f, 0.0f);
 		uniformDataOffscreen.instancePos[2] = glm::vec4(4.0f, 0.0, -4.0f, 0.0f);
@@ -520,7 +519,7 @@ public:
 		memcpy(uniformBuffers.offscreen.mapped, &uniformDataOffscreen, sizeof(UniformDataOffscreen));
 	}
 
-	// Update deferred composition fragment shader light position andparameters uniform block
+	// Update deferred composition fragment shader light position and parameters uniform block
 	void updateUniformBufferDeferred()
 	{
 		// White
