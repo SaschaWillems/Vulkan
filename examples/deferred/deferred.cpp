@@ -788,18 +788,15 @@ public:
 	{
 		if (!prepared)
 			return;
-		draw();
 		updateUniformBufferComposition();
 		updateUniformBufferOffscreen();
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (overlay->comboBox("Display", &debugDisplayTarget, {"Final composition", "Position", "Normals", "Albedo", "Specular" }))
-			{
-				updateUniformBufferComposition();
-			}
+			overlay->comboBox("Display", &debugDisplayTarget, { "Final composition", "Position", "Normals", "Albedo", "Specular" });
 		}
 	}
 };
