@@ -100,20 +100,22 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipelines.plants, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		instanceBuffer.destroy();
-		indirectCommandsBuffer.destroy();
-		uniformData.scene.destroy();
-		indirectDrawCountBuffer.destroy();
-		compute.lodLevelsBuffers.destroy();
-		vkDestroyPipelineLayout(device, compute.pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
-		vkDestroyPipeline(device, compute.pipeline, nullptr);
-		vkDestroyFence(device, compute.fence, nullptr);
-		vkDestroyCommandPool(device, compute.commandPool, nullptr);
-		vkDestroySemaphore(device, compute.semaphore, nullptr);
+		if (device) {
+			vkDestroyPipeline(device, pipelines.plants, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			instanceBuffer.destroy();
+			indirectCommandsBuffer.destroy();
+			uniformData.scene.destroy();
+			indirectDrawCountBuffer.destroy();
+			compute.lodLevelsBuffers.destroy();
+			vkDestroyPipelineLayout(device, compute.pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
+			vkDestroyPipeline(device, compute.pipeline, nullptr);
+			vkDestroyFence(device, compute.fence, nullptr);
+			vkDestroyCommandPool(device, compute.commandPool, nullptr);
+			vkDestroySemaphore(device, compute.semaphore, nullptr);
+		}
 	}
 
 	virtual void getEnabledFeatures()
@@ -333,18 +335,17 @@ public:
 		vkEndCommandBuffer(compute.commandBuffer);
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptorSets()
 	{
+		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4)
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
+		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0: Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,0),
@@ -352,15 +353,9 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);		 
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-	}
-
-	void setupDescriptorSet()
-	{
+		// Set
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformData.scene.descriptor),
@@ -370,6 +365,10 @@ public:
 
 	void preparePipelines()
 	{
+		// Layout
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+
 		// This example uses two different input states, one for the instanced part and one for non-instanced rendering
 		VkPipelineVertexInputStateCreateInfo inputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 		std::vector<VkVertexInputBindingDescription> bindingDescriptions;
@@ -749,6 +748,18 @@ public:
 		memcpy(uniformData.scene.mapped, &uboScene, sizeof(uboScene));
 	}
 
+	void prepare()
+	{
+		VulkanExampleBase::prepare();
+		loadAssets();
+		prepareBuffers();
+		setupDescriptorSets();
+		preparePipelines();
+		prepareCompute();
+		buildCommandBuffers();
+		prepared = true;
+	}
+
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
@@ -773,11 +784,11 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 
 		// Wait on present and compute semaphores
-		std::array<VkPipelineStageFlags,2> stageFlags = {
+		std::array<VkPipelineStageFlags, 2> stageFlags = {
 			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 		};
-		std::array<VkSemaphore,2> waitSemaphores = {
+		std::array<VkSemaphore, 2> waitSemaphores = {
 			semaphores.presentComplete,						// Wait for presentation to finished
 			compute.semaphore								// Wait for compute to finish
 		};
@@ -795,28 +806,14 @@ public:
 		memcpy(&indirectStats, indirectDrawCountBuffer.mapped, sizeof(indirectStats));
 	}
 
-	void prepare()
-	{
-		VulkanExampleBase::prepare();
-		loadAssets();
-		prepareBuffers();
-		setupDescriptorSetLayout();
-		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSet();
-		prepareCompute();
-		buildCommandBuffers();
-		prepared = true;
-	}
-
 	virtual void render()
 	{
 		if (!prepared)
 		{
 			return;
 		}
-		draw();
 		updateUniformBuffer();
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

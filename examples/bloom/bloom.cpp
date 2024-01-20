@@ -459,21 +459,19 @@ public:
 		cubemap.loadFromFile(getAssetPath() + "textures/cubemap_space.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
+		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6)
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 5);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
+		// Layouts
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo;
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
 
 		// Fullscreen blur
 		setLayoutBindings = {
@@ -482,8 +480,6 @@ public:
 		};
 		descriptorSetLayoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayouts.blur));
-		pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.blur, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.blur));
 
 		// Scene rendering
 		setLayoutBindings = {
@@ -494,12 +490,8 @@ public:
 
 		descriptorSetLayoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayouts.scene));
-		pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.scene, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene));
-	}
 
-	void setupDescriptorSet()
-	{
+		// Sets
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo;
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
@@ -540,6 +532,14 @@ public:
 
 	void preparePipelines()
 	{
+		// Layouts
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.blur, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.blur));
+
+		pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.scene, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene));
+
+		// Pipelines
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -694,10 +694,8 @@ public:
 		loadAssets();
 		prepareUniformBuffers();
 		prepareOffscreen();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
 	}
