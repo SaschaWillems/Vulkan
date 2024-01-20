@@ -1,5 +1,8 @@
 /*
-* Vulkan Example - Using ray queries for hardware accelerated ray tracing queries in a fragment shader
+* Vulkan Example - Using ray queries for hardware accelerated ray tracing
+*
+* Ray queries (aka inline ray tracing) can be used in non-raytracing shaders. This sample makes use of that by
+* doing ray traced shadows in a fragment shader
 *
 * Copyright (C) 2020-2023 by Sascha Willems - www.saschawillems.de
 *
@@ -21,15 +24,14 @@ public:
 		glm::mat4 model;
 		glm::vec3 lightPos;
 	} uniformData;
-	vks::Buffer ubo;
+	vks::Buffer uniformBuffer;
 
 	vkglTF::Model scene;
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	VulkanRaytracingSample::AccelerationStructure bottomLevelAS{};
 	VulkanRaytracingSample::AccelerationStructure topLevelAS{};
@@ -51,12 +53,14 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		ubo.destroy();
-		deleteAccelerationStructure(bottomLevelAS);
-		deleteAccelerationStructure(topLevelAS);
+		if (device) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			uniformBuffer.destroy();
+			deleteAccelerationStructure(bottomLevelAS);
+			deleteAccelerationStructure(topLevelAS);
+		}
 	}
 
 	/*
@@ -283,19 +287,17 @@ public:
 		scene.loadFromFile(getAssetPath() + "models/vulkanscene_shadow.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
+		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1)
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
-		// Shared pipeline layout for all pipelines used in this sample
+		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
@@ -304,12 +306,8 @@ public:
 		};
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-	}
 
-	void setupDescriptorSets()
-	{
+		// Sets
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
 		// Debug display
@@ -321,9 +319,12 @@ public:
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 		writeDescriptorSets = {
 			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &ubo.descriptor)
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor)
 		};
 
+		// The fragment needs access to the ray tracing acceleration structure, so we pass it as a descriptor
+
+		// As this isn't part of Vulkan's core, we need to pass this informationen via pNext chaining
 		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = vks::initializers::writeDescriptorSetAccelerationStructureKHR();
 		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
 		descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.handle;
@@ -343,6 +344,11 @@ public:
 
 	void preparePipelines()
 	{
+		// Layout
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+
+		// Pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -381,11 +387,11 @@ public:
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&ubo,
+			&uniformBuffer,
 			sizeof(UniformData)));
 
 		// Map persistent
-		VK_CHECK_RESULT(ubo.map());
+		VK_CHECK_RESULT(uniformBuffer.map());
 
 		updateLight();
 		updateUniformBuffers();
@@ -405,7 +411,7 @@ public:
 		uniformData.view = camera.matrices.view;
 		uniformData.model = glm::mat4(1.0f);
 		uniformData.lightPos = lightPos;
-		memcpy(ubo.mapped, &uniformData, sizeof(UniformData));
+		memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void getEnabledFeatures()
@@ -432,14 +438,9 @@ public:
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be submitted to the queue
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
 		VulkanExampleBase::submitFrame();
 	}
 
@@ -448,12 +449,10 @@ public:
 		VulkanRaytracingSample::prepare();
 		loadAssets();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
-		preparePipelines();
 		createBottomLevelAccelerationStructure();
 		createTopLevelAccelerationStructure();
-		setupDescriptorPool();
-		setupDescriptorSets();
+		setupDescriptors();
+		preparePipelines();
 		buildCommandBuffers();
 		prepared = true;
 	}
@@ -462,12 +461,11 @@ public:
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (!paused || camera.updated)
-		{
+		updateUniformBuffers();
+		if (!paused || camera.updated) {
 			updateLight();
-			updateUniformBuffers();
 		}
+		draw();
 	}
 };
 
