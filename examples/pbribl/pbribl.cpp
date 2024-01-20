@@ -1,6 +1,8 @@
 /*
 * Vulkan Example - Physical based rendering with image based lighting
 *
+* This sample adds imaged based lighting from an environment map to the PBR equation
+* 
 * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -10,8 +12,6 @@
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
-
-#define GRID_DIM 7
 
 struct Material {
 	// Parameter block used as push constant block
@@ -69,17 +69,17 @@ public:
 	} uboParams;
 
 	struct {
-		VkPipeline skybox;
-		VkPipeline pbr;
+		VkPipeline skybox{ VK_NULL_HANDLE };
+		VkPipeline pbr{ VK_NULL_HANDLE };
 	} pipelines;
 
 	struct {
-		VkDescriptorSet object;
-		VkDescriptorSet skybox;
+		VkDescriptorSet object{ VK_NULL_HANDLE };
+		VkDescriptorSet skybox{ VK_NULL_HANDLE };
 	} descriptorSets;
 
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	// Default materials to select from
 	std::vector<Material> materials;
@@ -125,17 +125,19 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyPipeline(device, pipelines.skybox, nullptr);
-		vkDestroyPipeline(device, pipelines.pbr, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		uniformBuffers.object.destroy();
-		uniformBuffers.skybox.destroy();
-		uniformBuffers.params.destroy();	
-		textures.environmentCube.destroy();
-		textures.irradianceCube.destroy();
-		textures.prefilteredCube.destroy();
-		textures.lutBrdf.destroy();
+		if (device) {
+			vkDestroyPipeline(device, pipelines.skybox, nullptr);
+			vkDestroyPipeline(device, pipelines.pbr, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+			uniformBuffers.object.destroy();
+			uniformBuffers.skybox.destroy();
+			uniformBuffers.params.destroy();
+			textures.environmentCube.destroy();
+			textures.irradianceCube.destroy();
+			textures.prefilteredCube.destroy();
+			textures.lutBrdf.destroy();
+		}
 	}
 
 	virtual void getEnabledFeatures()
@@ -189,11 +191,9 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.object, 0, NULL);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pbr);
 
+			// Render a line of objects with the selected material and vary roughness/metallic material parameters
 			Material mat = materials[materialIndex];
-
-#define SINGLE_ROW 1
-#ifdef SINGLE_ROW
-			uint32_t objcount = 10;
+			const uint32_t objcount = 10;
 			for (uint32_t x = 0; x < objcount; x++) {
 				glm::vec3 pos = glm::vec3(float(x - (objcount / 2.0f)) * 2.15f, 0.0f, 0.0f);
 				mat.params.roughness = 1.0f-glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
@@ -203,18 +203,6 @@ public:
 				models.objects[models.objectIndex].draw(drawCmdBuffers[i]);
 
 			}
-#else
-			for (uint32_t y = 0; y < GRID_DIM; y++) {
-				mat.params.metallic = (float)y / (float)(GRID_DIM);
-				for (uint32_t x = 0; x < GRID_DIM; x++) {
-					glm::vec3 pos = glm::vec3(float(x - (GRID_DIM / 2.0f)) * 2.5f, 0.0f, float(y - (GRID_DIM / 2.0f)) * 2.5f);
-					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
-					mat.params.roughness = glm::clamp((float)x / (float)(GRID_DIM), 0.05f, 1.0f);
-					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
-					models.objects[models.objectIndex].draw(drawCmdBuffers[i]);
-				}
-			}
-#endif
 			drawUI(drawCmdBuffers[i]);
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
@@ -1374,17 +1362,6 @@ public:
 		memcpy(uniformBuffers.params.mapped, &uboParams, sizeof(uboParams));
 	}
 
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
-	}
-
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
@@ -1403,12 +1380,17 @@ public:
 	{
 		if (!prepared)
 			return;
+		updateUniformBuffers();
 		draw();
 	}
 
-	virtual void viewChanged()
+	void draw()
 	{
-		updateUniformBuffers();
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
