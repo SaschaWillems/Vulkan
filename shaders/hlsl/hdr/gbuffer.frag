@@ -27,14 +27,10 @@ struct UBO  {
 	float4x4 projection;
 	float4x4 modelview;
 	float4x4 inverseModelview;
+	float exposure;
 };
 
 cbuffer ubo : register(b0) { UBO ubo; }
-
-cbuffer Exposure : register(b2)
-{
-	float exposure;
-}
 
 FSOutput main(VSOutput input)
 {
@@ -97,7 +93,7 @@ FSOutput main(VSOutput input)
 
 
 	// Color with manual exposure into attachment 0
-	output.Color0.rgb = float3(1.0, 1.0, 1.0) - exp(-color.rgb * exposure);
+	output.Color0.rgb = float3(1.0, 1.0, 1.0) - exp(-color.rgb * ubo.exposure);
 
 	// Bright parts for bloom into attachment 1
 	float l = dot(output.Color0.rgb, float3(0.2126, 0.7152, 0.0722));
