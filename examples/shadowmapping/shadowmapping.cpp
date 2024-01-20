@@ -9,17 +9,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-// 16 bits of depth is enough for such a small scene
-#define DEPTH_FORMAT VK_FORMAT_D16_UNORM
-
-// Shadowmap properties
-#if defined(__ANDROID__)
-#define SHADOWMAP_DIM 1024
-#else
-#define SHADOWMAP_DIM 2048
-#endif
-#define DEFAULT_SHADOWMAP_FILTER VK_FILTER_LINEAR
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -44,12 +33,7 @@ public:
 	std::vector<std::string> sceneNames;
 	int32_t sceneIndex = 0;
 
-	struct {
-		vks::Buffer scene;
-		vks::Buffer offscreen;
-	} uniformBuffers;
-
-	struct {
+	struct UniformDataScene {
 		glm::mat4 projection;
 		glm::mat4 view;
 		glm::mat4 model;
@@ -58,27 +42,32 @@ public:
 		// Used for depth map visualization
 		float zNear;
 		float zFar;
-	} uboVSscene;
+	} uniformDataScene;
 
-	struct {
+	struct UniformDataOffscreen {
 		glm::mat4 depthMVP;
-	} uboOffscreenVS;
+	} uniformDataOffscreen;
 
 	struct {
-		VkPipeline offscreen;
-		VkPipeline sceneShadow;
-		VkPipeline sceneShadowPCF;
-		VkPipeline debug;
+		vks::Buffer scene;
+		vks::Buffer offscreen;
+	} uniformBuffers;
+
+	struct {
+		VkPipeline offscreen{ VK_NULL_HANDLE };
+		VkPipeline sceneShadow{ VK_NULL_HANDLE };
+		// Pipeline with percentage close filtering (PCF) of the shadow map 
+		VkPipeline sceneShadowPCF{ VK_NULL_HANDLE };
+		VkPipeline debug{ VK_NULL_HANDLE };
 	} pipelines;
-	VkPipelineLayout pipelineLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 
 	struct {
-		VkDescriptorSet offscreen;
-		VkDescriptorSet scene;
-		VkDescriptorSet debug;
+		VkDescriptorSet offscreen{ VK_NULL_HANDLE };
+		VkDescriptorSet scene{ VK_NULL_HANDLE };
+		VkDescriptorSet debug{ VK_NULL_HANDLE };
 	} descriptorSets;
-
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -93,47 +82,56 @@ public:
 		VkRenderPass renderPass;
 		VkSampler depthSampler;
 		VkDescriptorImageInfo descriptor;
-	} offscreenPass;
+	} offscreenPass{};
+
+	// 16 bits of depth is enough for such a small scene
+	const VkFormat offscreenDepthFormat{ VK_FORMAT_D16_UNORM };
+	// Shadow map dimension
+#if defined(__ANDROID__)
+	// Use a smaller size on Android for performance reasons
+	const uint32_t shadowMapize{ 1024 };
+#else
+	const uint32_t shadowMapize{ 2048 };
+#endif
 
 	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Projected shadow mapping";
 		camera.type = Camera::CameraType::lookat;
-		camera.setPosition(glm::vec3(0.0f, -0.0f, -20.0f));
-		camera.setRotation(glm::vec3(-15.0f, -390.0f, 0.0f));
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -12.5f));
+		camera.setRotation(glm::vec3(-25.0f, -390.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
 		timerSpeed *= 0.5f;
 	}
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources
-		// Note : Inherited destructor cleans up resources stored in base class
+		if (device) {
+			// Frame buffer
+			vkDestroySampler(device, offscreenPass.depthSampler, nullptr);
 
-		// Frame buffer
-		vkDestroySampler(device, offscreenPass.depthSampler, nullptr);
+			// Depth attachment
+			vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
+			vkDestroyImage(device, offscreenPass.depth.image, nullptr);
+			vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
 
-		// Depth attachment
-		vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
-		vkDestroyImage(device, offscreenPass.depth.image, nullptr);
-		vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
+			vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
 
-		vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
+			vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
 
-		vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
+			vkDestroyPipeline(device, pipelines.debug, nullptr);
+			vkDestroyPipeline(device, pipelines.offscreen, nullptr);
+			vkDestroyPipeline(device, pipelines.sceneShadow, nullptr);
+			vkDestroyPipeline(device, pipelines.sceneShadowPCF, nullptr);
 
-		vkDestroyPipeline(device, pipelines.debug, nullptr);
-		vkDestroyPipeline(device, pipelines.offscreen, nullptr);
-		vkDestroyPipeline(device, pipelines.sceneShadow, nullptr);
-		vkDestroyPipeline(device, pipelines.sceneShadowPCF, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-		// Uniform buffers
-		uniformBuffers.offscreen.destroy();
-		uniformBuffers.scene.destroy();
+			// Uniform buffers
+			uniformBuffers.offscreen.destroy();
+			uniformBuffers.scene.destroy();
+		}
 	}
 
 	// Set up a separate render pass for the offscreen frame buffer
@@ -141,7 +139,7 @@ public:
 	void prepareOffscreenRenderpass()
 	{
 		VkAttachmentDescription attachmentDescription{};
-		attachmentDescription.format = DEPTH_FORMAT;
+		attachmentDescription.format = offscreenDepthFormat;
 		attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
 		attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;							// Clear depth at beginning of the render pass
 		attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;						// We will read from depth, so it's important to store the depth attachment results
@@ -193,8 +191,8 @@ public:
 	// The depth attachment of this framebuffer will then be used to sample from in the fragment shader of the shadowing pass
 	void prepareOffscreenFramebuffer()
 	{
-		offscreenPass.width = SHADOWMAP_DIM;
-		offscreenPass.height = SHADOWMAP_DIM;
+		offscreenPass.width = shadowMapize;
+		offscreenPass.height = shadowMapize;
 
 		// For shadow mapping we only need a depth attachment
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
@@ -206,7 +204,7 @@ public:
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image.format = DEPTH_FORMAT;																// Depth stencil attachment
+		image.format = offscreenDepthFormat;																// Depth stencil attachment
 		image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;		// We will sample directly from the depth attachment for the shadow mapping
 		VK_CHECK_RESULT(vkCreateImage(device, &image, nullptr, &offscreenPass.depth.image));
 
@@ -220,7 +218,7 @@ public:
 
 		VkImageViewCreateInfo depthStencilView = vks::initializers::imageViewCreateInfo();
 		depthStencilView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		depthStencilView.format = DEPTH_FORMAT;
+		depthStencilView.format = offscreenDepthFormat;
 		depthStencilView.subresourceRange = {};
 		depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		depthStencilView.subresourceRange.baseMipLevel = 0;
@@ -232,9 +230,7 @@ public:
 
 		// Create sampler to sample from to depth attachment
 		// Used to sample in the fragment shader for shadowed rendering
-		VkFilter shadowmap_filter = vks::tools::formatIsFilterable(physicalDevice, DEPTH_FORMAT, VK_IMAGE_TILING_OPTIMAL) ?
-		   DEFAULT_SHADOWMAP_FILTER :
-		   VK_FILTER_NEAREST;
+		VkFilter shadowmap_filter = vks::tools::formatIsFilterable(physicalDevice, offscreenDepthFormat, VK_IMAGE_TILING_OPTIMAL) ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
 		VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
 		sampler.magFilter = shadowmap_filter;
 		sampler.minFilter = shadowmap_filter;
@@ -370,19 +366,17 @@ public:
 		sceneNames = {"Vulkan scene", "Teapots and pillars" };
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
+		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3)
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 3);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
-		// Shared pipeline layout for all pipelines used in this sample
+		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
@@ -391,20 +385,16 @@ public:
 		};
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
-		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-	}
 
-	void setupDescriptorSets()
-	{
+		// Sets
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
 		// Image descriptor for the shadow map attachment
 		VkDescriptorImageInfo shadowMapDescriptor =
-		    vks::initializers::descriptorImageInfo(
-		        offscreenPass.depthSampler,
-		        offscreenPass.depth.view,
-		        VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+			vks::initializers::descriptorImageInfo(
+				offscreenPass.depthSampler,
+				offscreenPass.depth.view,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
 		// Debug display
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
@@ -413,7 +403,7 @@ public:
 			// Binding 0 : Parameters uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSets.debug, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
 			// Binding 1 : Fragment shader texture sampler
-		    vks::initializers::writeDescriptorSet(descriptorSets.debug, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
+			vks::initializers::writeDescriptorSet(descriptorSets.debug, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
@@ -431,13 +421,18 @@ public:
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
 			// Binding 1 : Fragment shader shadow sampler
-		    vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
+			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
 	{
+		// Layout
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+
+		// Pipelines
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -507,19 +502,9 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Offscreen vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.offscreen,
-			sizeof(uboOffscreenVS)));
-
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.offscreen, sizeof(UniformDataOffscreen)));
 		// Scene vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.scene,
-			sizeof(uboVSscene)));
-
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.scene, sizeof(UniformDataScene)));
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffers.offscreen.map());
 		VK_CHECK_RESULT(uniformBuffers.scene.map());
@@ -539,14 +524,14 @@ public:
 
 	void updateUniformBuffers()
 	{
-		uboVSscene.projection = camera.matrices.perspective;
-		uboVSscene.view = camera.matrices.view;
-		uboVSscene.model = glm::mat4(1.0f);
-		uboVSscene.lightPos = glm::vec4(lightPos, 1.0f);
-		uboVSscene.depthBiasMVP = uboOffscreenVS.depthMVP;
-		uboVSscene.zNear = zNear;
-		uboVSscene.zFar = zFar;
-		memcpy(uniformBuffers.scene.mapped, &uboVSscene, sizeof(uboVSscene));
+		uniformDataScene.projection = camera.matrices.perspective;
+		uniformDataScene.view = camera.matrices.view;
+		uniformDataScene.model = glm::mat4(1.0f);
+		uniformDataScene.lightPos = glm::vec4(lightPos, 1.0f);
+		uniformDataScene.depthBiasMVP = uniformDataOffscreen.depthMVP;
+		uniformDataScene.zNear = zNear;
+		uniformDataScene.zFar = zFar;
+		memcpy(uniformBuffers.scene.mapped, &uniformDataScene, sizeof(uniformDataScene));
 	}
 
 	void updateUniformBufferOffscreen()
@@ -556,23 +541,9 @@ public:
 		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
 		glm::mat4 depthModelMatrix = glm::mat4(1.0f);
 
-		uboOffscreenVS.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
+		uniformDataOffscreen.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
 
-		memcpy(uniformBuffers.offscreen.mapped, &uboOffscreenVS, sizeof(uboOffscreenVS));
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be submitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
+		memcpy(uniformBuffers.offscreen.mapped, &uniformDataOffscreen, sizeof(uniformDataOffscreen));
 	}
 
 	void prepare()
@@ -581,25 +552,31 @@ public:
 		loadAssets();
 		prepareOffscreenFramebuffer();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSets();
 		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (!paused || camera.updated)
-		{
+		if (!paused || camera.updated) {
 			updateLight();
 			updateUniformBufferOffscreen();
 			updateUniformBuffers();
 		}
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
