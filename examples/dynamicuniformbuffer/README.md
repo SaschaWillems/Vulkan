@@ -84,7 +84,7 @@ This is the same as for regular uniform buffers but with descriptor type ```VK_D
 The example uses one dynamic uniform buffer, so we need to request at least one such descriptor type from the descriptor pool:
 
 ```cpp
-void setupDescriptorPool()
+void setupDescriptors()
 {
   ...
   std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -99,8 +99,9 @@ void setupDescriptorPool()
 The vertex shader interface defines the uniform with the model matrices (sampled from the dynamic buffer) at binding 1, so we need to setup a matching descriptor set layout:
 
 ```cpp
-void setupDescriptorSetLayout()
+void setupDescriptors()
 {
+  ...
   std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =  {
     ...
     vkTools::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT, 1),
@@ -113,8 +114,9 @@ void setupDescriptorSetLayout()
 The example uses the same descriptor set based on the set layout above for all objects in the scene. As with the layout we bind the dynamic uniform buffer to binding point 1 using the descriptor set up while creating the buffer earlier on.
 
 ```cpp
-void setupDescriptorSet()
+void setupDescriptors()
 {
+  ...
   std::vector<VkWriteDescriptorSet> writeDescriptorSets = {    
     // Binding 1 : Instance matrix as dynamic uniform buffer
     vkTools::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &uniformBuffers.dynamic.descriptor),
