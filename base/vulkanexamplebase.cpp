@@ -249,7 +249,6 @@ void VulkanExampleBase::nextFrame()
 	if (viewUpdated)
 	{
 		viewUpdated = false;
-		viewChanged();
 	}
 
 	render();
@@ -410,7 +409,6 @@ void VulkanExampleBase::renderLoop()
 			}
 			if (touchTimer >= 1.0) {
 				camera.keys.up = true;
-				viewChanged();
 			}
 
 			// Check gamepad state
@@ -436,18 +434,10 @@ void VulkanExampleBase::renderLoop()
 					camera.translate(glm::vec3(0.0f, 0.0f, gamePadState.axisRight.y * 0.01f));
 					updateView = true;
 				}
-				if (updateView)
-				{
-					viewChanged();
-				}
 			}
 			else
 			{
 				updateView = camera.updatePad(gamePadState.axisLeft, gamePadState.axisRight, frameTimer);
-				if (updateView)
-				{
-					viewChanged();
-				}
 			}
 		}
 	}
@@ -458,7 +448,6 @@ void VulkanExampleBase::renderLoop()
 		if (viewUpdated)
 		{
 			viewUpdated = false;
-			viewChanged();
 		}
 		render();
 		frameCounter++;
@@ -495,7 +484,6 @@ void VulkanExampleBase::renderLoop()
 		if (viewUpdated)
 		{
 			viewUpdated = false;
-			viewChanged();
 		}
 		DFBWindowEvent event;
 		while (!event_buffer->GetEvent(event_buffer, DFB_EVENT(&event)))
@@ -537,7 +525,6 @@ void VulkanExampleBase::renderLoop()
 		if (viewUpdated)
 		{
 			viewUpdated = false;
-			viewChanged();
 		}
 
 		while (!configured)
@@ -589,7 +576,6 @@ void VulkanExampleBase::renderLoop()
 		if (viewUpdated)
 		{
 			viewUpdated = false;
-			viewChanged();
 		}
 		xcb_generic_event_t *event;
 		while ((event = xcb_poll_for_event(connection)))
@@ -639,7 +625,6 @@ void VulkanExampleBase::renderLoop()
 		if (viewUpdated)
 		{
 			viewUpdated = false;
-			viewChanged();
 		}
 		render();
 		frameCounter++;
@@ -1471,8 +1456,6 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 
 							vulkanExample->camera.rotate(glm::vec3(deltaX, 0.0f, 0.0f));
 							vulkanExample->camera.rotate(glm::vec3(0.0f, -deltaY, 0.0f));
-
-							vulkanExample->viewChanged();
 
 							vulkanExample->touchPos.x = eventX;
 							vulkanExample->touchPos.y = eventY;
@@ -2970,8 +2953,6 @@ void VulkanExampleBase::setupWindow()
 }
 #endif
 
-void VulkanExampleBase::viewChanged() {}
-
 void VulkanExampleBase::keyPressed(uint32_t) {}
 
 void VulkanExampleBase::mouseMoved(double x, double y, bool & handled) {}
@@ -3193,7 +3174,6 @@ void VulkanExampleBase::windowResize()
 
 	// Notify derived class
 	windowResized();
-	viewChanged();
 
 	prepared = true;
 }

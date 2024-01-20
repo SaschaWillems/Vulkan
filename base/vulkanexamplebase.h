@@ -358,8 +358,6 @@ public:
 	virtual VkResult createInstance(bool enableValidation);
 	/** @brief (Pure virtual) Render function to be implemented by the sample application */
 	virtual void render() = 0;
-	/** @brief (Virtual) Called when the camera view has changed */
-	virtual void viewChanged();
 	/** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */
 	virtual void keyPressed(uint32_t);
 	/** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera rotation) is handled */
