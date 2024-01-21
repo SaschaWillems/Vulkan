@@ -349,8 +349,7 @@ public:
 				VkDrawIndexedIndirectCommand indirectCmd{};
 				indirectCmd.instanceCount = OBJECT_INSTANCE_COUNT;
 				indirectCmd.firstInstance = m * OBJECT_INSTANCE_COUNT;
-				// @todo: Multiple primitives
-				// A glTF node may consist of multiple primitives, so we may have to do multiple commands per mesh
+				// A glTF node may consist of multiple primitives, but for this saample we only care for the first primitive
 				indirectCmd.firstIndex = node->mesh->primitives[0]->firstIndex;
 				indirectCmd.indexCount = node->mesh->primitives[0]->indexCount;
 

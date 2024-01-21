@@ -195,7 +195,6 @@ namespace vks
 			imageView.viewType = (createinfo.layerCount == 1) ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 			imageView.format = createinfo.format;
 			imageView.subresourceRange = attachment.subresourceRange;
-			//todo: workaround for depth+stencil attachments
 			imageView.subresourceRange.aspectMask = (attachment.hasDepth()) ? VK_IMAGE_ASPECT_DEPTH_BIT : aspectMask;
 			imageView.image = attachment.image;
 			VK_CHECK_RESULT(vkCreateImageView(vulkanDevice->logicalDevice, &imageView, nullptr, &attachment.view));

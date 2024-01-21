@@ -201,7 +201,6 @@ public:
 			&primitive_count,
 			&accelerationStructureBuildSizesInfo);
 
-		// @todo: as return value?
 		createAccelerationStructure(topLevelAS, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR, accelerationStructureBuildSizesInfo);
 
 		// Create a small scratch buffer used during build of the top level acceleration structure
