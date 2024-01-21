@@ -434,7 +434,6 @@ public:
 	// The descriptor pool will be shared between graphics and compute
 	void setupDescriptorPool()
 	{
-		// @todo: probably wrong
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4),
