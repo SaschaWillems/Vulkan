@@ -1,6 +1,8 @@
 /*
 * Vulkan Example - Fullscreen radial blur (Single pass offscreen effect)
 *
+* This samples shows how to implement a simple post-processing effect
+* 
 * Copyright (C) 2016-2023 Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -9,59 +11,52 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-// Offscreen frame buffer properties
-#define FB_DIM 512
-#define FB_COLOR_FORMAT VK_FORMAT_R8G8B8A8_UNORM
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
 	bool blur = true;
 	bool displayTexture = false;
 
-	struct {
-		vks::Texture2D gradient;
-	} textures;
-
+	vks::Texture2D gradientTexture;
 	vkglTF::Model scene;
+
+	struct UniformDataScene {
+		glm::mat4 projection;
+		glm::mat4 modelView;
+		float gradientPos = 0.0f;
+	} uniformDataScene;
+
+	struct UniformDataBlurParams {
+		float radialBlurScale = 0.35f;
+		float radialBlurStrength = 0.75f;
+		glm::vec2 radialOrigin = glm::vec2(0.5f, 0.5f);
+	} uniformDataBlurParams;
 
 	struct {
 		vks::Buffer scene;
 		vks::Buffer blurParams;
 	} uniformBuffers;
 
-	struct UboVS {
-		glm::mat4 projection;
-		glm::mat4 modelView;
-		float gradientPos = 0.0f;
-	} uboScene;
-
-	struct UboBlurParams {
-		float radialBlurScale = 0.35f;
-		float radialBlurStrength = 0.75f;
-		glm::vec2 radialOrigin = glm::vec2(0.5f, 0.5f);
-	} uboBlurParams;
-
 	struct {
-		VkPipeline radialBlur;
-		VkPipeline colorPass;
-		VkPipeline phongPass;
-		VkPipeline offscreenDisplay;
+		VkPipeline radialBlur{ VK_NULL_HANDLE };
+		VkPipeline colorPass{ VK_NULL_HANDLE };
+		VkPipeline phongPass{ VK_NULL_HANDLE };
+		VkPipeline offscreenDisplay{ VK_NULL_HANDLE };
 	} pipelines;
 
 	struct {
-		VkPipelineLayout radialBlur;
-		VkPipelineLayout scene;
+		VkPipelineLayout radialBlur{ VK_NULL_HANDLE };
+		VkPipelineLayout scene{ VK_NULL_HANDLE };
 	} pipelineLayouts;
 
 	struct {
-		VkDescriptorSet scene;
-		VkDescriptorSet radialBlur;
+		VkDescriptorSet scene{ VK_NULL_HANDLE };
+		VkDescriptorSet radialBlur{ VK_NULL_HANDLE };
 	} descriptorSets;
 
 	struct {
-		VkDescriptorSetLayout scene;
-		VkDescriptorSetLayout radialBlur;
+		VkDescriptorSetLayout scene{ VK_NULL_HANDLE };
+		VkDescriptorSetLayout radialBlur{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
 
 	// Framebuffer for offscreen rendering
@@ -77,7 +72,12 @@ public:
 		VkRenderPass renderPass;
 		VkSampler sampler;
 		VkDescriptorImageInfo descriptor;
-	} offscreenPass;
+	} offscreenPass{};
+
+	// Size of the shadow map texture (per face)
+	const uint32_t offscreenImageSize{ 512 };
+	// We use an 8 bit per component RGBA offscreen image for storing the scene parts that will be blurred
+	const VkFormat offscreenImageFormat{ VK_FORMAT_R8G8B8A8_UNORM };
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -91,48 +91,47 @@ public:
 
 	~VulkanExample()
 	{
-		// Clean up used Vulkan resources
-		// Note : Inherited destructor cleans up resources stored in base class
+		if (device) {
+			// Frame buffer
 
-		// Frame buffer
+			// Color attachment
+			vkDestroyImageView(device, offscreenPass.color.view, nullptr);
+			vkDestroyImage(device, offscreenPass.color.image, nullptr);
+			vkFreeMemory(device, offscreenPass.color.mem, nullptr);
 
-		// Color attachment
-		vkDestroyImageView(device, offscreenPass.color.view, nullptr);
-		vkDestroyImage(device, offscreenPass.color.image, nullptr);
-		vkFreeMemory(device, offscreenPass.color.mem, nullptr);
+			// Depth attachment
+			vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
+			vkDestroyImage(device, offscreenPass.depth.image, nullptr);
+			vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
 
-		// Depth attachment
-		vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
-		vkDestroyImage(device, offscreenPass.depth.image, nullptr);
-		vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
+			vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
+			vkDestroySampler(device, offscreenPass.sampler, nullptr);
+			vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
 
-		vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
-		vkDestroySampler(device, offscreenPass.sampler, nullptr);
-		vkDestroyFramebuffer(device, offscreenPass.frameBuffer, nullptr);
+			vkDestroyPipeline(device, pipelines.radialBlur, nullptr);
+			vkDestroyPipeline(device, pipelines.phongPass, nullptr);
+			vkDestroyPipeline(device, pipelines.colorPass, nullptr);
+			vkDestroyPipeline(device, pipelines.offscreenDisplay, nullptr);
 
-		vkDestroyPipeline(device, pipelines.radialBlur, nullptr);
-		vkDestroyPipeline(device, pipelines.phongPass, nullptr);
-		vkDestroyPipeline(device, pipelines.colorPass, nullptr);
-		vkDestroyPipeline(device, pipelines.offscreenDisplay, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayouts.radialBlur, nullptr);
+			vkDestroyPipelineLayout(device, pipelineLayouts.scene, nullptr);
 
-		vkDestroyPipelineLayout(device, pipelineLayouts.radialBlur, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayouts.scene, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.radialBlur, nullptr);
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.radialBlur, nullptr);
+			uniformBuffers.scene.destroy();
+			uniformBuffers.blurParams.destroy();
 
-		uniformBuffers.scene.destroy();
-		uniformBuffers.blurParams.destroy();
-
-		textures.gradient.destroy();
+			gradientTexture.destroy();
+		}
 	}
 
 	// Setup the offscreen framebuffer for rendering the blurred scene
 	// The color attachment of this framebuffer will then be used to sample frame in the fragment shader of the final pass
 	void prepareOffscreen()
 	{
-		offscreenPass.width = FB_DIM;
-		offscreenPass.height = FB_DIM;
+		offscreenPass.width = offscreenImageSize;
+		offscreenPass.height = offscreenImageSize;
 
 		// Find a suitable depth format
 		VkFormat fbDepthFormat;
@@ -142,7 +141,7 @@ public:
 		// Color attachment
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
 		image.imageType = VK_IMAGE_TYPE_2D;
-		image.format = FB_COLOR_FORMAT;
+		image.format = offscreenImageFormat;
 		image.extent.width = offscreenPass.width;
 		image.extent.height = offscreenPass.height;
 		image.extent.depth = 1;
@@ -165,7 +164,7 @@ public:
 
 		VkImageViewCreateInfo colorImageView = vks::initializers::imageViewCreateInfo();
 		colorImageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		colorImageView.format = FB_COLOR_FORMAT;
+		colorImageView.format = offscreenImageFormat;
 		colorImageView.subresourceRange = {};
 		colorImageView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		colorImageView.subresourceRange.baseMipLevel = 0;
@@ -220,7 +219,7 @@ public:
 
 		std::array<VkAttachmentDescription, 2> attchmentDescriptions = {};
 		// Color attachment
-		attchmentDescriptions[0].format = FB_COLOR_FORMAT;
+		attchmentDescriptions[0].format = offscreenImageFormat;
 		attchmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
 		attchmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attchmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -388,26 +387,22 @@ public:
 	void loadAssets()
 	{
 		scene.loadFromFile(getAssetPath() + "models/glowsphere.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY);
-		textures.gradient.loadFromFile(getAssetPath() + "textures/particle_gradient_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		gradientTexture.loadFromFile(getAssetPath() + "textures/particle_gradient_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
-	void setupDescriptorPool()
+	void setupDescriptors()
 	{
-		// Example uses three ubos and one image sampler
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
+		// Pool
+		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6)
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-	}
 
-	void setupDescriptorSetLayout()
-	{
+		// Layouts
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
 		VkDescriptorSetLayoutCreateInfo descriptorLayout;
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
 
 		// Scene rendering
 		setLayoutBindings = {
@@ -420,8 +415,6 @@ public:
 		};
 		descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.scene));
-		pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.scene, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene));
 
 		// Fullscreen radial blur
 		setLayoutBindings = {
@@ -432,12 +425,8 @@ public:
 		};
 		descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.radialBlur));
-		pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.radialBlur, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.radialBlur));
-	}
 
-	void setupDescriptorSet()
-	{
+		// Sets
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo;
 
 		// Scene rendering
@@ -448,7 +437,7 @@ public:
 			// Binding 0: Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
 			// Binding 1: Color gradient sampler
-			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.gradient.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &gradientTexture.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(offScreenWriteDescriptorSets.size()), offScreenWriteDescriptorSets.data(), 0, nullptr);
 
@@ -462,12 +451,19 @@ public:
 			// Binding 0: Fragment shader texture sampler
 			vks::initializers::writeDescriptorSet(descriptorSets.radialBlur, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	1, &offscreenPass.descriptor),
 		};
-
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void preparePipelines()
 	{
+		// Layouts
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.scene, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.scene));
+
+		pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayouts.radialBlur, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayouts.radialBlur));
+
+		// Pipelines
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -477,7 +473,6 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayouts.radialBlur, renderPass, 0);
@@ -533,55 +528,33 @@ public:
 	void prepareUniformBuffers()
 	{
 		// Phong and color pass vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.scene,
-			sizeof(uboScene)));
-
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.scene, sizeof(UniformDataScene)));
 		// Fullscreen radial blur parameters
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.blurParams,
-			sizeof(uboBlurParams),
-			&uboBlurParams));
-
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.blurParams, sizeof(UniformDataBlurParams), &uniformDataBlurParams));
 		// Map persistent
 		VK_CHECK_RESULT(uniformBuffers.scene.map());
 		VK_CHECK_RESULT(uniformBuffers.blurParams.map());
+	}
 
-		updateUniformBuffersScene();
+	// Update parameters for the radial blur pass
+	// This only does the copy, actual parameters are set via the UI
+	void updateUniformBuffersBlurParams()
+	{
+		memcpy(uniformBuffers.blurParams.mapped, &uniformDataBlurParams, sizeof(UniformDataBlurParams));
 	}
 
 	// Update uniform buffers for rendering the 3D scene
-	void updateUniformBuffersScene()
+	void updateUniformBuffers()
 	{
-		uboScene.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 1.0f, 256.0f);
+		uniformDataScene.projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 1.0f, 256.0f);
 		camera.setRotation(camera.rotation + glm::vec3(0.0f, frameTimer * 10.0f, 0.0f));
-		uboScene.projection = camera.matrices.perspective;
-		uboScene.modelView = camera.matrices.view;
-		// split into model view for separating rotation
-		if (!paused)
-		{
-			uboScene.gradientPos += frameTimer * 0.1f;
+		uniformDataScene.projection = camera.matrices.perspective;
+		uniformDataScene.modelView = camera.matrices.view;
+		// Add some animation to the post processing effect by moving through a color gradient for the radial blur
+		if (!paused) {
+			uniformDataScene.gradientPos += frameTimer * 0.1f;
 		}
-
-		memcpy(uniformBuffers.scene.mapped, &uboScene, sizeof(uboScene));
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		// Command buffer to be submitted to the queue
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
+		memcpy(uniformBuffers.scene.mapped, &uniformDataScene, sizeof(UniformDataScene));
 	}
 
 	void prepare()
@@ -590,21 +563,27 @@ public:
 		loadAssets();
 		prepareOffscreen();
 		prepareUniformBuffers();
-		setupDescriptorSetLayout();
+		setupDescriptors();
 		preparePipelines();
-		setupDescriptorPool();
-		setupDescriptorSet();
 		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void draw()
+	{
+		VulkanExampleBase::prepareFrame();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
+		updateUniformBuffers();
 		draw();
-		if (!paused || camera.updated)
-			updateUniformBuffersScene();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
@@ -613,8 +592,20 @@ public:
 			if (overlay->checkBox("Radial blur", &blur)) {
 				buildCommandBuffers();
 			}
-			if (overlay->checkBox("Display render target", &displayTexture)) {
+			if (overlay->checkBox("Display render target only", &displayTexture)) {
 				buildCommandBuffers();
+			}
+			if (blur) {
+				if (overlay->header("Blur parameters")) {
+					bool updateParams = false;
+					updateParams |= overlay->sliderFloat("Scale", &uniformDataBlurParams.radialBlurScale, 0.1f, 1.0f);
+					updateParams |= overlay->sliderFloat("Strength", &uniformDataBlurParams.radialBlurStrength, 0.1f, 2.0f);
+					updateParams |= overlay->sliderFloat("Horiz. origin", &uniformDataBlurParams.radialOrigin.x, 0.0f, 1.0f);
+					updateParams |= overlay->sliderFloat("Vert. origin", &uniformDataBlurParams.radialOrigin.y, 0.0f, 1.0f);
+					if (updateParams) {
+						updateUniformBuffersBlurParams();
+					}
+				}
 			}
 		}
 	}
