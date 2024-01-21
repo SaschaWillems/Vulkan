@@ -55,7 +55,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 #elif defined(VK_USE_PLATFORM_SCREEN_QNX)
 	instanceExtensions.push_back(VK_QNX_SCREEN_SURFACE_EXTENSION_NAME);
 #endif
-	
+
 	// Get extensions supported by the instance and store for later use
 	uint32_t extCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extCount, nullptr);
@@ -80,9 +80,9 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 #endif
 
 	// Enabled requested instance extensions
-	if (enabledInstanceExtensions.size() > 0) 
+	if (enabledInstanceExtensions.size() > 0)
 	{
-		for (const char * enabledExtension : enabledInstanceExtensions) 
+		for (const char * enabledExtension : enabledInstanceExtensions)
 		{
 			// Output message if requested extension is not available
 			if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), enabledExtension) == supportedInstanceExtensions.end())
@@ -97,6 +97,14 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instanceCreateInfo.pNext = NULL;
 	instanceCreateInfo.pApplicationInfo = &appInfo;
+
+	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{};
+	if (settings.validation) {
+		vks::debug::setupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
+		debugUtilsMessengerCI.pNext = instanceCreateInfo.pNext;
+		instanceCreateInfo.pNext = &debugUtilsMessengerCI;
+	}
+
 
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK)) && defined(VK_KHR_portability_enumeration)
 	// SRS - When running on iOS/macOS with MoltenVK and VK_KHR_portability_enumeration is defined and supported by the instance, enable the extension and the flag
@@ -289,7 +297,7 @@ void VulkanExampleBase::nextFrame()
 		lastTimestamp = tEnd;
 	}
 	tPrevEnd = tEnd;
-	
+
 	// TODO: Cap UI overlay update rates
 	updateOverlay();
 }
@@ -782,10 +790,10 @@ VulkanExampleBase::VulkanExampleBase()
 #endif
 
 	// Validation for all samples can be forced at compile time using the FORCE_VALIDATION define
-#if defined(FORCE_VALIDATION) 
+#if defined(FORCE_VALIDATION)
 	settings.validation = true;
 #endif
-	
+
 	// Command line arguments
 	commandLineParser.add("help", { "--help" }, 0, "Show help");
 	commandLineParser.add("validation", { "-v", "--validation" }, 0, "Enable validation layers");
@@ -848,7 +856,7 @@ VulkanExampleBase::VulkanExampleBase()
 	}
 	if (commandLineParser.isSet("benchmarkresultfile")) {
 		benchmark.filename = commandLineParser.getValueAsString("benchmarkresultfile", benchmark.filename);
-	}	
+	}
 	if (commandLineParser.isSet("benchmarkresultframes")) {
 		benchmark.outputFrameTimes = true;
 	}
@@ -1589,7 +1597,7 @@ dispatch_group_t concurrentGroup;
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 	[NSApp activateIgnoringOtherApps:YES];		// SRS - Make sure app window launches in front of Xcode window
-	
+
 	concurrentGroup = dispatch_group_create();
 	dispatch_queue_t concurrentQueue = dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0);
 	dispatch_group_async(concurrentGroup, concurrentQueue, ^{
@@ -1598,7 +1606,7 @@ dispatch_group_t concurrentGroup;
 			vulkanExample->displayLinkOutputCb();
 		}
 	});
-	
+
 	// SRS - When benchmarking, set up termination notification on main thread when concurrent queue completes
 	if (vulkanExample->benchmark.active) {
 		dispatch_queue_t notifyQueue = dispatch_get_main_queue();
@@ -3159,7 +3167,7 @@ void VulkanExampleBase::windowResize()
 	destroyCommandBuffers();
 	createCommandBuffers();
 	buildCommandBuffers();
-	
+
 	// SRS - Recreate fences in case number of swapchain images has changed on resize
 	for (auto& fence : waitFences) {
 		vkDestroyFence(device, fence, nullptr);
