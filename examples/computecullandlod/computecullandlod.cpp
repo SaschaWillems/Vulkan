@@ -335,7 +335,7 @@ public:
 		vkEndCommandBuffer(compute.commandBuffer);
 	}
 
-	void setupDescriptorSets()
+	void setupDescriptors()
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -744,7 +744,7 @@ public:
 		VulkanExampleBase::prepare();
 		loadAssets();
 		prepareBuffers();
-		setupDescriptorSets();
+		setupDescriptors();
 		preparePipelines();
 		prepareCompute();
 		buildCommandBuffers();

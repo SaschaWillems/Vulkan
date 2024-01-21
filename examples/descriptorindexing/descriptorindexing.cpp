@@ -205,7 +205,7 @@ public:
 	}
 
 	// [POI] Set up descriptor sets and set layout
-	void setupDescriptorSets()
+	void setupDescriptors()
 	{
 		// Descriptor pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -403,7 +403,7 @@ public:
 		generateTextures();
 		generateCubes();
 		prepareUniformBuffers();
-		setupDescriptorSets();
+		setupDescriptors();
 		preparePipelines();
 		buildCommandBuffers();
 		prepared = true;
