@@ -10,8 +10,11 @@
 
 #include "threadpool.hpp"
 #include "frustum.hpp"
-
+#include "random.hpp"
 #include "VulkanglTFModel.h"
+
+static const glm::vec3 SPHERE_SCALE { 35.0f, 0.0f, 35.0f };
+static const float M_TAU = static_cast<float>(2.0f * M_PI);
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -58,23 +61,53 @@ public:
 	};
 
 	struct ObjectData {
-		glm::mat4 model;
 		glm::vec3 pos;
-		glm::vec3 rotation;
+		float rotationAxis;
 		float rotationDir;
 		float rotationSpeed;
 		float scale;
 		float deltaT;
-		float stateT = 0;
 		bool visible = true;
+
+		struct PushConstant {
+			glm::mat4 mvp;
+			glm::vec3 color;
+		} pushConstant;
+
+		void init(vkx::Random& random) {
+			pos = random.sphere(SPHERE_SCALE);
+			rotationAxis = random.radian();
+			deltaT = random.real();
+			rotationDir = random.boolean() ? 1.0f : -1.0f;
+			// Rotate at between 2 and 6 degrees per second
+			rotationSpeed = glm::radians(random.real(2.0f, 6.0f)) * rotationDir;
+			scale = random.real(0.75f, 1.25f);
+			pushConstant.color = random.color();
+		}
+
+		void update(float frameTimer) {
+			rotationAxis += 2.5f * rotationSpeed * frameTimer;
+			rotationAxis = fmod(rotationAxis, M_TAU);
+			deltaT += 0.15f * frameTimer;
+			deltaT = fmod(deltaT, 1.0f);
+			pos.y = sin(deltaT * M_TAU) * 2.5f;
+		}
+
+		glm::mat4 getModel() {
+			auto model = glm::translate(glm::mat4(1.0f), pos);
+			model = glm::rotate(model, -sinf(deltaT * M_TAU) * 0.25f, glm::vec3(rotationDir, 0.0f, 0.0f));
+			model = glm::rotate(model, rotationAxis, glm::vec3(0.0f, rotationDir, 0.0f));
+			model = glm::rotate(model, deltaT * M_TAU, glm::vec3(0.0f, rotationDir, 0.0f));
+			model = glm::scale(model, glm::vec3(scale));
+			return model;
+		}
 	};
+
 
 	struct ThreadData {
 		VkCommandPool commandPool{ VK_NULL_HANDLE };
 		// One command buffer per render object
 		std::vector<VkCommandBuffer> commandBuffer;
-		// One push constant block per render object
-		std::vector<ThreadPushConstantBlock> pushConstBlock;
 		// Per object information (position, rotation, etc.)
 		std::vector<ObjectData> objectData;
 	};
@@ -89,10 +122,11 @@ public:
 	// View frustum for culling invisible objects
 	vks::Frustum frustum;
 
-	std::default_random_engine rndEngine;
+	vkx::Random random;
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		// settings.validation = true;
 		title = "Multi threaded command buffer";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, -0.0f, -32.5f));
@@ -101,7 +135,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		// Get number of max. concurrent threads
 		numThreads = std::thread::hardware_concurrency();
-		assert(numThreads > 0);
 #if defined(__ANDROID__)
 		LOGD("numThreads = %d", numThreads);
 #else
@@ -109,7 +142,7 @@ public:
 #endif
 		threadPool.setThreadCount(numThreads);
 		numObjectsPerThread = 512 / numThreads;
-		rndEngine.seed(benchmark.active ? 0 : (unsigned)time(nullptr));
+		random.seed(benchmark.active ? 0 : std::random_device{}());
 	}
 
 	~VulkanExample()
@@ -124,12 +157,6 @@ public:
 			}
 			vkDestroyFence(device, renderFence, nullptr);
 		}
-	}
-
-	float rnd(float range)
-	{
-		std::uniform_real_distribution<float> rndDist(0.0f, range);
-		return rndDist(rndEngine);
 	}
 
 	// Create all threads and initialize shader push constants
@@ -152,12 +179,8 @@ public:
 
 		threadData.resize(numThreads);
 
-		float maxX = static_cast<float>(std::floor(std::sqrt(numThreads * numObjectsPerThread)));
-		uint32_t posX = 0;
-		uint32_t posZ = 0;
-
 		for (uint32_t i = 0; i < numThreads; i++) {
-			ThreadData *thread = &threadData[i];
+			auto *thread = &threadData[i];
 
 			// Create one command pool for each thread
 			VkCommandPoolCreateInfo cmdPoolInfo = vks::initializers::commandPoolCreateInfo();
@@ -175,21 +198,10 @@ public:
 					static_cast<uint32_t>(thread->commandBuffer.size()));
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &secondaryCmdBufAllocateInfo, thread->commandBuffer.data()));
 
-			thread->pushConstBlock.resize(numObjectsPerThread);
 			thread->objectData.resize(numObjectsPerThread);
 
 			for (uint32_t j = 0; j < numObjectsPerThread; j++) {
-				float theta = 2.0f * float(M_PI) * rnd(1.0f);
-				float phi = acos(1.0f - 2.0f * rnd(1.0f));
-				thread->objectData[j].pos = glm::vec3(sin(phi) * cos(theta), 0.0f, cos(phi)) * 35.0f;
-
-				thread->objectData[j].rotation = glm::vec3(0.0f, rnd(360.0f), 0.0f);
-				thread->objectData[j].deltaT = rnd(1.0f);
-				thread->objectData[j].rotationDir = (rnd(100.0f) < 50.0f) ? 1.0f : -1.0f;
-				thread->objectData[j].rotationSpeed = (2.0f + rnd(4.0f)) * thread->objectData[j].rotationDir;
-				thread->objectData[j].scale = 0.75f + rnd(0.5f);
-
-				thread->pushConstBlock[j].color = glm::vec3(rnd(1.0f), rnd(1.0f), rnd(1.0f));
+				thread->objectData[j].init(random);
 			}
 		}
 
@@ -227,23 +239,10 @@ public:
 
 		// Update
 		if (!paused) {
-			objectData->rotation.y += 2.5f * objectData->rotationSpeed * frameTimer;
-			if (objectData->rotation.y > 360.0f) {
-				objectData->rotation.y -= 360.0f;
-			}
-			objectData->deltaT += 0.15f * frameTimer;
-			if (objectData->deltaT > 1.0f)
-				objectData->deltaT -= 1.0f;
-			objectData->pos.y = sin(glm::radians(objectData->deltaT * 360.0f)) * 2.5f;
+			objectData->update(frameTimer);
 		}
 
-		objectData->model = glm::translate(glm::mat4(1.0f), objectData->pos);
-		objectData->model = glm::rotate(objectData->model, -sinf(glm::radians(objectData->deltaT * 360.0f)) * 0.25f, glm::vec3(objectData->rotationDir, 0.0f, 0.0f));
-		objectData->model = glm::rotate(objectData->model, glm::radians(objectData->rotation.y), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
-		objectData->model = glm::rotate(objectData->model, glm::radians(objectData->deltaT * 360.0f), glm::vec3(0.0f, objectData->rotationDir, 0.0f));
-		objectData->model = glm::scale(objectData->model, glm::vec3(objectData->scale));
-
-		thread->pushConstBlock[cmdBufferIndex].mvp = matrices.projection * matrices.view * objectData->model;
+		objectData->pushConstant.mvp = matrices.projection * matrices.view * objectData->getModel();
 
 		// Update shader push constant block
 		// Contains model view matrix
@@ -252,8 +251,8 @@ public:
 			pipelineLayout,
 			VK_SHADER_STAGE_VERTEX_BIT,
 			0,
-			sizeof(ThreadPushConstantBlock),
-			&thread->pushConstBlock[cmdBufferIndex]);
+			sizeof(ObjectData::PushConstant),
+			&objectData->pushConstant);
 
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &models.ufo.vertices.buffer, offsets);
@@ -297,7 +296,7 @@ public:
 			&mvp);
 
 		models.starSphere.draw(secondaryCommandBuffers.background);
-		
+
 		VK_CHECK_RESULT(vkEndCommandBuffer(secondaryCommandBuffers.background));
 
 		/*
@@ -403,7 +402,7 @@ public:
 	void loadAssets()
 	{
 		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-		models.ufo.loadFromFile(getAssetPath() + "models/retroufo_red_lowpoly.gltf",vulkanDevice, queue,glTFLoadingFlags);
+		models.ufo.loadFromFile(getAssetPath() + "models/retroufo_red_lowpoly.gltf", vulkanDevice, queue, glTFLoadingFlags);
 		models.starSphere.loadFromFile(getAssetPath() + "models/sphere.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
@@ -412,7 +411,7 @@ public:
 		// Layout
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(nullptr, 0);
 		// Push constants for model matrices
-		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(ThreadPushConstantBlock), 0);
+		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(ObjectData::PushConstant), 0);
 		// Push constant ranges are part of the pipeline layout
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
@@ -426,7 +425,7 @@ public:
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
-		std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
@@ -440,7 +439,7 @@ public:
 		pipelineCI.pDynamicState = &dynamicState;
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
-		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Color});
+		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::Color });
 
 		// Object rendering pipeline
 		shaderStages[0] = loadShader(getShadersPath() + "multithreading/phong.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
@@ -505,7 +504,7 @@ public:
 		draw();
 	}
 
-	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
+	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay)
 	{
 		if (overlay->header("Statistics")) {
 			overlay->text("Active threads: %d", numThreads);
