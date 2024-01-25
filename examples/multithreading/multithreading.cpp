@@ -126,7 +126,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		// settings.validation = true;
 		title = "Multi threaded command buffer";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, -0.0f, -32.5f));
@@ -135,6 +134,7 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		// Get number of max. concurrent threads
 		numThreads = std::thread::hardware_concurrency();
+		assert(numThreads > 0);
 #if defined(__ANDROID__)
 		LOGD("numThreads = %d", numThreads);
 #else
