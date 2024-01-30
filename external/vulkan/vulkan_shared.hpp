@@ -1,4 +1,4 @@
-// Copyright 2015-2023 The Khronos Group Inc.
+// Copyright 2015-2024 The Khronos Group Inc.
 //
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
@@ -181,6 +181,13 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return bool( m_handle );
     }
+
+#  if defined( VULKAN_HPP_SMART_HANDLE_IMPLICIT_CAST )
+    operator HandleType() const VULKAN_HPP_NOEXCEPT
+    {
+      return m_handle;
+    }
+#  endif
 
     const HandleType * operator->() const VULKAN_HPP_NOEXCEPT
     {
