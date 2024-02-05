@@ -90,7 +90,7 @@ namespace vks
 			return imageMemoryBarrier;
 		}
 
-		/** @brief Initialize a buffer memory barrier with no image transfer ownership */
+		/** @brief Initialize a buffer memory barrier with no buffer transfer ownership */
 		inline VkBufferMemoryBarrier bufferMemoryBarrier()
 		{
 			VkBufferMemoryBarrier bufferMemoryBarrier {};
