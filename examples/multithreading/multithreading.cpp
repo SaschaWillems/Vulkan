@@ -53,13 +53,6 @@ public:
 	// Max. number of concurrent threads
 	uint32_t numThreads{ 0 };
 
-	// Use push constants to update shader
-	// parameters on a per-thread base
-	struct ThreadPushConstantBlock {
-		glm::mat4 mvp;
-		glm::vec3 color;
-	};
-
 	struct ObjectData {
 		glm::vec3 pos;
 		float rotationAxis;
@@ -69,6 +62,8 @@ public:
 		float deltaT;
 		bool visible = true;
 
+		// Use push constants to update shader
+		// parameters on a per-thread base
 		struct PushConstant {
 			glm::mat4 mvp;
 			glm::vec3 color;
@@ -208,7 +203,7 @@ public:
 	}
 
 	// Builds the secondary command buffer for each thread
-	void threadRenderCode(uint32_t threadIndex, uint32_t cmdBufferIndex, VkCommandBufferInheritanceInfo inheritanceInfo)
+	void threadRenderCode(uint32_t threadIndex, uint32_t cmdBufferIndex, const VkCommandBufferInheritanceInfo& inheritanceInfo)
 	{
 		ThreadData *thread = &threadData[threadIndex];
 		ObjectData *objectData = &thread->objectData[cmdBufferIndex];
