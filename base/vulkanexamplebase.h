@@ -541,17 +541,17 @@ int main(const int argc, const char *argv[])														\
 #endif
 
 #elif defined(VK_USE_PLATFORM_SCREEN_QNX)
-#define VULKAN_EXAMPLE_MAIN()												\
-VulkanExample *vulkanExample;												\
-int main(const int argc, const char *argv[])										\
-{															\
-	for (int i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };					\
-	vulkanExample = new VulkanExample();										\
-	vulkanExample->initVulkan();											\
-	vulkanExample->setupWindow();											\
-	vulkanExample->prepare();											\
-	vulkanExample->renderLoop();											\
-	delete(vulkanExample);												\
-	return 0;													\
+#define VULKAN_EXAMPLE_MAIN()																		\
+VulkanExample *vulkanExample;																		\
+int main(const int argc, const char *argv[])														\
+{																									\
+	for (int i = 0; i < argc; i++) { VulkanExample::args.push_back(argv[i]); };						\
+	vulkanExample = new VulkanExample();															\
+	vulkanExample->initVulkan();																	\
+	vulkanExample->setupWindow();																	\
+	vulkanExample->prepare();																		\
+	vulkanExample->renderLoop();																	\
+	delete(vulkanExample);																			\
+	return 0;																						\
 }
 #endif
