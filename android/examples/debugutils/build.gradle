@@ -49,8 +49,8 @@ task copyTask {
     }
 
     copy {
-       from rootProject.ext.shaderPath + 'glsl/debugUtils'
-       into 'assets/shaders/glsl/debugUtils'
+       from rootProject.ext.shaderPath + 'glsl/debugutils'
+       into 'assets/shaders/glsl/debugutils'
        include '*.*'
     }
 
