@@ -849,7 +849,7 @@ VulkanExampleBase::VulkanExampleBase()
 		vks::tools::errorModeSilent = true;
 	}
 	if (commandLineParser.isSet("benchmarkwarmup")) {
-		benchmark.warmup = commandLineParser.getValueAsInt("benchmarkwarmup", benchmark.warmup);
+		benchmark.warmup = commandLineParser.getValueAsInt("benchmarkwarmup", 0);
 	}
 	if (commandLineParser.isSet("benchmarkruntime")) {
 		benchmark.duration = commandLineParser.getValueAsInt("benchmarkruntime", benchmark.duration);
