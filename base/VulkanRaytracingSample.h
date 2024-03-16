@@ -17,7 +17,8 @@ class VulkanRaytracingSample : public VulkanExampleBase
 {
 protected:
 	// Update the default render pass with different color attachment load ops
-	virtual void updateRenderPass();
+	virtual void setupRenderPass();
+	virtual void setupFrameBuffer();
 public:
 	// Function pointers for ray tracing related stuff
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
