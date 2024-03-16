@@ -1,3 +1,6 @@
+# Copyright (c) 2016-2024, Sascha Willems
+# SPDX-License-Identifier: MIT
+
 # Function for building single example
 function(buildExample EXAMPLE_NAME)
 	SET(EXAMPLE_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/${EXAMPLE_NAME})
@@ -138,6 +141,7 @@ set(EXAMPLES
 	raytracinggltf
 	raytracingintersection
 	raytracingreflections
+	raytracingpositionfetch
 	raytracingsbtdata
 	raytracingshadows
 	raytracingtextures
