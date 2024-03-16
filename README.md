@@ -32,7 +32,7 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
 
 ## Official Khronos Vulkan Samples
 
-Khronos recently made an official Vulkan Samples repository available to the public ([press release](https://www.khronos.org/blog/vulkan-releases-unified-samples-repository?utm_source=Khronos%20Blog&utm_medium=Twitter&utm_campaign=Vulkan%20Repository)).
+Khronos has made an official Vulkan Samples repository available to the public ([press release](https://www.khronos.org/blog/vulkan-releases-unified-samples-repository?utm_source=Khronos%20Blog&utm_medium=Twitter&utm_campaign=Vulkan%20Repository)).
 
 You can find this repository at https://github.com/KhronosGroup/Vulkan-Samples
 
@@ -351,11 +351,15 @@ Uses an intersection shader for procedural geometry. Instead of using actual geo
 
 #### [Ray traced glTF](examples/raytracinggltf/)
 
-Renders a textured glTF model using ray traycing instead of rasterization. Makes use of frame accumulation for transparency and anti aliasing.
+Renders a textured glTF model using ray traying instead of rasterization. Makes use of frame accumulation for transparency and anti aliasing.
 
 #### [Ray query](examples/rayquery)
 
 Ray queries add acceleration structure intersection functionality to non ray tracing shader stages. This allows for combining ray tracing with rasterization. This example makes uses ray queries to add ray casted shadows to a rasterized sample in the fragment shader.
+
+#### [Position fetch](examples/raytracingpositionfetch/)
+
+Uses the `VK_KHR_ray_tracing_position_fetch` extension to fetch vertex position data from the acceleration structure from within a shader, instead of having to manually unpack vertex information. 
 
 ### Headless
 

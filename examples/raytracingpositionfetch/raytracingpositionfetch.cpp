@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Using position fetch with hardware accelerated ray tracing
 *
-* Shows how to usse the VK_KHR_ray_tracing_position_fetch extension to fetch the vertex positions in the shader from a hit triangle as stored in the acceleration structure
+* Shows how to use the VK_KHR_ray_tracing_position_fetch extension to fetch the vertex positions in the shader from a hit triangle as stored in the acceleration structure
 * See https://www.khronos.org/blog/introducing-vulkan-ray-tracing-position-fetch-extension
 *
 * Copyright (C) 2024 by Sascha Willems - www.saschawillems.de
