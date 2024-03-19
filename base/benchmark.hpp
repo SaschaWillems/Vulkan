@@ -24,7 +24,7 @@ namespace vks
 		bool active = false;
 		bool outputFrameTimes = false;
 		int outputFrames = -1; // -1 means no frames limit
-		uint32_t warmup = 1;
+		uint32_t warmup = 1;   // Default to 1 sec of warm-up
 		uint32_t duration = 10;
 		std::vector<double> frameTimes;
 		std::string filename = "";
