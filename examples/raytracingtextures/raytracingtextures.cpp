@@ -27,7 +27,7 @@ public:
 
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
-	uint32_t indexCount;
+	uint32_t indexCount{ 0 };
 	vks::Buffer transformBuffer;
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
 	struct ShaderBindingTables {
@@ -44,10 +44,10 @@ public:
 	} uniformData;
 	vks::Buffer ubo;
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	VulkanExample() : VulkanRaytracingSample()
 	{
