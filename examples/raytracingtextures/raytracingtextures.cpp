@@ -1,7 +1,7 @@
 /*
  * Vulkan Example - Texture mapping with transparency using accelerated ray tracing example
  *
- * Copyright (C) 2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2024 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -52,7 +52,6 @@ public:
 	VulkanExample() : VulkanRaytracingSample()
 	{
 		title = "Ray tracing textures";
-		settings.overlay = false;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(45.0f, 0.0f, 0.0f));
@@ -639,6 +638,8 @@ public:
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				VK_IMAGE_LAYOUT_GENERAL,
 				subresourceRange);
+
+			drawUI(drawCmdBuffers[i], frameBuffers[i]);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
