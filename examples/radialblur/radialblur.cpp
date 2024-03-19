@@ -3,7 +3,7 @@
 *
 * This samples shows how to implement a simple post-processing effect
 * 
-* Copyright (C) 2016-2023 Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2024 Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -420,7 +420,7 @@ public:
 		setLayoutBindings = {
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-			// Binding 0: Fragment shader image sampler
+			// Binding 1: Fragment shader image sampler
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
 		};
 		descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
@@ -448,7 +448,7 @@ public:
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			// Binding 0: Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSets.radialBlur, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.blurParams.descriptor),
-			// Binding 0: Fragment shader texture sampler
+			// Binding 1: Fragment shader texture sampler
 			vks::initializers::writeDescriptorSet(descriptorSets.radialBlur, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	1, &offscreenPass.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
@@ -489,7 +489,7 @@ public:
 		// Radial blur pipeline
 		shaderStages[0] = loadShader(getShadersPath() + "radialblur/radialblur.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "radialblur/radialblur.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		// Empty vertex input state
+		// Empty vertex input state (the vertex shader generates a screen covering triangle)
 		VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 		pipelineCI.pVertexInputState = &emptyInputState;
 		pipelineCI.layout = pipelineLayouts.radialBlur;
