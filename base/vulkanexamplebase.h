@@ -184,6 +184,22 @@ public:
 		bool overlay = true;
 	} settings;
 
+	/** @brief State of gamepad input (only used on Android) */
+	struct {
+		glm::vec2 axisLeft = glm::vec2(0.0f);
+		glm::vec2 axisRight = glm::vec2(0.0f);
+	} gamePadState;
+
+	/** @brief State of mouse/touch input */
+	struct {
+		struct {
+			bool left = false;
+			bool right = false;
+			bool middle = false;
+		} buttons;
+		glm::vec2 position;
+	} mouseState;
+
 	VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
 
 	static std::vector<const char*> args;
@@ -196,7 +212,6 @@ public:
 	bool paused = false;
 
 	Camera camera;
-	glm::vec2 mousePos;
 
 	std::string title = "Vulkan Example";
 	std::string name = "vulkanExample";
@@ -208,17 +223,6 @@ public:
 		VkDeviceMemory memory;
 		VkImageView view;
 	} depthStencil{};
-
-	struct {
-		glm::vec2 axisLeft = glm::vec2(0.0f);
-		glm::vec2 axisRight = glm::vec2(0.0f);
-	} gamePadState;
-
-	struct {
-		bool left = false;
-		bool right = false;
-		bool middle = false;
-	} mouseButtons;
 
 	// OS specific
 #if defined(_WIN32)

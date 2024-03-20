@@ -793,10 +793,10 @@ public:
 		io.DisplaySize = ImVec2((float)width, (float)height);
 		io.DeltaTime = frameTimer;
 
-		io.MousePos = ImVec2(mousePos.x, mousePos.y);
-		io.MouseDown[0] = mouseButtons.left && UIOverlay.visible;
-		io.MouseDown[1] = mouseButtons.right && UIOverlay.visible;
-		io.MouseDown[2] = mouseButtons.middle && UIOverlay.visible;
+		io.MousePos = ImVec2(mouseState.position.x, mouseState.position.y);
+		io.MouseDown[0] = mouseState.buttons.left && UIOverlay.visible;
+		io.MouseDown[1] = mouseState.buttons.right && UIOverlay.visible;
+		io.MouseDown[2] = mouseState.buttons.middle && UIOverlay.visible;
 
 		draw();
 	}

@@ -3,7 +3,7 @@
 *
 * Updated compute shader by Lukas Bergdoll (https://github.com/Voultapher)
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -553,8 +553,8 @@ public:
 		}
 		else
 		{
-			float normalizedMx = (mousePos.x - static_cast<float>(width / 2)) / static_cast<float>(width / 2);
-			float normalizedMy = (mousePos.y - static_cast<float>(height / 2)) / static_cast<float>(height / 2);
+			float normalizedMx = (mouseState.position.x - static_cast<float>(width / 2)) / static_cast<float>(width / 2);
+			float normalizedMy = (mouseState.position.y - static_cast<float>(height / 2)) / static_cast<float>(height / 2);
 			compute.uniformData.destX = normalizedMx;
 			compute.uniformData.destY = normalizedMy;
 		}
