@@ -673,27 +673,27 @@ public:
 
 			// Project frustum corners into world space
 			glm::mat4 invCam = glm::inverse(camera.matrices.perspective * camera.matrices.view);
-			for (uint32_t i = 0; i < 8; i++) {
-				glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
-				frustumCorners[i] = invCorner / invCorner.w;
+			for (uint32_t j = 0; j < 8; j++) {
+				glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[j], 1.0f);
+				frustumCorners[j] = invCorner / invCorner.w;
 			}
 
-			for (uint32_t i = 0; i < 4; i++) {
-				glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
-				frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
-				frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
+			for (uint32_t j = 0; j < 4; j++) {
+				glm::vec3 dist = frustumCorners[j + 4] - frustumCorners[j];
+				frustumCorners[j + 4] = frustumCorners[j] + (dist * splitDist);
+				frustumCorners[j] = frustumCorners[j] + (dist * lastSplitDist);
 			}
 
 			// Get frustum center
 			glm::vec3 frustumCenter = glm::vec3(0.0f);
-			for (uint32_t i = 0; i < 8; i++) {
-				frustumCenter += frustumCorners[i];
+			for (uint32_t j = 0; j < 8; j++) {
+				frustumCenter += frustumCorners[j];
 			}
 			frustumCenter /= 8.0f;
 
 			float radius = 0.0f;
-			for (uint32_t i = 0; i < 8; i++) {
-				float distance = glm::length(frustumCorners[i] - frustumCenter);
+			for (uint32_t j = 0; j < 8; j++) {
+				float distance = glm::length(frustumCorners[j] - frustumCenter);
 				radius = glm::max(radius, distance);
 			}
 			radius = std::ceil(radius * 16.0f) / 16.0f;
