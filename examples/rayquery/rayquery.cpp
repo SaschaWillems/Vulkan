@@ -420,13 +420,9 @@ public:
 		enabledBufferDeviceAddresFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
 		enabledBufferDeviceAddresFeatures.bufferDeviceAddress = VK_TRUE;
 
-		enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
-		enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
-		enabledRayTracingPipelineFeatures.pNext = &enabledBufferDeviceAddresFeatures;
-
 		enabledAccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
 		enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
-		enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
+		enabledAccelerationStructureFeatures.pNext = &enabledBufferDeviceAddresFeatures;
 
 		enabledRayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
 		enabledRayQueryFeatures.rayQuery = VK_TRUE;
