@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Retrieving pipeline statistics
 *
-* Copyright (C) 2017-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -297,16 +297,18 @@ public:
 			rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 		}
 
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-		shaderStages.resize(tessellation ? 4 : 2);
-		shaderStages[0] = loadShader(getShadersPath() + "pipelinestatistics/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "pipelinestatistics/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};
+		shaderStages.push_back(loadShader(getShadersPath() + "pipelinestatistics/scene.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
+		if (!discard) {
+			// When discard is enabled a pipeline must not contain a fragment shader
+			shaderStages.push_back(loadShader(getShadersPath() + "pipelinestatistics/scene.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
+		}
 
 		if (tessellation) {
 			inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 			pipelineCI.pTessellationState = &tessellationState;
-			shaderStages[2] = loadShader(getShadersPath() + "pipelinestatistics/scene.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
-			shaderStages[3] = loadShader(getShadersPath() + "pipelinestatistics/scene.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+			shaderStages.push_back(loadShader(getShadersPath() + "pipelinestatistics/scene.tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT));
+			shaderStages.push_back(loadShader(getShadersPath() + "pipelinestatistics/scene.tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT));
 		}
 
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
