@@ -3,7 +3,7 @@
  * 
  * Encapsulates a physical Vulkan device and its logical representation
  *
- * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -49,7 +49,7 @@ namespace vks
 			std::vector<VkExtensionProperties> extensions(extCount);
 			if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
 			{
-				for (auto ext : extensions)
+				for (auto& ext : extensions)
 				{
 					supportedExtensions.push_back(ext.extensionName);
 				}
