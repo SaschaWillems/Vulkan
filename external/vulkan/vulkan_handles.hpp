@@ -2413,7 +2413,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT SurfaceKHR( VkSurfaceKHR surfaceKHR ) VULKAN_HPP_NOEXCEPT : m_surfaceKHR( surfaceKHR ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     SurfaceKHR & operator=( VkSurfaceKHR surfaceKHR ) VULKAN_HPP_NOEXCEPT
     {
       m_surfaceKHR = surfaceKHR;
@@ -2477,6 +2477,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::SurfaceKHR;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkSurfaceKHR, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::SurfaceKHR;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::SurfaceKHR>
   {
@@ -2503,7 +2511,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DebugReportCallbackEXT & operator=( VkDebugReportCallbackEXT debugReportCallbackEXT ) VULKAN_HPP_NOEXCEPT
     {
       m_debugReportCallbackEXT = debugReportCallbackEXT;
@@ -2567,6 +2575,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::DebugReportCallbackEXT;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDebugReportCallbackEXT, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DebugReportCallbackEXT;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DebugReportCallbackEXT>
   {
@@ -2593,7 +2609,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DebugUtilsMessengerEXT & operator=( VkDebugUtilsMessengerEXT debugUtilsMessengerEXT ) VULKAN_HPP_NOEXCEPT
     {
       m_debugUtilsMessengerEXT = debugUtilsMessengerEXT;
@@ -2651,6 +2667,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::DebugUtilsMessengerEXT;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDebugUtilsMessengerEXT, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DebugUtilsMessengerEXT;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DebugUtilsMessengerEXT>
   {
@@ -2674,7 +2698,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT DisplayKHR( VkDisplayKHR displayKHR ) VULKAN_HPP_NOEXCEPT : m_displayKHR( displayKHR ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DisplayKHR & operator=( VkDisplayKHR displayKHR ) VULKAN_HPP_NOEXCEPT
     {
       m_displayKHR = displayKHR;
@@ -2738,6 +2762,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::DisplayKHR;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDisplayKHR, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DisplayKHR;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DisplayKHR>
   {
@@ -2761,7 +2793,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT SwapchainKHR( VkSwapchainKHR swapchainKHR ) VULKAN_HPP_NOEXCEPT : m_swapchainKHR( swapchainKHR ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     SwapchainKHR & operator=( VkSwapchainKHR swapchainKHR ) VULKAN_HPP_NOEXCEPT
     {
       m_swapchainKHR = swapchainKHR;
@@ -2825,6 +2857,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::SwapchainKHR;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkSwapchainKHR, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::SwapchainKHR;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::SwapchainKHR>
   {
@@ -2848,7 +2888,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT Semaphore( VkSemaphore semaphore ) VULKAN_HPP_NOEXCEPT : m_semaphore( semaphore ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     Semaphore & operator=( VkSemaphore semaphore ) VULKAN_HPP_NOEXCEPT
     {
       m_semaphore = semaphore;
@@ -2912,6 +2952,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::Semaphore;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkSemaphore, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Semaphore;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Semaphore>
   {
@@ -2935,7 +2983,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT Fence( VkFence fence ) VULKAN_HPP_NOEXCEPT : m_fence( fence ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     Fence & operator=( VkFence fence ) VULKAN_HPP_NOEXCEPT
     {
       m_fence = fence;
@@ -2999,6 +3047,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::Fence;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkFence, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Fence;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Fence>
   {
@@ -3025,7 +3081,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     PerformanceConfigurationINTEL & operator=( VkPerformanceConfigurationINTEL performanceConfigurationINTEL ) VULKAN_HPP_NOEXCEPT
     {
       m_performanceConfigurationINTEL = performanceConfigurationINTEL;
@@ -3083,6 +3139,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::PerformanceConfigurationINTEL;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkPerformanceConfigurationINTEL, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::PerformanceConfigurationINTEL;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::PerformanceConfigurationINTEL>
   {
@@ -3106,7 +3170,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT QueryPool( VkQueryPool queryPool ) VULKAN_HPP_NOEXCEPT : m_queryPool( queryPool ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     QueryPool & operator=( VkQueryPool queryPool ) VULKAN_HPP_NOEXCEPT
     {
       m_queryPool = queryPool;
@@ -3170,6 +3234,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::QueryPool;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkQueryPool, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::QueryPool;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::QueryPool>
   {
@@ -3193,7 +3265,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT Buffer( VkBuffer buffer ) VULKAN_HPP_NOEXCEPT : m_buffer( buffer ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     Buffer & operator=( VkBuffer buffer ) VULKAN_HPP_NOEXCEPT
     {
       m_buffer = buffer;
@@ -3257,6 +3329,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::Buffer;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkBuffer, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Buffer;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Buffer>
   {
@@ -3280,7 +3360,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT PipelineLayout( VkPipelineLayout pipelineLayout ) VULKAN_HPP_NOEXCEPT : m_pipelineLayout( pipelineLayout ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     PipelineLayout & operator=( VkPipelineLayout pipelineLayout ) VULKAN_HPP_NOEXCEPT
     {
       m_pipelineLayout = pipelineLayout;
@@ -3344,6 +3424,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::PipelineLayout;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkPipelineLayout, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::PipelineLayout;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::PipelineLayout>
   {
@@ -3367,7 +3455,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT DescriptorSet( VkDescriptorSet descriptorSet ) VULKAN_HPP_NOEXCEPT : m_descriptorSet( descriptorSet ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DescriptorSet & operator=( VkDescriptorSet descriptorSet ) VULKAN_HPP_NOEXCEPT
     {
       m_descriptorSet = descriptorSet;
@@ -3431,6 +3519,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::DescriptorSet;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDescriptorSet, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DescriptorSet;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DescriptorSet>
   {
@@ -3454,7 +3550,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT ImageView( VkImageView imageView ) VULKAN_HPP_NOEXCEPT : m_imageView( imageView ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     ImageView & operator=( VkImageView imageView ) VULKAN_HPP_NOEXCEPT
     {
       m_imageView = imageView;
@@ -3518,6 +3614,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::ImageView;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkImageView, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::ImageView;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::ImageView>
   {
@@ -3541,7 +3645,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT Pipeline( VkPipeline pipeline ) VULKAN_HPP_NOEXCEPT : m_pipeline( pipeline ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     Pipeline & operator=( VkPipeline pipeline ) VULKAN_HPP_NOEXCEPT
     {
       m_pipeline = pipeline;
@@ -3605,6 +3709,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::Pipeline;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkPipeline, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Pipeline;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Pipeline>
   {
@@ -3628,7 +3740,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT ShaderEXT( VkShaderEXT shaderEXT ) VULKAN_HPP_NOEXCEPT : m_shaderEXT( shaderEXT ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     ShaderEXT & operator=( VkShaderEXT shaderEXT ) VULKAN_HPP_NOEXCEPT
     {
       m_shaderEXT = shaderEXT;
@@ -3686,6 +3798,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::ShaderEXT;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkShaderEXT, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::ShaderEXT;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::ShaderEXT>
   {
@@ -3709,7 +3829,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT Image( VkImage image ) VULKAN_HPP_NOEXCEPT : m_image( image ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     Image & operator=( VkImage image ) VULKAN_HPP_NOEXCEPT
     {
       m_image = image;
@@ -3773,6 +3893,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::Image;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkImage, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Image;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Image>
   {
@@ -3799,7 +3927,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     AccelerationStructureNV & operator=( VkAccelerationStructureNV accelerationStructureNV ) VULKAN_HPP_NOEXCEPT
     {
       m_accelerationStructureNV = accelerationStructureNV;
@@ -3863,6 +3991,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::AccelerationStructureNV;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkAccelerationStructureNV, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::AccelerationStructureNV;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::AccelerationStructureNV>
   {
@@ -3889,7 +4025,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     OpticalFlowSessionNV & operator=( VkOpticalFlowSessionNV opticalFlowSessionNV ) VULKAN_HPP_NOEXCEPT
     {
       m_opticalFlowSessionNV = opticalFlowSessionNV;
@@ -3947,6 +4083,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::OpticalFlowSessionNV;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkOpticalFlowSessionNV, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::OpticalFlowSessionNV;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::OpticalFlowSessionNV>
   {
@@ -3973,7 +4117,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DescriptorUpdateTemplate & operator=( VkDescriptorUpdateTemplate descriptorUpdateTemplate ) VULKAN_HPP_NOEXCEPT
     {
       m_descriptorUpdateTemplate = descriptorUpdateTemplate;
@@ -4037,6 +4181,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplate;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDescriptorUpdateTemplate, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplate;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplate>
   {
@@ -4062,7 +4214,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT Event( VkEvent event ) VULKAN_HPP_NOEXCEPT : m_event( event ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     Event & operator=( VkEvent event ) VULKAN_HPP_NOEXCEPT
     {
       m_event = event;
@@ -4126,6 +4278,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::Event;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkEvent, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Event;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Event>
   {
@@ -4152,7 +4312,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     AccelerationStructureKHR & operator=( VkAccelerationStructureKHR accelerationStructureKHR ) VULKAN_HPP_NOEXCEPT
     {
       m_accelerationStructureKHR = accelerationStructureKHR;
@@ -4216,6 +4376,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::AccelerationStructureKHR;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkAccelerationStructureKHR, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::AccelerationStructureKHR;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::AccelerationStructureKHR>
   {
@@ -4239,7 +4407,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT MicromapEXT( VkMicromapEXT micromapEXT ) VULKAN_HPP_NOEXCEPT : m_micromapEXT( micromapEXT ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     MicromapEXT & operator=( VkMicromapEXT micromapEXT ) VULKAN_HPP_NOEXCEPT
     {
       m_micromapEXT = micromapEXT;
@@ -4296,6 +4464,14 @@ namespace VULKAN_HPP_NAMESPACE
   {
     using Type = VULKAN_HPP_NAMESPACE::MicromapEXT;
   };
+
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkMicromapEXT, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::MicromapEXT;
+  };
+#endif
 
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::MicromapEXT>
@@ -6685,6 +6861,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::CommandBuffer;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkCommandBuffer, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::CommandBuffer;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::CommandBuffer>
   {
@@ -6708,7 +6892,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT DeviceMemory( VkDeviceMemory deviceMemory ) VULKAN_HPP_NOEXCEPT : m_deviceMemory( deviceMemory ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DeviceMemory & operator=( VkDeviceMemory deviceMemory ) VULKAN_HPP_NOEXCEPT
     {
       m_deviceMemory = deviceMemory;
@@ -6772,6 +6956,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::DeviceMemory;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDeviceMemory, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DeviceMemory;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DeviceMemory>
   {
@@ -6795,7 +6987,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT VideoSessionKHR( VkVideoSessionKHR videoSessionKHR ) VULKAN_HPP_NOEXCEPT : m_videoSessionKHR( videoSessionKHR ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     VideoSessionKHR & operator=( VkVideoSessionKHR videoSessionKHR ) VULKAN_HPP_NOEXCEPT
     {
       m_videoSessionKHR = videoSessionKHR;
@@ -6853,6 +7045,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::VideoSessionKHR;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkVideoSessionKHR, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::VideoSessionKHR;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::VideoSessionKHR>
   {
@@ -6879,7 +7079,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DeferredOperationKHR & operator=( VkDeferredOperationKHR deferredOperationKHR ) VULKAN_HPP_NOEXCEPT
     {
       m_deferredOperationKHR = deferredOperationKHR;
@@ -6937,6 +7137,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::DeferredOperationKHR;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDeferredOperationKHR, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DeferredOperationKHR;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DeferredOperationKHR>
   {
@@ -6964,7 +7172,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#  if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#  if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     BufferCollectionFUCHSIA & operator=( VkBufferCollectionFUCHSIA bufferCollectionFUCHSIA ) VULKAN_HPP_NOEXCEPT
     {
       m_bufferCollectionFUCHSIA = bufferCollectionFUCHSIA;
@@ -7028,6 +7236,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::BufferCollectionFUCHSIA;
   };
 
+#  if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkBufferCollectionFUCHSIA, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::BufferCollectionFUCHSIA;
+  };
+#  endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::BufferCollectionFUCHSIA>
   {
@@ -7052,7 +7268,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT BufferView( VkBufferView bufferView ) VULKAN_HPP_NOEXCEPT : m_bufferView( bufferView ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     BufferView & operator=( VkBufferView bufferView ) VULKAN_HPP_NOEXCEPT
     {
       m_bufferView = bufferView;
@@ -7116,6 +7332,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::BufferView;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkBufferView, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::BufferView;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::BufferView>
   {
@@ -7139,7 +7363,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT CommandPool( VkCommandPool commandPool ) VULKAN_HPP_NOEXCEPT : m_commandPool( commandPool ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     CommandPool & operator=( VkCommandPool commandPool ) VULKAN_HPP_NOEXCEPT
     {
       m_commandPool = commandPool;
@@ -7203,6 +7427,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::CommandPool;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkCommandPool, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::CommandPool;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::CommandPool>
   {
@@ -7226,7 +7458,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT PipelineCache( VkPipelineCache pipelineCache ) VULKAN_HPP_NOEXCEPT : m_pipelineCache( pipelineCache ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     PipelineCache & operator=( VkPipelineCache pipelineCache ) VULKAN_HPP_NOEXCEPT
     {
       m_pipelineCache = pipelineCache;
@@ -7290,6 +7522,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::PipelineCache;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkPipelineCache, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::PipelineCache;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::PipelineCache>
   {
@@ -7313,7 +7553,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT CuFunctionNVX( VkCuFunctionNVX cuFunctionNVX ) VULKAN_HPP_NOEXCEPT : m_cuFunctionNVX( cuFunctionNVX ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     CuFunctionNVX & operator=( VkCuFunctionNVX cuFunctionNVX ) VULKAN_HPP_NOEXCEPT
     {
       m_cuFunctionNVX = cuFunctionNVX;
@@ -7377,6 +7617,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::CuFunctionNVX;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkCuFunctionNVX, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::CuFunctionNVX;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::CuFunctionNVX>
   {
@@ -7400,7 +7648,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT CuModuleNVX( VkCuModuleNVX cuModuleNVX ) VULKAN_HPP_NOEXCEPT : m_cuModuleNVX( cuModuleNVX ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     CuModuleNVX & operator=( VkCuModuleNVX cuModuleNVX ) VULKAN_HPP_NOEXCEPT
     {
       m_cuModuleNVX = cuModuleNVX;
@@ -7464,6 +7712,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::CuModuleNVX;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkCuModuleNVX, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::CuModuleNVX;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::CuModuleNVX>
   {
@@ -7488,7 +7744,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT CudaFunctionNV( VkCudaFunctionNV cudaFunctionNV ) VULKAN_HPP_NOEXCEPT : m_cudaFunctionNV( cudaFunctionNV ) {}
 
-#  if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#  if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     CudaFunctionNV & operator=( VkCudaFunctionNV cudaFunctionNV ) VULKAN_HPP_NOEXCEPT
     {
       m_cudaFunctionNV = cudaFunctionNV;
@@ -7552,6 +7808,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::CudaFunctionNV;
   };
 
+#  if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkCudaFunctionNV, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::CudaFunctionNV;
+  };
+#  endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::CudaFunctionNV>
   {
@@ -7577,7 +7841,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT CudaModuleNV( VkCudaModuleNV cudaModuleNV ) VULKAN_HPP_NOEXCEPT : m_cudaModuleNV( cudaModuleNV ) {}
 
-#  if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#  if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     CudaModuleNV & operator=( VkCudaModuleNV cudaModuleNV ) VULKAN_HPP_NOEXCEPT
     {
       m_cudaModuleNV = cudaModuleNV;
@@ -7641,6 +7905,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::CudaModuleNV;
   };
 
+#  if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkCudaModuleNV, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::CudaModuleNV;
+  };
+#  endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::CudaModuleNV>
   {
@@ -7665,7 +7937,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT DescriptorPool( VkDescriptorPool descriptorPool ) VULKAN_HPP_NOEXCEPT : m_descriptorPool( descriptorPool ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DescriptorPool & operator=( VkDescriptorPool descriptorPool ) VULKAN_HPP_NOEXCEPT
     {
       m_descriptorPool = descriptorPool;
@@ -7729,6 +8001,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::DescriptorPool;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDescriptorPool, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DescriptorPool;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DescriptorPool>
   {
@@ -7755,7 +8035,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DescriptorSetLayout & operator=( VkDescriptorSetLayout descriptorSetLayout ) VULKAN_HPP_NOEXCEPT
     {
       m_descriptorSetLayout = descriptorSetLayout;
@@ -7819,6 +8099,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::DescriptorSetLayout;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDescriptorSetLayout, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DescriptorSetLayout;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DescriptorSetLayout>
   {
@@ -7842,7 +8130,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT Framebuffer( VkFramebuffer framebuffer ) VULKAN_HPP_NOEXCEPT : m_framebuffer( framebuffer ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     Framebuffer & operator=( VkFramebuffer framebuffer ) VULKAN_HPP_NOEXCEPT
     {
       m_framebuffer = framebuffer;
@@ -7906,6 +8194,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::Framebuffer;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkFramebuffer, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Framebuffer;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Framebuffer>
   {
@@ -7932,7 +8228,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     IndirectCommandsLayoutNV & operator=( VkIndirectCommandsLayoutNV indirectCommandsLayoutNV ) VULKAN_HPP_NOEXCEPT
     {
       m_indirectCommandsLayoutNV = indirectCommandsLayoutNV;
@@ -7990,6 +8286,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutNV;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkIndirectCommandsLayoutNV, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutNV;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutNV>
   {
@@ -8013,7 +8317,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT PrivateDataSlot( VkPrivateDataSlot privateDataSlot ) VULKAN_HPP_NOEXCEPT : m_privateDataSlot( privateDataSlot ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     PrivateDataSlot & operator=( VkPrivateDataSlot privateDataSlot ) VULKAN_HPP_NOEXCEPT
     {
       m_privateDataSlot = privateDataSlot;
@@ -8071,6 +8375,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::PrivateDataSlot;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkPrivateDataSlot, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::PrivateDataSlot;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::PrivateDataSlot>
   {
@@ -8096,7 +8408,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT RenderPass( VkRenderPass renderPass ) VULKAN_HPP_NOEXCEPT : m_renderPass( renderPass ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     RenderPass & operator=( VkRenderPass renderPass ) VULKAN_HPP_NOEXCEPT
     {
       m_renderPass = renderPass;
@@ -8160,6 +8472,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::RenderPass;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkRenderPass, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::RenderPass;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::RenderPass>
   {
@@ -8183,7 +8503,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT Sampler( VkSampler sampler ) VULKAN_HPP_NOEXCEPT : m_sampler( sampler ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     Sampler & operator=( VkSampler sampler ) VULKAN_HPP_NOEXCEPT
     {
       m_sampler = sampler;
@@ -8247,6 +8567,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::Sampler;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkSampler, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Sampler;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Sampler>
   {
@@ -8273,7 +8601,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     SamplerYcbcrConversion & operator=( VkSamplerYcbcrConversion samplerYcbcrConversion ) VULKAN_HPP_NOEXCEPT
     {
       m_samplerYcbcrConversion = samplerYcbcrConversion;
@@ -8337,6 +8665,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::SamplerYcbcrConversion;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkSamplerYcbcrConversion, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::SamplerYcbcrConversion;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::SamplerYcbcrConversion>
   {
@@ -8362,7 +8698,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT ShaderModule( VkShaderModule shaderModule ) VULKAN_HPP_NOEXCEPT : m_shaderModule( shaderModule ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     ShaderModule & operator=( VkShaderModule shaderModule ) VULKAN_HPP_NOEXCEPT
     {
       m_shaderModule = shaderModule;
@@ -8426,6 +8762,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::ShaderModule;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkShaderModule, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::ShaderModule;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::ShaderModule>
   {
@@ -8451,7 +8795,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     ValidationCacheEXT & operator=( VkValidationCacheEXT validationCacheEXT ) VULKAN_HPP_NOEXCEPT
     {
       m_validationCacheEXT = validationCacheEXT;
@@ -8515,6 +8859,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::ValidationCacheEXT;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkValidationCacheEXT, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::ValidationCacheEXT;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::ValidationCacheEXT>
   {
@@ -8541,7 +8893,7 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     VideoSessionParametersKHR & operator=( VkVideoSessionParametersKHR videoSessionParametersKHR ) VULKAN_HPP_NOEXCEPT
     {
       m_videoSessionParametersKHR = videoSessionParametersKHR;
@@ -8598,6 +8950,14 @@ namespace VULKAN_HPP_NAMESPACE
   {
     using Type = VULKAN_HPP_NAMESPACE::VideoSessionParametersKHR;
   };
+
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkVideoSessionParametersKHR, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::VideoSessionParametersKHR;
+  };
+#endif
 
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::VideoSessionParametersKHR>
@@ -8843,6 +9203,14 @@ namespace VULKAN_HPP_NAMESPACE
   {
     using Type = VULKAN_HPP_NAMESPACE::Queue;
   };
+
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkQueue, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Queue;
+  };
+#endif
 
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Queue>
@@ -13876,14 +14244,14 @@ namespace VULKAN_HPP_NAMESPACE
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
-    VULKAN_HPP_NODISCARD Result latencySleepNV( VULKAN_HPP_NAMESPACE::SwapchainKHR               swapchain,
-                                                const VULKAN_HPP_NAMESPACE::LatencySleepInfoNV * pSleepInfo,
-                                                Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+    Result latencySleepNV( VULKAN_HPP_NAMESPACE::SwapchainKHR               swapchain,
+                           const VULKAN_HPP_NAMESPACE::LatencySleepInfoNV * pSleepInfo,
+                           Dispatch const & d                               VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
-    typename ResultValueType<void>::type latencySleepNV( VULKAN_HPP_NAMESPACE::SwapchainKHR               swapchain,
-                                                         const VULKAN_HPP_NAMESPACE::LatencySleepInfoNV & sleepInfo,
-                                                         Dispatch const & d                               VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    void latencySleepNV( VULKAN_HPP_NAMESPACE::SwapchainKHR               swapchain,
+                         const VULKAN_HPP_NAMESPACE::LatencySleepInfoNV & sleepInfo,
+                         Dispatch const & d                               VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
@@ -13982,6 +14350,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::Device;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDevice, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Device;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Device>
   {
@@ -14005,7 +14381,7 @@ namespace VULKAN_HPP_NAMESPACE
 
     VULKAN_HPP_TYPESAFE_EXPLICIT DisplayModeKHR( VkDisplayModeKHR displayModeKHR ) VULKAN_HPP_NOEXCEPT : m_displayModeKHR( displayModeKHR ) {}
 
-#if defined( VULKAN_HPP_TYPESAFE_CONVERSION )
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
     DisplayModeKHR & operator=( VkDisplayModeKHR displayModeKHR ) VULKAN_HPP_NOEXCEPT
     {
       m_displayModeKHR = displayModeKHR;
@@ -14068,6 +14444,14 @@ namespace VULKAN_HPP_NAMESPACE
   {
     using Type = VULKAN_HPP_NAMESPACE::DisplayModeKHR;
   };
+
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkDisplayModeKHR, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::DisplayModeKHR;
+  };
+#endif
 
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::DisplayModeKHR>
@@ -15491,6 +15875,14 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = VULKAN_HPP_NAMESPACE::PhysicalDevice;
   };
 
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkPhysicalDevice, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::PhysicalDevice;
+  };
+#endif
+
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::PhysicalDevice>
   {
@@ -16156,6 +16548,14 @@ namespace VULKAN_HPP_NAMESPACE
   {
     using Type = VULKAN_HPP_NAMESPACE::Instance;
   };
+
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkInstance, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::Instance;
+  };
+#endif
 
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::Instance>

@@ -908,11 +908,11 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::InvalidVideoStdParametersKHRError;
 #endif /*VULKAN_HPP_NO_EXCEPTIONS*/
 
-  using VULKAN_HPP_NAMESPACE::createResultValueType;
-  using VULKAN_HPP_NAMESPACE::ignore;
-  using VULKAN_HPP_NAMESPACE::resultCheck;
   using VULKAN_HPP_NAMESPACE::ResultValue;
   using VULKAN_HPP_NAMESPACE::ResultValueType;
+  using VULKAN_HPP_NAMESPACE::detail::createResultValueType;
+  using VULKAN_HPP_NAMESPACE::detail::ignore;
+  using VULKAN_HPP_NAMESPACE::detail::resultCheck;
 
   //===========================
   //=== CONSTEXPR CONSTANTs ===

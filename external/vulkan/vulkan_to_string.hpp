@@ -4892,7 +4892,7 @@ namespace VULKAN_HPP_NAMESPACE
       case Format::ePvrtc14BppSrgbBlockIMG: return "Pvrtc14BppSrgbBlockIMG";
       case Format::ePvrtc22BppSrgbBlockIMG: return "Pvrtc22BppSrgbBlockIMG";
       case Format::ePvrtc24BppSrgbBlockIMG: return "Pvrtc24BppSrgbBlockIMG";
-      case Format::eR16G16S105NV: return "R16G16S105NV";
+      case Format::eR16G16Sfixed5NV: return "R16G16Sfixed5NV";
       case Format::eA1B5G5R5UnormPack16KHR: return "A1B5G5R5UnormPack16KHR";
       case Format::eA8UnormKHR: return "A8UnormKHR";
       default: return "invalid ( " + VULKAN_HPP_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
