@@ -20,12 +20,16 @@ struct UBO
     float4x4 projInverse;
     float4 lightPos;
 };
-cbuffer ubo : register(b2)
-{
-    UBO ubo;
-};
+ConstantBuffer<UBO> ubo : register(b2);
+
+// We need to use special syntax for SPIR-V inlines
+#define HitTriangleVertexPositionsKHR 5335
+#define RayTracingPositionFetchKHR 5336
 
 [[vk::ext_extension("SPV_KHR_ray_tracing_position_fetch")]]
+[[vk::ext_capability(RayTracingPositionFetchKHR)]]
+[[vk::ext_builtin_input(HitTriangleVertexPositionsKHR)]]
+const static float3 gl_HitTriangleVertexPositions[3];
 
 [shader("closesthit")]
 void main(inout Payload p, in Attributes attribs)
@@ -34,11 +38,6 @@ void main(inout Payload p, in Attributes attribs)
     const float3 barycentricCoords = float3(1.0f - attribs.bary.x - attribs.bary.y, attribs.bary.x, attribs.bary.y);
 
 	// With VK_KHR_ray_tracing_position_fetch we can access the vertices for the hit triangle in the shader
-
-    // We need to use special syntax for SPIR-V inlines
-    #define HitTriangleVertexPositionsKHR 5391
-    [[vk::ext_builtin_output(HitTriangleVertexPositionsKHR)]]
-    static float3 gl_HitTriangleVertexPositions[3];
 
     float3 vertexPos0 = gl_HitTriangleVertexPositions[0];
     float3 vertexPos1 = gl_HitTriangleVertexPositions[1];
