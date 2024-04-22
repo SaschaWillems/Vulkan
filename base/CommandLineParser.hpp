@@ -105,7 +105,7 @@ public:
 		std::string value = options[name].value;
 		if (value != "") {
 			char* numConvPtr;
-			int32_t intVal = strtol(value.c_str(), &numConvPtr, 10);
+			int32_t intVal = (int32_t)strtol(value.c_str(), &numConvPtr, 10);
 			return (intVal > 0) ? intVal : defaultValue;
 		}
 		else {
