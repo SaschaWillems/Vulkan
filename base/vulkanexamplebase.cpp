@@ -1638,10 +1638,20 @@ dispatch_group_t concurrentGroup;
 @end
 
 const std::string getAssetPath() {
+#if defined(VK_EXAMPLE_ASSETS_DIR)
+	return VK_EXAMPLE_ASSETS_DIR;
+#else
     return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../assets/"].UTF8String;
+#endif
 }
 
-const std::string getShaderBasePath() { return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../shaders/"].UTF8String; }
+const std::string getShaderBasePath() {
+#if defined(VK_EXAMPLE_SHADERS_DIR)
+	return VK_EXAMPLE_SHADERS_DIR;
+#else
+	return [NSBundle.mainBundle.resourcePath stringByAppendingString: @"/../../shaders/"].UTF8String;
+#endif
+}
 
 static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
 	const CVTimeStamp *inOutputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut,
