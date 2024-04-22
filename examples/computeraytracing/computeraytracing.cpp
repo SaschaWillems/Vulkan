@@ -429,6 +429,8 @@ public:
 		VkBufferCopy copyRegion = { 0, 0, storageBufferSize};
 		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, compute.objectStorageBuffer.buffer, 1, &copyRegion);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+
+		stagingBuffer.destroy();
 	}
 
 	// The descriptor pool will be shared between graphics and compute
