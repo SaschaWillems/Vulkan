@@ -463,12 +463,20 @@ public:
 			shaderGroups.push_back(shaderGroup);
 		}
 
+		// Get max pipeline ray tracing recursion depth for physical device
+		VkPhysicalDeviceRayTracingPipelinePropertiesKHR physicalDeviceRayTracingPipelinePropertiesKHR {};
+		physicalDeviceRayTracingPipelinePropertiesKHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;		
+		VkPhysicalDeviceProperties2 physicalDeviceProperties2;
+		physicalDeviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
+		physicalDeviceProperties2.pNext = &physicalDeviceRayTracingPipelinePropertiesKHR;
+		vkGetPhysicalDeviceProperties2(physicalDevice, &physicalDeviceProperties2);
+
 		VkRayTracingPipelineCreateInfoKHR rayTracingPipelineCI = vks::initializers::rayTracingPipelineCreateInfoKHR();
 		rayTracingPipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		rayTracingPipelineCI.pStages = shaderStages.data();
 		rayTracingPipelineCI.groupCount = static_cast<uint32_t>(shaderGroups.size());
 		rayTracingPipelineCI.pGroups = shaderGroups.data();
-		rayTracingPipelineCI.maxPipelineRayRecursionDepth = 2;
+		rayTracingPipelineCI.maxPipelineRayRecursionDepth = std::min(uint32_t(2), physicalDeviceRayTracingPipelinePropertiesKHR.maxRayRecursionDepth);
 		rayTracingPipelineCI.layout = pipelineLayout;
 		VK_CHECK_RESULT(vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &pipeline));
 	}
