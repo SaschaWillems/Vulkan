@@ -56,7 +56,7 @@ jobs:
               --root ~/VulkanSDK/latest --accept-licenses --default-answer --confirm-command install
           cd ~/VulkanSDK/latest
           sudo python ./install_vulkan.py
-          brew --prefix libomp 
+          brew install libomp 
       - name: Build
         run: |
           cmake -G "Xcode" -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp/lib/libomp.dylib
