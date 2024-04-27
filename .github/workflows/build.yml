@@ -57,10 +57,10 @@ jobs:
           cd ~/VulkanSDK/latest
           sudo python ./install_vulkan.py
           brew install libomp
-          brew --prefix libomp 
       - name: Build
         run: |
-          cmake -G "Xcode" -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp/lib/libomp.dylib .
+          export LIBOMP_PREFIX=$(brew --prefix libomp)
+          cmake -G "Xcode" -DOpenMP_omp_LIBRARY=$LIBOMP_PREFIX/lib/libomp.dylib .
           cmake --build .
 
   build_iOS:
