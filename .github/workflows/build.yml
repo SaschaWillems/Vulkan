@@ -60,5 +60,28 @@ jobs:
           brew --prefix libomp 
       - name: Build
         run: |
-          cmake -G "Xcode" -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp/lib/libomp.dylib
+          cmake -G "Xcode" -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp/lib/libomp.dylib .
           cmake --build .
+
+  build_iOS:
+    name: Build iOS
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"  
+      - name: Setup
+        run: |
+          curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg" -o /tmp/vulkan-sdk.dmg
+          hdiutil attach /tmp/vulkan-sdk.dmg -mountpoint /Volumes/vulkan-sdk
+          /Volumes/vulkan-sdk/InstallVulkan.app/Contents/MacOS/InstallVulkan \
+              --root ~/VulkanSDK/latest --accept-licenses --default-answer --confirm-command install
+          cd ~/VulkanSDK/latest
+          sudo python ./install_vulkan.py
+      - name: Build
+        run: |
+          cd ios
+          rm MoltenVK.xcframework
+          ln -s ~/VulkanSDK/latest/macOS/lib/MoltenVK.xcframework
+          xcodebuild -scheme examples-ios build CODE_SIGNING_ALLOWED=NO
+          xcodebuild -scheme examples-macos build
