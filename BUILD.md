@@ -74,4 +74,4 @@ Example of cmake generating for Xcode with **libomp** path defined for homebrew 
 ```cmake -G "Xcode" -DOpenMP_omp_LIBRARY=/opt/homebrew/opt/libomp/lib/libomp.dylib```
 
 ####iOS
-Navigate to the [iOS](ios/) folder and follow the instructions in [README\_MoltenVK_Examples.md](ios/README_MoltenVK_Examples.md)
+Navigate to the [apple](apple/) folder and follow the instructions in [README\_MoltenVK_Examples.md](apple/README_MoltenVK_Examples.md)

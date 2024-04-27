@@ -80,7 +80,7 @@ jobs:
           sudo python ./install_vulkan.py
       - name: Build
         run: |
-          cd ios
+          cd apple
           rm MoltenVK.xcframework
           ln -s ~/VulkanSDK/latest/macOS/lib/MoltenVK.xcframework
           xcodebuild -scheme examples-ios build CODE_SIGNING_ALLOWED=NO

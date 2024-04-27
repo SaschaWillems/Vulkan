@@ -4,7 +4,7 @@
 
 #MoltenVK Vulkan Examples
 
-Copyright (c) 2016-2017 [The Brenwill Workshop Ltd.](http://www.brenwill.com).
+Copyright (c) 2016-2024 [The Brenwill Workshop Ltd.](http://www.brenwill.com).
 This document is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
 *This document is written in [Markdown](http://en.wikipedia.org/wiki/Markdown) format.
@@ -26,7 +26,7 @@ repository on *iOS*, the *iOS Simulator*, and *macOS*, using the **MoltenVK** *V
 Installing MoltenVK
 -------------------
 
-These examples require **Vulkan SDK 1.3.275.0** or greater.
+These examples require **Vulkan SDK 1.3.275.0** or later.
 
 Follow these instructions to install the latest Vulkan SDK containing **MoltenVK**:
 
@@ -52,7 +52,7 @@ Running the Vulkan Examples
 The single `examples.xcodeproj` *Xcode* project can be used to run any of the examples
 in this repository on *iOS*, the *iOS Simulator*, or *macOS*. To do so, follow these instructions:
 
-1. Open the `examples.xcodeproj` *Xcode* project.
+1. Open the `examples.xcodeproj` *Xcode* project using **Xcode 14** or later.  <ins>Earlier versions of *Xcode* are not supported and will not successfully build this project</ins>.
 
 2. Specify which of the many examples within this respository you wish to run, by opening
    the `examples.h` file within *Xcode*, and following the instructions in the comments
