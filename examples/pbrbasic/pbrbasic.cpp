@@ -3,16 +3,13 @@
 *
 * See http://graphicrants.blogspot.de/2013/08/specular-brdf-reference.html for a good reference to the different functions that make up a specular BRDF
 *
-* Copyright (C) 2017-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
-
-#define GRID_DIM 7
-#define OBJ_DIM 0.05f
 
 struct Material {
 	// Parameter block used as push constant block
@@ -150,13 +147,16 @@ public:
 
 			Material mat = materials[materialIndex];
 
-			for (uint32_t y = 0; y < GRID_DIM; y++) {
-				for (uint32_t x = 0; x < GRID_DIM; x++) {
-					glm::vec3 pos = glm::vec3(float(x - (GRID_DIM / 2.0f)) * 2.5f, 0.0f, float(y - (GRID_DIM / 2.0f)) * 2.5f);
+			const uint32_t gridSize = 7;
+
+			// Render a 2D grid of objects with varying PBR parameters
+			for (uint32_t y = 0; y < gridSize; y++) {
+				for (uint32_t x = 0; x < gridSize; x++) {
+					glm::vec3 pos = glm::vec3(float(x - (gridSize / 2.0f)) * 2.5f, 0.0f, float(y - (gridSize / 2.0f)) * 2.5f);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
 					// Vary metallic and roughness, two important PBR parameters
-					mat.params.metallic = glm::clamp((float)x / (float)(GRID_DIM - 1), 0.1f, 1.0f);
-					mat.params.roughness = glm::clamp((float)y / (float)(GRID_DIM - 1), 0.05f, 1.0f);
+					mat.params.metallic = glm::clamp((float)x / (float)(gridSize - 1), 0.1f, 1.0f);
+					mat.params.roughness = glm::clamp((float)y / (float)(gridSize - 1), 0.05f, 1.0f);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
 					models.objects[models.objectIndex].draw(drawCmdBuffers[i]);
 				}
