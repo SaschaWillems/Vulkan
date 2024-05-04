@@ -5,7 +5,7 @@
 *
 * Example by Nate Morrical (https://github.com/natevm)
 * 
-* Copyright (C) 2019-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2019-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -15,32 +15,32 @@
 // Holds data for a ray tracing scratch buffer that is used as a temporary storage
 struct RayTracingScratchBuffer
 {
-	uint64_t deviceAddress = 0;
-	VkBuffer handle = VK_NULL_HANDLE;
-	VkDeviceMemory memory = VK_NULL_HANDLE;
+	uint64_t deviceAddress{ 0 };
+	VkBuffer handle{ VK_NULL_HANDLE };
+	VkDeviceMemory memory{ VK_NULL_HANDLE };
 };
 
 // Ray tracing acceleration structure
 struct AccelerationStructure {
 	VkAccelerationStructureKHR handle;
-	uint64_t deviceAddress = 0;
-	VkDeviceMemory memory;
+	uint64_t deviceAddress{ 0 };
+	VkDeviceMemory memory{ VK_NULL_HANDLE };
 	VkBuffer buffer;
 };
 
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
-	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
-	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;
-	PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR;
-	PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceAddressKHR;
-	PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR;
-	PFN_vkBuildAccelerationStructuresKHR vkBuildAccelerationStructuresKHR;
-	PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
-	PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
-	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
+	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR{ VK_NULL_HANDLE };
+	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR{ VK_NULL_HANDLE };
+	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR{ VK_NULL_HANDLE };
+	PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR{ VK_NULL_HANDLE };
+	PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceAddressKHR{ VK_NULL_HANDLE };
+	PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR{ VK_NULL_HANDLE };
+	PFN_vkBuildAccelerationStructuresKHR vkBuildAccelerationStructuresKHR{ VK_NULL_HANDLE };
+	PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR{ VK_NULL_HANDLE };
+	PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR{ VK_NULL_HANDLE };
+	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR{ VK_NULL_HANDLE };
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
@@ -54,7 +54,7 @@ public:
 
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
-	uint32_t indexCount;
+	uint32_t indexCount{ 0 };
 	vks::Buffer transformBuffer;
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
 	vks::Buffer raygenShaderBindingTable;
@@ -66,7 +66,7 @@ public:
 		VkImage image;
 		VkImageView view;
 		VkFormat format;
-	} storageImage;
+	} storageImage{};
 
 	struct UniformData {
 		glm::mat4 viewInverse;
@@ -74,10 +74,10 @@ public:
 	} uniformData;
 	vks::Buffer ubo;
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	VulkanExample() : VulkanExampleBase()
 	{
