@@ -50,28 +50,25 @@ If you want to build and install on a connected device or emulator image, run ``
 
 If you want to build it through [Android Studio](https://developer.android.com/studio), open project folder ```android``` in Android Studio.
 
-### <img src="./images/applelogo.png" alt="" height="32px"> [iOS and macOS](xcode/)
+### <img src="./images/applelogo.png" alt="" height="32px"> macOS and iOS
 
-**Note:** Running these examples on Mac OS and iOS requires [**MoltenVK**](https://github.com/KhronosGroup/MoltenVK) and a device that supports the *Metal* api.
+**Note:** Running these examples on macOS and iOS requires [**MoltenVK**](https://github.com/KhronosGroup/MoltenVK) and a device that supports the *Metal* api.
 
-#### MacOS
-Install Libomp with:
--brew install libomp
-find the path
--brew --prefix libomp  
-use the path from the above command to populate the path in the -DOpenMP_C_FLAGS, -DOpenMP_omp_LIBRARY & -DOpenMP_CXX_FOUND statement below
+#### macOS
+Download the most recent Vulkan SDK using:
+```curl -O https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.dmg```
 
-Download Vulkan SDK and install it note the path as this will need to be configure in Xcode
-curl -O https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.dmg  
+Open **vulkan_sdk.dmg** and install the Vulkan SDK with *System Global Installation* selected.
 
-Open vulkan_sdk.dmg and install Vulkan SDK
-Navigate to the Vulkan SDK folder and run 'python install_vulkan.py'
+Install **libomp** from [homebrew](https://brew.sh) using:
+```brew install libomp```
 
-Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a build configuration for your favorite IDE or compiler, e.g.:
-```
-Example of cmake with libraries defined
-cmake -G "Xcode" -DOpenMP_C_FLAGS=/usr/local/opt/libomp -DOpenMP_omp_LIBRARY=/usr/local/opt/libomp -DOpenMP_CXX_FOUND=/usr/local/opt/libomp
-```
+Find the **libomp** path prefix using:
+```brew --prefix libomp```
 
+Use the **libomp** path prefix to adjust the path for ```-DOpenMP_omp_LIBRARY=``` in the cmake command below.
 
+Use [CMake](https://cmake.org) to generate a build configuration for Xcode or your preferred build method (e.g. Unix Makefiles or Ninja).
 
+Example of cmake generating for Xcode with **libomp** path defined for homebrew on Apple Silicon:
+```cmake -G "Xcode" -DOpenMP_omp_LIBRARY=/opt/homebrew/opt/libomp/lib/libomp.dylib```

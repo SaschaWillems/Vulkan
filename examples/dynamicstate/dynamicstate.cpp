@@ -94,23 +94,35 @@ public:
 
 	void getEnabledExtensions()
 	{
+		// Get the full list of extended dynamic state features supported by the device
+		extendedDynamicStateFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+		extendedDynamicStateFeaturesEXT.pNext = &extendedDynamicState2FeaturesEXT;
+		extendedDynamicState2FeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
+		extendedDynamicState2FeaturesEXT.pNext = &extendedDynamicState3FeaturesEXT;
+		extendedDynamicState3FeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+		extendedDynamicState3FeaturesEXT.pNext = nullptr;
+
+		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2;
+		physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		physicalDeviceFeatures2.pNext = &extendedDynamicStateFeaturesEXT;
+		vkGetPhysicalDeviceFeatures2(physicalDevice, &physicalDeviceFeatures2);
+
 		// Check what dynamic states are supported by the current implementation
-		hasDynamicState = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
-		hasDynamicState2 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
-		hasDynamicState3 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
+		// Checking for available features is probably sufficient, but retained redundant extension checks for clarity and consistency
+		hasDynamicState = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME) && extendedDynamicStateFeaturesEXT.extendedDynamicState;
+		hasDynamicState2 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME) && extendedDynamicState2FeaturesEXT.extendedDynamicState2;
+		hasDynamicState3 = vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME) && extendedDynamicState3FeaturesEXT.extendedDynamicState3ColorBlendEnable && extendedDynamicState3FeaturesEXT.extendedDynamicState3ColorBlendEquation;
 		hasDynamicVertexState = vulkanDevice->extensionSupported(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
 
 		// Enable dynamic state extensions if present. This function is called after physical and before logical device creation, so we can enabled extensions based on a list of supported extensions
-		if (vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME)) {
+		if (hasDynamicState) {
 			enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
-			extendedDynamicStateFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
-			extendedDynamicStateFeaturesEXT.extendedDynamicState = VK_TRUE;
+			extendedDynamicStateFeaturesEXT.pNext = nullptr;
 			deviceCreatepNextChain = &extendedDynamicStateFeaturesEXT;
 		}
-		if (vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME)) {
+		if (hasDynamicState2) {
 			enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
-			extendedDynamicState2FeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
-			extendedDynamicState2FeaturesEXT.extendedDynamicState2 = VK_TRUE;
+			extendedDynamicState2FeaturesEXT.pNext = nullptr;
 			if (hasDynamicState) {
 				extendedDynamicStateFeaturesEXT.pNext = &extendedDynamicState2FeaturesEXT;
 			}
@@ -118,11 +130,8 @@ public:
 				deviceCreatepNextChain = &extendedDynamicState2FeaturesEXT;
 			}
 		}
-		if (vulkanDevice->extensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME)) {
+		if (hasDynamicState3) {
 			enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
-			extendedDynamicState3FeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
-			extendedDynamicState3FeaturesEXT.extendedDynamicState3ColorBlendEnable = VK_TRUE;
-			extendedDynamicState3FeaturesEXT.extendedDynamicState3ColorBlendEquation = VK_TRUE;
 			if (hasDynamicState2) {
 				extendedDynamicState2FeaturesEXT.pNext = &extendedDynamicState3FeaturesEXT;
 			}
@@ -131,7 +140,7 @@ public:
 			}
 
 		}
-		if (vulkanDevice->extensionSupported(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME)) {
+		if (hasDynamicVertexState) {
 			enabledDeviceExtensions.push_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
 		}
 	}
@@ -377,7 +386,7 @@ public:
 				rebuildCB |= overlay->checkBox("Depth test", &dynamicState.depthTest);
 				rebuildCB |= overlay->checkBox("Depth write", &dynamicState.depthWrite);
 			} else {
-				overlay->text("Extension not supported");
+				overlay->text("Extension or features not supported");
 			}
 		}
 		if (overlay->header("Dynamic state 2")) {
@@ -385,7 +394,7 @@ public:
 				rebuildCB |= overlay->checkBox("Rasterizer discard", &dynamicState2.rasterizerDiscardEnable);
 			}
 			else {
-				overlay->text("Extension not supported");
+				overlay->text("Extension or features not supported");
 			}
 		}
 		if (overlay->header("Dynamic state 3")) {
@@ -394,7 +403,7 @@ public:
 				rebuildCB |= overlay->colorPicker("Clear color", clearColor);
 			}
 			else {
-				overlay->text("Extension not supported");
+				overlay->text("Extension or features not supported");
 			}
 		}
 		if (rebuildCB) {

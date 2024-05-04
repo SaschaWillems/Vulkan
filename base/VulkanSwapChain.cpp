@@ -23,6 +23,8 @@ void VulkanSwapChain::initSurface(wl_display *display, wl_surface *window)
 void VulkanSwapChain::initSurface(xcb_connection_t* connection, xcb_window_t window)
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 void VulkanSwapChain::initSurface(void* view)
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
+void VulkanSwapChain::initSurface(CAMetalLayer* metalLayer)
 #elif (defined(_DIRECT2DISPLAY) || defined(VK_USE_PLATFORM_HEADLESS_EXT))
 void VulkanSwapChain::initSurface(uint32_t width, uint32_t height)
 #elif defined(VK_USE_PLATFORM_SCREEN_QNX)
@@ -57,6 +59,13 @@ void VulkanSwapChain::initSurface(screen_context_t screen_context, screen_window
 	surfaceCreateInfo.flags = 0;
 	surfaceCreateInfo.pView = view;
 	err = vkCreateMacOSSurfaceMVK(instance, &surfaceCreateInfo, NULL, &surface);
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
+	VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {};
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+	surfaceCreateInfo.pNext = NULL;
+	surfaceCreateInfo.flags = 0;
+	surfaceCreateInfo.pLayer = metalLayer;
+	err = vkCreateMetalSurfaceEXT(instance, &surfaceCreateInfo, NULL, &surface);
 #elif defined(_DIRECT2DISPLAY)
 	createDirect2DisplaySurface(width, height);
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
@@ -264,7 +273,7 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 
 	// Determine the number of images
 	uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
-#if (defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_EXAMPLE_XCODE_GENERATED))
+#if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && defined(VK_EXAMPLE_XCODE_GENERATED)
 	// SRS - Work around known MoltenVK issue re 2x frame rate when vsync (VK_PRESENT_MODE_FIFO_KHR) enabled
 	struct utsname sysInfo;
 	uname(&sysInfo);

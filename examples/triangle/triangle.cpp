@@ -1160,7 +1160,7 @@ int main(const int argc, const char *argv[])
 	delete(vulkanExample);
 	return 0;
 }
-#elif (defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_EXAMPLE_XCODE_GENERATED))
+#elif (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && defined(VK_EXAMPLE_XCODE_GENERATED)
 VulkanExample *vulkanExample;
 int main(const int argc, const char *argv[])
 {

@@ -44,7 +44,7 @@
 #define KEY_SPACE 0x3E		// AKEYCODE_SPACE
 #define KEY_KPADD 0x9D		// AKEYCODE_NUMPAD_ADD
 
-#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 #if !defined(VK_EXAMPLE_XCODE_GENERATED)
 // For iOS and macOS pre-configured Xcode example project: Use character keycodes
 // - Use numeric keys as optional alternative to function keys

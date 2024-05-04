@@ -140,7 +140,7 @@ int main(const int argc, const char *argv[])													    \
 	return 0;																						\
 }
 
-#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 /*
  * iOS and macOS (using MoltenVK)
  */

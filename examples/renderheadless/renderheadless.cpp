@@ -30,7 +30,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#if defined(VK_USE_PLATFORM_MACOS_MVK)
+#if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 #define VK_ENABLE_BETA_EXTENSIONS
 #endif
 #include <vulkan/vulkan.h>
@@ -208,7 +208,7 @@ public:
 			instanceCreateInfo.enabledLayerCount = layerCount;
 		}
 #endif
-#if defined(VK_USE_PLATFORM_MACOS_MVK)
+#if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 		// SRS - When running on macOS with MoltenVK, enable VK_KHR_get_physical_device_properties2 (required by VK_KHR_portability_subset)
 		instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #if defined(VK_KHR_portability_enumeration)
@@ -290,7 +290,7 @@ public:
 		deviceCreateInfo.queueCreateInfoCount = 1;
 		deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
 		std::vector<const char*> deviceExtensions = {};
-#if defined(VK_USE_PLATFORM_MACOS_MVK) && defined(VK_KHR_portability_subset)
+#if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && defined(VK_KHR_portability_subset)
 		// SRS - When running on macOS with MoltenVK and VK_KHR_portability_subset is defined and supported by the device, enable the extension
 		uint32_t deviceExtCount = 0;
 		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtCount, nullptr);

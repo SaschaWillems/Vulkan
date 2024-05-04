@@ -516,7 +516,9 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 			model.draw(drawCmdBuffers[i]);
 
-			textOverlay->draw(drawCmdBuffers[i]);
+			if (textOverlay->visible) {
+				textOverlay->draw(drawCmdBuffers[i]);
+			}
 
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -709,6 +711,7 @@ public:
 		case KEY_KPADD:
 		case KEY_SPACE:
 			textOverlay->visible = !textOverlay->visible;
+			buildCommandBuffers();
 		}
 	}
 };

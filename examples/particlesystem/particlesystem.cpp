@@ -189,7 +189,7 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.particles, 0, nullptr);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.particles);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &particles.buffer, offsets);
-			vkCmdDraw(drawCmdBuffers[i], static_cast<uint32_t>(particles.size), 1, 0, 0);
+			vkCmdDraw(drawCmdBuffers[i], static_cast<uint32_t>(particleBuffer.size()), 1, 0, 0);
 
 			drawUI(drawCmdBuffers[i]);
 
