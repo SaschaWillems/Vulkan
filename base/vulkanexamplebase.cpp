@@ -1086,7 +1086,7 @@ bool VulkanExampleBase::initVulkan()
 	}
 	assert(validFormat);
 
-	swapChain.connect(instance, physicalDevice, device);
+	swapChain.setContext(instance, physicalDevice, device);
 
 	// Create synchronization objects
 	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();

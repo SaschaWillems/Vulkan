@@ -3,7 +3,7 @@
 *
 * Renders a complex scene doing recursion inside the shaders for creating reflections
 *
-* Copyright (C) 2019-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2019-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -393,20 +393,12 @@ public:
 			shaderGroups.push_back(shaderGroup);
 		}
 
-		// Get max pipeline ray tracing recursion depth for physical device
-		VkPhysicalDeviceRayTracingPipelinePropertiesKHR physicalDeviceRayTracingPipelinePropertiesKHR {};
-		physicalDeviceRayTracingPipelinePropertiesKHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;		
-		VkPhysicalDeviceProperties2 physicalDeviceProperties2;
-		physicalDeviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
-		physicalDeviceProperties2.pNext = &physicalDeviceRayTracingPipelinePropertiesKHR;
-		vkGetPhysicalDeviceProperties2(physicalDevice, &physicalDeviceProperties2);
-
 		VkRayTracingPipelineCreateInfoKHR rayTracingPipelineCI = vks::initializers::rayTracingPipelineCreateInfoKHR();
 		rayTracingPipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		rayTracingPipelineCI.pStages = shaderStages.data();
 		rayTracingPipelineCI.groupCount = static_cast<uint32_t>(shaderGroups.size());
 		rayTracingPipelineCI.pGroups = shaderGroups.data();
-		rayTracingPipelineCI.maxPipelineRayRecursionDepth = std::min(uint32_t(4), physicalDeviceRayTracingPipelinePropertiesKHR.maxRayRecursionDepth);
+		rayTracingPipelineCI.maxPipelineRayRecursionDepth = std::min(uint32_t(4), rayTracingPipelineProperties.maxRayRecursionDepth);
 		rayTracingPipelineCI.layout = pipelineLayout;
 		VK_CHECK_RESULT(vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineCI, nullptr, &pipeline));
 	}
