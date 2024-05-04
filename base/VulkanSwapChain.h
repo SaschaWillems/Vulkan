@@ -60,6 +60,8 @@ public:
 	void initSurface(xcb_connection_t* connection, xcb_window_t window);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	void initSurface(void* view);
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
+	void initSurface(CAMetalLayer* metalLayer);
 #elif (defined(_DIRECT2DISPLAY) || defined(VK_USE_PLATFORM_HEADLESS_EXT))
 	void initSurface(uint32_t width, uint32_t height);
 #if defined(_DIRECT2DISPLAY)

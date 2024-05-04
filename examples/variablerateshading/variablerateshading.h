@@ -53,18 +53,18 @@ public:
 
 	VulkanExample();
 	~VulkanExample();
-	virtual void getEnabledFeatures();
+	virtual void getEnabledFeatures() override;
 	void handleResize();
-	void buildCommandBuffers();
+	void buildCommandBuffers() override;
 	void loadAssets();
 	void prepareShadingRateImage();
 	void setupDescriptors();
 	void preparePipelines();
 	void prepareUniformBuffers();
 	void updateUniformBuffers();
-	void prepare();
+	void prepare() override;
 	void setupFrameBuffer() override;
 	void setupRenderPass() override;
-	virtual void render();
-	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay);
+	virtual void render() override;
+	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay) override;
 };

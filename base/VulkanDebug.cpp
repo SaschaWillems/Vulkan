@@ -54,7 +54,12 @@ namespace vks
 
 			// Display message to default output (console/logcat)
 			std::stringstream debugMessage;
-			debugMessage << prefix << "[" << pCallbackData->messageIdNumber << "][" << pCallbackData->pMessageIdName << "] : " << pCallbackData->pMessage;
+			if (pCallbackData->pMessageIdName) {
+				debugMessage << prefix << "[" << pCallbackData->messageIdNumber << "][" << pCallbackData->pMessageIdName << "] : " << pCallbackData->pMessage;
+			}
+			else {
+				debugMessage << prefix << "[" << pCallbackData->messageIdNumber << "] : " << pCallbackData->pMessage;
+			}
 
 #if defined(__ANDROID__)
 			if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
