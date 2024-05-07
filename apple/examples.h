@@ -15,10 +15,10 @@
  * select the Build Settings panel, and add the value to the Preprocessor Macros entry.
  *
  * For example, to run the pipelines example, you would add the MVK_pipelines define macro to the
- * Preprocessor Macros entry of the Xcode examples project, overwriting any other value there.
+ * Preprocessor Macros entry of the MoltenVK examples project, overwriting any other value there.
  *
  * If you choose to add a #define statement to this file, be sure to clear the existing macro
- * from the Preprocessor Macros compiler setting in the Xcode examples project.
+ * from the Preprocessor Macros compiler setting in the MoltenVK examples project.
  */
 
 
@@ -330,12 +330,12 @@
 
 // HEADLESS
 
-// No headless target when using Xcode examples project, builds/runs fine using vulkanExamples project.
+// No headless target when using MoltenVK examples project, builds/runs fine using vulkanExamples project.
 //#ifdef MVK_renderheadless
 //#   include "../examples/renderheadless/renderheadless.cpp"
 //#endif
 
-// No headless target when using Xcode examples project, builds/runs fine using vulkanExamples project.
+// No headless target when using MoltenVK examples project, builds/runs fine using vulkanExamples project.
 //#ifdef MVK_computeheadless
 //#   include "../examples/computeheadless/computeheadless.cpp"
 //#endif
@@ -399,10 +399,12 @@
 #   include "../examples/conditionalrender/conditionalrender.cpp"
 #endif
 
-// Does not run. Requires VK_KHR_shader_non_semantic_info.
-#ifdef MVK_debugprintf
-#   include "../examples/debugprintf/debugprintf.cpp"
-#endif
+// Runs on MoltenVK 1.2.5 or later with VK_KHR_shader_non_semantic_info extension and VK_LAYER_KHRONOS_validation enabled.
+// No VK_LAYER_KHRONOS_validation layer when using MoltenVK examples project, builds/runs fine using vulkanExamples project.
+// Enable VK_LAYER_KHRONOS_validation layer with khronos_validation.enables = VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
+//#ifdef MVK_debugprintf
+//#   include "../examples/debugprintf/debugprintf.cpp"
+//#endif
 
 #ifdef MVK_debugutils
 #   include "../examples/debugutils/debugutils.cpp"
