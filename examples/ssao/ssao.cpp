@@ -14,9 +14,9 @@
 
 // We use a smaller noise kernel size on Android due to lower computational power
 #if defined(__ANDROID__)
-#define SSAO_NOISE_DIM 8
-#else
 #define SSAO_NOISE_DIM 4
+#else
+#define SSAO_NOISE_DIM 8
 #endif
 
 class VulkanExample : public VulkanExampleBase
