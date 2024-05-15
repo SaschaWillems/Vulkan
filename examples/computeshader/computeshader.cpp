@@ -1,6 +1,6 @@
 /*
 * Vulkan Example - Compute shader image processing
-* 
+*
 * This sample uses a compute shader to apply different filters to an image
 *
 * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
@@ -344,20 +344,20 @@ public:
 		// Create a semaphore for compute & graphics sync
 		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &graphics.semaphore));
-	
+
 		// Signal the semaphore
 		VkSubmitInfo submitInfo = vks::initializers::submitInfo();
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &graphics.semaphore;
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));	
+		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 
 		// Setup descriptors
 
 		// The graphics pipeline uses two sets with two bindings
 		// One set for displaying the input image and one set for displaying the output image with the compute filter applied
 		// Binding 0: Vertex shader uniform buffer
-		// Binding 1: Sampled image (before/after compute filter is applied) 
+		// Binding 1: Sampled image (before/after compute filter is applied)
 
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
@@ -562,9 +562,11 @@ public:
 	virtual void render()
 	{
 		if (!prepared)
+		{
 			return;
-		draw();
+		}
 		updateUniformBuffers();
+		draw();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
