@@ -30,6 +30,7 @@ def findGlslang():
 glslang_path = findGlslang()
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
+errors_count = 0
 for root, dirs, files in os.walk(dir_path):
     for file in files:
         if file.endswith(".vert") or file.endswith(".frag") or file.endswith(".comp") or file.endswith(".geom") or file.endswith(".tesc") or file.endswith(".tese") or file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss"):
@@ -43,7 +44,12 @@ for root, dirs, files in os.walk(dir_path):
             if file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss"):
                add_params = add_params + " --target-env vulkan1.2"
 
-            res = subprocess.call("%s -V %s -o %s %s" % (glslang_path, input_file, output_file, add_params), shell=True)
-            # res = subprocess.call([glslang_path, '-V', input_file, '-o', output_file, add_params], shell=True)
-            if res != 0:
-                sys.exit()
+            result = subprocess.call("%s -V %s -o %s %s" % (glslang_path, input_file, output_file, add_params), shell=True)
+            if result != 0:
+                print('Error compiling %s' % (input_file))
+                errors_count += 1
+
+if errors_count == 0:
+    print('All shaders compiled successfully!')
+else:
+    print('%i shaders failed to compile' % errors_count)

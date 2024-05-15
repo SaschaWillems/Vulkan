@@ -32,6 +32,7 @@ def findDXC():
 dxc_path = findDXC()
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
+errors_count = 0
 for root, dirs, files in os.walk(dir_path):
     for file in files:
         if file.endswith(".vert") or file.endswith(".frag") or file.endswith(".comp") or file.endswith(".geom") or file.endswith(".tesc") or file.endswith(".tese") or file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss") or file.endswith(".mesh") :
@@ -62,7 +63,7 @@ for root, dirs, files in os.walk(dir_path):
                 profile = 'ms_6_6'                
 
             print('Compiling %s' % (hlsl_file))
-            subprocess.check_output([
+            result = subprocess.run([
                 dxc_path,
                 '-spirv',
                 '-T', profile,
@@ -76,3 +77,11 @@ for root, dirs, files in os.walk(dir_path):
                 target,
                 hlsl_file,
                 '-Fo', spv_out])
+            if result.returncode != 0:
+                print('Error compiling %s' % (hlsl_file))
+                errors_count += 1
+
+if errors_count == 0:
+    print('All shaders compiled successfully!')
+else:
+    print('%i shaders failed to compile' % errors_count)
