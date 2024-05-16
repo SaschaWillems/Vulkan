@@ -176,7 +176,7 @@ public:
 		}
 	}
 
-	void addComputeToComputeBarriers(VkCommandBuffer commandBuffer)
+	void addComputeToComputeBarriers(VkCommandBuffer commandBuffer, uint32_t readSet)
 	{
 		VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
 		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -185,10 +185,20 @@ public:
 		bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		bufferBarrier.size = VK_WHOLE_SIZE;
 		std::vector<VkBufferMemoryBarrier> bufferBarriers;
-		bufferBarrier.buffer = storageBuffers.input.buffer;
-		bufferBarriers.push_back(bufferBarrier);
-		bufferBarrier.buffer = storageBuffers.output.buffer;
-		bufferBarriers.push_back(bufferBarrier);
+		if (readSet == 0)
+		{
+			// SRS - we have written to output.buffer and need a memory barrier before reading it
+			//	   - don't need a memory barrier for input.buffer, the execution barrier is enough
+			bufferBarrier.buffer = storageBuffers.output.buffer;
+			bufferBarriers.push_back(bufferBarrier);
+		}
+		else //if (readSet == 1)
+		{
+			// SRS - we have written to input.buffer and need a memory barrier before reading it
+			//	   - don't need a memory barrier for output.buffer, the execution barrier is enough
+			bufferBarrier.buffer = storageBuffers.input.buffer;
+			bufferBarriers.push_back(bufferBarrier);
+		}
 		vkCmdPipelineBarrier(
 			commandBuffer,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -280,7 +290,7 @@ public:
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			// release the storage buffers to the compute queue
-			addGraphicsToComputeBarriers(drawCmdBuffers[i], VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 0, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+			addGraphicsToComputeBarriers(drawCmdBuffers[i], VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
@@ -297,7 +307,7 @@ public:
 			VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffers[i], &cmdBufInfo));
 
 			// Acquire the storage buffers from the graphics queue
-			addGraphicsToComputeBarriers(compute.commandBuffers[i], 0, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+			addGraphicsToComputeBarriers(compute.commandBuffers[i], 0, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 			vkCmdBindPipeline(compute.commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
 
@@ -305,6 +315,7 @@ public:
 			vkCmdPushConstants(compute.commandBuffers[i], compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &calculateNormals);
 
 			// Dispatch the compute job
+			// SRS - Iterations **must** be an even number, so that readSet starts at 1 and the final result ends up in output.buffer with readSet equal to 0
 			const uint32_t iterations = 64;
 			for (uint32_t j = 0; j < iterations; j++) {
 				readSet = 1 - readSet;
@@ -319,7 +330,7 @@ public:
 
 				// Don't add a barrier on the last iteration of the loop, since we'll have an explicit release to the graphics queue
 				if (j != iterations - 1) {
-					addComputeToComputeBarriers(compute.commandBuffers[i]);
+					addComputeToComputeBarriers(compute.commandBuffers[i], readSet);
 				}
 
 			}
@@ -386,7 +397,7 @@ public:
 		// Add an initial release barrier to the graphics queue,
 		// so that when the compute command buffer executes for the first time
 		// it doesn't complain about a lack of a corresponding "release" to its "acquire"
-		addGraphicsToComputeBarriers(copyCmd, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 0, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+		addGraphicsToComputeBarriers(copyCmd, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
 		stagingBuffer.destroy();
