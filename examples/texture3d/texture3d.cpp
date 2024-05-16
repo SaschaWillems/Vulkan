@@ -38,7 +38,6 @@ private:
 		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
 	}
 public:
-	PerlinNoise() {}
 	PerlinNoise(bool applyRandomSeed)
 	{
 		// Generate random lookup for permutations containing all numbers from 0..255
@@ -90,15 +89,15 @@ template <typename T>
 class FractalNoise
 {
 private:
-	PerlinNoise<float> perlinNoise;
+	PerlinNoise<T> perlinNoise;
 	uint32_t octaves;
 	T frequency;
 	T amplitude;
 	T persistence;
 public:
-	FractalNoise(const PerlinNoise<T> &perlinNoise)
+	FractalNoise(const PerlinNoise<T> &perlinNoiseIn) :
+		perlinNoise(perlinNoiseIn)
 	{
-		this->perlinNoise = perlinNoise;
 		octaves = 6;
 		persistence = (T)0.5;
 	}
