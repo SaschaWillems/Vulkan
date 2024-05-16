@@ -28,9 +28,9 @@ public:
 			float ambient;
 		} material;
 		VkDescriptorSet descriptorSet;
-		void setRandomMaterial() {
+		void setRandomMaterial(bool applyRandomSeed) {
 			std::random_device rndDevice;
-			std::default_random_engine rndEngine(rndDevice());
+			std::default_random_engine rndEngine(applyRandomSeed ? rndDevice() : 0);
 			std::uniform_real_distribution<float> rndDist(0.1f, 1.0f);
 			material.r = rndDist(rndEngine);
 			material.g = rndDist(rndEngine);
@@ -161,7 +161,7 @@ public:
 
 		// Setup random materials for every object in the scene
 		for (uint32_t i = 0; i < objects.size(); i++) {
-			objects[i].setRandomMaterial();
+			objects[i].setRandomMaterial(!benchmark.active);
 		}
 	}
 
@@ -342,7 +342,7 @@ public:
 	void updateMaterials() {
 		// Setup random materials for every object in the scene
 		for (uint32_t i = 0; i < objects.size(); i++) {
-			objects[i].setRandomMaterial();
+			objects[i].setRandomMaterial(!benchmark.active);
 		}
 
 		for (auto &object : objects) {

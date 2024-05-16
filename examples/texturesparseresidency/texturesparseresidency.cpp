@@ -13,7 +13,7 @@
 #include "texturesparseresidency.h"
 
 /*
-	Virtual texture page 
+	Virtual texture page
 	Contains all functions and objects for a single page of a virtual texture
  */
 
@@ -69,7 +69,7 @@ bool VirtualTexturePage::release(VkDevice device)
 }
 
 /*
-	Virtual texture 
+	Virtual texture
 	Contains the virtual pages and memory binding information for a whole virtual texture
  */
 
@@ -714,7 +714,7 @@ void VulkanExample::fillRandomPages()
 {
 	vkDeviceWaitIdle(device);
 
-	std::default_random_engine rndEngine(std::random_device{}());
+	std::default_random_engine rndEngine(benchmark.active ? 0 : std::random_device{}());
 	std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 
 	std::vector<VirtualTexturePage> updatedPages;
@@ -810,7 +810,7 @@ void VulkanExample::flushRandomPages()
 {
 	vkDeviceWaitIdle(device);
 
-	std::default_random_engine rndEngine(std::random_device{}());
+	std::default_random_engine rndEngine(benchmark.active ? 0 : std::random_device{}());
 	std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 
 	std::vector<VirtualTexturePage> updatedPages;
