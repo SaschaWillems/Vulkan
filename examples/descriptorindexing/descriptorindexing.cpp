@@ -2,9 +2,9 @@
 * Vulkan Example - Descriptor indexing (VK_EXT_descriptor_indexing)
 *
 * Demonstrates use of descriptor indexing to dynamically index into a variable sized array of images
-* 
+*
 * The sample renders multiple objects with the index of the texture (descriptor) to use passed as a vertex attribute (aka "descriptor indexing")
-* 
+*
 * Relevant code parts are marked with [POI]
 *
 * Copyright (C) 2021-2023 Sascha Willems - www.saschawillems.de
@@ -67,7 +67,7 @@ public:
 		physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
 
 		deviceCreatepNextChain = &physicalDeviceDescriptorIndexingFeatures;
-		
+
 #if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 		// SRS - on macOS set environment variable to configure MoltenVK for using Metal argument buffers (needed for descriptor indexing)
 		//     - MoltenVK supports Metal argument buffers on macOS, iOS possible in future (see https://github.com/KhronosGroup/MoltenVK/issues/1651)
@@ -96,7 +96,7 @@ public:
 		textures.resize(32);
 		for (size_t i = 0; i < textures.size(); i++) {
 			std::random_device rndDevice;
-			std::default_random_engine rndEngine(rndDevice());
+			std::default_random_engine rndEngine(benchmark.active ? 0 : rndDevice());
 			std::uniform_int_distribution<> rndDist(50, UCHAR_MAX);
 			const int32_t dim = 3;
 			const size_t bufferSize = dim * dim * 4;
@@ -119,7 +119,7 @@ public:
 
 		// Generate random per-face texture indices
 		std::random_device rndDevice;
-		std::default_random_engine rndEngine(rndDevice());
+		std::default_random_engine rndEngine(benchmark.active ? 0 : rndDevice());
 		std::uniform_int_distribution<int32_t> rndDist(0, static_cast<uint32_t>(textures.size()) - 1);
 
 		// Generate cubes with random per-face texture indices
@@ -253,7 +253,7 @@ public:
 
 		// [POI] Descriptor sets
 		// We need to provide the descriptor counts for bindings with variable counts using a new structure
-		std::vector<uint32_t> variableDesciptorCounts = { 
+		std::vector<uint32_t> variableDesciptorCounts = {
 			static_cast<uint32_t>(textures.size())
 		};
 
@@ -264,7 +264,7 @@ public:
 
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		allocInfo.pNext = &variableDescriptorCountAllocInfo;
-		
+
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets(2);

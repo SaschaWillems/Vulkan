@@ -38,13 +38,13 @@ private:
 		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
 	}
 public:
-	PerlinNoise()
+	PerlinNoise(bool applyRandomSeed)
 	{
 		// Generate random lookup for permutations containing all numbers from 0..255
 		std::vector<uint8_t> plookup;
 		plookup.resize(256);
 		std::iota(plookup.begin(), plookup.end(), 0);
-		std::default_random_engine rndEngine(std::random_device{}());
+		std::default_random_engine rndEngine(applyRandomSeed ? std::random_device{}() : 0);
 		std::shuffle(plookup.begin(), plookup.end(), rndEngine);
 
 		for (uint32_t i = 0; i < 256; i++)
@@ -89,16 +89,15 @@ template <typename T>
 class FractalNoise
 {
 private:
-	PerlinNoise<float> perlinNoise;
+	PerlinNoise<T> perlinNoise;
 	uint32_t octaves;
 	T frequency;
 	T amplitude;
 	T persistence;
 public:
-
-	FractalNoise(const PerlinNoise<T> &perlinNoise)
+	FractalNoise(const PerlinNoise<T> &perlinNoiseIn) :
+		perlinNoise(perlinNoiseIn)
 	{
-		this->perlinNoise = perlinNoise;
 		octaves = 6;
 		persistence = (T)0.5;
 	}
@@ -166,7 +165,7 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
 		camera.setRotation(glm::vec3(0.0f, 15.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		srand((unsigned int)time(NULL));
+		srand(benchmark.active ? 0 : (unsigned int)time(NULL));
 	}
 
 	~VulkanExample()
@@ -287,7 +286,7 @@ public:
 
 		auto tStart = std::chrono::high_resolution_clock::now();
 
-		PerlinNoise<float> perlinNoise;
+		PerlinNoise<float> perlinNoise(!benchmark.active);
 		FractalNoise<float> fractalNoise(perlinNoise);
 
 		const float noiseScale = static_cast<float>(rand() % 10) + 4.0f;
