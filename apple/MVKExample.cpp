@@ -25,8 +25,8 @@ void MVKExample::keyPressed(uint32_t keyChar) {					// SRS - handle keyboard key
 			break;
 		case KEY_1:												// SRS - support keyboards with no function keys
 		case KEY_F1:
-			_vulkanExample->UIOverlay.visible = !_vulkanExample->UIOverlay.visible;
-			_vulkanExample->UIOverlay.updated = true;
+			_vulkanExample->ui.visible = !_vulkanExample->ui.visible;
+			_vulkanExample->ui.updated = true;
 			break;
 		default:
 			_vulkanExample->keyPressed(keyChar);
@@ -124,7 +124,7 @@ MVKExample::MVKExample(void* view, double scaleUI) {
     _vulkanExample->initVulkan();
     _vulkanExample->setupWindow(view);
 	_vulkanExample->settings.vsync = true;		// SRS - set vsync flag since this iOS/macOS example app uses displayLink vsync rendering
-	_vulkanExample->UIOverlay.scale = scaleUI;	// SRS - set UIOverlay scale to maintain relative proportions/readability on retina displays
+	_vulkanExample->ui.scale = scaleUI;	        // SRS - set UIOverlay scale to maintain relative proportions/readability on retina displays
     _vulkanExample->prepare();
 	_vulkanExample->renderLoop();				// SRS - this inits destWidth/destHeight/lastTimestamp/tPrevEnd, then falls through and returns
 }
