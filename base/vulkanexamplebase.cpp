@@ -414,7 +414,6 @@ void VulkanExampleBase::renderLoop()
 				lastTimestamp = tEnd;
 			}
 
-			// TODO: Cap UI overlay update rates/only issue when update requested
 			updateOverlay();
 
 			bool updateView = false;
