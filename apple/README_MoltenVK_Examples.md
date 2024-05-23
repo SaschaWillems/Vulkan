@@ -2,7 +2,7 @@
 	<img src="images/MoltenVK-Logo-Banner.png" alt="MoltenVK Home" style="width:256px;height:auto">
 </a>
 
-#MoltenVK Vulkan Examples
+# MoltenVK Vulkan Examples
 
 Copyright (c) 2016-2024 [The Brenwill Workshop Ltd.](http://www.brenwill.com).
 This document is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
