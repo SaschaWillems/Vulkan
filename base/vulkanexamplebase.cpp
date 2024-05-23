@@ -233,14 +233,14 @@ void VulkanExampleBase::prepare()
 	setupFrameBuffer();
 	settings.overlay = settings.overlay && (!benchmark.active);
 	if (settings.overlay) {
-		UIOverlay.device = vulkanDevice;
-		UIOverlay.queue = queue;
-		UIOverlay.shaders = {
-			loadShader(getShadersPath() + "base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getShadersPath() + "base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
+		ui.device = vulkanDevice;
+		ui.queue = queue;
+		ui.shaders = {
+			loadShader(getShadersPath() + "base/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "base/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
 		};
-		UIOverlay.prepareResources();
-		UIOverlay.preparePipeline(pipelineCache, renderPass, swapChain.colorFormat, depthFormat);
+		ui.prepareResources();
+		ui.preparePipeline(pipelineCache, renderPass, swapChain.colorFormat, depthFormat);
 	}
 }
 
@@ -691,12 +691,12 @@ void VulkanExampleBase::updateOverlay()
 
 	// The overlay does not need to be updated with each frame, so we limit the update rate
 	// Not only does this save performance but it also makes display of fast changig values like fps more stable
-	UIOverlay.updateTimer -= frameTimer;
-	if (UIOverlay.updateTimer >= 0.0f) {
+	ui.updateTimer -= frameTimer;
+	if (ui.updateTimer >= 0.0f) {
 		return;
 	}
 	// Update at max. rate of 30 fps
-	UIOverlay.updateTimer = 1.0f / 30.0f;
+	ui.updateTimer = 1.0f / 30.0f;
 
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -704,14 +704,14 @@ void VulkanExampleBase::updateOverlay()
 	io.DeltaTime = frameTimer;
 
 	io.MousePos = ImVec2(mouseState.position.x, mouseState.position.y);
-	io.MouseDown[0] = mouseState.buttons.left && UIOverlay.visible;
-	io.MouseDown[1] = mouseState.buttons.right && UIOverlay.visible;
-	io.MouseDown[2] = mouseState.buttons.middle && UIOverlay.visible;
+	io.MouseDown[0] = mouseState.buttons.left && ui.visible;
+	io.MouseDown[1] = mouseState.buttons.right && ui.visible;
+	io.MouseDown[2] = mouseState.buttons.middle && ui.visible;
 
 	ImGui::NewFrame();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-	ImGui::SetNextWindowPos(ImVec2(10 * UIOverlay.scale, 10 * UIOverlay.scale));
+	ImGui::SetNextWindowPos(ImVec2(10 * ui.scale, 10 * ui.scale));
 	ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiSetCond_FirstUseEver);
 	ImGui::Begin("Vulkan Example", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 	ImGui::TextUnformatted(title.c_str());
@@ -719,10 +719,10 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / lastFPS), lastFPS);
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 5.0f * UIOverlay.scale));
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 5.0f * ui.scale));
 #endif
-	ImGui::PushItemWidth(110.0f * UIOverlay.scale);
-	OnUpdateUIOverlay(&UIOverlay);
+	ImGui::PushItemWidth(110.0f * ui.scale);
+	OnUpdateUIOverlay(&ui);
 	ImGui::PopItemWidth();
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	ImGui::PopStyleVar();
@@ -732,9 +732,9 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::PopStyleVar();
 	ImGui::Render();
 
-	if (UIOverlay.update() || UIOverlay.updated) {
+	if (ui.update() || ui.updated) {
 		buildCommandBuffers();
-		UIOverlay.updated = false;
+		ui.updated = false;
 	}
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -746,13 +746,13 @@ void VulkanExampleBase::updateOverlay()
 
 void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 {
-	if (settings.overlay && UIOverlay.visible) {
+	if (settings.overlay && ui.visible) {
 		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		UIOverlay.draw(commandBuffer);
+		ui.draw(commandBuffer);
 	}
 }
 
@@ -940,7 +940,7 @@ VulkanExampleBase::~VulkanExampleBase()
 	}
 
 	if (settings.overlay) {
-		UIOverlay.freeResources();
+		ui.freeResources();
 	}
 
 	delete vulkanDevice;
@@ -1290,8 +1290,8 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			paused = !paused;
 			break;
 		case KEY_F1:
-			UIOverlay.visible = !UIOverlay.visible;
-			UIOverlay.updated = true;
+			ui.visible = !ui.visible;
+			ui.updated = true;
 			break;
 		case KEY_F2:
 			if (camera.type == Camera::CameraType::lookat) {
@@ -1477,7 +1477,7 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						bool handled = false;
 						if (vulkanExample->settings.overlay) {
 							ImGuiIO& io = ImGui::GetIO();
-							handled = io.WantCaptureMouse && vulkanExample->UIOverlay.visible;
+							handled = io.WantCaptureMouse && vulkanExample->ui.visible;
 						}
 						if (!handled) {
 							int32_t eventX = AMotionEvent_getX(event, 0);
@@ -1530,8 +1530,8 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 		case AKEYCODE_1:							// support keyboards with no function keys
 		case AKEYCODE_F1:
 		case AKEYCODE_BUTTON_L1:
-			vulkanExample->UIOverlay.visible = !vulkanExample->UIOverlay.visible;
-			vulkanExample->UIOverlay.updated = true;
+			vulkanExample->ui.visible = !vulkanExample->ui.visible;
+			vulkanExample->ui.updated = true;
 			break;
 		case AKEYCODE_BUTTON_R1:
 			vulkanExample->keyPressed(GAMEPAD_BUTTON_R1);
@@ -1734,8 +1734,8 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 			break;
 		case KEY_1:										// support keyboards with no function keys
 		case KEY_F1:
-			vulkanExample->UIOverlay.visible = !vulkanExample->UIOverlay.visible;
-			vulkanExample->UIOverlay.updated = true;
+			vulkanExample->ui.visible = !vulkanExample->ui.visible;
+			vulkanExample->ui.updated = true;
 			break;
 		case KEY_DELETE:								// support keyboards with no escape key
 		case KEY_ESCAPE:
@@ -2130,8 +2130,8 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				UIOverlay.visible = !UIOverlay.visible;
-				UIOverlay.updated = true;
+				ui.visible = !ui.visible;
+				ui.updated = true;
 				break;
 			default:
 				break;
@@ -2305,8 +2305,8 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 		break;
 	case KEY_F1:
 		if (state) {
-			UIOverlay.visible = !UIOverlay.visible;
-			UIOverlay.updated = true;
+			ui.visible = !ui.visible;
+			ui.updated = true;
 		}
 		break;
 	case KEY_ESCAPE:
@@ -2667,8 +2667,8 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				UIOverlay.visible = !UIOverlay.visible;
-				UIOverlay.updated = true;
+				ui.visible = !ui.visible;
+				ui.updated = true;
 				break;
 		}
 	}
@@ -2793,8 +2793,8 @@ void VulkanExampleBase::handleEvent()
 							paused = !paused;
 							break;
 						case KEYCODE_F1:
-							UIOverlay.visible = !UIOverlay.visible;
-							UIOverlay.updated = true;
+							ui.visible = !ui.visible;
+							ui.updated = true;
 							break;
 						default:
 							break;
@@ -3198,7 +3198,7 @@ void VulkanExampleBase::windowResize()
 
 	if ((width > 0.0f) && (height > 0.0f)) {
 		if (settings.overlay) {
-			UIOverlay.resize(width, height);
+			ui.resize(width, height);
 		}
 	}
 
@@ -3235,7 +3235,7 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 
 	if (settings.overlay) {
 		ImGuiIO& io = ImGui::GetIO();
-		handled = io.WantCaptureMouse && UIOverlay.visible;
+		handled = io.WantCaptureMouse && ui.visible;
 	}
 	mouseMoved((float)x, (float)y, handled);
 

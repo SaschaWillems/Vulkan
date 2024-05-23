@@ -4,7 +4,7 @@
 * This sample shows how to do multisampled anti aliasing using built-in hardware via resolve attachments
 * These are special attachments that a multi-sampled is resolved to using a fixed sample pattern
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -508,7 +508,7 @@ public:
 	void prepare()
 	{
 		sampleCount = getMaxAvailableSampleCount();
-		UIOverlay.rasterizationSamples = sampleCount;
+		ui.rasterizationSamples = sampleCount;
 		VulkanExampleBase::prepare();
 		loadAssets();
 		prepareUniformBuffers();
