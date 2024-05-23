@@ -307,7 +307,6 @@ void VulkanExampleBase::nextFrame()
 	}
 	tPrevEnd = tEnd;
 
-	// TODO: Cap UI overlay update rates
 	updateOverlay();
 }
 
@@ -689,6 +688,15 @@ void VulkanExampleBase::updateOverlay()
 {
 	if (!settings.overlay)
 		return;
+
+	// The overlay does not need to be updated with each frame, so we limit the update rate
+	// Not only does this save performance but it also makes display of fast changig values like fps more stable
+	UIOverlay.updateTimer -= frameTimer;
+	if (UIOverlay.updateTimer >= 0.0f) {
+		return;
+	}
+	// Update at max. rate of 30 fps
+	UIOverlay.updateTimer = 1.0f / 30.0f;
 
 	ImGuiIO& io = ImGui::GetIO();
 

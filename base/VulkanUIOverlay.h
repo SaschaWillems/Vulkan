@@ -65,6 +65,7 @@ namespace vks
 		bool visible{ true };
 		bool updated{ false };
 		float scale{ 1.0f };
+		float updateTimer{ 0.0f };
 
 		UIOverlay();
 		~UIOverlay();
