@@ -71,5 +71,5 @@ Use [CMake](https://cmake.org) to generate a build configuration for Xcode or yo
 Example of cmake generating for Xcode with **libomp** library path defined:
 ```cmake -G "Xcode" -DOpenMP_omp_LIBRARY=$LIBOMP_PREFIX/lib/libomp.dylib .```
 
-####iOS
+#### iOS
 Navigate to the [apple](apple/) folder and follow the instructions in [README\_MoltenVK_Examples.md](apple/README_MoltenVK_Examples.md)
