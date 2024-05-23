@@ -236,8 +236,8 @@ void VulkanExampleBase::prepare()
 		ui.device = vulkanDevice;
 		ui.queue = queue;
 		ui.shaders = {
-			loadShader(getShadersPath() + "base/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getShadersPath() + "base/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
+			loadShader(getShadersPath() + "base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
 		};
 		ui.prepareResources();
 		ui.preparePipeline(pipelineCache, renderPass, swapChain.colorFormat, depthFormat);
@@ -1226,11 +1226,12 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 	}
 
-	RECT windowRect;
-	windowRect.left = 0L;
-	windowRect.top = 0L;
-	windowRect.right = settings.fullscreen ? (long)screenWidth : (long)width;
-	windowRect.bottom = settings.fullscreen ? (long)screenHeight : (long)height;
+	RECT windowRect = {
+		0L,
+		0L,
+		settings.fullscreen ? (long)screenWidth : (long)width,
+		settings.fullscreen ? (long)screenHeight : (long)height
+	};
 
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
@@ -1248,19 +1249,19 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		hinstance,
 		NULL);
 
+	if (!window)
+	{
+		std::cerr << "Could not create window!\n";
+		fflush(stdout);
+		return nullptr;
+	}
+
 	if (!settings.fullscreen)
 	{
 		// Center on screen
 		uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRect.right) / 2;
 		uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - windowRect.bottom) / 2;
 		SetWindowPos(window, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
-	}
-
-	if (!window)
-	{
-		printf("Could not create window!\n");
-		fflush(stdout);
-		return nullptr;
 	}
 
 	ShowWindow(window, SW_SHOW);
