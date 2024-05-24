@@ -1,6 +1,6 @@
 ## HLSL Shaders
 
-This directory contains shaders using the [HLSL shading language](https://docs.vulkan.org/guide/latest/hlsl.html). These can be compiled with [DXC](https://github.com/microsoft/DirectXShaderCompiler) using e.g. the included `compile.py` script.
+This directory contains shaders using the [HLSL shading language](https://docs.vulkan.org/guide/latest/hlsl.html). To use the HLSL shaders instead of GLSL, change the line `std::string shaderDir = "glsl";` in `vulkanexamplebase.h`. These shaders are compiled with [DXC](https://github.com/microsoft/DirectXShaderCompiler) using CMake when you make an edit to the shader file.
 
 ### Known issues
 
