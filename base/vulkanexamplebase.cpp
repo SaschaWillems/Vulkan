@@ -23,21 +23,8 @@ extern CAMetalLayer* layer;
 
 std::vector<const char*> VulkanExampleBase::args;
 
-VkResult VulkanExampleBase::createInstance(bool enableValidation)
+VkResult VulkanExampleBase::createInstance()
 {
-	this->settings.validation = enableValidation;
-
-	// Validation can also be forced via a define
-#if defined(_VALIDATION)
-	this->settings.validation = true;
-#endif
-
-	VkApplicationInfo appInfo = {};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = name.c_str();
-	appInfo.pEngineName = name.c_str();
-	appInfo.apiVersion = apiVersion;
-
 	std::vector<const char*> instanceExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
 	// Enable surface extensions depending on os
@@ -102,9 +89,14 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		}
 	}
 
-	VkInstanceCreateInfo instanceCreateInfo = {};
+	VkApplicationInfo appInfo{};
+	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	appInfo.pApplicationName = name.c_str();
+	appInfo.pEngineName = name.c_str();
+	appInfo.apiVersion = apiVersion;
+
+	VkInstanceCreateInfo instanceCreateInfo{};
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	instanceCreateInfo.pNext = NULL;
 	instanceCreateInfo.pApplicationInfo = &appInfo;
 
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{};
@@ -113,7 +105,6 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		debugUtilsMessengerCI.pNext = instanceCreateInfo.pNext;
 		instanceCreateInfo.pNext = &debugUtilsMessengerCI;
 	}
-
 
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && defined(VK_KHR_portability_enumeration)
 	// SRS - When running on iOS/macOS with MoltenVK and VK_KHR_portability_enumeration is defined and supported by the instance, enable the extension and the flag
@@ -129,8 +120,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
 
-	if (instanceExtensions.size() > 0)
-	{
+	if (instanceExtensions.size() > 0) {
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 	}
@@ -138,8 +128,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	// The VK_LAYER_KHRONOS_validation contains all current validation functionality.
 	// Note that on Android this layer requires at least NDK r20
 	const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
-	if (settings.validation)
-	{
+	if (settings.validation) {
 		// Check if this layer is available at instance level
 		uint32_t instanceLayerCount;
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
@@ -180,9 +169,7 @@ void VulkanExampleBase::renderFrame()
 
 std::string VulkanExampleBase::getWindowTitle()
 {
-	std::string device(deviceProperties.deviceName);
-	std::string windowTitle;
-	windowTitle = title + " - " + device;
+	std::string windowTitle{ title + " - " + deviceProperties.deviceName };
 	if (!settings.overlay) {
 		windowTitle += " - " + std::to_string(frameCounter) + " fps";
 	}
@@ -191,15 +178,9 @@ std::string VulkanExampleBase::getWindowTitle()
 
 void VulkanExampleBase::createCommandBuffers()
 {
-	// Create one command buffer for each swap chain image and reuse for rendering
+	// Create one command buffer for each swap chain image
 	drawCmdBuffers.resize(swapChain.imageCount);
-
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-		vks::initializers::commandBufferAllocateInfo(
-			cmdPool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			static_cast<uint32_t>(drawCmdBuffers.size()));
-
+	VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data()));
 }
 
@@ -428,8 +409,6 @@ void VulkanExampleBase::renderLoop()
 
 			// Check gamepad state
 			const float deadZone = 0.0015f;
-			// todo : check if gamepad is present
-			// todo : time based and relative axis positions
 			if (camera.type != Camera::CameraType::firstperson)
 			{
 				// Rotate
@@ -978,8 +957,6 @@ VulkanExampleBase::~VulkanExampleBase()
 	wl_compositor_destroy(compositor);
 	wl_registry_destroy(registry);
 	wl_display_disconnect(display);
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-	// todo : android cleanup (if required)
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_destroy_window(connection, window);
 	xcb_disconnect(connection);
@@ -992,12 +969,15 @@ VulkanExampleBase::~VulkanExampleBase()
 
 bool VulkanExampleBase::initVulkan()
 {
-	VkResult err;
+	// Instead of checking for the command line switch, validation can be forced via a define
+#if defined(_VALIDATION)
+	this->settings.validation = true;
+#endif
 
-	// Vulkan instance
-	err = createInstance(settings.validation);
-	if (err) {
-		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), err);
+	// Create the instance
+	VkResult result = createInstance();
+	if (result != VK_SUCCESS) {
+		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(result), result);
 		return false;
 	}
 
@@ -1021,9 +1001,9 @@ bool VulkanExampleBase::initVulkan()
 	}
 	// Enumerate devices
 	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
-	err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
-	if (err) {
-		vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(err), err);
+	result = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
+	if (result != VK_SUCCESS) {
+		vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(result), result);
 		return false;
 	}
 
@@ -1073,9 +1053,9 @@ bool VulkanExampleBase::initVulkan()
 	// Derived examples can enable extensions based on the list of supported extensions read from the physical device
 	getEnabledExtensions();
 
-	VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, deviceCreatepNextChain);
-	if (res != VK_SUCCESS) {
-		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), res);
+	result = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, deviceCreatepNextChain);
+	if (result != VK_SUCCESS) {
+		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(result), result);
 		return false;
 	}
 	device = vulkanDevice->logicalDevice;
