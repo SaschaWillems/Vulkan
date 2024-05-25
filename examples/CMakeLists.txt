@@ -24,10 +24,10 @@ function(buildExample EXAMPLE_NAME)
 		SET(SOURCE ${SOURCE} ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h ${CMAKE_BINARY_DIR}/xdg-shell-protocol.c)
 	ENDIF()
 	# Add shaders
-	set(SHADER_DIR_GLSL "../shaders/glsl/${EXAMPLE_NAME}")
-	file(GLOB SHADERS_GLSL "${SHADER_DIR_GLSL}/*.vert" "${SHADER_DIR_GLSL}/*.frag" "${SHADER_DIR_GLSL}/*.comp" "${SHADER_DIR_GLSL}/*.geom" "${SHADER_DIR_GLSL}/*.tesc" "${SHADER_DIR_GLSL}/*.tese" "${SHADER_DIR_GLSL}/*.mesh" "${SHADER_DIR_GLSL}/*.task" "${SHADER_DIR_GLSL}/*.rgen" "${SHADER_DIR_GLSL}/*.rchit" "${SHADER_DIR_GLSL}/*.rmiss" "${SHADER_DIR_GLSL}/*.rcall" "${SHADER_DIR_GLSL}/*.rahit" "${SHADER_DIR_GLSL}/*.rint" "${SHADER_DIR_GLSL}/*.glsl")
-	set(SHADER_DIR_HLSL "../shaders/hlsl/${EXAMPLE_NAME}")
-	file(GLOB SHADERS_HLSL "${SHADER_DIR_HLSL}/*.vert" "${SHADER_DIR_HLSL}/*.frag" "${SHADER_DIR_HLSL}/*.comp" "${SHADER_DIR_HLSL}/*.geom" "${SHADER_DIR_HLSL}/*.tesc" "${SHADER_DIR_HLSL}/*.tese" "${SHADER_DIR_HLSL}/*.mesh" "${SHADER_DIR_HLSL}/*.task" "${SHADER_DIR_HLSL}/*.rgen" "${SHADER_DIR_HLSL}/*.rchit" "${SHADER_DIR_HLSL}/*.rmiss" "${SHADER_DIR_HLSL}/*.rcall" "${SHADER_DIR_HLSL}/*.rahit" "${SHADER_DIR_HLSL}/*.rint")
+	set(SHADER_DIR_GLSL "${CMAKE_SOURCE_DIR}/shaders/glsl/${EXAMPLE_NAME}")
+	file(GLOB SHADERS_GLSL "${SHADER_DIR_GLSL}/*.vert" "${SHADER_DIR_GLSL}/*.frag" "${SHADER_DIR_GLSL}/*.comp" "${SHADER_DIR_GLSL}/*.geom" "${SHADER_DIR_GLSL}/*.tesc" "${SHADER_DIR_GLSL}/*.tese" "${SHADER_DIR_GLSL}/*.mesh" "${SHADER_DIR_GLSL}/*.task" "${SHADER_DIR_GLSL}/*.rgen" "${SHADER_DIR_GLSL}/*.rchit" "${SHADER_DIR_GLSL}/*.rmiss" "${SHADER_DIR_GLSL}/*.rcall")
+	set(SHADER_DIR_HLSL "${CMAKE_SOURCE_DIR}/shaders/hlsl/${EXAMPLE_NAME}")
+	file(GLOB SHADERS_HLSL "${SHADER_DIR_HLSL}/*.vert" "${SHADER_DIR_HLSL}/*.frag" "${SHADER_DIR_HLSL}/*.comp" "${SHADER_DIR_HLSL}/*.geom" "${SHADER_DIR_HLSL}/*.tesc" "${SHADER_DIR_HLSL}/*.tese" "${SHADER_DIR_HLSL}/*.mesh" "${SHADER_DIR_HLSL}/*.task" "${SHADER_DIR_HLSL}/*.rgen" "${SHADER_DIR_HLSL}/*.rchit" "${SHADER_DIR_HLSL}/*.rmiss" "${SHADER_DIR_HLSL}/*.rcall")
 	source_group("Shaders\\GLSL" FILES ${SHADERS_GLSL})
 	source_group("Shaders\\HLSL" FILES ${SHADERS_HLSL})
 	# Add optional readme / tutorial
@@ -41,6 +41,47 @@ function(buildExample EXAMPLE_NAME)
 	endif(WIN32)
 
 	file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
+	# GLSL/HLSL shader compilation target
+
+	foreach(GLSL ${SHADERS_GLSL})
+		get_filename_component(FILE_NAME ${GLSL} NAME)
+		set(SPIRV "${SHADER_DIR_GLSL}/${FILE_NAME}.spv")
+		add_custom_command(OUTPUT ${SPIRV} COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV} DEPENDS ${GLSL})
+		list(APPEND SPIRV_BINARY_FILES ${SPIRV})
+  	endforeach(GLSL)
+
+	foreach(HLSL ${SHADERS_HLSL})
+		get_filename_component(FILE_NAME ${HLSL} NAME)
+		get_filename_component(FILE_EXT ${HLSL} EXT)
+		# Depending on the shader type we need to select different shader profiles
+		set(PROFILE "x")
+		if (${FILE_EXT} STREQUAL ".vert")
+			set(PROFILE "vs_6_1")
+		elseif(${FILE_EXT} STREQUAL ".frag")
+			set(PROFILE "ps_6_1")
+		elseif(${FILE_EXT} STREQUAL ".comp")
+			set(PROFILE "cs_6_1")
+		elseif(${FILE_EXT} STREQUAL ".geom")
+			set(PROFILE "gs_6_1")
+		elseif(${FILE_EXT} STREQUAL ".tesc")
+			set(PROFILE "hs_6_1")
+		elseif(${FILE_EXT} STREQUAL ".tese")
+			set(PROFILE "ds_6_1")
+		# elseif(${FILE_EXT} STREQUAL ".rgen")
+		# @todo
+			# set(PROFILE "lib_6_3")
+		endif()
+		# message(${DXC_BINARY} -spirv -T ${PROFILE} -E main ${HLSL} -Fo ${SPIRV})
+		set(SPIRV "${SHADER_DIR_HLSL}/${FILE_NAME}.spv")
+		add_custom_command(OUTPUT ${SPIRV} COMMAND ${DXC_BINARY} -spirv -T ${PROFILE} -E main ${HLSL} -Fo ${SPIRV} DEPENDS ${HLSL})
+		list(APPEND SPIRV_BINARY_FILES ${SPIRV})
+	endforeach(HLSL)
+
+	add_custom_target("${EXAMPLE_NAME}_shaders" DEPENDS ${SPIRV_BINARY_FILES})
+
+	add_dependencies(${EXAMPLE_NAME} "${EXAMPLE_NAME}_shaders")
+
 	set_target_properties(${EXAMPLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 	if(${EXAMPLE_NAME} STREQUAL "texture3d")
 		if(APPLE)
@@ -82,6 +123,10 @@ function(buildExamples)
 		buildExample(${EXAMPLE})
 	endforeach(EXAMPLE)
 endfunction(buildExamples)
+
+# Get shader compilers from SDK
+set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslangValidator.exe")
+set(DXC_BINARY "$ENV{VULKAN_SDK}/Bin/dxc.exe")
 
 set(EXAMPLES
 	bloom
