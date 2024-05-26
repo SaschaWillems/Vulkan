@@ -14,20 +14,20 @@ layout (location = 0) out vec4 outFragColor;
 #define EPSILON 0.15
 #define SHADOW_OPACITY 0.5
 
-void main() 
+void main()
 {
 	// Lighting
 	vec3 N = normalize(inNormal);
-	vec3 L = normalize(vec3(1.0));	
-	
+	vec3 L = normalize(vec3(1.0));
+
 	vec3 Eye = normalize(-inEyePos);
-	vec3 Reflected = normalize(reflect(-inLightVec, inNormal)); 
+	vec3 Reflected = normalize(reflect(-inLightVec, inNormal));
 
 	vec4 IAmbient = vec4(vec3(0.05), 1.0);
 	vec4 IDiffuse = vec4(1.0) * max(dot(inNormal, inLightVec), 0.0);
 
-	outFragColor = vec4(IAmbient + IDiffuse * vec4(inColor, 1.0));		
-		
+	outFragColor = vec4(IAmbient + IDiffuse * vec4(inColor, 1.0));
+
 	// Shadow
 	vec3 lightVec = inWorldPos - inLightPos;
     float sampledDist = texture(shadowCubeMap, lightVec).r;

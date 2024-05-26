@@ -7,7 +7,7 @@
 #version 450
 #extension GL_EXT_mesh_shader : require
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;

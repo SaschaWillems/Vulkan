@@ -1,6 +1,6 @@
 #version 450
 
-layout (set = 0, binding = 0) uniform UBO 
+layout (set = 0, binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 modelview;
@@ -10,15 +10,15 @@ layout (set = 0, binding = 0) uniform UBO
 	float tessellationFactor;
 	vec2 viewportDim;
 	float tessellatedEdgeSize;
-} ubo; 
+} ubo;
 
-layout (set = 0, binding = 1) uniform sampler2D displacementMap; 
+layout (set = 0, binding = 1) uniform sampler2D displacementMap;
 
 layout(quads, equal_spacing, cw) in;
 
 layout (location = 0) in vec3 inNormal[];
 layout (location = 1) in vec2 inUV[];
- 
+
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec2 outUV;
 layout (location = 2) out vec3 outViewVec;

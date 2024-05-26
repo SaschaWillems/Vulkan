@@ -16,7 +16,7 @@ out gl_PerVertex
 	vec4 gl_Position;
 };
 
-void main() 
+void main()
 {
 	outColor = inColor;
 	gl_Position = ubo.projection * ubo.model * vec4(inPos, 1.0);

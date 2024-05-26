@@ -8,7 +8,7 @@ layout (location = 4) in vec3 inLightVec;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
   vec3 Eye = normalize(-inEyePos);
   vec3 Reflected = normalize(reflect(-inLightVec, inNormal));
@@ -18,5 +18,5 @@ void main()
   vec4 spec = vec4(1.0, 1.0, 1.0, 1.0) * pow(max(dot(Reflected, Eye), 0.0), 2.5) * shininess;
 
   outFragColor = diff + spec;
-  outFragColor.a = 1.0; 
+  outFragColor.a = 1.0;
 }

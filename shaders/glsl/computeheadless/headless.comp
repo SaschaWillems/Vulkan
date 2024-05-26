@@ -22,11 +22,11 @@ uint fibonacci(uint n) {
 	return curr;
 }
 
-void main() 
+void main()
 {
 	uint index = gl_GlobalInvocationID.x;
-	if (index >= BUFFER_ELEMENTS) 
-		return;	
+	if (index >= BUFFER_ELEMENTS)
+		return;
 	values[index] = fibonacci(values[index]);
 }
 

@@ -2,7 +2,7 @@
 
 layout (location = 0) in vec3 inPos;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
@@ -10,7 +10,7 @@ layout (binding = 0) uniform UBO
 
 layout (location = 0) out vec3 outUVW;
 
-void main() 
+void main()
 {
 	outUVW = inPos;
 	// Convert cubemap coordinates into Vulkan coordinate space

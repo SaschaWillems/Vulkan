@@ -9,7 +9,7 @@ layout (location = 2) in vec3 inColor;
 layout (location = 4) in vec3 instancePos;
 layout (location = 5) in float instanceScale;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 modelview;
@@ -25,18 +25,18 @@ out gl_PerVertex
 	vec4 gl_Position;
 };
 
-void main() 
+void main()
 {
 	outColor = inColor;
-		
+
 	outNormal = inNormal;
-	
+
 	vec4 pos = vec4((inPos.xyz * instanceScale) + instancePos, 1.0);
 
 	gl_Position = ubo.projection * ubo.modelview * pos;
-	
-	vec4 wPos = ubo.modelview * vec4(pos.xyz, 1.0); 
+
+	vec4 wPos = ubo.modelview * vec4(pos.xyz, 1.0);
 	vec4 lPos = vec4(0.0, 10.0, 50.0, 1.0);
 	outLightVec = lPos.xyz - pos.xyz;
-	outViewVec = -pos.xyz;	
+	outViewVec = -pos.xyz;
 }

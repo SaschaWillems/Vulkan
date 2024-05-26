@@ -23,7 +23,7 @@ float random(vec2 co)
 	return fract(sin(sn) * c);
 }
 
-vec2 hammersley2d(uint i, uint N) 
+vec2 hammersley2d(uint i, uint N)
 {
 	// Radical inverse based on http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 	uint bits = (i << 16u) | (i >> 16u);
@@ -36,7 +36,7 @@ vec2 hammersley2d(uint i, uint N)
 }
 
 // Based on http://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_slides.pdf
-vec3 importanceSample_GGX(vec2 Xi, float roughness, vec3 normal) 
+vec3 importanceSample_GGX(vec2 Xi, float roughness, vec3 normal)
 {
 	// Maps a 2D point to a hemisphere with spread based on roughness
 	float alpha = roughness * roughness;
@@ -60,7 +60,7 @@ float D_GGX(float dotNH, float roughness)
 	float alpha = roughness * roughness;
 	float alpha2 = alpha * alpha;
 	float denom = dotNH * dotNH * (alpha2 - 1.0) + 1.0;
-	return (alpha2)/(PI * denom*denom); 
+	return (alpha2)/(PI * denom*denom);
 }
 
 vec3 prefilterEnvMap(vec3 R, float roughness)
@@ -99,7 +99,7 @@ vec3 prefilterEnvMap(vec3 R, float roughness)
 
 
 void main()
-{		
+{
 	vec3 N = normalize(inPos);
 	outColor = vec4(prefilterEnvMap(N, consts.roughness), 1.0);
 }

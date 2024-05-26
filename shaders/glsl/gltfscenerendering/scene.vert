@@ -6,7 +6,7 @@ layout (location = 2) in vec2 inUV;
 layout (location = 3) in vec3 inColor;
 layout (location = 4) in vec4 inTangent;
 
-layout (set = 0, binding = 0) uniform UBOScene 
+layout (set = 0, binding = 0) uniform UBOScene
 {
 	mat4 projection;
 	mat4 view;
@@ -25,14 +25,14 @@ layout (location = 3) out vec3 outViewVec;
 layout (location = 4) out vec3 outLightVec;
 layout (location = 5) out vec4 outTangent;
 
-void main() 
+void main()
 {
 	outNormal = inNormal;
 	outColor = inColor;
 	outUV = inUV;
 	outTangent = inTangent;
 	gl_Position = uboScene.projection * uboScene.view * primitive.model * vec4(inPos.xyz, 1.0);
-	
+
 	outNormal = mat3(primitive.model) * inNormal;
 	vec4 pos = primitive.model * vec4(inPos, 1.0);
 	outLightVec = uboScene.lightPos.xyz - pos.xyz;

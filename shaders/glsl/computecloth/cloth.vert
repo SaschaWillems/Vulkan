@@ -10,21 +10,21 @@ layout (location = 2) out vec3 outViewVec;
 layout (location = 3) out vec3 outLightVec;
 
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 modelview;
 	vec4 lightPos;
 } ubo;
 
-void main () 
+void main ()
 {
 	outUV = inUV;
 	outNormal = inNormal.xyz;
-	vec4 eyePos = ubo.modelview * vec4(inPos.x, inPos.y, inPos.z, 1.0); 
+	vec4 eyePos = ubo.modelview * vec4(inPos.x, inPos.y, inPos.z, 1.0);
 	gl_Position = ubo.projection * eyePos;
 	vec4 pos = vec4(inPos, 1.0);
 	vec3 lPos = ubo.lightPos.xyz;
 	outLightVec = lPos - pos.xyz;
-	outViewVec = -pos.xyz;		
+	outViewVec = -pos.xyz;
 }

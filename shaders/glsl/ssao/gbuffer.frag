@@ -9,7 +9,7 @@ layout (location = 0) out vec4 outPosition;
 layout (location = 1) out vec4 outNormal;
 layout (location = 2) out vec4 outAlbedo;
 
-layout (set = 0, binding = 0) uniform UBO 
+layout (set = 0, binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
@@ -22,11 +22,11 @@ layout (set = 1, binding = 0) uniform sampler2D samplerColormap;
 
 float linearDepth(float depth)
 {
-	float z = depth * 2.0f - 1.0f; 
-	return (2.0f * ubo.nearPlane * ubo.farPlane) / (ubo.farPlane + ubo.nearPlane - z * (ubo.farPlane - ubo.nearPlane));	
+	float z = depth * 2.0f - 1.0f;
+	return (2.0f * ubo.nearPlane * ubo.farPlane) / (ubo.farPlane + ubo.nearPlane - z * (ubo.farPlane - ubo.nearPlane));
 }
 
-void main() 
+void main()
 {
 	outPosition = vec4(inPos, linearDepth(gl_FragCoord.z));
 	outNormal = vec4(normalize(inNormal) * 0.5 + 0.5, 1.0);

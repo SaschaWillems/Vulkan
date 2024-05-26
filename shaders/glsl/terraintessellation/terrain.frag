@@ -1,6 +1,6 @@
 #version 450
 
-layout (set = 0, binding = 1) uniform sampler2D samplerHeight; 
+layout (set = 0, binding = 1) uniform sampler2D samplerHeight;
 layout (set = 0, binding = 2) uniform sampler2DArray samplerLayers;
 
 layout (location = 0) in vec3 inNormal;
@@ -24,10 +24,10 @@ vec3 sampleTerrainLayer()
 	layers[5] = vec2(140.0, 190.0);
 
 	vec3 color = vec3(0.0);
-	
+
 	// Get height from displacement map
 	float height = textureLod(samplerHeight, inUV, 0.0).r * 255.0;
-	
+
 	for (int i = 0; i < 6; i++)
 	{
 		float range = layers[i].y - layers[i].x;
@@ -57,5 +57,5 @@ void main()
 	vec4 color = vec4((ambient + diffuse) * sampleTerrainLayer(), 1.0);
 
 	const vec4 fogColor = vec4(0.47, 0.5, 0.67, 0.0);
-	outFragColor  = mix(color, fogColor, fog(0.25));	
+	outFragColor  = mix(color, fogColor, fog(0.25));
 }

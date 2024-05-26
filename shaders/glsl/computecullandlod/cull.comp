@@ -2,20 +2,20 @@
 
 layout (constant_id = 0) const int MAX_LOD_LEVEL = 5;
 
-struct InstanceData 
+struct InstanceData
 {
 	vec3 pos;
 	float scale;
 };
 
 // Binding 0: Instance input data for culling
-layout (binding = 0, std140) buffer Instances 
+layout (binding = 0, std140) buffer Instances
 {
    InstanceData instances[ ];
 };
 
 // Same layout as VkDrawIndexedIndirectCommand
-struct IndexedIndirectCommand 
+struct IndexedIndirectCommand
 {
 	uint indexCount;
 	uint instanceCount;
@@ -31,7 +31,7 @@ layout (binding = 1, std430) writeonly buffer IndirectDraws
 };
 
 // Binding 2: Uniform block object with matrices
-layout (binding = 2) uniform UBO 
+layout (binding = 2) uniform UBO
 {
 	mat4 projection;
 	mat4 modelview;
@@ -64,7 +64,7 @@ layout (local_size_x = 16) in;
 bool frustumCheck(vec4 pos, float radius)
 {
 	// Check sphere against frustum planes
-	for (int i = 0; i < 6; i++) 
+	for (int i = 0; i < 6; i++)
 	{
 		if (dot(pos, ubo.frustumPlanes[i]) + radius < 0.0)
 		{
@@ -84,7 +84,7 @@ void main()
 	if (frustumCheck(pos, 1.0))
 	{
 		indirectDraws[idx].instanceCount = 1;
-		
+
 		// Increase number of indirect draw counts
 		atomicAdd(uboOut.drawCount, 1);
 
@@ -92,7 +92,7 @@ void main()
 		uint lodLevel = MAX_LOD_LEVEL;
 		for (uint i = 0; i < MAX_LOD_LEVEL; i++)
 		{
-			if (distance(instances[idx].pos.xyz, ubo.cameraPos.xyz) < lods[i].distance) 
+			if (distance(instances[idx].pos.xyz, ubo.cameraPos.xyz) < lods[i].distance)
 			{
 				lodLevel = i;
 				break;

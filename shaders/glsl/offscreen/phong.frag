@@ -7,10 +7,10 @@ layout (location = 3) in vec3 inLightVec;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
 	vec3 Eye = normalize(-inEyePos);
-	vec3 Reflected = normalize(reflect(-inLightVec, inNormal)); 
+	vec3 Reflected = normalize(reflect(-inLightVec, inNormal));
 
 	vec4 IAmbient = vec4(0.1, 0.1, 0.1, 1.0);
 	vec4 IDiffuse = vec4(max(dot(inNormal, inLightVec), 0.0));
@@ -18,7 +18,7 @@ void main()
 	vec4 ISpecular = vec4(0.0);
 	if (dot(inEyePos, inNormal) < 0.0)
 	{
-		ISpecular = vec4(0.5, 0.5, 0.5, 1.0) * pow(max(dot(Reflected, Eye), 0.0), 16.0) * specular; 
+		ISpecular = vec4(0.5, 0.5, 0.5, 1.0) * pow(max(dot(Reflected, Eye), 0.0), 16.0) * specular;
 	}
 
 	outFragColor = vec4((IAmbient + IDiffuse) * vec4(inColor, 1.0) + ISpecular);

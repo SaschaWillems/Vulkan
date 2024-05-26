@@ -24,11 +24,11 @@ vec3 starField(vec3 pos)
 	{
 		float starCol = pow((rnd - threshhold) / (1.0 - threshhold), 16.0);
 		color += vec3(starCol);
-	}	
+	}
 	return color;
 }
 
-void main() 
+void main()
 {
 	outFragColor = vec4(starField(inUVW), 1.0);
 }

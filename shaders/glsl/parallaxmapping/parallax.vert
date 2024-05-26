@@ -5,7 +5,7 @@ layout (location = 1) in vec2 inUV;
 layout (location = 2) in vec3 inNormal;
 layout (location = 3) in vec4 inTangent;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
@@ -19,12 +19,12 @@ layout (location = 1) out vec3 outTangentLightPos;
 layout (location = 2) out vec3 outTangentViewPos;
 layout (location = 3) out vec3 outTangentFragPos;
 
-void main(void) 
+void main(void)
 {
 	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos, 1.0f);
-	outTangentFragPos = vec3(ubo.model * vec4(inPos, 1.0));   
+	outTangentFragPos = vec3(ubo.model * vec4(inPos, 1.0));
 	outUV = inUV;
-		
+
 	vec3 N = normalize(mat3(ubo.model) * inNormal);
 	vec3 T = normalize(mat3(ubo.model) * inTangent.xyz);
 	vec3 B = normalize(cross(N, T));

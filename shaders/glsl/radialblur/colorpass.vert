@@ -3,7 +3,7 @@
 layout (location = 0) in vec3 inPos;
 layout (location = 2) in vec3 inColor;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
@@ -18,7 +18,7 @@ out gl_PerVertex
 	vec4 gl_Position;
 };
 
-void main() 
+void main()
 {
 	outColor = inColor;
 	outUV = vec2(ubo.gradientPos, 0.0f);

@@ -5,7 +5,7 @@ layout (location = 1) in vec2 inUV;
 layout (location = 2) in vec3 inColor;
 layout (location = 3) in vec3 inNormal;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
@@ -23,7 +23,7 @@ out gl_PerVertex
 	vec4 gl_Position;
 };
 
-void main() 
+void main()
 {
 	outNormal = inNormal;
 	outColor = inColor;
@@ -34,5 +34,5 @@ void main()
 	vec4 pos = ubo.view * ubo.model * inPos;
 	outNormal = mat3(ubo.view * ubo.model) * inNormal;
 	outLightVec = lightPos - pos.xyz;
-	outViewVec = -pos.xyz;	
+	outViewVec = -pos.xyz;
 }

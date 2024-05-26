@@ -2,7 +2,7 @@
 
 layout (location = 0) in vec3 inPos;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
@@ -11,8 +11,8 @@ layout (binding = 0) uniform UBO
 
 layout (location = 0) out vec4 outPos;
 
-void main() 
+void main()
 {
 	outPos = ubo.projection * ubo.view * ubo.model * vec4(inPos.xyz, 1.0);
-	gl_Position = outPos;		
+	gl_Position = outPos;
 }

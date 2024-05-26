@@ -3,7 +3,7 @@
 layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
 
-layout (set = 0, binding = 0) uniform UBO 
+layout (set = 0, binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
@@ -18,7 +18,7 @@ layout(push_constant) uniform PushConsts {
 	vec3 objPos;
 } pushConsts;
 
-void main() 
+void main()
 {
 	vec3 locPos = vec3(ubo.model * vec4(inPos, 1.0));
 	outWorldPos = locPos + pushConsts.objPos;

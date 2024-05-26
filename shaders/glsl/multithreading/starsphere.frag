@@ -24,16 +24,16 @@ vec3 starField(vec3 pos)
     {
         float starCol = pow((rnd - threshhold) / (1.0 - threshhold), 16.0);
 		color += vec3(starCol);
-    }	
+    }
 	return color;
 }
 
-void main() 
+void main()
 {
 	// Fake atmosphere at the bottom
 	vec3 atmosphere = clamp(vec3(0.1, 0.15, 0.4) * (inUVW.t + 0.25), 0.0, 1.0);
 
 	vec3 color = starField(inUVW) + atmosphere;
-	
+
 	outFragColor = vec4(color, 1.0);
 }

@@ -10,7 +10,7 @@
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
 layout(binding = 1, set = 0, rgba8) uniform image2D image;
-layout(binding = 2, set = 0) uniform CameraProperties 
+layout(binding = 2, set = 0) uniform CameraProperties
 {
 	mat4 viewInverse;
 	mat4 projInverse;
@@ -22,10 +22,10 @@ layout(location = 3) rayPayloadEXT uint payloadSeed;
 
 #include "random.glsl"
 
-void main() 
+void main()
 {
 	uint seed = tea(gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x, cam.frame);
-    
+
 	float r1 = rnd(seed);
     float r2 = rnd(seed);
 

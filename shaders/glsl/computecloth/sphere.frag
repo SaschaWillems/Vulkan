@@ -6,7 +6,7 @@ layout (location = 2) in vec3 inLightVec;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main () 
+void main ()
 {
 	vec3 color = vec3(0.5);
 	vec3 N = normalize(inNormal);
@@ -15,5 +15,5 @@ void main ()
 	vec3 R = reflect(-L, N);
 	vec3 diffuse = max(dot(N, L), 0.15) * vec3(1.0);
 	vec3 specular = pow(max(dot(R, V), 0.0), 32.0) * vec3(1.0);
-	outFragColor = vec4(diffuse * color.rgb + specular, 1.0);	
+	outFragColor = vec4(diffuse * color.rgb + specular, 1.0);
 }

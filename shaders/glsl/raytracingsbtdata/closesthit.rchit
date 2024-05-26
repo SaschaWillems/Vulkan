@@ -13,7 +13,7 @@ layout(shaderRecordEXT, std430) buffer SBT {
 
 void main()
 {
-  // Update the hit value to the hit record SBT data associated with this 
+  // Update the hit value to the hit record SBT data associated with this
   // geometry ID and ray ID
   hitValue = vec3(r, g, b);
 }

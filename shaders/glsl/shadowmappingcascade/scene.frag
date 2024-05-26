@@ -26,11 +26,11 @@ layout (set = 0, binding = 2) uniform UBO {
 	int colorCascades;
 } ubo;
 
-const mat4 biasMat = mat4( 
+const mat4 biasMat = mat4(
 	0.5, 0.0, 0.0, 0.0,
 	0.0, 0.5, 0.0, 0.0,
 	0.0, 0.0, 1.0, 0.0,
-	0.5, 0.5, 0.0, 1.0 
+	0.5, 0.5, 0.0, 1.0
 );
 
 float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex)
@@ -58,7 +58,7 @@ float filterPCF(vec4 sc, uint cascadeIndex)
 	float shadowFactor = 0.0;
 	int count = 0;
 	int range = 1;
-	
+
 	for (int x = -range; x <= range; x++) {
 		for (int y = -range; y <= range; y++) {
 			shadowFactor += textureProj(sc, vec2(dx*x, dy*y), cascadeIndex);
@@ -68,8 +68,8 @@ float filterPCF(vec4 sc, uint cascadeIndex)
 	return shadowFactor / count;
 }
 
-void main() 
-{	
+void main()
+{
 	vec4 color = texture(colorMap, inUV);
 	if (color.a < 0.5) {
 		discard;
@@ -78,13 +78,13 @@ void main()
 	// Get cascade index for the current fragment's view position
 	uint cascadeIndex = 0;
 	for(uint i = 0; i < SHADOW_MAP_CASCADE_COUNT - 1; ++i) {
-		if(inViewPos.z < ubo.cascadeSplits[i]) {	
+		if(inViewPos.z < ubo.cascadeSplits[i]) {
 			cascadeIndex = i + 1;
 		}
 	}
 
 	// Depth compare for shadowing
-	vec4 shadowCoord = (biasMat * ubo.cascadeViewProjMat[cascadeIndex]) * vec4(inPos, 1.0);	
+	vec4 shadowCoord = (biasMat * ubo.cascadeViewProjMat[cascadeIndex]) * vec4(inPos, 1.0);
 
 	float shadow = 0;
 	if (enablePCF == 1) {
@@ -106,16 +106,16 @@ void main()
 	// Color cascades (if enabled)
 	if (ubo.colorCascades == 1) {
 		switch(cascadeIndex) {
-			case 0 : 
+			case 0 :
 				outFragColor.rgb *= vec3(1.0f, 0.25f, 0.25f);
 				break;
-			case 1 : 
+			case 1 :
 				outFragColor.rgb *= vec3(0.25f, 1.0f, 0.25f);
 				break;
-			case 2 : 
+			case 2 :
 				outFragColor.rgb *= vec3(0.25f, 0.25f, 1.0f);
 				break;
-			case 3 : 
+			case 3 :
 				outFragColor.rgb *= vec3(1.0f, 1.0f, 0.25f);
 				break;
 		}

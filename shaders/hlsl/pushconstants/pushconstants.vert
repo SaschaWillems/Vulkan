@@ -32,10 +32,10 @@ VSOutput main(VSInput input)
 {
 	VSOutput output = (VSOutput)0;
 	output.Color = input.Color * pushConsts.color.rgb;
-	
+
 	float3 locPos = float3(mul(ubo.model, float4(input.Pos.xyz, 1.0)).xyz);
 	float3 worldPos = locPos + pushConsts.position.xyz;
 	output.Pos = mul(ubo.projection, mul(ubo.view, float4(worldPos.xyz, 1.0)));
-	
+
 	return output;
 }

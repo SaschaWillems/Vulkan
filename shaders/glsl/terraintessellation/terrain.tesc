@@ -15,13 +15,13 @@ layout(set = 0, binding = 0) uniform UBO
 layout(set = 0, binding = 1) uniform sampler2D samplerHeight;
 
 layout (vertices = 4) out;
- 
+
 layout (location = 0) in vec3 inNormal[];
 layout (location = 1) in vec2 inUV[];
- 
+
 layout (location = 0) out vec3 outNormal[4];
 layout (location = 1) out vec2 outUV[4];
- 
+
 // Calculate the tessellation factor based on screen space
 // dimensions of the edge
 float screenSpaceTessFactor(vec4 p0, vec4 p1)
@@ -45,8 +45,8 @@ float screenSpaceTessFactor(vec4 p0, vec4 p1)
 	// Convert to viewport coordinates
 	clip0.xy *= ubo.viewportDim;
 	clip1.xy *= ubo.viewportDim;
-	
-	// Return the tessellation factor based on the screen size 
+
+	// Return the tessellation factor based on the screen size
 	// given by the distance of the two edge control points in screen space
 	// and a reference (min.) tessellation size for the edge set by the application
 	return clamp(distance(clip0, clip1) / ubo.tessellatedEdgeSize * ubo.tessellationFactor, 1.0, 64.0);
@@ -113,4 +113,4 @@ void main()
 	gl_out[gl_InvocationID].gl_Position =  gl_in[gl_InvocationID].gl_Position;
 	outNormal[gl_InvocationID] = inNormal[gl_InvocationID];
 	outUV[gl_InvocationID] = inUV[gl_InvocationID];
-} 
+}

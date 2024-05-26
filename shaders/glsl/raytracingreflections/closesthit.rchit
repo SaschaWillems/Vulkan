@@ -14,7 +14,7 @@ layout(location = 0) rayPayloadInEXT RayPayload rayPayload;
 hitAttributeEXT vec2 attribs;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 2, set = 0) uniform UBO 
+layout(binding = 2, set = 0) uniform UBO
 {
 	mat4 viewInverse;
 	mat4 projInverse;
@@ -30,7 +30,7 @@ struct Vertex
   vec3 normal;
   vec2 uv;
   vec4 color;
-  vec4 _pad0; 
+  vec4 _pad0;
   vec4 _pad1;
 };
 
@@ -72,5 +72,5 @@ void main()
 	rayPayload.normal = normal;
 
 	// Objects with full white vertex color are treated as reflectors
-	rayPayload.reflector = ((v0.color.r == 1.0f) && (v0.color.g == 1.0f) && (v0.color.b == 1.0f)) ? 1.0f : 0.0f; 
+	rayPayload.reflector = ((v0.color.r == 1.0f) && (v0.color.g == 1.0f) && (v0.color.b == 1.0f)) ? 1.0f : 0.0f;
 }

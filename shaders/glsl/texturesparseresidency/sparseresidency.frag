@@ -10,7 +10,7 @@ layout (location = 1) in float inLodBias;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
 	vec4 color = vec4(0.0);
 
@@ -20,7 +20,7 @@ void main()
 	// Fetch sparse until we get a valid texel
 	/*
 	float minLod = 1.0;
-	while (!sparseTexelsResidentARB(residencyCode)) 
+	while (!sparseTexelsResidentARB(residencyCode))
 	{
 		residencyCode = sparseTextureClampARB(samplerColor, inUV, minLod, color);
 		minLod += 1.0f;

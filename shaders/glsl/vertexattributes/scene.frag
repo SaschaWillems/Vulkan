@@ -17,7 +17,7 @@ layout(push_constant) uniform PushConsts {
 	float alphaMaskCuttoff;
 } pushConsts;
 
-void main() 
+void main()
 {
 	vec4 color = texture(samplerColorMap, inUV);
 

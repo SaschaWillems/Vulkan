@@ -13,7 +13,7 @@ layout (location = 4) in vec3 inViewVec;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main(void) 
+void main(void)
 {
 	vec3 specularColor = vec3(0.85, 0.5, 0.0);
 
@@ -34,8 +34,8 @@ void main(void)
 	vec3 light = normalize(-inLightVec);
 	vec3 view = normalize(inViewVec);
 	vec3 reflectDir = reflect(-light, normal);
-		
+
 	float specular = pow(max(dot(view, reflectDir), 0.0), 4.0);
-	
-	outFragColor = vec4((rgb * atten + (diffuse * rgb + 0.5 * specular * specularColor.rgb)) * atten, 1.0);   
+
+	outFragColor = vec4((rgb * atten + (diffuse * rgb + 0.5 * specular * specularColor.rgb)) * atten, 1.0);
 }

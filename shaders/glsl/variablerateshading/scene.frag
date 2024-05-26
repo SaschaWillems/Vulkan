@@ -12,7 +12,7 @@ layout (location = 3) in vec3 inViewVec;
 layout (location = 4) in vec3 inLightVec;
 layout (location = 5) in vec4 inTangent;
 
-layout (set = 0, binding = 0) uniform UBOScene 
+layout (set = 0, binding = 0) uniform UBOScene
 {
 	mat4 projection;
 	mat4 view;
@@ -27,7 +27,7 @@ layout (location = 0) out vec4 outFragColor;
 layout (constant_id = 0) const bool ALPHA_MASK = false;
 layout (constant_id = 1) const float ALPHA_MASK_CUTOFF = 0.0f;
 
-void main() 
+void main()
 {
 	vec4 color = texture(samplerColorMap, inUV) * vec4(inColor, 1.0);
 
@@ -54,7 +54,7 @@ void main()
 	if (uboScene.colorShadingRates == 1) {
 		int v = 1;
 		int h = 1;
-	
+
 		if ((gl_ShadingRateEXT & gl_ShadingRateFlag2VerticalPixelsEXT) == gl_ShadingRateFlag2VerticalPixelsEXT) {
 			v = 2;
 		}

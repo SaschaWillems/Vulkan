@@ -9,7 +9,7 @@ layout (location = 3) in vec3 inLightVec;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
 	vec4 color = texture(samplerColor, inUV);
 

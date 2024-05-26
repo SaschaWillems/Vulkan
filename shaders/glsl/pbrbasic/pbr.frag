@@ -3,7 +3,7 @@
 layout (location = 0) in vec3 inWorldPos;
 layout (location = 1) in vec3 inNormal;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
@@ -40,7 +40,7 @@ float D_GGX(float dotNH, float roughness)
 	float alpha = roughness * roughness;
 	float alpha2 = alpha * alpha;
 	float denom = dotNH * dotNH * (alpha2 - 1.0) + 1.0;
-	return (alpha2)/(PI * denom*denom); 
+	return (alpha2)/(PI * denom*denom);
 }
 
 // Geometric Shadowing function --------------------------------------
@@ -57,15 +57,15 @@ float G_SchlicksmithGGX(float dotNL, float dotNV, float roughness)
 vec3 F_Schlick(float cosTheta, float metallic)
 {
 	vec3 F0 = mix(vec3(0.04), materialcolor(), metallic); // * material.specular
-	vec3 F = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0); 
-	return F;    
+	vec3 F = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+	return F;
 }
 
 // Specular BRDF composition --------------------------------------------
 
 vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
 {
-	// Precalculate vectors and dot products	
+	// Precalculate vectors and dot products
 	vec3 H = normalize (V + L);
 	float dotNV = clamp(dot(N, V), 0.0, 1.0);
 	float dotNL = clamp(dot(N, L), 0.0, 1.0);
@@ -81,7 +81,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
 	{
 		float rroughness = max(0.05, roughness);
 		// D = Normal distribution (Distribution of the microfacets)
-		float D = D_GGX(dotNH, roughness); 
+		float D = D_GGX(dotNH, roughness);
 		// G = Geometric shadowing term (Microfacets shadowing)
 		float G = G_SchlicksmithGGX(dotNL, dotNV, rroughness);
 		// F = Fresnel factor (Reflectance depending on angle of incidence)
@@ -97,7 +97,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
 
 // ----------------------------------------------------------------------------
 void main()
-{		  
+{
 	vec3 N = normalize(inNormal);
 	vec3 V = normalize(ubo.camPos - inWorldPos);
 

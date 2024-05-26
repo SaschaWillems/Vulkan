@@ -4,7 +4,7 @@ layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec3 inColor;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 modelview;
@@ -20,7 +20,7 @@ layout(push_constant) uniform PushConsts {
 	vec3 objPos;
 } pushConsts;
 
-void main() 
+void main()
 {
 	outNormal = inNormal;
 	outColor = inColor;
@@ -28,7 +28,7 @@ void main()
 	vec3 locPos = vec3(ubo.modelview * vec4(inPos, 1.0));
 	vec3 worldPos = vec3(ubo.modelview * vec4(inPos + pushConsts.objPos, 1.0));
 	gl_Position =  ubo.projection /* ubo.modelview */ * vec4(worldPos, 1.0);
-	
+
 	vec4 pos = ubo.modelview * vec4(worldPos, 1.0);
 	outNormal = mat3(ubo.modelview) * inNormal;
 	outLightVec = ubo.lightPos.xyz - pos.xyz;

@@ -22,7 +22,7 @@ out gl_PerVertex {
 	vec4 gl_Position;
 };
 
-void main() 
+void main()
 {
 	outNormal = inNormal;
 	outColor = inColor;

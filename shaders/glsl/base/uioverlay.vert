@@ -12,12 +12,12 @@ layout (push_constant) uniform PushConstants {
 layout (location = 0) out vec2 outUV;
 layout (location = 1) out vec4 outColor;
 
-out gl_PerVertex 
+out gl_PerVertex
 {
-	vec4 gl_Position;   
+	vec4 gl_Position;
 };
 
-void main() 
+void main()
 {
 	outUV = inUV;
 	outColor = inColor;

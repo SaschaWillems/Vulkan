@@ -16,7 +16,7 @@ layout (binding = 0) uniform Matrices
 layout (location = 0) out vec2 outUV;
 layout (location = 1) flat out int outTexIndex;
 
-void main() 
+void main()
 {
 	outUV = inUV;
 	outTexIndex = inTextureIndex;

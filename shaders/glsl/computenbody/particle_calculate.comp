@@ -8,14 +8,14 @@ struct Particle
 };
 
 // Binding 0 : Position storage buffer
-layout(std140, binding = 0) buffer Pos 
+layout(std140, binding = 0) buffer Pos
 {
    Particle particles[ ];
 };
 
 layout (local_size_x = 256) in;
 
-layout (binding = 1) uniform UBO 
+layout (binding = 1) uniform UBO
 {
 	float deltaT;
 	int particleCount;
@@ -29,12 +29,12 @@ layout (constant_id = 0) const int SHARED_DATA_SIZE = 512;
 // Share data between computer shader invocations to speed up caluclations
 shared vec4 sharedData[SHARED_DATA_SIZE];
 
-void main() 
+void main()
 {
 	// Current SSBO index
 	uint index = gl_GlobalInvocationID.x;
-	if (index >= ubo.particleCount) 
-		return;	
+	if (index >= ubo.particleCount)
+		return;
 
 	vec4 position = particles[index].pos;
 	vec4 velocity = particles[index].vel;

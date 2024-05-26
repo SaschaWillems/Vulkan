@@ -6,7 +6,7 @@ layout (location = 2) in vec3 inColor;
 
 #define lightCount 6
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
@@ -20,9 +20,9 @@ layout(push_constant) uniform PushConsts {
 
 layout (location = 0) out vec3 outColor;
 
-void main() 
+void main()
 {
-	outColor = inColor * pushConsts.color.rgb;	
+	outColor = inColor * pushConsts.color.rgb;
 	vec3 locPos = vec3(ubo.model * vec4(inPos, 1.0));
 	vec3 worldPos = locPos + pushConsts.position.xyz;
 	gl_Position =  ubo.projection * ubo.view * vec4(worldPos, 1.0);

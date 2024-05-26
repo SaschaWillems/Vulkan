@@ -14,8 +14,8 @@ layout (location = 0) out vec4 outFragColor;
 
 #define ambient 0.1
 
-void main() 
-{	
+void main()
+{
 	vec3 N = normalize(inNormal);
 	vec3 L = normalize(inLightVec);
 	vec3 V = normalize(inViewVec);

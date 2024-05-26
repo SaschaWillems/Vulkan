@@ -5,7 +5,7 @@ layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inTexCoord;
 layout (location = 3) in vec3 inColor;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
@@ -20,7 +20,7 @@ layout (location = 2) out vec3 outColor;
 layout (location = 3) out vec3 outEyePos;
 layout (location = 4) out vec3 outLightVec;
 
-void main() 
+void main()
 {
 	mat4 modelView = ubo.view * ubo.model;
 	vec4 pos = modelView * inPos;

@@ -28,7 +28,7 @@ out gl_PerVertex
 	vec4 gl_Position;
 };
 
-void main() 
+void main()
 {
 	outNormal = inNormal;
 	outColor = material.baseColorFactor.rgb;
@@ -40,5 +40,5 @@ void main()
 	vec4 localpos = ubo.view * ubo.model * node.matrix * pos;
 	vec3 lightPos = vec3(10.0f, -10.0f, 10.0f);
 	outLightVec = lightPos.xyz - localpos.xyz;
-	outViewVec = -localpos.xyz;		
+	outViewVec = -localpos.xyz;
 }

@@ -11,7 +11,7 @@ layout (location = 1) flat in int inTexIndex;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
 	outFragColor = texture(textures[nonuniformEXT(inTexIndex)], inUV);
 }

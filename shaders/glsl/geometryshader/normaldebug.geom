@@ -3,7 +3,7 @@
 layout (triangles) in;
 layout (line_strip, max_vertices = 6) out;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
@@ -14,7 +14,7 @@ layout (location = 0) in vec3 inNormal[];
 layout (location = 0) out vec3 outColor;
 
 void main(void)
-{	
+{
 	float normalLength = 0.02;
 	for(int i=0; i<gl_in.length(); i++)
 	{

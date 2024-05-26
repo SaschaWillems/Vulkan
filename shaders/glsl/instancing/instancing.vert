@@ -12,7 +12,7 @@ layout (location = 5) in vec3 instanceRot;
 layout (location = 6) in float instanceScale;
 layout (location = 7) in int instanceTexIndex;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 modelview;
@@ -27,13 +27,13 @@ layout (location = 2) out vec3 outUV;
 layout (location = 3) out vec3 outViewVec;
 layout (location = 4) out vec3 outLightVec;
 
-void main() 
+void main()
 {
 	outColor = inColor;
 	outUV = vec3(inUV, instanceTexIndex);
 
 	mat3 mx, my, mz;
-	
+
 	// rotate around x
 	float s = sin(instanceRot.x + ubo.locSpeed);
 	float c = cos(instanceRot.x + ubo.locSpeed);
@@ -41,7 +41,7 @@ void main()
 	mx[0] = vec3(c, s, 0.0);
 	mx[1] = vec3(-s, c, 0.0);
 	mx[2] = vec3(0.0, 0.0, 1.0);
-	
+
 	// rotate around y
 	s = sin(instanceRot.y + ubo.locSpeed);
 	c = cos(instanceRot.y + ubo.locSpeed);
@@ -49,15 +49,15 @@ void main()
 	my[0] = vec3(c, 0.0, s);
 	my[1] = vec3(0.0, 1.0, 0.0);
 	my[2] = vec3(-s, 0.0, c);
-	
+
 	// rot around z
 	s = sin(instanceRot.z + ubo.locSpeed);
-	c = cos(instanceRot.z + ubo.locSpeed);	
-	
+	c = cos(instanceRot.z + ubo.locSpeed);
+
 	mz[0] = vec3(1.0, 0.0, 0.0);
 	mz[1] = vec3(0.0, c, s);
 	mz[2] = vec3(0.0, -s, c);
-	
+
 	mat3 rotMat = mz * my * mx;
 
 	mat4 gRotMat;
@@ -66,8 +66,8 @@ void main()
 	gRotMat[0] = vec4(c, 0.0, s, 0.0);
 	gRotMat[1] = vec4(0.0, 1.0, 0.0, 0.0);
 	gRotMat[2] = vec4(-s, 0.0, c, 0.0);
-	gRotMat[3] = vec4(0.0, 0.0, 0.0, 1.0);	
-	
+	gRotMat[3] = vec4(0.0, 0.0, 0.0, 1.0);
+
 	vec4 locPos = vec4(inPos.xyz * rotMat, 1.0);
 	vec4 pos = vec4((locPos.xyz * instanceScale) + instancePos, 1.0);
 
@@ -77,5 +77,5 @@ void main()
 	pos = ubo.modelview * vec4(inPos.xyz + instancePos, 1.0);
 	vec3 lPos = mat3(ubo.modelview) * ubo.lightPos.xyz;
 	outLightVec = lPos - pos.xyz;
-	outViewVec = -pos.xyz;		
+	outViewVec = -pos.xyz;
 }

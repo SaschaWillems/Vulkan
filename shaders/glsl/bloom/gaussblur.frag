@@ -2,7 +2,7 @@
 
 layout (binding = 1) uniform sampler2D samplerColor;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	float blurScale;
 	float blurStrength;
@@ -14,7 +14,7 @@ layout (location = 0) in vec2 inUV;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
 	float weight[5];
 	weight[0] = 0.227027;

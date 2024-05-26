@@ -4,7 +4,7 @@ layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inColor;
 layout (location = 2) in vec3 inNormal;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
@@ -17,7 +17,7 @@ layout (location = 1) out vec3 outColor;
 layout (location = 2) out vec3 outEyePos;
 layout (location = 3) out vec3 outLightVec;
 
-void main() 
+void main()
 {
 	outNormal = inNormal;
 	outColor = inColor;
@@ -26,6 +26,6 @@ void main()
 	outLightVec = normalize(ubo.lightPos.xyz - outEyePos);
 
 	// Clip against reflection plane
-	vec4 clipPlane = vec4(0.0, -1.0, 0.0, 1.5);	
-	gl_ClipDistance[0] = dot(vec4(inPos, 1.0), clipPlane);	
+	vec4 clipPlane = vec4(0.0, -1.0, 0.0, 1.5);
+	gl_ClipDistance[0] = dot(vec4(inPos, 1.0), clipPlane);
 }

@@ -14,23 +14,23 @@ struct Light {
 	float radius;
 };
 
-layout (std140, binding = 3) buffer LightsBuffer 
+layout (std140, binding = 3) buffer LightsBuffer
 {
 	Light lights[];
 };
 
-void main() 
+void main()
 {
 	// Read G-Buffer values from previous sub pass
 	vec3 fragPos = subpassLoad(inputPosition).rgb;
 	vec3 normal = subpassLoad(inputNormal).rgb;
 	vec4 albedo = subpassLoad(inputAlbedo);
-	
+
 	#define ambient 0.05
-	
+
 	// Ambient part
 	vec3 fragcolor  = albedo.rgb * ambient;
-	
+
 	for(int i = 0; i < lights.length(); ++i)
 	{
 		vec3 L = lights[i].position.xyz - fragPos;
@@ -44,7 +44,7 @@ void main()
 		vec3 diff = lights[i].color * albedo.rgb * NdotL * atten;
 
 		fragcolor += diff;
-	}    	
-   
+	}
+
 	outColor = vec4(fragcolor, 1.0);
 }

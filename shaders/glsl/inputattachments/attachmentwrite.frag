@@ -7,7 +7,7 @@ layout (location = 3) in vec3 inLightVec;
 
 layout (location = 0) out vec4 outColor;
 
-void main() 
+void main()
 {
 	// Toon shading color attachment output
 	float intensity = dot(normalize(inNormal), normalize(inLightVec));

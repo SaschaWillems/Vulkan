@@ -31,7 +31,7 @@ void main()
         nodeIdx = fragments[count].next;
         ++count;
     }
-    
+
     // Do the insertion sort
     for (uint i = 1; i < count; ++i)
     {

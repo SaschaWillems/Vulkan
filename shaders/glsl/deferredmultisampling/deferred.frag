@@ -14,7 +14,7 @@ struct Light {
 	float radius;
 };
 
-layout (binding = 4) uniform UBO 
+layout (binding = 4) uniform UBO
 {
 	Light lights[6];
 	vec4 viewPos;
@@ -25,15 +25,15 @@ layout (constant_id = 0) const int NUM_SAMPLES = 8;
 
 #define NUM_LIGHTS 6
 
-// Manual resolve for MSAA samples 
+// Manual resolve for MSAA samples
 vec4 resolve(sampler2DMS tex, ivec2 uv)
 {
-	vec4 result = vec4(0.0);	   
+	vec4 result = vec4(0.0);
 	for (int i = 0; i < NUM_SAMPLES; i++)
 	{
-		vec4 val = texelFetch(tex, uv, i); 
+		vec4 val = texelFetch(tex, uv, i);
 		result += val;
-	}    
+	}
 	// Average resolved samples
 	return result / float(NUM_SAMPLES);
 }
@@ -52,7 +52,7 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec4 albedo)
 		// Viewer to fragment
 		vec3 V = ubo.viewPos.xyz - pos;
 		V = normalize(V);
-		
+
 		// Light to fragment
 		L = normalize(L);
 
@@ -69,32 +69,32 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec4 albedo)
 		float NdotR = max(0.0, dot(R, V));
 		vec3 spec = ubo.lights[i].color * albedo.a * pow(NdotR, 8.0) * atten;
 
-		result += diff + spec;	
+		result += diff + spec;
 	}
 	return result;
 }
 
-void main() 
+void main()
 {
 	ivec2 attDim = textureSize(samplerPosition);
 	ivec2 UV = ivec2(inUV * attDim);
-	
+
 	// Debug display
 	if (ubo.debugDisplayTarget > 0) {
 		switch (ubo.debugDisplayTarget) {
-			case 1: 
+			case 1:
 				outFragcolor.rgb = texelFetch(samplerPosition, UV, 0).rgb;
 				break;
-			case 2: 
+			case 2:
 				outFragcolor.rgb = texelFetch(samplerNormal, UV, 0).rgb;
 				break;
-			case 3: 
+			case 3:
 				outFragcolor.rgb = texelFetch(samplerAlbedo, UV, 0).rgb;
 				break;
-			case 4: 
+			case 4:
 				outFragcolor.rgb = texelFetch(samplerAlbedo, UV, 0).aaa;
 				break;
-		}		
+		}
 		outFragcolor.a = 1.0;
 		return;
 	}
@@ -104,10 +104,10 @@ void main()
 	// Ambient part
 	vec4 alb = resolve(samplerAlbedo, UV);
 	vec3 fragColor = vec3(0.0);
-	
+
 	// Calualte lighting for every MSAA sample
 	for (int i = 0; i < NUM_SAMPLES; i++)
-	{ 
+	{
 		vec3 pos = texelFetch(samplerPosition, UV, i).rgb;
 		vec3 normal = texelFetch(samplerNormal, UV, i).rgb;
 		vec4 albedo = texelFetch(samplerAlbedo, UV, i);
@@ -115,6 +115,6 @@ void main()
 	}
 
 	fragColor = (alb.rgb * ambient) + fragColor / float(NUM_SAMPLES);
-   
-	outFragcolor = vec4(fragColor, 1.0);	
+
+	outFragcolor = vec4(fragColor, 1.0);
 }

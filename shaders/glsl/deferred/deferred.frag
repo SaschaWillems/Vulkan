@@ -14,36 +14,36 @@ struct Light {
 	float radius;
 };
 
-layout (binding = 4) uniform UBO 
+layout (binding = 4) uniform UBO
 {
 	Light lights[6];
 	vec4 viewPos;
 	int displayDebugTarget;
 } ubo;
 
-void main() 
+void main()
 {
 	// Get G-Buffer values
 	vec3 fragPos = texture(samplerposition, inUV).rgb;
 	vec3 normal = texture(samplerNormal, inUV).rgb;
 	vec4 albedo = texture(samplerAlbedo, inUV);
-	
+
 	// Debug display
 	if (ubo.displayDebugTarget > 0) {
 		switch (ubo.displayDebugTarget) {
-			case 1: 
+			case 1:
 				outFragcolor.rgb = fragPos;
 				break;
-			case 2: 
+			case 2:
 				outFragcolor.rgb = normal;
 				break;
-			case 3: 
+			case 3:
 				outFragcolor.rgb = albedo.rgb;
 				break;
-			case 4: 
+			case 4:
 				outFragcolor.rgb = albedo.aaa;
 				break;
-		}		
+		}
 		outFragcolor.a = 1.0;
 		return;
 	}
@@ -52,10 +52,10 @@ void main()
 
 	#define lightCount 6
 	#define ambient 0.0
-	
+
 	// Ambient part
 	vec3 fragcolor  = albedo.rgb * ambient;
-	
+
 	for(int i = 0; i < lightCount; ++i)
 	{
 		// Vector to light
@@ -66,7 +66,7 @@ void main()
 		// Viewer to fragment
 		vec3 V = ubo.viewPos.xyz - fragPos;
 		V = normalize(V);
-		
+
 		//if(dist < ubo.lights[i].radius)
 		{
 			// Light to fragment
@@ -86,9 +86,9 @@ void main()
 			float NdotR = max(0.0, dot(R, V));
 			vec3 spec = ubo.lights[i].color * albedo.a * pow(NdotR, 16.0) * atten;
 
-			fragcolor += diff + spec;	
-		}	
-	}    	
-   
-  outFragcolor = vec4(fragcolor, 1.0);	
+			fragcolor += diff + spec;
+		}
+	}
+
+  outFragcolor = vec4(fragcolor, 1.0);
 }

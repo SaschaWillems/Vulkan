@@ -8,14 +8,14 @@ struct Particle
 };
 
 // Binding 0 : Position storage buffer
-layout(std140, binding = 0) buffer Pos 
+layout(std140, binding = 0) buffer Pos
 {
    Particle particles[ ];
 };
 
 layout (local_size_x = 256) in;
 
-layout (binding = 1) uniform UBO 
+layout (binding = 1) uniform UBO
 {
 	float deltaT;
 	float destX;
@@ -23,7 +23,7 @@ layout (binding = 1) uniform UBO
 	int particleCount;
 } ubo;
 
-vec2 attraction(vec2 pos, vec2 attractPos) 
+vec2 attraction(vec2 pos, vec2 attractPos)
 {
     vec2 delta = attractPos - pos;
 	const float damp = 0.5;
@@ -40,13 +40,13 @@ vec2 repulsion(vec2 pos, vec2 attractPos)
 	return delta * (1.0 / (targetDistance * targetDistance * targetDistance)) * -0.000035;
 }
 
-void main() 
+void main()
 {
     // Current SSBO index
     uint index = gl_GlobalInvocationID.x;
 	// Don't try to write beyond particle count
-    if (index >= ubo.particleCount) 
-		return;	
+    if (index >= ubo.particleCount)
+		return;
 
     // Read position and velocity
     vec2 vVel = particles[index].vel.xy;

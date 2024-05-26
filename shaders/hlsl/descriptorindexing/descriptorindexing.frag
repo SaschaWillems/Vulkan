@@ -13,5 +13,5 @@ struct VSOutput
 
 float4 main(VSOutput input) : SV_TARGET
 {
-	return textures[NonUniformResourceIndex(input.TextureIndex)].Sample(samplerColorMap, input.UV); 
+	return textures[NonUniformResourceIndex(input.TextureIndex)].Sample(samplerColorMap, input.UV);
 }

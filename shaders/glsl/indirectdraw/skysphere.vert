@@ -4,7 +4,7 @@
 layout (location = 0) in vec4 inPos;
 layout (location = 2) in vec2 inUV;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 modelview;
@@ -12,7 +12,7 @@ layout (binding = 0) uniform UBO
 
 layout (location = 0) out vec2 outUV;
 
-void main() 
+void main()
 {
 	outUV = inUV;
 	// Skysphere always at center, only use rotation part of modelview matrix

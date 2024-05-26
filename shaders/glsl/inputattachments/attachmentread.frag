@@ -15,7 +15,7 @@ vec3 brightnessContrast(vec3 color, float brightness, float contrast) {
 	return (color - 0.5) * contrast + 0.5 + brightness;
 }
 
-void main() 
+void main()
 {
 	// Apply brightness and contrast filer to color input
 	if (ubo.attachmentIndex == 0) {

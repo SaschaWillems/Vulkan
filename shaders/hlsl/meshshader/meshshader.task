@@ -5,14 +5,14 @@
  */
 
 struct DummyPayLoad
-{ 
-    uint dummyData; 
-}; 
+{
+    uint dummyData;
+};
 
 // We don't use pay loads in this sample, but the fn call requires one
 groupshared DummyPayLoad dummyPayLoad;
 
-[numthreads(1,1,1)] 
+[numthreads(1,1,1)]
 void main()
 {
 	DispatchMesh(3, 1, 1, dummyPayLoad);

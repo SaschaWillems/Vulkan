@@ -12,7 +12,7 @@ out gl_PerVertex
 	float gl_PointSize;
 };
 
-void main () 
+void main ()
 {
   gl_PointSize = 8.0;
   outColor = vec4(0.035);

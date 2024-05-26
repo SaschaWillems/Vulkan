@@ -7,20 +7,20 @@ struct Particle
 };
 
 // Binding 0 : Position storage buffer
-layout(std140, binding = 0) buffer Pos 
+layout(std140, binding = 0) buffer Pos
 {
    Particle particles[ ];
 };
 
 layout (local_size_x = 256) in;
 
-layout (binding = 1) uniform UBO 
+layout (binding = 1) uniform UBO
 {
 	float deltaT;
 	int particleCount;
 } ubo;
 
-void main() 
+void main()
 {
 	int index = int(gl_GlobalInvocationID);
 	vec4 position = particles[index].pos;

@@ -19,11 +19,11 @@ out gl_PerVertex {
 	vec4 gl_Position;
 };
 
-void main() 
+void main()
 {
 	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos, 1.0);
 	outColor = inColor;
 	outNormal = inNormal;
 	outLightVec = vec3(0.0f, 5.0f, 15.0f) - inPos;
-	outViewVec = -inPos.xyz;		
+	outViewVec = -inPos.xyz;
 }

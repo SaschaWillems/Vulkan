@@ -7,7 +7,7 @@ layout (location = 1) in vec2 inUV;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
 	outFragColor.rgb = inColor;
 //	outFragColor = texture(colorMap, inUV);// * vec4(inColor, 1.0);

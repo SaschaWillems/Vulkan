@@ -2,7 +2,7 @@
 
 layout (location = 0) in vec3 inPos;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 view;
@@ -17,7 +17,7 @@ out gl_PerVertex
 };
 
 
-void main() 
+void main()
 {
 	outUVW = inPos;
 	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos.xyz, 1.0);

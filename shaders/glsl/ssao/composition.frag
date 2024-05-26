@@ -5,7 +5,7 @@ layout (binding = 1) uniform sampler2D samplerNormal;
 layout (binding = 2) uniform sampler2D samplerAlbedo;
 layout (binding = 3) uniform sampler2D samplerSSAO;
 layout (binding = 4) uniform sampler2D samplerSSAOBlur;
-layout (binding = 5) uniform UBO 
+layout (binding = 5) uniform UBO
 {
 	mat4 _dummy;
 	int ssao;
@@ -17,12 +17,12 @@ layout (location = 0) in vec2 inUV;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
 	vec3 fragPos = texture(samplerposition, inUV).rgb;
 	vec3 normal = normalize(texture(samplerNormal, inUV).rgb * 2.0 - 1.0);
 	vec4 albedo = texture(samplerAlbedo, inUV);
-	 
+
 	float ssao = (uboParams.ssaoBlur == 1) ? texture(samplerSSAOBlur, inUV).r : texture(samplerSSAO, inUV).r;
 
 	vec3 lightPos = vec3(0.0);

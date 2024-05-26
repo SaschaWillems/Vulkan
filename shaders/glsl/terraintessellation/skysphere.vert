@@ -6,7 +6,7 @@ layout (location = 2) in vec2 inUV;
 
 layout (location = 0) out vec2 outUV;
 
-layout (set = 0, binding = 0) uniform UBO 
+layout (set = 0, binding = 0) uniform UBO
 {
 	mat4 mvp;
 } ubo;

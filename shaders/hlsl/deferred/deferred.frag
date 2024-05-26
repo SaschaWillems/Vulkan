@@ -35,19 +35,19 @@ float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 	// Debug display
 	if (ubo.displayDebugTarget > 0) {
 		switch (ubo.displayDebugTarget) {
-			case 1: 
+			case 1:
 				fragcolor.rgb = fragPos;
 				break;
-			case 2: 
+			case 2:
 				fragcolor.rgb = normal;
 				break;
-			case 3: 
+			case 3:
 				fragcolor.rgb = albedo.rgb;
 				break;
-			case 4: 
+			case 4:
 				fragcolor.rgb = albedo.aaa;
 				break;
-		}		
+		}
 		return float4(fragcolor, 1.0);
 	}
 

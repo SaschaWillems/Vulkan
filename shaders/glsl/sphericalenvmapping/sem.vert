@@ -4,7 +4,7 @@ layout (location = 0) in vec4 inPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec3 inColor;
 
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 model;
@@ -18,7 +18,7 @@ layout (location = 1) out vec3 outEyePos;
 layout (location = 2) out vec3 outNormal;
 layout (location = 3) out flat int outTexIndex;
 
-void main() 
+void main()
 {
 	outColor = inColor;
 	mat4 modelView = ubo.view * ubo.model;
@@ -27,5 +27,5 @@ void main()
 	outNormal = normalize( mat3(ubo.normal) * inNormal );
 	vec3 r = reflect( outEyePos, outNormal );
 	float m = 2.0 * sqrt( pow(r.x, 2.0) + pow(r.y, 2.0) + pow(r.z + 1.0, 2.0));
-	gl_Position = ubo.projection * modelView * inPos;	
+	gl_Position = ubo.projection * modelView * inPos;
 }

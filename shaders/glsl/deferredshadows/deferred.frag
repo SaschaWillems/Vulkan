@@ -14,7 +14,7 @@ layout (location = 0) out vec4 outFragColor;
 #define AMBIENT_LIGHT 0.1
 #define USE_PCF
 
-struct Light 
+struct Light
 {
 	vec4 position;
 	vec4 target;
@@ -22,7 +22,7 @@ struct Light
 	mat4 viewMatrix;
 };
 
-layout (binding = 4) uniform UBO 
+layout (binding = 4) uniform UBO
 {
 	vec4 viewPos;
 	Light lights[LIGHT_COUNT];
@@ -35,11 +35,11 @@ float textureProj(vec4 P, float layer, vec2 offset)
 	float shadow = 1.0;
 	vec4 shadowCoord = P / P.w;
 	shadowCoord.st = shadowCoord.st * 0.5 + 0.5;
-	
-	if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0) 
+
+	if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0)
 	{
 		float dist = texture(samplerShadowMap, vec3(shadowCoord.st + offset, layer)).r;
-		if (shadowCoord.w > 0.0 && dist < shadowCoord.z) 
+		if (shadowCoord.w > 0.0 && dist < shadowCoord.z)
 		{
 			shadow = SHADOW_FACTOR;
 		}
@@ -57,7 +57,7 @@ float filterPCF(vec4 sc, float layer)
 	float shadowFactor = 0.0;
 	int count = 0;
 	int range = 1;
-	
+
 	for (int x = -range; x <= range; x++)
 	{
 		for (int y = -range; y <= range; y++)
@@ -65,7 +65,7 @@ float filterPCF(vec4 sc, float layer)
 			shadowFactor += textureProj(sc, layer, vec2(dx*x, dy*y));
 			count++;
 		}
-	
+
 	}
 	return shadowFactor / count;
 }
@@ -87,7 +87,7 @@ vec3 shadow(vec3 fragcolor, vec3 fragpos) {
 	return fragcolor;
 }
 
-void main() 
+void main()
 {
 	// Get G-Buffer values
 	vec3 fragPos = texture(samplerposition, inUV).rgb;
@@ -97,22 +97,22 @@ void main()
 	// Debug display
 	if (ubo.debugDisplayTarget > 0) {
 		switch (ubo.debugDisplayTarget) {
-			case 1: 
+			case 1:
 				outFragColor.rgb = shadow(vec3(1.0), fragPos).rgb;
 				break;
-			case 2: 
+			case 2:
 				outFragColor.rgb = fragPos;
 				break;
-			case 3: 
+			case 3:
 				outFragColor.rgb = normal;
 				break;
-			case 4: 
+			case 4:
 				outFragColor.rgb = albedo.rgb;
 				break;
-			case 5: 
+			case 5:
 				outFragColor.rgb = albedo.aaa;
 				break;
-		}		
+		}
 		outFragColor.a = 1.0;
 		return;
 	}
@@ -121,7 +121,7 @@ void main()
 	vec3 fragcolor  = albedo.rgb * AMBIENT_LIGHT;
 
 	vec3 N = normalize(normal);
-		
+
 	for(int i = 0; i < LIGHT_COUNT; ++i)
 	{
 		// Vector to light
@@ -156,7 +156,7 @@ void main()
 		vec3 spec = vec3(pow(NdotR, 16.0) * albedo.a * 2.5);
 
 		fragcolor += vec3((diff + spec) * spotEffect * heightAttenuation) * ubo.lights[i].color.rgb * albedo.rgb;
-	}    	
+	}
 
 	// Shadow calculations in a separate pass
 	if (ubo.useShadows > 0)

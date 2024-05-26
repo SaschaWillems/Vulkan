@@ -16,13 +16,13 @@ struct PnPatch
 };
 
 // tessellation levels
-layout (binding = 0) uniform UBO 
+layout (binding = 0) uniform UBO
 {
     mat4 projection;
     mat4 model;
     float tessAlpha;
     float tessLevel;
-} ubo; 
+} ubo;
 
 layout(vertices=3) out;
 
@@ -53,7 +53,7 @@ void main()
 	outNormal[gl_InvocationID]            = inNormal[gl_InvocationID];
 	outUV[gl_InvocationID]          = inUV[gl_InvocationID];
 
-	// set base 
+	// set base
 	float P0 = gl_in[0].gl_Position[gl_InvocationID];
 	float P1 = gl_in[1].gl_Position[gl_InvocationID];
 	float P2 = gl_in[2].gl_Position[gl_InvocationID];

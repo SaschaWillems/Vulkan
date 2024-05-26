@@ -28,21 +28,21 @@ layout (location = 2) out vec2 outUV;
 layout (location = 3) out vec3 outViewVec;
 layout (location = 4) out vec3 outLightVec;
 
-void main() 
+void main()
 {
 	outNormal = inNormal;
 	outColor = inColor;
 	outUV = inUV;
 
 	// Calculate skinned matrix from weights and joint indices of the current vertex
-	mat4 skinMat = 
+	mat4 skinMat =
 		inJointWeights.x * jointMatrices[int(inJointIndices.x)] +
 		inJointWeights.y * jointMatrices[int(inJointIndices.y)] +
 		inJointWeights.z * jointMatrices[int(inJointIndices.z)] +
 		inJointWeights.w * jointMatrices[int(inJointIndices.w)];
 
 	gl_Position = uboScene.projection * uboScene.view * primitive.model * skinMat * vec4(inPos.xyz, 1.0);
-	
+
 	outNormal = normalize(transpose(inverse(mat3(uboScene.view * primitive.model * skinMat))) * inNormal);
 
 	vec4 pos = uboScene.view * vec4(inPos, 1.0);

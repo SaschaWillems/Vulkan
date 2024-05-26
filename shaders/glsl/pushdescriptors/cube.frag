@@ -8,7 +8,7 @@ layout (location = 2) in vec2 inUV;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
 	outFragColor = texture(samplerColorMap, inUV) * vec4(inColor, 1.0);
 }

@@ -15,7 +15,7 @@ layout (location = 0) out vec4 outFragColor;
 layout (constant_id = 0) const bool ALPHA_MASK = false;
 layout (constant_id = 1) const float ALPHA_MASK_CUTOFF = 0.0f;
 
-void main() 
+void main()
 {
 	vec4 color = texture(samplerColorMap, inUV) * vec4(inColor, 1.0);
 

@@ -88,19 +88,19 @@ float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 	// Debug display
 	if (ubo.debugDisplayTarget > 0) {
 		switch (ubo.debugDisplayTarget) {
-			case 1: 
+			case 1:
 				fragColor.rgb = texturePosition.Load(UV, 0, int2(0, 0), status).rgb;
 				break;
-			case 2: 
+			case 2:
 				fragColor.rgb = textureNormal.Load(UV, 0, int2(0, 0), status).rgb;
 				break;
-			case 3: 
+			case 3:
 				fragColor.rgb = textureAlbedo.Load(UV, 0, int2(0, 0), status).rgb;
 				break;
-			case 4: 
+			case 4:
 				fragColor.rgb = textureAlbedo.Load(UV, 0, int2(0, 0), status).aaa;
 				break;
-		}		
+		}
 		return float4(fragColor, 1.0);
 	}
 
