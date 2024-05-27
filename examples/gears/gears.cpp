@@ -1,9 +1,9 @@
 /*
 * Vulkan Example - Drawing multiple animated gears (emulating the look of glxgears)
-* 
+*
 * All gears are using single index, vertex and uniform buffers to show the Vulkan best practices of keeping the no. of buffer/memory allocations to a mimimum
 * We use index offsets and instance indices to offset into the buffers at draw time for each gear
-* 
+*
 * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -37,7 +37,7 @@ public:
 	struct Vertex {
 		glm::vec3 position;
 		glm::vec3 normal;
-		glm::vec3 color;
+		uint8_t color[3];
 	};
 
 	glm::vec3 color;
@@ -86,7 +86,9 @@ public:
 			Vertex v{};
 			v.position = { x, y, z };
 			v.normal = normal;
-			v.color = this->color;
+			v.color[0] = static_cast<uint8_t>(this->color.r * 255);
+			v.color[1] = static_cast<uint8_t>(this->color.g * 255);
+			v.color[2] = static_cast<uint8_t>(this->color.b * 255);
 			vertexBuffer.push_back(v);
 			return static_cast<int32_t>(vertexBuffer.size()) - 1;
 			};
@@ -135,7 +137,7 @@ public:
 			addFace(ix0, ix1, ix2);
 			addFace(ix1, ix3, ix2);
 
-			// Back face 
+			// Back face
 			normal = glm::vec3(0.0f, 0.0f, -1.0f);
 			ix0 = addVertex(r1 * cos_ta, r1 * sin_ta, -gearDefinition.width * 0.5f, normal);
 			ix1 = addVertex(r0 * cos_ta, r0 * sin_ta, -gearDefinition.width * 0.5f, normal);
@@ -388,7 +390,7 @@ public:
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
 			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Gear::Vertex, position)),	// Location 0 : Position
 			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Gear::Vertex, normal)),	// Location 1 : Normal
-			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Gear::Vertex, color)),	// Location 2 : Color
+			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R8G8B8_UNORM, offsetof(Gear::Vertex, color)),	// Location 2 : Color
 		};
 		VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo();
 		vertexInputStateCI.vertexBindingDescriptionCount = 1;
