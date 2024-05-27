@@ -1,9 +1,9 @@
 /*
 * Vulkan Example - Drawing multiple animated gears (emulating the look of glxgears)
-* 
+*
 * All gears are using single index, vertex and uniform buffers to show the Vulkan best practices of keeping the no. of buffer/memory allocations to a mimimum
 * We use index offsets and instance indices to offset into the buffers at draw time for each gear
-* 
+*
 * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -51,7 +51,7 @@ public:
 	// Generates the indices and vertices for this gear
 	// They are added to the vertex and index buffers passed into the function
 	// This way we can put all gears into single vertex and index buffers instead of having to allocate single buffers for each gear (which would be bad practice)
-	void generate(GearDefinition& gearDefinition, std::vector<Vertex>& vertexBuffer, std::vector<uint32_t>& indexBuffer) {
+	void generate(GearDefinition& gearDefinition, std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer) {
 		this->color = gearDefinition.color;
 		this->pos = gearDefinition.pos;
 		this->rotOffset = gearDefinition.rotOffset;
@@ -135,7 +135,7 @@ public:
 			addFace(ix0, ix1, ix2);
 			addFace(ix1, ix3, ix2);
 
-			// Back face 
+			// Back face
 			normal = glm::vec3(0.0f, 0.0f, -1.0f);
 			ix0 = addVertex(r1 * cos_ta, r1 * sin_ta, -gearDefinition.width * 0.5f, normal);
 			ix1 = addVertex(r0 * cos_ta, r0 * sin_ta, -gearDefinition.width * 0.5f, normal);
@@ -296,7 +296,7 @@ public:
 		// This is a Vulkan best practice as it keeps the no. of memory/buffer allocations low
 		// Vulkan offers all the tools to easily index into those buffers at a later point (see the buildCommandBuffers function)
 		std::vector<Gear::Vertex> vertices{};
-		std::vector<uint32_t> indices{};
+		std::vector<uint16_t> indices{};
 
 		// Fills the vertex and index buffers for each of the gear
 		gears.resize(gearDefinitions.size());
@@ -306,7 +306,7 @@ public:
 
 		// Create buffers and stage to device for performances
 		size_t vertexBufferSize = vertices.size() * sizeof(Gear::Vertex);
-		size_t indexBufferSize = indices.size() * sizeof(uint32_t);
+		size_t indexBufferSize = indices.size() * sizeof(uint16_t);
 
 		vks::Buffer vertexStaging, indexStaging;
 
@@ -448,7 +448,7 @@ public:
 			VkDeviceSize offsets[1] = { 0 };
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &vertexBuffer.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
 			for (auto j = 0; j < numGears; j++) {
 				// We use the instance index (last argument) to pass the index of the triangle to the shader
 				// With this we can index into the model matrices array of the uniform buffer like this (see gears.vert):
