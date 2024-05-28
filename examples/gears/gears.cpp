@@ -1,9 +1,9 @@
 /*
 * Vulkan Example - Drawing multiple animated gears (emulating the look of glxgears)
-* 
+*
 * All gears are using single index, vertex and uniform buffers to show the Vulkan best practices of keeping the no. of buffer/memory allocations to a mimimum
 * We use index offsets and instance indices to offset into the buffers at draw time for each gear
-* 
+*
 * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -36,6 +36,13 @@ public:
 	// Definition for the vertex data used to render the gears
 	struct Vertex {
 		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec3 color;
+	};
+
+    // Separate form of vertexes which favours position shading as used by the main mobile GPU vendors:
+	using VertexPosition = glm::vec3;
+	struct VertexExtras {
 		glm::vec3 normal;
 		glm::vec3 color;
 	};
@@ -135,7 +142,7 @@ public:
 			addFace(ix0, ix1, ix2);
 			addFace(ix1, ix3, ix2);
 
-			// Back face 
+			// Back face
 			normal = glm::vec3(0.0f, 0.0f, -1.0f);
 			ix0 = addVertex(r1 * cos_ta, r1 * sin_ta, -gearDefinition.width * 0.5f, normal);
 			ix1 = addVertex(r0 * cos_ta, r0 * sin_ta, -gearDefinition.width * 0.5f, normal);
@@ -202,6 +209,22 @@ public:
 		// We need to know how many indices this triangle has at draw time
 		indexCount = static_cast<uint32_t>(indexBuffer.size()) - indexStart;
 	}
+
+    /// Put positions in the front of the vertex buffer and the rest in the back:
+	static std::vector<Vertex> separatePositions(const std::vector<Vertex>& vertexBuffer) {
+		std::vector<Vertex> result;
+		result.resize(vertexBuffer.size());
+		VertexPosition * position = reinterpret_cast<VertexPosition*>(result.data());
+		VertexExtras * extras = reinterpret_cast<VertexExtras*>(position + vertexBuffer.size());
+		for (const auto& vertex : vertexBuffer) {
+			*position++ = vertex.position;
+			extras->normal = vertex.normal;
+			extras->color = vertex.color;
+			++extras;
+		}
+
+		return result;
+	}
 };
 
 /*
@@ -222,6 +245,7 @@ public:
 	// Having as little buffers as possible also reduces the number of buffer binds
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
+	size_t vertexCount{ 0 };
 	struct UniformData
 	{
 		glm::mat4 projection;
@@ -303,6 +327,8 @@ public:
 		for (int32_t i = 0; i < gears.size(); i++) {
 			gears[i].generate(gearDefinitions[i], vertices, indices);
 		}
+		vertexCount = vertices.size();
+		vertices = Gear::separatePositions(vertices);
 
 		// Create buffers and stage to device for performances
 		size_t vertexBufferSize = vertices.size() * sizeof(Gear::Vertex);
@@ -382,17 +408,18 @@ public:
 		shaderStages[1] = loadShader(getShadersPath() + "gears/gears.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		// Vertex bindings and attributes to match the vertex buffers storing the vertices for the gears
-		VkVertexInputBindingDescription vertexInputBinding = {
-			vks::initializers::vertexInputBindingDescription(0, sizeof(Gear::Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+		VkVertexInputBindingDescription vertexInputBinding[2] = {
+			vks::initializers::vertexInputBindingDescription(0, sizeof(Gear::VertexPosition), VK_VERTEX_INPUT_RATE_VERTEX),
+			vks::initializers::vertexInputBindingDescription(1, sizeof(Gear::VertexExtras), VK_VERTEX_INPUT_RATE_VERTEX)
 		};
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Gear::Vertex, position)),	// Location 0 : Position
-			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Gear::Vertex, normal)),	// Location 1 : Normal
-			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Gear::Vertex, color)),	// Location 2 : Color
+			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0),	// Location 0 : Position
+			vks::initializers::vertexInputAttributeDescription(1, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Gear::VertexExtras, normal)),	// Location 1 : Normal
+			vks::initializers::vertexInputAttributeDescription(1, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Gear::VertexExtras, color)),	// Location 2 : Color
 		};
 		VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertexInputStateCI.vertexBindingDescriptionCount = 1;
-		vertexInputStateCI.pVertexBindingDescriptions = &vertexInputBinding;
+		vertexInputStateCI.vertexBindingDescriptionCount = 2;
+		vertexInputStateCI.pVertexBindingDescriptions = vertexInputBinding;
 		vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
 		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
@@ -445,9 +472,10 @@ public:
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 			// Vertices, indices and uniform data for all gears are stored in single buffers, so we only need to bind one buffer of each type and then index/offset into that for each separate gear
-			VkDeviceSize offsets[1] = { 0 };
+			VkBuffer buffers[2] = { vertexBuffer.buffer, vertexBuffer.buffer };
+			VkDeviceSize offsets[2] = { 0,  vertexCount * sizeof(Gear::VertexPosition)};
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &vertexBuffer.buffer, offsets);
+			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 2, buffers, offsets);
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 			for (auto j = 0; j < numGears; j++) {
 				// We use the instance index (last argument) to pass the index of the triangle to the shader
