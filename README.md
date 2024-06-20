@@ -470,6 +470,10 @@ Basic sample showing how to use descriptor buffers to replace descriptor sets.
 
 Basic sample showing how to use shader objects that can be used to replace pipeline state objects. Instead of baking all state in a PSO, shaders are explicitly loaded and bound as separate objects and state is set using dynamic state extensions. The sample also stores binary shader objets and loads them on consecutive runs.
 
+#### [Host image copy (VK_EXT_host_image_copy)](./examples/hostimagecopy/)<br/>
+
+Shows how to do host image copies, which heavily simplify the host to device image process by fully skipping the staging process.
+
 ### Misc
 
 #### [Vulkan Gears](examples/gears/)
