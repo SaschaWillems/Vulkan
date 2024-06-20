@@ -36,9 +36,11 @@ CALayer* layer;
 
 	layer = [self.view layer];		// SRS - When creating a Vulkan Metal surface, need the layer backing the view
 
-	self.view.contentScaleFactor = UIScreen.mainScreen.nativeScale;
+	layer.contentsScale = UIScreen.mainScreen.nativeScale;
 
-	_mvkExample = new MVKExample(self.view, 1.0f);		// SRS - Use 1x scale factor for UIOverlay on iOS
+	// SRS - Calculate UI overlay scale factor based on backing layer scale factor and device type for readable UIOverlay on iOS devices
+	auto UIOverlayScale = layer.contentsScale * ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone ? 2.0/3.0 : 1.0 );
+	_mvkExample = new MVKExample(self.view, UIOverlayScale);
 	
 	// SRS - Enable AppDelegate to call into DemoViewController for handling app lifecycle events (e.g. termination)
 	auto appDelegate = (AppDelegate *)UIApplication.sharedApplication.delegate;
