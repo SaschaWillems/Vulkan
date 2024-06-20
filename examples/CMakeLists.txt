@@ -114,6 +114,7 @@ set(EXAMPLES
 	gltfskinning
 	graphicspipelinelibrary
 	hdr
+	hostimagecopy
 	imgui
 	indirectdraw
 	inlineuniformblocks
