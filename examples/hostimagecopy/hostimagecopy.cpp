@@ -31,7 +31,6 @@ public:
 	};
 
 	// Contains all Vulkan objects that are required to store and use a texture
-	// Note that this repository contains a texture class (VulkanTexture.hpp) that encapsulates texture loading functionality in a class that is used in subsequent demos
 	struct Texture {
 		VkSampler sampler{ VK_NULL_HANDLE };
 		VkImage image{ VK_NULL_HANDLE };
@@ -50,7 +49,6 @@ public:
 		glm::mat4 projection;
 		glm::mat4 modelView;
 		glm::vec4 viewPos;
-		// This is used to change the bias for the level-of-detail (mips) in the fragment shader
 		float lodBias = 0.0f;
 	} uniformData;
 	vks::Buffer uniformBuffer;
@@ -105,26 +103,15 @@ public:
 	/*
 		Upload texture image data to the GPU
 
-		Vulkan offers two types of image tiling (memory layout):
-
-		Linear tiled images:
-			These are stored as is and can be copied directly to. But due to the linear nature they're not a good match for GPUs and format and feature support is very limited.
-			It's not advised to use linear tiled images for anything else than copying from host to GPU if buffer copies are not an option.
-			Linear tiling is thus only implemented for learning purposes, one should always prefer optimal tiled image.
-
-		Optimal tiled images:
-			These are stored in an implementation specific layout matching the capability of the hardware. They usually support more formats and features and are much faster.
-			Optimal tiled images are stored on the device and not accessible by the host. So they can't be written directly to (like liner tiled images) and always require
-			some sort of data copy, either from a buffer or	a linear tiled image.
-
-		In Short: Always use optimal tiled images for rendering.
+		Unlike the texture(3d/array/etc) samples, this one uses the VK_EXT_host_image_copy to drasticly simplify the process 
+		of uploading an image from the host to the GPU. This new extension adds a way of directly uploading image data from
+		host memory to an optimal tiled image on the device (GPU). This no longer requires a staging buffer in between, as we can
+		now directly copy data stored in host memory to the image. The extension also adds new functionality to simplfy image barriers
 	*/
 	void loadTexture()
 	{
 		// We use the Khronos texture format (https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/)
 		std::string filename = getAssetPath() + "textures/metalplate01_rgba.ktx";
-		// Texture data contains 4 channels (RGBA) with unnormalized 8-bit values, this is the most commonly supported format
-		VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
 
 		ktxResult result;
 		ktxTexture* ktxTexture;
@@ -159,21 +146,18 @@ public:
 		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
 		ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
-		// Copy data to an optimal tiled image using a direct 
-
 		// Create optimal tiled target image on the device
 		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.format = format;
+		imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 		imageCreateInfo.mipLevels = texture.mipLevels;
 		imageCreateInfo.arrayLayers = 1;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		// Set initial layout of the image to undefined
 		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageCreateInfo.extent = { texture.width, texture.height, 1 };
-		// @todo: commtn
+		// For images that use host image copy we need to specify the VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT usage flag
 		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT;
 		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image));
 
@@ -185,12 +169,13 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &texture.deviceMemory));
 		VK_CHECK_RESULT(vkBindImageMemory(device, texture.image, texture.deviceMemory, 0));
 
-		// @todo: comment
+		// With host image copy we can directly copy from the KTX image in host memory to the device
+		// This is pretty straight forward, as the KTX image is already tightly packed, doesn't need and swizzle and as such matches
+		// what the device expects 
+
+		// Set up copy information for all mip levels stored in the image
 		std::vector<VkMemoryToImageCopyEXT> memoryToImageCopies{};
 		for (uint32_t i = 0; i < texture.mipLevels; i++) {
-			ktx_size_t offset;
-			KTX_error_code ret = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
-			assert(ret == KTX_SUCCESS);
 			// Setup a buffer image copy structure for the current mip level
 			VkMemoryToImageCopyEXT memoryToImageCopy = {};
 			memoryToImageCopy.sType = VK_STRUCTURE_TYPE_MEMORY_TO_IMAGE_COPY_EXT;
@@ -201,6 +186,12 @@ public:
 			memoryToImageCopy.imageExtent.width = ktxTexture->baseWidth >> i;
 			memoryToImageCopy.imageExtent.height = ktxTexture->baseHeight >> i;
 			memoryToImageCopy.imageExtent.depth = 1;
+
+			// This tells the implementation where to read the data from
+			// As the KTX file is tightly packed, we can simply offset into that buffer for the current mip level
+			ktx_size_t offset;
+			KTX_error_code ret = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
+			assert(ret == KTX_SUCCESS);
 			memoryToImageCopy.pHostPointer = ktxTextureData + offset;
 
 			memoryToImageCopies.push_back(memoryToImageCopy);
@@ -212,6 +203,9 @@ public:
 		subresourceRange.levelCount = texture.mipLevels;
 		subresourceRange.layerCount = 1;
 
+		// VK_EXT_host_image_copy als introduces a simplified way of doing the required image transition on the host
+		// This no longer requires a dedicated command buffer to submit the barrier
+		// We also no longer need multiple transitions, and only have to do one for the final layout
 		VkHostImageLayoutTransitionInfoEXT hostImageLayoutTransitionInfo{};
 		hostImageLayoutTransitionInfo.sType = VK_STRUCTURE_TYPE_HOST_IMAGE_LAYOUT_TRANSITION_INFO_EXT;
 		hostImageLayoutTransitionInfo.image = texture.image;
@@ -221,6 +215,8 @@ public:
 
 		vkTransitionImageLayoutEXT(device, 1, &hostImageLayoutTransitionInfo);
 
+		// With the image in the correct layout and copy information for all mip levels setup, we can now issue the copy to our taget image from the host
+		// The implementation will then convert this to an implementation specific optimal tiling layout
 		VkCopyMemoryToImageInfoEXT copyMemoryInfo{};
 		copyMemoryInfo.sType = VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INFO_EXT;
 		copyMemoryInfo.dstImage = texture.image;
@@ -244,25 +240,16 @@ public:
 		sampler.compareOp = VK_COMPARE_OP_NEVER;
 		sampler.minLod = 0.0f;
 		sampler.maxLod = (float)texture.mipLevels;
-		if (vulkanDevice->features.samplerAnisotropy) {
-			sampler.maxAnisotropy = vulkanDevice->properties.limits.maxSamplerAnisotropy;
-			sampler.anisotropyEnable = VK_TRUE;
-		} else {
-			sampler.maxAnisotropy = 1.0;
-			sampler.anisotropyEnable = VK_FALSE;
-		}
+		sampler.maxAnisotropy = vulkanDevice->properties.limits.maxSamplerAnisotropy;
+		sampler.anisotropyEnable = VK_TRUE;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
 
 		// Create image view
 		VkImageViewCreateInfo view = vks::initializers::imageViewCreateInfo();
 		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		view.format = format;
-		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		view.subresourceRange.baseMipLevel = 0;
-		view.subresourceRange.baseArrayLayer = 0;
-		view.subresourceRange.layerCount = 1;
-		view.subresourceRange.levelCount = texture.mipLevels;
+		view.format = VK_FORMAT_R8G8B8A8_UNORM;
+		view.subresourceRange = subresourceRange;
 		view.image = texture.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
 	}
@@ -370,7 +357,6 @@ public:
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			// The sample uses a combined image + sampler descriptor to sample the texture in the fragment shader
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
@@ -400,11 +386,7 @@ public:
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
 			// Binding 1 : Fragment shader texture sampler
-			//	Fragment shader: layout (binding = 1) uniform sampler2D samplerColor;
-			vks::initializers::writeDescriptorSet(descriptorSet,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,		// The descriptor set will use a combined image sampler (as opposed to splitting image and sampler)
-				1,												// Shader binding point 1
-				&textureDescriptor)								// Pointer to the descriptor image for our texture
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureDescriptor)
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
