@@ -2,15 +2,14 @@
 * Vulkan Example - Host image copy using VK_EXT_host_image_copy
 * 
 * This sample shows how to use host image copies to directly upload an image to the devic without having to use staging
-* 
-* Work-in-progress
-*
+
 * Copyright (C) 2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
 #include "vulkanexamplebase.h"
+#include "VulkanglTFModel.h"
 #include <ktx.h>
 #include <ktxvulkan.h>
 
@@ -20,15 +19,10 @@ public:
 	// Pointers for functions added by the host image copy extension;
 	PFN_vkCopyMemoryToImageEXT vkCopyMemoryToImageEXT{ nullptr };
 	PFN_vkTransitionImageLayoutEXT vkTransitionImageLayoutEXT{ nullptr };
+	// Used to check feature image format support for host image copies
+	PFN_vkGetPhysicalDeviceFormatProperties2 vkGetPhysicalDeviceFormatProperties2{ nullptr };
 
 	VkPhysicalDeviceHostImageCopyFeaturesEXT enabledPhysicalDeviceHostImageCopyFeaturesEXT{};
-
-	// Vertex layout for this example
-	struct Vertex {
-		float pos[3];
-		float uv[2];
-		float normal[3];
-	};
 
 	// Contains all Vulkan objects that are required to store and use a texture
 	struct Texture {
@@ -41,9 +35,7 @@ public:
 		uint32_t mipLevels{ 0 };
 	} texture;
 
-	vks::Buffer vertexBuffer;
-	vks::Buffer indexBuffer;
-	uint32_t indexCount{ 0 };
+	vkglTF::Model plane;
 
 	struct UniformData {
 		glm::mat4 projection;
@@ -62,7 +54,7 @@ public:
 	{
 		title = "Host image copy";
 		camera.type = Camera::CameraType::lookat;
-		camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+		camera.setPosition(glm::vec3(0.0f, 0.0f, -1.5f));
 		camera.setRotation(glm::vec3(0.0f, 15.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 
@@ -85,8 +77,6 @@ public:
 			vkDestroyPipeline(device, pipeline, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-			vertexBuffer.destroy();
-			indexBuffer.destroy();
 			uniformBuffer.destroy();
 		}
 	}
@@ -146,10 +136,28 @@ public:
 		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
 		ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
+		const VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+
+		// Check if the image format supports the host image copy flag
+		// Note: All formats that support sampling are required to support this flag
+		// So for the format used here (R8G8B8A8_UNORM) we could skip this check
+		// The flag we need to check is an extension flag, so we need to go through VkFormatProperties3 
+		VkFormatProperties3 formatProperties3{};
+		formatProperties3.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3_KHR;
+		// Properties3 need to be chained into Properties2
+		VkFormatProperties2 formatProperties2{};
+		formatProperties2.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2;
+		formatProperties2.pNext = &formatProperties3;
+		vkGetPhysicalDeviceFormatProperties2(physicalDevice, imageFormat, &formatProperties2);
+
+		if ((formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_HOST_IMAGE_TRANSFER_BIT_EXT) == 0) {
+			vks::tools::exitFatal("The selected image format does not support the required host transfer bit.", -1);
+		}
+
 		// Create optimal tiled target image on the device
 		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+		imageCreateInfo.format = imageFormat;
 		imageCreateInfo.mipLevels = texture.mipLevels;
 		imageCreateInfo.arrayLayers = 1;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -248,7 +256,7 @@ public:
 		// Create image view
 		VkImageViewCreateInfo view = vks::initializers::imageViewCreateInfo();
 		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		view.format = VK_FORMAT_R8G8B8A8_UNORM;
+		view.format = imageFormat;
 		view.subresourceRange = subresourceRange;
 		view.image = texture.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
@@ -298,11 +306,7 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &vertexBuffer.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
+			plane.draw(drawCmdBuffers[i]);
 
 			drawUI(drawCmdBuffers[i]);
 
@@ -310,46 +314,6 @@ public:
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
-	}
-
-	// Creates a vertex and index buffer for a quad made of two triangles
-	// This is used to display the texture on
-	void generateQuad()
-	{
-		// Setup vertices for a single uv-mapped quad made from two triangles
-		std::vector<Vertex> vertices =
-		{
-			{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } },
-			{ {  1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f },{ 0.0f, 0.0f, 1.0f } }
-		};
-
-		// Setup indices
-		std::vector<uint32_t> indices = { 0,1,2, 2,3,0 };
-		indexCount = static_cast<uint32_t>(indices.size());
-
-		// Create buffers and upload data to the GPU
-		struct StagingBuffers {
-			vks::Buffer vertices;
-			vks::Buffer indices;
-		} stagingBuffers;
-
-		// Host visible source buffers (staging)
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffers.vertices, vertices.size() * sizeof(Vertex), vertices.data()));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffers.indices, indices.size() * sizeof(uint32_t), indices.data()));
-
-		// Device local destination buffers
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertexBuffer, vertices.size() * sizeof(Vertex)));
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &indexBuffer, indices.size() * sizeof(uint32_t)));
-
-		// Copy from host do device
-		vulkanDevice->copyBuffer(&stagingBuffers.vertices, &vertexBuffer, queue);
-		vulkanDevice->copyBuffer(&stagingBuffers.indices, &indexBuffer, queue);
-
-		// Clean up
-		stagingBuffers.vertices.destroy();
-		stagingBuffers.indices.destroy();
 	}
 
 	void setupDescriptors()
@@ -413,23 +377,7 @@ public:
 		shaderStages[0] = loadShader(getShadersPath() + "texture/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "texture/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		// Vertex input state
-		std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-			vks::initializers::vertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-		};
-		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)),
-			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)),
-			vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)),
-		};
-		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-		vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
-		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -439,6 +387,7 @@ public:
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
+		pipelineCreateInfo.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Normal });
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
@@ -458,6 +407,12 @@ public:
 		memcpy(uniformBuffer.mapped, &uniformData, sizeof(uniformData));
 	}
 
+	void loadAssets()
+	{
+		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+		plane.loadFromFile(getAssetPath() + "models/plane_z.gltf", vulkanDevice, queue, glTFLoadingFlags);
+	}
+
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
@@ -465,9 +420,10 @@ public:
 		// Get the function pointers required host image copies
 		vkCopyMemoryToImageEXT = reinterpret_cast<PFN_vkCopyMemoryToImageEXT>(vkGetDeviceProcAddr(device, "vkCopyMemoryToImageEXT"));
 		vkTransitionImageLayoutEXT = reinterpret_cast<PFN_vkTransitionImageLayoutEXT>(vkGetDeviceProcAddr(device, "vkTransitionImageLayoutEXT"));
+		vkGetPhysicalDeviceFormatProperties2 = reinterpret_cast<PFN_vkGetPhysicalDeviceFormatProperties2>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFormatProperties2"));
 
+		loadAssets();
 		loadTexture();
-		generateQuad();
 		prepareUniformBuffers();
 		setupDescriptors();
 		preparePipelines();
