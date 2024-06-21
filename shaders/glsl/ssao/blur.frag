@@ -12,9 +12,9 @@ void main()
 	int n = 0;
 	vec2 texelSize = 1.0 / vec2(textureSize(samplerSSAO, 0));
 	float result = 0.0;
-	for (int x = -blurRange; x < blurRange; x++) 
+	for (int x = -blurRange; x <= blurRange; x++) 
 	{
-		for (int y = -blurRange; y < blurRange; y++) 
+		for (int y = -blurRange; y <= blurRange; y++) 
 		{
 			vec2 offset = vec2(float(x), float(y)) * texelSize;
 			result += texture(samplerSSAO, inUV + offset).r;
