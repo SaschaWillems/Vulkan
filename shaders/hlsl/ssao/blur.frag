@@ -11,9 +11,9 @@ float4 main([[vk::location(0)]] float2 inUV : TEXCOORD0) : SV_TARGET
 	textureSSAO.GetDimensions(texDim.x, texDim.y);
 	float2 texelSize = 1.0 / (float2)texDim;
 	float result = 0.0;
-	for (int x = -blurRange; x < blurRange; x++)
+	for (int x = -blurRange; x <= blurRange; x++)
 	{
-		for (int y = -blurRange; y < blurRange; y++)
+		for (int y = -blurRange; y <= blurRange; y++)
 		{
 			float2 offset = float2(float(x), float(y)) * texelSize;
 			result += textureSSAO.Sample(samplerSSAO, inUV + offset).r;
