@@ -6,7 +6,7 @@
 * With conditional rendering it's possible to execute certain rendering commands based on a buffer value instead of having to rebuild the command buffers.
 * This example sets up a conditional buffer with one value per glTF part, that is used to toggle visibility of single model parts.
 *
-* Copyright (C) 2018-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -14,12 +14,11 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	PFN_vkCmdBeginConditionalRenderingEXT vkCmdBeginConditionalRenderingEXT;
-	PFN_vkCmdEndConditionalRenderingEXT vkCmdEndConditionalRenderingEXT;
+	PFN_vkCmdBeginConditionalRenderingEXT vkCmdBeginConditionalRenderingEXT{ VK_NULL_HANDLE };
+	PFN_vkCmdEndConditionalRenderingEXT vkCmdEndConditionalRenderingEXT{ VK_NULL_HANDLE };
 
 	vkglTF::Model scene;
 
