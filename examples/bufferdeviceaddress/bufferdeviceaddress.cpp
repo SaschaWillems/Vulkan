@@ -15,7 +15,7 @@ public:
 
 	struct Cube {
 		glm::mat4 modelMatrix;
-		vks::Buffer uniformBuffer;
+		vks::Buffer buffer;
 		glm::vec3 rotation;
 		VkDeviceAddress bufferDeviceAddress;
 	};
@@ -68,7 +68,7 @@ public:
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 			texture.destroy();
 			for (auto cube : cubes) {
-				cube.uniformBuffer.destroy();
+				cube.buffer.destroy();
 			}
 		}
 	}
@@ -149,93 +149,30 @@ public:
 	*/
 	void setupDescriptors()
 	{
-		std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings{};
+		// Pool
+		std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
+		};
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(descriptorPoolSizes, 2);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
-		/*
-			Binding 0: Uniform buffers (used to pass matrices)
-		*/
-		setLayoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		// Shader binding point
-		setLayoutBindings[0].binding = 0;
-		// Accessible from the vertex shader only (flags can be combined to make it accessible to multiple shader stages)
-		setLayoutBindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		// Binding contains one element (can be used for array bindings)
-		setLayoutBindings[0].descriptorCount = 1;
+		// Layout
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
+		};
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		/*
-			Binding 1: Combined image sampler (used to pass per object texture information)
-		*/
-		setLayoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		setLayoutBindings[1].binding = 1;
-		// Accessible from the fragment shader only
-		setLayoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-		setLayoutBindings[1].descriptorCount = 1;
+		// Set
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
-		// Create the descriptor set layout
-		VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
-		descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		descriptorLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-		descriptorLayoutCI.pBindings = setLayoutBindings.data();
-
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayout));
-
-		std::array<VkDescriptorPoolSize, 2> descriptorPoolSizes{};
-
-		// Uniform buffers : 1 per object
-		descriptorPoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorPoolSizes[0].descriptorCount = static_cast<uint32_t>(cubes.size());
-
-		// Combined image samples : 1 per object texture
-		descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorPoolSizes[1].descriptorCount = static_cast<uint32_t>(cubes.size());
-
-		// Create the global descriptor pool
-		VkDescriptorPoolCreateInfo descriptorPoolCI = {};
-		descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());
-		descriptorPoolCI.pPoolSizes = descriptorPoolSizes.data();
-		// Max. number of descriptor sets that can be allocated from this pool (one per object)
-		descriptorPoolCI.maxSets = static_cast<uint32_t>(cubes.size());
-
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
-
-		// Allocates an empty descriptor set without actual descriptors from the pool using the set layout
-		VkDescriptorSetAllocateInfo allocateInfo{};
-		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocateInfo.descriptorPool = descriptorPool;
-		allocateInfo.descriptorSetCount = 1;
-		allocateInfo.pSetLayouts = &descriptorSetLayout;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocateInfo, &descriptorSet));
-
-		// Update the descriptor set with the actual descriptors matching shader bindings set in the layout
-
-		std::array<VkWriteDescriptorSet, 2> writeDescriptorSets{};
-
-		/*
-			Binding 0: Object matrices Uniform buffer
-		*/
-		writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeDescriptorSets[0].dstSet = descriptorSet;
-		writeDescriptorSets[0].dstBinding = 0;
-		writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		writeDescriptorSets[0].pBufferInfo = &uniformBuffer.descriptor;
-		writeDescriptorSets[0].descriptorCount = 1;
-
-		/*
-			Binding 1: Object texture
-		*/
-		writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeDescriptorSets[1].dstSet = descriptorSet;
-		writeDescriptorSets[1].dstBinding = 1;
-		writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		writeDescriptorSets[1].pImageInfo = &texture.descriptor;
-		writeDescriptorSets[1].descriptorCount = 1;
-
-		// Execute the writes to update descriptors for this set
-		// Note that it's also possible to gather all writes and only run updates once, even for multiple sets
-		// This is possible because each VkWriteDescriptorSet also contains the destination set to be updated
-		// For simplicity we will update once per set instead
-
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texture.descriptor)
+		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
@@ -264,7 +201,10 @@ public:
 		VkPipelineViewportStateCreateInfo viewportStateCI = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
+			loadShader(getShadersPath() + "bufferdeviceaddress/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "bufferdeviceaddress/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+		};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -277,34 +217,30 @@ public:
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color });
-
-		shaderStages[0] = loadShader(getShadersPath() + "bufferdeviceaddress/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "bufferdeviceaddress/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
 
-	void prepareUniformBuffers()
+	void prepareBuffers()
 	{
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(UniformData)));
 		VK_CHECK_RESULT(uniformBuffer.map());
 
 		// @todo: comment
-		// @todo: ubo bit can be removed
-		const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 		for (auto& cube : cubes) {
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(bufferUsageFlags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &cube.uniformBuffer, sizeof(glm::mat4)));
-			VK_CHECK_RESULT(cube.uniformBuffer.map());
+			// @todo: comment as to why we don't need ubo usage here
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &cube.buffer, sizeof(glm::mat4)));
+			VK_CHECK_RESULT(cube.buffer.map());
 
 			// @todo: comment
 			VkBufferDeviceAddressInfo bufferDeviceAdressInfo{};
 			bufferDeviceAdressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-			bufferDeviceAdressInfo.buffer = cube.uniformBuffer.buffer;
+			bufferDeviceAdressInfo.buffer = cube.buffer.buffer;
 			cube.bufferDeviceAddress = vkGetBufferDeviceAddressKHR(device, &bufferDeviceAdressInfo);
 		}
-		updateUniformBuffers();
+		updateBuffers();
 	}
 
-	void updateUniformBuffers()
+	void updateBuffers()
 	{
 		uniformData.projection = camera.matrices.perspective;
 		uniformData.view = camera.matrices.view;
@@ -318,7 +254,7 @@ public:
 			cube.modelMatrix = glm::rotate(cube.modelMatrix, glm::radians(cube.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 			cube.modelMatrix = glm::rotate(cube.modelMatrix, glm::radians(cube.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 			cube.modelMatrix = glm::scale(cube.modelMatrix, glm::vec3(0.25f));
-			memcpy(cube.uniformBuffer.mapped, &cube.modelMatrix, sizeof(glm::mat4));
+			memcpy(cube.buffer.mapped, &cube.modelMatrix, sizeof(glm::mat4));
 		}
 	}
 
@@ -339,7 +275,7 @@ public:
 		vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(device, "vkGetBufferDeviceAddressKHR"));
 
 		loadAssets();
-		prepareUniformBuffers();
+		prepareBuffers();
 		setupDescriptors();
 		preparePipelines();
 		buildCommandBuffers();
@@ -360,7 +296,7 @@ public:
 				cubes[1].rotation.x -= 360.0f;
 		}
 		if ((camera.updated) || (animate && !paused)) {
-			updateUniformBuffers();
+			updateBuffers();
 		}
 	}
 
