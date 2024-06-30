@@ -474,6 +474,10 @@ Basic sample showing how to use shader objects that can be used to replace pipel
 
 Shows how to do host image copies, which heavily simplify the host to device image process by fully skipping the staging process.
 
+#### [Buffer device address (VK_KHR_buffer_device_addres)](./examples/bufferdeviceaddress/)<br/>
+
+Demonstrates the use of virtual GPU addresses to directly access buffer data in shader. Instead of e.g. using descriptors to access uniforms, with this extension you simply provide an address to the memory you want to read from in the shader and that address can be arbitrarily changed e.g. via a push constant.
+
 ### Misc
 
 #### [Vulkan Gears](examples/gears/)

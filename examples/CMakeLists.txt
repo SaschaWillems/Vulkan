@@ -85,6 +85,7 @@ endfunction(buildExamples)
 
 set(EXAMPLES
 	bloom
+	bufferdeviceaddress
 	computecloth
 	computecullandlod
 	computeheadless
