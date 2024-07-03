@@ -1,3 +1,6 @@
+# Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
+# This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+
 import argparse
 import fileinput
 import os
@@ -25,14 +28,16 @@ def findGlslang():
         if isExe(full_path):
             return full_path
 
-    sys.exit("Could not find DXC executable on PATH, and was not specified with --dxc")
+    sys.exit("Could not find glslangvalidator executable on PATH, and was not specified with --glslang")
+
+file_extensions = tuple([".vert", ".frag", ".comp", ".geom", ".tesc", ".tese", ".rgen", ".rchit", ".rmiss", ".mesh", ".task"])
 
 glslang_path = findGlslang()
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
 for root, dirs, files in os.walk(dir_path):
     for file in files:
-        if file.endswith(".vert") or file.endswith(".frag") or file.endswith(".comp") or file.endswith(".geom") or file.endswith(".tesc") or file.endswith(".tese") or file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss"):
+        if file.endswith(file_extensions):
             input_file = os.path.join(root, file)
             output_file = input_file + ".spv"
 
@@ -40,10 +45,17 @@ for root, dirs, files in os.walk(dir_path):
             if args.g:
                 add_params = "-g"
 
+
+            # Ray tracing shaders require a different target environment           
             if file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss"):
                add_params = add_params + " --target-env vulkan1.2"
+            # Same goes for samples that use ray queries
+            if root.endswith("rayquery") and file.endswith(".frag"):
+                add_params = add_params + " --target-env vulkan1.2"
+            # Mesh and task shader also require different settings
+            if file.endswith(".mesh") or file.endswith(".task"):
+                add_params = add_params + " --target-env spirv1.4"
 
             res = subprocess.call("%s -V %s -o %s %s" % (glslang_path, input_file, output_file, add_params), shell=True)
-            # res = subprocess.call([glslang_path, '-V', input_file, '-o', output_file, add_params], shell=True)
             if res != 0:
-                sys.exit()
+                sys.exit(res)

@@ -1,7 +1,7 @@
 /*
  * Vulkan Example - Using subpasses for G-Buffer compositing
  *
- * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  *
@@ -98,7 +98,7 @@ public:
 		camera.setPosition(glm::vec3(-3.2f, 1.0f, 5.9f));
 		camera.setRotation(glm::vec3(0.5f, 210.05f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		UIOverlay.subpass = 2;
+		ui.subpass = 2;
 	}
 
 	~VulkanExample()

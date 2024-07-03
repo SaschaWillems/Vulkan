@@ -1,7 +1,7 @@
 /*
  * Vulkan Example - Using input attachments
  *
- * Copyright (C) 2018-2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2018-2024 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  *
@@ -77,7 +77,7 @@ public:
 		camera.setPosition(glm::vec3(1.65f, 1.75f, -6.15f));
 		camera.setRotation(glm::vec3(-12.75f, 380.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		UIOverlay.subpass = 1;
+		ui.subpass = 1;
 	}
 
 	~VulkanExample()

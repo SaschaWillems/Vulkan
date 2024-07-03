@@ -161,7 +161,7 @@ public:
 	uint32_t width = 1280;
 	uint32_t height = 720;
 
-	vks::UIOverlay UIOverlay;
+	vks::UIOverlay ui;
 	CommandLineParser commandLineParser;
 
 	/** @brief Last frame time measured using a high performance timer (if available) */
@@ -363,7 +363,7 @@ public:
 	void setupWindow();
 #endif
 	/** @brief (Virtual) Creates the application wide Vulkan instance */
-	virtual VkResult createInstance(bool enableValidation);
+	virtual VkResult createInstance();
 	/** @brief (Pure virtual) Render function to be implemented by the sample application */
 	virtual void render() = 0;
 	/** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */

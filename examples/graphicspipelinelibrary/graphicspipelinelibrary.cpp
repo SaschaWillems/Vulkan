@@ -1,6 +1,6 @@
 /*
 * Vulkan Example - Using VK_EXT_graphics_pipeline_library
-* 
+*
 * Copyright (C) 2022-2023 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -374,7 +374,7 @@ public:
 		shaderStageCI.pName = "main";
 
 		// Select lighting model using a specialization constant
-		srand((unsigned int)time(NULL));
+		srand(benchmark.active ? 0 : ((unsigned int)time(NULL)));
 		uint32_t lighting_model = (int)(rand() % 4);
 
 		// Each shader constant of a shader stage corresponds to one map entry

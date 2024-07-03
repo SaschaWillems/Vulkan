@@ -23,21 +23,8 @@ extern CAMetalLayer* layer;
 
 std::vector<const char*> VulkanExampleBase::args;
 
-VkResult VulkanExampleBase::createInstance(bool enableValidation)
+VkResult VulkanExampleBase::createInstance()
 {
-	this->settings.validation = enableValidation;
-
-	// Validation can also be forced via a define
-#if defined(_VALIDATION)
-	this->settings.validation = true;
-#endif
-
-	VkApplicationInfo appInfo = {};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = name.c_str();
-	appInfo.pEngineName = name.c_str();
-	appInfo.apiVersion = apiVersion;
-
 	std::vector<const char*> instanceExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
 	// Enable surface extensions depending on os
@@ -102,9 +89,14 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		}
 	}
 
-	VkInstanceCreateInfo instanceCreateInfo = {};
+	VkApplicationInfo appInfo{};
+	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	appInfo.pApplicationName = name.c_str();
+	appInfo.pEngineName = name.c_str();
+	appInfo.apiVersion = apiVersion;
+
+	VkInstanceCreateInfo instanceCreateInfo{};
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	instanceCreateInfo.pNext = NULL;
 	instanceCreateInfo.pApplicationInfo = &appInfo;
 
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{};
@@ -113,7 +105,6 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		debugUtilsMessengerCI.pNext = instanceCreateInfo.pNext;
 		instanceCreateInfo.pNext = &debugUtilsMessengerCI;
 	}
-
 
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && defined(VK_KHR_portability_enumeration)
 	// SRS - When running on iOS/macOS with MoltenVK and VK_KHR_portability_enumeration is defined and supported by the instance, enable the extension and the flag
@@ -129,8 +120,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
 
-	if (instanceExtensions.size() > 0)
-	{
+	if (instanceExtensions.size() > 0) {
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 	}
@@ -138,8 +128,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	// The VK_LAYER_KHRONOS_validation contains all current validation functionality.
 	// Note that on Android this layer requires at least NDK r20
 	const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
-	if (settings.validation)
-	{
+	if (settings.validation) {
 		// Check if this layer is available at instance level
 		uint32_t instanceLayerCount;
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
@@ -180,9 +169,7 @@ void VulkanExampleBase::renderFrame()
 
 std::string VulkanExampleBase::getWindowTitle()
 {
-	std::string device(deviceProperties.deviceName);
-	std::string windowTitle;
-	windowTitle = title + " - " + device;
+	std::string windowTitle{ title + " - " + deviceProperties.deviceName };
 	if (!settings.overlay) {
 		windowTitle += " - " + std::to_string(frameCounter) + " fps";
 	}
@@ -191,15 +178,9 @@ std::string VulkanExampleBase::getWindowTitle()
 
 void VulkanExampleBase::createCommandBuffers()
 {
-	// Create one command buffer for each swap chain image and reuse for rendering
+	// Create one command buffer for each swap chain image
 	drawCmdBuffers.resize(swapChain.imageCount);
-
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-		vks::initializers::commandBufferAllocateInfo(
-			cmdPool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			static_cast<uint32_t>(drawCmdBuffers.size()));
-
+	VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data()));
 }
 
@@ -233,14 +214,14 @@ void VulkanExampleBase::prepare()
 	setupFrameBuffer();
 	settings.overlay = settings.overlay && (!benchmark.active);
 	if (settings.overlay) {
-		UIOverlay.device = vulkanDevice;
-		UIOverlay.queue = queue;
-		UIOverlay.shaders = {
+		ui.device = vulkanDevice;
+		ui.queue = queue;
+		ui.shaders = {
 			loadShader(getShadersPath() + "base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
 			loadShader(getShadersPath() + "base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
 		};
-		UIOverlay.prepareResources();
-		UIOverlay.preparePipeline(pipelineCache, renderPass, swapChain.colorFormat, depthFormat);
+		ui.prepareResources();
+		ui.preparePipeline(pipelineCache, renderPass, swapChain.colorFormat, depthFormat);
 	}
 }
 
@@ -307,7 +288,6 @@ void VulkanExampleBase::nextFrame()
 	}
 	tPrevEnd = tEnd;
 
-	// TODO: Cap UI overlay update rates
 	updateOverlay();
 }
 
@@ -415,7 +395,6 @@ void VulkanExampleBase::renderLoop()
 				lastTimestamp = tEnd;
 			}
 
-			// TODO: Cap UI overlay update rates/only issue when update requested
 			updateOverlay();
 
 			bool updateView = false;
@@ -430,8 +409,6 @@ void VulkanExampleBase::renderLoop()
 
 			// Check gamepad state
 			const float deadZone = 0.0015f;
-			// todo : check if gamepad is present
-			// todo : time based and relative axis positions
 			if (camera.type != Camera::CameraType::firstperson)
 			{
 				// Rotate
@@ -690,20 +667,29 @@ void VulkanExampleBase::updateOverlay()
 	if (!settings.overlay)
 		return;
 
+	// The overlay does not need to be updated with each frame, so we limit the update rate
+	// Not only does this save performance but it also makes display of fast changig values like fps more stable
+	ui.updateTimer -= frameTimer;
+	if (ui.updateTimer >= 0.0f) {
+		return;
+	}
+	// Update at max. rate of 30 fps
+	ui.updateTimer = 1.0f / 30.0f;
+
 	ImGuiIO& io = ImGui::GetIO();
 
 	io.DisplaySize = ImVec2((float)width, (float)height);
 	io.DeltaTime = frameTimer;
 
 	io.MousePos = ImVec2(mouseState.position.x, mouseState.position.y);
-	io.MouseDown[0] = mouseState.buttons.left && UIOverlay.visible;
-	io.MouseDown[1] = mouseState.buttons.right && UIOverlay.visible;
-	io.MouseDown[2] = mouseState.buttons.middle && UIOverlay.visible;
+	io.MouseDown[0] = mouseState.buttons.left && ui.visible;
+	io.MouseDown[1] = mouseState.buttons.right && ui.visible;
+	io.MouseDown[2] = mouseState.buttons.middle && ui.visible;
 
 	ImGui::NewFrame();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-	ImGui::SetNextWindowPos(ImVec2(10 * UIOverlay.scale, 10 * UIOverlay.scale));
+	ImGui::SetNextWindowPos(ImVec2(10 * ui.scale, 10 * ui.scale));
 	ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiSetCond_FirstUseEver);
 	ImGui::Begin("Vulkan Example", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 	ImGui::TextUnformatted(title.c_str());
@@ -711,10 +697,10 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / lastFPS), lastFPS);
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 5.0f * UIOverlay.scale));
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 5.0f * ui.scale));
 #endif
-	ImGui::PushItemWidth(110.0f * UIOverlay.scale);
-	OnUpdateUIOverlay(&UIOverlay);
+	ImGui::PushItemWidth(110.0f * ui.scale);
+	OnUpdateUIOverlay(&ui);
 	ImGui::PopItemWidth();
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	ImGui::PopStyleVar();
@@ -724,9 +710,9 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::PopStyleVar();
 	ImGui::Render();
 
-	if (UIOverlay.update() || UIOverlay.updated) {
+	if (ui.update() || ui.updated) {
 		buildCommandBuffers();
-		UIOverlay.updated = false;
+		ui.updated = false;
 	}
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -738,13 +724,13 @@ void VulkanExampleBase::updateOverlay()
 
 void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 {
-	if (settings.overlay && UIOverlay.visible) {
+	if (settings.overlay && ui.visible) {
 		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		UIOverlay.draw(commandBuffer);
+		ui.draw(commandBuffer);
 	}
 }
 
@@ -932,7 +918,7 @@ VulkanExampleBase::~VulkanExampleBase()
 	}
 
 	if (settings.overlay) {
-		UIOverlay.freeResources();
+		ui.freeResources();
 	}
 
 	delete vulkanDevice;
@@ -971,8 +957,6 @@ VulkanExampleBase::~VulkanExampleBase()
 	wl_compositor_destroy(compositor);
 	wl_registry_destroy(registry);
 	wl_display_disconnect(display);
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-	// todo : android cleanup (if required)
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_destroy_window(connection, window);
 	xcb_disconnect(connection);
@@ -985,12 +969,15 @@ VulkanExampleBase::~VulkanExampleBase()
 
 bool VulkanExampleBase::initVulkan()
 {
-	VkResult err;
+	// Instead of checking for the command line switch, validation can be forced via a define
+#if defined(_VALIDATION)
+	this->settings.validation = true;
+#endif
 
-	// Vulkan instance
-	err = createInstance(settings.validation);
-	if (err) {
-		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), err);
+	// Create the instance
+	VkResult result = createInstance();
+	if (result != VK_SUCCESS) {
+		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(result), result);
 		return false;
 	}
 
@@ -1014,9 +1001,9 @@ bool VulkanExampleBase::initVulkan()
 	}
 	// Enumerate devices
 	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
-	err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
-	if (err) {
-		vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(err), err);
+	result = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
+	if (result != VK_SUCCESS) {
+		vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(result), result);
 		return false;
 	}
 
@@ -1066,9 +1053,9 @@ bool VulkanExampleBase::initVulkan()
 	// Derived examples can enable extensions based on the list of supported extensions read from the physical device
 	getEnabledExtensions();
 
-	VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, deviceCreatepNextChain);
-	if (res != VK_SUCCESS) {
-		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), res);
+	result = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, deviceCreatepNextChain);
+	if (result != VK_SUCCESS) {
+		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(result), result);
 		return false;
 	}
 	device = vulkanDevice->logicalDevice;
@@ -1219,11 +1206,12 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 	}
 
-	RECT windowRect;
-	windowRect.left = 0L;
-	windowRect.top = 0L;
-	windowRect.right = settings.fullscreen ? (long)screenWidth : (long)width;
-	windowRect.bottom = settings.fullscreen ? (long)screenHeight : (long)height;
+	RECT windowRect = {
+		0L,
+		0L,
+		settings.fullscreen ? (long)screenWidth : (long)width,
+		settings.fullscreen ? (long)screenHeight : (long)height
+	};
 
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
@@ -1241,19 +1229,19 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		hinstance,
 		NULL);
 
+	if (!window)
+	{
+		std::cerr << "Could not create window!\n";
+		fflush(stdout);
+		return nullptr;
+	}
+
 	if (!settings.fullscreen)
 	{
 		// Center on screen
 		uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRect.right) / 2;
 		uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - windowRect.bottom) / 2;
 		SetWindowPos(window, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
-	}
-
-	if (!window)
-	{
-		printf("Could not create window!\n");
-		fflush(stdout);
-		return nullptr;
 	}
 
 	ShowWindow(window, SW_SHOW);
@@ -1282,8 +1270,8 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			paused = !paused;
 			break;
 		case KEY_F1:
-			UIOverlay.visible = !UIOverlay.visible;
-			UIOverlay.updated = true;
+			ui.visible = !ui.visible;
+			ui.updated = true;
 			break;
 		case KEY_F2:
 			if (camera.type == Camera::CameraType::lookat) {
@@ -1469,7 +1457,7 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 						bool handled = false;
 						if (vulkanExample->settings.overlay) {
 							ImGuiIO& io = ImGui::GetIO();
-							handled = io.WantCaptureMouse && vulkanExample->UIOverlay.visible;
+							handled = io.WantCaptureMouse && vulkanExample->ui.visible;
 						}
 						if (!handled) {
 							int32_t eventX = AMotionEvent_getX(event, 0);
@@ -1522,8 +1510,8 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 		case AKEYCODE_1:							// support keyboards with no function keys
 		case AKEYCODE_F1:
 		case AKEYCODE_BUTTON_L1:
-			vulkanExample->UIOverlay.visible = !vulkanExample->UIOverlay.visible;
-			vulkanExample->UIOverlay.updated = true;
+			vulkanExample->ui.visible = !vulkanExample->ui.visible;
+			vulkanExample->ui.updated = true;
 			break;
 		case AKEYCODE_BUTTON_R1:
 			vulkanExample->keyPressed(GAMEPAD_BUTTON_R1);
@@ -1726,8 +1714,8 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 			break;
 		case KEY_1:										// support keyboards with no function keys
 		case KEY_F1:
-			vulkanExample->UIOverlay.visible = !vulkanExample->UIOverlay.visible;
-			vulkanExample->UIOverlay.updated = true;
+			vulkanExample->ui.visible = !vulkanExample->ui.visible;
+			vulkanExample->ui.updated = true;
 			break;
 		case KEY_DELETE:								// support keyboards with no escape key
 		case KEY_ESCAPE:
@@ -2122,8 +2110,8 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				UIOverlay.visible = !UIOverlay.visible;
-				UIOverlay.updated = true;
+				ui.visible = !ui.visible;
+				ui.updated = true;
 				break;
 			default:
 				break;
@@ -2297,8 +2285,8 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 		break;
 	case KEY_F1:
 		if (state) {
-			UIOverlay.visible = !UIOverlay.visible;
-			UIOverlay.updated = true;
+			ui.visible = !ui.visible;
+			ui.updated = true;
 		}
 		break;
 	case KEY_ESCAPE:
@@ -2659,8 +2647,8 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				paused = !paused;
 				break;
 			case KEY_F1:
-				UIOverlay.visible = !UIOverlay.visible;
-				UIOverlay.updated = true;
+				ui.visible = !ui.visible;
+				ui.updated = true;
 				break;
 		}
 	}
@@ -2785,8 +2773,8 @@ void VulkanExampleBase::handleEvent()
 							paused = !paused;
 							break;
 						case KEYCODE_F1:
-							UIOverlay.visible = !UIOverlay.visible;
-							UIOverlay.updated = true;
+							ui.visible = !ui.visible;
+							ui.updated = true;
 							break;
 						default:
 							break;
@@ -3190,7 +3178,7 @@ void VulkanExampleBase::windowResize()
 
 	if ((width > 0.0f) && (height > 0.0f)) {
 		if (settings.overlay) {
-			UIOverlay.resize(width, height);
+			ui.resize(width, height);
 		}
 	}
 
@@ -3227,7 +3215,7 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 
 	if (settings.overlay) {
 		ImGuiIO& io = ImGui::GetIO();
-		handled = io.WantCaptureMouse && UIOverlay.visible;
+		handled = io.WantCaptureMouse && ui.visible;
 	}
 	mouseMoved((float)x, (float)y, handled);
 

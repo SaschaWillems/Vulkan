@@ -58,7 +58,7 @@ git submodule update
 
 ## Building
 
-The repository contains everything required to compile and build the examples on <img src="./images/windowslogo.png" alt="" height="22px" valign="bottom"> Windows, <img src="./images/linuxlogo.png" alt="" height="24px" valign="bottom"> Linux, <img src="./images/androidlogo.png" alt="" height="24px" valign="bottom"> Android, <img src="./images/applelogo.png" alt="" valign="bottom" height="24px"> iOS and macOS (using MoltenVK) using a C++ compiler that supports C++11.
+The repository contains everything required to compile and build the examples on <img src="./images/windowslogo.png" alt="" height="22px" valign="bottom"> Windows, <img src="./images/linuxlogo.png" alt="" height="24px" valign="bottom"> Linux, <img src="./images/androidlogo.png" alt="" height="24px" valign="bottom"> Android, <img src="./images/applelogo.png" alt="" valign="bottom" height="24px"> iOS and macOS (using MoltenVK) using a C++ compiler that supports C++14.
 
 See [BUILD.md](BUILD.md) for details on how to build for the different platforms.
 
@@ -469,6 +469,10 @@ Basic sample showing how to use descriptor buffers to replace descriptor sets.
 #### [Shader objects (VK_EXT_shader_object)](./examples/shaderobjects/)<br/>
 
 Basic sample showing how to use shader objects that can be used to replace pipeline state objects. Instead of baking all state in a PSO, shaders are explicitly loaded and bound as separate objects and state is set using dynamic state extensions. The sample also stores binary shader objets and loads them on consecutive runs.
+
+#### [Host image copy (VK_EXT_host_image_copy)](./examples/hostimagecopy/)<br/>
+
+Shows how to do host image copies, which heavily simplify the host to device image process by fully skipping the staging process.
 
 ### Misc
 

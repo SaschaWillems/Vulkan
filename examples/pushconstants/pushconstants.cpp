@@ -64,7 +64,7 @@ public:
 	{
 		// Setup random colors and fixed positions for every sphere in the scene
 		std::random_device rndDevice;
-		std::default_random_engine rndEngine(rndDevice());
+		std::default_random_engine rndEngine(benchmark.active ? 0 : rndDevice());
 		std::uniform_real_distribution<float> rndDist(0.1f, 1.0f);
 		for (uint32_t i = 0; i < spheres.size(); i++) {
 			spheres[i].color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
@@ -149,7 +149,7 @@ public:
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 		};
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout)); 
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		// Set
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);

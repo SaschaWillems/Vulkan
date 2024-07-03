@@ -1,5 +1,5 @@
 # Copyright 2020 Google LLC
-# Copyright 2023 Sascha Willems
+# Copyright 2023-2024 Sascha Willems
 
 import argparse
 import fileinput
@@ -29,17 +29,20 @@ def findDXC():
 
     sys.exit("Could not find DXC executable on PATH, and was not specified with --dxc")
 
+file_extensions = tuple([".vert", ".frag", ".comp", ".geom", ".tesc", ".tese", ".rgen", ".rchit", ".rmiss", ".mesh", ".task"])
+
 dxc_path = findDXC()
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
 for root, dirs, files in os.walk(dir_path):
     for file in files:
-        if file.endswith(".vert") or file.endswith(".frag") or file.endswith(".comp") or file.endswith(".geom") or file.endswith(".tesc") or file.endswith(".tese") or file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rmiss") or file.endswith(".mesh") :
+        if file.endswith(file_extensions):
             hlsl_file = os.path.join(root, file)
             spv_out = hlsl_file + ".spv"
 
             target = ''
             profile = ''
+            additional_exts = ''
             if(hlsl_file.find('.vert') != -1):
                 profile = 'vs_6_1'
             elif(hlsl_file.find('.frag') != -1):
@@ -59,7 +62,15 @@ for root, dirs, files in os.walk(dir_path):
                 profile = 'lib_6_3'
             elif(hlsl_file.find('.mesh') != -1):
                 target='-fspv-target-env=vulkan1.2'
+                additional_exts = '-fspv-extension=SPV_EXT_mesh_shader'
                 profile = 'ms_6_6'                
+            elif(hlsl_file.find('.task') != -1):
+                target='-fspv-target-env=vulkan1.2'
+                additional_exts = '-fspv-extension=SPV_EXT_mesh_shader'
+                profile = 'as_6_6'                  
+
+            if root.endswith("debugprintf"):
+                additional_exts = '-fspv-extension=SPV_KHR_non_semantic_info'
 
             print('Compiling %s' % (hlsl_file))
             subprocess.check_output([
@@ -73,6 +84,7 @@ for root, dirs, files in os.walk(dir_path):
                 '-fspv-extension=SPV_EXT_descriptor_indexing',
                 '-fspv-extension=SPV_KHR_ray_query',
                 '-fspv-extension=SPV_KHR_fragment_shading_rate',
+                additional_exts,
                 target,
                 hlsl_file,
                 '-Fo', spv_out])

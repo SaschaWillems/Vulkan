@@ -45,6 +45,15 @@ public:
 
 		// Using printf requires the non semantic info extension to be enabled
 		enabledDeviceExtensions.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+
+#if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && defined(VK_EXAMPLE_XCODE_GENERATED)
+		// SRS - Force validation on since debugPrintfEXT provided by VK_LAYER_KHRONOS_validation on macOS
+		settings.validation = true;
+		setenv("VK_LAYER_ENABLES", "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT", 1);
+
+		// SRS - RenderDoc not available on macOS so redirect debugPrintfEXT output to stdout
+		setenv("VK_KHRONOS_VALIDATION_PRINTF_TO_STDOUT", "1", 1);
+#endif
 	}
 
 	~VulkanExample()

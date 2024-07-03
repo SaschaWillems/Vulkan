@@ -1,6 +1,6 @@
 # Building
 
-The repository contains everything required to compile and build the examples on Windows, Linux, Android and MacOS using a C++ compiler that supports at least C++11. All required dependencies are included. The project uses [CMake](https://cmake.org/) as the build system.
+The repository contains everything required to compile and build the examples on Windows, Linux, Android and MacOS using a C++ compiler that supports at least C++14. All required dependencies are included. The project uses [CMake](https://cmake.org/) as the build system.
 
 ## General CMake options
 
@@ -63,12 +63,13 @@ Open **vulkan_sdk.dmg** and install the Vulkan SDK with *System Global Installat
 Install **libomp** from [homebrew](https://brew.sh) using:
 ```brew install libomp```
 
-Find the **libomp** path prefix using:
-```brew --prefix libomp```
-
-Use the **libomp** path prefix to adjust the path for ```-DOpenMP_omp_LIBRARY=``` in the cmake command below.
+Define the **libomp** path prefix using:
+```export LIBOMP_PREFIX=$(brew --prefix libomp)```
 
 Use [CMake](https://cmake.org) to generate a build configuration for Xcode or your preferred build method (e.g. Unix Makefiles or Ninja).
 
-Example of cmake generating for Xcode with **libomp** path defined for homebrew on Apple Silicon:
-```cmake -G "Xcode" -DOpenMP_omp_LIBRARY=/opt/homebrew/opt/libomp/lib/libomp.dylib```
+Example of cmake generating for Xcode with **libomp** library path defined:
+```cmake -G "Xcode" -DOpenMP_omp_LIBRARY=$LIBOMP_PREFIX/lib/libomp.dylib .```
+
+#### iOS
+Navigate to the [apple](apple/) folder and follow the instructions in [README\_MoltenVK_Examples.md](apple/README_MoltenVK_Examples.md)
