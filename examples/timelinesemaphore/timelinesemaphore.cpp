@@ -78,7 +78,6 @@ public:
 	} timeLineSemaphore;
 
 	VkPhysicalDeviceTimelineSemaphoreFeaturesKHR enabledTimelineSemaphoreFeaturesKHR{};
-	PFN_vkSignalSemaphoreKHR vkSignalSemaphoreKHR{ nullptr };
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -618,8 +617,6 @@ public:
 		graphics.queueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
 		compute.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
 
-		vkSignalSemaphoreKHR = reinterpret_cast<PFN_vkSignalSemaphoreKHR>(vkGetDeviceProcAddr(device, "vkSignalSemaphoreKHR"));
-
 		// @todo: Create a timeline semaphore
 		VkSemaphoreCreateInfo semaphoreCI{};
 		semaphoreCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -632,13 +629,6 @@ public:
 		semaphoreCI.pNext = &semaphoreTypeCI;
 
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &timeLineSemaphore.handle));
-
-		// @todo: comment
-		VkSemaphoreSignalInfoKHR semaphoreSignalInfo{};
-		semaphoreSignalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO_KHR;
-		semaphoreSignalInfo.semaphore = timeLineSemaphore.handle;
-		semaphoreSignalInfo.value = 100;
-		VK_CHECK_RESULT(vkSignalSemaphoreKHR(device, &semaphoreSignalInfo));
 
 		loadAssets();
 		prepareStorageBuffers();
@@ -654,10 +644,9 @@ public:
 
 		// Submit compute commands
 
-		// @todo: signal on first frame
-
-		const uint64_t compute_finished = 100;
-		const uint64_t graphics_finished = 200;
+		const uint64_t graphics_finished = timeLineSemaphore.value;
+		const uint64_t compute_finished = timeLineSemaphore.value + 1;
+		const uint64_t all_finished = timeLineSemaphore.value + 2;
 
 		VkTimelineSemaphoreSubmitInfoKHR timeLineSubmitInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR };
 		timeLineSubmitInfo.waitSemaphoreValueCount = 1;
@@ -694,7 +683,7 @@ public:
 		submitInfo.pSignalSemaphores = graphicsSignalSemaphores;
 
 		uint64_t wait_values[2] = { compute_finished, compute_finished };
-		uint64_t signal_values[2] = { graphics_finished, graphics_finished };
+		uint64_t signal_values[2] = { all_finished, all_finished };
 
 		timeLineSubmitInfo.waitSemaphoreValueCount = 2;
 		timeLineSubmitInfo.pWaitSemaphoreValues = &wait_values[0];
@@ -704,6 +693,8 @@ public:
 		submitInfo.pNext = &timeLineSubmitInfo;
 
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+		timeLineSemaphore.value = all_finished;
 
 		VulkanExampleBase::submitFrame();
 	}
