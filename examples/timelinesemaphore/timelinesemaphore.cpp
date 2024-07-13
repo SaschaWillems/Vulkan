@@ -1,5 +1,7 @@
 /*
 * Vulkan Example - Using timeline semaphores
+* 
+* Based on the compute n-nbody sample, this sample replaces multiple semaphores with a single timeline semaphore
 *
 * Copyright (C) 2024 by Sascha Willems - www.saschawillems.de
 *
@@ -25,53 +27,50 @@ public:
 
 	// Particle Definition
 	struct Particle {
-		glm::vec4 pos;								// xyz = position, w = mass
-		glm::vec4 vel;								// xyz = velocity, w = gradient texture position
+		glm::vec4 pos;
+		glm::vec4 vel;
 	};
 	uint32_t numParticles{ 0 };
-
-	// We use a shader storage buffer object to store the particlces
-	// This is updated by the compute pipeline and displayed as a vertex buffer by the graphics pipeline
 	vks::Buffer storageBuffer;
 
 	// Resources for the graphics part of the example
 	struct Graphics {
-		uint32_t queueFamilyIndex;					// Used to check if compute and graphics queue families differ and require additional barriers
-		VkDescriptorSetLayout descriptorSetLayout;	// Particle system rendering shader binding layout
-		VkDescriptorSet descriptorSet;				// Particle system rendering shader bindings
-		VkPipelineLayout pipelineLayout;			// Layout of the graphics pipeline
-		VkPipeline pipeline;						// Particle rendering pipeline
+		uint32_t queueFamilyIndex;
+		VkDescriptorSetLayout descriptorSetLayout;
+		VkDescriptorSet descriptorSet;
+		VkPipelineLayout pipelineLayout;
+		VkPipeline pipeline;
 		struct UniformData {
 			glm::mat4 projection;
 			glm::mat4 view;
 			glm::vec2 screenDim;
 		} uniformData;
-		vks::Buffer uniformBuffer;					// Contains scene matrices
+		vks::Buffer uniformBuffer;
 	} graphics{};
 
 	// Resources for the compute part of the example
 	struct Compute {
-		uint32_t queueFamilyIndex;					// Used to check if compute and graphics queue families differ and require additional barriers
-		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
-		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
-		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
-		VkDescriptorSetLayout descriptorSetLayout;	// Compute shader binding layout
-		VkDescriptorSet descriptorSet;				// Compute shader bindings
-		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
-		VkPipeline pipelineCalculate;				// Compute pipeline for N-Body velocity calculation (1st pass)
-		VkPipeline pipelineIntegrate;				// Compute pipeline for euler integration (2nd pass)
-		struct UniformData {						// Compute shader uniform block object
-			float deltaT{ 0.0f };					// Frame delta time
+		uint32_t queueFamilyIndex;
+		VkQueue queue;
+		VkCommandPool commandPool;
+		VkCommandBuffer commandBuffer;
+		VkDescriptorSetLayout descriptorSetLayout;
+		VkDescriptorSet descriptorSet;
+		VkPipelineLayout pipelineLayout;
+		VkPipeline pipelineCalculate;
+		VkPipeline pipelineIntegrate;
+		struct UniformData {
+			float deltaT{ 0.0f };
 			int32_t particleCount{ 0 };
-			// Parameters used to control the behaviour of the particle system
 			float gravity{ 0.002f };
 			float power{ 0.75f };
 			float soften{ 0.05f };
 		} uniformData;
-		vks::Buffer uniformBuffer;					// Uniform buffer object containing particle system parameters
+		vks::Buffer uniformBuffer;
 	} compute{};
 
-	// @todo: comment
+	// Along with the actual semaphore we also need to track the increasing value of the timeline, 
+	// so we store both in a single struct
 	struct TimeLineSemaphore {
 		VkSemaphore handle{ VK_NULL_HANDLE };
 		uint64_t value{ 0 };
@@ -380,12 +379,8 @@ public:
 		VkDeviceSize storageBufferSize = particleBuffer.size() * sizeof(Particle);
 
 		// Staging
-		// SSBO won't be changed on the host after upload so copy to device local memory
-
 		vks::Buffer stagingBuffer;
-
 		vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, storageBufferSize, particleBuffer.data());
-		// The SSBO will be used as a storage buffer for the compute pipeline and as a vertex buffer in the graphics pipeline
 		vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &storageBuffer, storageBufferSize);
 
 		// Copy from staging buffer to storage buffer
@@ -481,9 +476,7 @@ public:
 			vks::initializers::vertexInputBindingDescription(0, sizeof(Particle), VK_VERTEX_INPUT_RATE_VERTEX)
 		};
 		std::vector<VkVertexInputAttributeDescription> inputAttributes = {
-			// Location 0 : Position
 			vks::initializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Particle, pos)),
-			// Location 1 : Velocity (used for color gradient lookup)
 			vks::initializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Particle, vel)),
 		};
 		VkPipelineVertexInputStateCreateInfo vertexInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
@@ -526,72 +519,41 @@ public:
 
 	void prepareCompute()
 	{
-		// Create a compute capable device queue
-		// The VulkanDevice::createLogicalDevice functions finds a compute capable queue and prefers queue families that only support compute
-		// Depending on the implementation this may result in different queue family indices for graphics and computes,
-		// requiring proper synchronization (see the memory barriers in buildComputeCommandBuffer)
 		vkGetDeviceQueue(device, compute.queueFamilyIndex, 0, &compute.queue);
-
-		// Compute shader uniform buffer block
 		vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &compute.uniformBuffer, sizeof(Compute::UniformData));
 		VK_CHECK_RESULT(compute.uniformBuffer.map());
-
-		// Create compute pipeline
-		// Compute pipelines are created separate from graphics pipelines even if they use the same queue (family index)
-
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0 : Particle position storage buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
 			// Binding 1 : Uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
 		};
-
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &compute.descriptorSetLayout));
-
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSet));
-
 		std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets = {
-			// Binding 0 : Particle position storage buffer
 			vks::initializers::writeDescriptorSet(compute.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &storageBuffer.descriptor),
-			// Binding 1 : Uniform buffer
 			vks::initializers::writeDescriptorSet(compute.descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,&compute.uniformBuffer.descriptor)
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
-
-		// Create pipelines
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &compute.pipelineLayout));
-
 		VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
-
-		// 1st pass
 		computePipelineCreateInfo.stage = loadShader(getShadersPath() + "computenbody/particle_calculate.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
-
-		// We want to use as much shared memory for the compute shader invocations as available, so we calculate it based on the device limits and pass it to the shader via specialization constants
 		uint32_t sharedDataSize = std::min((uint32_t)1024, (uint32_t)(vulkanDevice->properties.limits.maxComputeSharedMemorySize / sizeof(glm::vec4)));
 		VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
 		VkSpecializationInfo specializationInfo = vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(int32_t), &sharedDataSize);
 		computePipelineCreateInfo.stage.pSpecializationInfo = &specializationInfo;
-
 		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipelineCalculate));
-
-		// 2nd pass
 		computePipelineCreateInfo.stage = loadShader(getShadersPath() + "computenbody/particle_integrate.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
 		VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipelineIntegrate));
-
-		// Separate command pool as queue family for compute may be different than graphics
 		VkCommandPoolCreateInfo cmdPoolInfo = {};
 		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		cmdPoolInfo.queueFamilyIndex = compute.queueFamilyIndex;
 		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
-
-		// Create a command buffer for compute operations
 		compute.commandBuffer = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, compute.commandPool);
-
-		// Build a single command buffer containing the compute dispatch commands
 		buildComputeCommandBuffer();
 	}
 
@@ -612,22 +574,20 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		// We will be using the queue family indices to check if graphics and compute queue families differ
-		// If that's the case, we need additional barriers for acquiring and releasing resources
 		graphics.queueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
 		compute.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
 
 		// @todo: Create a timeline semaphore
+		// Setup the timeline semaphore
 		VkSemaphoreCreateInfo semaphoreCI{};
 		semaphoreCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
+		// It's a variation of the core semaphore type, creation is handled via an extension struture
 		VkSemaphoreTypeCreateInfoKHR semaphoreTypeCI{};
 		semaphoreTypeCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR;
 		semaphoreTypeCI.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE_KHR;
 		semaphoreTypeCI.initialValue = timeLineSemaphore.value;
 
 		semaphoreCI.pNext = &semaphoreTypeCI;
-
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &timeLineSemaphore.handle));
 
 		loadAssets();
@@ -644,10 +604,12 @@ public:
 
 		// Submit compute commands
 
+		// Define incremental timeline sempahore states
 		const uint64_t graphics_finished = timeLineSemaphore.value;
 		const uint64_t compute_finished = timeLineSemaphore.value + 1;
 		const uint64_t all_finished = timeLineSemaphore.value + 2;
 
+		// With timeline semaphores, we can state on what value we want to wait on / signal on
 		VkTimelineSemaphoreSubmitInfoKHR timeLineSubmitInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR };
 		timeLineSubmitInfo.waitSemaphoreValueCount = 1;
 		timeLineSubmitInfo.pWaitSemaphoreValues = &graphics_finished;
@@ -694,6 +656,7 @@ public:
 
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
+		// Increase timeline value base for next frame
 		timeLineSemaphore.value = all_finished;
 
 		VulkanExampleBase::submitFrame();
