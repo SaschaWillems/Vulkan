@@ -577,7 +577,6 @@ public:
 		graphics.queueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
 		compute.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
 
-		// @todo: Create a timeline semaphore
 		// Setup the timeline semaphore
 		VkSemaphoreCreateInfo semaphoreCI{};
 		semaphoreCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
