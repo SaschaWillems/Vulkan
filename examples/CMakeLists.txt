@@ -170,6 +170,7 @@ set(EXAMPLES
 	texturecubemaparray
 	texturemipmapgen
 	texturesparseresidency
+	timelinesemaphore
 	triangle
 	variablerateshading
 	vertexattributes

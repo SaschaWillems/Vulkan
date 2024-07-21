@@ -478,6 +478,10 @@ Shows how to do host image copies, which heavily simplify the host to device ima
 
 Demonstrates the use of virtual GPU addresses to directly access buffer data in shader. Instead of e.g. using descriptors to access uniforms, with this extension you simply provide an address to the memory you want to read from in the shader and that address can be arbitrarily changed e.g. via a push constant.
 
+#### [Timeline semaphores (VK_KHR_timeline_semaphore)](./examples/timelinesemaphore/)<br/>
+
+Shows how to use a new semaphore type that has a way of setting and identifying a given point on a timeline. Compared to the core binary semaphores, this simplifies synchronization as a single timeline semaphore can replace multiple binary semaphores.
+
 ### Misc
 
 #### [Vulkan Gears](examples/gears/)
