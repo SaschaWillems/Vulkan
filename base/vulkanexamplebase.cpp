@@ -2473,6 +2473,10 @@ struct xdg_surface *VulkanExampleBase::setupWindow()
 	std::string windowTitle = getWindowTitle();
 	xdg_toplevel_set_title(xdg_toplevel, windowTitle.c_str());
 	wl_surface_commit(surface);
+	if (settings.fullscreen)
+	{
+		xdg_toplevel_set_fullscreen(xdg_toplevel, NULL);
+	}
 	return xdg_surface;
 }
 
