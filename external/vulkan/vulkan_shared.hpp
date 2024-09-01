@@ -52,6 +52,28 @@ namespace VULKAN_HPP_NAMESPACE
   {
   };
 
+  template <typename HandleType, typename = void>
+  struct HasPoolType : std::false_type
+  {
+  };
+
+  template <typename HandleType>
+  struct HasPoolType<HandleType, decltype( (void)typename SharedHandleTraits<HandleType>::deleter::PoolTypeExport() )> : std::true_type
+  {
+  };
+
+  template <typename HandleType, typename Enable = void>
+  struct GetPoolType
+  {
+    using type = NoDestructor;
+  };
+
+  template <typename HandleType>
+  struct GetPoolType<HandleType, typename std::enable_if<HasPoolType<HandleType>::value>::type>
+  {
+    using type = typename SharedHandleTraits<HandleType>::deleter::PoolTypeExport;
+  };
+
   //=====================================================================================================================
 
   template <typename HandleType>
@@ -257,9 +279,20 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     SharedHandle() = default;
 
-    template <typename T = HandleType, typename = typename std::enable_if<HasDestructor<T>::value>::type>
+    template <typename T = HandleType, typename = typename std::enable_if<HasDestructor<T>::value && !HasPoolType<T>::value>::type>
     explicit SharedHandle( HandleType handle, SharedHandle<DestructorTypeOf<HandleType>> parent, DeleterType deleter = DeleterType() ) VULKAN_HPP_NOEXCEPT
       : BaseType( handle, std::move( parent ), std::move( deleter ) )
+    {
+    }
+
+    template <typename Dispatcher = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE,
+              typename T          = HandleType,
+              typename            = typename std::enable_if<HasDestructor<T>::value && HasPoolType<T>::value>::type>
+    explicit SharedHandle( HandleType                                           handle,
+                           SharedHandle<DestructorTypeOf<HandleType>>           parent,
+                           SharedHandle<typename GetPoolType<HandleType>::type> pool,
+                           const Dispatcher & dispatch                          VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) VULKAN_HPP_NOEXCEPT
+      : BaseType( handle, std::move( parent ), DeleterType{ std::move( pool ), dispatch } )
     {
     }
 
@@ -390,6 +423,8 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     using DestructorType = typename SharedHandleTraits<HandleType>::DestructorType;
 
+    using PoolTypeExport = PoolType;
+
     template <class Dispatcher>
     using ReturnType = decltype( std::declval<DestructorType>().free( PoolType(), 0u, nullptr, Dispatcher() ) );
 
@@ -409,7 +444,7 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     void destroy( DestructorType parent, HandleType handle ) const VULKAN_HPP_NOEXCEPT
     {
-      VULKAN_HPP_ASSERT( m_destroy && m_dispatch );
+      VULKAN_HPP_ASSERT( m_destroy && m_dispatch && m_pool );
       ( parent.*m_destroy )( m_pool.get(), 1u, &handle, *m_dispatch );
     }
 
@@ -924,6 +959,17 @@ namespace VULKAN_HPP_NAMESPACE
   };
 
   using SharedShaderEXT = SharedHandle<ShaderEXT>;
+
+  //=== VK_KHR_pipeline_binary ===
+  template <>
+  class SharedHandleTraits<PipelineBinaryKHR>
+  {
+  public:
+    using DestructorType = Device;
+    using deleter        = ObjectDestroyShared<PipelineBinaryKHR>;
+  };
+
+  using SharedPipelineBinaryKHR = SharedHandle<PipelineBinaryKHR>;
 
   enum class SwapchainOwns
   {

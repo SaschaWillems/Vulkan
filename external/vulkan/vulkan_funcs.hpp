@@ -8,6 +8,9 @@
 #ifndef VULKAN_FUNCS_HPP
 #define VULKAN_FUNCS_HPP
 
+// include-what-you-use: make sure, vulkan.hpp is used by code-completers
+// IWYU pragma: private; include "vulkan.hpp"
+
 namespace VULKAN_HPP_NAMESPACE
 {
 
@@ -19114,17 +19117,20 @@ namespace VULKAN_HPP_NAMESPACE
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
   template <typename Dispatch>
-  VULKAN_HPP_INLINE void CommandBuffer::setRenderingInputAttachmentIndicesKHR( const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfoKHR * pLocationInfo,
-                                                                               Dispatch const & d ) const VULKAN_HPP_NOEXCEPT
+  VULKAN_HPP_INLINE void
+    CommandBuffer::setRenderingInputAttachmentIndicesKHR( const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfoKHR * pInputAttachmentIndexInfo,
+                                                          Dispatch const &                                                   d ) const VULKAN_HPP_NOEXCEPT
   {
     VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
-    d.vkCmdSetRenderingInputAttachmentIndicesKHR( m_commandBuffer, reinterpret_cast<const VkRenderingInputAttachmentIndexInfoKHR *>( pLocationInfo ) );
+    d.vkCmdSetRenderingInputAttachmentIndicesKHR( m_commandBuffer,
+                                                  reinterpret_cast<const VkRenderingInputAttachmentIndexInfoKHR *>( pInputAttachmentIndexInfo ) );
   }
 
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
   template <typename Dispatch>
-  VULKAN_HPP_INLINE void CommandBuffer::setRenderingInputAttachmentIndicesKHR( const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfoKHR & locationInfo,
-                                                                               Dispatch const & d ) const VULKAN_HPP_NOEXCEPT
+  VULKAN_HPP_INLINE void
+    CommandBuffer::setRenderingInputAttachmentIndicesKHR( const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfoKHR & inputAttachmentIndexInfo,
+                                                          Dispatch const &                                                   d ) const VULKAN_HPP_NOEXCEPT
   {
     VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
 #  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
@@ -19132,7 +19138,8 @@ namespace VULKAN_HPP_NAMESPACE
                        "Function <vkCmdSetRenderingInputAttachmentIndicesKHR> requires <VK_KHR_dynamic_rendering_local_read>" );
 #  endif
 
-    d.vkCmdSetRenderingInputAttachmentIndicesKHR( m_commandBuffer, reinterpret_cast<const VkRenderingInputAttachmentIndexInfoKHR *>( &locationInfo ) );
+    d.vkCmdSetRenderingInputAttachmentIndicesKHR( m_commandBuffer,
+                                                  reinterpret_cast<const VkRenderingInputAttachmentIndexInfoKHR *>( &inputAttachmentIndexInfo ) );
   }
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
@@ -22567,56 +22574,6 @@ namespace VULKAN_HPP_NAMESPACE
     return static_cast<Result>( d.vkGetDeviceFaultInfoEXT(
       m_device, reinterpret_cast<VkDeviceFaultCountsEXT *>( pFaultCounts ), reinterpret_cast<VkDeviceFaultInfoEXT *>( pFaultInfo ) ) );
   }
-
-#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-    typename ResultValueType<std::pair<VULKAN_HPP_NAMESPACE::DeviceFaultCountsEXT, VULKAN_HPP_NAMESPACE::DeviceFaultInfoEXT>>::type
-    Device::getFaultInfoEXT( Dispatch const & d ) const
-  {
-    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
-#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
-    VULKAN_HPP_ASSERT( d.vkGetDeviceFaultInfoEXT && "Function <vkGetDeviceFaultInfoEXT> requires <VK_EXT_device_fault>" );
-#  endif
-
-    std::pair<VULKAN_HPP_NAMESPACE::DeviceFaultCountsEXT, VULKAN_HPP_NAMESPACE::DeviceFaultInfoEXT> data_;
-    VULKAN_HPP_NAMESPACE::DeviceFaultCountsEXT &                                                    faultCounts = data_.first;
-    VULKAN_HPP_NAMESPACE::DeviceFaultInfoEXT &                                                      faultInfo   = data_.second;
-    VULKAN_HPP_NAMESPACE::Result                                                                    result;
-    do
-    {
-      result =
-        static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkGetDeviceFaultInfoEXT( m_device, reinterpret_cast<VkDeviceFaultCountsEXT *>( &faultCounts ), nullptr ) );
-      if ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess )
-      {
-        std::free( faultInfo.pAddressInfos );
-        if ( faultCounts.addressInfoCount )
-        {
-          faultInfo.pAddressInfos = reinterpret_cast<VULKAN_HPP_NAMESPACE::DeviceFaultAddressInfoEXT *>(
-            std::malloc( faultCounts.addressInfoCount * sizeof( VULKAN_HPP_NAMESPACE::DeviceFaultAddressInfoEXT ) ) );
-        }
-        std::free( faultInfo.pVendorInfos );
-        if ( faultCounts.vendorInfoCount )
-        {
-          faultInfo.pVendorInfos = reinterpret_cast<VULKAN_HPP_NAMESPACE::DeviceFaultVendorInfoEXT *>(
-            std::malloc( faultCounts.vendorInfoCount * sizeof( VULKAN_HPP_NAMESPACE::DeviceFaultVendorInfoEXT ) ) );
-        }
-        std::free( faultInfo.pVendorBinaryData );
-        if ( faultCounts.vendorBinarySize )
-        {
-          faultInfo.pVendorBinaryData = std::malloc( faultCounts.vendorBinarySize );
-        }
-        result = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkGetDeviceFaultInfoEXT(
-          m_device, reinterpret_cast<VkDeviceFaultCountsEXT *>( &faultCounts ), reinterpret_cast<VkDeviceFaultInfoEXT *>( &faultInfo ) ) );
-      }
-    } while ( result == VULKAN_HPP_NAMESPACE::Result::eIncomplete );
-    VULKAN_HPP_NAMESPACE::detail::resultCheck(
-      result, VULKAN_HPP_NAMESPACE_STRING "::Device::getFaultInfoEXT", { VULKAN_HPP_NAMESPACE::Result::eSuccess, VULKAN_HPP_NAMESPACE::Result::eIncomplete } );
-
-    return VULKAN_HPP_NAMESPACE::detail::createResultValueType( result, std::move( data_ ) );
-  }
-#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
-
 #if defined( VK_USE_PLATFORM_WIN32_KHR )
   //=== VK_NV_acquire_winrt_display ===
 
@@ -25349,6 +25306,28 @@ namespace VULKAN_HPP_NAMESPACE
   }
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
+  //=== VK_AMD_anti_lag ===
+
+  template <typename Dispatch>
+  VULKAN_HPP_INLINE void Device::antiLagUpdateAMD( const VULKAN_HPP_NAMESPACE::AntiLagDataAMD * pData, Dispatch const & d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+    d.vkAntiLagUpdateAMD( m_device, reinterpret_cast<const VkAntiLagDataAMD *>( pData ) );
+  }
+
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+  template <typename Dispatch>
+  VULKAN_HPP_INLINE void Device::antiLagUpdateAMD( const VULKAN_HPP_NAMESPACE::AntiLagDataAMD & data, Dispatch const & d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkAntiLagUpdateAMD && "Function <vkAntiLagUpdateAMD> requires <VK_AMD_anti_lag>" );
+#  endif
+
+    d.vkAntiLagUpdateAMD( m_device, reinterpret_cast<const VkAntiLagDataAMD *>( &data ) );
+  }
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
   //=== VK_EXT_shader_object ===
 
   template <typename Dispatch>
@@ -25703,6 +25682,469 @@ namespace VULKAN_HPP_NAMESPACE
   }
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
+  //=== VK_KHR_pipeline_binary ===
+
+  template <typename Dispatch>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE Result Device::createPipelineBinariesKHR( const VULKAN_HPP_NAMESPACE::PipelineBinaryCreateInfoKHR * pCreateInfo,
+                                                                                   const VULKAN_HPP_NAMESPACE::AllocationCallbacks *         pAllocator,
+                                                                                   VULKAN_HPP_NAMESPACE::PipelineBinaryHandlesInfoKHR *      pBinaries,
+                                                                                   Dispatch const & d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+    return static_cast<Result>( d.vkCreatePipelineBinariesKHR( m_device,
+                                                               reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( pCreateInfo ),
+                                                               reinterpret_cast<const VkAllocationCallbacks *>( pAllocator ),
+                                                               reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( pBinaries ) ) );
+  }
+
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+  template <typename PipelineBinaryKHRAllocator, typename Dispatch>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE ResultValue<std::vector<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, PipelineBinaryKHRAllocator>>
+                                         Device::createPipelineBinariesKHR( const VULKAN_HPP_NAMESPACE::PipelineBinaryCreateInfoKHR & createInfo,
+                                       Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator,
+                                       Dispatch const &                                          d ) const
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkCreatePipelineBinariesKHR && "Function <vkCreatePipelineBinariesKHR> requires <VK_KHR_pipeline_binary>" );
+#  endif
+
+    std::vector<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, PipelineBinaryKHRAllocator> pipelineBinaries;
+    VULKAN_HPP_NAMESPACE::PipelineBinaryHandlesInfoKHR                               binaries;
+    VULKAN_HPP_NAMESPACE::Result                                                     result;
+    if ( createInfo.pKeysAndDataInfo )
+    {
+      VULKAN_HPP_ASSERT( !createInfo.pipeline && !createInfo.pPipelineCreateInfo );
+      pipelineBinaries.resize( createInfo.pKeysAndDataInfo->binaryCount );
+      binaries.pipelineBinaryCount = createInfo.pKeysAndDataInfo->binaryCount;
+      binaries.pPipelineBinaries   = pipelineBinaries.data();
+      result                       = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+        m_device,
+        reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+        reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+        reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+    }
+    else
+    {
+      VULKAN_HPP_ASSERT( !createInfo.pipeline ^ !createInfo.pPipelineCreateInfo );
+      result = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+        m_device,
+        reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+        reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+        reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+      if ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess )
+      {
+        pipelineBinaries.resize( binaries.pipelineBinaryCount );
+        binaries.pPipelineBinaries = pipelineBinaries.data();
+        result                     = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+          m_device,
+          reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+          reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+          reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+      }
+    }
+
+    VULKAN_HPP_NAMESPACE::detail::resultCheck(
+      result,
+      VULKAN_HPP_NAMESPACE_STRING "::Device::createPipelineBinariesKHR",
+      { VULKAN_HPP_NAMESPACE::Result::eSuccess, VULKAN_HPP_NAMESPACE::Result::eIncomplete, VULKAN_HPP_NAMESPACE::Result::ePipelineBinaryMissingKHR } );
+
+    return ResultValue<std::vector<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, PipelineBinaryKHRAllocator>>( result, std::move( pipelineBinaries ) );
+  }
+
+  template <typename PipelineBinaryKHRAllocator,
+            typename Dispatch,
+            typename std::enable_if<std::is_same<typename PipelineBinaryKHRAllocator::value_type, VULKAN_HPP_NAMESPACE::PipelineBinaryKHR>::value, int>::type>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE ResultValue<std::vector<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, PipelineBinaryKHRAllocator>>
+                                         Device::createPipelineBinariesKHR( const VULKAN_HPP_NAMESPACE::PipelineBinaryCreateInfoKHR & createInfo,
+                                       Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator,
+                                       PipelineBinaryKHRAllocator &                              pipelineBinaryKHRAllocator,
+                                       Dispatch const &                                          d ) const
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkCreatePipelineBinariesKHR && "Function <vkCreatePipelineBinariesKHR> requires <VK_KHR_pipeline_binary>" );
+#  endif
+
+    std::vector<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, PipelineBinaryKHRAllocator> pipelineBinaries( pipelineBinaryKHRAllocator );
+    VULKAN_HPP_NAMESPACE::PipelineBinaryHandlesInfoKHR                               binaries;
+    VULKAN_HPP_NAMESPACE::Result                                                     result;
+    if ( createInfo.pKeysAndDataInfo )
+    {
+      VULKAN_HPP_ASSERT( !createInfo.pipeline && !createInfo.pPipelineCreateInfo );
+      pipelineBinaries.resize( createInfo.pKeysAndDataInfo->binaryCount );
+      binaries.pipelineBinaryCount = createInfo.pKeysAndDataInfo->binaryCount;
+      binaries.pPipelineBinaries   = pipelineBinaries.data();
+      result                       = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+        m_device,
+        reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+        reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+        reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+    }
+    else
+    {
+      VULKAN_HPP_ASSERT( !createInfo.pipeline ^ !createInfo.pPipelineCreateInfo );
+      result = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+        m_device,
+        reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+        reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+        reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+      if ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess )
+      {
+        pipelineBinaries.resize( binaries.pipelineBinaryCount );
+        binaries.pPipelineBinaries = pipelineBinaries.data();
+        result                     = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+          m_device,
+          reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+          reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+          reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+      }
+    }
+
+    VULKAN_HPP_NAMESPACE::detail::resultCheck(
+      result,
+      VULKAN_HPP_NAMESPACE_STRING "::Device::createPipelineBinariesKHR",
+      { VULKAN_HPP_NAMESPACE::Result::eSuccess, VULKAN_HPP_NAMESPACE::Result::eIncomplete, VULKAN_HPP_NAMESPACE::Result::ePipelineBinaryMissingKHR } );
+
+    return ResultValue<std::vector<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, PipelineBinaryKHRAllocator>>( result, std::move( pipelineBinaries ) );
+  }
+
+#  ifndef VULKAN_HPP_NO_SMART_HANDLE
+  template <typename Dispatch, typename PipelineBinaryKHRAllocator>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE ResultValue<std::vector<UniqueHandle<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, Dispatch>, PipelineBinaryKHRAllocator>>
+                                         Device::createPipelineBinariesKHRUnique( const VULKAN_HPP_NAMESPACE::PipelineBinaryCreateInfoKHR & createInfo,
+                                             Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator,
+                                             Dispatch const &                                          d ) const
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#    if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkCreatePipelineBinariesKHR && "Function <vkCreatePipelineBinariesKHR> requires <VK_KHR_pipeline_binary>" );
+#    endif
+
+    std::vector<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR> pipelineBinaries;
+    VULKAN_HPP_NAMESPACE::PipelineBinaryHandlesInfoKHR   binaries;
+    VULKAN_HPP_NAMESPACE::Result                         result;
+    if ( createInfo.pKeysAndDataInfo )
+    {
+      VULKAN_HPP_ASSERT( !createInfo.pipeline && !createInfo.pPipelineCreateInfo );
+      pipelineBinaries.resize( createInfo.pKeysAndDataInfo->binaryCount );
+      binaries.pipelineBinaryCount = createInfo.pKeysAndDataInfo->binaryCount;
+      binaries.pPipelineBinaries   = pipelineBinaries.data();
+      result                       = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+        m_device,
+        reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+        reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+        reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+    }
+    else
+    {
+      VULKAN_HPP_ASSERT( !createInfo.pipeline ^ !createInfo.pPipelineCreateInfo );
+      result = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+        m_device,
+        reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+        reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+        reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+      if ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess )
+      {
+        pipelineBinaries.resize( binaries.pipelineBinaryCount );
+        binaries.pPipelineBinaries = pipelineBinaries.data();
+        result                     = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+          m_device,
+          reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+          reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+          reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+      }
+    }
+
+    VULKAN_HPP_NAMESPACE::detail::resultCheck(
+      result,
+      VULKAN_HPP_NAMESPACE_STRING "::Device::createPipelineBinariesKHRUnique",
+      { VULKAN_HPP_NAMESPACE::Result::eSuccess, VULKAN_HPP_NAMESPACE::Result::eIncomplete, VULKAN_HPP_NAMESPACE::Result::ePipelineBinaryMissingKHR } );
+    std::vector<UniqueHandle<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, Dispatch>, PipelineBinaryKHRAllocator> uniquePipelineBinaries;
+    uniquePipelineBinaries.reserve( pipelineBinaries.size() );
+    ObjectDestroy<Device, Dispatch> deleter( *this, allocator, d );
+    for ( auto const & pipelineBinary : pipelineBinaries )
+    {
+      uniquePipelineBinaries.push_back( UniqueHandle<PipelineBinaryKHR, Dispatch>( pipelineBinary, deleter ) );
+    }
+    return ResultValue<std::vector<UniqueHandle<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, Dispatch>, PipelineBinaryKHRAllocator>>(
+      result, std::move( uniquePipelineBinaries ) );
+  }
+
+  template <typename Dispatch,
+            typename PipelineBinaryKHRAllocator,
+            typename std::enable_if<
+              std::is_same<typename PipelineBinaryKHRAllocator::value_type, UniqueHandle<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, Dispatch>>::value,
+              int>::type>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE ResultValue<std::vector<UniqueHandle<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, Dispatch>, PipelineBinaryKHRAllocator>>
+                                         Device::createPipelineBinariesKHRUnique( const VULKAN_HPP_NAMESPACE::PipelineBinaryCreateInfoKHR & createInfo,
+                                             Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator,
+                                             PipelineBinaryKHRAllocator &                              pipelineBinaryKHRAllocator,
+                                             Dispatch const &                                          d ) const
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#    if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkCreatePipelineBinariesKHR && "Function <vkCreatePipelineBinariesKHR> requires <VK_KHR_pipeline_binary>" );
+#    endif
+
+    std::vector<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR> pipelineBinaries;
+    VULKAN_HPP_NAMESPACE::PipelineBinaryHandlesInfoKHR   binaries;
+    VULKAN_HPP_NAMESPACE::Result                         result;
+    if ( createInfo.pKeysAndDataInfo )
+    {
+      VULKAN_HPP_ASSERT( !createInfo.pipeline && !createInfo.pPipelineCreateInfo );
+      pipelineBinaries.resize( createInfo.pKeysAndDataInfo->binaryCount );
+      binaries.pipelineBinaryCount = createInfo.pKeysAndDataInfo->binaryCount;
+      binaries.pPipelineBinaries   = pipelineBinaries.data();
+      result                       = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+        m_device,
+        reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+        reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+        reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+    }
+    else
+    {
+      VULKAN_HPP_ASSERT( !createInfo.pipeline ^ !createInfo.pPipelineCreateInfo );
+      result = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+        m_device,
+        reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+        reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+        reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+      if ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess )
+      {
+        pipelineBinaries.resize( binaries.pipelineBinaryCount );
+        binaries.pPipelineBinaries = pipelineBinaries.data();
+        result                     = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkCreatePipelineBinariesKHR(
+          m_device,
+          reinterpret_cast<const VkPipelineBinaryCreateInfoKHR *>( &createInfo ),
+          reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ),
+          reinterpret_cast<VkPipelineBinaryHandlesInfoKHR *>( &binaries ) ) );
+      }
+    }
+
+    VULKAN_HPP_NAMESPACE::detail::resultCheck(
+      result,
+      VULKAN_HPP_NAMESPACE_STRING "::Device::createPipelineBinariesKHRUnique",
+      { VULKAN_HPP_NAMESPACE::Result::eSuccess, VULKAN_HPP_NAMESPACE::Result::eIncomplete, VULKAN_HPP_NAMESPACE::Result::ePipelineBinaryMissingKHR } );
+    std::vector<UniqueHandle<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, Dispatch>, PipelineBinaryKHRAllocator> uniquePipelineBinaries(
+      pipelineBinaryKHRAllocator );
+    uniquePipelineBinaries.reserve( pipelineBinaries.size() );
+    ObjectDestroy<Device, Dispatch> deleter( *this, allocator, d );
+    for ( auto const & pipelineBinary : pipelineBinaries )
+    {
+      uniquePipelineBinaries.push_back( UniqueHandle<PipelineBinaryKHR, Dispatch>( pipelineBinary, deleter ) );
+    }
+    return ResultValue<std::vector<UniqueHandle<VULKAN_HPP_NAMESPACE::PipelineBinaryKHR, Dispatch>, PipelineBinaryKHRAllocator>>(
+      result, std::move( uniquePipelineBinaries ) );
+  }
+#  endif /* VULKAN_HPP_NO_SMART_HANDLE */
+#endif   /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+  template <typename Dispatch>
+  VULKAN_HPP_INLINE void Device::destroyPipelineBinaryKHR( VULKAN_HPP_NAMESPACE::PipelineBinaryKHR           pipelineBinary,
+                                                           const VULKAN_HPP_NAMESPACE::AllocationCallbacks * pAllocator,
+                                                           Dispatch const &                                  d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+    d.vkDestroyPipelineBinaryKHR( m_device, static_cast<VkPipelineBinaryKHR>( pipelineBinary ), reinterpret_cast<const VkAllocationCallbacks *>( pAllocator ) );
+  }
+
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+  template <typename Dispatch>
+  VULKAN_HPP_INLINE void Device::destroyPipelineBinaryKHR( VULKAN_HPP_NAMESPACE::PipelineBinaryKHR                   pipelineBinary,
+                                                           Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator,
+                                                           Dispatch const &                                          d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkDestroyPipelineBinaryKHR && "Function <vkDestroyPipelineBinaryKHR> requires <VK_KHR_pipeline_binary>" );
+#  endif
+
+    d.vkDestroyPipelineBinaryKHR(
+      m_device,
+      static_cast<VkPipelineBinaryKHR>( pipelineBinary ),
+      reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ) );
+  }
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+  template <typename Dispatch>
+  VULKAN_HPP_INLINE void Device::destroy( VULKAN_HPP_NAMESPACE::PipelineBinaryKHR           pipelineBinary,
+                                          const VULKAN_HPP_NAMESPACE::AllocationCallbacks * pAllocator,
+                                          Dispatch const &                                  d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+    d.vkDestroyPipelineBinaryKHR( m_device, static_cast<VkPipelineBinaryKHR>( pipelineBinary ), reinterpret_cast<const VkAllocationCallbacks *>( pAllocator ) );
+  }
+
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+  template <typename Dispatch>
+  VULKAN_HPP_INLINE void Device::destroy( VULKAN_HPP_NAMESPACE::PipelineBinaryKHR                   pipelineBinary,
+                                          Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator,
+                                          Dispatch const &                                          d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkDestroyPipelineBinaryKHR && "Function <vkDestroyPipelineBinaryKHR> requires <VK_KHR_pipeline_binary>" );
+#  endif
+
+    d.vkDestroyPipelineBinaryKHR(
+      m_device,
+      static_cast<VkPipelineBinaryKHR>( pipelineBinary ),
+      reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ) );
+  }
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+  template <typename Dispatch>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE Result Device::getPipelineKeyKHR( const VULKAN_HPP_NAMESPACE::PipelineCreateInfoKHR * pPipelineCreateInfo,
+                                                                           VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR *        pPipelineKey,
+                                                                           Dispatch const &                                    d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+    return static_cast<Result>( d.vkGetPipelineKeyKHR(
+      m_device, reinterpret_cast<const VkPipelineCreateInfoKHR *>( pPipelineCreateInfo ), reinterpret_cast<VkPipelineBinaryKeyKHR *>( pPipelineKey ) ) );
+  }
+
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+  template <typename Dispatch>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE typename ResultValueType<VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR>::type
+                       Device::getPipelineKeyKHR( Optional<const VULKAN_HPP_NAMESPACE::PipelineCreateInfoKHR> pipelineCreateInfo, Dispatch const & d ) const
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkGetPipelineKeyKHR && "Function <vkGetPipelineKeyKHR> requires <VK_KHR_pipeline_binary>" );
+#  endif
+
+    VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR pipelineKey;
+    VULKAN_HPP_NAMESPACE::Result               result = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkGetPipelineKeyKHR(
+      m_device,
+      reinterpret_cast<const VkPipelineCreateInfoKHR *>( static_cast<const VULKAN_HPP_NAMESPACE::PipelineCreateInfoKHR *>( pipelineCreateInfo ) ),
+      reinterpret_cast<VkPipelineBinaryKeyKHR *>( &pipelineKey ) ) );
+    VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::getPipelineKeyKHR" );
+
+    return VULKAN_HPP_NAMESPACE::detail::createResultValueType( result, std::move( pipelineKey ) );
+  }
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+  template <typename Dispatch>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE Result Device::getPipelineBinaryDataKHR( const VULKAN_HPP_NAMESPACE::PipelineBinaryDataInfoKHR * pInfo,
+                                                                                  VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR *            pPipelineBinaryKey,
+                                                                                  size_t *         pPipelineBinaryDataSize,
+                                                                                  void *           pPipelineBinaryData,
+                                                                                  Dispatch const & d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+    return static_cast<Result>( d.vkGetPipelineBinaryDataKHR( m_device,
+                                                              reinterpret_cast<const VkPipelineBinaryDataInfoKHR *>( pInfo ),
+                                                              reinterpret_cast<VkPipelineBinaryKeyKHR *>( pPipelineBinaryKey ),
+                                                              pPipelineBinaryDataSize,
+                                                              pPipelineBinaryData ) );
+  }
+
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+  template <typename Uint8_tAllocator, typename Dispatch>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+    typename ResultValueType<std::pair<VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR, std::vector<uint8_t, Uint8_tAllocator>>>::type
+    Device::getPipelineBinaryDataKHR( const VULKAN_HPP_NAMESPACE::PipelineBinaryDataInfoKHR & info, Dispatch const & d ) const
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkGetPipelineBinaryDataKHR && "Function <vkGetPipelineBinaryDataKHR> requires <VK_KHR_pipeline_binary>" );
+#  endif
+
+    std::pair<VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR, std::vector<uint8_t, Uint8_tAllocator>> data_;
+    VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR &                                                  pipelineBinaryKey  = data_.first;
+    std::vector<uint8_t, Uint8_tAllocator> &                                                      pipelineBinaryData = data_.second;
+    size_t                                                                                        pipelineBinaryDataSize;
+    VULKAN_HPP_NAMESPACE::Result                                                                  result =
+      static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkGetPipelineBinaryDataKHR( m_device,
+                                                                               reinterpret_cast<const VkPipelineBinaryDataInfoKHR *>( &info ),
+                                                                               reinterpret_cast<VkPipelineBinaryKeyKHR *>( &pipelineBinaryKey ),
+                                                                               &pipelineBinaryDataSize,
+                                                                               nullptr ) );
+    if ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess )
+    {
+      pipelineBinaryData.resize( pipelineBinaryDataSize );
+      result = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkGetPipelineBinaryDataKHR( m_device,
+                                                                                        reinterpret_cast<const VkPipelineBinaryDataInfoKHR *>( &info ),
+                                                                                        reinterpret_cast<VkPipelineBinaryKeyKHR *>( &pipelineBinaryKey ),
+                                                                                        &pipelineBinaryDataSize,
+                                                                                        reinterpret_cast<void *>( pipelineBinaryData.data() ) ) );
+    }
+
+    VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::getPipelineBinaryDataKHR" );
+
+    return VULKAN_HPP_NAMESPACE::detail::createResultValueType( result, std::move( data_ ) );
+  }
+
+  template <typename Uint8_tAllocator,
+            typename Dispatch,
+            typename std::enable_if<std::is_same<typename Uint8_tAllocator::value_type, uint8_t>::value, int>::type>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+    typename ResultValueType<std::pair<VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR, std::vector<uint8_t, Uint8_tAllocator>>>::type
+    Device::getPipelineBinaryDataKHR( const VULKAN_HPP_NAMESPACE::PipelineBinaryDataInfoKHR & info,
+                                      Uint8_tAllocator &                                      uint8_tAllocator,
+                                      Dispatch const &                                        d ) const
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkGetPipelineBinaryDataKHR && "Function <vkGetPipelineBinaryDataKHR> requires <VK_KHR_pipeline_binary>" );
+#  endif
+
+    std::pair<VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR, std::vector<uint8_t, Uint8_tAllocator>> data_(
+      std::piecewise_construct, std::forward_as_tuple(), std::forward_as_tuple( uint8_tAllocator ) );
+    VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR & pipelineBinaryKey  = data_.first;
+    std::vector<uint8_t, Uint8_tAllocator> &     pipelineBinaryData = data_.second;
+    size_t                                       pipelineBinaryDataSize;
+    VULKAN_HPP_NAMESPACE::Result                 result =
+      static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkGetPipelineBinaryDataKHR( m_device,
+                                                                               reinterpret_cast<const VkPipelineBinaryDataInfoKHR *>( &info ),
+                                                                               reinterpret_cast<VkPipelineBinaryKeyKHR *>( &pipelineBinaryKey ),
+                                                                               &pipelineBinaryDataSize,
+                                                                               nullptr ) );
+    if ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess )
+    {
+      pipelineBinaryData.resize( pipelineBinaryDataSize );
+      result = static_cast<VULKAN_HPP_NAMESPACE::Result>( d.vkGetPipelineBinaryDataKHR( m_device,
+                                                                                        reinterpret_cast<const VkPipelineBinaryDataInfoKHR *>( &info ),
+                                                                                        reinterpret_cast<VkPipelineBinaryKeyKHR *>( &pipelineBinaryKey ),
+                                                                                        &pipelineBinaryDataSize,
+                                                                                        reinterpret_cast<void *>( pipelineBinaryData.data() ) ) );
+    }
+
+    VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::getPipelineBinaryDataKHR" );
+
+    return VULKAN_HPP_NAMESPACE::detail::createResultValueType( result, std::move( data_ ) );
+  }
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+  template <typename Dispatch>
+  VULKAN_HPP_INLINE Result Device::releaseCapturedPipelineDataKHR( const VULKAN_HPP_NAMESPACE::ReleaseCapturedPipelineDataInfoKHR * pInfo,
+                                                                   const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                pAllocator,
+                                                                   Dispatch const & d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+    return static_cast<Result>( d.vkReleaseCapturedPipelineDataKHR(
+      m_device, reinterpret_cast<const VkReleaseCapturedPipelineDataInfoKHR *>( pInfo ), reinterpret_cast<const VkAllocationCallbacks *>( pAllocator ) ) );
+  }
+
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+  template <typename Dispatch>
+  VULKAN_HPP_INLINE void Device::releaseCapturedPipelineDataKHR( const VULKAN_HPP_NAMESPACE::ReleaseCapturedPipelineDataInfoKHR & info,
+                                                                 Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks>        allocator,
+                                                                 Dispatch const &                                                 d ) const VULKAN_HPP_NOEXCEPT
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkReleaseCapturedPipelineDataKHR && "Function <vkReleaseCapturedPipelineDataKHR> requires <VK_KHR_pipeline_binary>" );
+#  endif
+
+    d.vkReleaseCapturedPipelineDataKHR(
+      m_device,
+      reinterpret_cast<const VkReleaseCapturedPipelineDataInfoKHR *>( &info ),
+      reinterpret_cast<const VkAllocationCallbacks *>( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) ) );
+  }
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
   //=== VK_QCOM_tile_properties ===
 
   template <typename Dispatch>
@@ -25904,19 +26346,48 @@ namespace VULKAN_HPP_NAMESPACE
   }
 
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::GetLatencyMarkerInfoNV
-    Device::getLatencyTimingsNV( VULKAN_HPP_NAMESPACE::SwapchainKHR swapchain, Dispatch const & d ) const VULKAN_HPP_NOEXCEPT
+  template <typename LatencyTimingsFrameReportNVAllocator, typename Dispatch>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE std::vector<VULKAN_HPP_NAMESPACE::LatencyTimingsFrameReportNV, LatencyTimingsFrameReportNVAllocator>
+                                         Device::getLatencyTimingsNV( VULKAN_HPP_NAMESPACE::SwapchainKHR swapchain, Dispatch const & d ) const
   {
     VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
 #  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
     VULKAN_HPP_ASSERT( d.vkGetLatencyTimingsNV && "Function <vkGetLatencyTimingsNV> requires <VK_NV_low_latency2>" );
 #  endif
 
-    VULKAN_HPP_NAMESPACE::GetLatencyMarkerInfoNV latencyMarkerInfo;
+    std::vector<VULKAN_HPP_NAMESPACE::LatencyTimingsFrameReportNV, LatencyTimingsFrameReportNVAllocator> timings;
+    VULKAN_HPP_NAMESPACE::GetLatencyMarkerInfoNV                                                         latencyMarkerInfo;
+    d.vkGetLatencyTimingsNV( m_device, static_cast<VkSwapchainKHR>( swapchain ), reinterpret_cast<VkGetLatencyMarkerInfoNV *>( &latencyMarkerInfo ) );
+    timings.resize( latencyMarkerInfo.timingCount );
+    latencyMarkerInfo.pTimings = timings.data();
     d.vkGetLatencyTimingsNV( m_device, static_cast<VkSwapchainKHR>( swapchain ), reinterpret_cast<VkGetLatencyMarkerInfoNV *>( &latencyMarkerInfo ) );
 
-    return latencyMarkerInfo;
+    return timings;
+  }
+
+  template <
+    typename LatencyTimingsFrameReportNVAllocator,
+    typename Dispatch,
+    typename std::enable_if<std::is_same<typename LatencyTimingsFrameReportNVAllocator::value_type, VULKAN_HPP_NAMESPACE::LatencyTimingsFrameReportNV>::value,
+                            int>::type>
+  VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE std::vector<VULKAN_HPP_NAMESPACE::LatencyTimingsFrameReportNV, LatencyTimingsFrameReportNVAllocator>
+                                         Device::getLatencyTimingsNV( VULKAN_HPP_NAMESPACE::SwapchainKHR     swapchain,
+                                 LatencyTimingsFrameReportNVAllocator & latencyTimingsFrameReportNVAllocator,
+                                 Dispatch const &                       d ) const
+  {
+    VULKAN_HPP_ASSERT( d.getVkHeaderVersion() == VK_HEADER_VERSION );
+#  if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
+    VULKAN_HPP_ASSERT( d.vkGetLatencyTimingsNV && "Function <vkGetLatencyTimingsNV> requires <VK_NV_low_latency2>" );
+#  endif
+
+    std::vector<VULKAN_HPP_NAMESPACE::LatencyTimingsFrameReportNV, LatencyTimingsFrameReportNVAllocator> timings( latencyTimingsFrameReportNVAllocator );
+    VULKAN_HPP_NAMESPACE::GetLatencyMarkerInfoNV                                                         latencyMarkerInfo;
+    d.vkGetLatencyTimingsNV( m_device, static_cast<VkSwapchainKHR>( swapchain ), reinterpret_cast<VkGetLatencyMarkerInfoNV *>( &latencyMarkerInfo ) );
+    timings.resize( latencyMarkerInfo.timingCount );
+    latencyMarkerInfo.pTimings = timings.data();
+    d.vkGetLatencyTimingsNV( m_device, static_cast<VkSwapchainKHR>( swapchain ), reinterpret_cast<VkGetLatencyMarkerInfoNV *>( &latencyMarkerInfo ) );
+
+    return timings;
   }
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
