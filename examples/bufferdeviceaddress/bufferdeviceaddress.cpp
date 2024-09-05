@@ -263,7 +263,7 @@ public:
 			model.bindBuffers(drawCmdBuffers[i]);
 
 			// Instead of using descriptors to pass global and per-model matrices to the shader, we can now simply pass buffer references via push constants
-			// The reader then simply reads data from the address of that reference
+			// The shader then simply reads data from the address of that reference
 			PushConstantBlock references{};
 			// Pass pointer to the global matrix via a buffer device address
 			references.sceneReference = scene.bufferDeviceAddress;
