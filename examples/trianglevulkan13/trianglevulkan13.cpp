@@ -339,11 +339,11 @@ public:
 		vkFreeMemory(device, stagingBuffers.indexBuffer.memory, nullptr);
 	}
 
-	// Descriptors are allocated from a pool, that tells the implementation how many and what types of descriptors we are going to use (at maximum)
-	void createDescriptorPool()
+	// Decriptors are used to pass data to shaders, for our sample we use a descriptor to pass parameters like matrices to the shader
+	void createDescriptors()
 	{
-		// We need to tell the API the number of max. requested descriptors per type
-		VkDescriptorPoolSize descriptorTypeCounts[1];
+		// Descriptors are allocated from a pool, that tells the implementation how many and what types of descriptors we are going to use (at maximum)
+		VkDescriptorPoolSize descriptorTypeCounts[1]{};
 		// This example only one descriptor type (uniform buffer)
 		descriptorTypeCounts[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		// We have one buffer (and as such descriptor) per frame
@@ -362,13 +362,10 @@ public:
 		// Our sample will create one set per uniform buffer per frame
 		descriptorPoolCI.maxSets = MAX_CONCURRENT_FRAMES;
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
-	}
 
-	// Descriptor set layouts define the interface between our application and the shader
-	// Basically connects the different shader stages to descriptors for binding uniform buffers, image samplers, etc.
-	// So every shader binding should map to one descriptor set layout binding
-	void createDescriptorSetLayout()
-	{
+		// Descriptor set layouts define the interface between our application and the shader
+		// Basically connects the different shader stages to descriptors for binding uniform buffers, image samplers, etc.
+		// So every shader binding should map to one descriptor set layout binding
 		// Binding 0: Uniform buffer (Vertex shader)
 		VkDescriptorSetLayoutBinding layoutBinding{};
 		layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -380,19 +377,8 @@ public:
 		descriptorLayoutCI.pBindings = &layoutBinding;
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayout));
 
-		// Create the pipeline layout that is used to generate the rendering pipelines that are based on this descriptor set layout
-		// In a more complex scenario you would have different pipeline layouts for different descriptor set layouts that could be reused
-		VkPipelineLayoutCreateInfo pipelineLayoutCI{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-		pipelineLayoutCI.setLayoutCount = 1;
-		pipelineLayoutCI.pSetLayouts = &descriptorSetLayout;
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
-	}
-
-	// Shaders access data using descriptor sets that "point" at our uniform buffers
-	// The descriptor sets make use of the descriptor set layouts created above 
-	void createDescriptorSets()
-	{
-		// Allocate one descriptor set per frame from the global descriptor pool
+		// Where the descriptor set layout is the interface, the descriptor set points to actual data
+		// Descriptors that are changed per frame need to be multiplied, so we can update descriptor n+1 while n is still used by the GPU, so we create one per max frame in flight
 		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {
 			VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 			allocInfo.descriptorPool = descriptorPool;
@@ -404,7 +390,7 @@ public:
 			// For every binding point used in a shader there needs to be one
 			// descriptor set matching that binding point
 			VkWriteDescriptorSet writeDescriptorSet{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-			
+
 			// The buffer's information is passed using a descriptor info structure
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = uniformBuffers[i].handle;
@@ -516,12 +502,17 @@ public:
 		}
 	}
 
-	void createPipelines()
+	void createPipeline()
 	{
+		// The pipeline layout is the interface telling the pipeline what type of descriptors will later be bound
+		VkPipelineLayoutCreateInfo pipelineLayoutCI{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+		pipelineLayoutCI.setLayoutCount = 1;
+		pipelineLayoutCI.pSetLayouts = &descriptorSetLayout;
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
+
 		// Create the graphics pipeline used in this example
 		// Vulkan uses the concept of rendering pipelines to encapsulate fixed states, replacing OpenGL's complex state machine
 		// A pipeline is then stored and hashed on the GPU making pipeline changes very fast
-		// Note: There are still a few dynamic states that are not directly part of the pipeline (but the info that they are used is)
 
 		VkGraphicsPipelineCreateInfo pipelineCI{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 		// The layout used for this pipeline (can be shared among multiple pipelines using the same layout)
@@ -560,12 +551,9 @@ public:
 		viewportStateCI.scissorCount = 1;
 
 		// Enable dynamic states
-		// Most states are baked into the pipeline, but there are still a few dynamic states that can be changed within a command buffer
-		// To be able to change these we need do specify which dynamic states will be changed using this pipeline. Their actual states are set later on in the command buffer.
-		// For this example we will set the viewport and scissor using dynamic states
-		std::vector<VkDynamicState> dynamicStateEnables;
-		dynamicStateEnables.push_back(VK_DYNAMIC_STATE_VIEWPORT);
-		dynamicStateEnables.push_back(VK_DYNAMIC_STATE_SCISSOR);
+		// Most states are baked into the pipeline, but there is somee state that can be dynamically changed within the command buffer to mak e things easuer
+		// To be able to change these we need do specify which dynamic states will be changed using this pipeline. Their actual states are set later on in the command buffer
+		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicStateCI{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 		dynamicStateCI.pDynamicStates = dynamicStateEnables.data();
 		dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
@@ -583,11 +571,9 @@ public:
 		depthStencilStateCI.stencilTestEnable = VK_FALSE;
 		depthStencilStateCI.front = depthStencilStateCI.back;
 
-		// Multi sampling state
 		// This example does not make use of multi sampling (for anti-aliasing), the state must still be set and passed to the pipeline
 		VkPipelineMultisampleStateCreateInfo multisampleStateCI{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 		multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		multisampleStateCI.pSampleMask = nullptr;
 
 		// Vertex input descriptions
 		// Specifies the vertex input parameters for a pipeline
@@ -645,12 +631,12 @@ public:
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 
-		// New create info to define color, depth and stencil attachments at pipeline create time
-		VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
-		pipelineRenderingCreateInfo.colorAttachmentCount = 1;
-		pipelineRenderingCreateInfo.pColorAttachmentFormats = &swapChain.colorFormat;
-		pipelineRenderingCreateInfo.depthAttachmentFormat = depthFormat;
-		pipelineRenderingCreateInfo.stencilAttachmentFormat = depthFormat;
+		// Attachment information for dynamic rendering
+		VkPipelineRenderingCreateInfoKHR pipelineRenderingCI{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
+		pipelineRenderingCI.colorAttachmentCount = 1;
+		pipelineRenderingCI.pColorAttachmentFormats = &swapChain.colorFormat;
+		pipelineRenderingCI.depthAttachmentFormat = depthFormat;
+		pipelineRenderingCI.stencilAttachmentFormat = depthFormat;
 
 		// Assign the pipeline states to the pipeline creation info structure
 		pipelineCI.pVertexInputState = &vertexInputStateCI;
@@ -661,12 +647,12 @@ public:
 		pipelineCI.pViewportState = &viewportStateCI;
 		pipelineCI.pDepthStencilState = &depthStencilStateCI;
 		pipelineCI.pDynamicState = &dynamicStateCI;
-		pipelineCI.pNext = &pipelineRenderingCreateInfo;
+		pipelineCI.pNext = &pipelineRenderingCI;
 
 		// Create rendering pipeline using the specified states
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 
-		// Shader modules are no longer needed once the graphics pipeline has been created
+		// Shader modules can safely be destroyed when the pipeline has been created
 		vkDestroyShaderModule(device, shaderStages[0].module, nullptr);
 		vkDestroyShaderModule(device, shaderStages[1].module, nullptr);
 	}
@@ -675,7 +661,6 @@ public:
 	{
 		// Prepare and initialize the per-frame uniform buffer blocks containing shader uniforms
 		// Single uniforms like in OpenGL are no longer present in Vulkan. All Shader uniforms are passed via uniform buffer blocks
-		VkMemoryRequirements memReqs;
 
 		// Vertex shader uniform buffer block
 		VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -691,6 +676,7 @@ public:
 		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {
 			VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &uniformBuffers[i].handle));
 			// Get memory requirements including size, alignment and memory type
+			VkMemoryRequirements memReqs;
 			vkGetBufferMemoryRequirements(device, uniformBuffers[i].handle, &memReqs);
 			allocInfo.allocationSize = memReqs.size;
 			// Get the memory type index that supports host visible memory access
@@ -714,18 +700,13 @@ public:
 		createCommandBuffers();
 		createVertexBuffer();
 		createUniformBuffers();
-		createDescriptorSetLayout();
-		createDescriptorPool();
-		createDescriptorSets();
-		createPipelines();
+		createDescriptors();
+		createPipeline();
 		prepared = true;
 	}
 
-	virtual void render()
+	virtual void render() override
 	{
-		if (!prepared)
-			return;
-
 		// Use a fence to wait until the command buffer has finished execution before using it again
 		vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX);
 		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentFrame]));
