@@ -172,6 +172,7 @@ set(EXAMPLES
 	texturesparseresidency
 	timelinesemaphore
 	triangle
+	trianglevulkan13
 	variablerateshading
 	vertexattributes
 	viewportarray

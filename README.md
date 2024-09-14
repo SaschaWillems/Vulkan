@@ -97,8 +97,11 @@ Synchronization in the master branch currently isn't optimal und uses ```vkDevic
 
 ### Basics
 
-#### [First triangle](examples/triangle/)
+#### [Basic triangle](examples/triangle/)
 Basic and verbose example for getting a colored triangle rendered to the screen using Vulkan. This is meant as a starting point for learning Vulkan from the ground up. A huge part of the code is boilerplate that is abstracted away in later examples.
+
+#### [Basic triangle using Vulkan 1.3](examples/trianglevulkan13//)
+Vulkan 1.3 version of the basic and verbose example for getting a colored triangle rendered to the screen. This makes use of features like dynamic rendering simplifying api usage.
 
 #### [Pipelines](examples/pipelines/)
 
