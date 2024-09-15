@@ -5,7 +5,7 @@
 * This is a variation of the the triangle sample that makes use of Vulkan 1.3 features
 * This simplifies the api a bit, esp. with dynamic rendering replacing render passes (and with that framebuffers)
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
