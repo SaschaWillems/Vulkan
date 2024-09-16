@@ -237,3 +237,5 @@ data/roboto*.*
 
 # Android Studio folders
 android/.idea/**
+
+libs/vulkan/*.so
