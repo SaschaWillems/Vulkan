@@ -86,7 +86,6 @@ public:
 
 	// Synchronization primitives
 	// Synchronization is an important concept of Vulkan that OpenGL mostly hid away. Getting this right is crucial to using Vulkan.
-
 	// Semaphores are used to coordinate operations within the graphics queue and ensure correct command ordering
 	std::array<VkSemaphore, MAX_CONCURRENT_FRAMES> presentCompleteSemaphores{};
 	std::array<VkSemaphore, MAX_CONCURRENT_FRAMES> renderCompleteSemaphores{};
@@ -96,7 +95,7 @@ public:
 	VkCommandPool commandPool{ VK_NULL_HANDLE };
 	std::array<VkCommandBuffer, MAX_CONCURRENT_FRAMES> commandBuffers{};
 
-	// To select the correct sync objects, we need to keep track of the current frame
+	// To select the correct sync and command objects, we need to keep track of the current frame
 	uint32_t currentFrame{ 0 };
 
 	VkPhysicalDeviceVulkan13Features enabledFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
@@ -124,18 +123,13 @@ public:
 		// Note: Inherited destructor cleans up resources stored in base class
 		if (device) {
 			vkDestroyPipeline(device, pipeline, nullptr);
-
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
 			vkDestroyBuffer(device, vertexBuffer.handle, nullptr);
 			vkFreeMemory(device, vertexBuffer.memory, nullptr);
-
 			vkDestroyBuffer(device, indexBuffer.handle, nullptr);
 			vkFreeMemory(device, indexBuffer.memory, nullptr);
-
 			vkDestroyCommandPool(device, commandPool, nullptr);
-
 			for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {
 				vkDestroyFence(device, waitFences[i], nullptr);
 				vkDestroySemaphore(device, presentCompleteSemaphores[i], nullptr);
@@ -148,8 +142,7 @@ public:
 
 	// This function is used to request a device memory type that supports all the property flags we request (e.g. device local, host visible)
 	// Upon success it will return the index of the memory type that fits our requested memory properties
-	// This is necessary as implementations can offer an arbitrary number of memory types with different
-	// memory properties.
+	// This is necessary as implementations can offer an arbitrary number of memory types with different memory properties
 	// You can check https://vulkan.gpuinfo.org/ for details on different memory configurations
 	uint32_t getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties)
 	{
@@ -168,24 +161,22 @@ public:
 	// Create the per-frame (in flight) sVulkan synchronization primitives used in this example
 	void createSynchronizationPrimitives()
 	{
-		// Semaphores are used for correct command ordering within a queue
-		VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-
-		// Fences are used to check draw command buffer completion on the host
-		VkFenceCreateInfo fenceCI{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-		// Create the fences in signaled state (so we don't wait on first render of each command buffer)
-		fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
 		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {		
+			// Semaphores are used for correct command ordering within a queue
+			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 			// Semaphore used to ensure that image presentation is complete before starting to submit again
 			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentCompleteSemaphores[i]));
 			// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
-			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &renderCompleteSemaphores[i]));
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &renderCompleteSemaphores[i]));		
 			// Fence used to ensure that command buffer has completed exection before using it again
+			VkFenceCreateInfo fenceCI{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+			// Create the fences in signaled state (so we don't wait on first render of each command buffer)
+			fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCI, nullptr, &waitFences[i]));
 		}
 	}
 
+	// Command buffers are used to record commands to and are submitted to a queue for execution ("rendering")
 	void createCommandBuffers()
 	{
 		// All command buffers are allocated from the same command pool
@@ -203,7 +194,7 @@ public:
 	void createVertexBuffer()
 	{
 		// A note on memory management in Vulkan in general:
-		//	This is a very complex topic and while it's fine for an example application to small individual memory allocations that is not
+		//	This is a complex topic and while it's fine for an example application to small individual memory allocations that is not
 		//	what should be done a real-world application, where you should allocate large chunks of memory at once instead.
 
 		// Setup vertices
@@ -236,58 +227,42 @@ public:
 		// Note: On unified memory architectures where host (CPU) and GPU share the same memory, staging is not necessary
 		// To keep this sample easy to follow, there is no check for that in place
 
-		struct {
-			VulkanBuffer vertexBuffer;
-			VulkanBuffer indexBuffer;
-		} stagingBuffers;
-
-		void* data;
-
-		// Vertex buffer
-		VkBufferCreateInfo vertexBufferInfoCI{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		vertexBufferInfoCI.size = vertexBufferSize;
+		// Create the host visible staging buffer that we copy vertices and indices too, and from which we copy to the device
+		VulkanBuffer stagingBuffer;
+		VkBufferCreateInfo stagingBufferCI{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+		stagingBufferCI.size = vertexBufferSize + indexBufferSize;
 		// Buffer is used as the copy source
-		vertexBufferInfoCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		stagingBufferCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		// Create a host-visible buffer to copy the vertex data to (staging buffer)
-		VK_CHECK_RESULT(vkCreateBuffer(device, &vertexBufferInfoCI, nullptr, &stagingBuffers.vertexBuffer.handle));
-		vkGetBufferMemoryRequirements(device, stagingBuffers.vertexBuffer.handle, &memReqs);
+		VK_CHECK_RESULT(vkCreateBuffer(device, &stagingBufferCI, nullptr, &stagingBuffer.handle));
+		vkGetBufferMemoryRequirements(device, stagingBuffer.handle, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		// Request a host visible memory type that can be used to copy our data do
+		// Request a host visible memory type that can be used to copy our data dto
 		// Also request it to be coherent, so that writes are visible to the GPU right after unmapping the buffer
 		memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffers.vertexBuffer.memory));
-		// Map and copy
-		VK_CHECK_RESULT(vkMapMemory(device, stagingBuffers.vertexBuffer.memory, 0, memAlloc.allocationSize, 0, &data));
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffer.memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer.handle, stagingBuffer.memory, 0));
+		// Map the buffer and copy vertices and indices into it, this way we can use a single buffer as the source for both vertex and index GPU buffers
+		uint8_t* data;
+		VK_CHECK_RESULT(vkMapMemory(device, stagingBuffer.memory, 0, memAlloc.allocationSize, 0, (void**)&data));
 		memcpy(data, vertices.data(), vertexBufferSize);
-		vkUnmapMemory(device, stagingBuffers.vertexBuffer.memory);
-		VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffers.vertexBuffer.handle, stagingBuffers.vertexBuffer.memory, 0));
+		memcpy(((char*)data) + vertexBufferSize, indices.data(), vertexBufferSize);
 
 		// Create a device local buffer to which the (host local) vertex data will be copied and which will be used for rendering
-		vertexBufferInfoCI.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		VK_CHECK_RESULT(vkCreateBuffer(device, &vertexBufferInfoCI, nullptr, &vertexBuffer.handle));
+		VkBufferCreateInfo vertexbufferCI{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+		vertexbufferCI.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		vertexbufferCI.size = vertexBufferSize;
+		VK_CHECK_RESULT(vkCreateBuffer(device, &vertexbufferCI, nullptr, &vertexBuffer.handle));
 		vkGetBufferMemoryRequirements(device, vertexBuffer.handle, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &vertexBuffer.memory));
 		VK_CHECK_RESULT(vkBindBufferMemory(device, vertexBuffer.handle, vertexBuffer.memory, 0));
 
-		// Index buffer
+		// Create a device local buffer to which the (host local) index data will be copied and which will be used for rendering
 		VkBufferCreateInfo indexbufferCI{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		indexbufferCI.size = indexBufferSize;
-		indexbufferCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		// Copy index data to a buffer visible to the host (staging buffer)
-		VK_CHECK_RESULT(vkCreateBuffer(device, &indexbufferCI, nullptr, &stagingBuffers.indexBuffer.handle));
-		vkGetBufferMemoryRequirements(device, stagingBuffers.indexBuffer.handle, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffers.indexBuffer.memory));
-		VK_CHECK_RESULT(vkMapMemory(device, stagingBuffers.indexBuffer.memory, 0, indexBufferSize, 0, &data));
-		memcpy(data, indices.data(), indexBufferSize);
-		vkUnmapMemory(device, stagingBuffers.indexBuffer.memory);
-		VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffers.indexBuffer.handle, stagingBuffers.indexBuffer.memory, 0));
-
-		// Create destination buffer with device only visibility
 		indexbufferCI.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		indexbufferCI.size = indexBufferSize;
 		VK_CHECK_RESULT(vkCreateBuffer(device, &indexbufferCI, nullptr, &indexBuffer.handle));
 		vkGetBufferMemoryRequirements(device, indexBuffer.handle, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
@@ -309,9 +284,11 @@ public:
 		// Copy vertex and index buffers to the device
 		VkBufferCopy copyRegion{};
 		copyRegion.size = vertexBufferSize;
-		vkCmdCopyBuffer(copyCmd, stagingBuffers.vertexBuffer.handle, vertexBuffer.handle, 1, &copyRegion);
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.handle, vertexBuffer.handle, 1, &copyRegion);
 		copyRegion.size = indexBufferSize;
-		vkCmdCopyBuffer(copyCmd, stagingBuffers.indexBuffer.handle, indexBuffer.handle,	1, &copyRegion);
+		// Indices are stored after the vertices in the source buffer, so we need to add an offset
+		copyRegion.srcOffset = vertexBufferSize;
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.handle, indexBuffer.handle,	1, &copyRegion);
 		VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
 
 		// Submit the command buffer to the queue to finish the copy
@@ -323,20 +300,16 @@ public:
 		VkFenceCreateInfo fenceCI{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 		VkFence fence;
 		VK_CHECK_RESULT(vkCreateFence(device, &fenceCI, nullptr, &fence));
-
 		// Submit copies to the queue
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
 		// Wait for the fence to signal that command buffer has finished executing
 		VK_CHECK_RESULT(vkWaitForFences(device, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
-
 		vkDestroyFence(device, fence, nullptr);
 		vkFreeCommandBuffers(device, commandPool, 1, &copyCmd);
 
 		// The fence made sure copies are finished, so we can safely delete the staging buffer
-		vkDestroyBuffer(device, stagingBuffers.vertexBuffer.handle, nullptr);
-		vkFreeMemory(device, stagingBuffers.vertexBuffer.memory, nullptr);
-		vkDestroyBuffer(device, stagingBuffers.indexBuffer.handle, nullptr);
-		vkFreeMemory(device, stagingBuffers.indexBuffer.memory, nullptr);
+		vkDestroyBuffer(device, stagingBuffer.handle, nullptr);
+		vkFreeMemory(device, stagingBuffer.memory, nullptr);
 	}
 
 	// Decriptors are used to pass data to shaders, for our sample we use a descriptor to pass parameters like matrices to the shader
@@ -407,14 +380,13 @@ public:
 	}
 
 	// Create the depth (and stencil) buffer attachments
-	// Note: Override of virtual function in the base class and called from within VulkanExampleBase::prepare
+	// While we don't do any depth testing in this sample, having depth testing is very common so it's a good idea to learn it from the very start
 	void setupDepthStencil()
 	{
-		// Create an optimal image used as the depth stencil attachment
+		// Create an optimal tiled image used as the depth stencil attachment
 		VkImageCreateInfo imageCI{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 		imageCI.imageType = VK_IMAGE_TYPE_2D;
 		imageCI.format = depthFormat;
-		// Use example's height and width
 		imageCI.extent = { width, height, 1 };
 		imageCI.mipLevels = 1;
 		imageCI.arrayLayers = 1;
@@ -661,13 +633,7 @@ public:
 	{
 		// Prepare and initialize the per-frame uniform buffer blocks containing shader uniforms
 		// Single uniforms like in OpenGL are no longer present in Vulkan. All Shader uniforms are passed via uniform buffer blocks
-
-		// Vertex shader uniform buffer block
 		VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		VkMemoryAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-		allocInfo.allocationSize = 0;
-		allocInfo.memoryTypeIndex = 0;
-
 		bufferInfo.size = sizeof(ShaderData);
 		// This buffer will be used as a uniform buffer
 		bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -675,9 +641,11 @@ public:
 		// Create the buffers
 		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {
 			VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &uniformBuffers[i].handle));
-			// Get memory requirements including size, alignment and memory type
+			// Get memory requirements including size, alignment and memory type based on the buffer type we request (uniform buffer)
 			VkMemoryRequirements memReqs;
 			vkGetBufferMemoryRequirements(device, uniformBuffers[i].handle, &memReqs);
+			VkMemoryAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+			// Note that we use the size we got from the memory requirements and not the actual buffer size, as the former may be larger due to alignment requirements of the device
 			allocInfo.allocationSize = memReqs.size;
 			// Get the memory type index that supports host visible memory access
 			// Most implementations offer multiple memory types and selecting the correct one to allocate memory from is crucial
