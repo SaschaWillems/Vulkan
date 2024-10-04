@@ -7,7 +7,6 @@
  */
 
 #include "vulkanexamplebase.h"
-#include "VulkanglTFModel.h"
 
 class VulkanExample : public VulkanExampleBase
 {
