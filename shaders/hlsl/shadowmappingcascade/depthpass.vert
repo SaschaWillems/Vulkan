@@ -1,4 +1,5 @@
 // Copyright 2020 Google LLC
+// Copyright 2024 Sascha Willems
 
 struct VSInput
 {
@@ -17,8 +18,7 @@ struct PushConsts {
 struct UBO  {
 	float4x4 cascadeViewProjMat[SHADOW_MAP_CASCADE_COUNT];
 };
-
-cbuffer ubo : register(b0) { UBO ubo; }
+cbuffer ubo : register(b3) { UBO ubo; }
 
 struct VSOutput
 {

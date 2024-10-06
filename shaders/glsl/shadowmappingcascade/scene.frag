@@ -19,12 +19,15 @@ layout (location = 0) out vec4 outFragColor;
 
 layout (set = 0, binding = 2) uniform UBO {
 	vec4 cascadeSplits;
-	mat4 cascadeViewProjMat[SHADOW_MAP_CASCADE_COUNT];
 	mat4 inverseViewMat;
 	vec3 lightDir;
 	float _pad;
 	int colorCascades;
 } ubo;
+
+layout (set = 0, binding = 3) uniform CVPM {
+	mat4 matrices[SHADOW_MAP_CASCADE_COUNT];
+} cascadeViewProjMatrices;
 
 const mat4 biasMat = mat4( 
 	0.5, 0.0, 0.0, 0.0,
@@ -84,7 +87,7 @@ void main()
 	}
 
 	// Depth compare for shadowing
-	vec4 shadowCoord = (biasMat * ubo.cascadeViewProjMat[cascadeIndex]) * vec4(inPos, 1.0);	
+	vec4 shadowCoord = (biasMat * cascadeViewProjMatrices.matrices[cascadeIndex]) * vec4(inPos, 1.0);	
 
 	float shadow = 0;
 	if (enablePCF == 1) {

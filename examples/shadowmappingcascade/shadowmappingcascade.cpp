@@ -62,7 +62,6 @@ public:
 
 	struct UBOFS {
 		float cascadeSplits[4];
-		glm::mat4 cascadeViewProjMat[4];
 		glm::mat4 inverseViewMat;
 		glm::vec3 lightDir;
 		float _pad;
@@ -76,9 +75,7 @@ public:
 		VkPipeline sceneShadowPCF;
 	} pipelines;
 
-	struct DescriptorSetLayouts {
-		VkDescriptorSetLayout base;
-	} descriptorSetLayouts;
+	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
 
 	// For simplicity all pipelines use the same push constant block layout
@@ -92,12 +89,6 @@ public:
 		VkRenderPass renderPass;
 		VkPipelineLayout pipelineLayout;
 		VkPipeline pipeline;
-		vks::Buffer uniformBuffer;
-
-		struct UniformBlock {
-			std::array<glm::mat4, SHADOW_MAP_CASCADE_COUNT> cascadeViewProjMat;
-		} ubo;
-
 	} depthPass;
 
 	// Layered depth image containing the shadow cascade depths
@@ -117,18 +108,17 @@ public:
 	// Contains all resources required for a single shadow map cascade
 	struct Cascade {
 		VkFramebuffer frameBuffer;
-		VkDescriptorSet descriptorSet;
 		VkImageView view;
-
 		float splitDepth;
 		glm::mat4 viewProjMatrix;
-
 		void destroy(VkDevice device) {
 			vkDestroyImageView(device, view, nullptr);
 			vkDestroyFramebuffer(device, frameBuffer, nullptr);
 		}
 	};
 	std::array<Cascade, SHADOW_MAP_CASCADE_COUNT> cascades;
+	// Per-cascade matrices will be passed to the shaders as a linear array
+	vks::Buffer cascadeViewProjMatricesBuffer;
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -159,9 +149,9 @@ public:
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyPipelineLayout(device, depthPass.pipelineLayout, nullptr);
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.base, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		depthPass.uniformBuffer.destroy();
+		cascadeViewProjMatricesBuffer.destroy();
 		uniformBuffers.VS.destroy();
 		uniformBuffers.FS.destroy();
 	}
@@ -174,10 +164,10 @@ public:
 	}
 
 	/*
-		Render the example scene with given command buffer, pipeline layout and descriptor set
+		Render the example scene to acommand buffer using the supplied pipeline layout and for the selected shadow cascade index
 		Used by the scene rendering and depth pass generation command buffer
 	*/
-	void renderScene(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet, uint32_t cascadeIndex = 0) {
+	void renderScene(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t cascadeIndex = 0) {
 		// We use push constants for passing shadow cascade info to the shaders
 		PushConstBlock pushConstBlock = { glm::vec4(0.0f), cascadeIndex };
 
@@ -197,10 +187,10 @@ public:
 			glm::vec3(-1.25f, -0.25f, -1.25f),
 		};
 
-		for (auto position : positions) {
+		for (auto& position : positions) {
 			pushConstBlock.position = glm::vec4(position, 0.0f);
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+			// This will also bind the texture images to set 1
 			models.tree.draw(commandBuffer, vkglTF::RenderFlags::BindImages, pipelineLayout);
 		}
 	}
@@ -377,12 +367,11 @@ public:
 				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 				// One pass per cascade
-				// The layer that this pass renders to is defined by the cascade's image view (selected via the cascade's descriptor set)
 				for (uint32_t j = 0; j < SHADOW_MAP_CASCADE_COUNT; j++) {
 					renderPassBeginInfo.framebuffer = cascades[j].frameBuffer;
 					vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, depthPass.pipeline);
-					renderScene(drawCmdBuffers[i], depthPass.pipelineLayout, cascades[j].descriptorSet, j);
+					renderScene(drawCmdBuffers[i], depthPass.pipelineLayout, j);
 					vkCmdEndRenderPass(drawCmdBuffers[i]);
 				}
 			}
@@ -430,7 +419,7 @@ public:
 
 				// Render shadowed scene
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, (filterPCF) ? pipelines.sceneShadowPCF : pipelines.sceneShadow);
-				renderScene(drawCmdBuffers[i], pipelineLayout, descriptorSet);
+				renderScene(drawCmdBuffers[i], pipelineLayout);
 
 				drawUI(drawCmdBuffers[i]);
 
@@ -470,43 +459,30 @@ public:
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 3),
 		};
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayouts.base));
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 		/*
 			Descriptor sets
 		*/
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-
 		VkDescriptorImageInfo depthMapDescriptor =
 			vks::initializers::descriptorImageInfo(depth.sampler, depth.view, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
 		VkDescriptorSetAllocateInfo allocInfo =
-			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.base, 1);
+			vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 
 		// Scene rendering / debug display
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		writeDescriptorSets = {
+		const std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.VS.descriptor),
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &depthMapDescriptor),
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffers.FS.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &cascadeViewProjMatricesBuffer.descriptor),
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
-
-		// Per-cascade descriptor sets
-		// Each descriptor set represents a single layer of the array texture
-		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
-			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &cascades[i].descriptorSet));
-			VkDescriptorImageInfo cascadeImageInfo = vks::initializers::descriptorImageInfo(depth.sampler, depth.view, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
-			writeDescriptorSets = {
-				vks::initializers::writeDescriptorSet(cascades[i].descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &depthPass.uniformBuffer.descriptor),
-				vks::initializers::writeDescriptorSet(cascades[i].descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &cascadeImageInfo)
-			};
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
-		}
 
 		/*
 			Pipeline layouts
@@ -515,7 +491,7 @@ public:
 		// Shared pipeline layout (scene and depth map debug display)
 		{
 			VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(PushConstBlock), 0);
-			std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayouts.base, vkglTF::descriptorSetLayoutImage };
+			std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayout, vkglTF::descriptorSetLayoutImage };
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 			pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
@@ -525,7 +501,7 @@ public:
 		// Depth pass pipeline layout
 		{
 			VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(PushConstBlock), 0);
-			std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayouts.base, vkglTF::descriptorSetLayoutImage };
+			std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayout, vkglTF::descriptorSetLayoutImage };
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 			pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
@@ -599,12 +575,12 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		// Shadow map generation buffer blocks
+		// Cascade matrices
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&depthPass.uniformBuffer,
-			sizeof(depthPass.ubo)));
+			&cascadeViewProjMatricesBuffer,
+			sizeof(glm::mat4) * SHADOW_MAP_CASCADE_COUNT));
 
 		// Scene uniform buffer blocks
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
@@ -619,7 +595,7 @@ public:
 			sizeof(uboFS)));
 
 		// Map persistent
-		VK_CHECK_RESULT(depthPass.uniformBuffer.map());
+		VK_CHECK_RESULT(cascadeViewProjMatricesBuffer.map());
 		VK_CHECK_RESULT(uniformBuffers.VS.map());
 		VK_CHECK_RESULT(uniformBuffers.FS.map());
 
@@ -725,10 +701,11 @@ public:
 		/*
 			Depth rendering
 		*/
+		std::vector<glm::mat4> cascadeViewProjMatrices(SHADOW_MAP_CASCADE_COUNT);
 		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
-			depthPass.ubo.cascadeViewProjMat[i] = cascades[i].viewProjMatrix;
+			cascadeViewProjMatrices[i] = cascades[i].viewProjMatrix;
 		}
-		memcpy(depthPass.uniformBuffer.mapped, &depthPass.ubo, sizeof(depthPass.ubo));
+		memcpy(cascadeViewProjMatricesBuffer.mapped, cascadeViewProjMatrices.data(), sizeof(glm::mat4) * SHADOW_MAP_CASCADE_COUNT);
 
 		/*
 			Scene rendering
@@ -736,14 +713,10 @@ public:
 		uboVS.projection = camera.matrices.perspective;
 		uboVS.view = camera.matrices.view;
 		uboVS.model = glm::mat4(1.0f);
-
 		uboVS.lightDir = normalize(-lightPos);
-
 		memcpy(uniformBuffers.VS.mapped, &uboVS, sizeof(uboVS));
-
 		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++) {
 			uboFS.cascadeSplits[i] = cascades[i].splitDepth;
-			uboFS.cascadeViewProjMat[i] = cascades[i].viewProjMatrix;
 		}
 		uboFS.inverseViewMat = glm::inverse(camera.matrices.view);
 		uboFS.lightDir = normalize(-lightPos);

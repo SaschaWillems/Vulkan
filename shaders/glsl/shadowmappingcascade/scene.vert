@@ -22,10 +22,6 @@ layout(push_constant) uniform PushConsts {
 	uint cascadeIndex;
 } pushConsts;
 
-out gl_PerVertex {
-	vec4 gl_Position;   
-};
-
 void main() 
 {
 	outColor = inColor;

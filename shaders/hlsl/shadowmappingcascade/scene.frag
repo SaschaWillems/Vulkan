@@ -1,4 +1,5 @@
 // Copyright 2020 Google LLC
+// Copyright 2024 Sascha Willems
 
 #define SHADOW_MAP_CASCADE_COUNT 4
 
@@ -22,13 +23,17 @@ struct VSOutput
 
 struct UBO {
 	float4 cascadeSplits;
-	float4x4 cascadeViewProjMat[SHADOW_MAP_CASCADE_COUNT];
 	float4x4 inverseViewMat;
 	float3 lightDir;
 	float _pad;
 	int colorCascades;
 };
 cbuffer ubo : register(b2) { UBO ubo; };
+
+struct CVPM  {
+	float4x4 matrices[SHADOW_MAP_CASCADE_COUNT];
+};
+cbuffer cascadeViewProjMatrices : register(b3) { CVPM cascadeViewProjMatrices; }
 
 static const float4x4 biasMat = float4x4(
 	0.5, 0.0, 0.0, 0.5,
@@ -90,7 +95,7 @@ float4 main(VSOutput input) : SV_TARGET
 	}
 
 	// Depth compare for shadowing
-	float4 shadowCoord = mul(biasMat, mul(ubo.cascadeViewProjMat[cascadeIndex], float4(input.Pos, 1.0)));
+	float4 shadowCoord = mul(biasMat, mul(cascadeViewProjMatrices.matrices[cascadeIndex], float4(input.Pos, 1.0)));
 
 	float shadow = 0;
 	if (enablePCF == 1) {
