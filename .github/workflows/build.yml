@@ -55,12 +55,10 @@ jobs:
           submodules: "recursive"  
       - name: Setup
         run: |
-          curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg" -o /tmp/vulkan-sdk.dmg
-          hdiutil attach /tmp/vulkan-sdk.dmg -mountpoint /Volumes/vulkan-sdk
-          /Volumes/vulkan-sdk/InstallVulkan.app/Contents/MacOS/InstallVulkan \
-              --root ~/VulkanSDK/latest --accept-licenses --default-answer --confirm-command install
-          cd ~/VulkanSDK/latest
-          sudo python ./install_vulkan.py
+          curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.zip" -o /tmp/vulkan-sdk.zip
+          unzip /tmp/vulkan-sdk.zip -d /tmp
+          /tmp/InstallVulkan.app/Contents/MacOS/InstallVulkan \
+              --accept-licenses --default-answer --confirm-command install          
           brew install libomp
       - name: Build
         run: |
@@ -77,12 +75,10 @@ jobs:
           submodules: "recursive"  
       - name: Setup
         run: |
-          curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg" -o /tmp/vulkan-sdk.dmg
-          hdiutil attach /tmp/vulkan-sdk.dmg -mountpoint /Volumes/vulkan-sdk
-          /Volumes/vulkan-sdk/InstallVulkan.app/Contents/MacOS/InstallVulkan \
-              --root ~/VulkanSDK/latest --accept-licenses --default-answer --confirm-command install
-          cd ~/VulkanSDK/latest
-          sudo python ./install_vulkan.py
+          curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.zip" -o /tmp/vulkan-sdk.zip
+          unzip /tmp/vulkan-sdk.zip -d /tmp
+          /tmp/InstallVulkan.app/Contents/MacOS/InstallVulkan \
+              --accept-licenses --default-answer --confirm-command install          
       - name: Build
         run: |
           cd apple
