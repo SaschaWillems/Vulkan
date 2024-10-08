@@ -199,15 +199,16 @@ public:
 	{
 #if defined(__ANDROID__)
 		// Load shader from compressed asset
-		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, fileName, AASSET_MODE_STREAMING);
+		AAsset* asset = AAssetManager_open(androidApp->activity->assetManager, fileName.c_str(), AASSET_MODE_STREAMING);
 		assert(asset);
 		size_t size = AAsset_getLength(asset);
 		assert(size > 0);
 
 		shaderInfo.size = size;
 		shaderInfo.code = new uint32_t[size / 4];
-		AAsset_read(asset, shaderCode, size);
+		AAsset_read(asset, reinterpret_cast<char*>(shaderInfo.code), size);
 		AAsset_close(asset);
+		return true;
 #else
 		std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
 
