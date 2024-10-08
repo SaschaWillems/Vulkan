@@ -59,6 +59,7 @@ jobs:
           unzip /tmp/vulkan-sdk.zip -d /tmp
           /tmp/InstallVulkan.app/Contents/MacOS/InstallVulkan \
               --accept-licenses --default-answer --confirm-command install          
+          sudo ./install_vulkan.py              
           brew install libomp
       - name: Build
         run: |
@@ -79,6 +80,7 @@ jobs:
           unzip /tmp/vulkan-sdk.zip -d /tmp
           /tmp/InstallVulkan.app/Contents/MacOS/InstallVulkan \
               --accept-licenses --default-answer --confirm-command install          
+          sudo ./install_vulkan.py
       - name: Build
         run: |
           cd apple
