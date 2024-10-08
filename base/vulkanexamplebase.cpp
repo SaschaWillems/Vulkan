@@ -299,12 +299,19 @@ void VulkanExampleBase::renderLoop()
 	if (benchmark.active) {
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
 		while (!configured)
-			wl_display_dispatch(display);
+		{
+			if (wl_display_dispatch(display) == -1)
+				break;
+		}
 		while (wl_display_prepare_read(display) != 0)
-			wl_display_dispatch_pending(display);
+		{
+			if (wl_display_dispatch_pending(display) == -1)
+				break;
+		}
 		wl_display_flush(display);
 		wl_display_read_events(display);
-		wl_display_dispatch_pending(display);
+		if (wl_display_dispatch_pending(display) == -1)
+			return;
 #endif
 
 		benchmark.run([=] { render(); }, vulkanDevice->properties);
@@ -522,12 +529,19 @@ void VulkanExampleBase::renderLoop()
 		}
 
 		while (!configured)
-			wl_display_dispatch(display);
+		{
+			if (wl_display_dispatch(display) == -1)
+				break;
+		}
 		while (wl_display_prepare_read(display) != 0)
-			wl_display_dispatch_pending(display);
+		{
+			if (wl_display_dispatch_pending(display) == -1)
+				break;
+		}
 		wl_display_flush(display);
 		wl_display_read_events(display);
-		wl_display_dispatch_pending(display);
+		if (wl_display_dispatch_pending(display) == -1)
+			break;
 
 		render();
 		frameCounter++;
