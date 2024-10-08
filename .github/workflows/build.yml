@@ -58,8 +58,8 @@ jobs:
           curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.zip" -o /tmp/vulkan-sdk.zip
           unzip /tmp/vulkan-sdk.zip -d /tmp
           /tmp/InstallVulkan.app/Contents/MacOS/InstallVulkan \
-              --accept-licenses --default-answer --confirm-command install          
-          sudo ./install_vulkan.py              
+              --root ~/VulkanSDK/latest --accept-licenses --default-answer --confirm-command install          
+          cd ~/VulkanSDK/latest         
           brew install libomp
       - name: Build
         run: |
@@ -79,7 +79,8 @@ jobs:
           curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.zip" -o /tmp/vulkan-sdk.zip
           unzip /tmp/vulkan-sdk.zip -d /tmp
           /tmp/InstallVulkan.app/Contents/MacOS/InstallVulkan \
-              --accept-licenses --default-answer --confirm-command install          
+              --root ~/VulkanSDK/latest --accept-licenses --default-answer --confirm-command install          
+          cd ~/VulkanSDK/latest   
           sudo ./install_vulkan.py
       - name: Build
         run: |
