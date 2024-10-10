@@ -740,7 +740,7 @@ public:
 		// Update dynamic scissor state
 		VkRect2D scissor{ 0, 0, width, height };
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-		// Bind descriptor set for the currrent frame's uniform buffer, so the shader uses the data from that buffer for this draw
+		// Bind descriptor set for the current frame's uniform buffer, so the shader uses the data from that buffer for this draw
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &uniformBuffers[currentFrame].descriptorSet, 0, nullptr);
 		// The pipeline (state object) contains all states of the rendering pipeline, binding it will set all the states specified at pipeline creation time
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -750,7 +750,7 @@ public:
 		// Bind triangle index buffer
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer.handle, 0, VK_INDEX_TYPE_UINT32);
 		// Draw indexed triangle
-		vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 1);
+		vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
 		// Finish the current dynamic rendering section
 		vkCmdEndRendering(commandBuffer);
 

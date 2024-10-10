@@ -979,7 +979,7 @@ public:
 		scissor.offset.x = 0;
 		scissor.offset.y = 0;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-		// Bind descriptor set for the currrent frame's uniform buffer, so the shader uses the data from that buffer for this draw
+		// Bind descriptor set for the current frame's uniform buffer, so the shader uses the data from that buffer for this draw
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &uniformBuffers[currentFrame].descriptorSet, 0, nullptr);
 		// Bind the rendering pipeline
 		// The pipeline (state object) contains all states of the rendering pipeline, binding it will set all the states specified at pipeline creation time
@@ -990,7 +990,7 @@ public:
 		// Bind triangle index buffer
 		vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 		// Draw indexed triangle
-		vkCmdDrawIndexed(commandBuffer, indices.count, 1, 0, 0, 1);
+		vkCmdDrawIndexed(commandBuffer, indices.count, 1, 0, 0, 0);
 		vkCmdEndRenderPass(commandBuffer);
 		// Ending the render pass will add an implicit barrier transitioning the frame buffer color attachment to
 		// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR for presenting it to the windowing system
