@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.saschawillems.vulkanVulkanscene">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:label="Vulkan demo scene"
@@ -8,7 +7,8 @@
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity android:name="de.saschawillems.vulkanSample.VulkanActivity"
             android:screenOrientation="landscape"
-            android:configChanges="orientation|keyboardHidden">
+            android:configChanges="orientation|keyboardHidden"
+            android:exported="true">
             <meta-data android:name="android.app.lib_name"
                 android:value="native-lib" />
             <intent-filter>
