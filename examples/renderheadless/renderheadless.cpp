@@ -930,7 +930,7 @@ void android_main(android_app* state) {
 	androidapp->onAppCmd = handleAppCommand;
 	int ident, events;
 	struct android_poll_source* source;
-	while ((ident = ALooper_pollAll(-1, NULL, &events, (void**)&source)) >= 0) {
+	while ((ident = ALooper_pollOnce(-1, NULL, &events, (void**)&source)) > ALOOPER_POLL_TIMEOUT) {
 		if (source != NULL)	{
 			source->process(androidapp, source);
 		}
