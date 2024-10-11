@@ -6,7 +6,7 @@
 *	Contrary to the other examples, this one won't make use of helper functions or initializers
 *	Except in a few cases (swap chain setup e.g.)
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -175,7 +175,7 @@ public:
 		throw "Could not find a suitable memory type!";
 	}
 
-	// Create the per-frame (in flight) sVulkan synchronization primitives used in this example
+	// Create the per-frame (in flight) Vulkan synchronization primitives used in this example
 	void createSynchronizationPrimitives()
 	{
 		// Semaphores are used for correct command ordering within a queue
@@ -273,7 +273,7 @@ public:
 		VK_CHECK_RESULT(vkCreateBuffer(device, &vertexBufferInfoCI, nullptr, &stagingBuffers.vertices.buffer));
 		vkGetBufferMemoryRequirements(device, stagingBuffers.vertices.buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
-		// Request a host visible memory type that can be used to copy our data do
+		// Request a host visible memory type that can be used to copy our data to
 		// Also request it to be coherent, so that writes are visible to the GPU right after unmapping the buffer
 		memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffers.vertices.memory));
@@ -414,15 +414,6 @@ public:
 		descriptorLayoutCI.bindingCount = 1;
 		descriptorLayoutCI.pBindings = &layoutBinding;
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayout));
-
-		// Create the pipeline layout that is used to generate the rendering pipelines that are based on this descriptor set layout
-		// In a more complex scenario you would have different pipeline layouts for different descriptor set layouts that could be reused
-		VkPipelineLayoutCreateInfo pipelineLayoutCI{};
-		pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCI.pNext = nullptr;
-		pipelineLayoutCI.setLayoutCount = 1;
-		pipelineLayoutCI.pSetLayouts = &descriptorSetLayout;
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 	}
 
 	// Shaders access data using descriptor sets that "point" at our uniform buffers
@@ -684,6 +675,15 @@ public:
 
 	void createPipelines()
 	{
+		// Create the pipeline layout that is used to generate the rendering pipelines that are based on this descriptor set layout
+		// In a more complex scenario you would have different pipeline layouts for different descriptor set layouts that could be reused
+		VkPipelineLayoutCreateInfo pipelineLayoutCI{};
+		pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutCI.pNext = nullptr;
+		pipelineLayoutCI.setLayoutCount = 1;
+		pipelineLayoutCI.pSetLayouts = &descriptorSetLayout;
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
+
 		// Create the graphics pipeline used in this example
 		// Vulkan uses the concept of rendering pipelines to encapsulate fixed states, replacing OpenGL's complex state machine
 		// A pipeline is then stored and hashed on the GPU making pipeline changes very fast
@@ -776,7 +776,7 @@ public:
 		vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		// Input attribute bindings describe shader attribute locations and memory layouts
-		std::array<VkVertexInputAttributeDescription, 2> vertexInputAttributs;
+		std::array<VkVertexInputAttributeDescription, 2> vertexInputAttributs{};
 		// These match the following shader layout (see triangle.vert):
 		//	layout (location = 0) in vec3 inPos;
 		//	layout (location = 1) in vec3 inColor;
@@ -849,7 +849,7 @@ public:
 	void createUniformBuffers()
 	{
 		// Prepare and initialize the per-frame uniform buffer blocks containing shader uniforms
-		// Single uniforms like in OpenGL are no longer present in Vulkan. All Shader uniforms are passed via uniform buffer blocks
+		// Single uniforms like in OpenGL are no longer present in Vulkan. All hader uniforms are passed via uniform buffer blocks
 		VkMemoryRequirements memReqs;
 
 		// Vertex shader uniform buffer block
