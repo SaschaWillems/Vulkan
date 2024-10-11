@@ -32,9 +32,11 @@ Use the provided CMakeLists.txt with [CMake](https://cmake.org) to generate a bu
 
 ### <img src="./images/androidlogo.png" alt="" height="32px"> [Android](android/)
 
-Building on Android is done using the [Gradle Build Tool](https://gradle.org/):
+Building on Android is done using the [Gradle Build Tool](https://gradle.org/).
 
-If you want to build it through command line, set Android SDK/NDK by environment variable `ANDROID_SDK_ROOT`/`ANDROID_NDK_HOME`.
+**The recommended way** is building via [Android Studio](https://developer.android.com/studio). Simply open the project folder ```android```, build and after that you can select the sample you want to run from the project list.
+
+If you want to build it via the command line, set Android SDK/NDK by environment variable `ANDROID_SDK_ROOT`/`ANDROID_NDK_HOME`.
 
 On Linux execute:
 
@@ -47,8 +49,6 @@ This will download gradle locally, build all samples and output the apks to ```a
 On Windows execute ```gradlew.bat assembleDebug```.
 
 If you want to build and install on a connected device or emulator image, run ```gradle installDebug``` instead.
-
-If you want to build it through [Android Studio](https://developer.android.com/studio), open project folder ```android``` in Android Studio.
 
 ### <img src="./images/applelogo.png" alt="" height="32px"> macOS and iOS
 
