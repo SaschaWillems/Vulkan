@@ -12,7 +12,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.0'
+        classpath 'com.android.tools.build:gradle:8.7.0'
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
@@ -23,11 +23,23 @@ allprojects {
         google()
         mavenCentral()
     }
+    // This code is where all the magic happens and fixes the error.
+    subprojects {
+        afterEvaluate { project ->
+            if (project.hasProperty('android')) {
+                project.android {
+                    if (namespace == null) {
+                        namespace "de.saschawillems." + project.group
+                    }
+                }
+            }
+        }
+    }
 }
 
 ext {
     abiFilters = "arm64-v8a"
-    minSdkVersion = 19
+    minSdkVersion = 21
     targetSdkVersion = 26
     compileSdkVersion = 26
     shaderPath = '../../../shaders/'
