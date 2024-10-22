@@ -16,7 +16,6 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	uint32_t readSet{ 0 };
 	uint32_t indexCount{ 0 };
 	bool simulateWind{ false };
 	// This will be set to true, if the device has a dedicated queue from a compute only queue family
@@ -39,6 +38,7 @@ public:
 	struct Cloth {
 		glm::uvec2 gridsize{ 60, 60 };
 		glm::vec2 size{ 5.0f, 5.0f };
+		uint32_t numParticles{ gridsize.x * gridsize.y };
 	} cloth;
 
 	// We put the resource "types" into structs to make this sample easier to understand
@@ -77,7 +77,7 @@ public:
 		} semaphores;
 		VkQueue queue{ VK_NULL_HANDLE };
 		VkCommandPool commandPool{ VK_NULL_HANDLE };
-		std::array<VkCommandBuffer, 2> commandBuffers{};
+		std::array<VkCommandBuffer, 1> commandBuffers{ VK_NULL_HANDLE };
 		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 		std::array<VkDescriptorSet, 2> descriptorSets{ VK_NULL_HANDLE };
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
@@ -160,35 +160,34 @@ public:
 			bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
 			bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
 			bufferBarrier.size = VK_WHOLE_SIZE;
-
-			std::vector<VkBufferMemoryBarrier> bufferBarriers;
-			bufferBarrier.buffer = storageBuffers.input.buffer;
-			bufferBarriers.push_back(bufferBarrier);
 			bufferBarrier.buffer = storageBuffers.output.buffer;
-			bufferBarriers.push_back(bufferBarrier);
 			vkCmdPipelineBarrier(commandBuffer,
 				srcStageMask,
 				dstStageMask,
 				VK_FLAGS_NONE,
 				0, nullptr,
-				static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
+				1, &bufferBarrier,
 				0, nullptr);
 		}
 	}
 
-	void addComputeToComputeBarriers(VkCommandBuffer commandBuffer)
+	void addComputeToComputeBarriers(VkCommandBuffer commandBuffer, bool reverse)
 	{
-		VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
-		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-		bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-		bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		bufferBarrier.size = VK_WHOLE_SIZE;
-		std::vector<VkBufferMemoryBarrier> bufferBarriers;
-		bufferBarrier.buffer = storageBuffers.input.buffer;
-		bufferBarriers.push_back(bufferBarrier);
-		bufferBarrier.buffer = storageBuffers.output.buffer;
-		bufferBarriers.push_back(bufferBarrier);
+		std::array<VkBufferMemoryBarrier, 2> bufferBarriers;
+		bufferBarriers[0] = vks::initializers::bufferMemoryBarrier();
+		bufferBarriers[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		bufferBarriers[0].dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+		bufferBarriers[0].buffer = storageBuffers.input.buffer;
+		bufferBarriers[0].size = VK_WHOLE_SIZE;
+		bufferBarriers[1] = vks::initializers::bufferMemoryBarrier();
+		bufferBarriers[1].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+		bufferBarriers[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		bufferBarriers[1].buffer = storageBuffers.output.buffer;
+		bufferBarriers[1].size = VK_WHOLE_SIZE;
+		if (reverse) {
+			std::swap(bufferBarriers[0].buffer, bufferBarriers[1].buffer);
+		}
+
 		vkCmdPipelineBarrier(
 			commandBuffer,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -292,8 +291,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 		cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-		for (uint32_t i = 0; i < 2; i++) {
-
+		for (uint32_t i = 0; i < compute.commandBuffers.size(); i++) {
 			VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffers[i], &cmdBufInfo));
 
 			// Acquire the storage buffers from the graphics queue
@@ -306,35 +304,75 @@ public:
 
 			// Dispatch the compute job
 			const uint32_t iterations = 64;
+			static_assert(iterations % 2 == 0, "The below code assumes an even number of iterations.");
+			uint32_t readSet{ 0 };
 			for (uint32_t j = 0; j < iterations; j++) {
-				readSet = 1 - readSet;
+				bool lastIteration = j == iterations - 1;
 				vkCmdBindDescriptorSets(compute.commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSets[readSet], 0, 0);
 
-				if (j == iterations - 1) {
+				if (lastIteration) {
 					calculateNormals = 1;
 					vkCmdPushConstants(compute.commandBuffers[i], compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &calculateNormals);
 				}
 
 				vkCmdDispatch(compute.commandBuffers[i], cloth.gridsize.x / 10, cloth.gridsize.y / 10, 1);
 
-				// Don't add a barrier on the last iteration of the loop, since we'll have an explicit release to the graphics queue
-				if (j != iterations - 1) {
-					addComputeToComputeBarriers(compute.commandBuffers[i]);
+				// Use a barrier to ensure that writes are finished before the next dispatch
+				if (!lastIteration) {
+					addComputeToComputeBarriers(compute.commandBuffers[i], readSet != 0);
 				}
-
+				readSet = 1 - readSet;
 			}
 
-			// release the storage buffers back to the graphics queue
-			addComputeToGraphicsBarriers(compute.commandBuffers[i], VK_ACCESS_SHADER_WRITE_BIT, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+			// The last iteration wrote to the "input" buffer, so we need copy the results to the output buffer
+			// First we need to put the buffers into transfer mode
+			std::array<VkBufferMemoryBarrier, 2> bufferBarriers;
+			bufferBarriers[0] = vks::initializers::bufferMemoryBarrier();
+			bufferBarriers[0].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+			bufferBarriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			bufferBarriers[0].buffer = storageBuffers.input.buffer;
+			bufferBarriers[0].size = VK_WHOLE_SIZE;
+			bufferBarriers[1] = vks::initializers::bufferMemoryBarrier();
+			bufferBarriers[1].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			bufferBarriers[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			bufferBarriers[1].buffer = storageBuffers.output.buffer;
+			bufferBarriers[1].size = VK_WHOLE_SIZE;
+			vkCmdPipelineBarrier(
+				compute.commandBuffers[i],
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
+				0, nullptr);
+
+			// Then we copy the data
+			VkBufferCopy copyRegion{};
+			copyRegion.size = storageBuffers.output.size;
+			vkCmdCopyBuffer(compute.commandBuffers[i], storageBuffers.input.buffer, storageBuffers.output.buffer, 1, &copyRegion);
+
+			// Finally, move the input buffer back to it's original state as a read only buffer
+			// The output buffer has it's own barrier to move it to the graphics queue below
+			bufferBarriers[0].srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			bufferBarriers[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			vkCmdPipelineBarrier(
+				compute.commandBuffers[i],
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				1, &bufferBarriers[0],
+				0, nullptr);
+
+			// release the output buffer to the graphics queue
+			addComputeToGraphicsBarriers(compute.commandBuffers[i], VK_ACCESS_TRANSFER_WRITE_BIT, 0, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 			vkEndCommandBuffer(compute.commandBuffers[i]);
 		}
 	}
 
 	// Setup and fill the shader storage buffers containing the particles
-	// These buffers are used as shader storage buffers in the compute shader (to update them) and as vertex input in the vertex shader (to display them)
-	void prepareStorageBuffers()
-	{
-		std::vector<Particle> particleBuffer(cloth.gridsize.x * cloth.gridsize.y);
+	std::vector<Particle> populateParticleBuffer() {
+		std::vector<Particle> particleBuffer{ cloth.numParticles };
 
 		float dx = cloth.size.x / (cloth.gridsize.x - 1);
 		float dy = cloth.size.y / (cloth.gridsize.y - 1);
@@ -350,11 +388,70 @@ public:
 				particleBuffer[i + j * cloth.gridsize.y].uv = glm::vec4(1.0f - du * i, dv * j, 0.0f, 0.0f);
 			}
 		}
+		return particleBuffer;
+	}
 
-		VkDeviceSize storageBufferSize = particleBuffer.size() * sizeof(Particle);
+	// Allocate the shader storage buffers containing the particles (but do not populate them yet)
+	// The "input" buffer is used on the compute queue only, while the "output" buffer is
+	// used as shader storage buffers in the compute shader (to update them) and as vertex input in the vertex shader (to display them)
+	void prepareStorageBuffers() {
+		VkDeviceSize storageBufferSize = cloth.gridsize.x * cloth.gridsize.y * sizeof(Particle);
+		// storageBuffers.input is used as an SSBO and only on the compute queue as an intermediate location for iterative computation
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&storageBuffers.input,
+			storageBufferSize);
+
+		// storageBuffers.output bounces back and forth between the compute queue (as an SSBO) and the graphics queue (as a vertex buffer)
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&storageBuffers.output,
+			storageBufferSize);
+
+		if (dedicatedComputeQueue) {
+			VkCommandBuffer releaseCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+			VkBufferMemoryBarrier bufferBarrier;
+			bufferBarrier = vks::initializers::bufferMemoryBarrier();
+			bufferBarrier.srcAccessMask = 0;
+			bufferBarrier.dstAccessMask = 0;
+			bufferBarrier.srcQueueFamilyIndex = vulkanDevice->queueFamilyIndices.graphics;
+			bufferBarrier.dstQueueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
+			bufferBarrier.size = VK_WHOLE_SIZE;
+			bufferBarrier.buffer = storageBuffers.output.buffer;
+			// This implicitly takes ownership of the output buffer by the graphics queue and sends a release barrier that
+			// will pair up with the first compute frame acquire barrier
+			vkCmdPipelineBarrier(
+				releaseCmd,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				1, &bufferBarrier,
+				0, nullptr);
+			vulkanDevice->flushCommandBuffer(releaseCmd, queue, true);
+		}
+
+		// Two indices per face plus a restart primitive at the end
+		uint32_t indexRowCount = (cloth.gridsize.x * 2) + 1;
+		uint32_t indexBufferSize = indexRowCount * (cloth.gridsize.y - 1) * sizeof(uint32_t);
+
+		vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&graphics.indices,
+			indexBufferSize);
+	}
+
+	void populateBuffers() {
+		std::vector<Particle> particleBuffer = populateParticleBuffer();
 
 		// Staging
 		// SSBO won't be changed on the host after upload so copy to device local memory
+		assert(storageBuffers.input.size == storageBuffers.output.size);
+		VkDeviceSize storageBufferSize = storageBuffers.input.size;
 
 		vks::Buffer stagingBuffer;
 
@@ -365,29 +462,12 @@ public:
 			storageBufferSize,
 			particleBuffer.data());
 
-		// SSBOs will be used both as storage buffers (compute) and vertex buffers (graphics)
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&storageBuffers.input,
-			storageBufferSize);
-
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&storageBuffers.output,
-			storageBufferSize);
-
-		// Copy from staging buffer
-		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		// Copy from staging buffer to the input buffer (on the compute queue, so that it takes ownership of the input buffer)
+		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, compute.commandPool, true);
 		VkBufferCopy copyRegion = {};
 		copyRegion.size = storageBufferSize;
-		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, storageBuffers.output.buffer, 1, &copyRegion);
-		// Add an initial release barrier to the graphics queue,
-		// so that when the compute command buffer executes for the first time
-		// it doesn't complain about a lack of a corresponding "release" to its "acquire"
-		addGraphicsToComputeBarriers(copyCmd, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 0, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, storageBuffers.input.buffer, 1, &copyRegion);
+		vulkanDevice->flushCommandBuffer(copyCmd, compute.queue, compute.commandPool, true);
 
 		stagingBuffer.destroy();
 
@@ -401,26 +481,22 @@ public:
 			// Primitive restart (signaled by special value 0xFFFFFFFF)
 			indices.push_back(0xFFFFFFFF);
 		}
-		uint32_t indexBufferSize = static_cast<uint32_t>(indices.size()) * sizeof(uint32_t);
+
+		assert(graphics.indices.size == static_cast<uint32_t>(indices.size()) * sizeof(uint32_t));
 		indexCount = static_cast<uint32_t>(indices.size());
 
 		vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&stagingBuffer,
-			indexBufferSize,
+			graphics.indices.size,
 			indices.data());
 
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&graphics.indices,
-			indexBufferSize);
 
 		// Copy from staging buffer
 		copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		copyRegion = {};
-		copyRegion.size = indexBufferSize;
+		copyRegion.size = graphics.indices.size;
 		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, graphics.indices.buffer, 1, &copyRegion);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
@@ -595,7 +671,7 @@ public:
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
 
 		// Create a command buffer for compute operations
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 2);
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffers[0]));
 
 		// Semaphores for graphics / compute synchronization
@@ -656,7 +732,7 @@ public:
 		computeSubmitInfo.signalSemaphoreCount = 1;
 		computeSubmitInfo.pSignalSemaphores = &compute.semaphores.complete;
 		computeSubmitInfo.commandBufferCount = 1;
-		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[readSet];
+		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[0];
 
 		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
 
@@ -689,7 +765,7 @@ public:
 	{
 		VulkanExampleBase::prepare();
 		// Make sure the code works properly both with different queues families for graphics and compute and the same queue family
-		// You can use DEBUG_FORCE_SHARED_GRAPHICS_COMPUTE_QUEUE preprocessor define to force graphics and compute from the same queue family 
+		// You can use DEBUG_FORCE_SHARED_GRAPHICS_COMPUTE_QUEUE preprocessor define to force graphics and compute from the same queue family
 #ifdef DEBUG_FORCE_SHARED_GRAPHICS_COMPUTE_QUEUE
 		vulkanDevice->queueFamilyIndices.compute = vulkanDevice->queueFamilyIndices.graphics;
 #endif
@@ -699,6 +775,8 @@ public:
 		prepareStorageBuffers();
 		prepareGraphics();
 		prepareCompute();
+		// Now that the compute queue exists we can populate all the buffers on their corresponding queues
+		populateBuffers();
 		prepared = true;
 	}
 
