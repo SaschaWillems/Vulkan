@@ -8,8 +8,11 @@
 #ifndef VULKAN_SHARED_HPP
 #define VULKAN_SHARED_HPP
 
-#include <atomic>  // std::atomic_size_t
 #include <vulkan/vulkan.hpp>
+
+#if !( defined( VULKAN_HPP_ENABLE_STD_MODULE ) && defined( VULKAN_HPP_STD_MODULE ) )
+#  include <atomic>  // std::atomic_size_t
+#endif
 
 namespace VULKAN_HPP_NAMESPACE
 {
@@ -970,6 +973,27 @@ namespace VULKAN_HPP_NAMESPACE
   };
 
   using SharedPipelineBinaryKHR = SharedHandle<PipelineBinaryKHR>;
+
+  //=== VK_EXT_device_generated_commands ===
+  template <>
+  class SharedHandleTraits<IndirectCommandsLayoutEXT>
+  {
+  public:
+    using DestructorType = Device;
+    using deleter        = ObjectDestroyShared<IndirectCommandsLayoutEXT>;
+  };
+
+  using SharedIndirectCommandsLayoutEXT = SharedHandle<IndirectCommandsLayoutEXT>;
+
+  template <>
+  class SharedHandleTraits<IndirectExecutionSetEXT>
+  {
+  public:
+    using DestructorType = Device;
+    using deleter        = ObjectDestroyShared<IndirectExecutionSetEXT>;
+  };
+
+  using SharedIndirectExecutionSetEXT = SharedHandle<IndirectExecutionSetEXT>;
 
   enum class SwapchainOwns
   {

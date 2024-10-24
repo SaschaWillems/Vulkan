@@ -630,13 +630,6 @@ namespace VULKAN_HPP_NAMESPACE
   struct ShaderResourceUsageAMD;
   struct ShaderStatisticsInfoAMD;
 
-  //=== VK_KHR_dynamic_rendering ===
-  struct RenderingFragmentShadingRateAttachmentInfoKHR;
-  struct RenderingFragmentDensityMapAttachmentInfoEXT;
-  struct AttachmentSampleCountInfoAMD;
-  using AttachmentSampleCountInfoNV = AttachmentSampleCountInfoAMD;
-  struct MultiviewPerViewAttributesInfoNVX;
-
 #if defined( VK_USE_PLATFORM_GGP )
   //=== VK_GGP_stream_descriptor_surface ===
   struct StreamDescriptorSurfaceCreateInfoGGP;
@@ -744,6 +737,7 @@ namespace VULKAN_HPP_NAMESPACE
 
   //=== VK_NVX_multiview_per_view_attributes ===
   struct PhysicalDeviceMultiviewPerViewAttributesPropertiesNVX;
+  struct MultiviewPerViewAttributesInfoNVX;
 
   //=== VK_NV_viewport_swizzle ===
   struct ViewportSwizzleNV;
@@ -843,6 +837,10 @@ namespace VULKAN_HPP_NAMESPACE
   struct PipelineShaderStageNodeCreateInfoAMDX;
   union DeviceOrHostAddressConstAMDX;
 #endif /*VK_ENABLE_BETA_EXTENSIONS*/
+
+  //=== VK_AMD_mixed_attachment_samples ===
+  struct AttachmentSampleCountInfoAMD;
+  using AttachmentSampleCountInfoNV = AttachmentSampleCountInfoAMD;
 
   //=== VK_EXT_sample_locations ===
   struct SampleLocationEXT;
@@ -1015,6 +1013,8 @@ namespace VULKAN_HPP_NAMESPACE
   //=== VK_NV_device_diagnostic_checkpoints ===
   struct QueueFamilyCheckpointPropertiesNV;
   struct CheckpointDataNV;
+  struct QueueFamilyCheckpointProperties2NV;
+  struct CheckpointData2NV;
 
   //=== VK_INTEL_shader_integer_functions2 ===
   struct PhysicalDeviceShaderIntegerFunctions2FeaturesINTEL;
@@ -1051,6 +1051,7 @@ namespace VULKAN_HPP_NAMESPACE
   struct PhysicalDeviceFragmentDensityMapFeaturesEXT;
   struct PhysicalDeviceFragmentDensityMapPropertiesEXT;
   struct RenderPassFragmentDensityMapCreateInfoEXT;
+  struct RenderingFragmentDensityMapAttachmentInfoEXT;
 
   //=== VK_KHR_fragment_shading_rate ===
   struct FragmentShadingRateAttachmentInfoKHR;
@@ -1058,6 +1059,7 @@ namespace VULKAN_HPP_NAMESPACE
   struct PhysicalDeviceFragmentShadingRateFeaturesKHR;
   struct PhysicalDeviceFragmentShadingRatePropertiesKHR;
   struct PhysicalDeviceFragmentShadingRateKHR;
+  struct RenderingFragmentShadingRateAttachmentInfoKHR;
 
   //=== VK_AMD_shader_core_properties2 ===
   struct PhysicalDeviceShaderCoreProperties2AMD;
@@ -1286,10 +1288,6 @@ namespace VULKAN_HPP_NAMESPACE
   struct ImportMetalSharedEventInfoEXT;
 #endif /*VK_USE_PLATFORM_METAL_EXT*/
 
-  //=== VK_KHR_synchronization2 ===
-  struct QueueFamilyCheckpointProperties2NV;
-  struct CheckpointData2NV;
-
   //=== VK_EXT_descriptor_buffer ===
   struct PhysicalDeviceDescriptorBufferPropertiesEXT;
   struct PhysicalDeviceDescriptorBufferDensityMapPropertiesEXT;
@@ -1400,6 +1398,9 @@ namespace VULKAN_HPP_NAMESPACE
 
   //=== VK_EXT_primitive_topology_list_restart ===
   struct PhysicalDevicePrimitiveTopologyListRestartFeaturesEXT;
+
+  //=== VK_EXT_present_mode_fifo_latest_ready ===
+  struct PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT;
 
 #if defined( VK_USE_PLATFORM_FUCHSIA )
   //=== VK_FUCHSIA_external_memory ===
@@ -1873,10 +1874,40 @@ namespace VULKAN_HPP_NAMESPACE
   //=== VK_NV_ray_tracing_validation ===
   struct PhysicalDeviceRayTracingValidationFeaturesNV;
 
+  //=== VK_EXT_device_generated_commands ===
+  struct PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT;
+  struct PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT;
+  struct GeneratedCommandsMemoryRequirementsInfoEXT;
+  struct IndirectExecutionSetCreateInfoEXT;
+  union IndirectExecutionSetInfoEXT;
+  struct IndirectExecutionSetPipelineInfoEXT;
+  struct IndirectExecutionSetShaderInfoEXT;
+  struct GeneratedCommandsInfoEXT;
+  struct WriteIndirectExecutionSetPipelineEXT;
+  struct IndirectCommandsLayoutCreateInfoEXT;
+  struct IndirectCommandsLayoutTokenEXT;
+  struct DrawIndirectCountIndirectCommandEXT;
+  struct IndirectCommandsVertexBufferTokenEXT;
+  struct BindVertexBufferIndirectCommandEXT;
+  struct IndirectCommandsIndexBufferTokenEXT;
+  struct BindIndexBufferIndirectCommandEXT;
+  struct IndirectCommandsPushConstantTokenEXT;
+  struct IndirectCommandsExecutionSetTokenEXT;
+  union IndirectCommandsTokenDataEXT;
+  struct IndirectExecutionSetShaderLayoutInfoEXT;
+  struct GeneratedCommandsPipelineInfoEXT;
+  struct GeneratedCommandsShaderInfoEXT;
+  struct WriteIndirectExecutionSetShaderEXT;
+
   //=== VK_MESA_image_alignment_control ===
   struct PhysicalDeviceImageAlignmentControlFeaturesMESA;
   struct PhysicalDeviceImageAlignmentControlPropertiesMESA;
   struct ImageAlignmentControlCreateInfoMESA;
+
+  //=== VK_EXT_depth_clamp_control ===
+  struct PhysicalDeviceDepthClampControlFeaturesEXT;
+  struct PipelineViewportDepthClampControlCreateInfoEXT;
+  struct DepthClampRangeEXT;
 
   //===================================
   //=== HANDLE forward declarations ===
@@ -1980,6 +2011,10 @@ namespace VULKAN_HPP_NAMESPACE
 
   //=== VK_KHR_pipeline_binary ===
   class PipelineBinaryKHR;
+
+  //=== VK_EXT_device_generated_commands ===
+  class IndirectCommandsLayoutEXT;
+  class IndirectExecutionSetEXT;
 
 #ifndef VULKAN_HPP_NO_SMART_HANDLE
   //======================
@@ -2446,6 +2481,25 @@ namespace VULKAN_HPP_NAMESPACE
   };
 
   using UniquePipelineBinaryKHR = UniqueHandle<PipelineBinaryKHR, VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>;
+
+  //=== VK_EXT_device_generated_commands ===
+  template <typename Dispatch>
+  class UniqueHandleTraits<IndirectCommandsLayoutEXT, Dispatch>
+  {
+  public:
+    using deleter = ObjectDestroy<Device, Dispatch>;
+  };
+
+  using UniqueIndirectCommandsLayoutEXT = UniqueHandle<IndirectCommandsLayoutEXT, VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>;
+
+  template <typename Dispatch>
+  class UniqueHandleTraits<IndirectExecutionSetEXT, Dispatch>
+  {
+  public:
+    using deleter = ObjectDestroy<Device, Dispatch>;
+  };
+
+  using UniqueIndirectExecutionSetEXT = UniqueHandle<IndirectExecutionSetEXT, VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>;
 #endif /*VULKAN_HPP_NO_SMART_HANDLE*/
 
   //===============
@@ -6022,33 +6076,40 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_AMDX_shader_enqueue ===
 
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
-    void initializeGraphScratchMemoryAMDX( VULKAN_HPP_NAMESPACE::DeviceAddress scratch,
+    void initializeGraphScratchMemoryAMDX( VULKAN_HPP_NAMESPACE::Pipeline      executionGraph,
+                                           VULKAN_HPP_NAMESPACE::DeviceAddress scratch,
+                                           VULKAN_HPP_NAMESPACE::DeviceSize    scratchSize,
                                            Dispatch const & d                  VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
     void dispatchGraphAMDX( VULKAN_HPP_NAMESPACE::DeviceAddress                      scratch,
+                            VULKAN_HPP_NAMESPACE::DeviceSize                         scratchSize,
                             const VULKAN_HPP_NAMESPACE::DispatchGraphCountInfoAMDX * pCountInfo,
                             Dispatch const & d                                       VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #  ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
     void dispatchGraphAMDX( VULKAN_HPP_NAMESPACE::DeviceAddress                      scratch,
+                            VULKAN_HPP_NAMESPACE::DeviceSize                         scratchSize,
                             const VULKAN_HPP_NAMESPACE::DispatchGraphCountInfoAMDX & countInfo,
                             Dispatch const & d                                       VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #  endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
     void dispatchGraphIndirectAMDX( VULKAN_HPP_NAMESPACE::DeviceAddress                      scratch,
+                                    VULKAN_HPP_NAMESPACE::DeviceSize                         scratchSize,
                                     const VULKAN_HPP_NAMESPACE::DispatchGraphCountInfoAMDX * pCountInfo,
                                     Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #  ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
     void dispatchGraphIndirectAMDX( VULKAN_HPP_NAMESPACE::DeviceAddress                      scratch,
+                                    VULKAN_HPP_NAMESPACE::DeviceSize                         scratchSize,
                                     const VULKAN_HPP_NAMESPACE::DispatchGraphCountInfoAMDX & countInfo,
                                     Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #  endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
     void dispatchGraphIndirectCountAMDX( VULKAN_HPP_NAMESPACE::DeviceAddress scratch,
+                                         VULKAN_HPP_NAMESPACE::DeviceSize    scratchSize,
                                          VULKAN_HPP_NAMESPACE::DeviceAddress countInfo,
                                          Dispatch const & d                  VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #endif /*VK_ENABLE_BETA_EXTENSIONS*/
@@ -6307,6 +6368,13 @@ namespace VULKAN_HPP_NAMESPACE
                                VULKAN_HPP_NAMESPACE::DeviceSize            dstOffset,
                                uint32_t                                    marker,
                                Dispatch const & d                          VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void writeBufferMarker2AMD( VULKAN_HPP_NAMESPACE::PipelineStageFlags2 stage,
+                                VULKAN_HPP_NAMESPACE::Buffer              dstBuffer,
+                                VULKAN_HPP_NAMESPACE::DeviceSize          dstOffset,
+                                uint32_t                                  marker,
+                                Dispatch const & d                        VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 
     //=== VK_NV_mesh_shader ===
 
@@ -6623,13 +6691,6 @@ namespace VULKAN_HPP_NAMESPACE
                              VULKAN_HPP_NAMESPACE::QueryPool           queryPool,
                              uint32_t                                  query,
                              Dispatch const & d                        VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
-
-    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
-    void writeBufferMarker2AMD( VULKAN_HPP_NAMESPACE::PipelineStageFlags2 stage,
-                                VULKAN_HPP_NAMESPACE::Buffer              dstBuffer,
-                                VULKAN_HPP_NAMESPACE::DeviceSize          dstOffset,
-                                uint32_t                                  marker,
-                                Dispatch const & d                        VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 
     //=== VK_EXT_descriptor_buffer ===
 
@@ -7187,6 +7248,17 @@ namespace VULKAN_HPP_NAMESPACE
                          Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT_WHEN_NO_EXCEPTIONS;
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void setDepthClampRangeEXT( VULKAN_HPP_NAMESPACE::DepthClampModeEXT          depthClampMode,
+                                const VULKAN_HPP_NAMESPACE::DepthClampRangeEXT * pDepthClampRange,
+                                Dispatch const & d                               VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void setDepthClampRangeEXT( VULKAN_HPP_NAMESPACE::DepthClampModeEXT                                  depthClampMode,
+                                Optional<const VULKAN_HPP_NAMESPACE::DepthClampRangeEXT> depthClampRange VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
+                                Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
     //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
 
     template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
@@ -7256,6 +7328,30 @@ namespace VULKAN_HPP_NAMESPACE
     void bindDescriptorBufferEmbeddedSamplers2EXT(
       const VULKAN_HPP_NAMESPACE::BindDescriptorBufferEmbeddedSamplersInfoEXT & bindDescriptorBufferEmbeddedSamplersInfo,
       Dispatch const & d                                                        VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    //=== VK_EXT_device_generated_commands ===
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void preprocessGeneratedCommandsEXT( const VULKAN_HPP_NAMESPACE::GeneratedCommandsInfoEXT * pGeneratedCommandsInfo,
+                                         VULKAN_HPP_NAMESPACE::CommandBuffer                    stateCommandBuffer,
+                                         Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void preprocessGeneratedCommandsEXT( const VULKAN_HPP_NAMESPACE::GeneratedCommandsInfoEXT & generatedCommandsInfo,
+                                         VULKAN_HPP_NAMESPACE::CommandBuffer                    stateCommandBuffer,
+                                         Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void executeGeneratedCommandsEXT( VULKAN_HPP_NAMESPACE::Bool32                           isPreprocessed,
+                                      const VULKAN_HPP_NAMESPACE::GeneratedCommandsInfoEXT * pGeneratedCommandsInfo,
+                                      Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void executeGeneratedCommandsEXT( VULKAN_HPP_NAMESPACE::Bool32                           isPreprocessed,
+                                      const VULKAN_HPP_NAMESPACE::GeneratedCommandsInfoEXT & generatedCommandsInfo,
+                                      Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
     operator VkCommandBuffer() const VULKAN_HPP_NOEXCEPT
@@ -8855,6 +8951,116 @@ namespace VULKAN_HPP_NAMESPACE
     static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
   };
 
+  class IndirectCommandsLayoutEXT
+  {
+  public:
+    using CType      = VkIndirectCommandsLayoutEXT;
+    using NativeType = VkIndirectCommandsLayoutEXT;
+
+    static VULKAN_HPP_CONST_OR_CONSTEXPR VULKAN_HPP_NAMESPACE::ObjectType objectType = VULKAN_HPP_NAMESPACE::ObjectType::eIndirectCommandsLayoutEXT;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR VULKAN_HPP_NAMESPACE::DebugReportObjectTypeEXT debugReportObjectType =
+      VULKAN_HPP_NAMESPACE::DebugReportObjectTypeEXT::eUnknown;
+
+  public:
+    IndirectCommandsLayoutEXT() VULKAN_HPP_NOEXCEPT{};  // = default - try to workaround a compiler issue
+    IndirectCommandsLayoutEXT( IndirectCommandsLayoutEXT const & rhs )             = default;
+    IndirectCommandsLayoutEXT & operator=( IndirectCommandsLayoutEXT const & rhs ) = default;
+
+#if !defined( VULKAN_HPP_HANDLES_MOVE_EXCHANGE )
+    IndirectCommandsLayoutEXT( IndirectCommandsLayoutEXT && rhs )             = default;
+    IndirectCommandsLayoutEXT & operator=( IndirectCommandsLayoutEXT && rhs ) = default;
+#else
+    IndirectCommandsLayoutEXT( IndirectCommandsLayoutEXT && rhs ) VULKAN_HPP_NOEXCEPT
+      : m_indirectCommandsLayoutEXT( VULKAN_HPP_NAMESPACE::exchange( rhs.m_indirectCommandsLayoutEXT, {} ) )
+    {
+    }
+
+    IndirectCommandsLayoutEXT & operator=( IndirectCommandsLayoutEXT && rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      m_indirectCommandsLayoutEXT = VULKAN_HPP_NAMESPACE::exchange( rhs.m_indirectCommandsLayoutEXT, {} );
+      return *this;
+    }
+#endif
+
+    VULKAN_HPP_CONSTEXPR IndirectCommandsLayoutEXT( std::nullptr_t ) VULKAN_HPP_NOEXCEPT {}
+
+    VULKAN_HPP_TYPESAFE_EXPLICIT IndirectCommandsLayoutEXT( VkIndirectCommandsLayoutEXT indirectCommandsLayoutEXT ) VULKAN_HPP_NOEXCEPT
+      : m_indirectCommandsLayoutEXT( indirectCommandsLayoutEXT )
+    {
+    }
+
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
+    IndirectCommandsLayoutEXT & operator=( VkIndirectCommandsLayoutEXT indirectCommandsLayoutEXT ) VULKAN_HPP_NOEXCEPT
+    {
+      m_indirectCommandsLayoutEXT = indirectCommandsLayoutEXT;
+      return *this;
+    }
+#endif
+
+    IndirectCommandsLayoutEXT & operator=( std::nullptr_t ) VULKAN_HPP_NOEXCEPT
+    {
+      m_indirectCommandsLayoutEXT = {};
+      return *this;
+    }
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectCommandsLayoutEXT const & ) const = default;
+#else
+    bool operator==( IndirectCommandsLayoutEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectCommandsLayoutEXT == rhs.m_indirectCommandsLayoutEXT;
+    }
+
+    bool operator!=( IndirectCommandsLayoutEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectCommandsLayoutEXT != rhs.m_indirectCommandsLayoutEXT;
+    }
+
+    bool operator<( IndirectCommandsLayoutEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectCommandsLayoutEXT < rhs.m_indirectCommandsLayoutEXT;
+    }
+#endif
+
+    VULKAN_HPP_TYPESAFE_EXPLICIT operator VkIndirectCommandsLayoutEXT() const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectCommandsLayoutEXT;
+    }
+
+    explicit operator bool() const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectCommandsLayoutEXT != VK_NULL_HANDLE;
+    }
+
+    bool operator!() const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectCommandsLayoutEXT == VK_NULL_HANDLE;
+    }
+
+  private:
+    VkIndirectCommandsLayoutEXT m_indirectCommandsLayoutEXT = {};
+  };
+
+  template <>
+  struct CppType<VULKAN_HPP_NAMESPACE::ObjectType, VULKAN_HPP_NAMESPACE::ObjectType::eIndirectCommandsLayoutEXT>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT;
+  };
+
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkIndirectCommandsLayoutEXT, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT;
+  };
+#endif
+
+  template <>
+  struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT>
+  {
+    static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
+  };
+
   class IndirectCommandsLayoutNV
   {
   public:
@@ -8961,6 +9167,116 @@ namespace VULKAN_HPP_NAMESPACE
 
   template <>
   struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutNV>
+  {
+    static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
+  };
+
+  class IndirectExecutionSetEXT
+  {
+  public:
+    using CType      = VkIndirectExecutionSetEXT;
+    using NativeType = VkIndirectExecutionSetEXT;
+
+    static VULKAN_HPP_CONST_OR_CONSTEXPR VULKAN_HPP_NAMESPACE::ObjectType objectType = VULKAN_HPP_NAMESPACE::ObjectType::eIndirectExecutionSetEXT;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR VULKAN_HPP_NAMESPACE::DebugReportObjectTypeEXT debugReportObjectType =
+      VULKAN_HPP_NAMESPACE::DebugReportObjectTypeEXT::eUnknown;
+
+  public:
+    IndirectExecutionSetEXT() VULKAN_HPP_NOEXCEPT{};  // = default - try to workaround a compiler issue
+    IndirectExecutionSetEXT( IndirectExecutionSetEXT const & rhs )             = default;
+    IndirectExecutionSetEXT & operator=( IndirectExecutionSetEXT const & rhs ) = default;
+
+#if !defined( VULKAN_HPP_HANDLES_MOVE_EXCHANGE )
+    IndirectExecutionSetEXT( IndirectExecutionSetEXT && rhs )             = default;
+    IndirectExecutionSetEXT & operator=( IndirectExecutionSetEXT && rhs ) = default;
+#else
+    IndirectExecutionSetEXT( IndirectExecutionSetEXT && rhs ) VULKAN_HPP_NOEXCEPT
+      : m_indirectExecutionSetEXT( VULKAN_HPP_NAMESPACE::exchange( rhs.m_indirectExecutionSetEXT, {} ) )
+    {
+    }
+
+    IndirectExecutionSetEXT & operator=( IndirectExecutionSetEXT && rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      m_indirectExecutionSetEXT = VULKAN_HPP_NAMESPACE::exchange( rhs.m_indirectExecutionSetEXT, {} );
+      return *this;
+    }
+#endif
+
+    VULKAN_HPP_CONSTEXPR IndirectExecutionSetEXT( std::nullptr_t ) VULKAN_HPP_NOEXCEPT {}
+
+    VULKAN_HPP_TYPESAFE_EXPLICIT IndirectExecutionSetEXT( VkIndirectExecutionSetEXT indirectExecutionSetEXT ) VULKAN_HPP_NOEXCEPT
+      : m_indirectExecutionSetEXT( indirectExecutionSetEXT )
+    {
+    }
+
+#if ( VULKAN_HPP_TYPESAFE_CONVERSION == 1 )
+    IndirectExecutionSetEXT & operator=( VkIndirectExecutionSetEXT indirectExecutionSetEXT ) VULKAN_HPP_NOEXCEPT
+    {
+      m_indirectExecutionSetEXT = indirectExecutionSetEXT;
+      return *this;
+    }
+#endif
+
+    IndirectExecutionSetEXT & operator=( std::nullptr_t ) VULKAN_HPP_NOEXCEPT
+    {
+      m_indirectExecutionSetEXT = {};
+      return *this;
+    }
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectExecutionSetEXT const & ) const = default;
+#else
+    bool operator==( IndirectExecutionSetEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectExecutionSetEXT == rhs.m_indirectExecutionSetEXT;
+    }
+
+    bool operator!=( IndirectExecutionSetEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectExecutionSetEXT != rhs.m_indirectExecutionSetEXT;
+    }
+
+    bool operator<( IndirectExecutionSetEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectExecutionSetEXT < rhs.m_indirectExecutionSetEXT;
+    }
+#endif
+
+    VULKAN_HPP_TYPESAFE_EXPLICIT operator VkIndirectExecutionSetEXT() const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectExecutionSetEXT;
+    }
+
+    explicit operator bool() const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectExecutionSetEXT != VK_NULL_HANDLE;
+    }
+
+    bool operator!() const VULKAN_HPP_NOEXCEPT
+    {
+      return m_indirectExecutionSetEXT == VK_NULL_HANDLE;
+    }
+
+  private:
+    VkIndirectExecutionSetEXT m_indirectExecutionSetEXT = {};
+  };
+
+  template <>
+  struct CppType<VULKAN_HPP_NAMESPACE::ObjectType, VULKAN_HPP_NAMESPACE::ObjectType::eIndirectExecutionSetEXT>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT;
+  };
+
+#if ( VK_USE_64_BIT_PTR_DEFINES == 1 )
+  template <>
+  struct CppType<VkIndirectExecutionSetEXT, VK_NULL_HANDLE>
+  {
+    using Type = VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT;
+  };
+#endif
+
+  template <>
+  struct isVulkanHandleType<VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT>
   {
     static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
   };
@@ -10014,6 +10330,23 @@ namespace VULKAN_HPP_NAMESPACE
       getCheckpointDataNV( CheckpointDataNVAllocator & checkpointDataNVAllocator, Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void getCheckpointData2NV( uint32_t *                                pCheckpointDataCount,
+                               VULKAN_HPP_NAMESPACE::CheckpointData2NV * pCheckpointData,
+                               Dispatch const & d                        VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename CheckpointData2NVAllocator = std::allocator<VULKAN_HPP_NAMESPACE::CheckpointData2NV>,
+              typename Dispatch                   = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::CheckpointData2NV, CheckpointData2NVAllocator>
+                         getCheckpointData2NV( Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    template <
+      typename CheckpointData2NVAllocator = std::allocator<VULKAN_HPP_NAMESPACE::CheckpointData2NV>,
+      typename Dispatch                   = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE,
+      typename std::enable_if<std::is_same<typename CheckpointData2NVAllocator::value_type, VULKAN_HPP_NAMESPACE::CheckpointData2NV>::value, int>::type = 0>
+    VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::CheckpointData2NV, CheckpointData2NVAllocator>
+      getCheckpointData2NV( CheckpointData2NVAllocator & checkpointData2NVAllocator, Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
     //=== VK_INTEL_performance_query ===
 
 #ifdef VULKAN_HPP_DISABLE_ENHANCED_MODE
@@ -10040,23 +10373,6 @@ namespace VULKAN_HPP_NAMESPACE
       submit2KHR( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::SubmitInfo2> const & submits,
                   VULKAN_HPP_NAMESPACE::Fence fence                                                 VULKAN_HPP_DEFAULT_ARGUMENT_ASSIGNMENT,
                   Dispatch const & d                                                                VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
-#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
-
-    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
-    void getCheckpointData2NV( uint32_t *                                pCheckpointDataCount,
-                               VULKAN_HPP_NAMESPACE::CheckpointData2NV * pCheckpointData,
-                               Dispatch const & d                        VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
-#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
-    template <typename CheckpointData2NVAllocator = std::allocator<VULKAN_HPP_NAMESPACE::CheckpointData2NV>,
-              typename Dispatch                   = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
-    VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::CheckpointData2NV, CheckpointData2NVAllocator>
-                         getCheckpointData2NV( Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
-    template <
-      typename CheckpointData2NVAllocator = std::allocator<VULKAN_HPP_NAMESPACE::CheckpointData2NV>,
-      typename Dispatch                   = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE,
-      typename std::enable_if<std::is_same<typename CheckpointData2NVAllocator::value_type, VULKAN_HPP_NAMESPACE::CheckpointData2NV>::value, int>::type = 0>
-    VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::CheckpointData2NV, CheckpointData2NVAllocator>
-      getCheckpointData2NV( CheckpointData2NVAllocator & checkpointData2NVAllocator, Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
     //=== VK_NV_low_latency2 ===
@@ -15350,6 +15666,133 @@ namespace VULKAN_HPP_NAMESPACE
     VULKAN_HPP_NODISCARD typename ResultValueType<std::pair<uint64_t, uint64_t>>::type
       getCalibratedTimestampKHR( const VULKAN_HPP_NAMESPACE::CalibratedTimestampInfoKHR & timestampInfo,
                                  Dispatch const & d                                       VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    //=== VK_EXT_device_generated_commands ===
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void getGeneratedCommandsMemoryRequirementsEXT( const VULKAN_HPP_NAMESPACE::GeneratedCommandsMemoryRequirementsInfoEXT * pInfo,
+                                                    VULKAN_HPP_NAMESPACE::MemoryRequirements2 *                              pMemoryRequirements,
+                                                    Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::MemoryRequirements2
+                         getGeneratedCommandsMemoryRequirementsEXT( const VULKAN_HPP_NAMESPACE::GeneratedCommandsMemoryRequirementsInfoEXT & info,
+                                                                    Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+    template <typename X, typename Y, typename... Z, typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
+                         getGeneratedCommandsMemoryRequirementsEXT( const VULKAN_HPP_NAMESPACE::GeneratedCommandsMemoryRequirementsInfoEXT & info,
+                                                                    Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    VULKAN_HPP_NODISCARD Result createIndirectCommandsLayoutEXT( const VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutCreateInfoEXT * pCreateInfo,
+                                                                 const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                 pAllocator,
+                                                                 VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT *                 pIndirectCommandsLayout,
+                                                                 Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    VULKAN_HPP_NODISCARD typename ResultValueType<VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT>::type
+      createIndirectCommandsLayoutEXT( const VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutCreateInfoEXT &   createInfo,
+                                       Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
+                                       Dispatch const & d                                                  VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+#  ifndef VULKAN_HPP_NO_SMART_HANDLE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    VULKAN_HPP_NODISCARD typename ResultValueType<UniqueHandle<VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT, Dispatch>>::type
+      createIndirectCommandsLayoutEXTUnique( const VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutCreateInfoEXT &   createInfo,
+                                             Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
+                                             Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+#  endif /* VULKAN_HPP_NO_SMART_HANDLE */
+#endif   /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void destroyIndirectCommandsLayoutEXT( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT   indirectCommandsLayout,
+                                           const VULKAN_HPP_NAMESPACE::AllocationCallbacks * pAllocator,
+                                           Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void destroyIndirectCommandsLayoutEXT( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT indirectCommandsLayout VULKAN_HPP_DEFAULT_ARGUMENT_ASSIGNMENT,
+                                           Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
+                                           Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void destroy( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT   indirectCommandsLayout,
+                  const VULKAN_HPP_NAMESPACE::AllocationCallbacks * pAllocator,
+                  Dispatch const & d                                VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void destroy( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT                     indirectCommandsLayout,
+                  Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
+                  Dispatch const & d                                                  VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    VULKAN_HPP_NODISCARD Result createIndirectExecutionSetEXT( const VULKAN_HPP_NAMESPACE::IndirectExecutionSetCreateInfoEXT * pCreateInfo,
+                                                               const VULKAN_HPP_NAMESPACE::AllocationCallbacks *               pAllocator,
+                                                               VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT *                 pIndirectExecutionSet,
+                                                               Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    VULKAN_HPP_NODISCARD typename ResultValueType<VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT>::type
+      createIndirectExecutionSetEXT( const VULKAN_HPP_NAMESPACE::IndirectExecutionSetCreateInfoEXT &     createInfo,
+                                     Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
+                                     Dispatch const & d                                                  VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+#  ifndef VULKAN_HPP_NO_SMART_HANDLE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    VULKAN_HPP_NODISCARD typename ResultValueType<UniqueHandle<VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT, Dispatch>>::type
+      createIndirectExecutionSetEXTUnique( const VULKAN_HPP_NAMESPACE::IndirectExecutionSetCreateInfoEXT &     createInfo,
+                                           Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
+                                           Dispatch const & d                                                  VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+#  endif /* VULKAN_HPP_NO_SMART_HANDLE */
+#endif   /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void destroyIndirectExecutionSetEXT( VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT     indirectExecutionSet,
+                                         const VULKAN_HPP_NAMESPACE::AllocationCallbacks * pAllocator,
+                                         Dispatch const & d                                VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void destroyIndirectExecutionSetEXT( VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT indirectExecutionSet  VULKAN_HPP_DEFAULT_ARGUMENT_ASSIGNMENT,
+                                         Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
+                                         Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void destroy( VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT     indirectExecutionSet,
+                  const VULKAN_HPP_NAMESPACE::AllocationCallbacks * pAllocator,
+                  Dispatch const & d                                VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void destroy( VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT                       indirectExecutionSet,
+                  Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
+                  Dispatch const & d                                                  VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void updateIndirectExecutionSetPipelineEXT( VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT                      indirectExecutionSet,
+                                                uint32_t                                                           executionSetWriteCount,
+                                                const VULKAN_HPP_NAMESPACE::WriteIndirectExecutionSetPipelineEXT * pExecutionSetWrites,
+                                                Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void updateIndirectExecutionSetPipelineEXT(
+      VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT                                                              indirectExecutionSet,
+      VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::WriteIndirectExecutionSetPipelineEXT> const & executionSetWrites,
+      Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void updateIndirectExecutionSetShaderEXT( VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT                    indirectExecutionSet,
+                                              uint32_t                                                         executionSetWriteCount,
+                                              const VULKAN_HPP_NAMESPACE::WriteIndirectExecutionSetShaderEXT * pExecutionSetWrites,
+                                              Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void updateIndirectExecutionSetShaderEXT(
+      VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT                                                            indirectExecutionSet,
+      VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::WriteIndirectExecutionSetShaderEXT> const & executionSetWrites,
+      Dispatch const & d VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
     operator VkDevice() const VULKAN_HPP_NOEXCEPT
