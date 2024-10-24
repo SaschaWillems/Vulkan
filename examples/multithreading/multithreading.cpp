@@ -357,7 +357,7 @@ public:
 		// Secondary command buffer also use the currently active framebuffer
 		inheritanceInfo.framebuffer = frameBuffer;
 
-		// Update secondary sene command buffers
+		// Update secondary scene command buffers
 		updateSecondaryCommandBuffers(inheritanceInfo);
 
 		if (displayStarSphere) {
