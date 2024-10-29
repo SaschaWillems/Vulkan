@@ -303,7 +303,12 @@ public:
 		descriptorLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayouts.color));
 
-		// Sets
+		updateDescriptors();
+	}
+
+	void updateDescriptors()
+	{
+		// Images and linked buffers are recreated on resize and part of the descriptors, so we need to update those at runtime
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.geometry, 1);
 
 		// Update a geometry descriptor set
@@ -569,7 +574,7 @@ public:
 		destroyGeometryPass();
 		prepareGeometryPass();
 		vkResetDescriptorPool(device, descriptorPool, 0);
-		setupDescriptors();
+		updateDescriptors();
 		resized = false;
 		buildCommandBuffers();
 	}

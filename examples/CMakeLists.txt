@@ -103,6 +103,7 @@ set(EXAMPLES
 	descriptorbuffer
 	descriptorindexing
 	descriptorsets
+	devicegeneratedcommands
 	displacement
 	distancefieldfonts
 	dynamicrendering

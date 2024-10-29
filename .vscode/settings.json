@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "iosfwd": "cpp",
+        "xlocbuf": "cpp"
+    }
+}
