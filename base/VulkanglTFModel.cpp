@@ -1,7 +1,7 @@
 /*
 * Vulkan glTF model and texture loading class based on tinyglTF (https://github.com/syoyo/tinygltf)
 *
-* Copyright (C) 2018-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -312,8 +312,7 @@ void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path
 
 		ktx_uint8_t* ktxTextureData = ktxTexture_GetData(ktxTexture);
 		ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
-		// @todo: Use ktxTexture_GetVkFormat(ktxTexture)
-		format = VK_FORMAT_R8G8B8A8_UNORM;
+		format = ktxTexture_GetVkFormat(ktxTexture);
 
 		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;

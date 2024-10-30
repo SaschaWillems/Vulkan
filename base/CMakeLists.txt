@@ -8,7 +8,8 @@ set(KTX_SOURCES
     ${KTX_DIR}/lib/checkheader.c
     ${KTX_DIR}/lib/swap.c
     ${KTX_DIR}/lib/memstream.c
-    ${KTX_DIR}/lib/filestream.c)
+    ${KTX_DIR}/lib/filestream.c
+    ${KTX_DIR}/lib/vkloader.c)
 
 add_library(base STATIC ${BASE_SRC} ${KTX_SOURCES})
 if(WIN32)
