@@ -294,7 +294,9 @@ optimalTilingCallback(int miplevel, int face,
     user_cbdata_optimal* ud = (user_cbdata_optimal*)userdata;
 
     // Set up copy to destination region in final image
+#if defined(_DEBUG)
     assert(ud->region < ud->regionsArrayEnd);
+#endif
     ud->region->bufferOffset = ud->offset;
     ud->offset += faceLodSize;
     // These 2 are expressed in texels.
@@ -351,7 +353,9 @@ optimalTilingPadCallback(int miplevel, int face,
     ktx_uint32_t rowPitch = width * ud->elementSize;
 
     // Set bufferOffset in destination region in final image
+#if defined(_DEBUG)
     assert(ud->region < ud->regionsArrayEnd);
+#endif
     ud->region->bufferOffset = ud->offset;
 
     // Copy data into staging buffer
