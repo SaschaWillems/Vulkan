@@ -70,7 +70,7 @@ jobs:
 
   build_iOS:
     name: Build iOS
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
         with:
