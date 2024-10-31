@@ -188,7 +188,6 @@ public:
 						geometryNode.indexBufferDeviceAddress = indexBufferDeviceAddress.deviceAddress;
 						geometryNode.textureIndexBaseColor = primitive->material.baseColorTexture->index;
 						geometryNode.textureIndexOcclusion = primitive->material.occlusionTexture ? primitive->material.occlusionTexture->index : -1;
-						// @todo: map material id to global texture array
 						geometryNodes.push_back(geometryNode);
 					}
 				}
@@ -198,14 +197,25 @@ public:
 			pBuildRangeInfos.push_back(&rangeInfo);
 		}
 
-		// @todo: stage to device
+		vks::Buffer stagingBuffer;
+
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&geometryNodesBuffer,
+			&stagingBuffer,
 			static_cast<uint32_t>(geometryNodes.size()) * sizeof(GeometryNode),
 			geometryNodes.data()));
-		
+
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&geometryNodesBuffer,
+			static_cast<uint32_t>(geometryNodes.size()) * sizeof(GeometryNode)));
+
+		vulkanDevice->copyBuffer(&stagingBuffer, &geometryNodesBuffer, queue);
+
+		stagingBuffer.destroy();
+	
 		// Get size info
 		VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{};
 		accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
@@ -408,9 +418,7 @@ public:
 	*/
 	void createRayTracingPipeline()
 	{
-		// @todo:
-		uint32_t imageCount{ 0 };
-		imageCount = static_cast<uint32_t>(model.textures.size());
+		const uint32_t imageCount = static_cast<uint32_t>(model.textures.size());
 
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0: Top level acceleration structure
