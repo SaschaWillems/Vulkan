@@ -259,7 +259,7 @@ public:
 		struct {
 			StagingBuffer vertices;
 			StagingBuffer indices;
-		} stagingBuffers;
+		} stagingBuffers{};
 
 		void* data;
 
@@ -373,7 +373,7 @@ public:
 	void createDescriptorPool()
 	{
 		// We need to tell the API the number of max. requested descriptors per type
-		VkDescriptorPoolSize descriptorTypeCounts[1];
+		VkDescriptorPoolSize descriptorTypeCounts[1]{};
 		// This example only one descriptor type (uniform buffer)
 		descriptorTypeCounts[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		// We have one buffer (and as such descriptor) per frame
@@ -508,7 +508,7 @@ public:
 		frameBuffers.resize(swapChain.imageCount);
 		for (size_t i = 0; i < frameBuffers.size(); i++)
 		{
-			std::array<VkImageView, 2> attachments;
+			std::array<VkImageView, 2> attachments{};
 			// Color attachment is the view of the swapchain image
 			attachments[0] = swapChain.buffers[i].view;
 			// Depth/Stencil attachment is the same for all frame buffers due to how depth works with current GPUs
@@ -587,7 +587,7 @@ public:
 		// Each subpass dependency will introduce a memory and execution dependency between the source and dest subpass described by
 		// srcStageMask, dstStageMask, srcAccessMask, dstAccessMask (and dependencyFlags is set)
 		// Note: VK_SUBPASS_EXTERNAL is a special constant that refers to all commands executed outside of the actual renderpass)
-		std::array<VkSubpassDependency, 2> dependencies;
+		std::array<VkSubpassDependency, 2> dependencies{};
 
 		// Does the transition from final to initial layout for the depth an color attachments
 		// Depth attachment
@@ -943,7 +943,7 @@ public:
 
 		// Set clear values for all framebuffer attachments with loadOp set to clear
 		// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
-		VkClearValue clearValues[2];
+		VkClearValue clearValues[2]{};
 		clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
@@ -1056,7 +1056,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_  HINSTANCE hPrevInstance, _In_ LPSTR, _In_ int)
 {
 	for (size_t i = 0; i < __argc; i++) { VulkanExample::args.push_back(__argv[i]); };
 	vulkanExample = new VulkanExample();

@@ -243,7 +243,7 @@ public:
 		VK_CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &stagingBuffer.memory));
 		VK_CHECK_RESULT(vkBindBufferMemory(device, stagingBuffer.handle, stagingBuffer.memory, 0));
 		// Map the buffer and copy vertices and indices into it, this way we can use a single buffer as the source for both vertex and index GPU buffers
-		uint8_t* data;
+		uint8_t* data{ nullptr };
 		VK_CHECK_RESULT(vkMapMemory(device, stagingBuffer.memory, 0, memAlloc.allocationSize, 0, (void**)&data));
 		memcpy(data, vertices.data(), vertexBufferSize);
 		memcpy(((char*)data) + vertexBufferSize, indices.data(), vertexBufferSize);
