@@ -239,3 +239,5 @@ data/roboto*.*
 android/.idea/**
 
 libs/vulkan/*.so
+
+.vscode/*
