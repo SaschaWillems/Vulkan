@@ -246,7 +246,7 @@ public:
 		uint8_t* data{ nullptr };
 		VK_CHECK_RESULT(vkMapMemory(device, stagingBuffer.memory, 0, memAlloc.allocationSize, 0, (void**)&data));
 		memcpy(data, vertices.data(), vertexBufferSize);
-		memcpy(((char*)data) + vertexBufferSize, indices.data(), vertexBufferSize);
+		memcpy(((char*)data) + vertexBufferSize, indices.data(), indexBufferSize);
 
 		// Create a device local buffer to which the (host local) vertex data will be copied and which will be used for rendering
 		VkBufferCreateInfo vertexbufferCI{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
