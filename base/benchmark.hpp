@@ -1,7 +1,7 @@
 /*
-* Benchmark class
+* Benchmark class - Can be used for automated benchmarks
 *
-* Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -18,8 +18,8 @@ namespace vks
 {
 	class Benchmark {
 	private:
-		FILE *stream;
-		VkPhysicalDeviceProperties deviceProps;
+		FILE* stream{ nullptr };
+		VkPhysicalDeviceProperties deviceProps{};
 	public:
 		bool active = false;
 		bool outputFrameTimes = false;

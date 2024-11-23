@@ -76,7 +76,7 @@
 class VulkanExampleBase
 {
 private:
-	std::string getWindowTitle();
+	std::string getWindowTitle() const;
 	uint32_t destWidth;
 	uint32_t destHeight;
 	bool resizing = false;

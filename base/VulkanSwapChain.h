@@ -28,25 +28,25 @@
 #endif
 
 typedef struct _SwapChainBuffers {
-	VkImage image;
-	VkImageView view;
+	VkImage image{ VK_NULL_HANDLE };
+	VkImageView view{ VK_NULL_HANDLE };
 } SwapChainBuffer;
 
 class VulkanSwapChain
 {
 private: 
-	VkInstance instance;
-	VkDevice device;
-	VkPhysicalDevice physicalDevice;
-	VkSurfaceKHR surface;
+	VkInstance instance{ VK_NULL_HANDLE };
+	VkDevice device{ VK_NULL_HANDLE };
+	VkPhysicalDevice physicalDevice{ VK_NULL_HANDLE };
+	VkSurfaceKHR surface{ VK_NULL_HANDLE };
 public:
-	VkFormat colorFormat;
-	VkColorSpaceKHR colorSpace;
-	VkSwapchainKHR swapChain = VK_NULL_HANDLE;	
+	VkFormat colorFormat{};
+	VkColorSpaceKHR colorSpace{};
+	VkSwapchainKHR swapChain{ VK_NULL_HANDLE };
 	uint32_t imageCount;
-	std::vector<VkImage> images;
-	std::vector<SwapChainBuffer> buffers;
-	uint32_t queueNodeIndex = UINT32_MAX;
+	std::vector<VkImage> images{};
+	std::vector<SwapChainBuffer> buffers{};
+	uint32_t queueNodeIndex{ UINT32_MAX };
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 	void initSurface(void* platformHandle, void* platformWindow);
