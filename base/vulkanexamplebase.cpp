@@ -783,26 +783,6 @@ void VulkanExampleBase::submitFrame()
 
 VulkanExampleBase::VulkanExampleBase()
 {
-#if !defined(VK_USE_PLATFORM_ANDROID_KHR)
-	// Check for a valid asset path
-	struct stat info;
-	if (stat(getAssetPath().c_str(), &info) != 0)
-	{
-#if defined(_WIN32)
-		std::string msg = "Could not locate asset path in \"" + getAssetPath() + "\" !";
-		MessageBox(NULL, msg.c_str(), "Fatal error", MB_OK | MB_ICONERROR);
-#else
-		std::cerr << "Error: Could not find asset path in " << getAssetPath() << "\n";
-#endif
-		exit(-1);
-	}
-#endif
-
-	// Validation for all samples can be forced at compile time using the FORCE_VALIDATION define
-#if defined(FORCE_VALIDATION)
-	settings.validation = true;
-#endif
-
 	// Command line arguments
 	commandLineParser.add("help", { "--help" }, 0, "Show help");
 	commandLineParser.add("validation", { "-v", "--validation" }, 0, "Enable validation layers");
@@ -819,7 +799,9 @@ VulkanExampleBase::VulkanExampleBase()
 	commandLineParser.add("benchmarkresultfile", { "-bf", "--benchfilename" }, 1, "Set file name for benchmark results");
 	commandLineParser.add("benchmarkresultframes", { "-bt", "--benchframetimes" }, 0, "Save frame times to benchmark results file");
 	commandLineParser.add("benchmarkframes", { "-bfs", "--benchmarkframes" }, 1, "Only render the given number of frames");
-
+#if (!(defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)))
+	commandLineParser.add("resourcepath", { "-rp", "--resourcepath" }, 1, "Set path for dir where assets and shaders folder is present");
+#endif
 	commandLineParser.parse(args);
 	if (commandLineParser.isSet("help")) {
 #if defined(_WIN32)
@@ -872,6 +854,32 @@ VulkanExampleBase::VulkanExampleBase()
 	if (commandLineParser.isSet("benchmarkframes")) {
 		benchmark.outputFrames = commandLineParser.getValueAsInt("benchmarkframes", benchmark.outputFrames);
 	}
+#if (!(defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)))
+	if(commandLineParser.isSet("resourcepath")) {
+		std::string path = commandLineParser.getValueAsString("resourcepath", "");
+		setResourcePath(path);
+	}
+#endif
+
+#if !defined(VK_USE_PLATFORM_ANDROID_KHR)
+	// Check for a valid asset path
+	struct stat info;
+	if (stat(getAssetPath().c_str(), &info) != 0)
+	{
+#if defined(_WIN32)
+		std::string msg = "Could not locate asset path in \"" + getAssetPath() + "\" !";
+		MessageBox(NULL, msg.c_str(), "Fatal error", MB_OK | MB_ICONERROR);
+#else
+		std::cerr << "Error: Could not find asset path in " << getAssetPath() << "\n";
+#endif
+		exit(-1);
+	}
+#endif
+
+	// Validation for all samples can be forced at compile time using the FORCE_VALIDATION define
+#if defined(FORCE_VALIDATION)
+	settings.validation = true;
+#endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// Vulkan library is loaded dynamically on Android

@@ -12,6 +12,9 @@
 // iOS & macOS: getAssetPath() and getShaderBasePath() implemented externally for access to Obj-C++ path utilities
 const std::string getAssetPath()
 {
+if(vks::tools::resourcePathSet){
+	return vks::tools::resourcePath + "/assets/";
+}
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	return "";
 #elif defined(VK_EXAMPLE_ASSETS_DIR)
@@ -21,8 +24,17 @@ const std::string getAssetPath()
 #endif
 }
 
+void setResourcePath(std::string path)
+{
+	vks::tools::resourcePath = path;
+	vks::tools::resourcePathSet = true;
+}
+
 const std::string getShaderBasePath()
 {
+if(vks::tools::resourcePathSet){
+	return vks::tools::resourcePath + "/shaders/";
+}
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	return "shaders/";
 #elif defined(VK_EXAMPLE_SHADERS_DIR)
@@ -38,6 +50,8 @@ namespace vks
 	namespace tools
 	{
 		bool errorModeSilent = false;
+		bool resourcePathSet = false;
+		std::string resourcePath = "";
 
 		std::string errorString(VkResult errorCode)
 		{
