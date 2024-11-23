@@ -1,7 +1,7 @@
 /*
  * Assorted commonly used Vulkan helper functions
  *
- * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -12,7 +12,7 @@
 // iOS & macOS: getAssetPath() and getShaderBasePath() implemented externally for access to Obj-C++ path utilities
 const std::string getAssetPath()
 {
-if(vks::tools::resourcePathSet){
+if (vks::tools::resourcePath != "") {
 	return vks::tools::resourcePath + "/assets/";
 }
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -24,15 +24,9 @@ if(vks::tools::resourcePathSet){
 #endif
 }
 
-void setResourcePath(std::string path)
-{
-	vks::tools::resourcePath = path;
-	vks::tools::resourcePathSet = true;
-}
-
 const std::string getShaderBasePath()
 {
-if(vks::tools::resourcePathSet){
+if (vks::tools::resourcePath != "") {
 	return vks::tools::resourcePath + "/shaders/";
 }
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -50,7 +44,6 @@ namespace vks
 	namespace tools
 	{
 		bool errorModeSilent = false;
-		bool resourcePathSet = false;
 		std::string resourcePath = "";
 
 		std::string errorString(VkResult errorCode)

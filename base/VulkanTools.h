@@ -61,16 +61,14 @@
 #endif
 
 const std::string getAssetPath();
-void setResourcePath(std::string path);
 const std::string getShaderBasePath();
 
 namespace vks
 {
 	namespace tools
 	{
-		/** @brief Variables for Command Line Resource Path */
+		/** @brief Setting this path chnanges the place where the samples looks for assets and shaders */
 		extern std::string resourcePath;
-		extern bool resourcePathSet;
 
 		/** @brief Disable message boxes on fatal errors */
 		extern bool errorModeSilent;

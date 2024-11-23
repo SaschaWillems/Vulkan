@@ -856,8 +856,7 @@ VulkanExampleBase::VulkanExampleBase()
 	}
 #if (!(defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)))
 	if(commandLineParser.isSet("resourcepath")) {
-		std::string path = commandLineParser.getValueAsString("resourcepath", "");
-		setResourcePath(path);
+		vks::tools::resourcePath = commandLineParser.getValueAsString("resourcepath", "");
 	}
 #endif
 
