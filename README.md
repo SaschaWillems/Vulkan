@@ -66,22 +66,23 @@ See [BUILD.md](BUILD.md) for details on how to build for the different platforms
 
 Once built, examples can be run from the bin directory. The list of available command line options can be brought up with `--help`:
 ```
- -v, --validation: Enable validation layers
- -br, --benchruntime: Set duration time for benchmark mode in seconds
- -vs, --vsync: Enable V-Sync
- -w, --width: Set window width
- -f, --fullscreen: Start in fullscreen mode
  --help: Show help
  -h, --height: Set window height
- -bt, --benchframetimes: Save frame times to benchmark results file
+ -v, --validation: Enable validation layers
+ -vs, --vsync: Enable V-Sync
+ -f, --fullscreen: Start in fullscreen mode
+ -w, --width: Set window width
  -s, --shaders: Select shader type to use (glsl or hlsl)
- -b, --benchmark: Run example in benchmark mode
  -g, --gpu: Select GPU to run on
- -bf, --benchfilename: Set file name for benchmark results
  -gl, --listgpus: Display a list of available Vulkan devices
+ -b, --benchmark: Run example in benchmark mode
  -bw, --benchwarmup: Set warmup time for benchmark mode in seconds
+ -br, --benchruntime: Set duration time for benchmark mode in seconds
+ -bf, --benchfilename: Set file name for benchmark results
+ -bt, --benchframetimes: Save frame times to benchmark results file
+ -bfs, --benchmarkframes: Only render the given number of frames
+ -rp, --resourcepath: Set path for dir where assets and shaders folder is present
 ```
-
 Note that some examples require specific device features, and if you are on a multi-gpu system you might need to use the `-gl` and `-g` to select a gpu that supports them.
 
 ## Shaders
