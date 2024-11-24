@@ -98,403 +98,415 @@ Synchronization in the master branch currently isn't optimal und uses ```vkDevic
 
 ### Basics
 
-#### [Basic triangle](examples/triangle/)
-Basic and verbose example for getting a colored triangle rendered to the screen using Vulkan. This is meant as a starting point for learning Vulkan from the ground up. A huge part of the code is boilerplate that is abstracted away in later examples.
+- [Basic triangle using Vulkan 1.0](examples/triangle/)
 
-#### [Basic triangle using Vulkan 1.3](examples/trianglevulkan13//)
-Vulkan 1.3 version of the basic and verbose example for getting a colored triangle rendered to the screen. This makes use of features like dynamic rendering simplifying api usage.
+    Basic and verbose example for getting a colored triangle rendered to the screen using Vulkan. This is meant as a starting point for learning Vulkan from the ground up. A huge part of the code is boilerplate that is abstracted away in later examples.
 
-#### [Pipelines](examples/pipelines/)
+- [Basic triangle using Vulkan 1.3](examples/trianglevulkan13//)
 
-Using pipeline state objects (pso) that bake state information (rasterization states, culling modes, etc.) along with the shaders into a single object, making it easy for an implementation to optimize usage (compared to OpenGL's dynamic state machine). Also demonstrates the use of pipeline derivatives.
+    Vulkan 1.3 version of the basic and verbose example for getting a colored triangle rendered to the screen. This makes use of features like dynamic rendering simplifying api usage.
 
-#### [Descriptor sets](examples/descriptorsets)
+- [Pipelines](examples/pipelines/)
 
-Descriptors are used to pass data to shader binding points. Sets up descriptor sets, layouts, pools, creates a single pipeline based on the set layout and renders multiple objects with different descriptor sets.
+    Using pipeline state objects (pso) that bake state information (rasterization states, culling modes, etc.) along with the shaders into a single object, making it easy for an implementation to optimize usage (compared to OpenGL's dynamic state machine). Also demonstrates the use of pipeline derivatives.
 
-#### [Dynamic uniform buffers](examples/dynamicuniformbuffer/)
+- [Descriptor sets](examples/descriptorsets)
 
-Dynamic uniform buffers are used for rendering multiple objects with multiple matrices stored in a single uniform buffer object. Individual matrices are dynamically addressed upon descriptor binding time, minimizing the number of required descriptor sets.
+    Descriptors are used to pass data to shader binding points. Sets up descriptor sets, layouts, pools, creates a single pipeline based on the set layout and renders multiple objects with different descriptor sets.
 
-#### [Push constants](examples/pushconstants/)
+- [Dynamic uniform buffers](examples/dynamicuniformbuffer/)
 
-Uses push constants, small blocks of uniform data stored within a command buffer, to pass data to a shader without the need for uniform buffers.
+    Dynamic uniform buffers are used for rendering multiple objects with multiple matrices stored in a single uniform buffer object. Individual matrices are dynamically addressed upon descriptor binding time, minimizing the number of required descriptor sets.
 
-#### [Specialization constants](examples/specializationconstants/)
+- [Push constants](examples/pushconstants/)
 
-Uses SPIR-V specialization constants to create multiple pipelines with different lighting paths from a single "uber" shader.
+    Uses push constants, small blocks of uniform data stored within a command buffer, to pass data to a shader without the need for uniform buffers.
 
-#### [Texture mapping](examples/texture/)
+- [Specialization constants](examples/specializationconstants/)
 
-Loads a 2D texture from disk (including all mip levels), uses staging to upload it into video memory and samples from it using combined image samplers.
+    Uses SPIR-V specialization constants to create multiple pipelines with different lighting paths from a single "uber" shader.
 
-#### [Texture arrays](examples/texturearray/)
+- [Texture mapping](examples/texture/)
 
-Loads a 2D texture array containing multiple 2D texture slices (each with its own mip chain) and renders multiple meshes each sampling from a different layer of the texture. 2D texture arrays don't do any interpolation between the slices.
+    Loads a 2D texture from disk (including all mip levels), uses staging to upload it into video memory and samples from it using combined image samplers.
 
-#### [Cube map textures](examples/texturecubemap/)
+- [Texture arrays](examples/texturearray/)
 
-Loads a cube map texture from disk containing six different faces. All faces and mip levels are uploaded into video memory, and the cubemap is displayed on a skybox as a backdrop and on a 3D model as a reflection.
+    Loads a 2D texture array containing multiple 2D texture slices (each with its own mip chain) and renders multiple meshes each sampling from a different layer of the texture. 2D texture arrays don't do any interpolation between the slices.
 
-#### [Cube map arrays](examples/texturecubemaparray/)
+- [Cube map textures](examples/texturecubemap/)
 
-Loads an array of cube map textures from a single file. All cube maps are uploaded into video memory with their faces and mip levels, and the selected cubemap is displayed on a skybox as a backdrop and on a 3D model as a reflection.
+    Loads a cube map texture from disk containing six different faces. All faces and mip levels are uploaded into video memory, and the cubemap is displayed on a skybox as a backdrop and on a 3D model as a reflection.
 
-#### [3D textures](examples/texture3d/)
+- [Cube map arrays](examples/texturecubemaparray/)
 
-Generates a 3D texture on the cpu (using perlin noise), uploads it to the device and samples it to render an animation. 3D textures store volumetric data and interpolate in all three dimensions.
+    Loads an array of cube map textures from a single file. All cube maps are uploaded into video memory with their faces and mip levels, and the selected cubemap is displayed on a skybox as a backdrop and on a 3D model as a reflection.
 
-#### [Input attachments](examples/inputattachments)
+- [3D textures](examples/texture3d/)
 
-Uses input attachments to read framebuffer contents from a previous sub pass at the same pixel position within a single render pass. This can be used for basic post processing or image composition ([blog entry](https://www.saschawillems.de/tutorials/vulkan/input_attachments_subpasses)).
+    Generates a 3D texture on the cpu (using perlin noise), uploads it to the device and samples it to render an animation. 3D textures store volumetric data and interpolate in all three dimensions.
 
-#### [Sub passes](examples/subpasses/)
+- [Input attachments](examples/inputattachments)
 
-Advanced example that uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass.
+    Uses input attachments to read framebuffer contents from a previous sub pass at the same pixel position within a single render pass. This can be used for basic post processing or image composition ([blog entry](https://www.saschawillems.de/tutorials/vulkan/input_attachments_subpasses)).
 
-#### [Offscreen rendering](examples/offscreen/)
+- [Sub passes](examples/subpasses/)
 
-Basic offscreen rendering in two passes. First pass renders the mirrored scene to a separate framebuffer with color and depth attachments, second pass samples from that color attachment for rendering a mirror surface.
+    Advanced example that uses sub passes and input attachments to write and read back data from framebuffer attachments (same location only) in single render pass. This is used to implement deferred render composition with added forward transparency in a single pass.
 
-#### [CPU particle system](examples/particlesystem/)
+- [Offscreen rendering](examples/offscreen/)
 
-Implements a simple CPU based particle system. Particle data is stored in host memory, updated on the CPU per-frame and synchronized with the device before it's rendered using pre-multiplied alpha.
+    Basic offscreen rendering in two passes. First pass renders the mirrored scene to a separate framebuffer with color and depth attachments, second pass samples from that color attachment for rendering a mirror surface.
 
-#### [Stencil buffer](examples/stencilbuffer/)
+- [CPU particle system](examples/particlesystem/)
 
-Uses the stencil buffer and its compare functionality for rendering a 3D model with dynamic outlines.
+    Implements a simple CPU based particle system. Particle data is stored in host memory, updated on the CPU per-frame and synchronized with the device before it's rendered using pre-multiplied alpha.
 
+- [Stencil buffer](examples/stencilbuffer/)
 
-#### [Vertex attributes](examples/vertexattributes/)
+    Uses the stencil buffer and its compare functionality for rendering a 3D model with dynamic outlines.
 
-Demonstrates two different ways of passing vertices to the vertex shader using either interleaved or separate vertex attributes.
+- [Vertex attributes](examples/vertexattributes/)
+
+    Demonstrates two different ways of passing vertices to the vertex shader using either interleaved or separate vertex attributes.
 
 ### glTF
 
 These samples show how implement different features of the [glTF 2.0 3D format](https://www.khronos.org/gltf/) 3D transmission file format in detail.
 
-#### [glTF model loading and rendering](examples/gltfloading/)
+- [glTF model loading and rendering](examples/gltfloading/)
 
-Shows how to load a complete scene from a [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The structure of the glTF 2.0 scene is converted into the data structures required to render the scene with Vulkan.
+    Shows how to load a complete scene from a [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The structure of the glTF 2.0 scene is converted into the data structures required to render the scene with Vulkan.
 
-#### [glTF vertex skinning](examples/gltfskinning/)
+- [glTF vertex skinning](examples/gltfskinning/)
 
-Demonstrates how to do GPU vertex skinning from animation data stored in a [glTF 2.0](https://github.com/KhronosGroup/glTF) model. Along with reading all the data structures required for doing vertex skinning, the sample also shows how to upload animation data to the GPU and how to render it using shaders.
+    Demonstrates how to do GPU vertex skinning from animation data stored in a [glTF 2.0](https://github.com/KhronosGroup/glTF) model. Along with reading all the data structures required for doing vertex skinning, the sample also shows how to upload animation data to the GPU and how to render it using shaders.
 
-#### [glTF scene rendering](examples/gltfscenerendering/)
+- [glTF scene rendering](examples/gltfscenerendering/)
 
-Renders a complete scene loaded from an [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The sample is based on the glTF model loading sample, and adds data structures, functions and shaders required to render a more complex scene using Crytek's Sponza model with per-material pipelines and normal mapping.
+    Renders a complete scene loaded from an [glTF 2.0](https://github.com/KhronosGroup/glTF) file. The sample is based on the glTF model loading sample, and adds data structures, functions and shaders required to render a more complex scene using Crytek's Sponza model with per-material pipelines and normal mapping.
 
 ### Advanced
 
-#### [Multi sampling](examples/multisampling/)
+- [Multi sampling](examples/multisampling/)
 
-Implements multisample anti-aliasing (MSAA) using a renderpass with multisampled attachments and resolve attachments that get resolved into the visible frame buffer.
+    Implements multisample anti-aliasing (MSAA) using a renderpass with multisampled attachments and resolve attachments that get resolved into the visible frame buffer.
 
-#### [High dynamic range](examples/hdr/)
+- [High dynamic range](examples/hdr/)
 
-Implements a high dynamic range rendering pipeline using 16/32 bit floating point precision for all internal formats, textures and calculations, including a bloom pass, manual exposure and tone mapping.
+    Implements a high dynamic range rendering pipeline using 16/32 bit floating point precision for all internal formats, textures and calculations, including a bloom pass, manual exposure and tone mapping.
 
-#### [Shadow mapping](examples/shadowmapping/)
+- [Shadow mapping](examples/shadowmapping/)
 
-Rendering shadows for a directional light source. First pass stores depth values from the light's pov, second pass compares against these to check if a fragment is shadowed. Uses depth bias to avoid shadow artifacts and applies a PCF filter to smooth shadow edges.
+    Rendering shadows for a directional light source. First pass stores depth values from the light's pov, second pass compares against these to check if a fragment is shadowed. Uses depth bias to avoid shadow artifacts and applies a PCF filter to smooth shadow edges.
 
-#### [Cascaded shadow mapping](examples/shadowmappingcascade/)
+- [Cascaded shadow mapping](examples/shadowmappingcascade/)
 
-Uses multiple shadow maps (stored as a layered texture) to increase shadow resolution for larger scenes. The camera frustum is split up into multiple cascades with corresponding layers in the shadow map. Layer selection for shadowing depth compare is then done by comparing fragment depth with the cascades' depths ranges.
+    Uses multiple shadow maps (stored as a layered texture) to increase shadow resolution for larger scenes. The camera frustum is split up into multiple cascades with corresponding layers in the shadow map. Layer selection for shadowing depth compare is then done by comparing fragment depth with the cascades' depths ranges.
 
-#### [Omnidirectional shadow mapping](examples/shadowmappingomni/)
+- [Omnidirectional shadow mapping](examples/shadowmappingomni/)
 
-Uses a dynamic floating point cube map to implement shadowing for a point light source that casts shadows in all directions. The cube map is updated every frame and stores distance to the light source for each fragment used to determine if a fragment is shadowed.
+    Uses a dynamic floating point cube map to implement shadowing for a point light source that casts shadows in all directions. The cube map is updated every frame and stores distance to the light source for each fragment used to determine if a fragment is shadowed.
 
-#### [Run-time mip-map generation](examples/texturemipmapgen/)
+- [Run-time mip-map generation](examples/texturemipmapgen/)
 
-Generating a complete mip-chain at runtime instead of loading it from a file, by blitting from one mip level, starting with the actual texture image, down to the next smaller size until the lower 1x1 pixel end of the mip chain.
+    Generating a complete mip-chain at runtime instead of loading it from a file, by blitting from one mip level, starting with the actual texture image, down to the next smaller size until the lower 1x1 pixel end of the mip chain.
 
-#### [Capturing screenshots](examples/screenshot/)
+- [Capturing screenshots](examples/screenshot/)
 
-Capturing and saving an image after a scene has been rendered using blits to copy the last swapchain image from optimal device to host local linear memory, so that it can be stored into a ppm image.
+    Capturing and saving an image after a scene has been rendered using blits to copy the last swapchain image from optimal device to host local linear memory, so that it can be stored into a ppm image.
 
-#### [Order Independent Transparency](examples/oit)
+- [Order Independent Transparency](examples/oit)
 
-Implements order independent transparency based on linked lists. To achieve this, the sample uses storage buffers in combination with image load and store atomic operations in the fragment shader.
+    Implements order independent transparency based on linked lists. To achieve this, the sample uses storage buffers in combination with image load and store atomic operations in the fragment shader.
 
 ### Performance
 
-#### [Multi threaded command buffer generation](examples/multithreading/)
+- [Multi threaded command buffer generation](examples/multithreading/)
 
-Multi threaded parallel command buffer generation. Instead of prebuilding and reusing the same command buffers this sample uses multiple hardware threads to demonstrate parallel per-frame recreation of secondary command buffers that are executed and submitted in a primary buffer once all threads have finished.
+    Multi threaded parallel command buffer generation. Instead of prebuilding and reusing the same command buffers this sample uses multiple hardware threads to demonstrate parallel per-frame recreation of secondary command buffers that are executed and submitted in a primary buffer once all threads have finished.
 
-#### [Instancing](examples/instancing/)
+- [Instancing](examples/instancing/)
 
-Uses the instancing feature for rendering many instances of the same mesh from a single vertex buffer with variable parameters and textures (indexing a layered texture). Instanced data is passed using a secondary vertex buffer.
+    Uses the instancing feature for rendering many instances of the same mesh from a single vertex buffer with variable parameters and textures (indexing a layered texture). Instanced data is passed using a secondary vertex buffer.
 
-#### [Indirect drawing](examples/indirectdraw/)
+- [Indirect drawing](examples/indirectdraw/)
 
-Rendering thousands of instanced objects with different geometry using one single indirect draw call instead of issuing separate draws. All draw commands to be executed are stored in a dedicated indirect draw buffer object (storing index count, offset, instance count, etc.) that is uploaded to the device and sourced by the indirect draw command for rendering.
+    Rendering thousands of instanced objects with different geometry using one single indirect draw call instead of issuing separate draws. All draw commands to be executed are stored in a dedicated indirect draw buffer object (storing index count, offset, instance count, etc.) that is uploaded to the device and sourced by the indirect draw command for rendering.
 
-#### [Occlusion queries](examples/occlusionquery/)
+- [Occlusion queries](examples/occlusionquery/)
 
-Using query pool objects to get number of passed samples for rendered primitives got determining on-screen visibility.
+    Using query pool objects to get number of passed samples for rendered primitives got determining on-screen visibility.
 
-#### [Pipeline statistics](examples/pipelinestatistics/)
+- [Pipeline statistics](examples/pipelinestatistics/)
 
-Using query pool objects to gather statistics from different stages of the pipeline like vertex, fragment shader and tessellation evaluation shader invocations depending on payload.
+    Using query pool objects to gather statistics from different stages of the pipeline like vertex, fragment shader and tessellation evaluation shader invocations depending on payload.
 
 ### Physically Based Rendering
 
 Physical based rendering as a lighting technique that achieves a more realistic and dynamic look by applying approximations of bidirectional reflectance distribution functions based on measured real-world material parameters and environment lighting.
 
-#### [PBR basics](examples/pbrbasic/)
+- [PBR basics](examples/pbrbasic/)
 
-Demonstrates a basic specular BRDF implementation with solid materials and fixed light sources on a grid of objects with varying material parameters, demonstrating how metallic reflectance and surface roughness affect the appearance of pbr lit objects.
+    Demonstrates a basic specular BRDF implementation with solid materials and fixed light sources on a grid of objects with varying material parameters, demonstrating how metallic reflectance and surface roughness affect the appearance of pbr lit objects.
 
-#### [PBR image based lighting](examples/pbribl/)
+- [PBR image based lighting](examples/pbribl/)
 
-Adds image based lighting from an hdr environment cubemap to the PBR equation, using the surrounding environment as the light source. This adds an even more realistic look the scene as the light contribution used by the materials is now controlled by the environment. Also shows how to generate the BRDF 2D-LUT and irradiance and filtered cube maps from the environment map.
+    Adds image based lighting from an hdr environment cubemap to the PBR equation, using the surrounding environment as the light source. This adds an even more realistic look the scene as the light contribution used by the materials is now controlled by the environment. Also shows how to generate the BRDF 2D-LUT and irradiance and filtered cube maps from the environment map.
 
-#### [Textured PBR with IBL](examples/pbrtexture/)
+- [Textured PBR with IBL](examples/pbrtexture/)
 
-Renders a model specially crafted for a metallic-roughness PBR workflow with textures defining material parameters for the PRB equation (albedo, metallic, roughness, baked ambient occlusion, normal maps) in an image based lighting environment.
+    Renders a model specially crafted for a metallic-roughness PBR workflow with textures defining material parameters for the PRB equation (albedo, metallic, roughness, baked ambient occlusion, normal maps) in an image based lighting environment.
 
 ### Deferred
 
 These examples use a [deferred shading](https://en.wikipedia.org/wiki/Deferred_shading) setup.
 
-#### [Deferred shading basics](examples/deferred/)
+- [Deferred shading basics](examples/deferred/)
 
-Uses multiple render targets to fill all attachments (albedo, normals, position, depth) required for a G-Buffer in a single pass. A deferred pass then uses these to calculate shading and lighting in screen space, so that calculations only have to be done for visible fragments independent of no. of lights.
+    Uses multiple render targets to fill all attachments (albedo, normals, position, depth) required for a G-Buffer in a single pass. A deferred pass then uses these to calculate shading and lighting in screen space, so that calculations only have to be done for visible fragments independent of no. of lights.
 
-#### [Deferred multi sampling](examples/deferredmultisampling/)
+- [Deferred multi sampling](examples/deferredmultisampling/)
 
-Adds multi sampling to a deferred renderer using manual resolve in the fragment shader.
+    Adds multi sampling to a deferred renderer using manual resolve in the fragment shader.
 
-#### [Deferred shading shadow mapping](examples/deferredshadows/)
+- [Deferred shading shadow mapping](examples/deferredshadows/)
 
-Adds shadows from multiple spotlights to a deferred renderer using a layered depth attachment filled in one pass using multiple geometry shader invocations.
+    Adds shadows from multiple spotlights to a deferred renderer using a layered depth attachment filled in one pass using multiple geometry shader invocations.
 
-#### [Screen space ambient occlusion](examples/ssao/)
+- [Screen space ambient occlusion](examples/ssao/)
 
-Adds ambient occlusion in screen space to a 3D scene. Depth values from a previous deferred pass are used to generate an ambient occlusion texture that is blurred before being applied to the scene in a final composition path.
+    Adds ambient occlusion in screen space to a 3D scene. Depth values from a previous deferred pass are used to generate an ambient occlusion texture that is blurred before being applied to the scene in a final composition path.
 
 ### Compute Shader
 
-#### [Image processing](examples/computeshader/)
+All Vulkan implementations support compute shaders, a more generalized way of doing workloads on the GPU. These samples demonstrate how to use those compute shaders.
 
-Uses a compute shader along with a separate compute queue to apply different convolution kernels (and effects) on an input image in realtime.
+- [Image processing](examples/computeshader/)
 
-#### [GPU particle system](examples/computeparticles/)
+    Uses a compute shader along with a separate compute queue to apply different convolution kernels (and effects) on an input image in realtime.
 
-Attraction based 2D GPU particle system using compute shaders. Particle data is stored in a shader storage buffer and only modified on the GPU using memory barriers for synchronizing compute particle updates with graphics pipeline vertex access.
+- [GPU particle system](examples/computeparticles/)
 
-#### [N-body simulation](examples/computenbody/)
+    Attraction based 2D GPU particle system using compute shaders. Particle data is stored in a shader storage buffer and only modified on the GPU using memory barriers for synchronizing compute particle updates with graphics pipeline vertex access.
 
-N-body simulation based particle system with multiple attractors and particle-to-particle interaction using two passes separating particle movement calculation and final integration. Shared compute shader memory is used to speed up compute calculations.
+- [N-body simulation](examples/computenbody/)
 
-#### [Ray tracing](examples/computeraytracing/)
+    N-body simulation based particle system with multiple attractors and particle-to-particle interaction using two passes separating particle movement calculation and final integration. Shared compute shader memory is used to speed up compute calculations.
 
-Simple GPU ray tracer with shadows and reflections using a compute shader. No scene geometry is rendered in the graphics pass.
+- [Ray tracing](examples/computeraytracing/)
 
-#### [ Cloth simulation](examples/computecloth/)
+    Simple GPU ray tracer with shadows and reflections using a compute shader. No scene geometry is rendered in the graphics pass.
 
-Mass-spring based cloth system on the GPU using a compute shader to calculate and integrate spring forces, also implementing basic collision with a fixed scene object.
+- [ Cloth simulation](examples/computecloth/)
 
-#### [Cull and LOD](examples/computecullandlod/)
+    Mass-spring based cloth system on the GPU using a compute shader to calculate and integrate spring forces, also implementing basic collision with a fixed scene object.
 
-Purely GPU based frustum visibility culling and level-of-detail system. A compute shader is used to modify draw commands stored in an indirect draw commands buffer to toggle model visibility and select its level-of-detail based on camera distance, no calculations have to be done on and synced with the CPU.
+- [Cull and LOD](examples/computecullandlod/)
+
+    Purely GPU based frustum visibility culling and level-of-detail system. A compute shader is used to modify draw commands stored in an indirect draw commands buffer to toggle model visibility and select its level-of-detail based on camera distance, no calculations have to be done on and synced with the CPU.
 
 ### Geometry Shader
 
-#### [Normal debugging](examples/geometryshader/)
+- [Normal debugging](examples/geometryshader/)
 
-Visualizing per-vertex model normals (for debugging). First pass renders the plain model, second pass uses a geometry shader to generate colored lines based on per-vertex model normals,
+    Visualizing per-vertex model normals (for debugging). First pass renders the plain model, second pass uses a geometry shader to generate colored lines based on per-vertex model normals,
 
-#### [Viewport arrays](examples/viewportarray/)
+- [Viewport arrays](examples/viewportarray/)
 
-Renders a scene to multiple viewports in one pass using a geometry shader to apply different matrices per viewport to simulate stereoscopic rendering (left/right). Requires a device with support for ```multiViewport```.
+    Renders a scene to multiple viewports in one pass using a geometry shader to apply different matrices per viewport to simulate stereoscopic rendering (left/right). Requires a device with support for ```multiViewport```.
 
 ### Tessellation Shader
 
-#### [Displacement mapping](examples/displacement/)
+- [Displacement mapping](examples/displacement/)
 
-Uses a height map to dynamically generate and displace additional geometric detail for a low-poly mesh.
+    Uses a height map to dynamically generate and displace additional geometric detail for a low-poly mesh.
 
-#### [Dynamic terrain tessellation](examples/terraintessellation/)
+- [Dynamic terrain tessellation](examples/terraintessellation/)
 
-Renders a terrain using tessellation shaders for height displacement (based on a 16-bit height map), dynamic level-of-detail (based on triangle screen space size) and per-patch frustum culling.
+    Renders a terrain using tessellation shaders for height displacement (based on a 16-bit height map), dynamic level-of-detail (based on triangle screen space size) and per-patch frustum culling.
 
-#### [Model tessellation](examples/tessellation/)
+- [Model tessellation](examples/tessellation/)
 
-Uses curved PN-triangles ([paper](http://alex.vlachos.com/graphics/CurvedPNTriangles.pdf)) for adding details to a low-polygon model.
+    Uses curved PN-triangles ([paper](http://alex.vlachos.com/graphics/CurvedPNTriangles.pdf)) for adding details to a low-polygon model.
 
 ### Hardware accelerated ray tracing
 
-#### [Basic ray tracing](examples/raytracingbasic)
+Vulkan supports GPUs with dedicated hardware for ray tracing. These sampples show different parts of that functionality.
 
-Basic example for doing hardware accelerated ray tracing using the ```VK_KHR_acceleration_structure``` and ```VK_KHR_ray_tracing_pipeline``` extensions. Shows how to setup acceleration structures, ray tracing pipelines and the shader binding table needed to do the actual ray tracing.
+- [Basic ray tracing](examples/raytracingbasic)
 
-#### [Ray traced shadows](examples/raytracingshadows)
+    Basic example for doing hardware accelerated ray tracing using the ```VK_KHR_acceleration_structure``` and ```VK_KHR_ray_tracing_pipeline``` extensions. Shows how to setup acceleration structures, ray tracing pipelines and the shader binding table needed to do the actual ray tracing.
 
-Adds ray traced shadows casting using the new ray tracing extensions to a more complex scene. Shows how to add multiple hit and miss shaders and how to modify existing shaders to add shadow calculations.
+- [Ray traced shadows](examples/raytracingshadows)
 
-#### [Ray traced reflections](examples/raytracingreflections)
+    Adds ray traced shadows casting using the new ray tracing extensions to a more complex scene. Shows how to add multiple hit and miss shaders and how to modify existing shaders to add shadow calculations.
 
-Renders a complex scene with reflective surfaces using the new ray tracing extensions. Shows how to do recursion inside of the ray tracing shaders for implementing real time reflections.
+- [Ray traced reflections](examples/raytracingreflections)
 
-#### [Ray traced texture mapping](examples/raytracingtextures)
+    Renders a complex scene with reflective surfaces using the new ray tracing extensions. Shows how to do recursion inside of the ray tracing shaders for implementing real time reflections.
 
-Renders a texture mapped quad with transparency using the new ray tracing extensions. Shows how to do texture mapping in a closes hit shader, how to cancel intersections for transparency in an any hit shader and how to access mesh data in those shaders using buffer device addresses.
+- [Ray traced texture mapping](examples/raytracingtextures)
 
-#### [Callable ray tracing shaders](examples/raytracingcallable)
+    Renders a texture mapped quad with transparency using the new ray tracing extensions. Shows how to do texture mapping in a closes hit shader, how to cancel intersections for transparency in an any hit shader and how to access mesh data in those shaders using buffer device addresses.
 
-Callable shaders can be dynamically invoked from within other ray tracing shaders to execute different shaders based on dynamic conditions. The example ray traces multiple geometries, with each calling a different callable shader from the closest hit shader.
+- [Callable ray tracing shaders](examples/raytracingcallable)
 
-#### [Ray tracing intersection shaders](examples/raytracingintersection)
+    Callable shaders can be dynamically invoked from within other ray tracing shaders to execute different shaders based on dynamic conditions. The example ray traces multiple geometries, with each calling a different callable shader from the closest hit shader.
 
-Uses an intersection shader for procedural geometry. Instead of using actual geometry, this sample on passes bounding boxes and object definitions. An intersection shader is then used to trace against the procedural objects.
+- [Ray tracing intersection shaders](examples/raytracingintersection)
 
-#### [Ray traced glTF](examples/raytracinggltf/)
+    Uses an intersection shader for procedural geometry. Instead of using actual geometry, this sample on passes bounding boxes and object definitions. An intersection shader is then used to trace against the procedural objects.
 
-Renders a textured glTF model using ray traying instead of rasterization. Makes use of frame accumulation for transparency and anti aliasing.
+- [Ray traced glTF](examples/raytracinggltf/)
 
-#### [Ray query](examples/rayquery)
+    Renders a textured glTF model using ray traying instead of rasterization. Makes use of frame accumulation for transparency and anti aliasing.
 
-Ray queries add acceleration structure intersection functionality to non ray tracing shader stages. This allows for combining ray tracing with rasterization. This example makes uses ray queries to add ray casted shadows to a rasterized sample in the fragment shader.
+- [Ray query](examples/rayquery)
 
-#### [Position fetch](examples/raytracingpositionfetch/)
+    Ray queries add acceleration structure intersection functionality to non ray tracing shader stages. This allows for combining ray tracing with rasterization. This example makes uses ray queries to add ray casted shadows to a rasterized sample in the fragment shader.
 
-Uses the `VK_KHR_ray_tracing_position_fetch` extension to fetch vertex position data from the acceleration structure from within a shader, instead of having to manually unpack vertex information. 
+- [Position fetch](examples/raytracingpositionfetch/)
+
+    Uses the `VK_KHR_ray_tracing_position_fetch` extension to fetch vertex position data from the acceleration structure from within a shader, instead of having to manually unpack vertex information. 
 
 ### Headless
 
 Examples that run one-time tasks and don't make use of visual output (no window system integration). These can be run in environments where no user interface is available ([blog entry](https://www.saschawillems.de/tutorials/vulkan/headless_examples)).
 
-#### [Render](examples/renderheadless)
+- [Render](examples/renderheadless)
 
-Renders a basic scene to a (non-visible) frame buffer attachment, reads it back to host memory and stores it to disk without any on-screen presentation, showing proper use of memory barriers required for device to host image synchronization.
+    Renders a basic scene to a (non-visible) frame buffer attachment, reads it back to host memory and stores it to disk without any on-screen presentation, showing proper use of memory barriers required for device to host image synchronization.
 
-#### [Compute](examples/computeheadless)
+- [Compute](examples/computeheadless)
 
-Only uses compute shader capabilities for running calculations on an input data set (passed via SSBO). A fibonacci row is calculated based on input data via the compute shader, stored back and displayed via command line.
+    Only uses compute shader capabilities for running calculations on an input data set (passed via SSBO). A fibonacci row is calculated based on input data via the compute shader, stored back and displayed via command line.
 
 ### User Interface
 
-#### [Text rendering](examples/textoverlay/)
+- [Text rendering](examples/textoverlay/)
 
-Load and render a 2D text overlay created from the bitmap glyph data of a [stb font file](https://nothings.org/stb/font/). This data is uploaded as a texture and used for displaying text on top of a 3D scene in a second pass.
+    Load and render a 2D text overlay created from the bitmap glyph data of a [stb font file](https://nothings.org/stb/font/). This data is uploaded as a texture and used for displaying text on top of a 3D scene in a second pass.
 
-#### [Distance field fonts](examples/distancefieldfonts/)
+- [Distance field fonts](examples/distancefieldfonts/)
 
-Uses a texture that stores signed distance field information per character along with a special fragment shader calculating output based on that distance data. This results in crisp high quality font rendering independent of font size and scale.
+    Uses a texture that stores signed distance field information per character along with a special fragment shader calculating output based on that distance data. This results in crisp high quality font rendering independent of font size and scale.
 
-#### [ImGui overlay](examples/imgui/)
+- [ImGui overlay](examples/imgui/)
 
-Generates and renders a complex user interface with multiple windows, controls and user interaction on top of a 3D scene. The UI is generated using [Dear ImGUI](https://github.com/ocornut/imgui) and updated each frame.
-
-### Effects
-
-#### [Fullscreen radial blur](examples/radialblur/)
-
-Demonstrates the basics of fullscreen shader effects. The scene is rendered into an offscreen framebuffer at lower resolution and rendered as a fullscreen quad atop the scene using a radial blur fragment shader.
-
-#### [Bloom](examples/bloom/)
-
-Advanced fullscreen effect example adding a bloom effect to a scene. Glowing scene parts are rendered to a low res offscreen framebuffer that is applied atop the scene using a two pass separated gaussian blur.
-
-#### [Parallax mapping](examples/parallaxmapping/)
-
-Implements multiple texture mapping methods to simulate depth based on texture information: Normal mapping, parallax mapping, steep parallax mapping and parallax occlusion mapping (best quality, worst performance).
-
-#### [Spherical environment mapping](examples/sphericalenvmapping/)
-
-Uses a spherical material capture texture array defining environment lighting and reflection information to fake complex lighting.
+    Generates and renders a complex user interface with multiple windows, controls and user interaction on top of a 3D scene. The UI is generated using [Dear ImGUI](https://github.com/ocornut/imgui) and updated each frame.
 
 ### Extensions
 
-#### [Conservative rasterization (VK_EXT_conservative_rasterization)](examples/conservativeraster/)
+Vulkan is an extensible api with lots of functionality added by extensions. These samples demonstrate the usage of such extensions.
 
-Uses conservative rasterization to change the way fragments are generated by the gpu. The example enables overestimation to generate fragments for every pixel touched instead of only pixels that are fully covered ([blog post](https://www.saschawillems.de/tutorials/vulkan/conservative_rasterization)).
+**Note:** Certain extensions may become core functionality for newer Vulkan versions. The samples will still work with these.
 
-#### [Push descriptors (VK_KHR_push_descriptor)](examples/pushdescriptors/)
+- [Conservative rasterization (VK_EXT_conservative_rasterization)](examples/conservativeraster/)
 
-Uses push descriptors apply the push constants concept to descriptor sets. Instead of creating per-object descriptor sets for rendering multiple objects, this example passes descriptors at command buffer creation time.
+    Uses conservative rasterization to change the way fragments are generated by the gpu. The example enables overestimation to generate fragments for every pixel touched instead of only pixels that are fully covered ([blog post](https://www.saschawillems.de/tutorials/vulkan/conservative_rasterization)).
 
-#### [Inline uniform blocks (VK_EXT_inline_uniform_block)](examples/inlineuniformblocks/)
+- [Push descriptors (VK_KHR_push_descriptor)](examples/pushdescriptors/)
 
-Makes use of inline uniform blocks to pass uniform data directly at descriptor set creation time and also demonstrates how to update data for those descriptors at runtime.
+    Uses push descriptors apply the push constants concept to descriptor sets. Instead of creating per-object descriptor sets for rendering multiple objects, this example passes descriptors at command buffer creation time.
 
-#### [Multiview rendering (VK_KHR_multiview)](examples/multiview/)
+- [Inline uniform blocks (VK_EXT_inline_uniform_block)](examples/inlineuniformblocks/)
 
-Renders a scene to to multiple views (layers) of a single framebuffer to simulate stereoscopic rendering in one pass. Broadcasting to the views is done in the vertex shader using ```gl_ViewIndex```.
+    Makes use of inline uniform blocks to pass uniform data directly at descriptor set creation time and also demonstrates how to update data for those descriptors at runtime.
 
-#### [Conditional rendering (VK_EXT_conditional_rendering)](examples/conditionalrender)
+- [Multiview rendering (VK_KHR_multiview)](examples/multiview/)
 
-Demonstrates the use of VK_EXT_conditional_rendering to conditionally dispatch render commands based on values from a dedicated buffer. This allows e.g. visibility toggles without having to rebuild command buffers ([blog post](https://www.saschawillems.de/tutorials/vulkan/conditional_rendering)).
+    Renders a scene to to multiple views (layers) of a single framebuffer to simulate stereoscopic rendering in one pass. Broadcasting to the views is done in the vertex shader using ```gl_ViewIndex```.
 
-#### [Debug shader printf (VK_KHR_shader_non_semantic_info)](examples/debugprintf/)
+- [Conditional rendering (VK_EXT_conditional_rendering)](examples/conditionalrender)
 
-Shows how to use printf in a shader to output additional information per invocation. This information can help debugging shader related issues in tools like RenderDoc.
+    Demonstrates the use of VK_EXT_conditional_rendering to conditionally dispatch render commands based on values from a dedicated buffer. This allows e.g. visibility toggles without having to rebuild command buffers ([blog post](https://www.saschawillems.de/tutorials/vulkan/conditional_rendering)).
 
-**Note:** This sample should be run from a graphics debugger like RenderDoc.
+- [Debug shader printf (VK_KHR_shader_non_semantic_info)](examples/debugprintf/)
 
-#### [Debug utils (VK_EXT_debug_utils)](examples/debugutils/)
+    Shows how to use printf in a shader to output additional information per invocation. This information can help debugging shader related issues in tools like RenderDoc.
 
-Shows how to use debug utils for adding labels and colors to Vulkan objects for graphics debuggers. This information helps to identify resources in tools like RenderDoc.
+    **Note:** This sample should be run from a graphics debugger like RenderDoc.
 
-**Note:** This sample should be run from a graphics debugger like RenderDoc.
+- [Debug utils (VK_EXT_debug_utils)](examples/debugutils/)
 
-#### [Negative viewport height (VK_KHR_Maintenance1 or Vulkan 1.1)](examples/negativeviewportheight/)
+    Shows how to use debug utils for adding labels and colors to Vulkan objects for graphics debuggers. This information helps to identify resources in tools like RenderDoc.
 
-Shows how to render a scene using a negative viewport height, making the Vulkan render setup more similar to other APIs like OpenGL. Also has several options for changing relevant pipeline state, and displaying meshes with OpenGL or Vulkan style coordinates. Details can be found in [this tutorial](https://www.saschawillems.de/tutorials/vulkan/flipping-viewport).
+    **Note:** This sample should be run from a graphics debugger like RenderDoc.
 
-#### [Variable rate shading (VK_KHR_fragment_shading_rate)](examples/variablerateshading/)
+- [Negative viewport height (VK_KHR_Maintenance1 or Vulkan 1.1)](examples/negativeviewportheight/)
 
-Uses a special image that contains variable shading rates to vary the number of fragment shader invocations across the framebuffer. This makes it possible to lower fragment shader invocations for less important/less noisy parts of the framebuffer.
+    Shows how to render a scene using a negative viewport height, making the Vulkan render setup more similar to other APIs like OpenGL. Also has several options for changing relevant pipeline state, and displaying meshes with OpenGL or Vulkan style coordinates. Details can be found in [this tutorial](https://www.saschawillems.de/tutorials/vulkan/flipping-viewport).
 
-#### [Descriptor indexing (VK_EXT_descriptor_indexing)](examples/descriptorindexing/)  
+- [Variable rate shading (VK_KHR_fragment_shading_rate)](examples/variablerateshading/)
 
-Demonstrates the use of VK_EXT_descriptor_indexing for creating descriptor sets with a variable size that can be dynamically indexed in a shader using `GL_EXT_nonuniform_qualifier` and `SPV_EXT_descriptor_indexing`.
+    Uses a special image that contains variable shading rates to vary the number of fragment shader invocations across the framebuffer. This makes it possible to lower fragment shader invocations for less important/less noisy parts of the framebuffer.
 
-#### [Dynamic rendering (VK_KHR_dynamic_rendering)](examples/dynamicrendering/)
+- [Descriptor indexing (VK_EXT_descriptor_indexing)](examples/descriptorindexing/)  
 
-Shows usage of the VK_KHR_dynamic_rendering extension, which simplifies the rendering setup by no longer requiring render pass objects or framebuffers.
+    Demonstrates the use of VK_EXT_descriptor_indexing for creating descriptor sets with a variable size that can be dynamically indexed in a shader using `GL_EXT_nonuniform_qualifier` and `SPV_EXT_descriptor_indexing`.
 
-#### [Graphics pipeline library (VK_EXT_graphics_pipeline_library)](./examples/graphicspipelinelibrary)<br/>
-Uses the graphics pipeline library extensions to improve run-time pipeline creation. Instead of creating the whole pipeline at once, this sample pre builds shared pipeline parts like like vertex input state and fragment output state. These are then used to create full pipelines at runtime, reducing build times and possible hick-ups.
+- [Dynamic rendering (VK_KHR_dynamic_rendering)](examples/dynamicrendering/)
 
-#### [Mesh shaders (VK_EXT_mesh_shader)](./examples/meshshader)<br/>
+    Shows usage of the VK_KHR_dynamic_rendering extension, which simplifies the rendering setup by no longer requiring render pass objects or framebuffers.
 
-Basic sample demonstrating how to use the mesh shading pipeline as a replacement for the traditional vertex pipeline.
+- [Graphics pipeline library (VK_EXT_graphics_pipeline_library)](./examples/graphicspipelinelibrary)
+    
+    Uses the graphics pipeline library extensions to improve run-time pipeline creation. Instead of creating the whole pipeline at once, this sample pre builds shared pipeline parts like like vertex input state and fragment output state. These are then used to create full pipelines at runtime, reducing build times and possible hick-ups.
 
-#### [Descriptor buffers (VK_EXT_descriptor_buffer)](./examples/descriptorbuffer/)<br/>
+- [Mesh shaders (VK_EXT_mesh_shader)](./examples/meshshader)
 
-Basic sample showing how to use descriptor buffers to replace descriptor sets.
+    Basic sample demonstrating how to use the mesh shading pipeline as a replacement for the traditional vertex pipeline.
 
-#### [Shader objects (VK_EXT_shader_object)](./examples/shaderobjects/)<br/>
+- [Descriptor buffers (VK_EXT_descriptor_buffer)](./examples/descriptorbuffer/)
 
-Basic sample showing how to use shader objects that can be used to replace pipeline state objects. Instead of baking all state in a PSO, shaders are explicitly loaded and bound as separate objects and state is set using dynamic state extensions. The sample also stores binary shader objets and loads them on consecutive runs.
+    Basic sample showing how to use descriptor buffers to replace descriptor sets.
 
-#### [Host image copy (VK_EXT_host_image_copy)](./examples/hostimagecopy/)<br/>
+- [Shader objects (VK_EXT_shader_object)](./examples/shaderobjects/)
 
-Shows how to do host image copies, which heavily simplify the host to device image process by fully skipping the staging process.
+    Basic sample showing how to use shader objects that can be used to replace pipeline state objects. Instead of baking all state in a PSO, shaders are explicitly loaded and bound as separate objects and state is set using dynamic state extensions. The sample also stores binary shader objets and loads them on consecutive runs.
 
-#### [Buffer device address (VK_KHR_buffer_device_addres)](./examples/bufferdeviceaddress/)<br/>
+- [Host image copy (VK_EXT_host_image_copy)](./examples/hostimagecopy/)
 
-Demonstrates the use of virtual GPU addresses to directly access buffer data in shader. Instead of e.g. using descriptors to access uniforms, with this extension you simply provide an address to the memory you want to read from in the shader and that address can be arbitrarily changed e.g. via a push constant.
+    Shows how to do host image copies, which heavily simplify the host to device image process by fully skipping the staging process.
 
-#### [Timeline semaphores (VK_KHR_timeline_semaphore)](./examples/timelinesemaphore/)<br/>
+- [Buffer device address (VK_KHR_buffer_device_addres)](./examples/bufferdeviceaddress/)
 
-Shows how to use a new semaphore type that has a way of setting and identifying a given point on a timeline. Compared to the core binary semaphores, this simplifies synchronization as a single timeline semaphore can replace multiple binary semaphores.
+    Demonstrates the use of virtual GPU addresses to directly access buffer data in shader. Instead of e.g. using descriptors to access uniforms, with this extension you simply provide an address to the memory you want to read from in the shader and that address can be arbitrarily changed e.g. via a push constant.
+
+- [Timeline semaphores (VK_KHR_timeline_semaphore)](./examples/timelinesemaphore/)
+
+    Shows how to use a new semaphore type that has a way of setting and identifying a given point on a timeline. Compared to the core binary semaphores, this simplifies synchronization as a single timeline semaphore can replace multiple binary semaphores.
+
+### Effects
+
+Assorted samples showing graphical effects not special to Vulkan.
+
+- [Fullscreen radial blur](examples/radialblur/)
+
+    Demonstrates the basics of fullscreen shader effects. The scene is rendered into an offscreen framebuffer at lower resolution and rendered as a fullscreen quad atop the scene using a radial blur fragment shader.
+
+- [Bloom](examples/bloom/)
+
+    Advanced fullscreen effect example adding a bloom effect to a scene. Glowing scene parts are rendered to a low res offscreen framebuffer that is applied atop the scene using a two pass separated gaussian blur.
+
+- [Parallax mapping](examples/parallaxmapping/)
+
+    Implements multiple texture mapping methods to simulate depth based on texture information: Normal mapping, parallax mapping, steep parallax mapping and parallax occlusion mapping (best quality, worst performance).
+
+- [Spherical environment mapping](examples/sphericalenvmapping/)
+
+    Uses a spherical material capture texture array defining environment lighting and reflection information to fake complex lighting.
 
 ### Misc
 
-#### [Vulkan Gears](examples/gears/)
+- [Vulkan Gears](examples/gears/)
 
-Vulkan interpretation of glxgears. Procedurally generates and animates multiple gears.
+    Vulkan interpretation of glxgears. Procedurally generates and animates multiple gears.
 
-#### [Vulkan demo scene](examples/vulkanscene/)
+- [Vulkan demo scene](examples/vulkanscene/)
 
-Renders a Vulkan demo scene with logos and mascots. Not an actual example but more of a playground and showcase.
+    Renders a Vulkan demo scene with logos and mascots. Not an actual example but more of a playground and showcase.
 
 ## Credits and Attributions
 See [CREDITS.md](CREDITS.md) for additional credits and attributions.
