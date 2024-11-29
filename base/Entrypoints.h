@@ -47,6 +47,7 @@ void android_main(android_app* state)																\
 	state->onAppCmd = VulkanExample::handleAppCommand;												\
 	state->onInputEvent = VulkanExample::handleAppInput;											\
 	androidApp = state;																				\
+    androidApp->activity->callbacks->onNativeWindowResized = vks::android::ResizeCallback;                        \
 	vks::android::getDeviceConfig();																\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\

@@ -220,15 +220,22 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 	// Get physical device surface properties and formats
 	VkSurfaceCapabilitiesKHR surfCaps;
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps));
+    preTransformFlag = surfCaps.currentTransform;
 
-	// Get available present modes
-	uint32_t presentModeCount;
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL));
-	assert(presentModeCount > 0);
-
-	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()));
-
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+    if (displaySizeIdentity.width == 0 || displaySizeIdentity.height == 0) {
+        uint32_t tmpWidth = surfCaps.currentExtent.width;
+        uint32_t tmpHeight = surfCaps.currentExtent.height;
+        if (surfCaps.currentTransform & VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR || surfCaps.currentTransform & VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR) {
+            // Swap to get identity width and height
+            surfCaps.currentExtent.height = tmpWidth;
+            surfCaps.currentExtent.width = tmpHeight;
+        }
+        displaySizeIdentity = surfCaps.currentExtent;
+        *width = displaySizeIdentity.width;
+        *height = displaySizeIdentity.height;
+    }
+#else
 	VkExtent2D swapchainExtent = {};
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
 	if (surfCaps.currentExtent.width == (uint32_t)-1)
@@ -245,9 +252,15 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 		*width = surfCaps.currentExtent.width;
 		*height = surfCaps.currentExtent.height;
 	}
-
+#endif
 
 	// Select a present mode for the swapchain
+    uint32_t presentModeCount;
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL));
+    assert(presentModeCount > 0);
+
+    std::vector<VkPresentModeKHR> presentModes(presentModeCount);
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()));
 
 	// The VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
 	// This mode waits for the vertical blank ("v-sync")
@@ -289,18 +302,6 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 		desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
 	}
 
-	// Find the transformation of the surface
-	VkSurfaceTransformFlagsKHR preTransform;
-	if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-	{
-		// We prefer a non-rotated transform
-		preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-	}
-	else
-	{
-		preTransform = surfCaps.currentTransform;
-	}
-
 	// Find a supported composite alpha format (not all devices support alpha opaque)
 	VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	// Simply select the first composite alpha format available
@@ -323,9 +324,13 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 	swapchainCI.minImageCount = desiredNumberOfSwapchainImages;
 	swapchainCI.imageFormat = colorFormat;
 	swapchainCI.imageColorSpace = colorSpace;
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+    swapchainCI.imageExtent = displaySizeIdentity;
+#else
 	swapchainCI.imageExtent = { swapchainExtent.width, swapchainExtent.height };
+#endif
 	swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
+	swapchainCI.preTransform = preTransformFlag;
 	swapchainCI.imageArrayLayers = 1;
 	swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	swapchainCI.queueFamilyIndexCount = 0;

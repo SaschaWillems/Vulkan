@@ -14,6 +14,7 @@
 	#include <android/native_window_jni.h>
 
 android_app* androidApp;
+bool orientationChanged { false };
 
 PFN_vkCreateInstance vkCreateInstance;
 PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;
@@ -361,6 +362,10 @@ namespace vks
 			androidApp->activity->vm->DetachCurrentThread();
 			return;
 		}
+
+        void ResizeCallback(ANativeActivity *activity, ANativeWindow *window) {
+            orientationChanged = true;
+        }
 	}
 }
 

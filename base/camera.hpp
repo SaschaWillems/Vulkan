@@ -17,6 +17,7 @@ class Camera
 private:
 	float fov;
 	float znear, zfar;
+    float aspect;
 
 	void updateViewMatrix()
 	{
@@ -53,6 +54,7 @@ private:
 public:
 	enum CameraType { lookat, firstperson };
 	CameraType type = CameraType::lookat;
+    VkSurfaceTransformFlagBitsKHR preTransformFlag{ VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR };
 
 	glm::vec3 rotation = glm::vec3();
 	glm::vec3 position = glm::vec3();
@@ -91,16 +93,44 @@ public:
 		return zfar;
 	}
 
+    void setPreTransformFlag(VkSurfaceTransformFlagBitsKHR flag, uint32_t width, uint32_t height)
+    {
+        preTransformFlag = flag;
+        setPerspective(fov, (float)width / (float)height, znear, zfar);
+    }
+
 	void setPerspective(float fov, float aspect, float znear, float zfar)
 	{
 		glm::mat4 currentMatrix = matrices.perspective;
 		this->fov = fov;
 		this->znear = znear;
 		this->zfar = zfar;
-		matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+        this->aspect = aspect;
+
+        // @todo: comment
+        glm::mat4 preRotateMat = glm::mat4(1.0f);
+        const glm::vec3 preRotateAxis = glm::vec3(0.0f, 0.0f, 1.0f);
+
+        if (preTransformFlag & VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR) {
+            preRotateMat = glm::rotate(preRotateMat, glm::radians(90.0f), preRotateAxis);
+            aspect = 1.0f / aspect;
+        }
+
+        else if (preTransformFlag & VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR) {
+            preRotateMat = glm::rotate(preRotateMat, glm::radians(270.0f), preRotateAxis);
+        }
+
+        else if (preTransformFlag & VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR) {
+            preRotateMat = glm::rotate(preRotateMat, glm::radians(180.0f), preRotateAxis);
+            aspect = 1.0f / aspect;
+        }
+
+		matrices.perspective = preRotateMat * glm::perspective(glm::radians(fov), aspect, znear, zfar);
+
 		if (flipY) {
 			matrices.perspective[1][1] *= -1.0f;
 		}
+
 		if (matrices.view != currentMatrix) {
 			updated = true;
 		}

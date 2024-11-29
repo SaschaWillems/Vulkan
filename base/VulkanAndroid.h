@@ -41,6 +41,7 @@ namespace std
 
 // Global reference to android application object
 extern android_app* androidApp;
+extern bool orientationChanged;
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vulkanExample", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vulkanExample", __VA_ARGS__))
@@ -196,6 +197,7 @@ namespace vks
 		void freeVulkanLibrary();
 		void getDeviceConfig();
 		void showAlert(const char* message);
+        void ResizeCallback(ANativeActivity *activity, ANativeWindow *window);
 	}
 }
 

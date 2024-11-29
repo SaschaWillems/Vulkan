@@ -3291,6 +3291,8 @@ void VulkanExampleBase::initSwapchain()
 void VulkanExampleBase::setupSwapChain()
 {
 	swapChain.create(&width, &height, settings.vsync, settings.fullscreen);
+    // @todo: comment
+    camera.setPreTransformFlag(swapChain.preTransformFlag, width, height);
 }
 
 void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}

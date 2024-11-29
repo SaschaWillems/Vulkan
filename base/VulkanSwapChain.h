@@ -47,10 +47,12 @@ public:
 	std::vector<VkImage> images{};
 	std::vector<SwapChainBuffer> buffers{};
 	uint32_t queueNodeIndex{ UINT32_MAX };
+    VkSurfaceTransformFlagBitsKHR preTransformFlag{ VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR };
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 	void initSurface(void* platformHandle, void* platformWindow);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+    VkExtent2D displaySizeIdentity{};
 	void initSurface(ANativeWindow* window);
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
 	void initSurface(IDirectFB* dfb, IDirectFBSurface* window);
