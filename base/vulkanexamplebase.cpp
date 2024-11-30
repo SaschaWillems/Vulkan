@@ -203,9 +203,9 @@ void VulkanExampleBase::createPipelineCache()
 
 void VulkanExampleBase::prepare()
 {
-	initSwapchain();
+	createSurface();
 	createCommandPool();
-	setupSwapChain();
+	createSwapChain();
 	createCommandBuffers();
 	createSynchronizationPrimitives();
 	setupDepthStencil();
@@ -3188,7 +3188,7 @@ void VulkanExampleBase::windowResize()
 	// Recreate swap chain
 	width = destWidth;
 	height = destHeight;
-	setupSwapChain();
+	createSwapChain();
 
 	// Recreate the frame buffers
 	vkDestroyImageView(device, depthStencil.view, nullptr);
@@ -3265,7 +3265,7 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 
 void VulkanExampleBase::windowResized() {}
 
-void VulkanExampleBase::initSwapchain()
+void VulkanExampleBase::createSurface()
 {
 #if defined(_WIN32)
 	swapChain.initSurface(windowInstance, window);
@@ -3288,7 +3288,7 @@ void VulkanExampleBase::initSwapchain()
 #endif
 }
 
-void VulkanExampleBase::setupSwapChain()
+void VulkanExampleBase::createSwapChain()
 {
 	swapChain.create(&width, &height, settings.vsync, settings.fullscreen);
 }

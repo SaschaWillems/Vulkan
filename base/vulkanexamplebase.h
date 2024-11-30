@@ -86,8 +86,8 @@ private:
 	void createPipelineCache();
 	void createCommandPool();
 	void createSynchronizationPrimitives();
-	void initSwapchain();
-	void setupSwapChain();
+	void createSurface();
+	void createSwapChain();
 	void createCommandBuffers();
 	void destroyCommandBuffers();
 	std::string shaderDir = "glsl";
