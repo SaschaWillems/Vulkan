@@ -19,2629 +19,2729 @@ namespace VULKAN_HPP_NAMESPACE
 {
   namespace VULKAN_HPP_RAII_NAMESPACE
   {
-    template <class T>
-    class CreateReturnType
+    namespace detail
     {
-    public:
+      template <class T>
+      class CreateReturnType
+      {
+      public:
 #  if defined( VULKAN_HPP_RAII_NO_EXCEPTIONS )
-      using Type = VULKAN_HPP_EXPECTED<T, VULKAN_HPP_NAMESPACE::Result>;
+        using Type = VULKAN_HPP_EXPECTED<T, VULKAN_HPP_NAMESPACE::Result>;
 #  else
-      using Type                                                              = T;
+        using Type                                                              = T;
 #  endif
-    };
+      };
 
-    class ContextDispatcher : public DispatchLoaderBase
-    {
-    public:
-      ContextDispatcher( PFN_vkGetInstanceProcAddr getProcAddr )
-        : vkGetInstanceProcAddr( getProcAddr )
-        //=== VK_VERSION_1_0 ===
-        , vkCreateInstance( PFN_vkCreateInstance( getProcAddr( NULL, "vkCreateInstance" ) ) )
-        , vkEnumerateInstanceExtensionProperties( PFN_vkEnumerateInstanceExtensionProperties( getProcAddr( NULL, "vkEnumerateInstanceExtensionProperties" ) ) )
-        , vkEnumerateInstanceLayerProperties( PFN_vkEnumerateInstanceLayerProperties( getProcAddr( NULL, "vkEnumerateInstanceLayerProperties" ) ) )
-        //=== VK_VERSION_1_1 ===
-        , vkEnumerateInstanceVersion( PFN_vkEnumerateInstanceVersion( getProcAddr( NULL, "vkEnumerateInstanceVersion" ) ) )
+      using PFN_dummy = void ( * )();
+
+      class ContextDispatcher : public ::VULKAN_HPP_NAMESPACE::detail::DispatchLoaderBase
       {
-      }
+      public:
+        ContextDispatcher( PFN_vkGetInstanceProcAddr getProcAddr )
+          : vkGetInstanceProcAddr( getProcAddr )
+          //=== VK_VERSION_1_0 ===
+          , vkCreateInstance( PFN_vkCreateInstance( getProcAddr( NULL, "vkCreateInstance" ) ) )
+          , vkEnumerateInstanceExtensionProperties(
+              PFN_vkEnumerateInstanceExtensionProperties( getProcAddr( NULL, "vkEnumerateInstanceExtensionProperties" ) ) )
+          , vkEnumerateInstanceLayerProperties( PFN_vkEnumerateInstanceLayerProperties( getProcAddr( NULL, "vkEnumerateInstanceLayerProperties" ) ) )
+          //=== VK_VERSION_1_1 ===
+          , vkEnumerateInstanceVersion( PFN_vkEnumerateInstanceVersion( getProcAddr( NULL, "vkEnumerateInstanceVersion" ) ) )
+        {
+        }
 
-    public:
-      PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = 0;
+      public:
+        PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = 0;
 
-      //=== VK_VERSION_1_0 ===
-      PFN_vkCreateInstance                       vkCreateInstance                       = 0;
-      PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties = 0;
-      PFN_vkEnumerateInstanceLayerProperties     vkEnumerateInstanceLayerProperties     = 0;
-
-      //=== VK_VERSION_1_1 ===
-      PFN_vkEnumerateInstanceVersion vkEnumerateInstanceVersion = 0;
-    };
-
-    class InstanceDispatcher : public DispatchLoaderBase
-    {
-    public:
-      InstanceDispatcher( PFN_vkGetInstanceProcAddr getProcAddr, VkInstance instance ) : vkGetInstanceProcAddr( getProcAddr )
-      {
         //=== VK_VERSION_1_0 ===
-        vkDestroyInstance           = PFN_vkDestroyInstance( vkGetInstanceProcAddr( instance, "vkDestroyInstance" ) );
-        vkEnumeratePhysicalDevices  = PFN_vkEnumeratePhysicalDevices( vkGetInstanceProcAddr( instance, "vkEnumeratePhysicalDevices" ) );
-        vkGetPhysicalDeviceFeatures = PFN_vkGetPhysicalDeviceFeatures( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFeatures" ) );
-        vkGetPhysicalDeviceFormatProperties =
-          PFN_vkGetPhysicalDeviceFormatProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFormatProperties" ) );
-        vkGetPhysicalDeviceImageFormatProperties =
-          PFN_vkGetPhysicalDeviceImageFormatProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceImageFormatProperties" ) );
-        vkGetPhysicalDeviceProperties = PFN_vkGetPhysicalDeviceProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceProperties" ) );
-        vkGetPhysicalDeviceQueueFamilyProperties =
-          PFN_vkGetPhysicalDeviceQueueFamilyProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceQueueFamilyProperties" ) );
-        vkGetPhysicalDeviceMemoryProperties =
-          PFN_vkGetPhysicalDeviceMemoryProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMemoryProperties" ) );
-        vkCreateDevice = PFN_vkCreateDevice( vkGetInstanceProcAddr( instance, "vkCreateDevice" ) );
-        vkEnumerateDeviceExtensionProperties =
-          PFN_vkEnumerateDeviceExtensionProperties( vkGetInstanceProcAddr( instance, "vkEnumerateDeviceExtensionProperties" ) );
-        vkEnumerateDeviceLayerProperties = PFN_vkEnumerateDeviceLayerProperties( vkGetInstanceProcAddr( instance, "vkEnumerateDeviceLayerProperties" ) );
-        vkGetPhysicalDeviceSparseImageFormatProperties =
-          PFN_vkGetPhysicalDeviceSparseImageFormatProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSparseImageFormatProperties" ) );
+        PFN_vkCreateInstance                       vkCreateInstance                       = 0;
+        PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties = 0;
+        PFN_vkEnumerateInstanceLayerProperties     vkEnumerateInstanceLayerProperties     = 0;
 
         //=== VK_VERSION_1_1 ===
-        vkEnumeratePhysicalDeviceGroups = PFN_vkEnumeratePhysicalDeviceGroups( vkGetInstanceProcAddr( instance, "vkEnumeratePhysicalDeviceGroups" ) );
-        vkGetPhysicalDeviceFeatures2    = PFN_vkGetPhysicalDeviceFeatures2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFeatures2" ) );
-        vkGetPhysicalDeviceProperties2  = PFN_vkGetPhysicalDeviceProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceProperties2" ) );
-        vkGetPhysicalDeviceFormatProperties2 =
-          PFN_vkGetPhysicalDeviceFormatProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFormatProperties2" ) );
-        vkGetPhysicalDeviceImageFormatProperties2 =
-          PFN_vkGetPhysicalDeviceImageFormatProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceImageFormatProperties2" ) );
-        vkGetPhysicalDeviceQueueFamilyProperties2 =
-          PFN_vkGetPhysicalDeviceQueueFamilyProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceQueueFamilyProperties2" ) );
-        vkGetPhysicalDeviceMemoryProperties2 =
-          PFN_vkGetPhysicalDeviceMemoryProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMemoryProperties2" ) );
-        vkGetPhysicalDeviceSparseImageFormatProperties2 =
-          PFN_vkGetPhysicalDeviceSparseImageFormatProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSparseImageFormatProperties2" ) );
-        vkGetPhysicalDeviceExternalBufferProperties =
-          PFN_vkGetPhysicalDeviceExternalBufferProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalBufferProperties" ) );
-        vkGetPhysicalDeviceExternalFenceProperties =
-          PFN_vkGetPhysicalDeviceExternalFenceProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalFenceProperties" ) );
-        vkGetPhysicalDeviceExternalSemaphoreProperties =
-          PFN_vkGetPhysicalDeviceExternalSemaphoreProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalSemaphoreProperties" ) );
+        PFN_vkEnumerateInstanceVersion vkEnumerateInstanceVersion = 0;
+      };
+
+      class InstanceDispatcher : public ::VULKAN_HPP_NAMESPACE::detail::DispatchLoaderBase
+      {
+      public:
+        InstanceDispatcher( PFN_vkGetInstanceProcAddr getProcAddr, VkInstance instance ) : vkGetInstanceProcAddr( getProcAddr )
+        {
+          //=== VK_VERSION_1_0 ===
+          vkDestroyInstance           = PFN_vkDestroyInstance( vkGetInstanceProcAddr( instance, "vkDestroyInstance" ) );
+          vkEnumeratePhysicalDevices  = PFN_vkEnumeratePhysicalDevices( vkGetInstanceProcAddr( instance, "vkEnumeratePhysicalDevices" ) );
+          vkGetPhysicalDeviceFeatures = PFN_vkGetPhysicalDeviceFeatures( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFeatures" ) );
+          vkGetPhysicalDeviceFormatProperties =
+            PFN_vkGetPhysicalDeviceFormatProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFormatProperties" ) );
+          vkGetPhysicalDeviceImageFormatProperties =
+            PFN_vkGetPhysicalDeviceImageFormatProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceImageFormatProperties" ) );
+          vkGetPhysicalDeviceProperties = PFN_vkGetPhysicalDeviceProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceProperties" ) );
+          vkGetPhysicalDeviceQueueFamilyProperties =
+            PFN_vkGetPhysicalDeviceQueueFamilyProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceQueueFamilyProperties" ) );
+          vkGetPhysicalDeviceMemoryProperties =
+            PFN_vkGetPhysicalDeviceMemoryProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMemoryProperties" ) );
+          vkCreateDevice = PFN_vkCreateDevice( vkGetInstanceProcAddr( instance, "vkCreateDevice" ) );
+          vkEnumerateDeviceExtensionProperties =
+            PFN_vkEnumerateDeviceExtensionProperties( vkGetInstanceProcAddr( instance, "vkEnumerateDeviceExtensionProperties" ) );
+          vkEnumerateDeviceLayerProperties = PFN_vkEnumerateDeviceLayerProperties( vkGetInstanceProcAddr( instance, "vkEnumerateDeviceLayerProperties" ) );
+          vkGetPhysicalDeviceSparseImageFormatProperties =
+            PFN_vkGetPhysicalDeviceSparseImageFormatProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSparseImageFormatProperties" ) );
+
+          //=== VK_VERSION_1_1 ===
+          vkEnumeratePhysicalDeviceGroups = PFN_vkEnumeratePhysicalDeviceGroups( vkGetInstanceProcAddr( instance, "vkEnumeratePhysicalDeviceGroups" ) );
+          vkGetPhysicalDeviceFeatures2    = PFN_vkGetPhysicalDeviceFeatures2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFeatures2" ) );
+          vkGetPhysicalDeviceProperties2  = PFN_vkGetPhysicalDeviceProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceProperties2" ) );
+          vkGetPhysicalDeviceFormatProperties2 =
+            PFN_vkGetPhysicalDeviceFormatProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFormatProperties2" ) );
+          vkGetPhysicalDeviceImageFormatProperties2 =
+            PFN_vkGetPhysicalDeviceImageFormatProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceImageFormatProperties2" ) );
+          vkGetPhysicalDeviceQueueFamilyProperties2 =
+            PFN_vkGetPhysicalDeviceQueueFamilyProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceQueueFamilyProperties2" ) );
+          vkGetPhysicalDeviceMemoryProperties2 =
+            PFN_vkGetPhysicalDeviceMemoryProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMemoryProperties2" ) );
+          vkGetPhysicalDeviceSparseImageFormatProperties2 =
+            PFN_vkGetPhysicalDeviceSparseImageFormatProperties2( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSparseImageFormatProperties2" ) );
+          vkGetPhysicalDeviceExternalBufferProperties =
+            PFN_vkGetPhysicalDeviceExternalBufferProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalBufferProperties" ) );
+          vkGetPhysicalDeviceExternalFenceProperties =
+            PFN_vkGetPhysicalDeviceExternalFenceProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalFenceProperties" ) );
+          vkGetPhysicalDeviceExternalSemaphoreProperties =
+            PFN_vkGetPhysicalDeviceExternalSemaphoreProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalSemaphoreProperties" ) );
+
+          //=== VK_VERSION_1_3 ===
+          vkGetPhysicalDeviceToolProperties = PFN_vkGetPhysicalDeviceToolProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceToolProperties" ) );
+
+          //=== VK_KHR_surface ===
+          vkDestroySurfaceKHR = PFN_vkDestroySurfaceKHR( vkGetInstanceProcAddr( instance, "vkDestroySurfaceKHR" ) );
+          vkGetPhysicalDeviceSurfaceSupportKHR =
+            PFN_vkGetPhysicalDeviceSurfaceSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceSupportKHR" ) );
+          vkGetPhysicalDeviceSurfaceCapabilitiesKHR =
+            PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR" ) );
+          vkGetPhysicalDeviceSurfaceFormatsKHR =
+            PFN_vkGetPhysicalDeviceSurfaceFormatsKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceFormatsKHR" ) );
+          vkGetPhysicalDeviceSurfacePresentModesKHR =
+            PFN_vkGetPhysicalDeviceSurfacePresentModesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfacePresentModesKHR" ) );
+
+          //=== VK_KHR_swapchain ===
+          vkGetPhysicalDevicePresentRectanglesKHR =
+            PFN_vkGetPhysicalDevicePresentRectanglesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDevicePresentRectanglesKHR" ) );
+
+          //=== VK_KHR_display ===
+          vkGetPhysicalDeviceDisplayPropertiesKHR =
+            PFN_vkGetPhysicalDeviceDisplayPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDisplayPropertiesKHR" ) );
+          vkGetPhysicalDeviceDisplayPlanePropertiesKHR =
+            PFN_vkGetPhysicalDeviceDisplayPlanePropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDisplayPlanePropertiesKHR" ) );
+          vkGetDisplayPlaneSupportedDisplaysKHR =
+            PFN_vkGetDisplayPlaneSupportedDisplaysKHR( vkGetInstanceProcAddr( instance, "vkGetDisplayPlaneSupportedDisplaysKHR" ) );
+          vkGetDisplayModePropertiesKHR    = PFN_vkGetDisplayModePropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetDisplayModePropertiesKHR" ) );
+          vkCreateDisplayModeKHR           = PFN_vkCreateDisplayModeKHR( vkGetInstanceProcAddr( instance, "vkCreateDisplayModeKHR" ) );
+          vkGetDisplayPlaneCapabilitiesKHR = PFN_vkGetDisplayPlaneCapabilitiesKHR( vkGetInstanceProcAddr( instance, "vkGetDisplayPlaneCapabilitiesKHR" ) );
+          vkCreateDisplayPlaneSurfaceKHR   = PFN_vkCreateDisplayPlaneSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateDisplayPlaneSurfaceKHR" ) );
+
+#  if defined( VK_USE_PLATFORM_XLIB_KHR )
+          //=== VK_KHR_xlib_surface ===
+          vkCreateXlibSurfaceKHR = PFN_vkCreateXlibSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateXlibSurfaceKHR" ) );
+          vkGetPhysicalDeviceXlibPresentationSupportKHR =
+            PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceXlibPresentationSupportKHR" ) );
+#  endif /*VK_USE_PLATFORM_XLIB_KHR*/
+
+#  if defined( VK_USE_PLATFORM_XCB_KHR )
+          //=== VK_KHR_xcb_surface ===
+          vkCreateXcbSurfaceKHR = PFN_vkCreateXcbSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateXcbSurfaceKHR" ) );
+          vkGetPhysicalDeviceXcbPresentationSupportKHR =
+            PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceXcbPresentationSupportKHR" ) );
+#  endif /*VK_USE_PLATFORM_XCB_KHR*/
+
+#  if defined( VK_USE_PLATFORM_WAYLAND_KHR )
+          //=== VK_KHR_wayland_surface ===
+          vkCreateWaylandSurfaceKHR = PFN_vkCreateWaylandSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateWaylandSurfaceKHR" ) );
+          vkGetPhysicalDeviceWaylandPresentationSupportKHR =
+            PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceWaylandPresentationSupportKHR" ) );
+#  endif /*VK_USE_PLATFORM_WAYLAND_KHR*/
+
+#  if defined( VK_USE_PLATFORM_ANDROID_KHR )
+          //=== VK_KHR_android_surface ===
+          vkCreateAndroidSurfaceKHR = PFN_vkCreateAndroidSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateAndroidSurfaceKHR" ) );
+#  endif /*VK_USE_PLATFORM_ANDROID_KHR*/
+
+#  if defined( VK_USE_PLATFORM_WIN32_KHR )
+          //=== VK_KHR_win32_surface ===
+          vkCreateWin32SurfaceKHR = PFN_vkCreateWin32SurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateWin32SurfaceKHR" ) );
+          vkGetPhysicalDeviceWin32PresentationSupportKHR =
+            PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR" ) );
+#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
+
+          //=== VK_EXT_debug_report ===
+          vkCreateDebugReportCallbackEXT  = PFN_vkCreateDebugReportCallbackEXT( vkGetInstanceProcAddr( instance, "vkCreateDebugReportCallbackEXT" ) );
+          vkDestroyDebugReportCallbackEXT = PFN_vkDestroyDebugReportCallbackEXT( vkGetInstanceProcAddr( instance, "vkDestroyDebugReportCallbackEXT" ) );
+          vkDebugReportMessageEXT         = PFN_vkDebugReportMessageEXT( vkGetInstanceProcAddr( instance, "vkDebugReportMessageEXT" ) );
+
+          //=== VK_KHR_video_queue ===
+          vkGetPhysicalDeviceVideoCapabilitiesKHR =
+            PFN_vkGetPhysicalDeviceVideoCapabilitiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceVideoCapabilitiesKHR" ) );
+          vkGetPhysicalDeviceVideoFormatPropertiesKHR =
+            PFN_vkGetPhysicalDeviceVideoFormatPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceVideoFormatPropertiesKHR" ) );
+
+#  if defined( VK_USE_PLATFORM_GGP )
+          //=== VK_GGP_stream_descriptor_surface ===
+          vkCreateStreamDescriptorSurfaceGGP =
+            PFN_vkCreateStreamDescriptorSurfaceGGP( vkGetInstanceProcAddr( instance, "vkCreateStreamDescriptorSurfaceGGP" ) );
+#  endif /*VK_USE_PLATFORM_GGP*/
+
+          //=== VK_NV_external_memory_capabilities ===
+          vkGetPhysicalDeviceExternalImageFormatPropertiesNV =
+            PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalImageFormatPropertiesNV" ) );
+
+          //=== VK_KHR_get_physical_device_properties2 ===
+          vkGetPhysicalDeviceFeatures2KHR = PFN_vkGetPhysicalDeviceFeatures2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFeatures2KHR" ) );
+          if ( !vkGetPhysicalDeviceFeatures2 )
+            vkGetPhysicalDeviceFeatures2 = vkGetPhysicalDeviceFeatures2KHR;
+          vkGetPhysicalDeviceProperties2KHR = PFN_vkGetPhysicalDeviceProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceProperties2KHR" ) );
+          if ( !vkGetPhysicalDeviceProperties2 )
+            vkGetPhysicalDeviceProperties2 = vkGetPhysicalDeviceProperties2KHR;
+          vkGetPhysicalDeviceFormatProperties2KHR =
+            PFN_vkGetPhysicalDeviceFormatProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFormatProperties2KHR" ) );
+          if ( !vkGetPhysicalDeviceFormatProperties2 )
+            vkGetPhysicalDeviceFormatProperties2 = vkGetPhysicalDeviceFormatProperties2KHR;
+          vkGetPhysicalDeviceImageFormatProperties2KHR =
+            PFN_vkGetPhysicalDeviceImageFormatProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceImageFormatProperties2KHR" ) );
+          if ( !vkGetPhysicalDeviceImageFormatProperties2 )
+            vkGetPhysicalDeviceImageFormatProperties2 = vkGetPhysicalDeviceImageFormatProperties2KHR;
+          vkGetPhysicalDeviceQueueFamilyProperties2KHR =
+            PFN_vkGetPhysicalDeviceQueueFamilyProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceQueueFamilyProperties2KHR" ) );
+          if ( !vkGetPhysicalDeviceQueueFamilyProperties2 )
+            vkGetPhysicalDeviceQueueFamilyProperties2 = vkGetPhysicalDeviceQueueFamilyProperties2KHR;
+          vkGetPhysicalDeviceMemoryProperties2KHR =
+            PFN_vkGetPhysicalDeviceMemoryProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMemoryProperties2KHR" ) );
+          if ( !vkGetPhysicalDeviceMemoryProperties2 )
+            vkGetPhysicalDeviceMemoryProperties2 = vkGetPhysicalDeviceMemoryProperties2KHR;
+          vkGetPhysicalDeviceSparseImageFormatProperties2KHR =
+            PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSparseImageFormatProperties2KHR" ) );
+          if ( !vkGetPhysicalDeviceSparseImageFormatProperties2 )
+            vkGetPhysicalDeviceSparseImageFormatProperties2 = vkGetPhysicalDeviceSparseImageFormatProperties2KHR;
+
+#  if defined( VK_USE_PLATFORM_VI_NN )
+          //=== VK_NN_vi_surface ===
+          vkCreateViSurfaceNN = PFN_vkCreateViSurfaceNN( vkGetInstanceProcAddr( instance, "vkCreateViSurfaceNN" ) );
+#  endif /*VK_USE_PLATFORM_VI_NN*/
+
+          //=== VK_KHR_device_group_creation ===
+          vkEnumeratePhysicalDeviceGroupsKHR =
+            PFN_vkEnumeratePhysicalDeviceGroupsKHR( vkGetInstanceProcAddr( instance, "vkEnumeratePhysicalDeviceGroupsKHR" ) );
+          if ( !vkEnumeratePhysicalDeviceGroups )
+            vkEnumeratePhysicalDeviceGroups = vkEnumeratePhysicalDeviceGroupsKHR;
+
+          //=== VK_KHR_external_memory_capabilities ===
+          vkGetPhysicalDeviceExternalBufferPropertiesKHR =
+            PFN_vkGetPhysicalDeviceExternalBufferPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalBufferPropertiesKHR" ) );
+          if ( !vkGetPhysicalDeviceExternalBufferProperties )
+            vkGetPhysicalDeviceExternalBufferProperties = vkGetPhysicalDeviceExternalBufferPropertiesKHR;
+
+          //=== VK_KHR_external_semaphore_capabilities ===
+          vkGetPhysicalDeviceExternalSemaphorePropertiesKHR =
+            PFN_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalSemaphorePropertiesKHR" ) );
+          if ( !vkGetPhysicalDeviceExternalSemaphoreProperties )
+            vkGetPhysicalDeviceExternalSemaphoreProperties = vkGetPhysicalDeviceExternalSemaphorePropertiesKHR;
+
+          //=== VK_EXT_direct_mode_display ===
+          vkReleaseDisplayEXT = PFN_vkReleaseDisplayEXT( vkGetInstanceProcAddr( instance, "vkReleaseDisplayEXT" ) );
+
+#  if defined( VK_USE_PLATFORM_XLIB_XRANDR_EXT )
+          //=== VK_EXT_acquire_xlib_display ===
+          vkAcquireXlibDisplayEXT    = PFN_vkAcquireXlibDisplayEXT( vkGetInstanceProcAddr( instance, "vkAcquireXlibDisplayEXT" ) );
+          vkGetRandROutputDisplayEXT = PFN_vkGetRandROutputDisplayEXT( vkGetInstanceProcAddr( instance, "vkGetRandROutputDisplayEXT" ) );
+#  endif /*VK_USE_PLATFORM_XLIB_XRANDR_EXT*/
+
+          //=== VK_EXT_display_surface_counter ===
+          vkGetPhysicalDeviceSurfaceCapabilities2EXT =
+            PFN_vkGetPhysicalDeviceSurfaceCapabilities2EXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceCapabilities2EXT" ) );
+
+          //=== VK_KHR_external_fence_capabilities ===
+          vkGetPhysicalDeviceExternalFencePropertiesKHR =
+            PFN_vkGetPhysicalDeviceExternalFencePropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalFencePropertiesKHR" ) );
+          if ( !vkGetPhysicalDeviceExternalFenceProperties )
+            vkGetPhysicalDeviceExternalFenceProperties = vkGetPhysicalDeviceExternalFencePropertiesKHR;
+
+          //=== VK_KHR_performance_query ===
+          vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR = PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
+            vkGetInstanceProcAddr( instance, "vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR" ) );
+          vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR = PFN_vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(
+            vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR" ) );
+
+          //=== VK_KHR_get_surface_capabilities2 ===
+          vkGetPhysicalDeviceSurfaceCapabilities2KHR =
+            PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceCapabilities2KHR" ) );
+          vkGetPhysicalDeviceSurfaceFormats2KHR =
+            PFN_vkGetPhysicalDeviceSurfaceFormats2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceFormats2KHR" ) );
+
+          //=== VK_KHR_get_display_properties2 ===
+          vkGetPhysicalDeviceDisplayProperties2KHR =
+            PFN_vkGetPhysicalDeviceDisplayProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDisplayProperties2KHR" ) );
+          vkGetPhysicalDeviceDisplayPlaneProperties2KHR =
+            PFN_vkGetPhysicalDeviceDisplayPlaneProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDisplayPlaneProperties2KHR" ) );
+          vkGetDisplayModeProperties2KHR    = PFN_vkGetDisplayModeProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetDisplayModeProperties2KHR" ) );
+          vkGetDisplayPlaneCapabilities2KHR = PFN_vkGetDisplayPlaneCapabilities2KHR( vkGetInstanceProcAddr( instance, "vkGetDisplayPlaneCapabilities2KHR" ) );
+
+#  if defined( VK_USE_PLATFORM_IOS_MVK )
+          //=== VK_MVK_ios_surface ===
+          vkCreateIOSSurfaceMVK = PFN_vkCreateIOSSurfaceMVK( vkGetInstanceProcAddr( instance, "vkCreateIOSSurfaceMVK" ) );
+#  endif /*VK_USE_PLATFORM_IOS_MVK*/
+
+#  if defined( VK_USE_PLATFORM_MACOS_MVK )
+          //=== VK_MVK_macos_surface ===
+          vkCreateMacOSSurfaceMVK = PFN_vkCreateMacOSSurfaceMVK( vkGetInstanceProcAddr( instance, "vkCreateMacOSSurfaceMVK" ) );
+#  endif /*VK_USE_PLATFORM_MACOS_MVK*/
+
+          //=== VK_EXT_debug_utils ===
+          vkCreateDebugUtilsMessengerEXT  = PFN_vkCreateDebugUtilsMessengerEXT( vkGetInstanceProcAddr( instance, "vkCreateDebugUtilsMessengerEXT" ) );
+          vkDestroyDebugUtilsMessengerEXT = PFN_vkDestroyDebugUtilsMessengerEXT( vkGetInstanceProcAddr( instance, "vkDestroyDebugUtilsMessengerEXT" ) );
+          vkSubmitDebugUtilsMessageEXT    = PFN_vkSubmitDebugUtilsMessageEXT( vkGetInstanceProcAddr( instance, "vkSubmitDebugUtilsMessageEXT" ) );
+
+          //=== VK_EXT_sample_locations ===
+          vkGetPhysicalDeviceMultisamplePropertiesEXT =
+            PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMultisamplePropertiesEXT" ) );
+
+          //=== VK_EXT_calibrated_timestamps ===
+          vkGetPhysicalDeviceCalibrateableTimeDomainsEXT =
+            PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT" ) );
+          if ( !vkGetPhysicalDeviceCalibrateableTimeDomainsKHR )
+            vkGetPhysicalDeviceCalibrateableTimeDomainsKHR = vkGetPhysicalDeviceCalibrateableTimeDomainsEXT;
+
+#  if defined( VK_USE_PLATFORM_FUCHSIA )
+          //=== VK_FUCHSIA_imagepipe_surface ===
+          vkCreateImagePipeSurfaceFUCHSIA = PFN_vkCreateImagePipeSurfaceFUCHSIA( vkGetInstanceProcAddr( instance, "vkCreateImagePipeSurfaceFUCHSIA" ) );
+#  endif /*VK_USE_PLATFORM_FUCHSIA*/
+
+#  if defined( VK_USE_PLATFORM_METAL_EXT )
+          //=== VK_EXT_metal_surface ===
+          vkCreateMetalSurfaceEXT = PFN_vkCreateMetalSurfaceEXT( vkGetInstanceProcAddr( instance, "vkCreateMetalSurfaceEXT" ) );
+#  endif /*VK_USE_PLATFORM_METAL_EXT*/
+
+          //=== VK_KHR_fragment_shading_rate ===
+          vkGetPhysicalDeviceFragmentShadingRatesKHR =
+            PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFragmentShadingRatesKHR" ) );
+
+          //=== VK_EXT_tooling_info ===
+          vkGetPhysicalDeviceToolPropertiesEXT =
+            PFN_vkGetPhysicalDeviceToolPropertiesEXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceToolPropertiesEXT" ) );
+          if ( !vkGetPhysicalDeviceToolProperties )
+            vkGetPhysicalDeviceToolProperties = vkGetPhysicalDeviceToolPropertiesEXT;
+
+          //=== VK_NV_cooperative_matrix ===
+          vkGetPhysicalDeviceCooperativeMatrixPropertiesNV =
+            PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesNV( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCooperativeMatrixPropertiesNV" ) );
+
+          //=== VK_NV_coverage_reduction_mode ===
+          vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV = PFN_vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV(
+            vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV" ) );
+
+#  if defined( VK_USE_PLATFORM_WIN32_KHR )
+          //=== VK_EXT_full_screen_exclusive ===
+          vkGetPhysicalDeviceSurfacePresentModes2EXT =
+            PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfacePresentModes2EXT" ) );
+#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
+
+          //=== VK_EXT_headless_surface ===
+          vkCreateHeadlessSurfaceEXT = PFN_vkCreateHeadlessSurfaceEXT( vkGetInstanceProcAddr( instance, "vkCreateHeadlessSurfaceEXT" ) );
+
+          //=== VK_EXT_acquire_drm_display ===
+          vkAcquireDrmDisplayEXT = PFN_vkAcquireDrmDisplayEXT( vkGetInstanceProcAddr( instance, "vkAcquireDrmDisplayEXT" ) );
+          vkGetDrmDisplayEXT     = PFN_vkGetDrmDisplayEXT( vkGetInstanceProcAddr( instance, "vkGetDrmDisplayEXT" ) );
+
+          //=== VK_KHR_video_encode_queue ===
+          vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR = PFN_vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR(
+            vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR" ) );
+
+#  if defined( VK_USE_PLATFORM_WIN32_KHR )
+          //=== VK_NV_acquire_winrt_display ===
+          vkAcquireWinrtDisplayNV = PFN_vkAcquireWinrtDisplayNV( vkGetInstanceProcAddr( instance, "vkAcquireWinrtDisplayNV" ) );
+          vkGetWinrtDisplayNV     = PFN_vkGetWinrtDisplayNV( vkGetInstanceProcAddr( instance, "vkGetWinrtDisplayNV" ) );
+#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
+
+#  if defined( VK_USE_PLATFORM_DIRECTFB_EXT )
+          //=== VK_EXT_directfb_surface ===
+          vkCreateDirectFBSurfaceEXT = PFN_vkCreateDirectFBSurfaceEXT( vkGetInstanceProcAddr( instance, "vkCreateDirectFBSurfaceEXT" ) );
+          vkGetPhysicalDeviceDirectFBPresentationSupportEXT =
+            PFN_vkGetPhysicalDeviceDirectFBPresentationSupportEXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDirectFBPresentationSupportEXT" ) );
+#  endif /*VK_USE_PLATFORM_DIRECTFB_EXT*/
+
+#  if defined( VK_USE_PLATFORM_SCREEN_QNX )
+          //=== VK_QNX_screen_surface ===
+          vkCreateScreenSurfaceQNX = PFN_vkCreateScreenSurfaceQNX( vkGetInstanceProcAddr( instance, "vkCreateScreenSurfaceQNX" ) );
+          vkGetPhysicalDeviceScreenPresentationSupportQNX =
+            PFN_vkGetPhysicalDeviceScreenPresentationSupportQNX( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceScreenPresentationSupportQNX" ) );
+#  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
+
+          //=== VK_NV_optical_flow ===
+          vkGetPhysicalDeviceOpticalFlowImageFormatsNV =
+            PFN_vkGetPhysicalDeviceOpticalFlowImageFormatsNV( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceOpticalFlowImageFormatsNV" ) );
+
+          //=== VK_KHR_cooperative_matrix ===
+          vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR =
+            PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR" ) );
+
+          //=== VK_KHR_calibrated_timestamps ===
+          vkGetPhysicalDeviceCalibrateableTimeDomainsKHR =
+            PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsKHR" ) );
+
+          //=== VK_NV_cooperative_matrix2 ===
+          vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV = PFN_vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV(
+            vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV" ) );
+
+          vkGetDeviceProcAddr = PFN_vkGetDeviceProcAddr( vkGetInstanceProcAddr( instance, "vkGetDeviceProcAddr" ) );
+        }
+
+      public:
+        //=== VK_VERSION_1_0 ===
+        PFN_vkDestroyInstance                              vkDestroyInstance                              = 0;
+        PFN_vkEnumeratePhysicalDevices                     vkEnumeratePhysicalDevices                     = 0;
+        PFN_vkGetPhysicalDeviceFeatures                    vkGetPhysicalDeviceFeatures                    = 0;
+        PFN_vkGetPhysicalDeviceFormatProperties            vkGetPhysicalDeviceFormatProperties            = 0;
+        PFN_vkGetPhysicalDeviceImageFormatProperties       vkGetPhysicalDeviceImageFormatProperties       = 0;
+        PFN_vkGetPhysicalDeviceProperties                  vkGetPhysicalDeviceProperties                  = 0;
+        PFN_vkGetPhysicalDeviceQueueFamilyProperties       vkGetPhysicalDeviceQueueFamilyProperties       = 0;
+        PFN_vkGetPhysicalDeviceMemoryProperties            vkGetPhysicalDeviceMemoryProperties            = 0;
+        PFN_vkGetInstanceProcAddr                          vkGetInstanceProcAddr                          = 0;
+        PFN_vkCreateDevice                                 vkCreateDevice                                 = 0;
+        PFN_vkEnumerateDeviceExtensionProperties           vkEnumerateDeviceExtensionProperties           = 0;
+        PFN_vkEnumerateDeviceLayerProperties               vkEnumerateDeviceLayerProperties               = 0;
+        PFN_vkGetPhysicalDeviceSparseImageFormatProperties vkGetPhysicalDeviceSparseImageFormatProperties = 0;
+
+        //=== VK_VERSION_1_1 ===
+        PFN_vkEnumeratePhysicalDeviceGroups                 vkEnumeratePhysicalDeviceGroups                 = 0;
+        PFN_vkGetPhysicalDeviceFeatures2                    vkGetPhysicalDeviceFeatures2                    = 0;
+        PFN_vkGetPhysicalDeviceProperties2                  vkGetPhysicalDeviceProperties2                  = 0;
+        PFN_vkGetPhysicalDeviceFormatProperties2            vkGetPhysicalDeviceFormatProperties2            = 0;
+        PFN_vkGetPhysicalDeviceImageFormatProperties2       vkGetPhysicalDeviceImageFormatProperties2       = 0;
+        PFN_vkGetPhysicalDeviceQueueFamilyProperties2       vkGetPhysicalDeviceQueueFamilyProperties2       = 0;
+        PFN_vkGetPhysicalDeviceMemoryProperties2            vkGetPhysicalDeviceMemoryProperties2            = 0;
+        PFN_vkGetPhysicalDeviceSparseImageFormatProperties2 vkGetPhysicalDeviceSparseImageFormatProperties2 = 0;
+        PFN_vkGetPhysicalDeviceExternalBufferProperties     vkGetPhysicalDeviceExternalBufferProperties     = 0;
+        PFN_vkGetPhysicalDeviceExternalFenceProperties      vkGetPhysicalDeviceExternalFenceProperties      = 0;
+        PFN_vkGetPhysicalDeviceExternalSemaphoreProperties  vkGetPhysicalDeviceExternalSemaphoreProperties  = 0;
 
         //=== VK_VERSION_1_3 ===
-        vkGetPhysicalDeviceToolProperties = PFN_vkGetPhysicalDeviceToolProperties( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceToolProperties" ) );
+        PFN_vkGetPhysicalDeviceToolProperties vkGetPhysicalDeviceToolProperties = 0;
 
         //=== VK_KHR_surface ===
-        vkDestroySurfaceKHR = PFN_vkDestroySurfaceKHR( vkGetInstanceProcAddr( instance, "vkDestroySurfaceKHR" ) );
-        vkGetPhysicalDeviceSurfaceSupportKHR =
-          PFN_vkGetPhysicalDeviceSurfaceSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceSupportKHR" ) );
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR =
-          PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR" ) );
-        vkGetPhysicalDeviceSurfaceFormatsKHR =
-          PFN_vkGetPhysicalDeviceSurfaceFormatsKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceFormatsKHR" ) );
-        vkGetPhysicalDeviceSurfacePresentModesKHR =
-          PFN_vkGetPhysicalDeviceSurfacePresentModesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfacePresentModesKHR" ) );
+        PFN_vkDestroySurfaceKHR                       vkDestroySurfaceKHR                       = 0;
+        PFN_vkGetPhysicalDeviceSurfaceSupportKHR      vkGetPhysicalDeviceSurfaceSupportKHR      = 0;
+        PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR = 0;
+        PFN_vkGetPhysicalDeviceSurfaceFormatsKHR      vkGetPhysicalDeviceSurfaceFormatsKHR      = 0;
+        PFN_vkGetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR = 0;
 
         //=== VK_KHR_swapchain ===
-        vkGetPhysicalDevicePresentRectanglesKHR =
-          PFN_vkGetPhysicalDevicePresentRectanglesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDevicePresentRectanglesKHR" ) );
+        PFN_vkGetPhysicalDevicePresentRectanglesKHR vkGetPhysicalDevicePresentRectanglesKHR = 0;
 
         //=== VK_KHR_display ===
-        vkGetPhysicalDeviceDisplayPropertiesKHR =
-          PFN_vkGetPhysicalDeviceDisplayPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDisplayPropertiesKHR" ) );
-        vkGetPhysicalDeviceDisplayPlanePropertiesKHR =
-          PFN_vkGetPhysicalDeviceDisplayPlanePropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDisplayPlanePropertiesKHR" ) );
-        vkGetDisplayPlaneSupportedDisplaysKHR =
-          PFN_vkGetDisplayPlaneSupportedDisplaysKHR( vkGetInstanceProcAddr( instance, "vkGetDisplayPlaneSupportedDisplaysKHR" ) );
-        vkGetDisplayModePropertiesKHR    = PFN_vkGetDisplayModePropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetDisplayModePropertiesKHR" ) );
-        vkCreateDisplayModeKHR           = PFN_vkCreateDisplayModeKHR( vkGetInstanceProcAddr( instance, "vkCreateDisplayModeKHR" ) );
-        vkGetDisplayPlaneCapabilitiesKHR = PFN_vkGetDisplayPlaneCapabilitiesKHR( vkGetInstanceProcAddr( instance, "vkGetDisplayPlaneCapabilitiesKHR" ) );
-        vkCreateDisplayPlaneSurfaceKHR   = PFN_vkCreateDisplayPlaneSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateDisplayPlaneSurfaceKHR" ) );
+        PFN_vkGetPhysicalDeviceDisplayPropertiesKHR      vkGetPhysicalDeviceDisplayPropertiesKHR      = 0;
+        PFN_vkGetPhysicalDeviceDisplayPlanePropertiesKHR vkGetPhysicalDeviceDisplayPlanePropertiesKHR = 0;
+        PFN_vkGetDisplayPlaneSupportedDisplaysKHR        vkGetDisplayPlaneSupportedDisplaysKHR        = 0;
+        PFN_vkGetDisplayModePropertiesKHR                vkGetDisplayModePropertiesKHR                = 0;
+        PFN_vkCreateDisplayModeKHR                       vkCreateDisplayModeKHR                       = 0;
+        PFN_vkGetDisplayPlaneCapabilitiesKHR             vkGetDisplayPlaneCapabilitiesKHR             = 0;
+        PFN_vkCreateDisplayPlaneSurfaceKHR               vkCreateDisplayPlaneSurfaceKHR               = 0;
 
 #  if defined( VK_USE_PLATFORM_XLIB_KHR )
         //=== VK_KHR_xlib_surface ===
-        vkCreateXlibSurfaceKHR = PFN_vkCreateXlibSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateXlibSurfaceKHR" ) );
-        vkGetPhysicalDeviceXlibPresentationSupportKHR =
-          PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceXlibPresentationSupportKHR" ) );
+        PFN_vkCreateXlibSurfaceKHR                        vkCreateXlibSurfaceKHR                        = 0;
+        PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR vkGetPhysicalDeviceXlibPresentationSupportKHR = 0;
+#  else
+        PFN_dummy vkCreateXlibSurfaceKHR_placeholder                            = 0;
+        PFN_dummy vkGetPhysicalDeviceXlibPresentationSupportKHR_placeholder     = 0;
 #  endif /*VK_USE_PLATFORM_XLIB_KHR*/
 
 #  if defined( VK_USE_PLATFORM_XCB_KHR )
         //=== VK_KHR_xcb_surface ===
-        vkCreateXcbSurfaceKHR = PFN_vkCreateXcbSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateXcbSurfaceKHR" ) );
-        vkGetPhysicalDeviceXcbPresentationSupportKHR =
-          PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceXcbPresentationSupportKHR" ) );
+        PFN_vkCreateXcbSurfaceKHR                        vkCreateXcbSurfaceKHR                        = 0;
+        PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR vkGetPhysicalDeviceXcbPresentationSupportKHR = 0;
+#  else
+        PFN_dummy vkCreateXcbSurfaceKHR_placeholder                             = 0;
+        PFN_dummy vkGetPhysicalDeviceXcbPresentationSupportKHR_placeholder      = 0;
 #  endif /*VK_USE_PLATFORM_XCB_KHR*/
 
 #  if defined( VK_USE_PLATFORM_WAYLAND_KHR )
         //=== VK_KHR_wayland_surface ===
-        vkCreateWaylandSurfaceKHR = PFN_vkCreateWaylandSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateWaylandSurfaceKHR" ) );
-        vkGetPhysicalDeviceWaylandPresentationSupportKHR =
-          PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceWaylandPresentationSupportKHR" ) );
+        PFN_vkCreateWaylandSurfaceKHR                        vkCreateWaylandSurfaceKHR                        = 0;
+        PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR vkGetPhysicalDeviceWaylandPresentationSupportKHR = 0;
+#  else
+        PFN_dummy vkCreateWaylandSurfaceKHR_placeholder                         = 0;
+        PFN_dummy vkGetPhysicalDeviceWaylandPresentationSupportKHR_placeholder  = 0;
 #  endif /*VK_USE_PLATFORM_WAYLAND_KHR*/
 
 #  if defined( VK_USE_PLATFORM_ANDROID_KHR )
         //=== VK_KHR_android_surface ===
-        vkCreateAndroidSurfaceKHR = PFN_vkCreateAndroidSurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateAndroidSurfaceKHR" ) );
+        PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR = 0;
+#  else
+        PFN_dummy vkCreateAndroidSurfaceKHR_placeholder                         = 0;
 #  endif /*VK_USE_PLATFORM_ANDROID_KHR*/
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
         //=== VK_KHR_win32_surface ===
-        vkCreateWin32SurfaceKHR = PFN_vkCreateWin32SurfaceKHR( vkGetInstanceProcAddr( instance, "vkCreateWin32SurfaceKHR" ) );
-        vkGetPhysicalDeviceWin32PresentationSupportKHR =
-          PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR" ) );
+        PFN_vkCreateWin32SurfaceKHR                        vkCreateWin32SurfaceKHR                        = 0;
+        PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR = 0;
+#  else
+        PFN_dummy vkCreateWin32SurfaceKHR_placeholder                           = 0;
+        PFN_dummy vkGetPhysicalDeviceWin32PresentationSupportKHR_placeholder    = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
         //=== VK_EXT_debug_report ===
-        vkCreateDebugReportCallbackEXT  = PFN_vkCreateDebugReportCallbackEXT( vkGetInstanceProcAddr( instance, "vkCreateDebugReportCallbackEXT" ) );
-        vkDestroyDebugReportCallbackEXT = PFN_vkDestroyDebugReportCallbackEXT( vkGetInstanceProcAddr( instance, "vkDestroyDebugReportCallbackEXT" ) );
-        vkDebugReportMessageEXT         = PFN_vkDebugReportMessageEXT( vkGetInstanceProcAddr( instance, "vkDebugReportMessageEXT" ) );
+        PFN_vkCreateDebugReportCallbackEXT  vkCreateDebugReportCallbackEXT  = 0;
+        PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT = 0;
+        PFN_vkDebugReportMessageEXT         vkDebugReportMessageEXT         = 0;
 
         //=== VK_KHR_video_queue ===
-        vkGetPhysicalDeviceVideoCapabilitiesKHR =
-          PFN_vkGetPhysicalDeviceVideoCapabilitiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceVideoCapabilitiesKHR" ) );
-        vkGetPhysicalDeviceVideoFormatPropertiesKHR =
-          PFN_vkGetPhysicalDeviceVideoFormatPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceVideoFormatPropertiesKHR" ) );
+        PFN_vkGetPhysicalDeviceVideoCapabilitiesKHR     vkGetPhysicalDeviceVideoCapabilitiesKHR     = 0;
+        PFN_vkGetPhysicalDeviceVideoFormatPropertiesKHR vkGetPhysicalDeviceVideoFormatPropertiesKHR = 0;
 
 #  if defined( VK_USE_PLATFORM_GGP )
         //=== VK_GGP_stream_descriptor_surface ===
-        vkCreateStreamDescriptorSurfaceGGP = PFN_vkCreateStreamDescriptorSurfaceGGP( vkGetInstanceProcAddr( instance, "vkCreateStreamDescriptorSurfaceGGP" ) );
+        PFN_vkCreateStreamDescriptorSurfaceGGP vkCreateStreamDescriptorSurfaceGGP = 0;
+#  else
+        PFN_dummy vkCreateStreamDescriptorSurfaceGGP_placeholder                = 0;
 #  endif /*VK_USE_PLATFORM_GGP*/
 
         //=== VK_NV_external_memory_capabilities ===
-        vkGetPhysicalDeviceExternalImageFormatPropertiesNV =
-          PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalImageFormatPropertiesNV" ) );
+        PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV vkGetPhysicalDeviceExternalImageFormatPropertiesNV = 0;
 
         //=== VK_KHR_get_physical_device_properties2 ===
-        vkGetPhysicalDeviceFeatures2KHR = PFN_vkGetPhysicalDeviceFeatures2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFeatures2KHR" ) );
-        if ( !vkGetPhysicalDeviceFeatures2 )
-          vkGetPhysicalDeviceFeatures2 = vkGetPhysicalDeviceFeatures2KHR;
-        vkGetPhysicalDeviceProperties2KHR = PFN_vkGetPhysicalDeviceProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceProperties2KHR" ) );
-        if ( !vkGetPhysicalDeviceProperties2 )
-          vkGetPhysicalDeviceProperties2 = vkGetPhysicalDeviceProperties2KHR;
-        vkGetPhysicalDeviceFormatProperties2KHR =
-          PFN_vkGetPhysicalDeviceFormatProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFormatProperties2KHR" ) );
-        if ( !vkGetPhysicalDeviceFormatProperties2 )
-          vkGetPhysicalDeviceFormatProperties2 = vkGetPhysicalDeviceFormatProperties2KHR;
-        vkGetPhysicalDeviceImageFormatProperties2KHR =
-          PFN_vkGetPhysicalDeviceImageFormatProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceImageFormatProperties2KHR" ) );
-        if ( !vkGetPhysicalDeviceImageFormatProperties2 )
-          vkGetPhysicalDeviceImageFormatProperties2 = vkGetPhysicalDeviceImageFormatProperties2KHR;
-        vkGetPhysicalDeviceQueueFamilyProperties2KHR =
-          PFN_vkGetPhysicalDeviceQueueFamilyProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceQueueFamilyProperties2KHR" ) );
-        if ( !vkGetPhysicalDeviceQueueFamilyProperties2 )
-          vkGetPhysicalDeviceQueueFamilyProperties2 = vkGetPhysicalDeviceQueueFamilyProperties2KHR;
-        vkGetPhysicalDeviceMemoryProperties2KHR =
-          PFN_vkGetPhysicalDeviceMemoryProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMemoryProperties2KHR" ) );
-        if ( !vkGetPhysicalDeviceMemoryProperties2 )
-          vkGetPhysicalDeviceMemoryProperties2 = vkGetPhysicalDeviceMemoryProperties2KHR;
-        vkGetPhysicalDeviceSparseImageFormatProperties2KHR =
-          PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSparseImageFormatProperties2KHR" ) );
-        if ( !vkGetPhysicalDeviceSparseImageFormatProperties2 )
-          vkGetPhysicalDeviceSparseImageFormatProperties2 = vkGetPhysicalDeviceSparseImageFormatProperties2KHR;
+        PFN_vkGetPhysicalDeviceFeatures2KHR                    vkGetPhysicalDeviceFeatures2KHR                    = 0;
+        PFN_vkGetPhysicalDeviceProperties2KHR                  vkGetPhysicalDeviceProperties2KHR                  = 0;
+        PFN_vkGetPhysicalDeviceFormatProperties2KHR            vkGetPhysicalDeviceFormatProperties2KHR            = 0;
+        PFN_vkGetPhysicalDeviceImageFormatProperties2KHR       vkGetPhysicalDeviceImageFormatProperties2KHR       = 0;
+        PFN_vkGetPhysicalDeviceQueueFamilyProperties2KHR       vkGetPhysicalDeviceQueueFamilyProperties2KHR       = 0;
+        PFN_vkGetPhysicalDeviceMemoryProperties2KHR            vkGetPhysicalDeviceMemoryProperties2KHR            = 0;
+        PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR vkGetPhysicalDeviceSparseImageFormatProperties2KHR = 0;
 
 #  if defined( VK_USE_PLATFORM_VI_NN )
         //=== VK_NN_vi_surface ===
-        vkCreateViSurfaceNN = PFN_vkCreateViSurfaceNN( vkGetInstanceProcAddr( instance, "vkCreateViSurfaceNN" ) );
+        PFN_vkCreateViSurfaceNN vkCreateViSurfaceNN = 0;
+#  else
+        PFN_dummy vkCreateViSurfaceNN_placeholder                               = 0;
 #  endif /*VK_USE_PLATFORM_VI_NN*/
 
         //=== VK_KHR_device_group_creation ===
-        vkEnumeratePhysicalDeviceGroupsKHR = PFN_vkEnumeratePhysicalDeviceGroupsKHR( vkGetInstanceProcAddr( instance, "vkEnumeratePhysicalDeviceGroupsKHR" ) );
-        if ( !vkEnumeratePhysicalDeviceGroups )
-          vkEnumeratePhysicalDeviceGroups = vkEnumeratePhysicalDeviceGroupsKHR;
+        PFN_vkEnumeratePhysicalDeviceGroupsKHR vkEnumeratePhysicalDeviceGroupsKHR = 0;
 
         //=== VK_KHR_external_memory_capabilities ===
-        vkGetPhysicalDeviceExternalBufferPropertiesKHR =
-          PFN_vkGetPhysicalDeviceExternalBufferPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalBufferPropertiesKHR" ) );
-        if ( !vkGetPhysicalDeviceExternalBufferProperties )
-          vkGetPhysicalDeviceExternalBufferProperties = vkGetPhysicalDeviceExternalBufferPropertiesKHR;
+        PFN_vkGetPhysicalDeviceExternalBufferPropertiesKHR vkGetPhysicalDeviceExternalBufferPropertiesKHR = 0;
 
         //=== VK_KHR_external_semaphore_capabilities ===
-        vkGetPhysicalDeviceExternalSemaphorePropertiesKHR =
-          PFN_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalSemaphorePropertiesKHR" ) );
-        if ( !vkGetPhysicalDeviceExternalSemaphoreProperties )
-          vkGetPhysicalDeviceExternalSemaphoreProperties = vkGetPhysicalDeviceExternalSemaphorePropertiesKHR;
+        PFN_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR vkGetPhysicalDeviceExternalSemaphorePropertiesKHR = 0;
 
         //=== VK_EXT_direct_mode_display ===
-        vkReleaseDisplayEXT = PFN_vkReleaseDisplayEXT( vkGetInstanceProcAddr( instance, "vkReleaseDisplayEXT" ) );
+        PFN_vkReleaseDisplayEXT vkReleaseDisplayEXT = 0;
 
 #  if defined( VK_USE_PLATFORM_XLIB_XRANDR_EXT )
         //=== VK_EXT_acquire_xlib_display ===
-        vkAcquireXlibDisplayEXT    = PFN_vkAcquireXlibDisplayEXT( vkGetInstanceProcAddr( instance, "vkAcquireXlibDisplayEXT" ) );
-        vkGetRandROutputDisplayEXT = PFN_vkGetRandROutputDisplayEXT( vkGetInstanceProcAddr( instance, "vkGetRandROutputDisplayEXT" ) );
+        PFN_vkAcquireXlibDisplayEXT    vkAcquireXlibDisplayEXT    = 0;
+        PFN_vkGetRandROutputDisplayEXT vkGetRandROutputDisplayEXT = 0;
+#  else
+        PFN_dummy vkAcquireXlibDisplayEXT_placeholder                           = 0;
+        PFN_dummy vkGetRandROutputDisplayEXT_placeholder                        = 0;
 #  endif /*VK_USE_PLATFORM_XLIB_XRANDR_EXT*/
 
         //=== VK_EXT_display_surface_counter ===
-        vkGetPhysicalDeviceSurfaceCapabilities2EXT =
-          PFN_vkGetPhysicalDeviceSurfaceCapabilities2EXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceCapabilities2EXT" ) );
+        PFN_vkGetPhysicalDeviceSurfaceCapabilities2EXT vkGetPhysicalDeviceSurfaceCapabilities2EXT = 0;
 
         //=== VK_KHR_external_fence_capabilities ===
-        vkGetPhysicalDeviceExternalFencePropertiesKHR =
-          PFN_vkGetPhysicalDeviceExternalFencePropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceExternalFencePropertiesKHR" ) );
-        if ( !vkGetPhysicalDeviceExternalFenceProperties )
-          vkGetPhysicalDeviceExternalFenceProperties = vkGetPhysicalDeviceExternalFencePropertiesKHR;
+        PFN_vkGetPhysicalDeviceExternalFencePropertiesKHR vkGetPhysicalDeviceExternalFencePropertiesKHR = 0;
 
         //=== VK_KHR_performance_query ===
-        vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR = PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
-          vkGetInstanceProcAddr( instance, "vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR" ) );
-        vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR = PFN_vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(
-          vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR" ) );
+        PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR = 0;
+        PFN_vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR         vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR         = 0;
 
         //=== VK_KHR_get_surface_capabilities2 ===
-        vkGetPhysicalDeviceSurfaceCapabilities2KHR =
-          PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceCapabilities2KHR" ) );
-        vkGetPhysicalDeviceSurfaceFormats2KHR =
-          PFN_vkGetPhysicalDeviceSurfaceFormats2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfaceFormats2KHR" ) );
+        PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR vkGetPhysicalDeviceSurfaceCapabilities2KHR = 0;
+        PFN_vkGetPhysicalDeviceSurfaceFormats2KHR      vkGetPhysicalDeviceSurfaceFormats2KHR      = 0;
 
         //=== VK_KHR_get_display_properties2 ===
-        vkGetPhysicalDeviceDisplayProperties2KHR =
-          PFN_vkGetPhysicalDeviceDisplayProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDisplayProperties2KHR" ) );
-        vkGetPhysicalDeviceDisplayPlaneProperties2KHR =
-          PFN_vkGetPhysicalDeviceDisplayPlaneProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDisplayPlaneProperties2KHR" ) );
-        vkGetDisplayModeProperties2KHR    = PFN_vkGetDisplayModeProperties2KHR( vkGetInstanceProcAddr( instance, "vkGetDisplayModeProperties2KHR" ) );
-        vkGetDisplayPlaneCapabilities2KHR = PFN_vkGetDisplayPlaneCapabilities2KHR( vkGetInstanceProcAddr( instance, "vkGetDisplayPlaneCapabilities2KHR" ) );
+        PFN_vkGetPhysicalDeviceDisplayProperties2KHR      vkGetPhysicalDeviceDisplayProperties2KHR      = 0;
+        PFN_vkGetPhysicalDeviceDisplayPlaneProperties2KHR vkGetPhysicalDeviceDisplayPlaneProperties2KHR = 0;
+        PFN_vkGetDisplayModeProperties2KHR                vkGetDisplayModeProperties2KHR                = 0;
+        PFN_vkGetDisplayPlaneCapabilities2KHR             vkGetDisplayPlaneCapabilities2KHR             = 0;
 
 #  if defined( VK_USE_PLATFORM_IOS_MVK )
         //=== VK_MVK_ios_surface ===
-        vkCreateIOSSurfaceMVK = PFN_vkCreateIOSSurfaceMVK( vkGetInstanceProcAddr( instance, "vkCreateIOSSurfaceMVK" ) );
+        PFN_vkCreateIOSSurfaceMVK vkCreateIOSSurfaceMVK = 0;
+#  else
+        PFN_dummy vkCreateIOSSurfaceMVK_placeholder                             = 0;
 #  endif /*VK_USE_PLATFORM_IOS_MVK*/
 
 #  if defined( VK_USE_PLATFORM_MACOS_MVK )
         //=== VK_MVK_macos_surface ===
-        vkCreateMacOSSurfaceMVK = PFN_vkCreateMacOSSurfaceMVK( vkGetInstanceProcAddr( instance, "vkCreateMacOSSurfaceMVK" ) );
+        PFN_vkCreateMacOSSurfaceMVK vkCreateMacOSSurfaceMVK = 0;
+#  else
+        PFN_dummy vkCreateMacOSSurfaceMVK_placeholder                           = 0;
 #  endif /*VK_USE_PLATFORM_MACOS_MVK*/
 
         //=== VK_EXT_debug_utils ===
-        vkCreateDebugUtilsMessengerEXT  = PFN_vkCreateDebugUtilsMessengerEXT( vkGetInstanceProcAddr( instance, "vkCreateDebugUtilsMessengerEXT" ) );
-        vkDestroyDebugUtilsMessengerEXT = PFN_vkDestroyDebugUtilsMessengerEXT( vkGetInstanceProcAddr( instance, "vkDestroyDebugUtilsMessengerEXT" ) );
-        vkSubmitDebugUtilsMessageEXT    = PFN_vkSubmitDebugUtilsMessageEXT( vkGetInstanceProcAddr( instance, "vkSubmitDebugUtilsMessageEXT" ) );
+        PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT  = 0;
+        PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = 0;
+        PFN_vkSubmitDebugUtilsMessageEXT    vkSubmitDebugUtilsMessageEXT    = 0;
 
         //=== VK_EXT_sample_locations ===
-        vkGetPhysicalDeviceMultisamplePropertiesEXT =
-          PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMultisamplePropertiesEXT" ) );
+        PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT vkGetPhysicalDeviceMultisamplePropertiesEXT = 0;
 
         //=== VK_EXT_calibrated_timestamps ===
-        vkGetPhysicalDeviceCalibrateableTimeDomainsEXT =
-          PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT" ) );
-        if ( !vkGetPhysicalDeviceCalibrateableTimeDomainsKHR )
-          vkGetPhysicalDeviceCalibrateableTimeDomainsKHR = vkGetPhysicalDeviceCalibrateableTimeDomainsEXT;
+        PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT vkGetPhysicalDeviceCalibrateableTimeDomainsEXT = 0;
 
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
         //=== VK_FUCHSIA_imagepipe_surface ===
-        vkCreateImagePipeSurfaceFUCHSIA = PFN_vkCreateImagePipeSurfaceFUCHSIA( vkGetInstanceProcAddr( instance, "vkCreateImagePipeSurfaceFUCHSIA" ) );
+        PFN_vkCreateImagePipeSurfaceFUCHSIA vkCreateImagePipeSurfaceFUCHSIA = 0;
+#  else
+        PFN_dummy vkCreateImagePipeSurfaceFUCHSIA_placeholder                   = 0;
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
 #  if defined( VK_USE_PLATFORM_METAL_EXT )
         //=== VK_EXT_metal_surface ===
-        vkCreateMetalSurfaceEXT = PFN_vkCreateMetalSurfaceEXT( vkGetInstanceProcAddr( instance, "vkCreateMetalSurfaceEXT" ) );
+        PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT = 0;
+#  else
+        PFN_dummy vkCreateMetalSurfaceEXT_placeholder                           = 0;
 #  endif /*VK_USE_PLATFORM_METAL_EXT*/
 
         //=== VK_KHR_fragment_shading_rate ===
-        vkGetPhysicalDeviceFragmentShadingRatesKHR =
-          PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceFragmentShadingRatesKHR" ) );
+        PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR vkGetPhysicalDeviceFragmentShadingRatesKHR = 0;
 
         //=== VK_EXT_tooling_info ===
-        vkGetPhysicalDeviceToolPropertiesEXT =
-          PFN_vkGetPhysicalDeviceToolPropertiesEXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceToolPropertiesEXT" ) );
-        if ( !vkGetPhysicalDeviceToolProperties )
-          vkGetPhysicalDeviceToolProperties = vkGetPhysicalDeviceToolPropertiesEXT;
+        PFN_vkGetPhysicalDeviceToolPropertiesEXT vkGetPhysicalDeviceToolPropertiesEXT = 0;
 
         //=== VK_NV_cooperative_matrix ===
-        vkGetPhysicalDeviceCooperativeMatrixPropertiesNV =
-          PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesNV( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCooperativeMatrixPropertiesNV" ) );
+        PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesNV vkGetPhysicalDeviceCooperativeMatrixPropertiesNV = 0;
 
         //=== VK_NV_coverage_reduction_mode ===
-        vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV = PFN_vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV(
-          vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV" ) );
+        PFN_vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV = 0;
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
         //=== VK_EXT_full_screen_exclusive ===
-        vkGetPhysicalDeviceSurfacePresentModes2EXT =
-          PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceSurfacePresentModes2EXT" ) );
+        PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT vkGetPhysicalDeviceSurfacePresentModes2EXT = 0;
+#  else
+        PFN_dummy vkGetPhysicalDeviceSurfacePresentModes2EXT_placeholder        = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
         //=== VK_EXT_headless_surface ===
-        vkCreateHeadlessSurfaceEXT = PFN_vkCreateHeadlessSurfaceEXT( vkGetInstanceProcAddr( instance, "vkCreateHeadlessSurfaceEXT" ) );
+        PFN_vkCreateHeadlessSurfaceEXT vkCreateHeadlessSurfaceEXT = 0;
 
         //=== VK_EXT_acquire_drm_display ===
-        vkAcquireDrmDisplayEXT = PFN_vkAcquireDrmDisplayEXT( vkGetInstanceProcAddr( instance, "vkAcquireDrmDisplayEXT" ) );
-        vkGetDrmDisplayEXT     = PFN_vkGetDrmDisplayEXT( vkGetInstanceProcAddr( instance, "vkGetDrmDisplayEXT" ) );
+        PFN_vkAcquireDrmDisplayEXT vkAcquireDrmDisplayEXT = 0;
+        PFN_vkGetDrmDisplayEXT     vkGetDrmDisplayEXT     = 0;
 
         //=== VK_KHR_video_encode_queue ===
-        vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR = PFN_vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR(
-          vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR" ) );
+        PFN_vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR = 0;
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
         //=== VK_NV_acquire_winrt_display ===
-        vkAcquireWinrtDisplayNV = PFN_vkAcquireWinrtDisplayNV( vkGetInstanceProcAddr( instance, "vkAcquireWinrtDisplayNV" ) );
-        vkGetWinrtDisplayNV     = PFN_vkGetWinrtDisplayNV( vkGetInstanceProcAddr( instance, "vkGetWinrtDisplayNV" ) );
+        PFN_vkAcquireWinrtDisplayNV vkAcquireWinrtDisplayNV = 0;
+        PFN_vkGetWinrtDisplayNV     vkGetWinrtDisplayNV     = 0;
+#  else
+        PFN_dummy vkAcquireWinrtDisplayNV_placeholder                           = 0;
+        PFN_dummy vkGetWinrtDisplayNV_placeholder                               = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
 #  if defined( VK_USE_PLATFORM_DIRECTFB_EXT )
         //=== VK_EXT_directfb_surface ===
-        vkCreateDirectFBSurfaceEXT = PFN_vkCreateDirectFBSurfaceEXT( vkGetInstanceProcAddr( instance, "vkCreateDirectFBSurfaceEXT" ) );
-        vkGetPhysicalDeviceDirectFBPresentationSupportEXT =
-          PFN_vkGetPhysicalDeviceDirectFBPresentationSupportEXT( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDirectFBPresentationSupportEXT" ) );
+        PFN_vkCreateDirectFBSurfaceEXT                        vkCreateDirectFBSurfaceEXT                        = 0;
+        PFN_vkGetPhysicalDeviceDirectFBPresentationSupportEXT vkGetPhysicalDeviceDirectFBPresentationSupportEXT = 0;
+#  else
+        PFN_dummy vkCreateDirectFBSurfaceEXT_placeholder                        = 0;
+        PFN_dummy vkGetPhysicalDeviceDirectFBPresentationSupportEXT_placeholder = 0;
 #  endif /*VK_USE_PLATFORM_DIRECTFB_EXT*/
 
 #  if defined( VK_USE_PLATFORM_SCREEN_QNX )
         //=== VK_QNX_screen_surface ===
-        vkCreateScreenSurfaceQNX = PFN_vkCreateScreenSurfaceQNX( vkGetInstanceProcAddr( instance, "vkCreateScreenSurfaceQNX" ) );
-        vkGetPhysicalDeviceScreenPresentationSupportQNX =
-          PFN_vkGetPhysicalDeviceScreenPresentationSupportQNX( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceScreenPresentationSupportQNX" ) );
+        PFN_vkCreateScreenSurfaceQNX                        vkCreateScreenSurfaceQNX                        = 0;
+        PFN_vkGetPhysicalDeviceScreenPresentationSupportQNX vkGetPhysicalDeviceScreenPresentationSupportQNX = 0;
+#  else
+        PFN_dummy vkCreateScreenSurfaceQNX_placeholder                          = 0;
+        PFN_dummy vkGetPhysicalDeviceScreenPresentationSupportQNX_placeholder   = 0;
 #  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
 
         //=== VK_NV_optical_flow ===
-        vkGetPhysicalDeviceOpticalFlowImageFormatsNV =
-          PFN_vkGetPhysicalDeviceOpticalFlowImageFormatsNV( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceOpticalFlowImageFormatsNV" ) );
+        PFN_vkGetPhysicalDeviceOpticalFlowImageFormatsNV vkGetPhysicalDeviceOpticalFlowImageFormatsNV = 0;
 
         //=== VK_KHR_cooperative_matrix ===
-        vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR =
-          PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR" ) );
+        PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR = 0;
 
         //=== VK_KHR_calibrated_timestamps ===
-        vkGetPhysicalDeviceCalibrateableTimeDomainsKHR =
-          PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsKHR" ) );
+        PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsKHR vkGetPhysicalDeviceCalibrateableTimeDomainsKHR = 0;
 
-        vkGetDeviceProcAddr = PFN_vkGetDeviceProcAddr( vkGetInstanceProcAddr( instance, "vkGetDeviceProcAddr" ) );
-      }
+        //=== VK_NV_cooperative_matrix2 ===
+        PFN_vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV = 0;
 
-    public:
-      //=== VK_VERSION_1_0 ===
-      PFN_vkDestroyInstance                              vkDestroyInstance                              = 0;
-      PFN_vkEnumeratePhysicalDevices                     vkEnumeratePhysicalDevices                     = 0;
-      PFN_vkGetPhysicalDeviceFeatures                    vkGetPhysicalDeviceFeatures                    = 0;
-      PFN_vkGetPhysicalDeviceFormatProperties            vkGetPhysicalDeviceFormatProperties            = 0;
-      PFN_vkGetPhysicalDeviceImageFormatProperties       vkGetPhysicalDeviceImageFormatProperties       = 0;
-      PFN_vkGetPhysicalDeviceProperties                  vkGetPhysicalDeviceProperties                  = 0;
-      PFN_vkGetPhysicalDeviceQueueFamilyProperties       vkGetPhysicalDeviceQueueFamilyProperties       = 0;
-      PFN_vkGetPhysicalDeviceMemoryProperties            vkGetPhysicalDeviceMemoryProperties            = 0;
-      PFN_vkGetInstanceProcAddr                          vkGetInstanceProcAddr                          = 0;
-      PFN_vkCreateDevice                                 vkCreateDevice                                 = 0;
-      PFN_vkEnumerateDeviceExtensionProperties           vkEnumerateDeviceExtensionProperties           = 0;
-      PFN_vkEnumerateDeviceLayerProperties               vkEnumerateDeviceLayerProperties               = 0;
-      PFN_vkGetPhysicalDeviceSparseImageFormatProperties vkGetPhysicalDeviceSparseImageFormatProperties = 0;
+        PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr = 0;
+      };
 
-      //=== VK_VERSION_1_1 ===
-      PFN_vkEnumeratePhysicalDeviceGroups                 vkEnumeratePhysicalDeviceGroups                 = 0;
-      PFN_vkGetPhysicalDeviceFeatures2                    vkGetPhysicalDeviceFeatures2                    = 0;
-      PFN_vkGetPhysicalDeviceProperties2                  vkGetPhysicalDeviceProperties2                  = 0;
-      PFN_vkGetPhysicalDeviceFormatProperties2            vkGetPhysicalDeviceFormatProperties2            = 0;
-      PFN_vkGetPhysicalDeviceImageFormatProperties2       vkGetPhysicalDeviceImageFormatProperties2       = 0;
-      PFN_vkGetPhysicalDeviceQueueFamilyProperties2       vkGetPhysicalDeviceQueueFamilyProperties2       = 0;
-      PFN_vkGetPhysicalDeviceMemoryProperties2            vkGetPhysicalDeviceMemoryProperties2            = 0;
-      PFN_vkGetPhysicalDeviceSparseImageFormatProperties2 vkGetPhysicalDeviceSparseImageFormatProperties2 = 0;
-      PFN_vkGetPhysicalDeviceExternalBufferProperties     vkGetPhysicalDeviceExternalBufferProperties     = 0;
-      PFN_vkGetPhysicalDeviceExternalFenceProperties      vkGetPhysicalDeviceExternalFenceProperties      = 0;
-      PFN_vkGetPhysicalDeviceExternalSemaphoreProperties  vkGetPhysicalDeviceExternalSemaphoreProperties  = 0;
+      class DeviceDispatcher : public ::VULKAN_HPP_NAMESPACE::detail::DispatchLoaderBase
+      {
+      public:
+        DeviceDispatcher( PFN_vkGetDeviceProcAddr getProcAddr, VkDevice device ) : vkGetDeviceProcAddr( getProcAddr )
+        {
+          //=== VK_VERSION_1_0 ===
+          vkGetDeviceProcAddr                = PFN_vkGetDeviceProcAddr( vkGetDeviceProcAddr( device, "vkGetDeviceProcAddr" ) );
+          vkDestroyDevice                    = PFN_vkDestroyDevice( vkGetDeviceProcAddr( device, "vkDestroyDevice" ) );
+          vkGetDeviceQueue                   = PFN_vkGetDeviceQueue( vkGetDeviceProcAddr( device, "vkGetDeviceQueue" ) );
+          vkQueueSubmit                      = PFN_vkQueueSubmit( vkGetDeviceProcAddr( device, "vkQueueSubmit" ) );
+          vkQueueWaitIdle                    = PFN_vkQueueWaitIdle( vkGetDeviceProcAddr( device, "vkQueueWaitIdle" ) );
+          vkDeviceWaitIdle                   = PFN_vkDeviceWaitIdle( vkGetDeviceProcAddr( device, "vkDeviceWaitIdle" ) );
+          vkAllocateMemory                   = PFN_vkAllocateMemory( vkGetDeviceProcAddr( device, "vkAllocateMemory" ) );
+          vkFreeMemory                       = PFN_vkFreeMemory( vkGetDeviceProcAddr( device, "vkFreeMemory" ) );
+          vkMapMemory                        = PFN_vkMapMemory( vkGetDeviceProcAddr( device, "vkMapMemory" ) );
+          vkUnmapMemory                      = PFN_vkUnmapMemory( vkGetDeviceProcAddr( device, "vkUnmapMemory" ) );
+          vkFlushMappedMemoryRanges          = PFN_vkFlushMappedMemoryRanges( vkGetDeviceProcAddr( device, "vkFlushMappedMemoryRanges" ) );
+          vkInvalidateMappedMemoryRanges     = PFN_vkInvalidateMappedMemoryRanges( vkGetDeviceProcAddr( device, "vkInvalidateMappedMemoryRanges" ) );
+          vkGetDeviceMemoryCommitment        = PFN_vkGetDeviceMemoryCommitment( vkGetDeviceProcAddr( device, "vkGetDeviceMemoryCommitment" ) );
+          vkBindBufferMemory                 = PFN_vkBindBufferMemory( vkGetDeviceProcAddr( device, "vkBindBufferMemory" ) );
+          vkBindImageMemory                  = PFN_vkBindImageMemory( vkGetDeviceProcAddr( device, "vkBindImageMemory" ) );
+          vkGetBufferMemoryRequirements      = PFN_vkGetBufferMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetBufferMemoryRequirements" ) );
+          vkGetImageMemoryRequirements       = PFN_vkGetImageMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetImageMemoryRequirements" ) );
+          vkGetImageSparseMemoryRequirements = PFN_vkGetImageSparseMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetImageSparseMemoryRequirements" ) );
+          vkQueueBindSparse                  = PFN_vkQueueBindSparse( vkGetDeviceProcAddr( device, "vkQueueBindSparse" ) );
+          vkCreateFence                      = PFN_vkCreateFence( vkGetDeviceProcAddr( device, "vkCreateFence" ) );
+          vkDestroyFence                     = PFN_vkDestroyFence( vkGetDeviceProcAddr( device, "vkDestroyFence" ) );
+          vkResetFences                      = PFN_vkResetFences( vkGetDeviceProcAddr( device, "vkResetFences" ) );
+          vkGetFenceStatus                   = PFN_vkGetFenceStatus( vkGetDeviceProcAddr( device, "vkGetFenceStatus" ) );
+          vkWaitForFences                    = PFN_vkWaitForFences( vkGetDeviceProcAddr( device, "vkWaitForFences" ) );
+          vkCreateSemaphore                  = PFN_vkCreateSemaphore( vkGetDeviceProcAddr( device, "vkCreateSemaphore" ) );
+          vkDestroySemaphore                 = PFN_vkDestroySemaphore( vkGetDeviceProcAddr( device, "vkDestroySemaphore" ) );
+          vkCreateEvent                      = PFN_vkCreateEvent( vkGetDeviceProcAddr( device, "vkCreateEvent" ) );
+          vkDestroyEvent                     = PFN_vkDestroyEvent( vkGetDeviceProcAddr( device, "vkDestroyEvent" ) );
+          vkGetEventStatus                   = PFN_vkGetEventStatus( vkGetDeviceProcAddr( device, "vkGetEventStatus" ) );
+          vkSetEvent                         = PFN_vkSetEvent( vkGetDeviceProcAddr( device, "vkSetEvent" ) );
+          vkResetEvent                       = PFN_vkResetEvent( vkGetDeviceProcAddr( device, "vkResetEvent" ) );
+          vkCreateQueryPool                  = PFN_vkCreateQueryPool( vkGetDeviceProcAddr( device, "vkCreateQueryPool" ) );
+          vkDestroyQueryPool                 = PFN_vkDestroyQueryPool( vkGetDeviceProcAddr( device, "vkDestroyQueryPool" ) );
+          vkGetQueryPoolResults              = PFN_vkGetQueryPoolResults( vkGetDeviceProcAddr( device, "vkGetQueryPoolResults" ) );
+          vkCreateBuffer                     = PFN_vkCreateBuffer( vkGetDeviceProcAddr( device, "vkCreateBuffer" ) );
+          vkDestroyBuffer                    = PFN_vkDestroyBuffer( vkGetDeviceProcAddr( device, "vkDestroyBuffer" ) );
+          vkCreateBufferView                 = PFN_vkCreateBufferView( vkGetDeviceProcAddr( device, "vkCreateBufferView" ) );
+          vkDestroyBufferView                = PFN_vkDestroyBufferView( vkGetDeviceProcAddr( device, "vkDestroyBufferView" ) );
+          vkCreateImage                      = PFN_vkCreateImage( vkGetDeviceProcAddr( device, "vkCreateImage" ) );
+          vkDestroyImage                     = PFN_vkDestroyImage( vkGetDeviceProcAddr( device, "vkDestroyImage" ) );
+          vkGetImageSubresourceLayout        = PFN_vkGetImageSubresourceLayout( vkGetDeviceProcAddr( device, "vkGetImageSubresourceLayout" ) );
+          vkCreateImageView                  = PFN_vkCreateImageView( vkGetDeviceProcAddr( device, "vkCreateImageView" ) );
+          vkDestroyImageView                 = PFN_vkDestroyImageView( vkGetDeviceProcAddr( device, "vkDestroyImageView" ) );
+          vkCreateShaderModule               = PFN_vkCreateShaderModule( vkGetDeviceProcAddr( device, "vkCreateShaderModule" ) );
+          vkDestroyShaderModule              = PFN_vkDestroyShaderModule( vkGetDeviceProcAddr( device, "vkDestroyShaderModule" ) );
+          vkCreatePipelineCache              = PFN_vkCreatePipelineCache( vkGetDeviceProcAddr( device, "vkCreatePipelineCache" ) );
+          vkDestroyPipelineCache             = PFN_vkDestroyPipelineCache( vkGetDeviceProcAddr( device, "vkDestroyPipelineCache" ) );
+          vkGetPipelineCacheData             = PFN_vkGetPipelineCacheData( vkGetDeviceProcAddr( device, "vkGetPipelineCacheData" ) );
+          vkMergePipelineCaches              = PFN_vkMergePipelineCaches( vkGetDeviceProcAddr( device, "vkMergePipelineCaches" ) );
+          vkCreateGraphicsPipelines          = PFN_vkCreateGraphicsPipelines( vkGetDeviceProcAddr( device, "vkCreateGraphicsPipelines" ) );
+          vkCreateComputePipelines           = PFN_vkCreateComputePipelines( vkGetDeviceProcAddr( device, "vkCreateComputePipelines" ) );
+          vkDestroyPipeline                  = PFN_vkDestroyPipeline( vkGetDeviceProcAddr( device, "vkDestroyPipeline" ) );
+          vkCreatePipelineLayout             = PFN_vkCreatePipelineLayout( vkGetDeviceProcAddr( device, "vkCreatePipelineLayout" ) );
+          vkDestroyPipelineLayout            = PFN_vkDestroyPipelineLayout( vkGetDeviceProcAddr( device, "vkDestroyPipelineLayout" ) );
+          vkCreateSampler                    = PFN_vkCreateSampler( vkGetDeviceProcAddr( device, "vkCreateSampler" ) );
+          vkDestroySampler                   = PFN_vkDestroySampler( vkGetDeviceProcAddr( device, "vkDestroySampler" ) );
+          vkCreateDescriptorSetLayout        = PFN_vkCreateDescriptorSetLayout( vkGetDeviceProcAddr( device, "vkCreateDescriptorSetLayout" ) );
+          vkDestroyDescriptorSetLayout       = PFN_vkDestroyDescriptorSetLayout( vkGetDeviceProcAddr( device, "vkDestroyDescriptorSetLayout" ) );
+          vkCreateDescriptorPool             = PFN_vkCreateDescriptorPool( vkGetDeviceProcAddr( device, "vkCreateDescriptorPool" ) );
+          vkDestroyDescriptorPool            = PFN_vkDestroyDescriptorPool( vkGetDeviceProcAddr( device, "vkDestroyDescriptorPool" ) );
+          vkResetDescriptorPool              = PFN_vkResetDescriptorPool( vkGetDeviceProcAddr( device, "vkResetDescriptorPool" ) );
+          vkAllocateDescriptorSets           = PFN_vkAllocateDescriptorSets( vkGetDeviceProcAddr( device, "vkAllocateDescriptorSets" ) );
+          vkFreeDescriptorSets               = PFN_vkFreeDescriptorSets( vkGetDeviceProcAddr( device, "vkFreeDescriptorSets" ) );
+          vkUpdateDescriptorSets             = PFN_vkUpdateDescriptorSets( vkGetDeviceProcAddr( device, "vkUpdateDescriptorSets" ) );
+          vkCreateFramebuffer                = PFN_vkCreateFramebuffer( vkGetDeviceProcAddr( device, "vkCreateFramebuffer" ) );
+          vkDestroyFramebuffer               = PFN_vkDestroyFramebuffer( vkGetDeviceProcAddr( device, "vkDestroyFramebuffer" ) );
+          vkCreateRenderPass                 = PFN_vkCreateRenderPass( vkGetDeviceProcAddr( device, "vkCreateRenderPass" ) );
+          vkDestroyRenderPass                = PFN_vkDestroyRenderPass( vkGetDeviceProcAddr( device, "vkDestroyRenderPass" ) );
+          vkGetRenderAreaGranularity         = PFN_vkGetRenderAreaGranularity( vkGetDeviceProcAddr( device, "vkGetRenderAreaGranularity" ) );
+          vkCreateCommandPool                = PFN_vkCreateCommandPool( vkGetDeviceProcAddr( device, "vkCreateCommandPool" ) );
+          vkDestroyCommandPool               = PFN_vkDestroyCommandPool( vkGetDeviceProcAddr( device, "vkDestroyCommandPool" ) );
+          vkResetCommandPool                 = PFN_vkResetCommandPool( vkGetDeviceProcAddr( device, "vkResetCommandPool" ) );
+          vkAllocateCommandBuffers           = PFN_vkAllocateCommandBuffers( vkGetDeviceProcAddr( device, "vkAllocateCommandBuffers" ) );
+          vkFreeCommandBuffers               = PFN_vkFreeCommandBuffers( vkGetDeviceProcAddr( device, "vkFreeCommandBuffers" ) );
+          vkBeginCommandBuffer               = PFN_vkBeginCommandBuffer( vkGetDeviceProcAddr( device, "vkBeginCommandBuffer" ) );
+          vkEndCommandBuffer                 = PFN_vkEndCommandBuffer( vkGetDeviceProcAddr( device, "vkEndCommandBuffer" ) );
+          vkResetCommandBuffer               = PFN_vkResetCommandBuffer( vkGetDeviceProcAddr( device, "vkResetCommandBuffer" ) );
+          vkCmdBindPipeline                  = PFN_vkCmdBindPipeline( vkGetDeviceProcAddr( device, "vkCmdBindPipeline" ) );
+          vkCmdSetViewport                   = PFN_vkCmdSetViewport( vkGetDeviceProcAddr( device, "vkCmdSetViewport" ) );
+          vkCmdSetScissor                    = PFN_vkCmdSetScissor( vkGetDeviceProcAddr( device, "vkCmdSetScissor" ) );
+          vkCmdSetLineWidth                  = PFN_vkCmdSetLineWidth( vkGetDeviceProcAddr( device, "vkCmdSetLineWidth" ) );
+          vkCmdSetDepthBias                  = PFN_vkCmdSetDepthBias( vkGetDeviceProcAddr( device, "vkCmdSetDepthBias" ) );
+          vkCmdSetBlendConstants             = PFN_vkCmdSetBlendConstants( vkGetDeviceProcAddr( device, "vkCmdSetBlendConstants" ) );
+          vkCmdSetDepthBounds                = PFN_vkCmdSetDepthBounds( vkGetDeviceProcAddr( device, "vkCmdSetDepthBounds" ) );
+          vkCmdSetStencilCompareMask         = PFN_vkCmdSetStencilCompareMask( vkGetDeviceProcAddr( device, "vkCmdSetStencilCompareMask" ) );
+          vkCmdSetStencilWriteMask           = PFN_vkCmdSetStencilWriteMask( vkGetDeviceProcAddr( device, "vkCmdSetStencilWriteMask" ) );
+          vkCmdSetStencilReference           = PFN_vkCmdSetStencilReference( vkGetDeviceProcAddr( device, "vkCmdSetStencilReference" ) );
+          vkCmdBindDescriptorSets            = PFN_vkCmdBindDescriptorSets( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorSets" ) );
+          vkCmdBindIndexBuffer               = PFN_vkCmdBindIndexBuffer( vkGetDeviceProcAddr( device, "vkCmdBindIndexBuffer" ) );
+          vkCmdBindVertexBuffers             = PFN_vkCmdBindVertexBuffers( vkGetDeviceProcAddr( device, "vkCmdBindVertexBuffers" ) );
+          vkCmdDraw                          = PFN_vkCmdDraw( vkGetDeviceProcAddr( device, "vkCmdDraw" ) );
+          vkCmdDrawIndexed                   = PFN_vkCmdDrawIndexed( vkGetDeviceProcAddr( device, "vkCmdDrawIndexed" ) );
+          vkCmdDrawIndirect                  = PFN_vkCmdDrawIndirect( vkGetDeviceProcAddr( device, "vkCmdDrawIndirect" ) );
+          vkCmdDrawIndexedIndirect           = PFN_vkCmdDrawIndexedIndirect( vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirect" ) );
+          vkCmdDispatch                      = PFN_vkCmdDispatch( vkGetDeviceProcAddr( device, "vkCmdDispatch" ) );
+          vkCmdDispatchIndirect              = PFN_vkCmdDispatchIndirect( vkGetDeviceProcAddr( device, "vkCmdDispatchIndirect" ) );
+          vkCmdCopyBuffer                    = PFN_vkCmdCopyBuffer( vkGetDeviceProcAddr( device, "vkCmdCopyBuffer" ) );
+          vkCmdCopyImage                     = PFN_vkCmdCopyImage( vkGetDeviceProcAddr( device, "vkCmdCopyImage" ) );
+          vkCmdBlitImage                     = PFN_vkCmdBlitImage( vkGetDeviceProcAddr( device, "vkCmdBlitImage" ) );
+          vkCmdCopyBufferToImage             = PFN_vkCmdCopyBufferToImage( vkGetDeviceProcAddr( device, "vkCmdCopyBufferToImage" ) );
+          vkCmdCopyImageToBuffer             = PFN_vkCmdCopyImageToBuffer( vkGetDeviceProcAddr( device, "vkCmdCopyImageToBuffer" ) );
+          vkCmdUpdateBuffer                  = PFN_vkCmdUpdateBuffer( vkGetDeviceProcAddr( device, "vkCmdUpdateBuffer" ) );
+          vkCmdFillBuffer                    = PFN_vkCmdFillBuffer( vkGetDeviceProcAddr( device, "vkCmdFillBuffer" ) );
+          vkCmdClearColorImage               = PFN_vkCmdClearColorImage( vkGetDeviceProcAddr( device, "vkCmdClearColorImage" ) );
+          vkCmdClearDepthStencilImage        = PFN_vkCmdClearDepthStencilImage( vkGetDeviceProcAddr( device, "vkCmdClearDepthStencilImage" ) );
+          vkCmdClearAttachments              = PFN_vkCmdClearAttachments( vkGetDeviceProcAddr( device, "vkCmdClearAttachments" ) );
+          vkCmdResolveImage                  = PFN_vkCmdResolveImage( vkGetDeviceProcAddr( device, "vkCmdResolveImage" ) );
+          vkCmdSetEvent                      = PFN_vkCmdSetEvent( vkGetDeviceProcAddr( device, "vkCmdSetEvent" ) );
+          vkCmdResetEvent                    = PFN_vkCmdResetEvent( vkGetDeviceProcAddr( device, "vkCmdResetEvent" ) );
+          vkCmdWaitEvents                    = PFN_vkCmdWaitEvents( vkGetDeviceProcAddr( device, "vkCmdWaitEvents" ) );
+          vkCmdPipelineBarrier               = PFN_vkCmdPipelineBarrier( vkGetDeviceProcAddr( device, "vkCmdPipelineBarrier" ) );
+          vkCmdBeginQuery                    = PFN_vkCmdBeginQuery( vkGetDeviceProcAddr( device, "vkCmdBeginQuery" ) );
+          vkCmdEndQuery                      = PFN_vkCmdEndQuery( vkGetDeviceProcAddr( device, "vkCmdEndQuery" ) );
+          vkCmdResetQueryPool                = PFN_vkCmdResetQueryPool( vkGetDeviceProcAddr( device, "vkCmdResetQueryPool" ) );
+          vkCmdWriteTimestamp                = PFN_vkCmdWriteTimestamp( vkGetDeviceProcAddr( device, "vkCmdWriteTimestamp" ) );
+          vkCmdCopyQueryPoolResults          = PFN_vkCmdCopyQueryPoolResults( vkGetDeviceProcAddr( device, "vkCmdCopyQueryPoolResults" ) );
+          vkCmdPushConstants                 = PFN_vkCmdPushConstants( vkGetDeviceProcAddr( device, "vkCmdPushConstants" ) );
+          vkCmdBeginRenderPass               = PFN_vkCmdBeginRenderPass( vkGetDeviceProcAddr( device, "vkCmdBeginRenderPass" ) );
+          vkCmdNextSubpass                   = PFN_vkCmdNextSubpass( vkGetDeviceProcAddr( device, "vkCmdNextSubpass" ) );
+          vkCmdEndRenderPass                 = PFN_vkCmdEndRenderPass( vkGetDeviceProcAddr( device, "vkCmdEndRenderPass" ) );
+          vkCmdExecuteCommands               = PFN_vkCmdExecuteCommands( vkGetDeviceProcAddr( device, "vkCmdExecuteCommands" ) );
 
-      //=== VK_VERSION_1_3 ===
-      PFN_vkGetPhysicalDeviceToolProperties vkGetPhysicalDeviceToolProperties = 0;
+          //=== VK_VERSION_1_1 ===
+          vkBindBufferMemory2                 = PFN_vkBindBufferMemory2( vkGetDeviceProcAddr( device, "vkBindBufferMemory2" ) );
+          vkBindImageMemory2                  = PFN_vkBindImageMemory2( vkGetDeviceProcAddr( device, "vkBindImageMemory2" ) );
+          vkGetDeviceGroupPeerMemoryFeatures  = PFN_vkGetDeviceGroupPeerMemoryFeatures( vkGetDeviceProcAddr( device, "vkGetDeviceGroupPeerMemoryFeatures" ) );
+          vkCmdSetDeviceMask                  = PFN_vkCmdSetDeviceMask( vkGetDeviceProcAddr( device, "vkCmdSetDeviceMask" ) );
+          vkCmdDispatchBase                   = PFN_vkCmdDispatchBase( vkGetDeviceProcAddr( device, "vkCmdDispatchBase" ) );
+          vkGetImageMemoryRequirements2       = PFN_vkGetImageMemoryRequirements2( vkGetDeviceProcAddr( device, "vkGetImageMemoryRequirements2" ) );
+          vkGetBufferMemoryRequirements2      = PFN_vkGetBufferMemoryRequirements2( vkGetDeviceProcAddr( device, "vkGetBufferMemoryRequirements2" ) );
+          vkGetImageSparseMemoryRequirements2 = PFN_vkGetImageSparseMemoryRequirements2( vkGetDeviceProcAddr( device, "vkGetImageSparseMemoryRequirements2" ) );
+          vkTrimCommandPool                   = PFN_vkTrimCommandPool( vkGetDeviceProcAddr( device, "vkTrimCommandPool" ) );
+          vkGetDeviceQueue2                   = PFN_vkGetDeviceQueue2( vkGetDeviceProcAddr( device, "vkGetDeviceQueue2" ) );
+          vkCreateSamplerYcbcrConversion      = PFN_vkCreateSamplerYcbcrConversion( vkGetDeviceProcAddr( device, "vkCreateSamplerYcbcrConversion" ) );
+          vkDestroySamplerYcbcrConversion     = PFN_vkDestroySamplerYcbcrConversion( vkGetDeviceProcAddr( device, "vkDestroySamplerYcbcrConversion" ) );
+          vkCreateDescriptorUpdateTemplate    = PFN_vkCreateDescriptorUpdateTemplate( vkGetDeviceProcAddr( device, "vkCreateDescriptorUpdateTemplate" ) );
+          vkDestroyDescriptorUpdateTemplate   = PFN_vkDestroyDescriptorUpdateTemplate( vkGetDeviceProcAddr( device, "vkDestroyDescriptorUpdateTemplate" ) );
+          vkUpdateDescriptorSetWithTemplate   = PFN_vkUpdateDescriptorSetWithTemplate( vkGetDeviceProcAddr( device, "vkUpdateDescriptorSetWithTemplate" ) );
+          vkGetDescriptorSetLayoutSupport     = PFN_vkGetDescriptorSetLayoutSupport( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutSupport" ) );
 
-      //=== VK_KHR_surface ===
-      PFN_vkDestroySurfaceKHR                       vkDestroySurfaceKHR                       = 0;
-      PFN_vkGetPhysicalDeviceSurfaceSupportKHR      vkGetPhysicalDeviceSurfaceSupportKHR      = 0;
-      PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR = 0;
-      PFN_vkGetPhysicalDeviceSurfaceFormatsKHR      vkGetPhysicalDeviceSurfaceFormatsKHR      = 0;
-      PFN_vkGetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR = 0;
+          //=== VK_VERSION_1_2 ===
+          vkCmdDrawIndirectCount          = PFN_vkCmdDrawIndirectCount( vkGetDeviceProcAddr( device, "vkCmdDrawIndirectCount" ) );
+          vkCmdDrawIndexedIndirectCount   = PFN_vkCmdDrawIndexedIndirectCount( vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirectCount" ) );
+          vkCreateRenderPass2             = PFN_vkCreateRenderPass2( vkGetDeviceProcAddr( device, "vkCreateRenderPass2" ) );
+          vkCmdBeginRenderPass2           = PFN_vkCmdBeginRenderPass2( vkGetDeviceProcAddr( device, "vkCmdBeginRenderPass2" ) );
+          vkCmdNextSubpass2               = PFN_vkCmdNextSubpass2( vkGetDeviceProcAddr( device, "vkCmdNextSubpass2" ) );
+          vkCmdEndRenderPass2             = PFN_vkCmdEndRenderPass2( vkGetDeviceProcAddr( device, "vkCmdEndRenderPass2" ) );
+          vkResetQueryPool                = PFN_vkResetQueryPool( vkGetDeviceProcAddr( device, "vkResetQueryPool" ) );
+          vkGetSemaphoreCounterValue      = PFN_vkGetSemaphoreCounterValue( vkGetDeviceProcAddr( device, "vkGetSemaphoreCounterValue" ) );
+          vkWaitSemaphores                = PFN_vkWaitSemaphores( vkGetDeviceProcAddr( device, "vkWaitSemaphores" ) );
+          vkSignalSemaphore               = PFN_vkSignalSemaphore( vkGetDeviceProcAddr( device, "vkSignalSemaphore" ) );
+          vkGetBufferDeviceAddress        = PFN_vkGetBufferDeviceAddress( vkGetDeviceProcAddr( device, "vkGetBufferDeviceAddress" ) );
+          vkGetBufferOpaqueCaptureAddress = PFN_vkGetBufferOpaqueCaptureAddress( vkGetDeviceProcAddr( device, "vkGetBufferOpaqueCaptureAddress" ) );
+          vkGetDeviceMemoryOpaqueCaptureAddress =
+            PFN_vkGetDeviceMemoryOpaqueCaptureAddress( vkGetDeviceProcAddr( device, "vkGetDeviceMemoryOpaqueCaptureAddress" ) );
 
-      //=== VK_KHR_swapchain ===
-      PFN_vkGetPhysicalDevicePresentRectanglesKHR vkGetPhysicalDevicePresentRectanglesKHR = 0;
+          //=== VK_VERSION_1_3 ===
+          vkCreatePrivateDataSlot             = PFN_vkCreatePrivateDataSlot( vkGetDeviceProcAddr( device, "vkCreatePrivateDataSlot" ) );
+          vkDestroyPrivateDataSlot            = PFN_vkDestroyPrivateDataSlot( vkGetDeviceProcAddr( device, "vkDestroyPrivateDataSlot" ) );
+          vkSetPrivateData                    = PFN_vkSetPrivateData( vkGetDeviceProcAddr( device, "vkSetPrivateData" ) );
+          vkGetPrivateData                    = PFN_vkGetPrivateData( vkGetDeviceProcAddr( device, "vkGetPrivateData" ) );
+          vkCmdSetEvent2                      = PFN_vkCmdSetEvent2( vkGetDeviceProcAddr( device, "vkCmdSetEvent2" ) );
+          vkCmdResetEvent2                    = PFN_vkCmdResetEvent2( vkGetDeviceProcAddr( device, "vkCmdResetEvent2" ) );
+          vkCmdWaitEvents2                    = PFN_vkCmdWaitEvents2( vkGetDeviceProcAddr( device, "vkCmdWaitEvents2" ) );
+          vkCmdPipelineBarrier2               = PFN_vkCmdPipelineBarrier2( vkGetDeviceProcAddr( device, "vkCmdPipelineBarrier2" ) );
+          vkCmdWriteTimestamp2                = PFN_vkCmdWriteTimestamp2( vkGetDeviceProcAddr( device, "vkCmdWriteTimestamp2" ) );
+          vkQueueSubmit2                      = PFN_vkQueueSubmit2( vkGetDeviceProcAddr( device, "vkQueueSubmit2" ) );
+          vkCmdCopyBuffer2                    = PFN_vkCmdCopyBuffer2( vkGetDeviceProcAddr( device, "vkCmdCopyBuffer2" ) );
+          vkCmdCopyImage2                     = PFN_vkCmdCopyImage2( vkGetDeviceProcAddr( device, "vkCmdCopyImage2" ) );
+          vkCmdCopyBufferToImage2             = PFN_vkCmdCopyBufferToImage2( vkGetDeviceProcAddr( device, "vkCmdCopyBufferToImage2" ) );
+          vkCmdCopyImageToBuffer2             = PFN_vkCmdCopyImageToBuffer2( vkGetDeviceProcAddr( device, "vkCmdCopyImageToBuffer2" ) );
+          vkCmdBlitImage2                     = PFN_vkCmdBlitImage2( vkGetDeviceProcAddr( device, "vkCmdBlitImage2" ) );
+          vkCmdResolveImage2                  = PFN_vkCmdResolveImage2( vkGetDeviceProcAddr( device, "vkCmdResolveImage2" ) );
+          vkCmdBeginRendering                 = PFN_vkCmdBeginRendering( vkGetDeviceProcAddr( device, "vkCmdBeginRendering" ) );
+          vkCmdEndRendering                   = PFN_vkCmdEndRendering( vkGetDeviceProcAddr( device, "vkCmdEndRendering" ) );
+          vkCmdSetCullMode                    = PFN_vkCmdSetCullMode( vkGetDeviceProcAddr( device, "vkCmdSetCullMode" ) );
+          vkCmdSetFrontFace                   = PFN_vkCmdSetFrontFace( vkGetDeviceProcAddr( device, "vkCmdSetFrontFace" ) );
+          vkCmdSetPrimitiveTopology           = PFN_vkCmdSetPrimitiveTopology( vkGetDeviceProcAddr( device, "vkCmdSetPrimitiveTopology" ) );
+          vkCmdSetViewportWithCount           = PFN_vkCmdSetViewportWithCount( vkGetDeviceProcAddr( device, "vkCmdSetViewportWithCount" ) );
+          vkCmdSetScissorWithCount            = PFN_vkCmdSetScissorWithCount( vkGetDeviceProcAddr( device, "vkCmdSetScissorWithCount" ) );
+          vkCmdBindVertexBuffers2             = PFN_vkCmdBindVertexBuffers2( vkGetDeviceProcAddr( device, "vkCmdBindVertexBuffers2" ) );
+          vkCmdSetDepthTestEnable             = PFN_vkCmdSetDepthTestEnable( vkGetDeviceProcAddr( device, "vkCmdSetDepthTestEnable" ) );
+          vkCmdSetDepthWriteEnable            = PFN_vkCmdSetDepthWriteEnable( vkGetDeviceProcAddr( device, "vkCmdSetDepthWriteEnable" ) );
+          vkCmdSetDepthCompareOp              = PFN_vkCmdSetDepthCompareOp( vkGetDeviceProcAddr( device, "vkCmdSetDepthCompareOp" ) );
+          vkCmdSetDepthBoundsTestEnable       = PFN_vkCmdSetDepthBoundsTestEnable( vkGetDeviceProcAddr( device, "vkCmdSetDepthBoundsTestEnable" ) );
+          vkCmdSetStencilTestEnable           = PFN_vkCmdSetStencilTestEnable( vkGetDeviceProcAddr( device, "vkCmdSetStencilTestEnable" ) );
+          vkCmdSetStencilOp                   = PFN_vkCmdSetStencilOp( vkGetDeviceProcAddr( device, "vkCmdSetStencilOp" ) );
+          vkCmdSetRasterizerDiscardEnable     = PFN_vkCmdSetRasterizerDiscardEnable( vkGetDeviceProcAddr( device, "vkCmdSetRasterizerDiscardEnable" ) );
+          vkCmdSetDepthBiasEnable             = PFN_vkCmdSetDepthBiasEnable( vkGetDeviceProcAddr( device, "vkCmdSetDepthBiasEnable" ) );
+          vkCmdSetPrimitiveRestartEnable      = PFN_vkCmdSetPrimitiveRestartEnable( vkGetDeviceProcAddr( device, "vkCmdSetPrimitiveRestartEnable" ) );
+          vkGetDeviceBufferMemoryRequirements = PFN_vkGetDeviceBufferMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetDeviceBufferMemoryRequirements" ) );
+          vkGetDeviceImageMemoryRequirements  = PFN_vkGetDeviceImageMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetDeviceImageMemoryRequirements" ) );
+          vkGetDeviceImageSparseMemoryRequirements =
+            PFN_vkGetDeviceImageSparseMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetDeviceImageSparseMemoryRequirements" ) );
 
-      //=== VK_KHR_display ===
-      PFN_vkGetPhysicalDeviceDisplayPropertiesKHR      vkGetPhysicalDeviceDisplayPropertiesKHR      = 0;
-      PFN_vkGetPhysicalDeviceDisplayPlanePropertiesKHR vkGetPhysicalDeviceDisplayPlanePropertiesKHR = 0;
-      PFN_vkGetDisplayPlaneSupportedDisplaysKHR        vkGetDisplayPlaneSupportedDisplaysKHR        = 0;
-      PFN_vkGetDisplayModePropertiesKHR                vkGetDisplayModePropertiesKHR                = 0;
-      PFN_vkCreateDisplayModeKHR                       vkCreateDisplayModeKHR                       = 0;
-      PFN_vkGetDisplayPlaneCapabilitiesKHR             vkGetDisplayPlaneCapabilitiesKHR             = 0;
-      PFN_vkCreateDisplayPlaneSurfaceKHR               vkCreateDisplayPlaneSurfaceKHR               = 0;
+          //=== VK_VERSION_1_4 ===
+          vkCmdSetLineStipple                = PFN_vkCmdSetLineStipple( vkGetDeviceProcAddr( device, "vkCmdSetLineStipple" ) );
+          vkMapMemory2                       = PFN_vkMapMemory2( vkGetDeviceProcAddr( device, "vkMapMemory2" ) );
+          vkUnmapMemory2                     = PFN_vkUnmapMemory2( vkGetDeviceProcAddr( device, "vkUnmapMemory2" ) );
+          vkCmdBindIndexBuffer2              = PFN_vkCmdBindIndexBuffer2( vkGetDeviceProcAddr( device, "vkCmdBindIndexBuffer2" ) );
+          vkGetRenderingAreaGranularity      = PFN_vkGetRenderingAreaGranularity( vkGetDeviceProcAddr( device, "vkGetRenderingAreaGranularity" ) );
+          vkGetDeviceImageSubresourceLayout  = PFN_vkGetDeviceImageSubresourceLayout( vkGetDeviceProcAddr( device, "vkGetDeviceImageSubresourceLayout" ) );
+          vkGetImageSubresourceLayout2       = PFN_vkGetImageSubresourceLayout2( vkGetDeviceProcAddr( device, "vkGetImageSubresourceLayout2" ) );
+          vkCmdPushDescriptorSet             = PFN_vkCmdPushDescriptorSet( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSet" ) );
+          vkCmdPushDescriptorSetWithTemplate = PFN_vkCmdPushDescriptorSetWithTemplate( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetWithTemplate" ) );
+          vkCmdSetRenderingAttachmentLocations =
+            PFN_vkCmdSetRenderingAttachmentLocations( vkGetDeviceProcAddr( device, "vkCmdSetRenderingAttachmentLocations" ) );
+          vkCmdSetRenderingInputAttachmentIndices =
+            PFN_vkCmdSetRenderingInputAttachmentIndices( vkGetDeviceProcAddr( device, "vkCmdSetRenderingInputAttachmentIndices" ) );
+          vkCmdBindDescriptorSets2            = PFN_vkCmdBindDescriptorSets2( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorSets2" ) );
+          vkCmdPushConstants2                 = PFN_vkCmdPushConstants2( vkGetDeviceProcAddr( device, "vkCmdPushConstants2" ) );
+          vkCmdPushDescriptorSet2             = PFN_vkCmdPushDescriptorSet2( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSet2" ) );
+          vkCmdPushDescriptorSetWithTemplate2 = PFN_vkCmdPushDescriptorSetWithTemplate2( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetWithTemplate2" ) );
+          vkCopyMemoryToImage                 = PFN_vkCopyMemoryToImage( vkGetDeviceProcAddr( device, "vkCopyMemoryToImage" ) );
+          vkCopyImageToMemory                 = PFN_vkCopyImageToMemory( vkGetDeviceProcAddr( device, "vkCopyImageToMemory" ) );
+          vkCopyImageToImage                  = PFN_vkCopyImageToImage( vkGetDeviceProcAddr( device, "vkCopyImageToImage" ) );
+          vkTransitionImageLayout             = PFN_vkTransitionImageLayout( vkGetDeviceProcAddr( device, "vkTransitionImageLayout" ) );
 
-#  if defined( VK_USE_PLATFORM_XLIB_KHR )
-      //=== VK_KHR_xlib_surface ===
-      PFN_vkCreateXlibSurfaceKHR                        vkCreateXlibSurfaceKHR                        = 0;
-      PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR vkGetPhysicalDeviceXlibPresentationSupportKHR = 0;
-#  else
-      PFN_dummy vkCreateXlibSurfaceKHR_placeholder                            = 0;
-      PFN_dummy vkGetPhysicalDeviceXlibPresentationSupportKHR_placeholder     = 0;
-#  endif /*VK_USE_PLATFORM_XLIB_KHR*/
+          //=== VK_KHR_swapchain ===
+          vkCreateSwapchainKHR    = PFN_vkCreateSwapchainKHR( vkGetDeviceProcAddr( device, "vkCreateSwapchainKHR" ) );
+          vkDestroySwapchainKHR   = PFN_vkDestroySwapchainKHR( vkGetDeviceProcAddr( device, "vkDestroySwapchainKHR" ) );
+          vkGetSwapchainImagesKHR = PFN_vkGetSwapchainImagesKHR( vkGetDeviceProcAddr( device, "vkGetSwapchainImagesKHR" ) );
+          vkAcquireNextImageKHR   = PFN_vkAcquireNextImageKHR( vkGetDeviceProcAddr( device, "vkAcquireNextImageKHR" ) );
+          vkQueuePresentKHR       = PFN_vkQueuePresentKHR( vkGetDeviceProcAddr( device, "vkQueuePresentKHR" ) );
+          vkGetDeviceGroupPresentCapabilitiesKHR =
+            PFN_vkGetDeviceGroupPresentCapabilitiesKHR( vkGetDeviceProcAddr( device, "vkGetDeviceGroupPresentCapabilitiesKHR" ) );
+          vkGetDeviceGroupSurfacePresentModesKHR =
+            PFN_vkGetDeviceGroupSurfacePresentModesKHR( vkGetDeviceProcAddr( device, "vkGetDeviceGroupSurfacePresentModesKHR" ) );
+          vkAcquireNextImage2KHR = PFN_vkAcquireNextImage2KHR( vkGetDeviceProcAddr( device, "vkAcquireNextImage2KHR" ) );
 
-#  if defined( VK_USE_PLATFORM_XCB_KHR )
-      //=== VK_KHR_xcb_surface ===
-      PFN_vkCreateXcbSurfaceKHR                        vkCreateXcbSurfaceKHR                        = 0;
-      PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR vkGetPhysicalDeviceXcbPresentationSupportKHR = 0;
-#  else
-      PFN_dummy vkCreateXcbSurfaceKHR_placeholder                             = 0;
-      PFN_dummy vkGetPhysicalDeviceXcbPresentationSupportKHR_placeholder      = 0;
-#  endif /*VK_USE_PLATFORM_XCB_KHR*/
+          //=== VK_KHR_display_swapchain ===
+          vkCreateSharedSwapchainsKHR = PFN_vkCreateSharedSwapchainsKHR( vkGetDeviceProcAddr( device, "vkCreateSharedSwapchainsKHR" ) );
 
-#  if defined( VK_USE_PLATFORM_WAYLAND_KHR )
-      //=== VK_KHR_wayland_surface ===
-      PFN_vkCreateWaylandSurfaceKHR                        vkCreateWaylandSurfaceKHR                        = 0;
-      PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR vkGetPhysicalDeviceWaylandPresentationSupportKHR = 0;
-#  else
-      PFN_dummy vkCreateWaylandSurfaceKHR_placeholder                         = 0;
-      PFN_dummy vkGetPhysicalDeviceWaylandPresentationSupportKHR_placeholder  = 0;
-#  endif /*VK_USE_PLATFORM_WAYLAND_KHR*/
+          //=== VK_EXT_debug_marker ===
+          vkDebugMarkerSetObjectTagEXT  = PFN_vkDebugMarkerSetObjectTagEXT( vkGetDeviceProcAddr( device, "vkDebugMarkerSetObjectTagEXT" ) );
+          vkDebugMarkerSetObjectNameEXT = PFN_vkDebugMarkerSetObjectNameEXT( vkGetDeviceProcAddr( device, "vkDebugMarkerSetObjectNameEXT" ) );
+          vkCmdDebugMarkerBeginEXT      = PFN_vkCmdDebugMarkerBeginEXT( vkGetDeviceProcAddr( device, "vkCmdDebugMarkerBeginEXT" ) );
+          vkCmdDebugMarkerEndEXT        = PFN_vkCmdDebugMarkerEndEXT( vkGetDeviceProcAddr( device, "vkCmdDebugMarkerEndEXT" ) );
+          vkCmdDebugMarkerInsertEXT     = PFN_vkCmdDebugMarkerInsertEXT( vkGetDeviceProcAddr( device, "vkCmdDebugMarkerInsertEXT" ) );
+
+          //=== VK_KHR_video_queue ===
+          vkCreateVideoSessionKHR  = PFN_vkCreateVideoSessionKHR( vkGetDeviceProcAddr( device, "vkCreateVideoSessionKHR" ) );
+          vkDestroyVideoSessionKHR = PFN_vkDestroyVideoSessionKHR( vkGetDeviceProcAddr( device, "vkDestroyVideoSessionKHR" ) );
+          vkGetVideoSessionMemoryRequirementsKHR =
+            PFN_vkGetVideoSessionMemoryRequirementsKHR( vkGetDeviceProcAddr( device, "vkGetVideoSessionMemoryRequirementsKHR" ) );
+          vkBindVideoSessionMemoryKHR        = PFN_vkBindVideoSessionMemoryKHR( vkGetDeviceProcAddr( device, "vkBindVideoSessionMemoryKHR" ) );
+          vkCreateVideoSessionParametersKHR  = PFN_vkCreateVideoSessionParametersKHR( vkGetDeviceProcAddr( device, "vkCreateVideoSessionParametersKHR" ) );
+          vkUpdateVideoSessionParametersKHR  = PFN_vkUpdateVideoSessionParametersKHR( vkGetDeviceProcAddr( device, "vkUpdateVideoSessionParametersKHR" ) );
+          vkDestroyVideoSessionParametersKHR = PFN_vkDestroyVideoSessionParametersKHR( vkGetDeviceProcAddr( device, "vkDestroyVideoSessionParametersKHR" ) );
+          vkCmdBeginVideoCodingKHR           = PFN_vkCmdBeginVideoCodingKHR( vkGetDeviceProcAddr( device, "vkCmdBeginVideoCodingKHR" ) );
+          vkCmdEndVideoCodingKHR             = PFN_vkCmdEndVideoCodingKHR( vkGetDeviceProcAddr( device, "vkCmdEndVideoCodingKHR" ) );
+          vkCmdControlVideoCodingKHR         = PFN_vkCmdControlVideoCodingKHR( vkGetDeviceProcAddr( device, "vkCmdControlVideoCodingKHR" ) );
+
+          //=== VK_KHR_video_decode_queue ===
+          vkCmdDecodeVideoKHR = PFN_vkCmdDecodeVideoKHR( vkGetDeviceProcAddr( device, "vkCmdDecodeVideoKHR" ) );
+
+          //=== VK_EXT_transform_feedback ===
+          vkCmdBindTransformFeedbackBuffersEXT =
+            PFN_vkCmdBindTransformFeedbackBuffersEXT( vkGetDeviceProcAddr( device, "vkCmdBindTransformFeedbackBuffersEXT" ) );
+          vkCmdBeginTransformFeedbackEXT = PFN_vkCmdBeginTransformFeedbackEXT( vkGetDeviceProcAddr( device, "vkCmdBeginTransformFeedbackEXT" ) );
+          vkCmdEndTransformFeedbackEXT   = PFN_vkCmdEndTransformFeedbackEXT( vkGetDeviceProcAddr( device, "vkCmdEndTransformFeedbackEXT" ) );
+          vkCmdBeginQueryIndexedEXT      = PFN_vkCmdBeginQueryIndexedEXT( vkGetDeviceProcAddr( device, "vkCmdBeginQueryIndexedEXT" ) );
+          vkCmdEndQueryIndexedEXT        = PFN_vkCmdEndQueryIndexedEXT( vkGetDeviceProcAddr( device, "vkCmdEndQueryIndexedEXT" ) );
+          vkCmdDrawIndirectByteCountEXT  = PFN_vkCmdDrawIndirectByteCountEXT( vkGetDeviceProcAddr( device, "vkCmdDrawIndirectByteCountEXT" ) );
+
+          //=== VK_NVX_binary_import ===
+          vkCreateCuModuleNVX    = PFN_vkCreateCuModuleNVX( vkGetDeviceProcAddr( device, "vkCreateCuModuleNVX" ) );
+          vkCreateCuFunctionNVX  = PFN_vkCreateCuFunctionNVX( vkGetDeviceProcAddr( device, "vkCreateCuFunctionNVX" ) );
+          vkDestroyCuModuleNVX   = PFN_vkDestroyCuModuleNVX( vkGetDeviceProcAddr( device, "vkDestroyCuModuleNVX" ) );
+          vkDestroyCuFunctionNVX = PFN_vkDestroyCuFunctionNVX( vkGetDeviceProcAddr( device, "vkDestroyCuFunctionNVX" ) );
+          vkCmdCuLaunchKernelNVX = PFN_vkCmdCuLaunchKernelNVX( vkGetDeviceProcAddr( device, "vkCmdCuLaunchKernelNVX" ) );
+
+          //=== VK_NVX_image_view_handle ===
+          vkGetImageViewHandleNVX   = PFN_vkGetImageViewHandleNVX( vkGetDeviceProcAddr( device, "vkGetImageViewHandleNVX" ) );
+          vkGetImageViewHandle64NVX = PFN_vkGetImageViewHandle64NVX( vkGetDeviceProcAddr( device, "vkGetImageViewHandle64NVX" ) );
+          vkGetImageViewAddressNVX  = PFN_vkGetImageViewAddressNVX( vkGetDeviceProcAddr( device, "vkGetImageViewAddressNVX" ) );
+
+          //=== VK_AMD_draw_indirect_count ===
+          vkCmdDrawIndirectCountAMD = PFN_vkCmdDrawIndirectCountAMD( vkGetDeviceProcAddr( device, "vkCmdDrawIndirectCountAMD" ) );
+          if ( !vkCmdDrawIndirectCount )
+            vkCmdDrawIndirectCount = vkCmdDrawIndirectCountAMD;
+          vkCmdDrawIndexedIndirectCountAMD = PFN_vkCmdDrawIndexedIndirectCountAMD( vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirectCountAMD" ) );
+          if ( !vkCmdDrawIndexedIndirectCount )
+            vkCmdDrawIndexedIndirectCount = vkCmdDrawIndexedIndirectCountAMD;
+
+          //=== VK_AMD_shader_info ===
+          vkGetShaderInfoAMD = PFN_vkGetShaderInfoAMD( vkGetDeviceProcAddr( device, "vkGetShaderInfoAMD" ) );
+
+          //=== VK_KHR_dynamic_rendering ===
+          vkCmdBeginRenderingKHR = PFN_vkCmdBeginRenderingKHR( vkGetDeviceProcAddr( device, "vkCmdBeginRenderingKHR" ) );
+          if ( !vkCmdBeginRendering )
+            vkCmdBeginRendering = vkCmdBeginRenderingKHR;
+          vkCmdEndRenderingKHR = PFN_vkCmdEndRenderingKHR( vkGetDeviceProcAddr( device, "vkCmdEndRenderingKHR" ) );
+          if ( !vkCmdEndRendering )
+            vkCmdEndRendering = vkCmdEndRenderingKHR;
+
+#  if defined( VK_USE_PLATFORM_WIN32_KHR )
+          //=== VK_NV_external_memory_win32 ===
+          vkGetMemoryWin32HandleNV = PFN_vkGetMemoryWin32HandleNV( vkGetDeviceProcAddr( device, "vkGetMemoryWin32HandleNV" ) );
+#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
+
+          //=== VK_KHR_device_group ===
+          vkGetDeviceGroupPeerMemoryFeaturesKHR =
+            PFN_vkGetDeviceGroupPeerMemoryFeaturesKHR( vkGetDeviceProcAddr( device, "vkGetDeviceGroupPeerMemoryFeaturesKHR" ) );
+          if ( !vkGetDeviceGroupPeerMemoryFeatures )
+            vkGetDeviceGroupPeerMemoryFeatures = vkGetDeviceGroupPeerMemoryFeaturesKHR;
+          vkCmdSetDeviceMaskKHR = PFN_vkCmdSetDeviceMaskKHR( vkGetDeviceProcAddr( device, "vkCmdSetDeviceMaskKHR" ) );
+          if ( !vkCmdSetDeviceMask )
+            vkCmdSetDeviceMask = vkCmdSetDeviceMaskKHR;
+          vkCmdDispatchBaseKHR = PFN_vkCmdDispatchBaseKHR( vkGetDeviceProcAddr( device, "vkCmdDispatchBaseKHR" ) );
+          if ( !vkCmdDispatchBase )
+            vkCmdDispatchBase = vkCmdDispatchBaseKHR;
+
+          //=== VK_KHR_maintenance1 ===
+          vkTrimCommandPoolKHR = PFN_vkTrimCommandPoolKHR( vkGetDeviceProcAddr( device, "vkTrimCommandPoolKHR" ) );
+          if ( !vkTrimCommandPool )
+            vkTrimCommandPool = vkTrimCommandPoolKHR;
+
+#  if defined( VK_USE_PLATFORM_WIN32_KHR )
+          //=== VK_KHR_external_memory_win32 ===
+          vkGetMemoryWin32HandleKHR           = PFN_vkGetMemoryWin32HandleKHR( vkGetDeviceProcAddr( device, "vkGetMemoryWin32HandleKHR" ) );
+          vkGetMemoryWin32HandlePropertiesKHR = PFN_vkGetMemoryWin32HandlePropertiesKHR( vkGetDeviceProcAddr( device, "vkGetMemoryWin32HandlePropertiesKHR" ) );
+#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
+
+          //=== VK_KHR_external_memory_fd ===
+          vkGetMemoryFdKHR           = PFN_vkGetMemoryFdKHR( vkGetDeviceProcAddr( device, "vkGetMemoryFdKHR" ) );
+          vkGetMemoryFdPropertiesKHR = PFN_vkGetMemoryFdPropertiesKHR( vkGetDeviceProcAddr( device, "vkGetMemoryFdPropertiesKHR" ) );
+
+#  if defined( VK_USE_PLATFORM_WIN32_KHR )
+          //=== VK_KHR_external_semaphore_win32 ===
+          vkImportSemaphoreWin32HandleKHR = PFN_vkImportSemaphoreWin32HandleKHR( vkGetDeviceProcAddr( device, "vkImportSemaphoreWin32HandleKHR" ) );
+          vkGetSemaphoreWin32HandleKHR    = PFN_vkGetSemaphoreWin32HandleKHR( vkGetDeviceProcAddr( device, "vkGetSemaphoreWin32HandleKHR" ) );
+#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
+
+          //=== VK_KHR_external_semaphore_fd ===
+          vkImportSemaphoreFdKHR = PFN_vkImportSemaphoreFdKHR( vkGetDeviceProcAddr( device, "vkImportSemaphoreFdKHR" ) );
+          vkGetSemaphoreFdKHR    = PFN_vkGetSemaphoreFdKHR( vkGetDeviceProcAddr( device, "vkGetSemaphoreFdKHR" ) );
+
+          //=== VK_KHR_push_descriptor ===
+          vkCmdPushDescriptorSetKHR = PFN_vkCmdPushDescriptorSetKHR( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetKHR" ) );
+          if ( !vkCmdPushDescriptorSet )
+            vkCmdPushDescriptorSet = vkCmdPushDescriptorSetKHR;
+          vkCmdPushDescriptorSetWithTemplateKHR =
+            PFN_vkCmdPushDescriptorSetWithTemplateKHR( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetWithTemplateKHR" ) );
+          if ( !vkCmdPushDescriptorSetWithTemplate )
+            vkCmdPushDescriptorSetWithTemplate = vkCmdPushDescriptorSetWithTemplateKHR;
+
+          //=== VK_EXT_conditional_rendering ===
+          vkCmdBeginConditionalRenderingEXT = PFN_vkCmdBeginConditionalRenderingEXT( vkGetDeviceProcAddr( device, "vkCmdBeginConditionalRenderingEXT" ) );
+          vkCmdEndConditionalRenderingEXT   = PFN_vkCmdEndConditionalRenderingEXT( vkGetDeviceProcAddr( device, "vkCmdEndConditionalRenderingEXT" ) );
+
+          //=== VK_KHR_descriptor_update_template ===
+          vkCreateDescriptorUpdateTemplateKHR = PFN_vkCreateDescriptorUpdateTemplateKHR( vkGetDeviceProcAddr( device, "vkCreateDescriptorUpdateTemplateKHR" ) );
+          if ( !vkCreateDescriptorUpdateTemplate )
+            vkCreateDescriptorUpdateTemplate = vkCreateDescriptorUpdateTemplateKHR;
+          vkDestroyDescriptorUpdateTemplateKHR =
+            PFN_vkDestroyDescriptorUpdateTemplateKHR( vkGetDeviceProcAddr( device, "vkDestroyDescriptorUpdateTemplateKHR" ) );
+          if ( !vkDestroyDescriptorUpdateTemplate )
+            vkDestroyDescriptorUpdateTemplate = vkDestroyDescriptorUpdateTemplateKHR;
+          vkUpdateDescriptorSetWithTemplateKHR =
+            PFN_vkUpdateDescriptorSetWithTemplateKHR( vkGetDeviceProcAddr( device, "vkUpdateDescriptorSetWithTemplateKHR" ) );
+          if ( !vkUpdateDescriptorSetWithTemplate )
+            vkUpdateDescriptorSetWithTemplate = vkUpdateDescriptorSetWithTemplateKHR;
+
+          //=== VK_NV_clip_space_w_scaling ===
+          vkCmdSetViewportWScalingNV = PFN_vkCmdSetViewportWScalingNV( vkGetDeviceProcAddr( device, "vkCmdSetViewportWScalingNV" ) );
+
+          //=== VK_EXT_display_control ===
+          vkDisplayPowerControlEXT  = PFN_vkDisplayPowerControlEXT( vkGetDeviceProcAddr( device, "vkDisplayPowerControlEXT" ) );
+          vkRegisterDeviceEventEXT  = PFN_vkRegisterDeviceEventEXT( vkGetDeviceProcAddr( device, "vkRegisterDeviceEventEXT" ) );
+          vkRegisterDisplayEventEXT = PFN_vkRegisterDisplayEventEXT( vkGetDeviceProcAddr( device, "vkRegisterDisplayEventEXT" ) );
+          vkGetSwapchainCounterEXT  = PFN_vkGetSwapchainCounterEXT( vkGetDeviceProcAddr( device, "vkGetSwapchainCounterEXT" ) );
+
+          //=== VK_GOOGLE_display_timing ===
+          vkGetRefreshCycleDurationGOOGLE   = PFN_vkGetRefreshCycleDurationGOOGLE( vkGetDeviceProcAddr( device, "vkGetRefreshCycleDurationGOOGLE" ) );
+          vkGetPastPresentationTimingGOOGLE = PFN_vkGetPastPresentationTimingGOOGLE( vkGetDeviceProcAddr( device, "vkGetPastPresentationTimingGOOGLE" ) );
+
+          //=== VK_EXT_discard_rectangles ===
+          vkCmdSetDiscardRectangleEXT       = PFN_vkCmdSetDiscardRectangleEXT( vkGetDeviceProcAddr( device, "vkCmdSetDiscardRectangleEXT" ) );
+          vkCmdSetDiscardRectangleEnableEXT = PFN_vkCmdSetDiscardRectangleEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDiscardRectangleEnableEXT" ) );
+          vkCmdSetDiscardRectangleModeEXT   = PFN_vkCmdSetDiscardRectangleModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetDiscardRectangleModeEXT" ) );
+
+          //=== VK_EXT_hdr_metadata ===
+          vkSetHdrMetadataEXT = PFN_vkSetHdrMetadataEXT( vkGetDeviceProcAddr( device, "vkSetHdrMetadataEXT" ) );
+
+          //=== VK_KHR_create_renderpass2 ===
+          vkCreateRenderPass2KHR = PFN_vkCreateRenderPass2KHR( vkGetDeviceProcAddr( device, "vkCreateRenderPass2KHR" ) );
+          if ( !vkCreateRenderPass2 )
+            vkCreateRenderPass2 = vkCreateRenderPass2KHR;
+          vkCmdBeginRenderPass2KHR = PFN_vkCmdBeginRenderPass2KHR( vkGetDeviceProcAddr( device, "vkCmdBeginRenderPass2KHR" ) );
+          if ( !vkCmdBeginRenderPass2 )
+            vkCmdBeginRenderPass2 = vkCmdBeginRenderPass2KHR;
+          vkCmdNextSubpass2KHR = PFN_vkCmdNextSubpass2KHR( vkGetDeviceProcAddr( device, "vkCmdNextSubpass2KHR" ) );
+          if ( !vkCmdNextSubpass2 )
+            vkCmdNextSubpass2 = vkCmdNextSubpass2KHR;
+          vkCmdEndRenderPass2KHR = PFN_vkCmdEndRenderPass2KHR( vkGetDeviceProcAddr( device, "vkCmdEndRenderPass2KHR" ) );
+          if ( !vkCmdEndRenderPass2 )
+            vkCmdEndRenderPass2 = vkCmdEndRenderPass2KHR;
+
+          //=== VK_KHR_shared_presentable_image ===
+          vkGetSwapchainStatusKHR = PFN_vkGetSwapchainStatusKHR( vkGetDeviceProcAddr( device, "vkGetSwapchainStatusKHR" ) );
+
+#  if defined( VK_USE_PLATFORM_WIN32_KHR )
+          //=== VK_KHR_external_fence_win32 ===
+          vkImportFenceWin32HandleKHR = PFN_vkImportFenceWin32HandleKHR( vkGetDeviceProcAddr( device, "vkImportFenceWin32HandleKHR" ) );
+          vkGetFenceWin32HandleKHR    = PFN_vkGetFenceWin32HandleKHR( vkGetDeviceProcAddr( device, "vkGetFenceWin32HandleKHR" ) );
+#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
+
+          //=== VK_KHR_external_fence_fd ===
+          vkImportFenceFdKHR = PFN_vkImportFenceFdKHR( vkGetDeviceProcAddr( device, "vkImportFenceFdKHR" ) );
+          vkGetFenceFdKHR    = PFN_vkGetFenceFdKHR( vkGetDeviceProcAddr( device, "vkGetFenceFdKHR" ) );
+
+          //=== VK_KHR_performance_query ===
+          vkAcquireProfilingLockKHR = PFN_vkAcquireProfilingLockKHR( vkGetDeviceProcAddr( device, "vkAcquireProfilingLockKHR" ) );
+          vkReleaseProfilingLockKHR = PFN_vkReleaseProfilingLockKHR( vkGetDeviceProcAddr( device, "vkReleaseProfilingLockKHR" ) );
+
+          //=== VK_EXT_debug_utils ===
+          vkSetDebugUtilsObjectNameEXT    = PFN_vkSetDebugUtilsObjectNameEXT( vkGetDeviceProcAddr( device, "vkSetDebugUtilsObjectNameEXT" ) );
+          vkSetDebugUtilsObjectTagEXT     = PFN_vkSetDebugUtilsObjectTagEXT( vkGetDeviceProcAddr( device, "vkSetDebugUtilsObjectTagEXT" ) );
+          vkQueueBeginDebugUtilsLabelEXT  = PFN_vkQueueBeginDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkQueueBeginDebugUtilsLabelEXT" ) );
+          vkQueueEndDebugUtilsLabelEXT    = PFN_vkQueueEndDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkQueueEndDebugUtilsLabelEXT" ) );
+          vkQueueInsertDebugUtilsLabelEXT = PFN_vkQueueInsertDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkQueueInsertDebugUtilsLabelEXT" ) );
+          vkCmdBeginDebugUtilsLabelEXT    = PFN_vkCmdBeginDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkCmdBeginDebugUtilsLabelEXT" ) );
+          vkCmdEndDebugUtilsLabelEXT      = PFN_vkCmdEndDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkCmdEndDebugUtilsLabelEXT" ) );
+          vkCmdInsertDebugUtilsLabelEXT   = PFN_vkCmdInsertDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkCmdInsertDebugUtilsLabelEXT" ) );
 
 #  if defined( VK_USE_PLATFORM_ANDROID_KHR )
-      //=== VK_KHR_android_surface ===
-      PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR = 0;
-#  else
-      PFN_dummy vkCreateAndroidSurfaceKHR_placeholder                         = 0;
+          //=== VK_ANDROID_external_memory_android_hardware_buffer ===
+          vkGetAndroidHardwareBufferPropertiesANDROID =
+            PFN_vkGetAndroidHardwareBufferPropertiesANDROID( vkGetDeviceProcAddr( device, "vkGetAndroidHardwareBufferPropertiesANDROID" ) );
+          vkGetMemoryAndroidHardwareBufferANDROID =
+            PFN_vkGetMemoryAndroidHardwareBufferANDROID( vkGetDeviceProcAddr( device, "vkGetMemoryAndroidHardwareBufferANDROID" ) );
 #  endif /*VK_USE_PLATFORM_ANDROID_KHR*/
 
+#  if defined( VK_ENABLE_BETA_EXTENSIONS )
+          //=== VK_AMDX_shader_enqueue ===
+          vkCreateExecutionGraphPipelinesAMDX = PFN_vkCreateExecutionGraphPipelinesAMDX( vkGetDeviceProcAddr( device, "vkCreateExecutionGraphPipelinesAMDX" ) );
+          vkGetExecutionGraphPipelineScratchSizeAMDX =
+            PFN_vkGetExecutionGraphPipelineScratchSizeAMDX( vkGetDeviceProcAddr( device, "vkGetExecutionGraphPipelineScratchSizeAMDX" ) );
+          vkGetExecutionGraphPipelineNodeIndexAMDX =
+            PFN_vkGetExecutionGraphPipelineNodeIndexAMDX( vkGetDeviceProcAddr( device, "vkGetExecutionGraphPipelineNodeIndexAMDX" ) );
+          vkCmdInitializeGraphScratchMemoryAMDX =
+            PFN_vkCmdInitializeGraphScratchMemoryAMDX( vkGetDeviceProcAddr( device, "vkCmdInitializeGraphScratchMemoryAMDX" ) );
+          vkCmdDispatchGraphAMDX              = PFN_vkCmdDispatchGraphAMDX( vkGetDeviceProcAddr( device, "vkCmdDispatchGraphAMDX" ) );
+          vkCmdDispatchGraphIndirectAMDX      = PFN_vkCmdDispatchGraphIndirectAMDX( vkGetDeviceProcAddr( device, "vkCmdDispatchGraphIndirectAMDX" ) );
+          vkCmdDispatchGraphIndirectCountAMDX = PFN_vkCmdDispatchGraphIndirectCountAMDX( vkGetDeviceProcAddr( device, "vkCmdDispatchGraphIndirectCountAMDX" ) );
+#  endif /*VK_ENABLE_BETA_EXTENSIONS*/
+
+          //=== VK_EXT_sample_locations ===
+          vkCmdSetSampleLocationsEXT = PFN_vkCmdSetSampleLocationsEXT( vkGetDeviceProcAddr( device, "vkCmdSetSampleLocationsEXT" ) );
+
+          //=== VK_KHR_get_memory_requirements2 ===
+          vkGetImageMemoryRequirements2KHR = PFN_vkGetImageMemoryRequirements2KHR( vkGetDeviceProcAddr( device, "vkGetImageMemoryRequirements2KHR" ) );
+          if ( !vkGetImageMemoryRequirements2 )
+            vkGetImageMemoryRequirements2 = vkGetImageMemoryRequirements2KHR;
+          vkGetBufferMemoryRequirements2KHR = PFN_vkGetBufferMemoryRequirements2KHR( vkGetDeviceProcAddr( device, "vkGetBufferMemoryRequirements2KHR" ) );
+          if ( !vkGetBufferMemoryRequirements2 )
+            vkGetBufferMemoryRequirements2 = vkGetBufferMemoryRequirements2KHR;
+          vkGetImageSparseMemoryRequirements2KHR =
+            PFN_vkGetImageSparseMemoryRequirements2KHR( vkGetDeviceProcAddr( device, "vkGetImageSparseMemoryRequirements2KHR" ) );
+          if ( !vkGetImageSparseMemoryRequirements2 )
+            vkGetImageSparseMemoryRequirements2 = vkGetImageSparseMemoryRequirements2KHR;
+
+          //=== VK_KHR_acceleration_structure ===
+          vkCreateAccelerationStructureKHR    = PFN_vkCreateAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCreateAccelerationStructureKHR" ) );
+          vkDestroyAccelerationStructureKHR   = PFN_vkDestroyAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkDestroyAccelerationStructureKHR" ) );
+          vkCmdBuildAccelerationStructuresKHR = PFN_vkCmdBuildAccelerationStructuresKHR( vkGetDeviceProcAddr( device, "vkCmdBuildAccelerationStructuresKHR" ) );
+          vkCmdBuildAccelerationStructuresIndirectKHR =
+            PFN_vkCmdBuildAccelerationStructuresIndirectKHR( vkGetDeviceProcAddr( device, "vkCmdBuildAccelerationStructuresIndirectKHR" ) );
+          vkBuildAccelerationStructuresKHR = PFN_vkBuildAccelerationStructuresKHR( vkGetDeviceProcAddr( device, "vkBuildAccelerationStructuresKHR" ) );
+          vkCopyAccelerationStructureKHR   = PFN_vkCopyAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCopyAccelerationStructureKHR" ) );
+          vkCopyAccelerationStructureToMemoryKHR =
+            PFN_vkCopyAccelerationStructureToMemoryKHR( vkGetDeviceProcAddr( device, "vkCopyAccelerationStructureToMemoryKHR" ) );
+          vkCopyMemoryToAccelerationStructureKHR =
+            PFN_vkCopyMemoryToAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCopyMemoryToAccelerationStructureKHR" ) );
+          vkWriteAccelerationStructuresPropertiesKHR =
+            PFN_vkWriteAccelerationStructuresPropertiesKHR( vkGetDeviceProcAddr( device, "vkWriteAccelerationStructuresPropertiesKHR" ) );
+          vkCmdCopyAccelerationStructureKHR = PFN_vkCmdCopyAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCmdCopyAccelerationStructureKHR" ) );
+          vkCmdCopyAccelerationStructureToMemoryKHR =
+            PFN_vkCmdCopyAccelerationStructureToMemoryKHR( vkGetDeviceProcAddr( device, "vkCmdCopyAccelerationStructureToMemoryKHR" ) );
+          vkCmdCopyMemoryToAccelerationStructureKHR =
+            PFN_vkCmdCopyMemoryToAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCmdCopyMemoryToAccelerationStructureKHR" ) );
+          vkGetAccelerationStructureDeviceAddressKHR =
+            PFN_vkGetAccelerationStructureDeviceAddressKHR( vkGetDeviceProcAddr( device, "vkGetAccelerationStructureDeviceAddressKHR" ) );
+          vkCmdWriteAccelerationStructuresPropertiesKHR =
+            PFN_vkCmdWriteAccelerationStructuresPropertiesKHR( vkGetDeviceProcAddr( device, "vkCmdWriteAccelerationStructuresPropertiesKHR" ) );
+          vkGetDeviceAccelerationStructureCompatibilityKHR =
+            PFN_vkGetDeviceAccelerationStructureCompatibilityKHR( vkGetDeviceProcAddr( device, "vkGetDeviceAccelerationStructureCompatibilityKHR" ) );
+          vkGetAccelerationStructureBuildSizesKHR =
+            PFN_vkGetAccelerationStructureBuildSizesKHR( vkGetDeviceProcAddr( device, "vkGetAccelerationStructureBuildSizesKHR" ) );
+
+          //=== VK_KHR_ray_tracing_pipeline ===
+          vkCmdTraceRaysKHR              = PFN_vkCmdTraceRaysKHR( vkGetDeviceProcAddr( device, "vkCmdTraceRaysKHR" ) );
+          vkCreateRayTracingPipelinesKHR = PFN_vkCreateRayTracingPipelinesKHR( vkGetDeviceProcAddr( device, "vkCreateRayTracingPipelinesKHR" ) );
+          vkGetRayTracingShaderGroupHandlesKHR =
+            PFN_vkGetRayTracingShaderGroupHandlesKHR( vkGetDeviceProcAddr( device, "vkGetRayTracingShaderGroupHandlesKHR" ) );
+          vkGetRayTracingCaptureReplayShaderGroupHandlesKHR =
+            PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR( vkGetDeviceProcAddr( device, "vkGetRayTracingCaptureReplayShaderGroupHandlesKHR" ) );
+          vkCmdTraceRaysIndirectKHR = PFN_vkCmdTraceRaysIndirectKHR( vkGetDeviceProcAddr( device, "vkCmdTraceRaysIndirectKHR" ) );
+          vkGetRayTracingShaderGroupStackSizeKHR =
+            PFN_vkGetRayTracingShaderGroupStackSizeKHR( vkGetDeviceProcAddr( device, "vkGetRayTracingShaderGroupStackSizeKHR" ) );
+          vkCmdSetRayTracingPipelineStackSizeKHR =
+            PFN_vkCmdSetRayTracingPipelineStackSizeKHR( vkGetDeviceProcAddr( device, "vkCmdSetRayTracingPipelineStackSizeKHR" ) );
+
+          //=== VK_KHR_sampler_ycbcr_conversion ===
+          vkCreateSamplerYcbcrConversionKHR = PFN_vkCreateSamplerYcbcrConversionKHR( vkGetDeviceProcAddr( device, "vkCreateSamplerYcbcrConversionKHR" ) );
+          if ( !vkCreateSamplerYcbcrConversion )
+            vkCreateSamplerYcbcrConversion = vkCreateSamplerYcbcrConversionKHR;
+          vkDestroySamplerYcbcrConversionKHR = PFN_vkDestroySamplerYcbcrConversionKHR( vkGetDeviceProcAddr( device, "vkDestroySamplerYcbcrConversionKHR" ) );
+          if ( !vkDestroySamplerYcbcrConversion )
+            vkDestroySamplerYcbcrConversion = vkDestroySamplerYcbcrConversionKHR;
+
+          //=== VK_KHR_bind_memory2 ===
+          vkBindBufferMemory2KHR = PFN_vkBindBufferMemory2KHR( vkGetDeviceProcAddr( device, "vkBindBufferMemory2KHR" ) );
+          if ( !vkBindBufferMemory2 )
+            vkBindBufferMemory2 = vkBindBufferMemory2KHR;
+          vkBindImageMemory2KHR = PFN_vkBindImageMemory2KHR( vkGetDeviceProcAddr( device, "vkBindImageMemory2KHR" ) );
+          if ( !vkBindImageMemory2 )
+            vkBindImageMemory2 = vkBindImageMemory2KHR;
+
+          //=== VK_EXT_image_drm_format_modifier ===
+          vkGetImageDrmFormatModifierPropertiesEXT =
+            PFN_vkGetImageDrmFormatModifierPropertiesEXT( vkGetDeviceProcAddr( device, "vkGetImageDrmFormatModifierPropertiesEXT" ) );
+
+          //=== VK_EXT_validation_cache ===
+          vkCreateValidationCacheEXT  = PFN_vkCreateValidationCacheEXT( vkGetDeviceProcAddr( device, "vkCreateValidationCacheEXT" ) );
+          vkDestroyValidationCacheEXT = PFN_vkDestroyValidationCacheEXT( vkGetDeviceProcAddr( device, "vkDestroyValidationCacheEXT" ) );
+          vkMergeValidationCachesEXT  = PFN_vkMergeValidationCachesEXT( vkGetDeviceProcAddr( device, "vkMergeValidationCachesEXT" ) );
+          vkGetValidationCacheDataEXT = PFN_vkGetValidationCacheDataEXT( vkGetDeviceProcAddr( device, "vkGetValidationCacheDataEXT" ) );
+
+          //=== VK_NV_shading_rate_image ===
+          vkCmdBindShadingRateImageNV = PFN_vkCmdBindShadingRateImageNV( vkGetDeviceProcAddr( device, "vkCmdBindShadingRateImageNV" ) );
+          vkCmdSetViewportShadingRatePaletteNV =
+            PFN_vkCmdSetViewportShadingRatePaletteNV( vkGetDeviceProcAddr( device, "vkCmdSetViewportShadingRatePaletteNV" ) );
+          vkCmdSetCoarseSampleOrderNV = PFN_vkCmdSetCoarseSampleOrderNV( vkGetDeviceProcAddr( device, "vkCmdSetCoarseSampleOrderNV" ) );
+
+          //=== VK_NV_ray_tracing ===
+          vkCreateAccelerationStructureNV  = PFN_vkCreateAccelerationStructureNV( vkGetDeviceProcAddr( device, "vkCreateAccelerationStructureNV" ) );
+          vkDestroyAccelerationStructureNV = PFN_vkDestroyAccelerationStructureNV( vkGetDeviceProcAddr( device, "vkDestroyAccelerationStructureNV" ) );
+          vkGetAccelerationStructureMemoryRequirementsNV =
+            PFN_vkGetAccelerationStructureMemoryRequirementsNV( vkGetDeviceProcAddr( device, "vkGetAccelerationStructureMemoryRequirementsNV" ) );
+          vkBindAccelerationStructureMemoryNV = PFN_vkBindAccelerationStructureMemoryNV( vkGetDeviceProcAddr( device, "vkBindAccelerationStructureMemoryNV" ) );
+          vkCmdBuildAccelerationStructureNV   = PFN_vkCmdBuildAccelerationStructureNV( vkGetDeviceProcAddr( device, "vkCmdBuildAccelerationStructureNV" ) );
+          vkCmdCopyAccelerationStructureNV    = PFN_vkCmdCopyAccelerationStructureNV( vkGetDeviceProcAddr( device, "vkCmdCopyAccelerationStructureNV" ) );
+          vkCmdTraceRaysNV                    = PFN_vkCmdTraceRaysNV( vkGetDeviceProcAddr( device, "vkCmdTraceRaysNV" ) );
+          vkCreateRayTracingPipelinesNV       = PFN_vkCreateRayTracingPipelinesNV( vkGetDeviceProcAddr( device, "vkCreateRayTracingPipelinesNV" ) );
+          vkGetRayTracingShaderGroupHandlesNV = PFN_vkGetRayTracingShaderGroupHandlesNV( vkGetDeviceProcAddr( device, "vkGetRayTracingShaderGroupHandlesNV" ) );
+          if ( !vkGetRayTracingShaderGroupHandlesKHR )
+            vkGetRayTracingShaderGroupHandlesKHR = vkGetRayTracingShaderGroupHandlesNV;
+          vkGetAccelerationStructureHandleNV = PFN_vkGetAccelerationStructureHandleNV( vkGetDeviceProcAddr( device, "vkGetAccelerationStructureHandleNV" ) );
+          vkCmdWriteAccelerationStructuresPropertiesNV =
+            PFN_vkCmdWriteAccelerationStructuresPropertiesNV( vkGetDeviceProcAddr( device, "vkCmdWriteAccelerationStructuresPropertiesNV" ) );
+          vkCompileDeferredNV = PFN_vkCompileDeferredNV( vkGetDeviceProcAddr( device, "vkCompileDeferredNV" ) );
+
+          //=== VK_KHR_maintenance3 ===
+          vkGetDescriptorSetLayoutSupportKHR = PFN_vkGetDescriptorSetLayoutSupportKHR( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutSupportKHR" ) );
+          if ( !vkGetDescriptorSetLayoutSupport )
+            vkGetDescriptorSetLayoutSupport = vkGetDescriptorSetLayoutSupportKHR;
+
+          //=== VK_KHR_draw_indirect_count ===
+          vkCmdDrawIndirectCountKHR = PFN_vkCmdDrawIndirectCountKHR( vkGetDeviceProcAddr( device, "vkCmdDrawIndirectCountKHR" ) );
+          if ( !vkCmdDrawIndirectCount )
+            vkCmdDrawIndirectCount = vkCmdDrawIndirectCountKHR;
+          vkCmdDrawIndexedIndirectCountKHR = PFN_vkCmdDrawIndexedIndirectCountKHR( vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirectCountKHR" ) );
+          if ( !vkCmdDrawIndexedIndirectCount )
+            vkCmdDrawIndexedIndirectCount = vkCmdDrawIndexedIndirectCountKHR;
+
+          //=== VK_EXT_external_memory_host ===
+          vkGetMemoryHostPointerPropertiesEXT = PFN_vkGetMemoryHostPointerPropertiesEXT( vkGetDeviceProcAddr( device, "vkGetMemoryHostPointerPropertiesEXT" ) );
+
+          //=== VK_AMD_buffer_marker ===
+          vkCmdWriteBufferMarkerAMD  = PFN_vkCmdWriteBufferMarkerAMD( vkGetDeviceProcAddr( device, "vkCmdWriteBufferMarkerAMD" ) );
+          vkCmdWriteBufferMarker2AMD = PFN_vkCmdWriteBufferMarker2AMD( vkGetDeviceProcAddr( device, "vkCmdWriteBufferMarker2AMD" ) );
+
+          //=== VK_EXT_calibrated_timestamps ===
+          vkGetCalibratedTimestampsEXT = PFN_vkGetCalibratedTimestampsEXT( vkGetDeviceProcAddr( device, "vkGetCalibratedTimestampsEXT" ) );
+          if ( !vkGetCalibratedTimestampsKHR )
+            vkGetCalibratedTimestampsKHR = vkGetCalibratedTimestampsEXT;
+
+          //=== VK_NV_mesh_shader ===
+          vkCmdDrawMeshTasksNV              = PFN_vkCmdDrawMeshTasksNV( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksNV" ) );
+          vkCmdDrawMeshTasksIndirectNV      = PFN_vkCmdDrawMeshTasksIndirectNV( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksIndirectNV" ) );
+          vkCmdDrawMeshTasksIndirectCountNV = PFN_vkCmdDrawMeshTasksIndirectCountNV( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksIndirectCountNV" ) );
+
+          //=== VK_NV_scissor_exclusive ===
+          vkCmdSetExclusiveScissorEnableNV = PFN_vkCmdSetExclusiveScissorEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetExclusiveScissorEnableNV" ) );
+          vkCmdSetExclusiveScissorNV       = PFN_vkCmdSetExclusiveScissorNV( vkGetDeviceProcAddr( device, "vkCmdSetExclusiveScissorNV" ) );
+
+          //=== VK_NV_device_diagnostic_checkpoints ===
+          vkCmdSetCheckpointNV        = PFN_vkCmdSetCheckpointNV( vkGetDeviceProcAddr( device, "vkCmdSetCheckpointNV" ) );
+          vkGetQueueCheckpointDataNV  = PFN_vkGetQueueCheckpointDataNV( vkGetDeviceProcAddr( device, "vkGetQueueCheckpointDataNV" ) );
+          vkGetQueueCheckpointData2NV = PFN_vkGetQueueCheckpointData2NV( vkGetDeviceProcAddr( device, "vkGetQueueCheckpointData2NV" ) );
+
+          //=== VK_KHR_timeline_semaphore ===
+          vkGetSemaphoreCounterValueKHR = PFN_vkGetSemaphoreCounterValueKHR( vkGetDeviceProcAddr( device, "vkGetSemaphoreCounterValueKHR" ) );
+          if ( !vkGetSemaphoreCounterValue )
+            vkGetSemaphoreCounterValue = vkGetSemaphoreCounterValueKHR;
+          vkWaitSemaphoresKHR = PFN_vkWaitSemaphoresKHR( vkGetDeviceProcAddr( device, "vkWaitSemaphoresKHR" ) );
+          if ( !vkWaitSemaphores )
+            vkWaitSemaphores = vkWaitSemaphoresKHR;
+          vkSignalSemaphoreKHR = PFN_vkSignalSemaphoreKHR( vkGetDeviceProcAddr( device, "vkSignalSemaphoreKHR" ) );
+          if ( !vkSignalSemaphore )
+            vkSignalSemaphore = vkSignalSemaphoreKHR;
+
+          //=== VK_INTEL_performance_query ===
+          vkInitializePerformanceApiINTEL   = PFN_vkInitializePerformanceApiINTEL( vkGetDeviceProcAddr( device, "vkInitializePerformanceApiINTEL" ) );
+          vkUninitializePerformanceApiINTEL = PFN_vkUninitializePerformanceApiINTEL( vkGetDeviceProcAddr( device, "vkUninitializePerformanceApiINTEL" ) );
+          vkCmdSetPerformanceMarkerINTEL    = PFN_vkCmdSetPerformanceMarkerINTEL( vkGetDeviceProcAddr( device, "vkCmdSetPerformanceMarkerINTEL" ) );
+          vkCmdSetPerformanceStreamMarkerINTEL =
+            PFN_vkCmdSetPerformanceStreamMarkerINTEL( vkGetDeviceProcAddr( device, "vkCmdSetPerformanceStreamMarkerINTEL" ) );
+          vkCmdSetPerformanceOverrideINTEL = PFN_vkCmdSetPerformanceOverrideINTEL( vkGetDeviceProcAddr( device, "vkCmdSetPerformanceOverrideINTEL" ) );
+          vkAcquirePerformanceConfigurationINTEL =
+            PFN_vkAcquirePerformanceConfigurationINTEL( vkGetDeviceProcAddr( device, "vkAcquirePerformanceConfigurationINTEL" ) );
+          vkReleasePerformanceConfigurationINTEL =
+            PFN_vkReleasePerformanceConfigurationINTEL( vkGetDeviceProcAddr( device, "vkReleasePerformanceConfigurationINTEL" ) );
+          vkQueueSetPerformanceConfigurationINTEL =
+            PFN_vkQueueSetPerformanceConfigurationINTEL( vkGetDeviceProcAddr( device, "vkQueueSetPerformanceConfigurationINTEL" ) );
+          vkGetPerformanceParameterINTEL = PFN_vkGetPerformanceParameterINTEL( vkGetDeviceProcAddr( device, "vkGetPerformanceParameterINTEL" ) );
+
+          //=== VK_AMD_display_native_hdr ===
+          vkSetLocalDimmingAMD = PFN_vkSetLocalDimmingAMD( vkGetDeviceProcAddr( device, "vkSetLocalDimmingAMD" ) );
+
+          //=== VK_KHR_fragment_shading_rate ===
+          vkCmdSetFragmentShadingRateKHR = PFN_vkCmdSetFragmentShadingRateKHR( vkGetDeviceProcAddr( device, "vkCmdSetFragmentShadingRateKHR" ) );
+
+          //=== VK_KHR_dynamic_rendering_local_read ===
+          vkCmdSetRenderingAttachmentLocationsKHR =
+            PFN_vkCmdSetRenderingAttachmentLocationsKHR( vkGetDeviceProcAddr( device, "vkCmdSetRenderingAttachmentLocationsKHR" ) );
+          if ( !vkCmdSetRenderingAttachmentLocations )
+            vkCmdSetRenderingAttachmentLocations = vkCmdSetRenderingAttachmentLocationsKHR;
+          vkCmdSetRenderingInputAttachmentIndicesKHR =
+            PFN_vkCmdSetRenderingInputAttachmentIndicesKHR( vkGetDeviceProcAddr( device, "vkCmdSetRenderingInputAttachmentIndicesKHR" ) );
+          if ( !vkCmdSetRenderingInputAttachmentIndices )
+            vkCmdSetRenderingInputAttachmentIndices = vkCmdSetRenderingInputAttachmentIndicesKHR;
+
+          //=== VK_EXT_buffer_device_address ===
+          vkGetBufferDeviceAddressEXT = PFN_vkGetBufferDeviceAddressEXT( vkGetDeviceProcAddr( device, "vkGetBufferDeviceAddressEXT" ) );
+          if ( !vkGetBufferDeviceAddress )
+            vkGetBufferDeviceAddress = vkGetBufferDeviceAddressEXT;
+
+          //=== VK_KHR_present_wait ===
+          vkWaitForPresentKHR = PFN_vkWaitForPresentKHR( vkGetDeviceProcAddr( device, "vkWaitForPresentKHR" ) );
+
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
-      //=== VK_KHR_win32_surface ===
-      PFN_vkCreateWin32SurfaceKHR                        vkCreateWin32SurfaceKHR                        = 0;
-      PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR = 0;
-#  else
-      PFN_dummy vkCreateWin32SurfaceKHR_placeholder                           = 0;
-      PFN_dummy vkGetPhysicalDeviceWin32PresentationSupportKHR_placeholder    = 0;
+          //=== VK_EXT_full_screen_exclusive ===
+          vkAcquireFullScreenExclusiveModeEXT = PFN_vkAcquireFullScreenExclusiveModeEXT( vkGetDeviceProcAddr( device, "vkAcquireFullScreenExclusiveModeEXT" ) );
+          vkReleaseFullScreenExclusiveModeEXT = PFN_vkReleaseFullScreenExclusiveModeEXT( vkGetDeviceProcAddr( device, "vkReleaseFullScreenExclusiveModeEXT" ) );
+          vkGetDeviceGroupSurfacePresentModes2EXT =
+            PFN_vkGetDeviceGroupSurfacePresentModes2EXT( vkGetDeviceProcAddr( device, "vkGetDeviceGroupSurfacePresentModes2EXT" ) );
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
-      //=== VK_EXT_debug_report ===
-      PFN_vkCreateDebugReportCallbackEXT  vkCreateDebugReportCallbackEXT  = 0;
-      PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT = 0;
-      PFN_vkDebugReportMessageEXT         vkDebugReportMessageEXT         = 0;
+          //=== VK_KHR_buffer_device_address ===
+          vkGetBufferDeviceAddressKHR = PFN_vkGetBufferDeviceAddressKHR( vkGetDeviceProcAddr( device, "vkGetBufferDeviceAddressKHR" ) );
+          if ( !vkGetBufferDeviceAddress )
+            vkGetBufferDeviceAddress = vkGetBufferDeviceAddressKHR;
+          vkGetBufferOpaqueCaptureAddressKHR = PFN_vkGetBufferOpaqueCaptureAddressKHR( vkGetDeviceProcAddr( device, "vkGetBufferOpaqueCaptureAddressKHR" ) );
+          if ( !vkGetBufferOpaqueCaptureAddress )
+            vkGetBufferOpaqueCaptureAddress = vkGetBufferOpaqueCaptureAddressKHR;
+          vkGetDeviceMemoryOpaqueCaptureAddressKHR =
+            PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR( vkGetDeviceProcAddr( device, "vkGetDeviceMemoryOpaqueCaptureAddressKHR" ) );
+          if ( !vkGetDeviceMemoryOpaqueCaptureAddress )
+            vkGetDeviceMemoryOpaqueCaptureAddress = vkGetDeviceMemoryOpaqueCaptureAddressKHR;
 
-      //=== VK_KHR_video_queue ===
-      PFN_vkGetPhysicalDeviceVideoCapabilitiesKHR     vkGetPhysicalDeviceVideoCapabilitiesKHR     = 0;
-      PFN_vkGetPhysicalDeviceVideoFormatPropertiesKHR vkGetPhysicalDeviceVideoFormatPropertiesKHR = 0;
+          //=== VK_EXT_line_rasterization ===
+          vkCmdSetLineStippleEXT = PFN_vkCmdSetLineStippleEXT( vkGetDeviceProcAddr( device, "vkCmdSetLineStippleEXT" ) );
+          if ( !vkCmdSetLineStipple )
+            vkCmdSetLineStipple = vkCmdSetLineStippleEXT;
 
-#  if defined( VK_USE_PLATFORM_GGP )
-      //=== VK_GGP_stream_descriptor_surface ===
-      PFN_vkCreateStreamDescriptorSurfaceGGP vkCreateStreamDescriptorSurfaceGGP = 0;
-#  else
-      PFN_dummy vkCreateStreamDescriptorSurfaceGGP_placeholder                = 0;
-#  endif /*VK_USE_PLATFORM_GGP*/
+          //=== VK_EXT_host_query_reset ===
+          vkResetQueryPoolEXT = PFN_vkResetQueryPoolEXT( vkGetDeviceProcAddr( device, "vkResetQueryPoolEXT" ) );
+          if ( !vkResetQueryPool )
+            vkResetQueryPool = vkResetQueryPoolEXT;
 
-      //=== VK_NV_external_memory_capabilities ===
-      PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV vkGetPhysicalDeviceExternalImageFormatPropertiesNV = 0;
+          //=== VK_EXT_extended_dynamic_state ===
+          vkCmdSetCullModeEXT = PFN_vkCmdSetCullModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetCullModeEXT" ) );
+          if ( !vkCmdSetCullMode )
+            vkCmdSetCullMode = vkCmdSetCullModeEXT;
+          vkCmdSetFrontFaceEXT = PFN_vkCmdSetFrontFaceEXT( vkGetDeviceProcAddr( device, "vkCmdSetFrontFaceEXT" ) );
+          if ( !vkCmdSetFrontFace )
+            vkCmdSetFrontFace = vkCmdSetFrontFaceEXT;
+          vkCmdSetPrimitiveTopologyEXT = PFN_vkCmdSetPrimitiveTopologyEXT( vkGetDeviceProcAddr( device, "vkCmdSetPrimitiveTopologyEXT" ) );
+          if ( !vkCmdSetPrimitiveTopology )
+            vkCmdSetPrimitiveTopology = vkCmdSetPrimitiveTopologyEXT;
+          vkCmdSetViewportWithCountEXT = PFN_vkCmdSetViewportWithCountEXT( vkGetDeviceProcAddr( device, "vkCmdSetViewportWithCountEXT" ) );
+          if ( !vkCmdSetViewportWithCount )
+            vkCmdSetViewportWithCount = vkCmdSetViewportWithCountEXT;
+          vkCmdSetScissorWithCountEXT = PFN_vkCmdSetScissorWithCountEXT( vkGetDeviceProcAddr( device, "vkCmdSetScissorWithCountEXT" ) );
+          if ( !vkCmdSetScissorWithCount )
+            vkCmdSetScissorWithCount = vkCmdSetScissorWithCountEXT;
+          vkCmdBindVertexBuffers2EXT = PFN_vkCmdBindVertexBuffers2EXT( vkGetDeviceProcAddr( device, "vkCmdBindVertexBuffers2EXT" ) );
+          if ( !vkCmdBindVertexBuffers2 )
+            vkCmdBindVertexBuffers2 = vkCmdBindVertexBuffers2EXT;
+          vkCmdSetDepthTestEnableEXT = PFN_vkCmdSetDepthTestEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthTestEnableEXT" ) );
+          if ( !vkCmdSetDepthTestEnable )
+            vkCmdSetDepthTestEnable = vkCmdSetDepthTestEnableEXT;
+          vkCmdSetDepthWriteEnableEXT = PFN_vkCmdSetDepthWriteEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthWriteEnableEXT" ) );
+          if ( !vkCmdSetDepthWriteEnable )
+            vkCmdSetDepthWriteEnable = vkCmdSetDepthWriteEnableEXT;
+          vkCmdSetDepthCompareOpEXT = PFN_vkCmdSetDepthCompareOpEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthCompareOpEXT" ) );
+          if ( !vkCmdSetDepthCompareOp )
+            vkCmdSetDepthCompareOp = vkCmdSetDepthCompareOpEXT;
+          vkCmdSetDepthBoundsTestEnableEXT = PFN_vkCmdSetDepthBoundsTestEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthBoundsTestEnableEXT" ) );
+          if ( !vkCmdSetDepthBoundsTestEnable )
+            vkCmdSetDepthBoundsTestEnable = vkCmdSetDepthBoundsTestEnableEXT;
+          vkCmdSetStencilTestEnableEXT = PFN_vkCmdSetStencilTestEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetStencilTestEnableEXT" ) );
+          if ( !vkCmdSetStencilTestEnable )
+            vkCmdSetStencilTestEnable = vkCmdSetStencilTestEnableEXT;
+          vkCmdSetStencilOpEXT = PFN_vkCmdSetStencilOpEXT( vkGetDeviceProcAddr( device, "vkCmdSetStencilOpEXT" ) );
+          if ( !vkCmdSetStencilOp )
+            vkCmdSetStencilOp = vkCmdSetStencilOpEXT;
 
-      //=== VK_KHR_get_physical_device_properties2 ===
-      PFN_vkGetPhysicalDeviceFeatures2KHR                    vkGetPhysicalDeviceFeatures2KHR                    = 0;
-      PFN_vkGetPhysicalDeviceProperties2KHR                  vkGetPhysicalDeviceProperties2KHR                  = 0;
-      PFN_vkGetPhysicalDeviceFormatProperties2KHR            vkGetPhysicalDeviceFormatProperties2KHR            = 0;
-      PFN_vkGetPhysicalDeviceImageFormatProperties2KHR       vkGetPhysicalDeviceImageFormatProperties2KHR       = 0;
-      PFN_vkGetPhysicalDeviceQueueFamilyProperties2KHR       vkGetPhysicalDeviceQueueFamilyProperties2KHR       = 0;
-      PFN_vkGetPhysicalDeviceMemoryProperties2KHR            vkGetPhysicalDeviceMemoryProperties2KHR            = 0;
-      PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR vkGetPhysicalDeviceSparseImageFormatProperties2KHR = 0;
+          //=== VK_KHR_deferred_host_operations ===
+          vkCreateDeferredOperationKHR  = PFN_vkCreateDeferredOperationKHR( vkGetDeviceProcAddr( device, "vkCreateDeferredOperationKHR" ) );
+          vkDestroyDeferredOperationKHR = PFN_vkDestroyDeferredOperationKHR( vkGetDeviceProcAddr( device, "vkDestroyDeferredOperationKHR" ) );
+          vkGetDeferredOperationMaxConcurrencyKHR =
+            PFN_vkGetDeferredOperationMaxConcurrencyKHR( vkGetDeviceProcAddr( device, "vkGetDeferredOperationMaxConcurrencyKHR" ) );
+          vkGetDeferredOperationResultKHR = PFN_vkGetDeferredOperationResultKHR( vkGetDeviceProcAddr( device, "vkGetDeferredOperationResultKHR" ) );
+          vkDeferredOperationJoinKHR      = PFN_vkDeferredOperationJoinKHR( vkGetDeviceProcAddr( device, "vkDeferredOperationJoinKHR" ) );
 
-#  if defined( VK_USE_PLATFORM_VI_NN )
-      //=== VK_NN_vi_surface ===
-      PFN_vkCreateViSurfaceNN vkCreateViSurfaceNN = 0;
-#  else
-      PFN_dummy vkCreateViSurfaceNN_placeholder                               = 0;
-#  endif /*VK_USE_PLATFORM_VI_NN*/
+          //=== VK_KHR_pipeline_executable_properties ===
+          vkGetPipelineExecutablePropertiesKHR =
+            PFN_vkGetPipelineExecutablePropertiesKHR( vkGetDeviceProcAddr( device, "vkGetPipelineExecutablePropertiesKHR" ) );
+          vkGetPipelineExecutableStatisticsKHR =
+            PFN_vkGetPipelineExecutableStatisticsKHR( vkGetDeviceProcAddr( device, "vkGetPipelineExecutableStatisticsKHR" ) );
+          vkGetPipelineExecutableInternalRepresentationsKHR =
+            PFN_vkGetPipelineExecutableInternalRepresentationsKHR( vkGetDeviceProcAddr( device, "vkGetPipelineExecutableInternalRepresentationsKHR" ) );
 
-      //=== VK_KHR_device_group_creation ===
-      PFN_vkEnumeratePhysicalDeviceGroupsKHR vkEnumeratePhysicalDeviceGroupsKHR = 0;
+          //=== VK_EXT_host_image_copy ===
+          vkCopyMemoryToImageEXT = PFN_vkCopyMemoryToImageEXT( vkGetDeviceProcAddr( device, "vkCopyMemoryToImageEXT" ) );
+          if ( !vkCopyMemoryToImage )
+            vkCopyMemoryToImage = vkCopyMemoryToImageEXT;
+          vkCopyImageToMemoryEXT = PFN_vkCopyImageToMemoryEXT( vkGetDeviceProcAddr( device, "vkCopyImageToMemoryEXT" ) );
+          if ( !vkCopyImageToMemory )
+            vkCopyImageToMemory = vkCopyImageToMemoryEXT;
+          vkCopyImageToImageEXT = PFN_vkCopyImageToImageEXT( vkGetDeviceProcAddr( device, "vkCopyImageToImageEXT" ) );
+          if ( !vkCopyImageToImage )
+            vkCopyImageToImage = vkCopyImageToImageEXT;
+          vkTransitionImageLayoutEXT = PFN_vkTransitionImageLayoutEXT( vkGetDeviceProcAddr( device, "vkTransitionImageLayoutEXT" ) );
+          if ( !vkTransitionImageLayout )
+            vkTransitionImageLayout = vkTransitionImageLayoutEXT;
+          vkGetImageSubresourceLayout2EXT = PFN_vkGetImageSubresourceLayout2EXT( vkGetDeviceProcAddr( device, "vkGetImageSubresourceLayout2EXT" ) );
+          if ( !vkGetImageSubresourceLayout2 )
+            vkGetImageSubresourceLayout2 = vkGetImageSubresourceLayout2EXT;
 
-      //=== VK_KHR_external_memory_capabilities ===
-      PFN_vkGetPhysicalDeviceExternalBufferPropertiesKHR vkGetPhysicalDeviceExternalBufferPropertiesKHR = 0;
+          //=== VK_KHR_map_memory2 ===
+          vkMapMemory2KHR = PFN_vkMapMemory2KHR( vkGetDeviceProcAddr( device, "vkMapMemory2KHR" ) );
+          if ( !vkMapMemory2 )
+            vkMapMemory2 = vkMapMemory2KHR;
+          vkUnmapMemory2KHR = PFN_vkUnmapMemory2KHR( vkGetDeviceProcAddr( device, "vkUnmapMemory2KHR" ) );
+          if ( !vkUnmapMemory2 )
+            vkUnmapMemory2 = vkUnmapMemory2KHR;
 
-      //=== VK_KHR_external_semaphore_capabilities ===
-      PFN_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR vkGetPhysicalDeviceExternalSemaphorePropertiesKHR = 0;
+          //=== VK_EXT_swapchain_maintenance1 ===
+          vkReleaseSwapchainImagesEXT = PFN_vkReleaseSwapchainImagesEXT( vkGetDeviceProcAddr( device, "vkReleaseSwapchainImagesEXT" ) );
 
-      //=== VK_EXT_direct_mode_display ===
-      PFN_vkReleaseDisplayEXT vkReleaseDisplayEXT = 0;
+          //=== VK_NV_device_generated_commands ===
+          vkGetGeneratedCommandsMemoryRequirementsNV =
+            PFN_vkGetGeneratedCommandsMemoryRequirementsNV( vkGetDeviceProcAddr( device, "vkGetGeneratedCommandsMemoryRequirementsNV" ) );
+          vkCmdPreprocessGeneratedCommandsNV = PFN_vkCmdPreprocessGeneratedCommandsNV( vkGetDeviceProcAddr( device, "vkCmdPreprocessGeneratedCommandsNV" ) );
+          vkCmdExecuteGeneratedCommandsNV    = PFN_vkCmdExecuteGeneratedCommandsNV( vkGetDeviceProcAddr( device, "vkCmdExecuteGeneratedCommandsNV" ) );
+          vkCmdBindPipelineShaderGroupNV     = PFN_vkCmdBindPipelineShaderGroupNV( vkGetDeviceProcAddr( device, "vkCmdBindPipelineShaderGroupNV" ) );
+          vkCreateIndirectCommandsLayoutNV   = PFN_vkCreateIndirectCommandsLayoutNV( vkGetDeviceProcAddr( device, "vkCreateIndirectCommandsLayoutNV" ) );
+          vkDestroyIndirectCommandsLayoutNV  = PFN_vkDestroyIndirectCommandsLayoutNV( vkGetDeviceProcAddr( device, "vkDestroyIndirectCommandsLayoutNV" ) );
 
-#  if defined( VK_USE_PLATFORM_XLIB_XRANDR_EXT )
-      //=== VK_EXT_acquire_xlib_display ===
-      PFN_vkAcquireXlibDisplayEXT    vkAcquireXlibDisplayEXT    = 0;
-      PFN_vkGetRandROutputDisplayEXT vkGetRandROutputDisplayEXT = 0;
-#  else
-      PFN_dummy vkAcquireXlibDisplayEXT_placeholder                           = 0;
-      PFN_dummy vkGetRandROutputDisplayEXT_placeholder                        = 0;
-#  endif /*VK_USE_PLATFORM_XLIB_XRANDR_EXT*/
+          //=== VK_EXT_depth_bias_control ===
+          vkCmdSetDepthBias2EXT = PFN_vkCmdSetDepthBias2EXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthBias2EXT" ) );
 
-      //=== VK_EXT_display_surface_counter ===
-      PFN_vkGetPhysicalDeviceSurfaceCapabilities2EXT vkGetPhysicalDeviceSurfaceCapabilities2EXT = 0;
+          //=== VK_EXT_private_data ===
+          vkCreatePrivateDataSlotEXT = PFN_vkCreatePrivateDataSlotEXT( vkGetDeviceProcAddr( device, "vkCreatePrivateDataSlotEXT" ) );
+          if ( !vkCreatePrivateDataSlot )
+            vkCreatePrivateDataSlot = vkCreatePrivateDataSlotEXT;
+          vkDestroyPrivateDataSlotEXT = PFN_vkDestroyPrivateDataSlotEXT( vkGetDeviceProcAddr( device, "vkDestroyPrivateDataSlotEXT" ) );
+          if ( !vkDestroyPrivateDataSlot )
+            vkDestroyPrivateDataSlot = vkDestroyPrivateDataSlotEXT;
+          vkSetPrivateDataEXT = PFN_vkSetPrivateDataEXT( vkGetDeviceProcAddr( device, "vkSetPrivateDataEXT" ) );
+          if ( !vkSetPrivateData )
+            vkSetPrivateData = vkSetPrivateDataEXT;
+          vkGetPrivateDataEXT = PFN_vkGetPrivateDataEXT( vkGetDeviceProcAddr( device, "vkGetPrivateDataEXT" ) );
+          if ( !vkGetPrivateData )
+            vkGetPrivateData = vkGetPrivateDataEXT;
 
-      //=== VK_KHR_external_fence_capabilities ===
-      PFN_vkGetPhysicalDeviceExternalFencePropertiesKHR vkGetPhysicalDeviceExternalFencePropertiesKHR = 0;
+          //=== VK_KHR_video_encode_queue ===
+          vkGetEncodedVideoSessionParametersKHR =
+            PFN_vkGetEncodedVideoSessionParametersKHR( vkGetDeviceProcAddr( device, "vkGetEncodedVideoSessionParametersKHR" ) );
+          vkCmdEncodeVideoKHR = PFN_vkCmdEncodeVideoKHR( vkGetDeviceProcAddr( device, "vkCmdEncodeVideoKHR" ) );
 
-      //=== VK_KHR_performance_query ===
-      PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR = 0;
-      PFN_vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR         vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR         = 0;
-
-      //=== VK_KHR_get_surface_capabilities2 ===
-      PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR vkGetPhysicalDeviceSurfaceCapabilities2KHR = 0;
-      PFN_vkGetPhysicalDeviceSurfaceFormats2KHR      vkGetPhysicalDeviceSurfaceFormats2KHR      = 0;
-
-      //=== VK_KHR_get_display_properties2 ===
-      PFN_vkGetPhysicalDeviceDisplayProperties2KHR      vkGetPhysicalDeviceDisplayProperties2KHR      = 0;
-      PFN_vkGetPhysicalDeviceDisplayPlaneProperties2KHR vkGetPhysicalDeviceDisplayPlaneProperties2KHR = 0;
-      PFN_vkGetDisplayModeProperties2KHR                vkGetDisplayModeProperties2KHR                = 0;
-      PFN_vkGetDisplayPlaneCapabilities2KHR             vkGetDisplayPlaneCapabilities2KHR             = 0;
-
-#  if defined( VK_USE_PLATFORM_IOS_MVK )
-      //=== VK_MVK_ios_surface ===
-      PFN_vkCreateIOSSurfaceMVK vkCreateIOSSurfaceMVK = 0;
-#  else
-      PFN_dummy vkCreateIOSSurfaceMVK_placeholder                             = 0;
-#  endif /*VK_USE_PLATFORM_IOS_MVK*/
-
-#  if defined( VK_USE_PLATFORM_MACOS_MVK )
-      //=== VK_MVK_macos_surface ===
-      PFN_vkCreateMacOSSurfaceMVK vkCreateMacOSSurfaceMVK = 0;
-#  else
-      PFN_dummy vkCreateMacOSSurfaceMVK_placeholder                           = 0;
-#  endif /*VK_USE_PLATFORM_MACOS_MVK*/
-
-      //=== VK_EXT_debug_utils ===
-      PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT  = 0;
-      PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = 0;
-      PFN_vkSubmitDebugUtilsMessageEXT    vkSubmitDebugUtilsMessageEXT    = 0;
-
-      //=== VK_EXT_sample_locations ===
-      PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT vkGetPhysicalDeviceMultisamplePropertiesEXT = 0;
-
-      //=== VK_EXT_calibrated_timestamps ===
-      PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT vkGetPhysicalDeviceCalibrateableTimeDomainsEXT = 0;
-
-#  if defined( VK_USE_PLATFORM_FUCHSIA )
-      //=== VK_FUCHSIA_imagepipe_surface ===
-      PFN_vkCreateImagePipeSurfaceFUCHSIA vkCreateImagePipeSurfaceFUCHSIA = 0;
-#  else
-      PFN_dummy vkCreateImagePipeSurfaceFUCHSIA_placeholder                   = 0;
-#  endif /*VK_USE_PLATFORM_FUCHSIA*/
+#  if defined( VK_ENABLE_BETA_EXTENSIONS )
+          //=== VK_NV_cuda_kernel_launch ===
+          vkCreateCudaModuleNV    = PFN_vkCreateCudaModuleNV( vkGetDeviceProcAddr( device, "vkCreateCudaModuleNV" ) );
+          vkGetCudaModuleCacheNV  = PFN_vkGetCudaModuleCacheNV( vkGetDeviceProcAddr( device, "vkGetCudaModuleCacheNV" ) );
+          vkCreateCudaFunctionNV  = PFN_vkCreateCudaFunctionNV( vkGetDeviceProcAddr( device, "vkCreateCudaFunctionNV" ) );
+          vkDestroyCudaModuleNV   = PFN_vkDestroyCudaModuleNV( vkGetDeviceProcAddr( device, "vkDestroyCudaModuleNV" ) );
+          vkDestroyCudaFunctionNV = PFN_vkDestroyCudaFunctionNV( vkGetDeviceProcAddr( device, "vkDestroyCudaFunctionNV" ) );
+          vkCmdCudaLaunchKernelNV = PFN_vkCmdCudaLaunchKernelNV( vkGetDeviceProcAddr( device, "vkCmdCudaLaunchKernelNV" ) );
+#  endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
 #  if defined( VK_USE_PLATFORM_METAL_EXT )
-      //=== VK_EXT_metal_surface ===
-      PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT = 0;
-#  else
-      PFN_dummy vkCreateMetalSurfaceEXT_placeholder                           = 0;
+          //=== VK_EXT_metal_objects ===
+          vkExportMetalObjectsEXT = PFN_vkExportMetalObjectsEXT( vkGetDeviceProcAddr( device, "vkExportMetalObjectsEXT" ) );
 #  endif /*VK_USE_PLATFORM_METAL_EXT*/
 
-      //=== VK_KHR_fragment_shading_rate ===
-      PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR vkGetPhysicalDeviceFragmentShadingRatesKHR = 0;
+          //=== VK_KHR_synchronization2 ===
+          vkCmdSetEvent2KHR = PFN_vkCmdSetEvent2KHR( vkGetDeviceProcAddr( device, "vkCmdSetEvent2KHR" ) );
+          if ( !vkCmdSetEvent2 )
+            vkCmdSetEvent2 = vkCmdSetEvent2KHR;
+          vkCmdResetEvent2KHR = PFN_vkCmdResetEvent2KHR( vkGetDeviceProcAddr( device, "vkCmdResetEvent2KHR" ) );
+          if ( !vkCmdResetEvent2 )
+            vkCmdResetEvent2 = vkCmdResetEvent2KHR;
+          vkCmdWaitEvents2KHR = PFN_vkCmdWaitEvents2KHR( vkGetDeviceProcAddr( device, "vkCmdWaitEvents2KHR" ) );
+          if ( !vkCmdWaitEvents2 )
+            vkCmdWaitEvents2 = vkCmdWaitEvents2KHR;
+          vkCmdPipelineBarrier2KHR = PFN_vkCmdPipelineBarrier2KHR( vkGetDeviceProcAddr( device, "vkCmdPipelineBarrier2KHR" ) );
+          if ( !vkCmdPipelineBarrier2 )
+            vkCmdPipelineBarrier2 = vkCmdPipelineBarrier2KHR;
+          vkCmdWriteTimestamp2KHR = PFN_vkCmdWriteTimestamp2KHR( vkGetDeviceProcAddr( device, "vkCmdWriteTimestamp2KHR" ) );
+          if ( !vkCmdWriteTimestamp2 )
+            vkCmdWriteTimestamp2 = vkCmdWriteTimestamp2KHR;
+          vkQueueSubmit2KHR = PFN_vkQueueSubmit2KHR( vkGetDeviceProcAddr( device, "vkQueueSubmit2KHR" ) );
+          if ( !vkQueueSubmit2 )
+            vkQueueSubmit2 = vkQueueSubmit2KHR;
 
-      //=== VK_EXT_tooling_info ===
-      PFN_vkGetPhysicalDeviceToolPropertiesEXT vkGetPhysicalDeviceToolPropertiesEXT = 0;
+          //=== VK_EXT_descriptor_buffer ===
+          vkGetDescriptorSetLayoutSizeEXT = PFN_vkGetDescriptorSetLayoutSizeEXT( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutSizeEXT" ) );
+          vkGetDescriptorSetLayoutBindingOffsetEXT =
+            PFN_vkGetDescriptorSetLayoutBindingOffsetEXT( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutBindingOffsetEXT" ) );
+          vkGetDescriptorEXT                 = PFN_vkGetDescriptorEXT( vkGetDeviceProcAddr( device, "vkGetDescriptorEXT" ) );
+          vkCmdBindDescriptorBuffersEXT      = PFN_vkCmdBindDescriptorBuffersEXT( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorBuffersEXT" ) );
+          vkCmdSetDescriptorBufferOffsetsEXT = PFN_vkCmdSetDescriptorBufferOffsetsEXT( vkGetDeviceProcAddr( device, "vkCmdSetDescriptorBufferOffsetsEXT" ) );
+          vkCmdBindDescriptorBufferEmbeddedSamplersEXT =
+            PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorBufferEmbeddedSamplersEXT" ) );
+          vkGetBufferOpaqueCaptureDescriptorDataEXT =
+            PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT( vkGetDeviceProcAddr( device, "vkGetBufferOpaqueCaptureDescriptorDataEXT" ) );
+          vkGetImageOpaqueCaptureDescriptorDataEXT =
+            PFN_vkGetImageOpaqueCaptureDescriptorDataEXT( vkGetDeviceProcAddr( device, "vkGetImageOpaqueCaptureDescriptorDataEXT" ) );
+          vkGetImageViewOpaqueCaptureDescriptorDataEXT =
+            PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT( vkGetDeviceProcAddr( device, "vkGetImageViewOpaqueCaptureDescriptorDataEXT" ) );
+          vkGetSamplerOpaqueCaptureDescriptorDataEXT =
+            PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT( vkGetDeviceProcAddr( device, "vkGetSamplerOpaqueCaptureDescriptorDataEXT" ) );
+          vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT = PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT(
+            vkGetDeviceProcAddr( device, "vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT" ) );
 
-      //=== VK_NV_cooperative_matrix ===
-      PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesNV vkGetPhysicalDeviceCooperativeMatrixPropertiesNV = 0;
+          //=== VK_NV_fragment_shading_rate_enums ===
+          vkCmdSetFragmentShadingRateEnumNV = PFN_vkCmdSetFragmentShadingRateEnumNV( vkGetDeviceProcAddr( device, "vkCmdSetFragmentShadingRateEnumNV" ) );
 
-      //=== VK_NV_coverage_reduction_mode ===
-      PFN_vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV = 0;
+          //=== VK_EXT_mesh_shader ===
+          vkCmdDrawMeshTasksEXT              = PFN_vkCmdDrawMeshTasksEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksEXT" ) );
+          vkCmdDrawMeshTasksIndirectEXT      = PFN_vkCmdDrawMeshTasksIndirectEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksIndirectEXT" ) );
+          vkCmdDrawMeshTasksIndirectCountEXT = PFN_vkCmdDrawMeshTasksIndirectCountEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksIndirectCountEXT" ) );
 
-#  if defined( VK_USE_PLATFORM_WIN32_KHR )
-      //=== VK_EXT_full_screen_exclusive ===
-      PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT vkGetPhysicalDeviceSurfacePresentModes2EXT = 0;
-#  else
-      PFN_dummy vkGetPhysicalDeviceSurfacePresentModes2EXT_placeholder        = 0;
-#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
+          //=== VK_KHR_copy_commands2 ===
+          vkCmdCopyBuffer2KHR = PFN_vkCmdCopyBuffer2KHR( vkGetDeviceProcAddr( device, "vkCmdCopyBuffer2KHR" ) );
+          if ( !vkCmdCopyBuffer2 )
+            vkCmdCopyBuffer2 = vkCmdCopyBuffer2KHR;
+          vkCmdCopyImage2KHR = PFN_vkCmdCopyImage2KHR( vkGetDeviceProcAddr( device, "vkCmdCopyImage2KHR" ) );
+          if ( !vkCmdCopyImage2 )
+            vkCmdCopyImage2 = vkCmdCopyImage2KHR;
+          vkCmdCopyBufferToImage2KHR = PFN_vkCmdCopyBufferToImage2KHR( vkGetDeviceProcAddr( device, "vkCmdCopyBufferToImage2KHR" ) );
+          if ( !vkCmdCopyBufferToImage2 )
+            vkCmdCopyBufferToImage2 = vkCmdCopyBufferToImage2KHR;
+          vkCmdCopyImageToBuffer2KHR = PFN_vkCmdCopyImageToBuffer2KHR( vkGetDeviceProcAddr( device, "vkCmdCopyImageToBuffer2KHR" ) );
+          if ( !vkCmdCopyImageToBuffer2 )
+            vkCmdCopyImageToBuffer2 = vkCmdCopyImageToBuffer2KHR;
+          vkCmdBlitImage2KHR = PFN_vkCmdBlitImage2KHR( vkGetDeviceProcAddr( device, "vkCmdBlitImage2KHR" ) );
+          if ( !vkCmdBlitImage2 )
+            vkCmdBlitImage2 = vkCmdBlitImage2KHR;
+          vkCmdResolveImage2KHR = PFN_vkCmdResolveImage2KHR( vkGetDeviceProcAddr( device, "vkCmdResolveImage2KHR" ) );
+          if ( !vkCmdResolveImage2 )
+            vkCmdResolveImage2 = vkCmdResolveImage2KHR;
 
-      //=== VK_EXT_headless_surface ===
-      PFN_vkCreateHeadlessSurfaceEXT vkCreateHeadlessSurfaceEXT = 0;
+          //=== VK_EXT_device_fault ===
+          vkGetDeviceFaultInfoEXT = PFN_vkGetDeviceFaultInfoEXT( vkGetDeviceProcAddr( device, "vkGetDeviceFaultInfoEXT" ) );
 
-      //=== VK_EXT_acquire_drm_display ===
-      PFN_vkAcquireDrmDisplayEXT vkAcquireDrmDisplayEXT = 0;
-      PFN_vkGetDrmDisplayEXT     vkGetDrmDisplayEXT     = 0;
+          //=== VK_EXT_vertex_input_dynamic_state ===
+          vkCmdSetVertexInputEXT = PFN_vkCmdSetVertexInputEXT( vkGetDeviceProcAddr( device, "vkCmdSetVertexInputEXT" ) );
 
-      //=== VK_KHR_video_encode_queue ===
-      PFN_vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR = 0;
+#  if defined( VK_USE_PLATFORM_FUCHSIA )
+          //=== VK_FUCHSIA_external_memory ===
+          vkGetMemoryZirconHandleFUCHSIA = PFN_vkGetMemoryZirconHandleFUCHSIA( vkGetDeviceProcAddr( device, "vkGetMemoryZirconHandleFUCHSIA" ) );
+          vkGetMemoryZirconHandlePropertiesFUCHSIA =
+            PFN_vkGetMemoryZirconHandlePropertiesFUCHSIA( vkGetDeviceProcAddr( device, "vkGetMemoryZirconHandlePropertiesFUCHSIA" ) );
+#  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
-#  if defined( VK_USE_PLATFORM_WIN32_KHR )
-      //=== VK_NV_acquire_winrt_display ===
-      PFN_vkAcquireWinrtDisplayNV vkAcquireWinrtDisplayNV = 0;
-      PFN_vkGetWinrtDisplayNV     vkGetWinrtDisplayNV     = 0;
-#  else
-      PFN_dummy vkAcquireWinrtDisplayNV_placeholder                           = 0;
-      PFN_dummy vkGetWinrtDisplayNV_placeholder                               = 0;
-#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
+#  if defined( VK_USE_PLATFORM_FUCHSIA )
+          //=== VK_FUCHSIA_external_semaphore ===
+          vkImportSemaphoreZirconHandleFUCHSIA =
+            PFN_vkImportSemaphoreZirconHandleFUCHSIA( vkGetDeviceProcAddr( device, "vkImportSemaphoreZirconHandleFUCHSIA" ) );
+          vkGetSemaphoreZirconHandleFUCHSIA = PFN_vkGetSemaphoreZirconHandleFUCHSIA( vkGetDeviceProcAddr( device, "vkGetSemaphoreZirconHandleFUCHSIA" ) );
+#  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
-#  if defined( VK_USE_PLATFORM_DIRECTFB_EXT )
-      //=== VK_EXT_directfb_surface ===
-      PFN_vkCreateDirectFBSurfaceEXT                        vkCreateDirectFBSurfaceEXT                        = 0;
-      PFN_vkGetPhysicalDeviceDirectFBPresentationSupportEXT vkGetPhysicalDeviceDirectFBPresentationSupportEXT = 0;
-#  else
-      PFN_dummy vkCreateDirectFBSurfaceEXT_placeholder                        = 0;
-      PFN_dummy vkGetPhysicalDeviceDirectFBPresentationSupportEXT_placeholder = 0;
-#  endif /*VK_USE_PLATFORM_DIRECTFB_EXT*/
+#  if defined( VK_USE_PLATFORM_FUCHSIA )
+          //=== VK_FUCHSIA_buffer_collection ===
+          vkCreateBufferCollectionFUCHSIA = PFN_vkCreateBufferCollectionFUCHSIA( vkGetDeviceProcAddr( device, "vkCreateBufferCollectionFUCHSIA" ) );
+          vkSetBufferCollectionImageConstraintsFUCHSIA =
+            PFN_vkSetBufferCollectionImageConstraintsFUCHSIA( vkGetDeviceProcAddr( device, "vkSetBufferCollectionImageConstraintsFUCHSIA" ) );
+          vkSetBufferCollectionBufferConstraintsFUCHSIA =
+            PFN_vkSetBufferCollectionBufferConstraintsFUCHSIA( vkGetDeviceProcAddr( device, "vkSetBufferCollectionBufferConstraintsFUCHSIA" ) );
+          vkDestroyBufferCollectionFUCHSIA = PFN_vkDestroyBufferCollectionFUCHSIA( vkGetDeviceProcAddr( device, "vkDestroyBufferCollectionFUCHSIA" ) );
+          vkGetBufferCollectionPropertiesFUCHSIA =
+            PFN_vkGetBufferCollectionPropertiesFUCHSIA( vkGetDeviceProcAddr( device, "vkGetBufferCollectionPropertiesFUCHSIA" ) );
+#  endif /*VK_USE_PLATFORM_FUCHSIA*/
+
+          //=== VK_HUAWEI_subpass_shading ===
+          vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI =
+            PFN_vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI( vkGetDeviceProcAddr( device, "vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI" ) );
+          vkCmdSubpassShadingHUAWEI = PFN_vkCmdSubpassShadingHUAWEI( vkGetDeviceProcAddr( device, "vkCmdSubpassShadingHUAWEI" ) );
+
+          //=== VK_HUAWEI_invocation_mask ===
+          vkCmdBindInvocationMaskHUAWEI = PFN_vkCmdBindInvocationMaskHUAWEI( vkGetDeviceProcAddr( device, "vkCmdBindInvocationMaskHUAWEI" ) );
+
+          //=== VK_NV_external_memory_rdma ===
+          vkGetMemoryRemoteAddressNV = PFN_vkGetMemoryRemoteAddressNV( vkGetDeviceProcAddr( device, "vkGetMemoryRemoteAddressNV" ) );
+
+          //=== VK_EXT_pipeline_properties ===
+          vkGetPipelinePropertiesEXT = PFN_vkGetPipelinePropertiesEXT( vkGetDeviceProcAddr( device, "vkGetPipelinePropertiesEXT" ) );
+
+          //=== VK_EXT_extended_dynamic_state2 ===
+          vkCmdSetPatchControlPointsEXT      = PFN_vkCmdSetPatchControlPointsEXT( vkGetDeviceProcAddr( device, "vkCmdSetPatchControlPointsEXT" ) );
+          vkCmdSetRasterizerDiscardEnableEXT = PFN_vkCmdSetRasterizerDiscardEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetRasterizerDiscardEnableEXT" ) );
+          if ( !vkCmdSetRasterizerDiscardEnable )
+            vkCmdSetRasterizerDiscardEnable = vkCmdSetRasterizerDiscardEnableEXT;
+          vkCmdSetDepthBiasEnableEXT = PFN_vkCmdSetDepthBiasEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthBiasEnableEXT" ) );
+          if ( !vkCmdSetDepthBiasEnable )
+            vkCmdSetDepthBiasEnable = vkCmdSetDepthBiasEnableEXT;
+          vkCmdSetLogicOpEXT                = PFN_vkCmdSetLogicOpEXT( vkGetDeviceProcAddr( device, "vkCmdSetLogicOpEXT" ) );
+          vkCmdSetPrimitiveRestartEnableEXT = PFN_vkCmdSetPrimitiveRestartEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetPrimitiveRestartEnableEXT" ) );
+          if ( !vkCmdSetPrimitiveRestartEnable )
+            vkCmdSetPrimitiveRestartEnable = vkCmdSetPrimitiveRestartEnableEXT;
+
+          //=== VK_EXT_color_write_enable ===
+          vkCmdSetColorWriteEnableEXT = PFN_vkCmdSetColorWriteEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorWriteEnableEXT" ) );
+
+          //=== VK_KHR_ray_tracing_maintenance1 ===
+          vkCmdTraceRaysIndirect2KHR = PFN_vkCmdTraceRaysIndirect2KHR( vkGetDeviceProcAddr( device, "vkCmdTraceRaysIndirect2KHR" ) );
+
+          //=== VK_EXT_multi_draw ===
+          vkCmdDrawMultiEXT        = PFN_vkCmdDrawMultiEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMultiEXT" ) );
+          vkCmdDrawMultiIndexedEXT = PFN_vkCmdDrawMultiIndexedEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMultiIndexedEXT" ) );
+
+          //=== VK_EXT_opacity_micromap ===
+          vkCreateMicromapEXT                 = PFN_vkCreateMicromapEXT( vkGetDeviceProcAddr( device, "vkCreateMicromapEXT" ) );
+          vkDestroyMicromapEXT                = PFN_vkDestroyMicromapEXT( vkGetDeviceProcAddr( device, "vkDestroyMicromapEXT" ) );
+          vkCmdBuildMicromapsEXT              = PFN_vkCmdBuildMicromapsEXT( vkGetDeviceProcAddr( device, "vkCmdBuildMicromapsEXT" ) );
+          vkBuildMicromapsEXT                 = PFN_vkBuildMicromapsEXT( vkGetDeviceProcAddr( device, "vkBuildMicromapsEXT" ) );
+          vkCopyMicromapEXT                   = PFN_vkCopyMicromapEXT( vkGetDeviceProcAddr( device, "vkCopyMicromapEXT" ) );
+          vkCopyMicromapToMemoryEXT           = PFN_vkCopyMicromapToMemoryEXT( vkGetDeviceProcAddr( device, "vkCopyMicromapToMemoryEXT" ) );
+          vkCopyMemoryToMicromapEXT           = PFN_vkCopyMemoryToMicromapEXT( vkGetDeviceProcAddr( device, "vkCopyMemoryToMicromapEXT" ) );
+          vkWriteMicromapsPropertiesEXT       = PFN_vkWriteMicromapsPropertiesEXT( vkGetDeviceProcAddr( device, "vkWriteMicromapsPropertiesEXT" ) );
+          vkCmdCopyMicromapEXT                = PFN_vkCmdCopyMicromapEXT( vkGetDeviceProcAddr( device, "vkCmdCopyMicromapEXT" ) );
+          vkCmdCopyMicromapToMemoryEXT        = PFN_vkCmdCopyMicromapToMemoryEXT( vkGetDeviceProcAddr( device, "vkCmdCopyMicromapToMemoryEXT" ) );
+          vkCmdCopyMemoryToMicromapEXT        = PFN_vkCmdCopyMemoryToMicromapEXT( vkGetDeviceProcAddr( device, "vkCmdCopyMemoryToMicromapEXT" ) );
+          vkCmdWriteMicromapsPropertiesEXT    = PFN_vkCmdWriteMicromapsPropertiesEXT( vkGetDeviceProcAddr( device, "vkCmdWriteMicromapsPropertiesEXT" ) );
+          vkGetDeviceMicromapCompatibilityEXT = PFN_vkGetDeviceMicromapCompatibilityEXT( vkGetDeviceProcAddr( device, "vkGetDeviceMicromapCompatibilityEXT" ) );
+          vkGetMicromapBuildSizesEXT          = PFN_vkGetMicromapBuildSizesEXT( vkGetDeviceProcAddr( device, "vkGetMicromapBuildSizesEXT" ) );
+
+          //=== VK_HUAWEI_cluster_culling_shader ===
+          vkCmdDrawClusterHUAWEI         = PFN_vkCmdDrawClusterHUAWEI( vkGetDeviceProcAddr( device, "vkCmdDrawClusterHUAWEI" ) );
+          vkCmdDrawClusterIndirectHUAWEI = PFN_vkCmdDrawClusterIndirectHUAWEI( vkGetDeviceProcAddr( device, "vkCmdDrawClusterIndirectHUAWEI" ) );
+
+          //=== VK_EXT_pageable_device_local_memory ===
+          vkSetDeviceMemoryPriorityEXT = PFN_vkSetDeviceMemoryPriorityEXT( vkGetDeviceProcAddr( device, "vkSetDeviceMemoryPriorityEXT" ) );
+
+          //=== VK_KHR_maintenance4 ===
+          vkGetDeviceBufferMemoryRequirementsKHR =
+            PFN_vkGetDeviceBufferMemoryRequirementsKHR( vkGetDeviceProcAddr( device, "vkGetDeviceBufferMemoryRequirementsKHR" ) );
+          if ( !vkGetDeviceBufferMemoryRequirements )
+            vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirementsKHR;
+          vkGetDeviceImageMemoryRequirementsKHR =
+            PFN_vkGetDeviceImageMemoryRequirementsKHR( vkGetDeviceProcAddr( device, "vkGetDeviceImageMemoryRequirementsKHR" ) );
+          if ( !vkGetDeviceImageMemoryRequirements )
+            vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirementsKHR;
+          vkGetDeviceImageSparseMemoryRequirementsKHR =
+            PFN_vkGetDeviceImageSparseMemoryRequirementsKHR( vkGetDeviceProcAddr( device, "vkGetDeviceImageSparseMemoryRequirementsKHR" ) );
+          if ( !vkGetDeviceImageSparseMemoryRequirements )
+            vkGetDeviceImageSparseMemoryRequirements = vkGetDeviceImageSparseMemoryRequirementsKHR;
+
+          //=== VK_VALVE_descriptor_set_host_mapping ===
+          vkGetDescriptorSetLayoutHostMappingInfoVALVE =
+            PFN_vkGetDescriptorSetLayoutHostMappingInfoVALVE( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutHostMappingInfoVALVE" ) );
+          vkGetDescriptorSetHostMappingVALVE = PFN_vkGetDescriptorSetHostMappingVALVE( vkGetDeviceProcAddr( device, "vkGetDescriptorSetHostMappingVALVE" ) );
+
+          //=== VK_NV_copy_memory_indirect ===
+          vkCmdCopyMemoryIndirectNV        = PFN_vkCmdCopyMemoryIndirectNV( vkGetDeviceProcAddr( device, "vkCmdCopyMemoryIndirectNV" ) );
+          vkCmdCopyMemoryToImageIndirectNV = PFN_vkCmdCopyMemoryToImageIndirectNV( vkGetDeviceProcAddr( device, "vkCmdCopyMemoryToImageIndirectNV" ) );
+
+          //=== VK_NV_memory_decompression ===
+          vkCmdDecompressMemoryNV = PFN_vkCmdDecompressMemoryNV( vkGetDeviceProcAddr( device, "vkCmdDecompressMemoryNV" ) );
+          vkCmdDecompressMemoryIndirectCountNV =
+            PFN_vkCmdDecompressMemoryIndirectCountNV( vkGetDeviceProcAddr( device, "vkCmdDecompressMemoryIndirectCountNV" ) );
+
+          //=== VK_NV_device_generated_commands_compute ===
+          vkGetPipelineIndirectMemoryRequirementsNV =
+            PFN_vkGetPipelineIndirectMemoryRequirementsNV( vkGetDeviceProcAddr( device, "vkGetPipelineIndirectMemoryRequirementsNV" ) );
+          vkCmdUpdatePipelineIndirectBufferNV = PFN_vkCmdUpdatePipelineIndirectBufferNV( vkGetDeviceProcAddr( device, "vkCmdUpdatePipelineIndirectBufferNV" ) );
+          vkGetPipelineIndirectDeviceAddressNV =
+            PFN_vkGetPipelineIndirectDeviceAddressNV( vkGetDeviceProcAddr( device, "vkGetPipelineIndirectDeviceAddressNV" ) );
+
+          //=== VK_EXT_extended_dynamic_state3 ===
+          vkCmdSetDepthClampEnableEXT         = PFN_vkCmdSetDepthClampEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthClampEnableEXT" ) );
+          vkCmdSetPolygonModeEXT              = PFN_vkCmdSetPolygonModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetPolygonModeEXT" ) );
+          vkCmdSetRasterizationSamplesEXT     = PFN_vkCmdSetRasterizationSamplesEXT( vkGetDeviceProcAddr( device, "vkCmdSetRasterizationSamplesEXT" ) );
+          vkCmdSetSampleMaskEXT               = PFN_vkCmdSetSampleMaskEXT( vkGetDeviceProcAddr( device, "vkCmdSetSampleMaskEXT" ) );
+          vkCmdSetAlphaToCoverageEnableEXT    = PFN_vkCmdSetAlphaToCoverageEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetAlphaToCoverageEnableEXT" ) );
+          vkCmdSetAlphaToOneEnableEXT         = PFN_vkCmdSetAlphaToOneEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetAlphaToOneEnableEXT" ) );
+          vkCmdSetLogicOpEnableEXT            = PFN_vkCmdSetLogicOpEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetLogicOpEnableEXT" ) );
+          vkCmdSetColorBlendEnableEXT         = PFN_vkCmdSetColorBlendEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorBlendEnableEXT" ) );
+          vkCmdSetColorBlendEquationEXT       = PFN_vkCmdSetColorBlendEquationEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorBlendEquationEXT" ) );
+          vkCmdSetColorWriteMaskEXT           = PFN_vkCmdSetColorWriteMaskEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorWriteMaskEXT" ) );
+          vkCmdSetTessellationDomainOriginEXT = PFN_vkCmdSetTessellationDomainOriginEXT( vkGetDeviceProcAddr( device, "vkCmdSetTessellationDomainOriginEXT" ) );
+          vkCmdSetRasterizationStreamEXT      = PFN_vkCmdSetRasterizationStreamEXT( vkGetDeviceProcAddr( device, "vkCmdSetRasterizationStreamEXT" ) );
+          vkCmdSetConservativeRasterizationModeEXT =
+            PFN_vkCmdSetConservativeRasterizationModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetConservativeRasterizationModeEXT" ) );
+          vkCmdSetExtraPrimitiveOverestimationSizeEXT =
+            PFN_vkCmdSetExtraPrimitiveOverestimationSizeEXT( vkGetDeviceProcAddr( device, "vkCmdSetExtraPrimitiveOverestimationSizeEXT" ) );
+          vkCmdSetDepthClipEnableEXT       = PFN_vkCmdSetDepthClipEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthClipEnableEXT" ) );
+          vkCmdSetSampleLocationsEnableEXT = PFN_vkCmdSetSampleLocationsEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetSampleLocationsEnableEXT" ) );
+          vkCmdSetColorBlendAdvancedEXT    = PFN_vkCmdSetColorBlendAdvancedEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorBlendAdvancedEXT" ) );
+          vkCmdSetProvokingVertexModeEXT   = PFN_vkCmdSetProvokingVertexModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetProvokingVertexModeEXT" ) );
+          vkCmdSetLineRasterizationModeEXT = PFN_vkCmdSetLineRasterizationModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetLineRasterizationModeEXT" ) );
+          vkCmdSetLineStippleEnableEXT     = PFN_vkCmdSetLineStippleEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetLineStippleEnableEXT" ) );
+          vkCmdSetDepthClipNegativeOneToOneEXT =
+            PFN_vkCmdSetDepthClipNegativeOneToOneEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthClipNegativeOneToOneEXT" ) );
+          vkCmdSetViewportWScalingEnableNV  = PFN_vkCmdSetViewportWScalingEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetViewportWScalingEnableNV" ) );
+          vkCmdSetViewportSwizzleNV         = PFN_vkCmdSetViewportSwizzleNV( vkGetDeviceProcAddr( device, "vkCmdSetViewportSwizzleNV" ) );
+          vkCmdSetCoverageToColorEnableNV   = PFN_vkCmdSetCoverageToColorEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageToColorEnableNV" ) );
+          vkCmdSetCoverageToColorLocationNV = PFN_vkCmdSetCoverageToColorLocationNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageToColorLocationNV" ) );
+          vkCmdSetCoverageModulationModeNV  = PFN_vkCmdSetCoverageModulationModeNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageModulationModeNV" ) );
+          vkCmdSetCoverageModulationTableEnableNV =
+            PFN_vkCmdSetCoverageModulationTableEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageModulationTableEnableNV" ) );
+          vkCmdSetCoverageModulationTableNV = PFN_vkCmdSetCoverageModulationTableNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageModulationTableNV" ) );
+          vkCmdSetShadingRateImageEnableNV  = PFN_vkCmdSetShadingRateImageEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetShadingRateImageEnableNV" ) );
+          vkCmdSetRepresentativeFragmentTestEnableNV =
+            PFN_vkCmdSetRepresentativeFragmentTestEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetRepresentativeFragmentTestEnableNV" ) );
+          vkCmdSetCoverageReductionModeNV = PFN_vkCmdSetCoverageReductionModeNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageReductionModeNV" ) );
+
+          //=== VK_EXT_shader_module_identifier ===
+          vkGetShaderModuleIdentifierEXT = PFN_vkGetShaderModuleIdentifierEXT( vkGetDeviceProcAddr( device, "vkGetShaderModuleIdentifierEXT" ) );
+          vkGetShaderModuleCreateInfoIdentifierEXT =
+            PFN_vkGetShaderModuleCreateInfoIdentifierEXT( vkGetDeviceProcAddr( device, "vkGetShaderModuleCreateInfoIdentifierEXT" ) );
+
+          //=== VK_NV_optical_flow ===
+          vkCreateOpticalFlowSessionNV    = PFN_vkCreateOpticalFlowSessionNV( vkGetDeviceProcAddr( device, "vkCreateOpticalFlowSessionNV" ) );
+          vkDestroyOpticalFlowSessionNV   = PFN_vkDestroyOpticalFlowSessionNV( vkGetDeviceProcAddr( device, "vkDestroyOpticalFlowSessionNV" ) );
+          vkBindOpticalFlowSessionImageNV = PFN_vkBindOpticalFlowSessionImageNV( vkGetDeviceProcAddr( device, "vkBindOpticalFlowSessionImageNV" ) );
+          vkCmdOpticalFlowExecuteNV       = PFN_vkCmdOpticalFlowExecuteNV( vkGetDeviceProcAddr( device, "vkCmdOpticalFlowExecuteNV" ) );
+
+          //=== VK_KHR_maintenance5 ===
+          vkCmdBindIndexBuffer2KHR = PFN_vkCmdBindIndexBuffer2KHR( vkGetDeviceProcAddr( device, "vkCmdBindIndexBuffer2KHR" ) );
+          if ( !vkCmdBindIndexBuffer2 )
+            vkCmdBindIndexBuffer2 = vkCmdBindIndexBuffer2KHR;
+          vkGetRenderingAreaGranularityKHR = PFN_vkGetRenderingAreaGranularityKHR( vkGetDeviceProcAddr( device, "vkGetRenderingAreaGranularityKHR" ) );
+          if ( !vkGetRenderingAreaGranularity )
+            vkGetRenderingAreaGranularity = vkGetRenderingAreaGranularityKHR;
+          vkGetDeviceImageSubresourceLayoutKHR =
+            PFN_vkGetDeviceImageSubresourceLayoutKHR( vkGetDeviceProcAddr( device, "vkGetDeviceImageSubresourceLayoutKHR" ) );
+          if ( !vkGetDeviceImageSubresourceLayout )
+            vkGetDeviceImageSubresourceLayout = vkGetDeviceImageSubresourceLayoutKHR;
+          vkGetImageSubresourceLayout2KHR = PFN_vkGetImageSubresourceLayout2KHR( vkGetDeviceProcAddr( device, "vkGetImageSubresourceLayout2KHR" ) );
+          if ( !vkGetImageSubresourceLayout2 )
+            vkGetImageSubresourceLayout2 = vkGetImageSubresourceLayout2KHR;
+
+          //=== VK_AMD_anti_lag ===
+          vkAntiLagUpdateAMD = PFN_vkAntiLagUpdateAMD( vkGetDeviceProcAddr( device, "vkAntiLagUpdateAMD" ) );
+
+          //=== VK_EXT_shader_object ===
+          vkCreateShadersEXT         = PFN_vkCreateShadersEXT( vkGetDeviceProcAddr( device, "vkCreateShadersEXT" ) );
+          vkDestroyShaderEXT         = PFN_vkDestroyShaderEXT( vkGetDeviceProcAddr( device, "vkDestroyShaderEXT" ) );
+          vkGetShaderBinaryDataEXT   = PFN_vkGetShaderBinaryDataEXT( vkGetDeviceProcAddr( device, "vkGetShaderBinaryDataEXT" ) );
+          vkCmdBindShadersEXT        = PFN_vkCmdBindShadersEXT( vkGetDeviceProcAddr( device, "vkCmdBindShadersEXT" ) );
+          vkCmdSetDepthClampRangeEXT = PFN_vkCmdSetDepthClampRangeEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthClampRangeEXT" ) );
+
+          //=== VK_KHR_pipeline_binary ===
+          vkCreatePipelineBinariesKHR      = PFN_vkCreatePipelineBinariesKHR( vkGetDeviceProcAddr( device, "vkCreatePipelineBinariesKHR" ) );
+          vkDestroyPipelineBinaryKHR       = PFN_vkDestroyPipelineBinaryKHR( vkGetDeviceProcAddr( device, "vkDestroyPipelineBinaryKHR" ) );
+          vkGetPipelineKeyKHR              = PFN_vkGetPipelineKeyKHR( vkGetDeviceProcAddr( device, "vkGetPipelineKeyKHR" ) );
+          vkGetPipelineBinaryDataKHR       = PFN_vkGetPipelineBinaryDataKHR( vkGetDeviceProcAddr( device, "vkGetPipelineBinaryDataKHR" ) );
+          vkReleaseCapturedPipelineDataKHR = PFN_vkReleaseCapturedPipelineDataKHR( vkGetDeviceProcAddr( device, "vkReleaseCapturedPipelineDataKHR" ) );
+
+          //=== VK_QCOM_tile_properties ===
+          vkGetFramebufferTilePropertiesQCOM = PFN_vkGetFramebufferTilePropertiesQCOM( vkGetDeviceProcAddr( device, "vkGetFramebufferTilePropertiesQCOM" ) );
+          vkGetDynamicRenderingTilePropertiesQCOM =
+            PFN_vkGetDynamicRenderingTilePropertiesQCOM( vkGetDeviceProcAddr( device, "vkGetDynamicRenderingTilePropertiesQCOM" ) );
+
+          //=== VK_NV_low_latency2 ===
+          vkSetLatencySleepModeNV  = PFN_vkSetLatencySleepModeNV( vkGetDeviceProcAddr( device, "vkSetLatencySleepModeNV" ) );
+          vkLatencySleepNV         = PFN_vkLatencySleepNV( vkGetDeviceProcAddr( device, "vkLatencySleepNV" ) );
+          vkSetLatencyMarkerNV     = PFN_vkSetLatencyMarkerNV( vkGetDeviceProcAddr( device, "vkSetLatencyMarkerNV" ) );
+          vkGetLatencyTimingsNV    = PFN_vkGetLatencyTimingsNV( vkGetDeviceProcAddr( device, "vkGetLatencyTimingsNV" ) );
+          vkQueueNotifyOutOfBandNV = PFN_vkQueueNotifyOutOfBandNV( vkGetDeviceProcAddr( device, "vkQueueNotifyOutOfBandNV" ) );
+
+          //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
+          vkCmdSetAttachmentFeedbackLoopEnableEXT =
+            PFN_vkCmdSetAttachmentFeedbackLoopEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetAttachmentFeedbackLoopEnableEXT" ) );
 
 #  if defined( VK_USE_PLATFORM_SCREEN_QNX )
-      //=== VK_QNX_screen_surface ===
-      PFN_vkCreateScreenSurfaceQNX                        vkCreateScreenSurfaceQNX                        = 0;
-      PFN_vkGetPhysicalDeviceScreenPresentationSupportQNX vkGetPhysicalDeviceScreenPresentationSupportQNX = 0;
-#  else
-      PFN_dummy vkCreateScreenSurfaceQNX_placeholder                          = 0;
-      PFN_dummy vkGetPhysicalDeviceScreenPresentationSupportQNX_placeholder   = 0;
+          //=== VK_QNX_external_memory_screen_buffer ===
+          vkGetScreenBufferPropertiesQNX = PFN_vkGetScreenBufferPropertiesQNX( vkGetDeviceProcAddr( device, "vkGetScreenBufferPropertiesQNX" ) );
 #  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
 
-      //=== VK_NV_optical_flow ===
-      PFN_vkGetPhysicalDeviceOpticalFlowImageFormatsNV vkGetPhysicalDeviceOpticalFlowImageFormatsNV = 0;
+          //=== VK_KHR_line_rasterization ===
+          vkCmdSetLineStippleKHR = PFN_vkCmdSetLineStippleKHR( vkGetDeviceProcAddr( device, "vkCmdSetLineStippleKHR" ) );
+          if ( !vkCmdSetLineStipple )
+            vkCmdSetLineStipple = vkCmdSetLineStippleKHR;
 
-      //=== VK_KHR_cooperative_matrix ===
-      PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR = 0;
+          //=== VK_KHR_calibrated_timestamps ===
+          vkGetCalibratedTimestampsKHR = PFN_vkGetCalibratedTimestampsKHR( vkGetDeviceProcAddr( device, "vkGetCalibratedTimestampsKHR" ) );
 
-      //=== VK_KHR_calibrated_timestamps ===
-      PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsKHR vkGetPhysicalDeviceCalibrateableTimeDomainsKHR = 0;
+          //=== VK_KHR_maintenance6 ===
+          vkCmdBindDescriptorSets2KHR = PFN_vkCmdBindDescriptorSets2KHR( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorSets2KHR" ) );
+          if ( !vkCmdBindDescriptorSets2 )
+            vkCmdBindDescriptorSets2 = vkCmdBindDescriptorSets2KHR;
+          vkCmdPushConstants2KHR = PFN_vkCmdPushConstants2KHR( vkGetDeviceProcAddr( device, "vkCmdPushConstants2KHR" ) );
+          if ( !vkCmdPushConstants2 )
+            vkCmdPushConstants2 = vkCmdPushConstants2KHR;
+          vkCmdPushDescriptorSet2KHR = PFN_vkCmdPushDescriptorSet2KHR( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSet2KHR" ) );
+          if ( !vkCmdPushDescriptorSet2 )
+            vkCmdPushDescriptorSet2 = vkCmdPushDescriptorSet2KHR;
+          vkCmdPushDescriptorSetWithTemplate2KHR =
+            PFN_vkCmdPushDescriptorSetWithTemplate2KHR( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetWithTemplate2KHR" ) );
+          if ( !vkCmdPushDescriptorSetWithTemplate2 )
+            vkCmdPushDescriptorSetWithTemplate2 = vkCmdPushDescriptorSetWithTemplate2KHR;
+          vkCmdSetDescriptorBufferOffsets2EXT = PFN_vkCmdSetDescriptorBufferOffsets2EXT( vkGetDeviceProcAddr( device, "vkCmdSetDescriptorBufferOffsets2EXT" ) );
+          vkCmdBindDescriptorBufferEmbeddedSamplers2EXT =
+            PFN_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorBufferEmbeddedSamplers2EXT" ) );
 
-      PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr = 0;
-    };
+          //=== VK_EXT_device_generated_commands ===
+          vkGetGeneratedCommandsMemoryRequirementsEXT =
+            PFN_vkGetGeneratedCommandsMemoryRequirementsEXT( vkGetDeviceProcAddr( device, "vkGetGeneratedCommandsMemoryRequirementsEXT" ) );
+          vkCmdPreprocessGeneratedCommandsEXT = PFN_vkCmdPreprocessGeneratedCommandsEXT( vkGetDeviceProcAddr( device, "vkCmdPreprocessGeneratedCommandsEXT" ) );
+          vkCmdExecuteGeneratedCommandsEXT    = PFN_vkCmdExecuteGeneratedCommandsEXT( vkGetDeviceProcAddr( device, "vkCmdExecuteGeneratedCommandsEXT" ) );
+          vkCreateIndirectCommandsLayoutEXT   = PFN_vkCreateIndirectCommandsLayoutEXT( vkGetDeviceProcAddr( device, "vkCreateIndirectCommandsLayoutEXT" ) );
+          vkDestroyIndirectCommandsLayoutEXT  = PFN_vkDestroyIndirectCommandsLayoutEXT( vkGetDeviceProcAddr( device, "vkDestroyIndirectCommandsLayoutEXT" ) );
+          vkCreateIndirectExecutionSetEXT     = PFN_vkCreateIndirectExecutionSetEXT( vkGetDeviceProcAddr( device, "vkCreateIndirectExecutionSetEXT" ) );
+          vkDestroyIndirectExecutionSetEXT    = PFN_vkDestroyIndirectExecutionSetEXT( vkGetDeviceProcAddr( device, "vkDestroyIndirectExecutionSetEXT" ) );
+          vkUpdateIndirectExecutionSetPipelineEXT =
+            PFN_vkUpdateIndirectExecutionSetPipelineEXT( vkGetDeviceProcAddr( device, "vkUpdateIndirectExecutionSetPipelineEXT" ) );
+          vkUpdateIndirectExecutionSetShaderEXT =
+            PFN_vkUpdateIndirectExecutionSetShaderEXT( vkGetDeviceProcAddr( device, "vkUpdateIndirectExecutionSetShaderEXT" ) );
+        }
 
-    class DeviceDispatcher : public DispatchLoaderBase
-    {
-    public:
-      DeviceDispatcher( PFN_vkGetDeviceProcAddr getProcAddr, VkDevice device ) : vkGetDeviceProcAddr( getProcAddr )
-      {
+      public:
         //=== VK_VERSION_1_0 ===
-        vkGetDeviceProcAddr                = PFN_vkGetDeviceProcAddr( vkGetDeviceProcAddr( device, "vkGetDeviceProcAddr" ) );
-        vkDestroyDevice                    = PFN_vkDestroyDevice( vkGetDeviceProcAddr( device, "vkDestroyDevice" ) );
-        vkGetDeviceQueue                   = PFN_vkGetDeviceQueue( vkGetDeviceProcAddr( device, "vkGetDeviceQueue" ) );
-        vkQueueSubmit                      = PFN_vkQueueSubmit( vkGetDeviceProcAddr( device, "vkQueueSubmit" ) );
-        vkQueueWaitIdle                    = PFN_vkQueueWaitIdle( vkGetDeviceProcAddr( device, "vkQueueWaitIdle" ) );
-        vkDeviceWaitIdle                   = PFN_vkDeviceWaitIdle( vkGetDeviceProcAddr( device, "vkDeviceWaitIdle" ) );
-        vkAllocateMemory                   = PFN_vkAllocateMemory( vkGetDeviceProcAddr( device, "vkAllocateMemory" ) );
-        vkFreeMemory                       = PFN_vkFreeMemory( vkGetDeviceProcAddr( device, "vkFreeMemory" ) );
-        vkMapMemory                        = PFN_vkMapMemory( vkGetDeviceProcAddr( device, "vkMapMemory" ) );
-        vkUnmapMemory                      = PFN_vkUnmapMemory( vkGetDeviceProcAddr( device, "vkUnmapMemory" ) );
-        vkFlushMappedMemoryRanges          = PFN_vkFlushMappedMemoryRanges( vkGetDeviceProcAddr( device, "vkFlushMappedMemoryRanges" ) );
-        vkInvalidateMappedMemoryRanges     = PFN_vkInvalidateMappedMemoryRanges( vkGetDeviceProcAddr( device, "vkInvalidateMappedMemoryRanges" ) );
-        vkGetDeviceMemoryCommitment        = PFN_vkGetDeviceMemoryCommitment( vkGetDeviceProcAddr( device, "vkGetDeviceMemoryCommitment" ) );
-        vkBindBufferMemory                 = PFN_vkBindBufferMemory( vkGetDeviceProcAddr( device, "vkBindBufferMemory" ) );
-        vkBindImageMemory                  = PFN_vkBindImageMemory( vkGetDeviceProcAddr( device, "vkBindImageMemory" ) );
-        vkGetBufferMemoryRequirements      = PFN_vkGetBufferMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetBufferMemoryRequirements" ) );
-        vkGetImageMemoryRequirements       = PFN_vkGetImageMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetImageMemoryRequirements" ) );
-        vkGetImageSparseMemoryRequirements = PFN_vkGetImageSparseMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetImageSparseMemoryRequirements" ) );
-        vkQueueBindSparse                  = PFN_vkQueueBindSparse( vkGetDeviceProcAddr( device, "vkQueueBindSparse" ) );
-        vkCreateFence                      = PFN_vkCreateFence( vkGetDeviceProcAddr( device, "vkCreateFence" ) );
-        vkDestroyFence                     = PFN_vkDestroyFence( vkGetDeviceProcAddr( device, "vkDestroyFence" ) );
-        vkResetFences                      = PFN_vkResetFences( vkGetDeviceProcAddr( device, "vkResetFences" ) );
-        vkGetFenceStatus                   = PFN_vkGetFenceStatus( vkGetDeviceProcAddr( device, "vkGetFenceStatus" ) );
-        vkWaitForFences                    = PFN_vkWaitForFences( vkGetDeviceProcAddr( device, "vkWaitForFences" ) );
-        vkCreateSemaphore                  = PFN_vkCreateSemaphore( vkGetDeviceProcAddr( device, "vkCreateSemaphore" ) );
-        vkDestroySemaphore                 = PFN_vkDestroySemaphore( vkGetDeviceProcAddr( device, "vkDestroySemaphore" ) );
-        vkCreateEvent                      = PFN_vkCreateEvent( vkGetDeviceProcAddr( device, "vkCreateEvent" ) );
-        vkDestroyEvent                     = PFN_vkDestroyEvent( vkGetDeviceProcAddr( device, "vkDestroyEvent" ) );
-        vkGetEventStatus                   = PFN_vkGetEventStatus( vkGetDeviceProcAddr( device, "vkGetEventStatus" ) );
-        vkSetEvent                         = PFN_vkSetEvent( vkGetDeviceProcAddr( device, "vkSetEvent" ) );
-        vkResetEvent                       = PFN_vkResetEvent( vkGetDeviceProcAddr( device, "vkResetEvent" ) );
-        vkCreateQueryPool                  = PFN_vkCreateQueryPool( vkGetDeviceProcAddr( device, "vkCreateQueryPool" ) );
-        vkDestroyQueryPool                 = PFN_vkDestroyQueryPool( vkGetDeviceProcAddr( device, "vkDestroyQueryPool" ) );
-        vkGetQueryPoolResults              = PFN_vkGetQueryPoolResults( vkGetDeviceProcAddr( device, "vkGetQueryPoolResults" ) );
-        vkCreateBuffer                     = PFN_vkCreateBuffer( vkGetDeviceProcAddr( device, "vkCreateBuffer" ) );
-        vkDestroyBuffer                    = PFN_vkDestroyBuffer( vkGetDeviceProcAddr( device, "vkDestroyBuffer" ) );
-        vkCreateBufferView                 = PFN_vkCreateBufferView( vkGetDeviceProcAddr( device, "vkCreateBufferView" ) );
-        vkDestroyBufferView                = PFN_vkDestroyBufferView( vkGetDeviceProcAddr( device, "vkDestroyBufferView" ) );
-        vkCreateImage                      = PFN_vkCreateImage( vkGetDeviceProcAddr( device, "vkCreateImage" ) );
-        vkDestroyImage                     = PFN_vkDestroyImage( vkGetDeviceProcAddr( device, "vkDestroyImage" ) );
-        vkGetImageSubresourceLayout        = PFN_vkGetImageSubresourceLayout( vkGetDeviceProcAddr( device, "vkGetImageSubresourceLayout" ) );
-        vkCreateImageView                  = PFN_vkCreateImageView( vkGetDeviceProcAddr( device, "vkCreateImageView" ) );
-        vkDestroyImageView                 = PFN_vkDestroyImageView( vkGetDeviceProcAddr( device, "vkDestroyImageView" ) );
-        vkCreateShaderModule               = PFN_vkCreateShaderModule( vkGetDeviceProcAddr( device, "vkCreateShaderModule" ) );
-        vkDestroyShaderModule              = PFN_vkDestroyShaderModule( vkGetDeviceProcAddr( device, "vkDestroyShaderModule" ) );
-        vkCreatePipelineCache              = PFN_vkCreatePipelineCache( vkGetDeviceProcAddr( device, "vkCreatePipelineCache" ) );
-        vkDestroyPipelineCache             = PFN_vkDestroyPipelineCache( vkGetDeviceProcAddr( device, "vkDestroyPipelineCache" ) );
-        vkGetPipelineCacheData             = PFN_vkGetPipelineCacheData( vkGetDeviceProcAddr( device, "vkGetPipelineCacheData" ) );
-        vkMergePipelineCaches              = PFN_vkMergePipelineCaches( vkGetDeviceProcAddr( device, "vkMergePipelineCaches" ) );
-        vkCreateGraphicsPipelines          = PFN_vkCreateGraphicsPipelines( vkGetDeviceProcAddr( device, "vkCreateGraphicsPipelines" ) );
-        vkCreateComputePipelines           = PFN_vkCreateComputePipelines( vkGetDeviceProcAddr( device, "vkCreateComputePipelines" ) );
-        vkDestroyPipeline                  = PFN_vkDestroyPipeline( vkGetDeviceProcAddr( device, "vkDestroyPipeline" ) );
-        vkCreatePipelineLayout             = PFN_vkCreatePipelineLayout( vkGetDeviceProcAddr( device, "vkCreatePipelineLayout" ) );
-        vkDestroyPipelineLayout            = PFN_vkDestroyPipelineLayout( vkGetDeviceProcAddr( device, "vkDestroyPipelineLayout" ) );
-        vkCreateSampler                    = PFN_vkCreateSampler( vkGetDeviceProcAddr( device, "vkCreateSampler" ) );
-        vkDestroySampler                   = PFN_vkDestroySampler( vkGetDeviceProcAddr( device, "vkDestroySampler" ) );
-        vkCreateDescriptorSetLayout        = PFN_vkCreateDescriptorSetLayout( vkGetDeviceProcAddr( device, "vkCreateDescriptorSetLayout" ) );
-        vkDestroyDescriptorSetLayout       = PFN_vkDestroyDescriptorSetLayout( vkGetDeviceProcAddr( device, "vkDestroyDescriptorSetLayout" ) );
-        vkCreateDescriptorPool             = PFN_vkCreateDescriptorPool( vkGetDeviceProcAddr( device, "vkCreateDescriptorPool" ) );
-        vkDestroyDescriptorPool            = PFN_vkDestroyDescriptorPool( vkGetDeviceProcAddr( device, "vkDestroyDescriptorPool" ) );
-        vkResetDescriptorPool              = PFN_vkResetDescriptorPool( vkGetDeviceProcAddr( device, "vkResetDescriptorPool" ) );
-        vkAllocateDescriptorSets           = PFN_vkAllocateDescriptorSets( vkGetDeviceProcAddr( device, "vkAllocateDescriptorSets" ) );
-        vkFreeDescriptorSets               = PFN_vkFreeDescriptorSets( vkGetDeviceProcAddr( device, "vkFreeDescriptorSets" ) );
-        vkUpdateDescriptorSets             = PFN_vkUpdateDescriptorSets( vkGetDeviceProcAddr( device, "vkUpdateDescriptorSets" ) );
-        vkCreateFramebuffer                = PFN_vkCreateFramebuffer( vkGetDeviceProcAddr( device, "vkCreateFramebuffer" ) );
-        vkDestroyFramebuffer               = PFN_vkDestroyFramebuffer( vkGetDeviceProcAddr( device, "vkDestroyFramebuffer" ) );
-        vkCreateRenderPass                 = PFN_vkCreateRenderPass( vkGetDeviceProcAddr( device, "vkCreateRenderPass" ) );
-        vkDestroyRenderPass                = PFN_vkDestroyRenderPass( vkGetDeviceProcAddr( device, "vkDestroyRenderPass" ) );
-        vkGetRenderAreaGranularity         = PFN_vkGetRenderAreaGranularity( vkGetDeviceProcAddr( device, "vkGetRenderAreaGranularity" ) );
-        vkCreateCommandPool                = PFN_vkCreateCommandPool( vkGetDeviceProcAddr( device, "vkCreateCommandPool" ) );
-        vkDestroyCommandPool               = PFN_vkDestroyCommandPool( vkGetDeviceProcAddr( device, "vkDestroyCommandPool" ) );
-        vkResetCommandPool                 = PFN_vkResetCommandPool( vkGetDeviceProcAddr( device, "vkResetCommandPool" ) );
-        vkAllocateCommandBuffers           = PFN_vkAllocateCommandBuffers( vkGetDeviceProcAddr( device, "vkAllocateCommandBuffers" ) );
-        vkFreeCommandBuffers               = PFN_vkFreeCommandBuffers( vkGetDeviceProcAddr( device, "vkFreeCommandBuffers" ) );
-        vkBeginCommandBuffer               = PFN_vkBeginCommandBuffer( vkGetDeviceProcAddr( device, "vkBeginCommandBuffer" ) );
-        vkEndCommandBuffer                 = PFN_vkEndCommandBuffer( vkGetDeviceProcAddr( device, "vkEndCommandBuffer" ) );
-        vkResetCommandBuffer               = PFN_vkResetCommandBuffer( vkGetDeviceProcAddr( device, "vkResetCommandBuffer" ) );
-        vkCmdBindPipeline                  = PFN_vkCmdBindPipeline( vkGetDeviceProcAddr( device, "vkCmdBindPipeline" ) );
-        vkCmdSetViewport                   = PFN_vkCmdSetViewport( vkGetDeviceProcAddr( device, "vkCmdSetViewport" ) );
-        vkCmdSetScissor                    = PFN_vkCmdSetScissor( vkGetDeviceProcAddr( device, "vkCmdSetScissor" ) );
-        vkCmdSetLineWidth                  = PFN_vkCmdSetLineWidth( vkGetDeviceProcAddr( device, "vkCmdSetLineWidth" ) );
-        vkCmdSetDepthBias                  = PFN_vkCmdSetDepthBias( vkGetDeviceProcAddr( device, "vkCmdSetDepthBias" ) );
-        vkCmdSetBlendConstants             = PFN_vkCmdSetBlendConstants( vkGetDeviceProcAddr( device, "vkCmdSetBlendConstants" ) );
-        vkCmdSetDepthBounds                = PFN_vkCmdSetDepthBounds( vkGetDeviceProcAddr( device, "vkCmdSetDepthBounds" ) );
-        vkCmdSetStencilCompareMask         = PFN_vkCmdSetStencilCompareMask( vkGetDeviceProcAddr( device, "vkCmdSetStencilCompareMask" ) );
-        vkCmdSetStencilWriteMask           = PFN_vkCmdSetStencilWriteMask( vkGetDeviceProcAddr( device, "vkCmdSetStencilWriteMask" ) );
-        vkCmdSetStencilReference           = PFN_vkCmdSetStencilReference( vkGetDeviceProcAddr( device, "vkCmdSetStencilReference" ) );
-        vkCmdBindDescriptorSets            = PFN_vkCmdBindDescriptorSets( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorSets" ) );
-        vkCmdBindIndexBuffer               = PFN_vkCmdBindIndexBuffer( vkGetDeviceProcAddr( device, "vkCmdBindIndexBuffer" ) );
-        vkCmdBindVertexBuffers             = PFN_vkCmdBindVertexBuffers( vkGetDeviceProcAddr( device, "vkCmdBindVertexBuffers" ) );
-        vkCmdDraw                          = PFN_vkCmdDraw( vkGetDeviceProcAddr( device, "vkCmdDraw" ) );
-        vkCmdDrawIndexed                   = PFN_vkCmdDrawIndexed( vkGetDeviceProcAddr( device, "vkCmdDrawIndexed" ) );
-        vkCmdDrawIndirect                  = PFN_vkCmdDrawIndirect( vkGetDeviceProcAddr( device, "vkCmdDrawIndirect" ) );
-        vkCmdDrawIndexedIndirect           = PFN_vkCmdDrawIndexedIndirect( vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirect" ) );
-        vkCmdDispatch                      = PFN_vkCmdDispatch( vkGetDeviceProcAddr( device, "vkCmdDispatch" ) );
-        vkCmdDispatchIndirect              = PFN_vkCmdDispatchIndirect( vkGetDeviceProcAddr( device, "vkCmdDispatchIndirect" ) );
-        vkCmdCopyBuffer                    = PFN_vkCmdCopyBuffer( vkGetDeviceProcAddr( device, "vkCmdCopyBuffer" ) );
-        vkCmdCopyImage                     = PFN_vkCmdCopyImage( vkGetDeviceProcAddr( device, "vkCmdCopyImage" ) );
-        vkCmdBlitImage                     = PFN_vkCmdBlitImage( vkGetDeviceProcAddr( device, "vkCmdBlitImage" ) );
-        vkCmdCopyBufferToImage             = PFN_vkCmdCopyBufferToImage( vkGetDeviceProcAddr( device, "vkCmdCopyBufferToImage" ) );
-        vkCmdCopyImageToBuffer             = PFN_vkCmdCopyImageToBuffer( vkGetDeviceProcAddr( device, "vkCmdCopyImageToBuffer" ) );
-        vkCmdUpdateBuffer                  = PFN_vkCmdUpdateBuffer( vkGetDeviceProcAddr( device, "vkCmdUpdateBuffer" ) );
-        vkCmdFillBuffer                    = PFN_vkCmdFillBuffer( vkGetDeviceProcAddr( device, "vkCmdFillBuffer" ) );
-        vkCmdClearColorImage               = PFN_vkCmdClearColorImage( vkGetDeviceProcAddr( device, "vkCmdClearColorImage" ) );
-        vkCmdClearDepthStencilImage        = PFN_vkCmdClearDepthStencilImage( vkGetDeviceProcAddr( device, "vkCmdClearDepthStencilImage" ) );
-        vkCmdClearAttachments              = PFN_vkCmdClearAttachments( vkGetDeviceProcAddr( device, "vkCmdClearAttachments" ) );
-        vkCmdResolveImage                  = PFN_vkCmdResolveImage( vkGetDeviceProcAddr( device, "vkCmdResolveImage" ) );
-        vkCmdSetEvent                      = PFN_vkCmdSetEvent( vkGetDeviceProcAddr( device, "vkCmdSetEvent" ) );
-        vkCmdResetEvent                    = PFN_vkCmdResetEvent( vkGetDeviceProcAddr( device, "vkCmdResetEvent" ) );
-        vkCmdWaitEvents                    = PFN_vkCmdWaitEvents( vkGetDeviceProcAddr( device, "vkCmdWaitEvents" ) );
-        vkCmdPipelineBarrier               = PFN_vkCmdPipelineBarrier( vkGetDeviceProcAddr( device, "vkCmdPipelineBarrier" ) );
-        vkCmdBeginQuery                    = PFN_vkCmdBeginQuery( vkGetDeviceProcAddr( device, "vkCmdBeginQuery" ) );
-        vkCmdEndQuery                      = PFN_vkCmdEndQuery( vkGetDeviceProcAddr( device, "vkCmdEndQuery" ) );
-        vkCmdResetQueryPool                = PFN_vkCmdResetQueryPool( vkGetDeviceProcAddr( device, "vkCmdResetQueryPool" ) );
-        vkCmdWriteTimestamp                = PFN_vkCmdWriteTimestamp( vkGetDeviceProcAddr( device, "vkCmdWriteTimestamp" ) );
-        vkCmdCopyQueryPoolResults          = PFN_vkCmdCopyQueryPoolResults( vkGetDeviceProcAddr( device, "vkCmdCopyQueryPoolResults" ) );
-        vkCmdPushConstants                 = PFN_vkCmdPushConstants( vkGetDeviceProcAddr( device, "vkCmdPushConstants" ) );
-        vkCmdBeginRenderPass               = PFN_vkCmdBeginRenderPass( vkGetDeviceProcAddr( device, "vkCmdBeginRenderPass" ) );
-        vkCmdNextSubpass                   = PFN_vkCmdNextSubpass( vkGetDeviceProcAddr( device, "vkCmdNextSubpass" ) );
-        vkCmdEndRenderPass                 = PFN_vkCmdEndRenderPass( vkGetDeviceProcAddr( device, "vkCmdEndRenderPass" ) );
-        vkCmdExecuteCommands               = PFN_vkCmdExecuteCommands( vkGetDeviceProcAddr( device, "vkCmdExecuteCommands" ) );
+        PFN_vkGetDeviceProcAddr                vkGetDeviceProcAddr                = 0;
+        PFN_vkDestroyDevice                    vkDestroyDevice                    = 0;
+        PFN_vkGetDeviceQueue                   vkGetDeviceQueue                   = 0;
+        PFN_vkQueueSubmit                      vkQueueSubmit                      = 0;
+        PFN_vkQueueWaitIdle                    vkQueueWaitIdle                    = 0;
+        PFN_vkDeviceWaitIdle                   vkDeviceWaitIdle                   = 0;
+        PFN_vkAllocateMemory                   vkAllocateMemory                   = 0;
+        PFN_vkFreeMemory                       vkFreeMemory                       = 0;
+        PFN_vkMapMemory                        vkMapMemory                        = 0;
+        PFN_vkUnmapMemory                      vkUnmapMemory                      = 0;
+        PFN_vkFlushMappedMemoryRanges          vkFlushMappedMemoryRanges          = 0;
+        PFN_vkInvalidateMappedMemoryRanges     vkInvalidateMappedMemoryRanges     = 0;
+        PFN_vkGetDeviceMemoryCommitment        vkGetDeviceMemoryCommitment        = 0;
+        PFN_vkBindBufferMemory                 vkBindBufferMemory                 = 0;
+        PFN_vkBindImageMemory                  vkBindImageMemory                  = 0;
+        PFN_vkGetBufferMemoryRequirements      vkGetBufferMemoryRequirements      = 0;
+        PFN_vkGetImageMemoryRequirements       vkGetImageMemoryRequirements       = 0;
+        PFN_vkGetImageSparseMemoryRequirements vkGetImageSparseMemoryRequirements = 0;
+        PFN_vkQueueBindSparse                  vkQueueBindSparse                  = 0;
+        PFN_vkCreateFence                      vkCreateFence                      = 0;
+        PFN_vkDestroyFence                     vkDestroyFence                     = 0;
+        PFN_vkResetFences                      vkResetFences                      = 0;
+        PFN_vkGetFenceStatus                   vkGetFenceStatus                   = 0;
+        PFN_vkWaitForFences                    vkWaitForFences                    = 0;
+        PFN_vkCreateSemaphore                  vkCreateSemaphore                  = 0;
+        PFN_vkDestroySemaphore                 vkDestroySemaphore                 = 0;
+        PFN_vkCreateEvent                      vkCreateEvent                      = 0;
+        PFN_vkDestroyEvent                     vkDestroyEvent                     = 0;
+        PFN_vkGetEventStatus                   vkGetEventStatus                   = 0;
+        PFN_vkSetEvent                         vkSetEvent                         = 0;
+        PFN_vkResetEvent                       vkResetEvent                       = 0;
+        PFN_vkCreateQueryPool                  vkCreateQueryPool                  = 0;
+        PFN_vkDestroyQueryPool                 vkDestroyQueryPool                 = 0;
+        PFN_vkGetQueryPoolResults              vkGetQueryPoolResults              = 0;
+        PFN_vkCreateBuffer                     vkCreateBuffer                     = 0;
+        PFN_vkDestroyBuffer                    vkDestroyBuffer                    = 0;
+        PFN_vkCreateBufferView                 vkCreateBufferView                 = 0;
+        PFN_vkDestroyBufferView                vkDestroyBufferView                = 0;
+        PFN_vkCreateImage                      vkCreateImage                      = 0;
+        PFN_vkDestroyImage                     vkDestroyImage                     = 0;
+        PFN_vkGetImageSubresourceLayout        vkGetImageSubresourceLayout        = 0;
+        PFN_vkCreateImageView                  vkCreateImageView                  = 0;
+        PFN_vkDestroyImageView                 vkDestroyImageView                 = 0;
+        PFN_vkCreateShaderModule               vkCreateShaderModule               = 0;
+        PFN_vkDestroyShaderModule              vkDestroyShaderModule              = 0;
+        PFN_vkCreatePipelineCache              vkCreatePipelineCache              = 0;
+        PFN_vkDestroyPipelineCache             vkDestroyPipelineCache             = 0;
+        PFN_vkGetPipelineCacheData             vkGetPipelineCacheData             = 0;
+        PFN_vkMergePipelineCaches              vkMergePipelineCaches              = 0;
+        PFN_vkCreateGraphicsPipelines          vkCreateGraphicsPipelines          = 0;
+        PFN_vkCreateComputePipelines           vkCreateComputePipelines           = 0;
+        PFN_vkDestroyPipeline                  vkDestroyPipeline                  = 0;
+        PFN_vkCreatePipelineLayout             vkCreatePipelineLayout             = 0;
+        PFN_vkDestroyPipelineLayout            vkDestroyPipelineLayout            = 0;
+        PFN_vkCreateSampler                    vkCreateSampler                    = 0;
+        PFN_vkDestroySampler                   vkDestroySampler                   = 0;
+        PFN_vkCreateDescriptorSetLayout        vkCreateDescriptorSetLayout        = 0;
+        PFN_vkDestroyDescriptorSetLayout       vkDestroyDescriptorSetLayout       = 0;
+        PFN_vkCreateDescriptorPool             vkCreateDescriptorPool             = 0;
+        PFN_vkDestroyDescriptorPool            vkDestroyDescriptorPool            = 0;
+        PFN_vkResetDescriptorPool              vkResetDescriptorPool              = 0;
+        PFN_vkAllocateDescriptorSets           vkAllocateDescriptorSets           = 0;
+        PFN_vkFreeDescriptorSets               vkFreeDescriptorSets               = 0;
+        PFN_vkUpdateDescriptorSets             vkUpdateDescriptorSets             = 0;
+        PFN_vkCreateFramebuffer                vkCreateFramebuffer                = 0;
+        PFN_vkDestroyFramebuffer               vkDestroyFramebuffer               = 0;
+        PFN_vkCreateRenderPass                 vkCreateRenderPass                 = 0;
+        PFN_vkDestroyRenderPass                vkDestroyRenderPass                = 0;
+        PFN_vkGetRenderAreaGranularity         vkGetRenderAreaGranularity         = 0;
+        PFN_vkCreateCommandPool                vkCreateCommandPool                = 0;
+        PFN_vkDestroyCommandPool               vkDestroyCommandPool               = 0;
+        PFN_vkResetCommandPool                 vkResetCommandPool                 = 0;
+        PFN_vkAllocateCommandBuffers           vkAllocateCommandBuffers           = 0;
+        PFN_vkFreeCommandBuffers               vkFreeCommandBuffers               = 0;
+        PFN_vkBeginCommandBuffer               vkBeginCommandBuffer               = 0;
+        PFN_vkEndCommandBuffer                 vkEndCommandBuffer                 = 0;
+        PFN_vkResetCommandBuffer               vkResetCommandBuffer               = 0;
+        PFN_vkCmdBindPipeline                  vkCmdBindPipeline                  = 0;
+        PFN_vkCmdSetViewport                   vkCmdSetViewport                   = 0;
+        PFN_vkCmdSetScissor                    vkCmdSetScissor                    = 0;
+        PFN_vkCmdSetLineWidth                  vkCmdSetLineWidth                  = 0;
+        PFN_vkCmdSetDepthBias                  vkCmdSetDepthBias                  = 0;
+        PFN_vkCmdSetBlendConstants             vkCmdSetBlendConstants             = 0;
+        PFN_vkCmdSetDepthBounds                vkCmdSetDepthBounds                = 0;
+        PFN_vkCmdSetStencilCompareMask         vkCmdSetStencilCompareMask         = 0;
+        PFN_vkCmdSetStencilWriteMask           vkCmdSetStencilWriteMask           = 0;
+        PFN_vkCmdSetStencilReference           vkCmdSetStencilReference           = 0;
+        PFN_vkCmdBindDescriptorSets            vkCmdBindDescriptorSets            = 0;
+        PFN_vkCmdBindIndexBuffer               vkCmdBindIndexBuffer               = 0;
+        PFN_vkCmdBindVertexBuffers             vkCmdBindVertexBuffers             = 0;
+        PFN_vkCmdDraw                          vkCmdDraw                          = 0;
+        PFN_vkCmdDrawIndexed                   vkCmdDrawIndexed                   = 0;
+        PFN_vkCmdDrawIndirect                  vkCmdDrawIndirect                  = 0;
+        PFN_vkCmdDrawIndexedIndirect           vkCmdDrawIndexedIndirect           = 0;
+        PFN_vkCmdDispatch                      vkCmdDispatch                      = 0;
+        PFN_vkCmdDispatchIndirect              vkCmdDispatchIndirect              = 0;
+        PFN_vkCmdCopyBuffer                    vkCmdCopyBuffer                    = 0;
+        PFN_vkCmdCopyImage                     vkCmdCopyImage                     = 0;
+        PFN_vkCmdBlitImage                     vkCmdBlitImage                     = 0;
+        PFN_vkCmdCopyBufferToImage             vkCmdCopyBufferToImage             = 0;
+        PFN_vkCmdCopyImageToBuffer             vkCmdCopyImageToBuffer             = 0;
+        PFN_vkCmdUpdateBuffer                  vkCmdUpdateBuffer                  = 0;
+        PFN_vkCmdFillBuffer                    vkCmdFillBuffer                    = 0;
+        PFN_vkCmdClearColorImage               vkCmdClearColorImage               = 0;
+        PFN_vkCmdClearDepthStencilImage        vkCmdClearDepthStencilImage        = 0;
+        PFN_vkCmdClearAttachments              vkCmdClearAttachments              = 0;
+        PFN_vkCmdResolveImage                  vkCmdResolveImage                  = 0;
+        PFN_vkCmdSetEvent                      vkCmdSetEvent                      = 0;
+        PFN_vkCmdResetEvent                    vkCmdResetEvent                    = 0;
+        PFN_vkCmdWaitEvents                    vkCmdWaitEvents                    = 0;
+        PFN_vkCmdPipelineBarrier               vkCmdPipelineBarrier               = 0;
+        PFN_vkCmdBeginQuery                    vkCmdBeginQuery                    = 0;
+        PFN_vkCmdEndQuery                      vkCmdEndQuery                      = 0;
+        PFN_vkCmdResetQueryPool                vkCmdResetQueryPool                = 0;
+        PFN_vkCmdWriteTimestamp                vkCmdWriteTimestamp                = 0;
+        PFN_vkCmdCopyQueryPoolResults          vkCmdCopyQueryPoolResults          = 0;
+        PFN_vkCmdPushConstants                 vkCmdPushConstants                 = 0;
+        PFN_vkCmdBeginRenderPass               vkCmdBeginRenderPass               = 0;
+        PFN_vkCmdNextSubpass                   vkCmdNextSubpass                   = 0;
+        PFN_vkCmdEndRenderPass                 vkCmdEndRenderPass                 = 0;
+        PFN_vkCmdExecuteCommands               vkCmdExecuteCommands               = 0;
 
         //=== VK_VERSION_1_1 ===
-        vkBindBufferMemory2                 = PFN_vkBindBufferMemory2( vkGetDeviceProcAddr( device, "vkBindBufferMemory2" ) );
-        vkBindImageMemory2                  = PFN_vkBindImageMemory2( vkGetDeviceProcAddr( device, "vkBindImageMemory2" ) );
-        vkGetDeviceGroupPeerMemoryFeatures  = PFN_vkGetDeviceGroupPeerMemoryFeatures( vkGetDeviceProcAddr( device, "vkGetDeviceGroupPeerMemoryFeatures" ) );
-        vkCmdSetDeviceMask                  = PFN_vkCmdSetDeviceMask( vkGetDeviceProcAddr( device, "vkCmdSetDeviceMask" ) );
-        vkCmdDispatchBase                   = PFN_vkCmdDispatchBase( vkGetDeviceProcAddr( device, "vkCmdDispatchBase" ) );
-        vkGetImageMemoryRequirements2       = PFN_vkGetImageMemoryRequirements2( vkGetDeviceProcAddr( device, "vkGetImageMemoryRequirements2" ) );
-        vkGetBufferMemoryRequirements2      = PFN_vkGetBufferMemoryRequirements2( vkGetDeviceProcAddr( device, "vkGetBufferMemoryRequirements2" ) );
-        vkGetImageSparseMemoryRequirements2 = PFN_vkGetImageSparseMemoryRequirements2( vkGetDeviceProcAddr( device, "vkGetImageSparseMemoryRequirements2" ) );
-        vkTrimCommandPool                   = PFN_vkTrimCommandPool( vkGetDeviceProcAddr( device, "vkTrimCommandPool" ) );
-        vkGetDeviceQueue2                   = PFN_vkGetDeviceQueue2( vkGetDeviceProcAddr( device, "vkGetDeviceQueue2" ) );
-        vkCreateSamplerYcbcrConversion      = PFN_vkCreateSamplerYcbcrConversion( vkGetDeviceProcAddr( device, "vkCreateSamplerYcbcrConversion" ) );
-        vkDestroySamplerYcbcrConversion     = PFN_vkDestroySamplerYcbcrConversion( vkGetDeviceProcAddr( device, "vkDestroySamplerYcbcrConversion" ) );
-        vkCreateDescriptorUpdateTemplate    = PFN_vkCreateDescriptorUpdateTemplate( vkGetDeviceProcAddr( device, "vkCreateDescriptorUpdateTemplate" ) );
-        vkDestroyDescriptorUpdateTemplate   = PFN_vkDestroyDescriptorUpdateTemplate( vkGetDeviceProcAddr( device, "vkDestroyDescriptorUpdateTemplate" ) );
-        vkUpdateDescriptorSetWithTemplate   = PFN_vkUpdateDescriptorSetWithTemplate( vkGetDeviceProcAddr( device, "vkUpdateDescriptorSetWithTemplate" ) );
-        vkGetDescriptorSetLayoutSupport     = PFN_vkGetDescriptorSetLayoutSupport( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutSupport" ) );
+        PFN_vkBindBufferMemory2                 vkBindBufferMemory2                 = 0;
+        PFN_vkBindImageMemory2                  vkBindImageMemory2                  = 0;
+        PFN_vkGetDeviceGroupPeerMemoryFeatures  vkGetDeviceGroupPeerMemoryFeatures  = 0;
+        PFN_vkCmdSetDeviceMask                  vkCmdSetDeviceMask                  = 0;
+        PFN_vkCmdDispatchBase                   vkCmdDispatchBase                   = 0;
+        PFN_vkGetImageMemoryRequirements2       vkGetImageMemoryRequirements2       = 0;
+        PFN_vkGetBufferMemoryRequirements2      vkGetBufferMemoryRequirements2      = 0;
+        PFN_vkGetImageSparseMemoryRequirements2 vkGetImageSparseMemoryRequirements2 = 0;
+        PFN_vkTrimCommandPool                   vkTrimCommandPool                   = 0;
+        PFN_vkGetDeviceQueue2                   vkGetDeviceQueue2                   = 0;
+        PFN_vkCreateSamplerYcbcrConversion      vkCreateSamplerYcbcrConversion      = 0;
+        PFN_vkDestroySamplerYcbcrConversion     vkDestroySamplerYcbcrConversion     = 0;
+        PFN_vkCreateDescriptorUpdateTemplate    vkCreateDescriptorUpdateTemplate    = 0;
+        PFN_vkDestroyDescriptorUpdateTemplate   vkDestroyDescriptorUpdateTemplate   = 0;
+        PFN_vkUpdateDescriptorSetWithTemplate   vkUpdateDescriptorSetWithTemplate   = 0;
+        PFN_vkGetDescriptorSetLayoutSupport     vkGetDescriptorSetLayoutSupport     = 0;
 
         //=== VK_VERSION_1_2 ===
-        vkCmdDrawIndirectCount          = PFN_vkCmdDrawIndirectCount( vkGetDeviceProcAddr( device, "vkCmdDrawIndirectCount" ) );
-        vkCmdDrawIndexedIndirectCount   = PFN_vkCmdDrawIndexedIndirectCount( vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirectCount" ) );
-        vkCreateRenderPass2             = PFN_vkCreateRenderPass2( vkGetDeviceProcAddr( device, "vkCreateRenderPass2" ) );
-        vkCmdBeginRenderPass2           = PFN_vkCmdBeginRenderPass2( vkGetDeviceProcAddr( device, "vkCmdBeginRenderPass2" ) );
-        vkCmdNextSubpass2               = PFN_vkCmdNextSubpass2( vkGetDeviceProcAddr( device, "vkCmdNextSubpass2" ) );
-        vkCmdEndRenderPass2             = PFN_vkCmdEndRenderPass2( vkGetDeviceProcAddr( device, "vkCmdEndRenderPass2" ) );
-        vkResetQueryPool                = PFN_vkResetQueryPool( vkGetDeviceProcAddr( device, "vkResetQueryPool" ) );
-        vkGetSemaphoreCounterValue      = PFN_vkGetSemaphoreCounterValue( vkGetDeviceProcAddr( device, "vkGetSemaphoreCounterValue" ) );
-        vkWaitSemaphores                = PFN_vkWaitSemaphores( vkGetDeviceProcAddr( device, "vkWaitSemaphores" ) );
-        vkSignalSemaphore               = PFN_vkSignalSemaphore( vkGetDeviceProcAddr( device, "vkSignalSemaphore" ) );
-        vkGetBufferDeviceAddress        = PFN_vkGetBufferDeviceAddress( vkGetDeviceProcAddr( device, "vkGetBufferDeviceAddress" ) );
-        vkGetBufferOpaqueCaptureAddress = PFN_vkGetBufferOpaqueCaptureAddress( vkGetDeviceProcAddr( device, "vkGetBufferOpaqueCaptureAddress" ) );
-        vkGetDeviceMemoryOpaqueCaptureAddress =
-          PFN_vkGetDeviceMemoryOpaqueCaptureAddress( vkGetDeviceProcAddr( device, "vkGetDeviceMemoryOpaqueCaptureAddress" ) );
+        PFN_vkCmdDrawIndirectCount                vkCmdDrawIndirectCount                = 0;
+        PFN_vkCmdDrawIndexedIndirectCount         vkCmdDrawIndexedIndirectCount         = 0;
+        PFN_vkCreateRenderPass2                   vkCreateRenderPass2                   = 0;
+        PFN_vkCmdBeginRenderPass2                 vkCmdBeginRenderPass2                 = 0;
+        PFN_vkCmdNextSubpass2                     vkCmdNextSubpass2                     = 0;
+        PFN_vkCmdEndRenderPass2                   vkCmdEndRenderPass2                   = 0;
+        PFN_vkResetQueryPool                      vkResetQueryPool                      = 0;
+        PFN_vkGetSemaphoreCounterValue            vkGetSemaphoreCounterValue            = 0;
+        PFN_vkWaitSemaphores                      vkWaitSemaphores                      = 0;
+        PFN_vkSignalSemaphore                     vkSignalSemaphore                     = 0;
+        PFN_vkGetBufferDeviceAddress              vkGetBufferDeviceAddress              = 0;
+        PFN_vkGetBufferOpaqueCaptureAddress       vkGetBufferOpaqueCaptureAddress       = 0;
+        PFN_vkGetDeviceMemoryOpaqueCaptureAddress vkGetDeviceMemoryOpaqueCaptureAddress = 0;
 
         //=== VK_VERSION_1_3 ===
-        vkCreatePrivateDataSlot             = PFN_vkCreatePrivateDataSlot( vkGetDeviceProcAddr( device, "vkCreatePrivateDataSlot" ) );
-        vkDestroyPrivateDataSlot            = PFN_vkDestroyPrivateDataSlot( vkGetDeviceProcAddr( device, "vkDestroyPrivateDataSlot" ) );
-        vkSetPrivateData                    = PFN_vkSetPrivateData( vkGetDeviceProcAddr( device, "vkSetPrivateData" ) );
-        vkGetPrivateData                    = PFN_vkGetPrivateData( vkGetDeviceProcAddr( device, "vkGetPrivateData" ) );
-        vkCmdSetEvent2                      = PFN_vkCmdSetEvent2( vkGetDeviceProcAddr( device, "vkCmdSetEvent2" ) );
-        vkCmdResetEvent2                    = PFN_vkCmdResetEvent2( vkGetDeviceProcAddr( device, "vkCmdResetEvent2" ) );
-        vkCmdWaitEvents2                    = PFN_vkCmdWaitEvents2( vkGetDeviceProcAddr( device, "vkCmdWaitEvents2" ) );
-        vkCmdPipelineBarrier2               = PFN_vkCmdPipelineBarrier2( vkGetDeviceProcAddr( device, "vkCmdPipelineBarrier2" ) );
-        vkCmdWriteTimestamp2                = PFN_vkCmdWriteTimestamp2( vkGetDeviceProcAddr( device, "vkCmdWriteTimestamp2" ) );
-        vkQueueSubmit2                      = PFN_vkQueueSubmit2( vkGetDeviceProcAddr( device, "vkQueueSubmit2" ) );
-        vkCmdCopyBuffer2                    = PFN_vkCmdCopyBuffer2( vkGetDeviceProcAddr( device, "vkCmdCopyBuffer2" ) );
-        vkCmdCopyImage2                     = PFN_vkCmdCopyImage2( vkGetDeviceProcAddr( device, "vkCmdCopyImage2" ) );
-        vkCmdCopyBufferToImage2             = PFN_vkCmdCopyBufferToImage2( vkGetDeviceProcAddr( device, "vkCmdCopyBufferToImage2" ) );
-        vkCmdCopyImageToBuffer2             = PFN_vkCmdCopyImageToBuffer2( vkGetDeviceProcAddr( device, "vkCmdCopyImageToBuffer2" ) );
-        vkCmdBlitImage2                     = PFN_vkCmdBlitImage2( vkGetDeviceProcAddr( device, "vkCmdBlitImage2" ) );
-        vkCmdResolveImage2                  = PFN_vkCmdResolveImage2( vkGetDeviceProcAddr( device, "vkCmdResolveImage2" ) );
-        vkCmdBeginRendering                 = PFN_vkCmdBeginRendering( vkGetDeviceProcAddr( device, "vkCmdBeginRendering" ) );
-        vkCmdEndRendering                   = PFN_vkCmdEndRendering( vkGetDeviceProcAddr( device, "vkCmdEndRendering" ) );
-        vkCmdSetCullMode                    = PFN_vkCmdSetCullMode( vkGetDeviceProcAddr( device, "vkCmdSetCullMode" ) );
-        vkCmdSetFrontFace                   = PFN_vkCmdSetFrontFace( vkGetDeviceProcAddr( device, "vkCmdSetFrontFace" ) );
-        vkCmdSetPrimitiveTopology           = PFN_vkCmdSetPrimitiveTopology( vkGetDeviceProcAddr( device, "vkCmdSetPrimitiveTopology" ) );
-        vkCmdSetViewportWithCount           = PFN_vkCmdSetViewportWithCount( vkGetDeviceProcAddr( device, "vkCmdSetViewportWithCount" ) );
-        vkCmdSetScissorWithCount            = PFN_vkCmdSetScissorWithCount( vkGetDeviceProcAddr( device, "vkCmdSetScissorWithCount" ) );
-        vkCmdBindVertexBuffers2             = PFN_vkCmdBindVertexBuffers2( vkGetDeviceProcAddr( device, "vkCmdBindVertexBuffers2" ) );
-        vkCmdSetDepthTestEnable             = PFN_vkCmdSetDepthTestEnable( vkGetDeviceProcAddr( device, "vkCmdSetDepthTestEnable" ) );
-        vkCmdSetDepthWriteEnable            = PFN_vkCmdSetDepthWriteEnable( vkGetDeviceProcAddr( device, "vkCmdSetDepthWriteEnable" ) );
-        vkCmdSetDepthCompareOp              = PFN_vkCmdSetDepthCompareOp( vkGetDeviceProcAddr( device, "vkCmdSetDepthCompareOp" ) );
-        vkCmdSetDepthBoundsTestEnable       = PFN_vkCmdSetDepthBoundsTestEnable( vkGetDeviceProcAddr( device, "vkCmdSetDepthBoundsTestEnable" ) );
-        vkCmdSetStencilTestEnable           = PFN_vkCmdSetStencilTestEnable( vkGetDeviceProcAddr( device, "vkCmdSetStencilTestEnable" ) );
-        vkCmdSetStencilOp                   = PFN_vkCmdSetStencilOp( vkGetDeviceProcAddr( device, "vkCmdSetStencilOp" ) );
-        vkCmdSetRasterizerDiscardEnable     = PFN_vkCmdSetRasterizerDiscardEnable( vkGetDeviceProcAddr( device, "vkCmdSetRasterizerDiscardEnable" ) );
-        vkCmdSetDepthBiasEnable             = PFN_vkCmdSetDepthBiasEnable( vkGetDeviceProcAddr( device, "vkCmdSetDepthBiasEnable" ) );
-        vkCmdSetPrimitiveRestartEnable      = PFN_vkCmdSetPrimitiveRestartEnable( vkGetDeviceProcAddr( device, "vkCmdSetPrimitiveRestartEnable" ) );
-        vkGetDeviceBufferMemoryRequirements = PFN_vkGetDeviceBufferMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetDeviceBufferMemoryRequirements" ) );
-        vkGetDeviceImageMemoryRequirements  = PFN_vkGetDeviceImageMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetDeviceImageMemoryRequirements" ) );
-        vkGetDeviceImageSparseMemoryRequirements =
-          PFN_vkGetDeviceImageSparseMemoryRequirements( vkGetDeviceProcAddr( device, "vkGetDeviceImageSparseMemoryRequirements" ) );
+        PFN_vkCreatePrivateDataSlot                  vkCreatePrivateDataSlot                  = 0;
+        PFN_vkDestroyPrivateDataSlot                 vkDestroyPrivateDataSlot                 = 0;
+        PFN_vkSetPrivateData                         vkSetPrivateData                         = 0;
+        PFN_vkGetPrivateData                         vkGetPrivateData                         = 0;
+        PFN_vkCmdSetEvent2                           vkCmdSetEvent2                           = 0;
+        PFN_vkCmdResetEvent2                         vkCmdResetEvent2                         = 0;
+        PFN_vkCmdWaitEvents2                         vkCmdWaitEvents2                         = 0;
+        PFN_vkCmdPipelineBarrier2                    vkCmdPipelineBarrier2                    = 0;
+        PFN_vkCmdWriteTimestamp2                     vkCmdWriteTimestamp2                     = 0;
+        PFN_vkQueueSubmit2                           vkQueueSubmit2                           = 0;
+        PFN_vkCmdCopyBuffer2                         vkCmdCopyBuffer2                         = 0;
+        PFN_vkCmdCopyImage2                          vkCmdCopyImage2                          = 0;
+        PFN_vkCmdCopyBufferToImage2                  vkCmdCopyBufferToImage2                  = 0;
+        PFN_vkCmdCopyImageToBuffer2                  vkCmdCopyImageToBuffer2                  = 0;
+        PFN_vkCmdBlitImage2                          vkCmdBlitImage2                          = 0;
+        PFN_vkCmdResolveImage2                       vkCmdResolveImage2                       = 0;
+        PFN_vkCmdBeginRendering                      vkCmdBeginRendering                      = 0;
+        PFN_vkCmdEndRendering                        vkCmdEndRendering                        = 0;
+        PFN_vkCmdSetCullMode                         vkCmdSetCullMode                         = 0;
+        PFN_vkCmdSetFrontFace                        vkCmdSetFrontFace                        = 0;
+        PFN_vkCmdSetPrimitiveTopology                vkCmdSetPrimitiveTopology                = 0;
+        PFN_vkCmdSetViewportWithCount                vkCmdSetViewportWithCount                = 0;
+        PFN_vkCmdSetScissorWithCount                 vkCmdSetScissorWithCount                 = 0;
+        PFN_vkCmdBindVertexBuffers2                  vkCmdBindVertexBuffers2                  = 0;
+        PFN_vkCmdSetDepthTestEnable                  vkCmdSetDepthTestEnable                  = 0;
+        PFN_vkCmdSetDepthWriteEnable                 vkCmdSetDepthWriteEnable                 = 0;
+        PFN_vkCmdSetDepthCompareOp                   vkCmdSetDepthCompareOp                   = 0;
+        PFN_vkCmdSetDepthBoundsTestEnable            vkCmdSetDepthBoundsTestEnable            = 0;
+        PFN_vkCmdSetStencilTestEnable                vkCmdSetStencilTestEnable                = 0;
+        PFN_vkCmdSetStencilOp                        vkCmdSetStencilOp                        = 0;
+        PFN_vkCmdSetRasterizerDiscardEnable          vkCmdSetRasterizerDiscardEnable          = 0;
+        PFN_vkCmdSetDepthBiasEnable                  vkCmdSetDepthBiasEnable                  = 0;
+        PFN_vkCmdSetPrimitiveRestartEnable           vkCmdSetPrimitiveRestartEnable           = 0;
+        PFN_vkGetDeviceBufferMemoryRequirements      vkGetDeviceBufferMemoryRequirements      = 0;
+        PFN_vkGetDeviceImageMemoryRequirements       vkGetDeviceImageMemoryRequirements       = 0;
+        PFN_vkGetDeviceImageSparseMemoryRequirements vkGetDeviceImageSparseMemoryRequirements = 0;
+
+        //=== VK_VERSION_1_4 ===
+        PFN_vkCmdSetLineStipple                     vkCmdSetLineStipple                     = 0;
+        PFN_vkMapMemory2                            vkMapMemory2                            = 0;
+        PFN_vkUnmapMemory2                          vkUnmapMemory2                          = 0;
+        PFN_vkCmdBindIndexBuffer2                   vkCmdBindIndexBuffer2                   = 0;
+        PFN_vkGetRenderingAreaGranularity           vkGetRenderingAreaGranularity           = 0;
+        PFN_vkGetDeviceImageSubresourceLayout       vkGetDeviceImageSubresourceLayout       = 0;
+        PFN_vkGetImageSubresourceLayout2            vkGetImageSubresourceLayout2            = 0;
+        PFN_vkCmdPushDescriptorSet                  vkCmdPushDescriptorSet                  = 0;
+        PFN_vkCmdPushDescriptorSetWithTemplate      vkCmdPushDescriptorSetWithTemplate      = 0;
+        PFN_vkCmdSetRenderingAttachmentLocations    vkCmdSetRenderingAttachmentLocations    = 0;
+        PFN_vkCmdSetRenderingInputAttachmentIndices vkCmdSetRenderingInputAttachmentIndices = 0;
+        PFN_vkCmdBindDescriptorSets2                vkCmdBindDescriptorSets2                = 0;
+        PFN_vkCmdPushConstants2                     vkCmdPushConstants2                     = 0;
+        PFN_vkCmdPushDescriptorSet2                 vkCmdPushDescriptorSet2                 = 0;
+        PFN_vkCmdPushDescriptorSetWithTemplate2     vkCmdPushDescriptorSetWithTemplate2     = 0;
+        PFN_vkCopyMemoryToImage                     vkCopyMemoryToImage                     = 0;
+        PFN_vkCopyImageToMemory                     vkCopyImageToMemory                     = 0;
+        PFN_vkCopyImageToImage                      vkCopyImageToImage                      = 0;
+        PFN_vkTransitionImageLayout                 vkTransitionImageLayout                 = 0;
 
         //=== VK_KHR_swapchain ===
-        vkCreateSwapchainKHR    = PFN_vkCreateSwapchainKHR( vkGetDeviceProcAddr( device, "vkCreateSwapchainKHR" ) );
-        vkDestroySwapchainKHR   = PFN_vkDestroySwapchainKHR( vkGetDeviceProcAddr( device, "vkDestroySwapchainKHR" ) );
-        vkGetSwapchainImagesKHR = PFN_vkGetSwapchainImagesKHR( vkGetDeviceProcAddr( device, "vkGetSwapchainImagesKHR" ) );
-        vkAcquireNextImageKHR   = PFN_vkAcquireNextImageKHR( vkGetDeviceProcAddr( device, "vkAcquireNextImageKHR" ) );
-        vkQueuePresentKHR       = PFN_vkQueuePresentKHR( vkGetDeviceProcAddr( device, "vkQueuePresentKHR" ) );
-        vkGetDeviceGroupPresentCapabilitiesKHR =
-          PFN_vkGetDeviceGroupPresentCapabilitiesKHR( vkGetDeviceProcAddr( device, "vkGetDeviceGroupPresentCapabilitiesKHR" ) );
-        vkGetDeviceGroupSurfacePresentModesKHR =
-          PFN_vkGetDeviceGroupSurfacePresentModesKHR( vkGetDeviceProcAddr( device, "vkGetDeviceGroupSurfacePresentModesKHR" ) );
-        vkAcquireNextImage2KHR = PFN_vkAcquireNextImage2KHR( vkGetDeviceProcAddr( device, "vkAcquireNextImage2KHR" ) );
+        PFN_vkCreateSwapchainKHR                   vkCreateSwapchainKHR                   = 0;
+        PFN_vkDestroySwapchainKHR                  vkDestroySwapchainKHR                  = 0;
+        PFN_vkGetSwapchainImagesKHR                vkGetSwapchainImagesKHR                = 0;
+        PFN_vkAcquireNextImageKHR                  vkAcquireNextImageKHR                  = 0;
+        PFN_vkQueuePresentKHR                      vkQueuePresentKHR                      = 0;
+        PFN_vkGetDeviceGroupPresentCapabilitiesKHR vkGetDeviceGroupPresentCapabilitiesKHR = 0;
+        PFN_vkGetDeviceGroupSurfacePresentModesKHR vkGetDeviceGroupSurfacePresentModesKHR = 0;
+        PFN_vkAcquireNextImage2KHR                 vkAcquireNextImage2KHR                 = 0;
 
         //=== VK_KHR_display_swapchain ===
-        vkCreateSharedSwapchainsKHR = PFN_vkCreateSharedSwapchainsKHR( vkGetDeviceProcAddr( device, "vkCreateSharedSwapchainsKHR" ) );
+        PFN_vkCreateSharedSwapchainsKHR vkCreateSharedSwapchainsKHR = 0;
 
         //=== VK_EXT_debug_marker ===
-        vkDebugMarkerSetObjectTagEXT  = PFN_vkDebugMarkerSetObjectTagEXT( vkGetDeviceProcAddr( device, "vkDebugMarkerSetObjectTagEXT" ) );
-        vkDebugMarkerSetObjectNameEXT = PFN_vkDebugMarkerSetObjectNameEXT( vkGetDeviceProcAddr( device, "vkDebugMarkerSetObjectNameEXT" ) );
-        vkCmdDebugMarkerBeginEXT      = PFN_vkCmdDebugMarkerBeginEXT( vkGetDeviceProcAddr( device, "vkCmdDebugMarkerBeginEXT" ) );
-        vkCmdDebugMarkerEndEXT        = PFN_vkCmdDebugMarkerEndEXT( vkGetDeviceProcAddr( device, "vkCmdDebugMarkerEndEXT" ) );
-        vkCmdDebugMarkerInsertEXT     = PFN_vkCmdDebugMarkerInsertEXT( vkGetDeviceProcAddr( device, "vkCmdDebugMarkerInsertEXT" ) );
+        PFN_vkDebugMarkerSetObjectTagEXT  vkDebugMarkerSetObjectTagEXT  = 0;
+        PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectNameEXT = 0;
+        PFN_vkCmdDebugMarkerBeginEXT      vkCmdDebugMarkerBeginEXT      = 0;
+        PFN_vkCmdDebugMarkerEndEXT        vkCmdDebugMarkerEndEXT        = 0;
+        PFN_vkCmdDebugMarkerInsertEXT     vkCmdDebugMarkerInsertEXT     = 0;
 
         //=== VK_KHR_video_queue ===
-        vkCreateVideoSessionKHR  = PFN_vkCreateVideoSessionKHR( vkGetDeviceProcAddr( device, "vkCreateVideoSessionKHR" ) );
-        vkDestroyVideoSessionKHR = PFN_vkDestroyVideoSessionKHR( vkGetDeviceProcAddr( device, "vkDestroyVideoSessionKHR" ) );
-        vkGetVideoSessionMemoryRequirementsKHR =
-          PFN_vkGetVideoSessionMemoryRequirementsKHR( vkGetDeviceProcAddr( device, "vkGetVideoSessionMemoryRequirementsKHR" ) );
-        vkBindVideoSessionMemoryKHR        = PFN_vkBindVideoSessionMemoryKHR( vkGetDeviceProcAddr( device, "vkBindVideoSessionMemoryKHR" ) );
-        vkCreateVideoSessionParametersKHR  = PFN_vkCreateVideoSessionParametersKHR( vkGetDeviceProcAddr( device, "vkCreateVideoSessionParametersKHR" ) );
-        vkUpdateVideoSessionParametersKHR  = PFN_vkUpdateVideoSessionParametersKHR( vkGetDeviceProcAddr( device, "vkUpdateVideoSessionParametersKHR" ) );
-        vkDestroyVideoSessionParametersKHR = PFN_vkDestroyVideoSessionParametersKHR( vkGetDeviceProcAddr( device, "vkDestroyVideoSessionParametersKHR" ) );
-        vkCmdBeginVideoCodingKHR           = PFN_vkCmdBeginVideoCodingKHR( vkGetDeviceProcAddr( device, "vkCmdBeginVideoCodingKHR" ) );
-        vkCmdEndVideoCodingKHR             = PFN_vkCmdEndVideoCodingKHR( vkGetDeviceProcAddr( device, "vkCmdEndVideoCodingKHR" ) );
-        vkCmdControlVideoCodingKHR         = PFN_vkCmdControlVideoCodingKHR( vkGetDeviceProcAddr( device, "vkCmdControlVideoCodingKHR" ) );
+        PFN_vkCreateVideoSessionKHR                vkCreateVideoSessionKHR                = 0;
+        PFN_vkDestroyVideoSessionKHR               vkDestroyVideoSessionKHR               = 0;
+        PFN_vkGetVideoSessionMemoryRequirementsKHR vkGetVideoSessionMemoryRequirementsKHR = 0;
+        PFN_vkBindVideoSessionMemoryKHR            vkBindVideoSessionMemoryKHR            = 0;
+        PFN_vkCreateVideoSessionParametersKHR      vkCreateVideoSessionParametersKHR      = 0;
+        PFN_vkUpdateVideoSessionParametersKHR      vkUpdateVideoSessionParametersKHR      = 0;
+        PFN_vkDestroyVideoSessionParametersKHR     vkDestroyVideoSessionParametersKHR     = 0;
+        PFN_vkCmdBeginVideoCodingKHR               vkCmdBeginVideoCodingKHR               = 0;
+        PFN_vkCmdEndVideoCodingKHR                 vkCmdEndVideoCodingKHR                 = 0;
+        PFN_vkCmdControlVideoCodingKHR             vkCmdControlVideoCodingKHR             = 0;
 
         //=== VK_KHR_video_decode_queue ===
-        vkCmdDecodeVideoKHR = PFN_vkCmdDecodeVideoKHR( vkGetDeviceProcAddr( device, "vkCmdDecodeVideoKHR" ) );
+        PFN_vkCmdDecodeVideoKHR vkCmdDecodeVideoKHR = 0;
 
         //=== VK_EXT_transform_feedback ===
-        vkCmdBindTransformFeedbackBuffersEXT =
-          PFN_vkCmdBindTransformFeedbackBuffersEXT( vkGetDeviceProcAddr( device, "vkCmdBindTransformFeedbackBuffersEXT" ) );
-        vkCmdBeginTransformFeedbackEXT = PFN_vkCmdBeginTransformFeedbackEXT( vkGetDeviceProcAddr( device, "vkCmdBeginTransformFeedbackEXT" ) );
-        vkCmdEndTransformFeedbackEXT   = PFN_vkCmdEndTransformFeedbackEXT( vkGetDeviceProcAddr( device, "vkCmdEndTransformFeedbackEXT" ) );
-        vkCmdBeginQueryIndexedEXT      = PFN_vkCmdBeginQueryIndexedEXT( vkGetDeviceProcAddr( device, "vkCmdBeginQueryIndexedEXT" ) );
-        vkCmdEndQueryIndexedEXT        = PFN_vkCmdEndQueryIndexedEXT( vkGetDeviceProcAddr( device, "vkCmdEndQueryIndexedEXT" ) );
-        vkCmdDrawIndirectByteCountEXT  = PFN_vkCmdDrawIndirectByteCountEXT( vkGetDeviceProcAddr( device, "vkCmdDrawIndirectByteCountEXT" ) );
+        PFN_vkCmdBindTransformFeedbackBuffersEXT vkCmdBindTransformFeedbackBuffersEXT = 0;
+        PFN_vkCmdBeginTransformFeedbackEXT       vkCmdBeginTransformFeedbackEXT       = 0;
+        PFN_vkCmdEndTransformFeedbackEXT         vkCmdEndTransformFeedbackEXT         = 0;
+        PFN_vkCmdBeginQueryIndexedEXT            vkCmdBeginQueryIndexedEXT            = 0;
+        PFN_vkCmdEndQueryIndexedEXT              vkCmdEndQueryIndexedEXT              = 0;
+        PFN_vkCmdDrawIndirectByteCountEXT        vkCmdDrawIndirectByteCountEXT        = 0;
 
         //=== VK_NVX_binary_import ===
-        vkCreateCuModuleNVX    = PFN_vkCreateCuModuleNVX( vkGetDeviceProcAddr( device, "vkCreateCuModuleNVX" ) );
-        vkCreateCuFunctionNVX  = PFN_vkCreateCuFunctionNVX( vkGetDeviceProcAddr( device, "vkCreateCuFunctionNVX" ) );
-        vkDestroyCuModuleNVX   = PFN_vkDestroyCuModuleNVX( vkGetDeviceProcAddr( device, "vkDestroyCuModuleNVX" ) );
-        vkDestroyCuFunctionNVX = PFN_vkDestroyCuFunctionNVX( vkGetDeviceProcAddr( device, "vkDestroyCuFunctionNVX" ) );
-        vkCmdCuLaunchKernelNVX = PFN_vkCmdCuLaunchKernelNVX( vkGetDeviceProcAddr( device, "vkCmdCuLaunchKernelNVX" ) );
+        PFN_vkCreateCuModuleNVX    vkCreateCuModuleNVX    = 0;
+        PFN_vkCreateCuFunctionNVX  vkCreateCuFunctionNVX  = 0;
+        PFN_vkDestroyCuModuleNVX   vkDestroyCuModuleNVX   = 0;
+        PFN_vkDestroyCuFunctionNVX vkDestroyCuFunctionNVX = 0;
+        PFN_vkCmdCuLaunchKernelNVX vkCmdCuLaunchKernelNVX = 0;
 
         //=== VK_NVX_image_view_handle ===
-        vkGetImageViewHandleNVX  = PFN_vkGetImageViewHandleNVX( vkGetDeviceProcAddr( device, "vkGetImageViewHandleNVX" ) );
-        vkGetImageViewAddressNVX = PFN_vkGetImageViewAddressNVX( vkGetDeviceProcAddr( device, "vkGetImageViewAddressNVX" ) );
+        PFN_vkGetImageViewHandleNVX   vkGetImageViewHandleNVX   = 0;
+        PFN_vkGetImageViewHandle64NVX vkGetImageViewHandle64NVX = 0;
+        PFN_vkGetImageViewAddressNVX  vkGetImageViewAddressNVX  = 0;
 
         //=== VK_AMD_draw_indirect_count ===
-        vkCmdDrawIndirectCountAMD = PFN_vkCmdDrawIndirectCountAMD( vkGetDeviceProcAddr( device, "vkCmdDrawIndirectCountAMD" ) );
-        if ( !vkCmdDrawIndirectCount )
-          vkCmdDrawIndirectCount = vkCmdDrawIndirectCountAMD;
-        vkCmdDrawIndexedIndirectCountAMD = PFN_vkCmdDrawIndexedIndirectCountAMD( vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirectCountAMD" ) );
-        if ( !vkCmdDrawIndexedIndirectCount )
-          vkCmdDrawIndexedIndirectCount = vkCmdDrawIndexedIndirectCountAMD;
+        PFN_vkCmdDrawIndirectCountAMD        vkCmdDrawIndirectCountAMD        = 0;
+        PFN_vkCmdDrawIndexedIndirectCountAMD vkCmdDrawIndexedIndirectCountAMD = 0;
 
         //=== VK_AMD_shader_info ===
-        vkGetShaderInfoAMD = PFN_vkGetShaderInfoAMD( vkGetDeviceProcAddr( device, "vkGetShaderInfoAMD" ) );
+        PFN_vkGetShaderInfoAMD vkGetShaderInfoAMD = 0;
 
         //=== VK_KHR_dynamic_rendering ===
-        vkCmdBeginRenderingKHR = PFN_vkCmdBeginRenderingKHR( vkGetDeviceProcAddr( device, "vkCmdBeginRenderingKHR" ) );
-        if ( !vkCmdBeginRendering )
-          vkCmdBeginRendering = vkCmdBeginRenderingKHR;
-        vkCmdEndRenderingKHR = PFN_vkCmdEndRenderingKHR( vkGetDeviceProcAddr( device, "vkCmdEndRenderingKHR" ) );
-        if ( !vkCmdEndRendering )
-          vkCmdEndRendering = vkCmdEndRenderingKHR;
+        PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR = 0;
+        PFN_vkCmdEndRenderingKHR   vkCmdEndRenderingKHR   = 0;
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
         //=== VK_NV_external_memory_win32 ===
-        vkGetMemoryWin32HandleNV = PFN_vkGetMemoryWin32HandleNV( vkGetDeviceProcAddr( device, "vkGetMemoryWin32HandleNV" ) );
+        PFN_vkGetMemoryWin32HandleNV vkGetMemoryWin32HandleNV = 0;
+#  else
+        PFN_dummy vkGetMemoryWin32HandleNV_placeholder                          = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
         //=== VK_KHR_device_group ===
-        vkGetDeviceGroupPeerMemoryFeaturesKHR =
-          PFN_vkGetDeviceGroupPeerMemoryFeaturesKHR( vkGetDeviceProcAddr( device, "vkGetDeviceGroupPeerMemoryFeaturesKHR" ) );
-        if ( !vkGetDeviceGroupPeerMemoryFeatures )
-          vkGetDeviceGroupPeerMemoryFeatures = vkGetDeviceGroupPeerMemoryFeaturesKHR;
-        vkCmdSetDeviceMaskKHR = PFN_vkCmdSetDeviceMaskKHR( vkGetDeviceProcAddr( device, "vkCmdSetDeviceMaskKHR" ) );
-        if ( !vkCmdSetDeviceMask )
-          vkCmdSetDeviceMask = vkCmdSetDeviceMaskKHR;
-        vkCmdDispatchBaseKHR = PFN_vkCmdDispatchBaseKHR( vkGetDeviceProcAddr( device, "vkCmdDispatchBaseKHR" ) );
-        if ( !vkCmdDispatchBase )
-          vkCmdDispatchBase = vkCmdDispatchBaseKHR;
+        PFN_vkGetDeviceGroupPeerMemoryFeaturesKHR vkGetDeviceGroupPeerMemoryFeaturesKHR = 0;
+        PFN_vkCmdSetDeviceMaskKHR                 vkCmdSetDeviceMaskKHR                 = 0;
+        PFN_vkCmdDispatchBaseKHR                  vkCmdDispatchBaseKHR                  = 0;
 
         //=== VK_KHR_maintenance1 ===
-        vkTrimCommandPoolKHR = PFN_vkTrimCommandPoolKHR( vkGetDeviceProcAddr( device, "vkTrimCommandPoolKHR" ) );
-        if ( !vkTrimCommandPool )
-          vkTrimCommandPool = vkTrimCommandPoolKHR;
+        PFN_vkTrimCommandPoolKHR vkTrimCommandPoolKHR = 0;
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
         //=== VK_KHR_external_memory_win32 ===
-        vkGetMemoryWin32HandleKHR           = PFN_vkGetMemoryWin32HandleKHR( vkGetDeviceProcAddr( device, "vkGetMemoryWin32HandleKHR" ) );
-        vkGetMemoryWin32HandlePropertiesKHR = PFN_vkGetMemoryWin32HandlePropertiesKHR( vkGetDeviceProcAddr( device, "vkGetMemoryWin32HandlePropertiesKHR" ) );
+        PFN_vkGetMemoryWin32HandleKHR           vkGetMemoryWin32HandleKHR           = 0;
+        PFN_vkGetMemoryWin32HandlePropertiesKHR vkGetMemoryWin32HandlePropertiesKHR = 0;
+#  else
+        PFN_dummy vkGetMemoryWin32HandleKHR_placeholder                         = 0;
+        PFN_dummy vkGetMemoryWin32HandlePropertiesKHR_placeholder               = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
         //=== VK_KHR_external_memory_fd ===
-        vkGetMemoryFdKHR           = PFN_vkGetMemoryFdKHR( vkGetDeviceProcAddr( device, "vkGetMemoryFdKHR" ) );
-        vkGetMemoryFdPropertiesKHR = PFN_vkGetMemoryFdPropertiesKHR( vkGetDeviceProcAddr( device, "vkGetMemoryFdPropertiesKHR" ) );
+        PFN_vkGetMemoryFdKHR           vkGetMemoryFdKHR           = 0;
+        PFN_vkGetMemoryFdPropertiesKHR vkGetMemoryFdPropertiesKHR = 0;
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
         //=== VK_KHR_external_semaphore_win32 ===
-        vkImportSemaphoreWin32HandleKHR = PFN_vkImportSemaphoreWin32HandleKHR( vkGetDeviceProcAddr( device, "vkImportSemaphoreWin32HandleKHR" ) );
-        vkGetSemaphoreWin32HandleKHR    = PFN_vkGetSemaphoreWin32HandleKHR( vkGetDeviceProcAddr( device, "vkGetSemaphoreWin32HandleKHR" ) );
+        PFN_vkImportSemaphoreWin32HandleKHR vkImportSemaphoreWin32HandleKHR = 0;
+        PFN_vkGetSemaphoreWin32HandleKHR    vkGetSemaphoreWin32HandleKHR    = 0;
+#  else
+        PFN_dummy vkImportSemaphoreWin32HandleKHR_placeholder                   = 0;
+        PFN_dummy vkGetSemaphoreWin32HandleKHR_placeholder                      = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
         //=== VK_KHR_external_semaphore_fd ===
-        vkImportSemaphoreFdKHR = PFN_vkImportSemaphoreFdKHR( vkGetDeviceProcAddr( device, "vkImportSemaphoreFdKHR" ) );
-        vkGetSemaphoreFdKHR    = PFN_vkGetSemaphoreFdKHR( vkGetDeviceProcAddr( device, "vkGetSemaphoreFdKHR" ) );
+        PFN_vkImportSemaphoreFdKHR vkImportSemaphoreFdKHR = 0;
+        PFN_vkGetSemaphoreFdKHR    vkGetSemaphoreFdKHR    = 0;
 
         //=== VK_KHR_push_descriptor ===
-        vkCmdPushDescriptorSetKHR = PFN_vkCmdPushDescriptorSetKHR( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetKHR" ) );
-        vkCmdPushDescriptorSetWithTemplateKHR =
-          PFN_vkCmdPushDescriptorSetWithTemplateKHR( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetWithTemplateKHR" ) );
+        PFN_vkCmdPushDescriptorSetKHR             vkCmdPushDescriptorSetKHR             = 0;
+        PFN_vkCmdPushDescriptorSetWithTemplateKHR vkCmdPushDescriptorSetWithTemplateKHR = 0;
 
         //=== VK_EXT_conditional_rendering ===
-        vkCmdBeginConditionalRenderingEXT = PFN_vkCmdBeginConditionalRenderingEXT( vkGetDeviceProcAddr( device, "vkCmdBeginConditionalRenderingEXT" ) );
-        vkCmdEndConditionalRenderingEXT   = PFN_vkCmdEndConditionalRenderingEXT( vkGetDeviceProcAddr( device, "vkCmdEndConditionalRenderingEXT" ) );
+        PFN_vkCmdBeginConditionalRenderingEXT vkCmdBeginConditionalRenderingEXT = 0;
+        PFN_vkCmdEndConditionalRenderingEXT   vkCmdEndConditionalRenderingEXT   = 0;
 
         //=== VK_KHR_descriptor_update_template ===
-        vkCreateDescriptorUpdateTemplateKHR = PFN_vkCreateDescriptorUpdateTemplateKHR( vkGetDeviceProcAddr( device, "vkCreateDescriptorUpdateTemplateKHR" ) );
-        if ( !vkCreateDescriptorUpdateTemplate )
-          vkCreateDescriptorUpdateTemplate = vkCreateDescriptorUpdateTemplateKHR;
-        vkDestroyDescriptorUpdateTemplateKHR =
-          PFN_vkDestroyDescriptorUpdateTemplateKHR( vkGetDeviceProcAddr( device, "vkDestroyDescriptorUpdateTemplateKHR" ) );
-        if ( !vkDestroyDescriptorUpdateTemplate )
-          vkDestroyDescriptorUpdateTemplate = vkDestroyDescriptorUpdateTemplateKHR;
-        vkUpdateDescriptorSetWithTemplateKHR =
-          PFN_vkUpdateDescriptorSetWithTemplateKHR( vkGetDeviceProcAddr( device, "vkUpdateDescriptorSetWithTemplateKHR" ) );
-        if ( !vkUpdateDescriptorSetWithTemplate )
-          vkUpdateDescriptorSetWithTemplate = vkUpdateDescriptorSetWithTemplateKHR;
+        PFN_vkCreateDescriptorUpdateTemplateKHR  vkCreateDescriptorUpdateTemplateKHR  = 0;
+        PFN_vkDestroyDescriptorUpdateTemplateKHR vkDestroyDescriptorUpdateTemplateKHR = 0;
+        PFN_vkUpdateDescriptorSetWithTemplateKHR vkUpdateDescriptorSetWithTemplateKHR = 0;
 
         //=== VK_NV_clip_space_w_scaling ===
-        vkCmdSetViewportWScalingNV = PFN_vkCmdSetViewportWScalingNV( vkGetDeviceProcAddr( device, "vkCmdSetViewportWScalingNV" ) );
+        PFN_vkCmdSetViewportWScalingNV vkCmdSetViewportWScalingNV = 0;
 
         //=== VK_EXT_display_control ===
-        vkDisplayPowerControlEXT  = PFN_vkDisplayPowerControlEXT( vkGetDeviceProcAddr( device, "vkDisplayPowerControlEXT" ) );
-        vkRegisterDeviceEventEXT  = PFN_vkRegisterDeviceEventEXT( vkGetDeviceProcAddr( device, "vkRegisterDeviceEventEXT" ) );
-        vkRegisterDisplayEventEXT = PFN_vkRegisterDisplayEventEXT( vkGetDeviceProcAddr( device, "vkRegisterDisplayEventEXT" ) );
-        vkGetSwapchainCounterEXT  = PFN_vkGetSwapchainCounterEXT( vkGetDeviceProcAddr( device, "vkGetSwapchainCounterEXT" ) );
+        PFN_vkDisplayPowerControlEXT  vkDisplayPowerControlEXT  = 0;
+        PFN_vkRegisterDeviceEventEXT  vkRegisterDeviceEventEXT  = 0;
+        PFN_vkRegisterDisplayEventEXT vkRegisterDisplayEventEXT = 0;
+        PFN_vkGetSwapchainCounterEXT  vkGetSwapchainCounterEXT  = 0;
 
         //=== VK_GOOGLE_display_timing ===
-        vkGetRefreshCycleDurationGOOGLE   = PFN_vkGetRefreshCycleDurationGOOGLE( vkGetDeviceProcAddr( device, "vkGetRefreshCycleDurationGOOGLE" ) );
-        vkGetPastPresentationTimingGOOGLE = PFN_vkGetPastPresentationTimingGOOGLE( vkGetDeviceProcAddr( device, "vkGetPastPresentationTimingGOOGLE" ) );
+        PFN_vkGetRefreshCycleDurationGOOGLE   vkGetRefreshCycleDurationGOOGLE   = 0;
+        PFN_vkGetPastPresentationTimingGOOGLE vkGetPastPresentationTimingGOOGLE = 0;
 
         //=== VK_EXT_discard_rectangles ===
-        vkCmdSetDiscardRectangleEXT       = PFN_vkCmdSetDiscardRectangleEXT( vkGetDeviceProcAddr( device, "vkCmdSetDiscardRectangleEXT" ) );
-        vkCmdSetDiscardRectangleEnableEXT = PFN_vkCmdSetDiscardRectangleEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDiscardRectangleEnableEXT" ) );
-        vkCmdSetDiscardRectangleModeEXT   = PFN_vkCmdSetDiscardRectangleModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetDiscardRectangleModeEXT" ) );
+        PFN_vkCmdSetDiscardRectangleEXT       vkCmdSetDiscardRectangleEXT       = 0;
+        PFN_vkCmdSetDiscardRectangleEnableEXT vkCmdSetDiscardRectangleEnableEXT = 0;
+        PFN_vkCmdSetDiscardRectangleModeEXT   vkCmdSetDiscardRectangleModeEXT   = 0;
 
         //=== VK_EXT_hdr_metadata ===
-        vkSetHdrMetadataEXT = PFN_vkSetHdrMetadataEXT( vkGetDeviceProcAddr( device, "vkSetHdrMetadataEXT" ) );
+        PFN_vkSetHdrMetadataEXT vkSetHdrMetadataEXT = 0;
 
         //=== VK_KHR_create_renderpass2 ===
-        vkCreateRenderPass2KHR = PFN_vkCreateRenderPass2KHR( vkGetDeviceProcAddr( device, "vkCreateRenderPass2KHR" ) );
-        if ( !vkCreateRenderPass2 )
-          vkCreateRenderPass2 = vkCreateRenderPass2KHR;
-        vkCmdBeginRenderPass2KHR = PFN_vkCmdBeginRenderPass2KHR( vkGetDeviceProcAddr( device, "vkCmdBeginRenderPass2KHR" ) );
-        if ( !vkCmdBeginRenderPass2 )
-          vkCmdBeginRenderPass2 = vkCmdBeginRenderPass2KHR;
-        vkCmdNextSubpass2KHR = PFN_vkCmdNextSubpass2KHR( vkGetDeviceProcAddr( device, "vkCmdNextSubpass2KHR" ) );
-        if ( !vkCmdNextSubpass2 )
-          vkCmdNextSubpass2 = vkCmdNextSubpass2KHR;
-        vkCmdEndRenderPass2KHR = PFN_vkCmdEndRenderPass2KHR( vkGetDeviceProcAddr( device, "vkCmdEndRenderPass2KHR" ) );
-        if ( !vkCmdEndRenderPass2 )
-          vkCmdEndRenderPass2 = vkCmdEndRenderPass2KHR;
+        PFN_vkCreateRenderPass2KHR   vkCreateRenderPass2KHR   = 0;
+        PFN_vkCmdBeginRenderPass2KHR vkCmdBeginRenderPass2KHR = 0;
+        PFN_vkCmdNextSubpass2KHR     vkCmdNextSubpass2KHR     = 0;
+        PFN_vkCmdEndRenderPass2KHR   vkCmdEndRenderPass2KHR   = 0;
 
         //=== VK_KHR_shared_presentable_image ===
-        vkGetSwapchainStatusKHR = PFN_vkGetSwapchainStatusKHR( vkGetDeviceProcAddr( device, "vkGetSwapchainStatusKHR" ) );
+        PFN_vkGetSwapchainStatusKHR vkGetSwapchainStatusKHR = 0;
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
         //=== VK_KHR_external_fence_win32 ===
-        vkImportFenceWin32HandleKHR = PFN_vkImportFenceWin32HandleKHR( vkGetDeviceProcAddr( device, "vkImportFenceWin32HandleKHR" ) );
-        vkGetFenceWin32HandleKHR    = PFN_vkGetFenceWin32HandleKHR( vkGetDeviceProcAddr( device, "vkGetFenceWin32HandleKHR" ) );
+        PFN_vkImportFenceWin32HandleKHR vkImportFenceWin32HandleKHR = 0;
+        PFN_vkGetFenceWin32HandleKHR    vkGetFenceWin32HandleKHR    = 0;
+#  else
+        PFN_dummy vkImportFenceWin32HandleKHR_placeholder                       = 0;
+        PFN_dummy vkGetFenceWin32HandleKHR_placeholder                          = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
         //=== VK_KHR_external_fence_fd ===
-        vkImportFenceFdKHR = PFN_vkImportFenceFdKHR( vkGetDeviceProcAddr( device, "vkImportFenceFdKHR" ) );
-        vkGetFenceFdKHR    = PFN_vkGetFenceFdKHR( vkGetDeviceProcAddr( device, "vkGetFenceFdKHR" ) );
+        PFN_vkImportFenceFdKHR vkImportFenceFdKHR = 0;
+        PFN_vkGetFenceFdKHR    vkGetFenceFdKHR    = 0;
 
         //=== VK_KHR_performance_query ===
-        vkAcquireProfilingLockKHR = PFN_vkAcquireProfilingLockKHR( vkGetDeviceProcAddr( device, "vkAcquireProfilingLockKHR" ) );
-        vkReleaseProfilingLockKHR = PFN_vkReleaseProfilingLockKHR( vkGetDeviceProcAddr( device, "vkReleaseProfilingLockKHR" ) );
+        PFN_vkAcquireProfilingLockKHR vkAcquireProfilingLockKHR = 0;
+        PFN_vkReleaseProfilingLockKHR vkReleaseProfilingLockKHR = 0;
 
         //=== VK_EXT_debug_utils ===
-        vkSetDebugUtilsObjectNameEXT    = PFN_vkSetDebugUtilsObjectNameEXT( vkGetDeviceProcAddr( device, "vkSetDebugUtilsObjectNameEXT" ) );
-        vkSetDebugUtilsObjectTagEXT     = PFN_vkSetDebugUtilsObjectTagEXT( vkGetDeviceProcAddr( device, "vkSetDebugUtilsObjectTagEXT" ) );
-        vkQueueBeginDebugUtilsLabelEXT  = PFN_vkQueueBeginDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkQueueBeginDebugUtilsLabelEXT" ) );
-        vkQueueEndDebugUtilsLabelEXT    = PFN_vkQueueEndDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkQueueEndDebugUtilsLabelEXT" ) );
-        vkQueueInsertDebugUtilsLabelEXT = PFN_vkQueueInsertDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkQueueInsertDebugUtilsLabelEXT" ) );
-        vkCmdBeginDebugUtilsLabelEXT    = PFN_vkCmdBeginDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkCmdBeginDebugUtilsLabelEXT" ) );
-        vkCmdEndDebugUtilsLabelEXT      = PFN_vkCmdEndDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkCmdEndDebugUtilsLabelEXT" ) );
-        vkCmdInsertDebugUtilsLabelEXT   = PFN_vkCmdInsertDebugUtilsLabelEXT( vkGetDeviceProcAddr( device, "vkCmdInsertDebugUtilsLabelEXT" ) );
+        PFN_vkSetDebugUtilsObjectNameEXT    vkSetDebugUtilsObjectNameEXT    = 0;
+        PFN_vkSetDebugUtilsObjectTagEXT     vkSetDebugUtilsObjectTagEXT     = 0;
+        PFN_vkQueueBeginDebugUtilsLabelEXT  vkQueueBeginDebugUtilsLabelEXT  = 0;
+        PFN_vkQueueEndDebugUtilsLabelEXT    vkQueueEndDebugUtilsLabelEXT    = 0;
+        PFN_vkQueueInsertDebugUtilsLabelEXT vkQueueInsertDebugUtilsLabelEXT = 0;
+        PFN_vkCmdBeginDebugUtilsLabelEXT    vkCmdBeginDebugUtilsLabelEXT    = 0;
+        PFN_vkCmdEndDebugUtilsLabelEXT      vkCmdEndDebugUtilsLabelEXT      = 0;
+        PFN_vkCmdInsertDebugUtilsLabelEXT   vkCmdInsertDebugUtilsLabelEXT   = 0;
 
 #  if defined( VK_USE_PLATFORM_ANDROID_KHR )
         //=== VK_ANDROID_external_memory_android_hardware_buffer ===
-        vkGetAndroidHardwareBufferPropertiesANDROID =
-          PFN_vkGetAndroidHardwareBufferPropertiesANDROID( vkGetDeviceProcAddr( device, "vkGetAndroidHardwareBufferPropertiesANDROID" ) );
-        vkGetMemoryAndroidHardwareBufferANDROID =
-          PFN_vkGetMemoryAndroidHardwareBufferANDROID( vkGetDeviceProcAddr( device, "vkGetMemoryAndroidHardwareBufferANDROID" ) );
+        PFN_vkGetAndroidHardwareBufferPropertiesANDROID vkGetAndroidHardwareBufferPropertiesANDROID = 0;
+        PFN_vkGetMemoryAndroidHardwareBufferANDROID     vkGetMemoryAndroidHardwareBufferANDROID     = 0;
+#  else
+        PFN_dummy vkGetAndroidHardwareBufferPropertiesANDROID_placeholder       = 0;
+        PFN_dummy vkGetMemoryAndroidHardwareBufferANDROID_placeholder           = 0;
 #  endif /*VK_USE_PLATFORM_ANDROID_KHR*/
 
 #  if defined( VK_ENABLE_BETA_EXTENSIONS )
         //=== VK_AMDX_shader_enqueue ===
-        vkCreateExecutionGraphPipelinesAMDX = PFN_vkCreateExecutionGraphPipelinesAMDX( vkGetDeviceProcAddr( device, "vkCreateExecutionGraphPipelinesAMDX" ) );
-        vkGetExecutionGraphPipelineScratchSizeAMDX =
-          PFN_vkGetExecutionGraphPipelineScratchSizeAMDX( vkGetDeviceProcAddr( device, "vkGetExecutionGraphPipelineScratchSizeAMDX" ) );
-        vkGetExecutionGraphPipelineNodeIndexAMDX =
-          PFN_vkGetExecutionGraphPipelineNodeIndexAMDX( vkGetDeviceProcAddr( device, "vkGetExecutionGraphPipelineNodeIndexAMDX" ) );
-        vkCmdInitializeGraphScratchMemoryAMDX =
-          PFN_vkCmdInitializeGraphScratchMemoryAMDX( vkGetDeviceProcAddr( device, "vkCmdInitializeGraphScratchMemoryAMDX" ) );
-        vkCmdDispatchGraphAMDX              = PFN_vkCmdDispatchGraphAMDX( vkGetDeviceProcAddr( device, "vkCmdDispatchGraphAMDX" ) );
-        vkCmdDispatchGraphIndirectAMDX      = PFN_vkCmdDispatchGraphIndirectAMDX( vkGetDeviceProcAddr( device, "vkCmdDispatchGraphIndirectAMDX" ) );
-        vkCmdDispatchGraphIndirectCountAMDX = PFN_vkCmdDispatchGraphIndirectCountAMDX( vkGetDeviceProcAddr( device, "vkCmdDispatchGraphIndirectCountAMDX" ) );
+        PFN_vkCreateExecutionGraphPipelinesAMDX        vkCreateExecutionGraphPipelinesAMDX        = 0;
+        PFN_vkGetExecutionGraphPipelineScratchSizeAMDX vkGetExecutionGraphPipelineScratchSizeAMDX = 0;
+        PFN_vkGetExecutionGraphPipelineNodeIndexAMDX   vkGetExecutionGraphPipelineNodeIndexAMDX   = 0;
+        PFN_vkCmdInitializeGraphScratchMemoryAMDX      vkCmdInitializeGraphScratchMemoryAMDX      = 0;
+        PFN_vkCmdDispatchGraphAMDX                     vkCmdDispatchGraphAMDX                     = 0;
+        PFN_vkCmdDispatchGraphIndirectAMDX             vkCmdDispatchGraphIndirectAMDX             = 0;
+        PFN_vkCmdDispatchGraphIndirectCountAMDX        vkCmdDispatchGraphIndirectCountAMDX        = 0;
+#  else
+        PFN_dummy vkCreateExecutionGraphPipelinesAMDX_placeholder               = 0;
+        PFN_dummy vkGetExecutionGraphPipelineScratchSizeAMDX_placeholder        = 0;
+        PFN_dummy vkGetExecutionGraphPipelineNodeIndexAMDX_placeholder          = 0;
+        PFN_dummy vkCmdInitializeGraphScratchMemoryAMDX_placeholder             = 0;
+        PFN_dummy vkCmdDispatchGraphAMDX_placeholder                            = 0;
+        PFN_dummy vkCmdDispatchGraphIndirectAMDX_placeholder                    = 0;
+        PFN_dummy vkCmdDispatchGraphIndirectCountAMDX_placeholder               = 0;
 #  endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
         //=== VK_EXT_sample_locations ===
-        vkCmdSetSampleLocationsEXT = PFN_vkCmdSetSampleLocationsEXT( vkGetDeviceProcAddr( device, "vkCmdSetSampleLocationsEXT" ) );
+        PFN_vkCmdSetSampleLocationsEXT vkCmdSetSampleLocationsEXT = 0;
 
         //=== VK_KHR_get_memory_requirements2 ===
-        vkGetImageMemoryRequirements2KHR = PFN_vkGetImageMemoryRequirements2KHR( vkGetDeviceProcAddr( device, "vkGetImageMemoryRequirements2KHR" ) );
-        if ( !vkGetImageMemoryRequirements2 )
-          vkGetImageMemoryRequirements2 = vkGetImageMemoryRequirements2KHR;
-        vkGetBufferMemoryRequirements2KHR = PFN_vkGetBufferMemoryRequirements2KHR( vkGetDeviceProcAddr( device, "vkGetBufferMemoryRequirements2KHR" ) );
-        if ( !vkGetBufferMemoryRequirements2 )
-          vkGetBufferMemoryRequirements2 = vkGetBufferMemoryRequirements2KHR;
-        vkGetImageSparseMemoryRequirements2KHR =
-          PFN_vkGetImageSparseMemoryRequirements2KHR( vkGetDeviceProcAddr( device, "vkGetImageSparseMemoryRequirements2KHR" ) );
-        if ( !vkGetImageSparseMemoryRequirements2 )
-          vkGetImageSparseMemoryRequirements2 = vkGetImageSparseMemoryRequirements2KHR;
+        PFN_vkGetImageMemoryRequirements2KHR       vkGetImageMemoryRequirements2KHR       = 0;
+        PFN_vkGetBufferMemoryRequirements2KHR      vkGetBufferMemoryRequirements2KHR      = 0;
+        PFN_vkGetImageSparseMemoryRequirements2KHR vkGetImageSparseMemoryRequirements2KHR = 0;
 
         //=== VK_KHR_acceleration_structure ===
-        vkCreateAccelerationStructureKHR    = PFN_vkCreateAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCreateAccelerationStructureKHR" ) );
-        vkDestroyAccelerationStructureKHR   = PFN_vkDestroyAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkDestroyAccelerationStructureKHR" ) );
-        vkCmdBuildAccelerationStructuresKHR = PFN_vkCmdBuildAccelerationStructuresKHR( vkGetDeviceProcAddr( device, "vkCmdBuildAccelerationStructuresKHR" ) );
-        vkCmdBuildAccelerationStructuresIndirectKHR =
-          PFN_vkCmdBuildAccelerationStructuresIndirectKHR( vkGetDeviceProcAddr( device, "vkCmdBuildAccelerationStructuresIndirectKHR" ) );
-        vkBuildAccelerationStructuresKHR = PFN_vkBuildAccelerationStructuresKHR( vkGetDeviceProcAddr( device, "vkBuildAccelerationStructuresKHR" ) );
-        vkCopyAccelerationStructureKHR   = PFN_vkCopyAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCopyAccelerationStructureKHR" ) );
-        vkCopyAccelerationStructureToMemoryKHR =
-          PFN_vkCopyAccelerationStructureToMemoryKHR( vkGetDeviceProcAddr( device, "vkCopyAccelerationStructureToMemoryKHR" ) );
-        vkCopyMemoryToAccelerationStructureKHR =
-          PFN_vkCopyMemoryToAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCopyMemoryToAccelerationStructureKHR" ) );
-        vkWriteAccelerationStructuresPropertiesKHR =
-          PFN_vkWriteAccelerationStructuresPropertiesKHR( vkGetDeviceProcAddr( device, "vkWriteAccelerationStructuresPropertiesKHR" ) );
-        vkCmdCopyAccelerationStructureKHR = PFN_vkCmdCopyAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCmdCopyAccelerationStructureKHR" ) );
-        vkCmdCopyAccelerationStructureToMemoryKHR =
-          PFN_vkCmdCopyAccelerationStructureToMemoryKHR( vkGetDeviceProcAddr( device, "vkCmdCopyAccelerationStructureToMemoryKHR" ) );
-        vkCmdCopyMemoryToAccelerationStructureKHR =
-          PFN_vkCmdCopyMemoryToAccelerationStructureKHR( vkGetDeviceProcAddr( device, "vkCmdCopyMemoryToAccelerationStructureKHR" ) );
-        vkGetAccelerationStructureDeviceAddressKHR =
-          PFN_vkGetAccelerationStructureDeviceAddressKHR( vkGetDeviceProcAddr( device, "vkGetAccelerationStructureDeviceAddressKHR" ) );
-        vkCmdWriteAccelerationStructuresPropertiesKHR =
-          PFN_vkCmdWriteAccelerationStructuresPropertiesKHR( vkGetDeviceProcAddr( device, "vkCmdWriteAccelerationStructuresPropertiesKHR" ) );
-        vkGetDeviceAccelerationStructureCompatibilityKHR =
-          PFN_vkGetDeviceAccelerationStructureCompatibilityKHR( vkGetDeviceProcAddr( device, "vkGetDeviceAccelerationStructureCompatibilityKHR" ) );
-        vkGetAccelerationStructureBuildSizesKHR =
-          PFN_vkGetAccelerationStructureBuildSizesKHR( vkGetDeviceProcAddr( device, "vkGetAccelerationStructureBuildSizesKHR" ) );
+        PFN_vkCreateAccelerationStructureKHR                 vkCreateAccelerationStructureKHR                 = 0;
+        PFN_vkDestroyAccelerationStructureKHR                vkDestroyAccelerationStructureKHR                = 0;
+        PFN_vkCmdBuildAccelerationStructuresKHR              vkCmdBuildAccelerationStructuresKHR              = 0;
+        PFN_vkCmdBuildAccelerationStructuresIndirectKHR      vkCmdBuildAccelerationStructuresIndirectKHR      = 0;
+        PFN_vkBuildAccelerationStructuresKHR                 vkBuildAccelerationStructuresKHR                 = 0;
+        PFN_vkCopyAccelerationStructureKHR                   vkCopyAccelerationStructureKHR                   = 0;
+        PFN_vkCopyAccelerationStructureToMemoryKHR           vkCopyAccelerationStructureToMemoryKHR           = 0;
+        PFN_vkCopyMemoryToAccelerationStructureKHR           vkCopyMemoryToAccelerationStructureKHR           = 0;
+        PFN_vkWriteAccelerationStructuresPropertiesKHR       vkWriteAccelerationStructuresPropertiesKHR       = 0;
+        PFN_vkCmdCopyAccelerationStructureKHR                vkCmdCopyAccelerationStructureKHR                = 0;
+        PFN_vkCmdCopyAccelerationStructureToMemoryKHR        vkCmdCopyAccelerationStructureToMemoryKHR        = 0;
+        PFN_vkCmdCopyMemoryToAccelerationStructureKHR        vkCmdCopyMemoryToAccelerationStructureKHR        = 0;
+        PFN_vkGetAccelerationStructureDeviceAddressKHR       vkGetAccelerationStructureDeviceAddressKHR       = 0;
+        PFN_vkCmdWriteAccelerationStructuresPropertiesKHR    vkCmdWriteAccelerationStructuresPropertiesKHR    = 0;
+        PFN_vkGetDeviceAccelerationStructureCompatibilityKHR vkGetDeviceAccelerationStructureCompatibilityKHR = 0;
+        PFN_vkGetAccelerationStructureBuildSizesKHR          vkGetAccelerationStructureBuildSizesKHR          = 0;
 
         //=== VK_KHR_ray_tracing_pipeline ===
-        vkCmdTraceRaysKHR              = PFN_vkCmdTraceRaysKHR( vkGetDeviceProcAddr( device, "vkCmdTraceRaysKHR" ) );
-        vkCreateRayTracingPipelinesKHR = PFN_vkCreateRayTracingPipelinesKHR( vkGetDeviceProcAddr( device, "vkCreateRayTracingPipelinesKHR" ) );
-        vkGetRayTracingShaderGroupHandlesKHR =
-          PFN_vkGetRayTracingShaderGroupHandlesKHR( vkGetDeviceProcAddr( device, "vkGetRayTracingShaderGroupHandlesKHR" ) );
-        vkGetRayTracingCaptureReplayShaderGroupHandlesKHR =
-          PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR( vkGetDeviceProcAddr( device, "vkGetRayTracingCaptureReplayShaderGroupHandlesKHR" ) );
-        vkCmdTraceRaysIndirectKHR = PFN_vkCmdTraceRaysIndirectKHR( vkGetDeviceProcAddr( device, "vkCmdTraceRaysIndirectKHR" ) );
-        vkGetRayTracingShaderGroupStackSizeKHR =
-          PFN_vkGetRayTracingShaderGroupStackSizeKHR( vkGetDeviceProcAddr( device, "vkGetRayTracingShaderGroupStackSizeKHR" ) );
-        vkCmdSetRayTracingPipelineStackSizeKHR =
-          PFN_vkCmdSetRayTracingPipelineStackSizeKHR( vkGetDeviceProcAddr( device, "vkCmdSetRayTracingPipelineStackSizeKHR" ) );
+        PFN_vkCmdTraceRaysKHR                                 vkCmdTraceRaysKHR                                 = 0;
+        PFN_vkCreateRayTracingPipelinesKHR                    vkCreateRayTracingPipelinesKHR                    = 0;
+        PFN_vkGetRayTracingShaderGroupHandlesKHR              vkGetRayTracingShaderGroupHandlesKHR              = 0;
+        PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR vkGetRayTracingCaptureReplayShaderGroupHandlesKHR = 0;
+        PFN_vkCmdTraceRaysIndirectKHR                         vkCmdTraceRaysIndirectKHR                         = 0;
+        PFN_vkGetRayTracingShaderGroupStackSizeKHR            vkGetRayTracingShaderGroupStackSizeKHR            = 0;
+        PFN_vkCmdSetRayTracingPipelineStackSizeKHR            vkCmdSetRayTracingPipelineStackSizeKHR            = 0;
 
         //=== VK_KHR_sampler_ycbcr_conversion ===
-        vkCreateSamplerYcbcrConversionKHR = PFN_vkCreateSamplerYcbcrConversionKHR( vkGetDeviceProcAddr( device, "vkCreateSamplerYcbcrConversionKHR" ) );
-        if ( !vkCreateSamplerYcbcrConversion )
-          vkCreateSamplerYcbcrConversion = vkCreateSamplerYcbcrConversionKHR;
-        vkDestroySamplerYcbcrConversionKHR = PFN_vkDestroySamplerYcbcrConversionKHR( vkGetDeviceProcAddr( device, "vkDestroySamplerYcbcrConversionKHR" ) );
-        if ( !vkDestroySamplerYcbcrConversion )
-          vkDestroySamplerYcbcrConversion = vkDestroySamplerYcbcrConversionKHR;
+        PFN_vkCreateSamplerYcbcrConversionKHR  vkCreateSamplerYcbcrConversionKHR  = 0;
+        PFN_vkDestroySamplerYcbcrConversionKHR vkDestroySamplerYcbcrConversionKHR = 0;
 
         //=== VK_KHR_bind_memory2 ===
-        vkBindBufferMemory2KHR = PFN_vkBindBufferMemory2KHR( vkGetDeviceProcAddr( device, "vkBindBufferMemory2KHR" ) );
-        if ( !vkBindBufferMemory2 )
-          vkBindBufferMemory2 = vkBindBufferMemory2KHR;
-        vkBindImageMemory2KHR = PFN_vkBindImageMemory2KHR( vkGetDeviceProcAddr( device, "vkBindImageMemory2KHR" ) );
-        if ( !vkBindImageMemory2 )
-          vkBindImageMemory2 = vkBindImageMemory2KHR;
+        PFN_vkBindBufferMemory2KHR vkBindBufferMemory2KHR = 0;
+        PFN_vkBindImageMemory2KHR  vkBindImageMemory2KHR  = 0;
 
         //=== VK_EXT_image_drm_format_modifier ===
-        vkGetImageDrmFormatModifierPropertiesEXT =
-          PFN_vkGetImageDrmFormatModifierPropertiesEXT( vkGetDeviceProcAddr( device, "vkGetImageDrmFormatModifierPropertiesEXT" ) );
+        PFN_vkGetImageDrmFormatModifierPropertiesEXT vkGetImageDrmFormatModifierPropertiesEXT = 0;
 
         //=== VK_EXT_validation_cache ===
-        vkCreateValidationCacheEXT  = PFN_vkCreateValidationCacheEXT( vkGetDeviceProcAddr( device, "vkCreateValidationCacheEXT" ) );
-        vkDestroyValidationCacheEXT = PFN_vkDestroyValidationCacheEXT( vkGetDeviceProcAddr( device, "vkDestroyValidationCacheEXT" ) );
-        vkMergeValidationCachesEXT  = PFN_vkMergeValidationCachesEXT( vkGetDeviceProcAddr( device, "vkMergeValidationCachesEXT" ) );
-        vkGetValidationCacheDataEXT = PFN_vkGetValidationCacheDataEXT( vkGetDeviceProcAddr( device, "vkGetValidationCacheDataEXT" ) );
+        PFN_vkCreateValidationCacheEXT  vkCreateValidationCacheEXT  = 0;
+        PFN_vkDestroyValidationCacheEXT vkDestroyValidationCacheEXT = 0;
+        PFN_vkMergeValidationCachesEXT  vkMergeValidationCachesEXT  = 0;
+        PFN_vkGetValidationCacheDataEXT vkGetValidationCacheDataEXT = 0;
 
         //=== VK_NV_shading_rate_image ===
-        vkCmdBindShadingRateImageNV = PFN_vkCmdBindShadingRateImageNV( vkGetDeviceProcAddr( device, "vkCmdBindShadingRateImageNV" ) );
-        vkCmdSetViewportShadingRatePaletteNV =
-          PFN_vkCmdSetViewportShadingRatePaletteNV( vkGetDeviceProcAddr( device, "vkCmdSetViewportShadingRatePaletteNV" ) );
-        vkCmdSetCoarseSampleOrderNV = PFN_vkCmdSetCoarseSampleOrderNV( vkGetDeviceProcAddr( device, "vkCmdSetCoarseSampleOrderNV" ) );
+        PFN_vkCmdBindShadingRateImageNV          vkCmdBindShadingRateImageNV          = 0;
+        PFN_vkCmdSetViewportShadingRatePaletteNV vkCmdSetViewportShadingRatePaletteNV = 0;
+        PFN_vkCmdSetCoarseSampleOrderNV          vkCmdSetCoarseSampleOrderNV          = 0;
 
         //=== VK_NV_ray_tracing ===
-        vkCreateAccelerationStructureNV  = PFN_vkCreateAccelerationStructureNV( vkGetDeviceProcAddr( device, "vkCreateAccelerationStructureNV" ) );
-        vkDestroyAccelerationStructureNV = PFN_vkDestroyAccelerationStructureNV( vkGetDeviceProcAddr( device, "vkDestroyAccelerationStructureNV" ) );
-        vkGetAccelerationStructureMemoryRequirementsNV =
-          PFN_vkGetAccelerationStructureMemoryRequirementsNV( vkGetDeviceProcAddr( device, "vkGetAccelerationStructureMemoryRequirementsNV" ) );
-        vkBindAccelerationStructureMemoryNV = PFN_vkBindAccelerationStructureMemoryNV( vkGetDeviceProcAddr( device, "vkBindAccelerationStructureMemoryNV" ) );
-        vkCmdBuildAccelerationStructureNV   = PFN_vkCmdBuildAccelerationStructureNV( vkGetDeviceProcAddr( device, "vkCmdBuildAccelerationStructureNV" ) );
-        vkCmdCopyAccelerationStructureNV    = PFN_vkCmdCopyAccelerationStructureNV( vkGetDeviceProcAddr( device, "vkCmdCopyAccelerationStructureNV" ) );
-        vkCmdTraceRaysNV                    = PFN_vkCmdTraceRaysNV( vkGetDeviceProcAddr( device, "vkCmdTraceRaysNV" ) );
-        vkCreateRayTracingPipelinesNV       = PFN_vkCreateRayTracingPipelinesNV( vkGetDeviceProcAddr( device, "vkCreateRayTracingPipelinesNV" ) );
-        vkGetRayTracingShaderGroupHandlesNV = PFN_vkGetRayTracingShaderGroupHandlesNV( vkGetDeviceProcAddr( device, "vkGetRayTracingShaderGroupHandlesNV" ) );
-        if ( !vkGetRayTracingShaderGroupHandlesKHR )
-          vkGetRayTracingShaderGroupHandlesKHR = vkGetRayTracingShaderGroupHandlesNV;
-        vkGetAccelerationStructureHandleNV = PFN_vkGetAccelerationStructureHandleNV( vkGetDeviceProcAddr( device, "vkGetAccelerationStructureHandleNV" ) );
-        vkCmdWriteAccelerationStructuresPropertiesNV =
-          PFN_vkCmdWriteAccelerationStructuresPropertiesNV( vkGetDeviceProcAddr( device, "vkCmdWriteAccelerationStructuresPropertiesNV" ) );
-        vkCompileDeferredNV = PFN_vkCompileDeferredNV( vkGetDeviceProcAddr( device, "vkCompileDeferredNV" ) );
+        PFN_vkCreateAccelerationStructureNV                vkCreateAccelerationStructureNV                = 0;
+        PFN_vkDestroyAccelerationStructureNV               vkDestroyAccelerationStructureNV               = 0;
+        PFN_vkGetAccelerationStructureMemoryRequirementsNV vkGetAccelerationStructureMemoryRequirementsNV = 0;
+        PFN_vkBindAccelerationStructureMemoryNV            vkBindAccelerationStructureMemoryNV            = 0;
+        PFN_vkCmdBuildAccelerationStructureNV              vkCmdBuildAccelerationStructureNV              = 0;
+        PFN_vkCmdCopyAccelerationStructureNV               vkCmdCopyAccelerationStructureNV               = 0;
+        PFN_vkCmdTraceRaysNV                               vkCmdTraceRaysNV                               = 0;
+        PFN_vkCreateRayTracingPipelinesNV                  vkCreateRayTracingPipelinesNV                  = 0;
+        PFN_vkGetRayTracingShaderGroupHandlesNV            vkGetRayTracingShaderGroupHandlesNV            = 0;
+        PFN_vkGetAccelerationStructureHandleNV             vkGetAccelerationStructureHandleNV             = 0;
+        PFN_vkCmdWriteAccelerationStructuresPropertiesNV   vkCmdWriteAccelerationStructuresPropertiesNV   = 0;
+        PFN_vkCompileDeferredNV                            vkCompileDeferredNV                            = 0;
 
         //=== VK_KHR_maintenance3 ===
-        vkGetDescriptorSetLayoutSupportKHR = PFN_vkGetDescriptorSetLayoutSupportKHR( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutSupportKHR" ) );
-        if ( !vkGetDescriptorSetLayoutSupport )
-          vkGetDescriptorSetLayoutSupport = vkGetDescriptorSetLayoutSupportKHR;
+        PFN_vkGetDescriptorSetLayoutSupportKHR vkGetDescriptorSetLayoutSupportKHR = 0;
 
         //=== VK_KHR_draw_indirect_count ===
-        vkCmdDrawIndirectCountKHR = PFN_vkCmdDrawIndirectCountKHR( vkGetDeviceProcAddr( device, "vkCmdDrawIndirectCountKHR" ) );
-        if ( !vkCmdDrawIndirectCount )
-          vkCmdDrawIndirectCount = vkCmdDrawIndirectCountKHR;
-        vkCmdDrawIndexedIndirectCountKHR = PFN_vkCmdDrawIndexedIndirectCountKHR( vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirectCountKHR" ) );
-        if ( !vkCmdDrawIndexedIndirectCount )
-          vkCmdDrawIndexedIndirectCount = vkCmdDrawIndexedIndirectCountKHR;
+        PFN_vkCmdDrawIndirectCountKHR        vkCmdDrawIndirectCountKHR        = 0;
+        PFN_vkCmdDrawIndexedIndirectCountKHR vkCmdDrawIndexedIndirectCountKHR = 0;
 
         //=== VK_EXT_external_memory_host ===
-        vkGetMemoryHostPointerPropertiesEXT = PFN_vkGetMemoryHostPointerPropertiesEXT( vkGetDeviceProcAddr( device, "vkGetMemoryHostPointerPropertiesEXT" ) );
+        PFN_vkGetMemoryHostPointerPropertiesEXT vkGetMemoryHostPointerPropertiesEXT = 0;
 
         //=== VK_AMD_buffer_marker ===
-        vkCmdWriteBufferMarkerAMD  = PFN_vkCmdWriteBufferMarkerAMD( vkGetDeviceProcAddr( device, "vkCmdWriteBufferMarkerAMD" ) );
-        vkCmdWriteBufferMarker2AMD = PFN_vkCmdWriteBufferMarker2AMD( vkGetDeviceProcAddr( device, "vkCmdWriteBufferMarker2AMD" ) );
+        PFN_vkCmdWriteBufferMarkerAMD  vkCmdWriteBufferMarkerAMD  = 0;
+        PFN_vkCmdWriteBufferMarker2AMD vkCmdWriteBufferMarker2AMD = 0;
 
         //=== VK_EXT_calibrated_timestamps ===
-        vkGetCalibratedTimestampsEXT = PFN_vkGetCalibratedTimestampsEXT( vkGetDeviceProcAddr( device, "vkGetCalibratedTimestampsEXT" ) );
-        if ( !vkGetCalibratedTimestampsKHR )
-          vkGetCalibratedTimestampsKHR = vkGetCalibratedTimestampsEXT;
+        PFN_vkGetCalibratedTimestampsEXT vkGetCalibratedTimestampsEXT = 0;
 
         //=== VK_NV_mesh_shader ===
-        vkCmdDrawMeshTasksNV              = PFN_vkCmdDrawMeshTasksNV( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksNV" ) );
-        vkCmdDrawMeshTasksIndirectNV      = PFN_vkCmdDrawMeshTasksIndirectNV( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksIndirectNV" ) );
-        vkCmdDrawMeshTasksIndirectCountNV = PFN_vkCmdDrawMeshTasksIndirectCountNV( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksIndirectCountNV" ) );
+        PFN_vkCmdDrawMeshTasksNV              vkCmdDrawMeshTasksNV              = 0;
+        PFN_vkCmdDrawMeshTasksIndirectNV      vkCmdDrawMeshTasksIndirectNV      = 0;
+        PFN_vkCmdDrawMeshTasksIndirectCountNV vkCmdDrawMeshTasksIndirectCountNV = 0;
 
         //=== VK_NV_scissor_exclusive ===
-        vkCmdSetExclusiveScissorEnableNV = PFN_vkCmdSetExclusiveScissorEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetExclusiveScissorEnableNV" ) );
-        vkCmdSetExclusiveScissorNV       = PFN_vkCmdSetExclusiveScissorNV( vkGetDeviceProcAddr( device, "vkCmdSetExclusiveScissorNV" ) );
+        PFN_vkCmdSetExclusiveScissorEnableNV vkCmdSetExclusiveScissorEnableNV = 0;
+        PFN_vkCmdSetExclusiveScissorNV       vkCmdSetExclusiveScissorNV       = 0;
 
         //=== VK_NV_device_diagnostic_checkpoints ===
-        vkCmdSetCheckpointNV        = PFN_vkCmdSetCheckpointNV( vkGetDeviceProcAddr( device, "vkCmdSetCheckpointNV" ) );
-        vkGetQueueCheckpointDataNV  = PFN_vkGetQueueCheckpointDataNV( vkGetDeviceProcAddr( device, "vkGetQueueCheckpointDataNV" ) );
-        vkGetQueueCheckpointData2NV = PFN_vkGetQueueCheckpointData2NV( vkGetDeviceProcAddr( device, "vkGetQueueCheckpointData2NV" ) );
+        PFN_vkCmdSetCheckpointNV        vkCmdSetCheckpointNV        = 0;
+        PFN_vkGetQueueCheckpointDataNV  vkGetQueueCheckpointDataNV  = 0;
+        PFN_vkGetQueueCheckpointData2NV vkGetQueueCheckpointData2NV = 0;
 
         //=== VK_KHR_timeline_semaphore ===
-        vkGetSemaphoreCounterValueKHR = PFN_vkGetSemaphoreCounterValueKHR( vkGetDeviceProcAddr( device, "vkGetSemaphoreCounterValueKHR" ) );
-        if ( !vkGetSemaphoreCounterValue )
-          vkGetSemaphoreCounterValue = vkGetSemaphoreCounterValueKHR;
-        vkWaitSemaphoresKHR = PFN_vkWaitSemaphoresKHR( vkGetDeviceProcAddr( device, "vkWaitSemaphoresKHR" ) );
-        if ( !vkWaitSemaphores )
-          vkWaitSemaphores = vkWaitSemaphoresKHR;
-        vkSignalSemaphoreKHR = PFN_vkSignalSemaphoreKHR( vkGetDeviceProcAddr( device, "vkSignalSemaphoreKHR" ) );
-        if ( !vkSignalSemaphore )
-          vkSignalSemaphore = vkSignalSemaphoreKHR;
+        PFN_vkGetSemaphoreCounterValueKHR vkGetSemaphoreCounterValueKHR = 0;
+        PFN_vkWaitSemaphoresKHR           vkWaitSemaphoresKHR           = 0;
+        PFN_vkSignalSemaphoreKHR          vkSignalSemaphoreKHR          = 0;
 
         //=== VK_INTEL_performance_query ===
-        vkInitializePerformanceApiINTEL   = PFN_vkInitializePerformanceApiINTEL( vkGetDeviceProcAddr( device, "vkInitializePerformanceApiINTEL" ) );
-        vkUninitializePerformanceApiINTEL = PFN_vkUninitializePerformanceApiINTEL( vkGetDeviceProcAddr( device, "vkUninitializePerformanceApiINTEL" ) );
-        vkCmdSetPerformanceMarkerINTEL    = PFN_vkCmdSetPerformanceMarkerINTEL( vkGetDeviceProcAddr( device, "vkCmdSetPerformanceMarkerINTEL" ) );
-        vkCmdSetPerformanceStreamMarkerINTEL =
-          PFN_vkCmdSetPerformanceStreamMarkerINTEL( vkGetDeviceProcAddr( device, "vkCmdSetPerformanceStreamMarkerINTEL" ) );
-        vkCmdSetPerformanceOverrideINTEL = PFN_vkCmdSetPerformanceOverrideINTEL( vkGetDeviceProcAddr( device, "vkCmdSetPerformanceOverrideINTEL" ) );
-        vkAcquirePerformanceConfigurationINTEL =
-          PFN_vkAcquirePerformanceConfigurationINTEL( vkGetDeviceProcAddr( device, "vkAcquirePerformanceConfigurationINTEL" ) );
-        vkReleasePerformanceConfigurationINTEL =
-          PFN_vkReleasePerformanceConfigurationINTEL( vkGetDeviceProcAddr( device, "vkReleasePerformanceConfigurationINTEL" ) );
-        vkQueueSetPerformanceConfigurationINTEL =
-          PFN_vkQueueSetPerformanceConfigurationINTEL( vkGetDeviceProcAddr( device, "vkQueueSetPerformanceConfigurationINTEL" ) );
-        vkGetPerformanceParameterINTEL = PFN_vkGetPerformanceParameterINTEL( vkGetDeviceProcAddr( device, "vkGetPerformanceParameterINTEL" ) );
+        PFN_vkInitializePerformanceApiINTEL         vkInitializePerformanceApiINTEL         = 0;
+        PFN_vkUninitializePerformanceApiINTEL       vkUninitializePerformanceApiINTEL       = 0;
+        PFN_vkCmdSetPerformanceMarkerINTEL          vkCmdSetPerformanceMarkerINTEL          = 0;
+        PFN_vkCmdSetPerformanceStreamMarkerINTEL    vkCmdSetPerformanceStreamMarkerINTEL    = 0;
+        PFN_vkCmdSetPerformanceOverrideINTEL        vkCmdSetPerformanceOverrideINTEL        = 0;
+        PFN_vkAcquirePerformanceConfigurationINTEL  vkAcquirePerformanceConfigurationINTEL  = 0;
+        PFN_vkReleasePerformanceConfigurationINTEL  vkReleasePerformanceConfigurationINTEL  = 0;
+        PFN_vkQueueSetPerformanceConfigurationINTEL vkQueueSetPerformanceConfigurationINTEL = 0;
+        PFN_vkGetPerformanceParameterINTEL          vkGetPerformanceParameterINTEL          = 0;
 
         //=== VK_AMD_display_native_hdr ===
-        vkSetLocalDimmingAMD = PFN_vkSetLocalDimmingAMD( vkGetDeviceProcAddr( device, "vkSetLocalDimmingAMD" ) );
+        PFN_vkSetLocalDimmingAMD vkSetLocalDimmingAMD = 0;
 
         //=== VK_KHR_fragment_shading_rate ===
-        vkCmdSetFragmentShadingRateKHR = PFN_vkCmdSetFragmentShadingRateKHR( vkGetDeviceProcAddr( device, "vkCmdSetFragmentShadingRateKHR" ) );
+        PFN_vkCmdSetFragmentShadingRateKHR vkCmdSetFragmentShadingRateKHR = 0;
 
         //=== VK_KHR_dynamic_rendering_local_read ===
-        vkCmdSetRenderingAttachmentLocationsKHR =
-          PFN_vkCmdSetRenderingAttachmentLocationsKHR( vkGetDeviceProcAddr( device, "vkCmdSetRenderingAttachmentLocationsKHR" ) );
-        vkCmdSetRenderingInputAttachmentIndicesKHR =
-          PFN_vkCmdSetRenderingInputAttachmentIndicesKHR( vkGetDeviceProcAddr( device, "vkCmdSetRenderingInputAttachmentIndicesKHR" ) );
+        PFN_vkCmdSetRenderingAttachmentLocationsKHR    vkCmdSetRenderingAttachmentLocationsKHR    = 0;
+        PFN_vkCmdSetRenderingInputAttachmentIndicesKHR vkCmdSetRenderingInputAttachmentIndicesKHR = 0;
 
         //=== VK_EXT_buffer_device_address ===
-        vkGetBufferDeviceAddressEXT = PFN_vkGetBufferDeviceAddressEXT( vkGetDeviceProcAddr( device, "vkGetBufferDeviceAddressEXT" ) );
-        if ( !vkGetBufferDeviceAddress )
-          vkGetBufferDeviceAddress = vkGetBufferDeviceAddressEXT;
+        PFN_vkGetBufferDeviceAddressEXT vkGetBufferDeviceAddressEXT = 0;
 
         //=== VK_KHR_present_wait ===
-        vkWaitForPresentKHR = PFN_vkWaitForPresentKHR( vkGetDeviceProcAddr( device, "vkWaitForPresentKHR" ) );
+        PFN_vkWaitForPresentKHR vkWaitForPresentKHR = 0;
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
         //=== VK_EXT_full_screen_exclusive ===
-        vkAcquireFullScreenExclusiveModeEXT = PFN_vkAcquireFullScreenExclusiveModeEXT( vkGetDeviceProcAddr( device, "vkAcquireFullScreenExclusiveModeEXT" ) );
-        vkReleaseFullScreenExclusiveModeEXT = PFN_vkReleaseFullScreenExclusiveModeEXT( vkGetDeviceProcAddr( device, "vkReleaseFullScreenExclusiveModeEXT" ) );
-        vkGetDeviceGroupSurfacePresentModes2EXT =
-          PFN_vkGetDeviceGroupSurfacePresentModes2EXT( vkGetDeviceProcAddr( device, "vkGetDeviceGroupSurfacePresentModes2EXT" ) );
+        PFN_vkAcquireFullScreenExclusiveModeEXT     vkAcquireFullScreenExclusiveModeEXT     = 0;
+        PFN_vkReleaseFullScreenExclusiveModeEXT     vkReleaseFullScreenExclusiveModeEXT     = 0;
+        PFN_vkGetDeviceGroupSurfacePresentModes2EXT vkGetDeviceGroupSurfacePresentModes2EXT = 0;
+#  else
+        PFN_dummy vkAcquireFullScreenExclusiveModeEXT_placeholder               = 0;
+        PFN_dummy vkReleaseFullScreenExclusiveModeEXT_placeholder               = 0;
+        PFN_dummy vkGetDeviceGroupSurfacePresentModes2EXT_placeholder           = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
         //=== VK_KHR_buffer_device_address ===
-        vkGetBufferDeviceAddressKHR = PFN_vkGetBufferDeviceAddressKHR( vkGetDeviceProcAddr( device, "vkGetBufferDeviceAddressKHR" ) );
-        if ( !vkGetBufferDeviceAddress )
-          vkGetBufferDeviceAddress = vkGetBufferDeviceAddressKHR;
-        vkGetBufferOpaqueCaptureAddressKHR = PFN_vkGetBufferOpaqueCaptureAddressKHR( vkGetDeviceProcAddr( device, "vkGetBufferOpaqueCaptureAddressKHR" ) );
-        if ( !vkGetBufferOpaqueCaptureAddress )
-          vkGetBufferOpaqueCaptureAddress = vkGetBufferOpaqueCaptureAddressKHR;
-        vkGetDeviceMemoryOpaqueCaptureAddressKHR =
-          PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR( vkGetDeviceProcAddr( device, "vkGetDeviceMemoryOpaqueCaptureAddressKHR" ) );
-        if ( !vkGetDeviceMemoryOpaqueCaptureAddress )
-          vkGetDeviceMemoryOpaqueCaptureAddress = vkGetDeviceMemoryOpaqueCaptureAddressKHR;
+        PFN_vkGetBufferDeviceAddressKHR              vkGetBufferDeviceAddressKHR              = 0;
+        PFN_vkGetBufferOpaqueCaptureAddressKHR       vkGetBufferOpaqueCaptureAddressKHR       = 0;
+        PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR vkGetDeviceMemoryOpaqueCaptureAddressKHR = 0;
 
         //=== VK_EXT_line_rasterization ===
-        vkCmdSetLineStippleEXT = PFN_vkCmdSetLineStippleEXT( vkGetDeviceProcAddr( device, "vkCmdSetLineStippleEXT" ) );
-        if ( !vkCmdSetLineStippleKHR )
-          vkCmdSetLineStippleKHR = vkCmdSetLineStippleEXT;
+        PFN_vkCmdSetLineStippleEXT vkCmdSetLineStippleEXT = 0;
 
         //=== VK_EXT_host_query_reset ===
-        vkResetQueryPoolEXT = PFN_vkResetQueryPoolEXT( vkGetDeviceProcAddr( device, "vkResetQueryPoolEXT" ) );
-        if ( !vkResetQueryPool )
-          vkResetQueryPool = vkResetQueryPoolEXT;
+        PFN_vkResetQueryPoolEXT vkResetQueryPoolEXT = 0;
 
         //=== VK_EXT_extended_dynamic_state ===
-        vkCmdSetCullModeEXT = PFN_vkCmdSetCullModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetCullModeEXT" ) );
-        if ( !vkCmdSetCullMode )
-          vkCmdSetCullMode = vkCmdSetCullModeEXT;
-        vkCmdSetFrontFaceEXT = PFN_vkCmdSetFrontFaceEXT( vkGetDeviceProcAddr( device, "vkCmdSetFrontFaceEXT" ) );
-        if ( !vkCmdSetFrontFace )
-          vkCmdSetFrontFace = vkCmdSetFrontFaceEXT;
-        vkCmdSetPrimitiveTopologyEXT = PFN_vkCmdSetPrimitiveTopologyEXT( vkGetDeviceProcAddr( device, "vkCmdSetPrimitiveTopologyEXT" ) );
-        if ( !vkCmdSetPrimitiveTopology )
-          vkCmdSetPrimitiveTopology = vkCmdSetPrimitiveTopologyEXT;
-        vkCmdSetViewportWithCountEXT = PFN_vkCmdSetViewportWithCountEXT( vkGetDeviceProcAddr( device, "vkCmdSetViewportWithCountEXT" ) );
-        if ( !vkCmdSetViewportWithCount )
-          vkCmdSetViewportWithCount = vkCmdSetViewportWithCountEXT;
-        vkCmdSetScissorWithCountEXT = PFN_vkCmdSetScissorWithCountEXT( vkGetDeviceProcAddr( device, "vkCmdSetScissorWithCountEXT" ) );
-        if ( !vkCmdSetScissorWithCount )
-          vkCmdSetScissorWithCount = vkCmdSetScissorWithCountEXT;
-        vkCmdBindVertexBuffers2EXT = PFN_vkCmdBindVertexBuffers2EXT( vkGetDeviceProcAddr( device, "vkCmdBindVertexBuffers2EXT" ) );
-        if ( !vkCmdBindVertexBuffers2 )
-          vkCmdBindVertexBuffers2 = vkCmdBindVertexBuffers2EXT;
-        vkCmdSetDepthTestEnableEXT = PFN_vkCmdSetDepthTestEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthTestEnableEXT" ) );
-        if ( !vkCmdSetDepthTestEnable )
-          vkCmdSetDepthTestEnable = vkCmdSetDepthTestEnableEXT;
-        vkCmdSetDepthWriteEnableEXT = PFN_vkCmdSetDepthWriteEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthWriteEnableEXT" ) );
-        if ( !vkCmdSetDepthWriteEnable )
-          vkCmdSetDepthWriteEnable = vkCmdSetDepthWriteEnableEXT;
-        vkCmdSetDepthCompareOpEXT = PFN_vkCmdSetDepthCompareOpEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthCompareOpEXT" ) );
-        if ( !vkCmdSetDepthCompareOp )
-          vkCmdSetDepthCompareOp = vkCmdSetDepthCompareOpEXT;
-        vkCmdSetDepthBoundsTestEnableEXT = PFN_vkCmdSetDepthBoundsTestEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthBoundsTestEnableEXT" ) );
-        if ( !vkCmdSetDepthBoundsTestEnable )
-          vkCmdSetDepthBoundsTestEnable = vkCmdSetDepthBoundsTestEnableEXT;
-        vkCmdSetStencilTestEnableEXT = PFN_vkCmdSetStencilTestEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetStencilTestEnableEXT" ) );
-        if ( !vkCmdSetStencilTestEnable )
-          vkCmdSetStencilTestEnable = vkCmdSetStencilTestEnableEXT;
-        vkCmdSetStencilOpEXT = PFN_vkCmdSetStencilOpEXT( vkGetDeviceProcAddr( device, "vkCmdSetStencilOpEXT" ) );
-        if ( !vkCmdSetStencilOp )
-          vkCmdSetStencilOp = vkCmdSetStencilOpEXT;
+        PFN_vkCmdSetCullModeEXT              vkCmdSetCullModeEXT              = 0;
+        PFN_vkCmdSetFrontFaceEXT             vkCmdSetFrontFaceEXT             = 0;
+        PFN_vkCmdSetPrimitiveTopologyEXT     vkCmdSetPrimitiveTopologyEXT     = 0;
+        PFN_vkCmdSetViewportWithCountEXT     vkCmdSetViewportWithCountEXT     = 0;
+        PFN_vkCmdSetScissorWithCountEXT      vkCmdSetScissorWithCountEXT      = 0;
+        PFN_vkCmdBindVertexBuffers2EXT       vkCmdBindVertexBuffers2EXT       = 0;
+        PFN_vkCmdSetDepthTestEnableEXT       vkCmdSetDepthTestEnableEXT       = 0;
+        PFN_vkCmdSetDepthWriteEnableEXT      vkCmdSetDepthWriteEnableEXT      = 0;
+        PFN_vkCmdSetDepthCompareOpEXT        vkCmdSetDepthCompareOpEXT        = 0;
+        PFN_vkCmdSetDepthBoundsTestEnableEXT vkCmdSetDepthBoundsTestEnableEXT = 0;
+        PFN_vkCmdSetStencilTestEnableEXT     vkCmdSetStencilTestEnableEXT     = 0;
+        PFN_vkCmdSetStencilOpEXT             vkCmdSetStencilOpEXT             = 0;
 
         //=== VK_KHR_deferred_host_operations ===
-        vkCreateDeferredOperationKHR  = PFN_vkCreateDeferredOperationKHR( vkGetDeviceProcAddr( device, "vkCreateDeferredOperationKHR" ) );
-        vkDestroyDeferredOperationKHR = PFN_vkDestroyDeferredOperationKHR( vkGetDeviceProcAddr( device, "vkDestroyDeferredOperationKHR" ) );
-        vkGetDeferredOperationMaxConcurrencyKHR =
-          PFN_vkGetDeferredOperationMaxConcurrencyKHR( vkGetDeviceProcAddr( device, "vkGetDeferredOperationMaxConcurrencyKHR" ) );
-        vkGetDeferredOperationResultKHR = PFN_vkGetDeferredOperationResultKHR( vkGetDeviceProcAddr( device, "vkGetDeferredOperationResultKHR" ) );
-        vkDeferredOperationJoinKHR      = PFN_vkDeferredOperationJoinKHR( vkGetDeviceProcAddr( device, "vkDeferredOperationJoinKHR" ) );
+        PFN_vkCreateDeferredOperationKHR            vkCreateDeferredOperationKHR            = 0;
+        PFN_vkDestroyDeferredOperationKHR           vkDestroyDeferredOperationKHR           = 0;
+        PFN_vkGetDeferredOperationMaxConcurrencyKHR vkGetDeferredOperationMaxConcurrencyKHR = 0;
+        PFN_vkGetDeferredOperationResultKHR         vkGetDeferredOperationResultKHR         = 0;
+        PFN_vkDeferredOperationJoinKHR              vkDeferredOperationJoinKHR              = 0;
 
         //=== VK_KHR_pipeline_executable_properties ===
-        vkGetPipelineExecutablePropertiesKHR =
-          PFN_vkGetPipelineExecutablePropertiesKHR( vkGetDeviceProcAddr( device, "vkGetPipelineExecutablePropertiesKHR" ) );
-        vkGetPipelineExecutableStatisticsKHR =
-          PFN_vkGetPipelineExecutableStatisticsKHR( vkGetDeviceProcAddr( device, "vkGetPipelineExecutableStatisticsKHR" ) );
-        vkGetPipelineExecutableInternalRepresentationsKHR =
-          PFN_vkGetPipelineExecutableInternalRepresentationsKHR( vkGetDeviceProcAddr( device, "vkGetPipelineExecutableInternalRepresentationsKHR" ) );
+        PFN_vkGetPipelineExecutablePropertiesKHR              vkGetPipelineExecutablePropertiesKHR              = 0;
+        PFN_vkGetPipelineExecutableStatisticsKHR              vkGetPipelineExecutableStatisticsKHR              = 0;
+        PFN_vkGetPipelineExecutableInternalRepresentationsKHR vkGetPipelineExecutableInternalRepresentationsKHR = 0;
 
         //=== VK_EXT_host_image_copy ===
-        vkCopyMemoryToImageEXT          = PFN_vkCopyMemoryToImageEXT( vkGetDeviceProcAddr( device, "vkCopyMemoryToImageEXT" ) );
-        vkCopyImageToMemoryEXT          = PFN_vkCopyImageToMemoryEXT( vkGetDeviceProcAddr( device, "vkCopyImageToMemoryEXT" ) );
-        vkCopyImageToImageEXT           = PFN_vkCopyImageToImageEXT( vkGetDeviceProcAddr( device, "vkCopyImageToImageEXT" ) );
-        vkTransitionImageLayoutEXT      = PFN_vkTransitionImageLayoutEXT( vkGetDeviceProcAddr( device, "vkTransitionImageLayoutEXT" ) );
-        vkGetImageSubresourceLayout2EXT = PFN_vkGetImageSubresourceLayout2EXT( vkGetDeviceProcAddr( device, "vkGetImageSubresourceLayout2EXT" ) );
-        if ( !vkGetImageSubresourceLayout2KHR )
-          vkGetImageSubresourceLayout2KHR = vkGetImageSubresourceLayout2EXT;
+        PFN_vkCopyMemoryToImageEXT          vkCopyMemoryToImageEXT          = 0;
+        PFN_vkCopyImageToMemoryEXT          vkCopyImageToMemoryEXT          = 0;
+        PFN_vkCopyImageToImageEXT           vkCopyImageToImageEXT           = 0;
+        PFN_vkTransitionImageLayoutEXT      vkTransitionImageLayoutEXT      = 0;
+        PFN_vkGetImageSubresourceLayout2EXT vkGetImageSubresourceLayout2EXT = 0;
 
         //=== VK_KHR_map_memory2 ===
-        vkMapMemory2KHR   = PFN_vkMapMemory2KHR( vkGetDeviceProcAddr( device, "vkMapMemory2KHR" ) );
-        vkUnmapMemory2KHR = PFN_vkUnmapMemory2KHR( vkGetDeviceProcAddr( device, "vkUnmapMemory2KHR" ) );
+        PFN_vkMapMemory2KHR   vkMapMemory2KHR   = 0;
+        PFN_vkUnmapMemory2KHR vkUnmapMemory2KHR = 0;
 
         //=== VK_EXT_swapchain_maintenance1 ===
-        vkReleaseSwapchainImagesEXT = PFN_vkReleaseSwapchainImagesEXT( vkGetDeviceProcAddr( device, "vkReleaseSwapchainImagesEXT" ) );
+        PFN_vkReleaseSwapchainImagesEXT vkReleaseSwapchainImagesEXT = 0;
 
         //=== VK_NV_device_generated_commands ===
-        vkGetGeneratedCommandsMemoryRequirementsNV =
-          PFN_vkGetGeneratedCommandsMemoryRequirementsNV( vkGetDeviceProcAddr( device, "vkGetGeneratedCommandsMemoryRequirementsNV" ) );
-        vkCmdPreprocessGeneratedCommandsNV = PFN_vkCmdPreprocessGeneratedCommandsNV( vkGetDeviceProcAddr( device, "vkCmdPreprocessGeneratedCommandsNV" ) );
-        vkCmdExecuteGeneratedCommandsNV    = PFN_vkCmdExecuteGeneratedCommandsNV( vkGetDeviceProcAddr( device, "vkCmdExecuteGeneratedCommandsNV" ) );
-        vkCmdBindPipelineShaderGroupNV     = PFN_vkCmdBindPipelineShaderGroupNV( vkGetDeviceProcAddr( device, "vkCmdBindPipelineShaderGroupNV" ) );
-        vkCreateIndirectCommandsLayoutNV   = PFN_vkCreateIndirectCommandsLayoutNV( vkGetDeviceProcAddr( device, "vkCreateIndirectCommandsLayoutNV" ) );
-        vkDestroyIndirectCommandsLayoutNV  = PFN_vkDestroyIndirectCommandsLayoutNV( vkGetDeviceProcAddr( device, "vkDestroyIndirectCommandsLayoutNV" ) );
+        PFN_vkGetGeneratedCommandsMemoryRequirementsNV vkGetGeneratedCommandsMemoryRequirementsNV = 0;
+        PFN_vkCmdPreprocessGeneratedCommandsNV         vkCmdPreprocessGeneratedCommandsNV         = 0;
+        PFN_vkCmdExecuteGeneratedCommandsNV            vkCmdExecuteGeneratedCommandsNV            = 0;
+        PFN_vkCmdBindPipelineShaderGroupNV             vkCmdBindPipelineShaderGroupNV             = 0;
+        PFN_vkCreateIndirectCommandsLayoutNV           vkCreateIndirectCommandsLayoutNV           = 0;
+        PFN_vkDestroyIndirectCommandsLayoutNV          vkDestroyIndirectCommandsLayoutNV          = 0;
 
         //=== VK_EXT_depth_bias_control ===
-        vkCmdSetDepthBias2EXT = PFN_vkCmdSetDepthBias2EXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthBias2EXT" ) );
+        PFN_vkCmdSetDepthBias2EXT vkCmdSetDepthBias2EXT = 0;
 
         //=== VK_EXT_private_data ===
-        vkCreatePrivateDataSlotEXT = PFN_vkCreatePrivateDataSlotEXT( vkGetDeviceProcAddr( device, "vkCreatePrivateDataSlotEXT" ) );
-        if ( !vkCreatePrivateDataSlot )
-          vkCreatePrivateDataSlot = vkCreatePrivateDataSlotEXT;
-        vkDestroyPrivateDataSlotEXT = PFN_vkDestroyPrivateDataSlotEXT( vkGetDeviceProcAddr( device, "vkDestroyPrivateDataSlotEXT" ) );
-        if ( !vkDestroyPrivateDataSlot )
-          vkDestroyPrivateDataSlot = vkDestroyPrivateDataSlotEXT;
-        vkSetPrivateDataEXT = PFN_vkSetPrivateDataEXT( vkGetDeviceProcAddr( device, "vkSetPrivateDataEXT" ) );
-        if ( !vkSetPrivateData )
-          vkSetPrivateData = vkSetPrivateDataEXT;
-        vkGetPrivateDataEXT = PFN_vkGetPrivateDataEXT( vkGetDeviceProcAddr( device, "vkGetPrivateDataEXT" ) );
-        if ( !vkGetPrivateData )
-          vkGetPrivateData = vkGetPrivateDataEXT;
+        PFN_vkCreatePrivateDataSlotEXT  vkCreatePrivateDataSlotEXT  = 0;
+        PFN_vkDestroyPrivateDataSlotEXT vkDestroyPrivateDataSlotEXT = 0;
+        PFN_vkSetPrivateDataEXT         vkSetPrivateDataEXT         = 0;
+        PFN_vkGetPrivateDataEXT         vkGetPrivateDataEXT         = 0;
 
         //=== VK_KHR_video_encode_queue ===
-        vkGetEncodedVideoSessionParametersKHR =
-          PFN_vkGetEncodedVideoSessionParametersKHR( vkGetDeviceProcAddr( device, "vkGetEncodedVideoSessionParametersKHR" ) );
-        vkCmdEncodeVideoKHR = PFN_vkCmdEncodeVideoKHR( vkGetDeviceProcAddr( device, "vkCmdEncodeVideoKHR" ) );
+        PFN_vkGetEncodedVideoSessionParametersKHR vkGetEncodedVideoSessionParametersKHR = 0;
+        PFN_vkCmdEncodeVideoKHR                   vkCmdEncodeVideoKHR                   = 0;
 
 #  if defined( VK_ENABLE_BETA_EXTENSIONS )
         //=== VK_NV_cuda_kernel_launch ===
-        vkCreateCudaModuleNV    = PFN_vkCreateCudaModuleNV( vkGetDeviceProcAddr( device, "vkCreateCudaModuleNV" ) );
-        vkGetCudaModuleCacheNV  = PFN_vkGetCudaModuleCacheNV( vkGetDeviceProcAddr( device, "vkGetCudaModuleCacheNV" ) );
-        vkCreateCudaFunctionNV  = PFN_vkCreateCudaFunctionNV( vkGetDeviceProcAddr( device, "vkCreateCudaFunctionNV" ) );
-        vkDestroyCudaModuleNV   = PFN_vkDestroyCudaModuleNV( vkGetDeviceProcAddr( device, "vkDestroyCudaModuleNV" ) );
-        vkDestroyCudaFunctionNV = PFN_vkDestroyCudaFunctionNV( vkGetDeviceProcAddr( device, "vkDestroyCudaFunctionNV" ) );
-        vkCmdCudaLaunchKernelNV = PFN_vkCmdCudaLaunchKernelNV( vkGetDeviceProcAddr( device, "vkCmdCudaLaunchKernelNV" ) );
+        PFN_vkCreateCudaModuleNV    vkCreateCudaModuleNV    = 0;
+        PFN_vkGetCudaModuleCacheNV  vkGetCudaModuleCacheNV  = 0;
+        PFN_vkCreateCudaFunctionNV  vkCreateCudaFunctionNV  = 0;
+        PFN_vkDestroyCudaModuleNV   vkDestroyCudaModuleNV   = 0;
+        PFN_vkDestroyCudaFunctionNV vkDestroyCudaFunctionNV = 0;
+        PFN_vkCmdCudaLaunchKernelNV vkCmdCudaLaunchKernelNV = 0;
+#  else
+        PFN_dummy vkCreateCudaModuleNV_placeholder                              = 0;
+        PFN_dummy vkGetCudaModuleCacheNV_placeholder                            = 0;
+        PFN_dummy vkCreateCudaFunctionNV_placeholder                            = 0;
+        PFN_dummy vkDestroyCudaModuleNV_placeholder                             = 0;
+        PFN_dummy vkDestroyCudaFunctionNV_placeholder                           = 0;
+        PFN_dummy vkCmdCudaLaunchKernelNV_placeholder                           = 0;
 #  endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
 #  if defined( VK_USE_PLATFORM_METAL_EXT )
         //=== VK_EXT_metal_objects ===
-        vkExportMetalObjectsEXT = PFN_vkExportMetalObjectsEXT( vkGetDeviceProcAddr( device, "vkExportMetalObjectsEXT" ) );
+        PFN_vkExportMetalObjectsEXT vkExportMetalObjectsEXT = 0;
+#  else
+        PFN_dummy vkExportMetalObjectsEXT_placeholder                           = 0;
 #  endif /*VK_USE_PLATFORM_METAL_EXT*/
 
         //=== VK_KHR_synchronization2 ===
-        vkCmdSetEvent2KHR = PFN_vkCmdSetEvent2KHR( vkGetDeviceProcAddr( device, "vkCmdSetEvent2KHR" ) );
-        if ( !vkCmdSetEvent2 )
-          vkCmdSetEvent2 = vkCmdSetEvent2KHR;
-        vkCmdResetEvent2KHR = PFN_vkCmdResetEvent2KHR( vkGetDeviceProcAddr( device, "vkCmdResetEvent2KHR" ) );
-        if ( !vkCmdResetEvent2 )
-          vkCmdResetEvent2 = vkCmdResetEvent2KHR;
-        vkCmdWaitEvents2KHR = PFN_vkCmdWaitEvents2KHR( vkGetDeviceProcAddr( device, "vkCmdWaitEvents2KHR" ) );
-        if ( !vkCmdWaitEvents2 )
-          vkCmdWaitEvents2 = vkCmdWaitEvents2KHR;
-        vkCmdPipelineBarrier2KHR = PFN_vkCmdPipelineBarrier2KHR( vkGetDeviceProcAddr( device, "vkCmdPipelineBarrier2KHR" ) );
-        if ( !vkCmdPipelineBarrier2 )
-          vkCmdPipelineBarrier2 = vkCmdPipelineBarrier2KHR;
-        vkCmdWriteTimestamp2KHR = PFN_vkCmdWriteTimestamp2KHR( vkGetDeviceProcAddr( device, "vkCmdWriteTimestamp2KHR" ) );
-        if ( !vkCmdWriteTimestamp2 )
-          vkCmdWriteTimestamp2 = vkCmdWriteTimestamp2KHR;
-        vkQueueSubmit2KHR = PFN_vkQueueSubmit2KHR( vkGetDeviceProcAddr( device, "vkQueueSubmit2KHR" ) );
-        if ( !vkQueueSubmit2 )
-          vkQueueSubmit2 = vkQueueSubmit2KHR;
+        PFN_vkCmdSetEvent2KHR        vkCmdSetEvent2KHR        = 0;
+        PFN_vkCmdResetEvent2KHR      vkCmdResetEvent2KHR      = 0;
+        PFN_vkCmdWaitEvents2KHR      vkCmdWaitEvents2KHR      = 0;
+        PFN_vkCmdPipelineBarrier2KHR vkCmdPipelineBarrier2KHR = 0;
+        PFN_vkCmdWriteTimestamp2KHR  vkCmdWriteTimestamp2KHR  = 0;
+        PFN_vkQueueSubmit2KHR        vkQueueSubmit2KHR        = 0;
 
         //=== VK_EXT_descriptor_buffer ===
-        vkGetDescriptorSetLayoutSizeEXT = PFN_vkGetDescriptorSetLayoutSizeEXT( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutSizeEXT" ) );
-        vkGetDescriptorSetLayoutBindingOffsetEXT =
-          PFN_vkGetDescriptorSetLayoutBindingOffsetEXT( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutBindingOffsetEXT" ) );
-        vkGetDescriptorEXT                 = PFN_vkGetDescriptorEXT( vkGetDeviceProcAddr( device, "vkGetDescriptorEXT" ) );
-        vkCmdBindDescriptorBuffersEXT      = PFN_vkCmdBindDescriptorBuffersEXT( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorBuffersEXT" ) );
-        vkCmdSetDescriptorBufferOffsetsEXT = PFN_vkCmdSetDescriptorBufferOffsetsEXT( vkGetDeviceProcAddr( device, "vkCmdSetDescriptorBufferOffsetsEXT" ) );
-        vkCmdBindDescriptorBufferEmbeddedSamplersEXT =
-          PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorBufferEmbeddedSamplersEXT" ) );
-        vkGetBufferOpaqueCaptureDescriptorDataEXT =
-          PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT( vkGetDeviceProcAddr( device, "vkGetBufferOpaqueCaptureDescriptorDataEXT" ) );
-        vkGetImageOpaqueCaptureDescriptorDataEXT =
-          PFN_vkGetImageOpaqueCaptureDescriptorDataEXT( vkGetDeviceProcAddr( device, "vkGetImageOpaqueCaptureDescriptorDataEXT" ) );
-        vkGetImageViewOpaqueCaptureDescriptorDataEXT =
-          PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT( vkGetDeviceProcAddr( device, "vkGetImageViewOpaqueCaptureDescriptorDataEXT" ) );
-        vkGetSamplerOpaqueCaptureDescriptorDataEXT =
-          PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT( vkGetDeviceProcAddr( device, "vkGetSamplerOpaqueCaptureDescriptorDataEXT" ) );
-        vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT = PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT(
-          vkGetDeviceProcAddr( device, "vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT" ) );
+        PFN_vkGetDescriptorSetLayoutSizeEXT                          vkGetDescriptorSetLayoutSizeEXT                          = 0;
+        PFN_vkGetDescriptorSetLayoutBindingOffsetEXT                 vkGetDescriptorSetLayoutBindingOffsetEXT                 = 0;
+        PFN_vkGetDescriptorEXT                                       vkGetDescriptorEXT                                       = 0;
+        PFN_vkCmdBindDescriptorBuffersEXT                            vkCmdBindDescriptorBuffersEXT                            = 0;
+        PFN_vkCmdSetDescriptorBufferOffsetsEXT                       vkCmdSetDescriptorBufferOffsetsEXT                       = 0;
+        PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT             vkCmdBindDescriptorBufferEmbeddedSamplersEXT             = 0;
+        PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT                vkGetBufferOpaqueCaptureDescriptorDataEXT                = 0;
+        PFN_vkGetImageOpaqueCaptureDescriptorDataEXT                 vkGetImageOpaqueCaptureDescriptorDataEXT                 = 0;
+        PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT             vkGetImageViewOpaqueCaptureDescriptorDataEXT             = 0;
+        PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT               vkGetSamplerOpaqueCaptureDescriptorDataEXT               = 0;
+        PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT = 0;
 
         //=== VK_NV_fragment_shading_rate_enums ===
-        vkCmdSetFragmentShadingRateEnumNV = PFN_vkCmdSetFragmentShadingRateEnumNV( vkGetDeviceProcAddr( device, "vkCmdSetFragmentShadingRateEnumNV" ) );
+        PFN_vkCmdSetFragmentShadingRateEnumNV vkCmdSetFragmentShadingRateEnumNV = 0;
 
         //=== VK_EXT_mesh_shader ===
-        vkCmdDrawMeshTasksEXT              = PFN_vkCmdDrawMeshTasksEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksEXT" ) );
-        vkCmdDrawMeshTasksIndirectEXT      = PFN_vkCmdDrawMeshTasksIndirectEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksIndirectEXT" ) );
-        vkCmdDrawMeshTasksIndirectCountEXT = PFN_vkCmdDrawMeshTasksIndirectCountEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMeshTasksIndirectCountEXT" ) );
+        PFN_vkCmdDrawMeshTasksEXT              vkCmdDrawMeshTasksEXT              = 0;
+        PFN_vkCmdDrawMeshTasksIndirectEXT      vkCmdDrawMeshTasksIndirectEXT      = 0;
+        PFN_vkCmdDrawMeshTasksIndirectCountEXT vkCmdDrawMeshTasksIndirectCountEXT = 0;
 
         //=== VK_KHR_copy_commands2 ===
-        vkCmdCopyBuffer2KHR = PFN_vkCmdCopyBuffer2KHR( vkGetDeviceProcAddr( device, "vkCmdCopyBuffer2KHR" ) );
-        if ( !vkCmdCopyBuffer2 )
-          vkCmdCopyBuffer2 = vkCmdCopyBuffer2KHR;
-        vkCmdCopyImage2KHR = PFN_vkCmdCopyImage2KHR( vkGetDeviceProcAddr( device, "vkCmdCopyImage2KHR" ) );
-        if ( !vkCmdCopyImage2 )
-          vkCmdCopyImage2 = vkCmdCopyImage2KHR;
-        vkCmdCopyBufferToImage2KHR = PFN_vkCmdCopyBufferToImage2KHR( vkGetDeviceProcAddr( device, "vkCmdCopyBufferToImage2KHR" ) );
-        if ( !vkCmdCopyBufferToImage2 )
-          vkCmdCopyBufferToImage2 = vkCmdCopyBufferToImage2KHR;
-        vkCmdCopyImageToBuffer2KHR = PFN_vkCmdCopyImageToBuffer2KHR( vkGetDeviceProcAddr( device, "vkCmdCopyImageToBuffer2KHR" ) );
-        if ( !vkCmdCopyImageToBuffer2 )
-          vkCmdCopyImageToBuffer2 = vkCmdCopyImageToBuffer2KHR;
-        vkCmdBlitImage2KHR = PFN_vkCmdBlitImage2KHR( vkGetDeviceProcAddr( device, "vkCmdBlitImage2KHR" ) );
-        if ( !vkCmdBlitImage2 )
-          vkCmdBlitImage2 = vkCmdBlitImage2KHR;
-        vkCmdResolveImage2KHR = PFN_vkCmdResolveImage2KHR( vkGetDeviceProcAddr( device, "vkCmdResolveImage2KHR" ) );
-        if ( !vkCmdResolveImage2 )
-          vkCmdResolveImage2 = vkCmdResolveImage2KHR;
+        PFN_vkCmdCopyBuffer2KHR        vkCmdCopyBuffer2KHR        = 0;
+        PFN_vkCmdCopyImage2KHR         vkCmdCopyImage2KHR         = 0;
+        PFN_vkCmdCopyBufferToImage2KHR vkCmdCopyBufferToImage2KHR = 0;
+        PFN_vkCmdCopyImageToBuffer2KHR vkCmdCopyImageToBuffer2KHR = 0;
+        PFN_vkCmdBlitImage2KHR         vkCmdBlitImage2KHR         = 0;
+        PFN_vkCmdResolveImage2KHR      vkCmdResolveImage2KHR      = 0;
 
         //=== VK_EXT_device_fault ===
-        vkGetDeviceFaultInfoEXT = PFN_vkGetDeviceFaultInfoEXT( vkGetDeviceProcAddr( device, "vkGetDeviceFaultInfoEXT" ) );
+        PFN_vkGetDeviceFaultInfoEXT vkGetDeviceFaultInfoEXT = 0;
 
         //=== VK_EXT_vertex_input_dynamic_state ===
-        vkCmdSetVertexInputEXT = PFN_vkCmdSetVertexInputEXT( vkGetDeviceProcAddr( device, "vkCmdSetVertexInputEXT" ) );
+        PFN_vkCmdSetVertexInputEXT vkCmdSetVertexInputEXT = 0;
 
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
         //=== VK_FUCHSIA_external_memory ===
-        vkGetMemoryZirconHandleFUCHSIA = PFN_vkGetMemoryZirconHandleFUCHSIA( vkGetDeviceProcAddr( device, "vkGetMemoryZirconHandleFUCHSIA" ) );
-        vkGetMemoryZirconHandlePropertiesFUCHSIA =
-          PFN_vkGetMemoryZirconHandlePropertiesFUCHSIA( vkGetDeviceProcAddr( device, "vkGetMemoryZirconHandlePropertiesFUCHSIA" ) );
+        PFN_vkGetMemoryZirconHandleFUCHSIA           vkGetMemoryZirconHandleFUCHSIA           = 0;
+        PFN_vkGetMemoryZirconHandlePropertiesFUCHSIA vkGetMemoryZirconHandlePropertiesFUCHSIA = 0;
+#  else
+        PFN_dummy vkGetMemoryZirconHandleFUCHSIA_placeholder                    = 0;
+        PFN_dummy vkGetMemoryZirconHandlePropertiesFUCHSIA_placeholder          = 0;
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
         //=== VK_FUCHSIA_external_semaphore ===
-        vkImportSemaphoreZirconHandleFUCHSIA =
-          PFN_vkImportSemaphoreZirconHandleFUCHSIA( vkGetDeviceProcAddr( device, "vkImportSemaphoreZirconHandleFUCHSIA" ) );
-        vkGetSemaphoreZirconHandleFUCHSIA = PFN_vkGetSemaphoreZirconHandleFUCHSIA( vkGetDeviceProcAddr( device, "vkGetSemaphoreZirconHandleFUCHSIA" ) );
+        PFN_vkImportSemaphoreZirconHandleFUCHSIA vkImportSemaphoreZirconHandleFUCHSIA = 0;
+        PFN_vkGetSemaphoreZirconHandleFUCHSIA    vkGetSemaphoreZirconHandleFUCHSIA    = 0;
+#  else
+        PFN_dummy vkImportSemaphoreZirconHandleFUCHSIA_placeholder              = 0;
+        PFN_dummy vkGetSemaphoreZirconHandleFUCHSIA_placeholder                 = 0;
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
         //=== VK_FUCHSIA_buffer_collection ===
-        vkCreateBufferCollectionFUCHSIA = PFN_vkCreateBufferCollectionFUCHSIA( vkGetDeviceProcAddr( device, "vkCreateBufferCollectionFUCHSIA" ) );
-        vkSetBufferCollectionImageConstraintsFUCHSIA =
-          PFN_vkSetBufferCollectionImageConstraintsFUCHSIA( vkGetDeviceProcAddr( device, "vkSetBufferCollectionImageConstraintsFUCHSIA" ) );
-        vkSetBufferCollectionBufferConstraintsFUCHSIA =
-          PFN_vkSetBufferCollectionBufferConstraintsFUCHSIA( vkGetDeviceProcAddr( device, "vkSetBufferCollectionBufferConstraintsFUCHSIA" ) );
-        vkDestroyBufferCollectionFUCHSIA = PFN_vkDestroyBufferCollectionFUCHSIA( vkGetDeviceProcAddr( device, "vkDestroyBufferCollectionFUCHSIA" ) );
-        vkGetBufferCollectionPropertiesFUCHSIA =
-          PFN_vkGetBufferCollectionPropertiesFUCHSIA( vkGetDeviceProcAddr( device, "vkGetBufferCollectionPropertiesFUCHSIA" ) );
+        PFN_vkCreateBufferCollectionFUCHSIA               vkCreateBufferCollectionFUCHSIA               = 0;
+        PFN_vkSetBufferCollectionImageConstraintsFUCHSIA  vkSetBufferCollectionImageConstraintsFUCHSIA  = 0;
+        PFN_vkSetBufferCollectionBufferConstraintsFUCHSIA vkSetBufferCollectionBufferConstraintsFUCHSIA = 0;
+        PFN_vkDestroyBufferCollectionFUCHSIA              vkDestroyBufferCollectionFUCHSIA              = 0;
+        PFN_vkGetBufferCollectionPropertiesFUCHSIA        vkGetBufferCollectionPropertiesFUCHSIA        = 0;
+#  else
+        PFN_dummy vkCreateBufferCollectionFUCHSIA_placeholder                   = 0;
+        PFN_dummy vkSetBufferCollectionImageConstraintsFUCHSIA_placeholder      = 0;
+        PFN_dummy vkSetBufferCollectionBufferConstraintsFUCHSIA_placeholder     = 0;
+        PFN_dummy vkDestroyBufferCollectionFUCHSIA_placeholder                  = 0;
+        PFN_dummy vkGetBufferCollectionPropertiesFUCHSIA_placeholder            = 0;
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
         //=== VK_HUAWEI_subpass_shading ===
-        vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI =
-          PFN_vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI( vkGetDeviceProcAddr( device, "vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI" ) );
-        vkCmdSubpassShadingHUAWEI = PFN_vkCmdSubpassShadingHUAWEI( vkGetDeviceProcAddr( device, "vkCmdSubpassShadingHUAWEI" ) );
+        PFN_vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI = 0;
+        PFN_vkCmdSubpassShadingHUAWEI                       vkCmdSubpassShadingHUAWEI                       = 0;
 
         //=== VK_HUAWEI_invocation_mask ===
-        vkCmdBindInvocationMaskHUAWEI = PFN_vkCmdBindInvocationMaskHUAWEI( vkGetDeviceProcAddr( device, "vkCmdBindInvocationMaskHUAWEI" ) );
+        PFN_vkCmdBindInvocationMaskHUAWEI vkCmdBindInvocationMaskHUAWEI = 0;
 
         //=== VK_NV_external_memory_rdma ===
-        vkGetMemoryRemoteAddressNV = PFN_vkGetMemoryRemoteAddressNV( vkGetDeviceProcAddr( device, "vkGetMemoryRemoteAddressNV" ) );
+        PFN_vkGetMemoryRemoteAddressNV vkGetMemoryRemoteAddressNV = 0;
 
         //=== VK_EXT_pipeline_properties ===
-        vkGetPipelinePropertiesEXT = PFN_vkGetPipelinePropertiesEXT( vkGetDeviceProcAddr( device, "vkGetPipelinePropertiesEXT" ) );
+        PFN_vkGetPipelinePropertiesEXT vkGetPipelinePropertiesEXT = 0;
 
         //=== VK_EXT_extended_dynamic_state2 ===
-        vkCmdSetPatchControlPointsEXT      = PFN_vkCmdSetPatchControlPointsEXT( vkGetDeviceProcAddr( device, "vkCmdSetPatchControlPointsEXT" ) );
-        vkCmdSetRasterizerDiscardEnableEXT = PFN_vkCmdSetRasterizerDiscardEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetRasterizerDiscardEnableEXT" ) );
-        if ( !vkCmdSetRasterizerDiscardEnable )
-          vkCmdSetRasterizerDiscardEnable = vkCmdSetRasterizerDiscardEnableEXT;
-        vkCmdSetDepthBiasEnableEXT = PFN_vkCmdSetDepthBiasEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthBiasEnableEXT" ) );
-        if ( !vkCmdSetDepthBiasEnable )
-          vkCmdSetDepthBiasEnable = vkCmdSetDepthBiasEnableEXT;
-        vkCmdSetLogicOpEXT                = PFN_vkCmdSetLogicOpEXT( vkGetDeviceProcAddr( device, "vkCmdSetLogicOpEXT" ) );
-        vkCmdSetPrimitiveRestartEnableEXT = PFN_vkCmdSetPrimitiveRestartEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetPrimitiveRestartEnableEXT" ) );
-        if ( !vkCmdSetPrimitiveRestartEnable )
-          vkCmdSetPrimitiveRestartEnable = vkCmdSetPrimitiveRestartEnableEXT;
+        PFN_vkCmdSetPatchControlPointsEXT      vkCmdSetPatchControlPointsEXT      = 0;
+        PFN_vkCmdSetRasterizerDiscardEnableEXT vkCmdSetRasterizerDiscardEnableEXT = 0;
+        PFN_vkCmdSetDepthBiasEnableEXT         vkCmdSetDepthBiasEnableEXT         = 0;
+        PFN_vkCmdSetLogicOpEXT                 vkCmdSetLogicOpEXT                 = 0;
+        PFN_vkCmdSetPrimitiveRestartEnableEXT  vkCmdSetPrimitiveRestartEnableEXT  = 0;
 
         //=== VK_EXT_color_write_enable ===
-        vkCmdSetColorWriteEnableEXT = PFN_vkCmdSetColorWriteEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorWriteEnableEXT" ) );
+        PFN_vkCmdSetColorWriteEnableEXT vkCmdSetColorWriteEnableEXT = 0;
 
         //=== VK_KHR_ray_tracing_maintenance1 ===
-        vkCmdTraceRaysIndirect2KHR = PFN_vkCmdTraceRaysIndirect2KHR( vkGetDeviceProcAddr( device, "vkCmdTraceRaysIndirect2KHR" ) );
+        PFN_vkCmdTraceRaysIndirect2KHR vkCmdTraceRaysIndirect2KHR = 0;
 
         //=== VK_EXT_multi_draw ===
-        vkCmdDrawMultiEXT        = PFN_vkCmdDrawMultiEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMultiEXT" ) );
-        vkCmdDrawMultiIndexedEXT = PFN_vkCmdDrawMultiIndexedEXT( vkGetDeviceProcAddr( device, "vkCmdDrawMultiIndexedEXT" ) );
+        PFN_vkCmdDrawMultiEXT        vkCmdDrawMultiEXT        = 0;
+        PFN_vkCmdDrawMultiIndexedEXT vkCmdDrawMultiIndexedEXT = 0;
 
         //=== VK_EXT_opacity_micromap ===
-        vkCreateMicromapEXT                 = PFN_vkCreateMicromapEXT( vkGetDeviceProcAddr( device, "vkCreateMicromapEXT" ) );
-        vkDestroyMicromapEXT                = PFN_vkDestroyMicromapEXT( vkGetDeviceProcAddr( device, "vkDestroyMicromapEXT" ) );
-        vkCmdBuildMicromapsEXT              = PFN_vkCmdBuildMicromapsEXT( vkGetDeviceProcAddr( device, "vkCmdBuildMicromapsEXT" ) );
-        vkBuildMicromapsEXT                 = PFN_vkBuildMicromapsEXT( vkGetDeviceProcAddr( device, "vkBuildMicromapsEXT" ) );
-        vkCopyMicromapEXT                   = PFN_vkCopyMicromapEXT( vkGetDeviceProcAddr( device, "vkCopyMicromapEXT" ) );
-        vkCopyMicromapToMemoryEXT           = PFN_vkCopyMicromapToMemoryEXT( vkGetDeviceProcAddr( device, "vkCopyMicromapToMemoryEXT" ) );
-        vkCopyMemoryToMicromapEXT           = PFN_vkCopyMemoryToMicromapEXT( vkGetDeviceProcAddr( device, "vkCopyMemoryToMicromapEXT" ) );
-        vkWriteMicromapsPropertiesEXT       = PFN_vkWriteMicromapsPropertiesEXT( vkGetDeviceProcAddr( device, "vkWriteMicromapsPropertiesEXT" ) );
-        vkCmdCopyMicromapEXT                = PFN_vkCmdCopyMicromapEXT( vkGetDeviceProcAddr( device, "vkCmdCopyMicromapEXT" ) );
-        vkCmdCopyMicromapToMemoryEXT        = PFN_vkCmdCopyMicromapToMemoryEXT( vkGetDeviceProcAddr( device, "vkCmdCopyMicromapToMemoryEXT" ) );
-        vkCmdCopyMemoryToMicromapEXT        = PFN_vkCmdCopyMemoryToMicromapEXT( vkGetDeviceProcAddr( device, "vkCmdCopyMemoryToMicromapEXT" ) );
-        vkCmdWriteMicromapsPropertiesEXT    = PFN_vkCmdWriteMicromapsPropertiesEXT( vkGetDeviceProcAddr( device, "vkCmdWriteMicromapsPropertiesEXT" ) );
-        vkGetDeviceMicromapCompatibilityEXT = PFN_vkGetDeviceMicromapCompatibilityEXT( vkGetDeviceProcAddr( device, "vkGetDeviceMicromapCompatibilityEXT" ) );
-        vkGetMicromapBuildSizesEXT          = PFN_vkGetMicromapBuildSizesEXT( vkGetDeviceProcAddr( device, "vkGetMicromapBuildSizesEXT" ) );
+        PFN_vkCreateMicromapEXT                 vkCreateMicromapEXT                 = 0;
+        PFN_vkDestroyMicromapEXT                vkDestroyMicromapEXT                = 0;
+        PFN_vkCmdBuildMicromapsEXT              vkCmdBuildMicromapsEXT              = 0;
+        PFN_vkBuildMicromapsEXT                 vkBuildMicromapsEXT                 = 0;
+        PFN_vkCopyMicromapEXT                   vkCopyMicromapEXT                   = 0;
+        PFN_vkCopyMicromapToMemoryEXT           vkCopyMicromapToMemoryEXT           = 0;
+        PFN_vkCopyMemoryToMicromapEXT           vkCopyMemoryToMicromapEXT           = 0;
+        PFN_vkWriteMicromapsPropertiesEXT       vkWriteMicromapsPropertiesEXT       = 0;
+        PFN_vkCmdCopyMicromapEXT                vkCmdCopyMicromapEXT                = 0;
+        PFN_vkCmdCopyMicromapToMemoryEXT        vkCmdCopyMicromapToMemoryEXT        = 0;
+        PFN_vkCmdCopyMemoryToMicromapEXT        vkCmdCopyMemoryToMicromapEXT        = 0;
+        PFN_vkCmdWriteMicromapsPropertiesEXT    vkCmdWriteMicromapsPropertiesEXT    = 0;
+        PFN_vkGetDeviceMicromapCompatibilityEXT vkGetDeviceMicromapCompatibilityEXT = 0;
+        PFN_vkGetMicromapBuildSizesEXT          vkGetMicromapBuildSizesEXT          = 0;
 
         //=== VK_HUAWEI_cluster_culling_shader ===
-        vkCmdDrawClusterHUAWEI         = PFN_vkCmdDrawClusterHUAWEI( vkGetDeviceProcAddr( device, "vkCmdDrawClusterHUAWEI" ) );
-        vkCmdDrawClusterIndirectHUAWEI = PFN_vkCmdDrawClusterIndirectHUAWEI( vkGetDeviceProcAddr( device, "vkCmdDrawClusterIndirectHUAWEI" ) );
+        PFN_vkCmdDrawClusterHUAWEI         vkCmdDrawClusterHUAWEI         = 0;
+        PFN_vkCmdDrawClusterIndirectHUAWEI vkCmdDrawClusterIndirectHUAWEI = 0;
 
         //=== VK_EXT_pageable_device_local_memory ===
-        vkSetDeviceMemoryPriorityEXT = PFN_vkSetDeviceMemoryPriorityEXT( vkGetDeviceProcAddr( device, "vkSetDeviceMemoryPriorityEXT" ) );
+        PFN_vkSetDeviceMemoryPriorityEXT vkSetDeviceMemoryPriorityEXT = 0;
 
         //=== VK_KHR_maintenance4 ===
-        vkGetDeviceBufferMemoryRequirementsKHR =
-          PFN_vkGetDeviceBufferMemoryRequirementsKHR( vkGetDeviceProcAddr( device, "vkGetDeviceBufferMemoryRequirementsKHR" ) );
-        if ( !vkGetDeviceBufferMemoryRequirements )
-          vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirementsKHR;
-        vkGetDeviceImageMemoryRequirementsKHR =
-          PFN_vkGetDeviceImageMemoryRequirementsKHR( vkGetDeviceProcAddr( device, "vkGetDeviceImageMemoryRequirementsKHR" ) );
-        if ( !vkGetDeviceImageMemoryRequirements )
-          vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirementsKHR;
-        vkGetDeviceImageSparseMemoryRequirementsKHR =
-          PFN_vkGetDeviceImageSparseMemoryRequirementsKHR( vkGetDeviceProcAddr( device, "vkGetDeviceImageSparseMemoryRequirementsKHR" ) );
-        if ( !vkGetDeviceImageSparseMemoryRequirements )
-          vkGetDeviceImageSparseMemoryRequirements = vkGetDeviceImageSparseMemoryRequirementsKHR;
+        PFN_vkGetDeviceBufferMemoryRequirementsKHR      vkGetDeviceBufferMemoryRequirementsKHR      = 0;
+        PFN_vkGetDeviceImageMemoryRequirementsKHR       vkGetDeviceImageMemoryRequirementsKHR       = 0;
+        PFN_vkGetDeviceImageSparseMemoryRequirementsKHR vkGetDeviceImageSparseMemoryRequirementsKHR = 0;
 
         //=== VK_VALVE_descriptor_set_host_mapping ===
-        vkGetDescriptorSetLayoutHostMappingInfoVALVE =
-          PFN_vkGetDescriptorSetLayoutHostMappingInfoVALVE( vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutHostMappingInfoVALVE" ) );
-        vkGetDescriptorSetHostMappingVALVE = PFN_vkGetDescriptorSetHostMappingVALVE( vkGetDeviceProcAddr( device, "vkGetDescriptorSetHostMappingVALVE" ) );
+        PFN_vkGetDescriptorSetLayoutHostMappingInfoVALVE vkGetDescriptorSetLayoutHostMappingInfoVALVE = 0;
+        PFN_vkGetDescriptorSetHostMappingVALVE           vkGetDescriptorSetHostMappingVALVE           = 0;
 
         //=== VK_NV_copy_memory_indirect ===
-        vkCmdCopyMemoryIndirectNV        = PFN_vkCmdCopyMemoryIndirectNV( vkGetDeviceProcAddr( device, "vkCmdCopyMemoryIndirectNV" ) );
-        vkCmdCopyMemoryToImageIndirectNV = PFN_vkCmdCopyMemoryToImageIndirectNV( vkGetDeviceProcAddr( device, "vkCmdCopyMemoryToImageIndirectNV" ) );
+        PFN_vkCmdCopyMemoryIndirectNV        vkCmdCopyMemoryIndirectNV        = 0;
+        PFN_vkCmdCopyMemoryToImageIndirectNV vkCmdCopyMemoryToImageIndirectNV = 0;
 
         //=== VK_NV_memory_decompression ===
-        vkCmdDecompressMemoryNV = PFN_vkCmdDecompressMemoryNV( vkGetDeviceProcAddr( device, "vkCmdDecompressMemoryNV" ) );
-        vkCmdDecompressMemoryIndirectCountNV =
-          PFN_vkCmdDecompressMemoryIndirectCountNV( vkGetDeviceProcAddr( device, "vkCmdDecompressMemoryIndirectCountNV" ) );
+        PFN_vkCmdDecompressMemoryNV              vkCmdDecompressMemoryNV              = 0;
+        PFN_vkCmdDecompressMemoryIndirectCountNV vkCmdDecompressMemoryIndirectCountNV = 0;
 
         //=== VK_NV_device_generated_commands_compute ===
-        vkGetPipelineIndirectMemoryRequirementsNV =
-          PFN_vkGetPipelineIndirectMemoryRequirementsNV( vkGetDeviceProcAddr( device, "vkGetPipelineIndirectMemoryRequirementsNV" ) );
-        vkCmdUpdatePipelineIndirectBufferNV = PFN_vkCmdUpdatePipelineIndirectBufferNV( vkGetDeviceProcAddr( device, "vkCmdUpdatePipelineIndirectBufferNV" ) );
-        vkGetPipelineIndirectDeviceAddressNV =
-          PFN_vkGetPipelineIndirectDeviceAddressNV( vkGetDeviceProcAddr( device, "vkGetPipelineIndirectDeviceAddressNV" ) );
+        PFN_vkGetPipelineIndirectMemoryRequirementsNV vkGetPipelineIndirectMemoryRequirementsNV = 0;
+        PFN_vkCmdUpdatePipelineIndirectBufferNV       vkCmdUpdatePipelineIndirectBufferNV       = 0;
+        PFN_vkGetPipelineIndirectDeviceAddressNV      vkGetPipelineIndirectDeviceAddressNV      = 0;
 
         //=== VK_EXT_extended_dynamic_state3 ===
-        vkCmdSetDepthClampEnableEXT         = PFN_vkCmdSetDepthClampEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthClampEnableEXT" ) );
-        vkCmdSetPolygonModeEXT              = PFN_vkCmdSetPolygonModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetPolygonModeEXT" ) );
-        vkCmdSetRasterizationSamplesEXT     = PFN_vkCmdSetRasterizationSamplesEXT( vkGetDeviceProcAddr( device, "vkCmdSetRasterizationSamplesEXT" ) );
-        vkCmdSetSampleMaskEXT               = PFN_vkCmdSetSampleMaskEXT( vkGetDeviceProcAddr( device, "vkCmdSetSampleMaskEXT" ) );
-        vkCmdSetAlphaToCoverageEnableEXT    = PFN_vkCmdSetAlphaToCoverageEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetAlphaToCoverageEnableEXT" ) );
-        vkCmdSetAlphaToOneEnableEXT         = PFN_vkCmdSetAlphaToOneEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetAlphaToOneEnableEXT" ) );
-        vkCmdSetLogicOpEnableEXT            = PFN_vkCmdSetLogicOpEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetLogicOpEnableEXT" ) );
-        vkCmdSetColorBlendEnableEXT         = PFN_vkCmdSetColorBlendEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorBlendEnableEXT" ) );
-        vkCmdSetColorBlendEquationEXT       = PFN_vkCmdSetColorBlendEquationEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorBlendEquationEXT" ) );
-        vkCmdSetColorWriteMaskEXT           = PFN_vkCmdSetColorWriteMaskEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorWriteMaskEXT" ) );
-        vkCmdSetTessellationDomainOriginEXT = PFN_vkCmdSetTessellationDomainOriginEXT( vkGetDeviceProcAddr( device, "vkCmdSetTessellationDomainOriginEXT" ) );
-        vkCmdSetRasterizationStreamEXT      = PFN_vkCmdSetRasterizationStreamEXT( vkGetDeviceProcAddr( device, "vkCmdSetRasterizationStreamEXT" ) );
-        vkCmdSetConservativeRasterizationModeEXT =
-          PFN_vkCmdSetConservativeRasterizationModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetConservativeRasterizationModeEXT" ) );
-        vkCmdSetExtraPrimitiveOverestimationSizeEXT =
-          PFN_vkCmdSetExtraPrimitiveOverestimationSizeEXT( vkGetDeviceProcAddr( device, "vkCmdSetExtraPrimitiveOverestimationSizeEXT" ) );
-        vkCmdSetDepthClipEnableEXT       = PFN_vkCmdSetDepthClipEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthClipEnableEXT" ) );
-        vkCmdSetSampleLocationsEnableEXT = PFN_vkCmdSetSampleLocationsEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetSampleLocationsEnableEXT" ) );
-        vkCmdSetColorBlendAdvancedEXT    = PFN_vkCmdSetColorBlendAdvancedEXT( vkGetDeviceProcAddr( device, "vkCmdSetColorBlendAdvancedEXT" ) );
-        vkCmdSetProvokingVertexModeEXT   = PFN_vkCmdSetProvokingVertexModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetProvokingVertexModeEXT" ) );
-        vkCmdSetLineRasterizationModeEXT = PFN_vkCmdSetLineRasterizationModeEXT( vkGetDeviceProcAddr( device, "vkCmdSetLineRasterizationModeEXT" ) );
-        vkCmdSetLineStippleEnableEXT     = PFN_vkCmdSetLineStippleEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetLineStippleEnableEXT" ) );
-        vkCmdSetDepthClipNegativeOneToOneEXT =
-          PFN_vkCmdSetDepthClipNegativeOneToOneEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthClipNegativeOneToOneEXT" ) );
-        vkCmdSetViewportWScalingEnableNV  = PFN_vkCmdSetViewportWScalingEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetViewportWScalingEnableNV" ) );
-        vkCmdSetViewportSwizzleNV         = PFN_vkCmdSetViewportSwizzleNV( vkGetDeviceProcAddr( device, "vkCmdSetViewportSwizzleNV" ) );
-        vkCmdSetCoverageToColorEnableNV   = PFN_vkCmdSetCoverageToColorEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageToColorEnableNV" ) );
-        vkCmdSetCoverageToColorLocationNV = PFN_vkCmdSetCoverageToColorLocationNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageToColorLocationNV" ) );
-        vkCmdSetCoverageModulationModeNV  = PFN_vkCmdSetCoverageModulationModeNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageModulationModeNV" ) );
-        vkCmdSetCoverageModulationTableEnableNV =
-          PFN_vkCmdSetCoverageModulationTableEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageModulationTableEnableNV" ) );
-        vkCmdSetCoverageModulationTableNV = PFN_vkCmdSetCoverageModulationTableNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageModulationTableNV" ) );
-        vkCmdSetShadingRateImageEnableNV  = PFN_vkCmdSetShadingRateImageEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetShadingRateImageEnableNV" ) );
-        vkCmdSetRepresentativeFragmentTestEnableNV =
-          PFN_vkCmdSetRepresentativeFragmentTestEnableNV( vkGetDeviceProcAddr( device, "vkCmdSetRepresentativeFragmentTestEnableNV" ) );
-        vkCmdSetCoverageReductionModeNV = PFN_vkCmdSetCoverageReductionModeNV( vkGetDeviceProcAddr( device, "vkCmdSetCoverageReductionModeNV" ) );
+        PFN_vkCmdSetDepthClampEnableEXT                 vkCmdSetDepthClampEnableEXT                 = 0;
+        PFN_vkCmdSetPolygonModeEXT                      vkCmdSetPolygonModeEXT                      = 0;
+        PFN_vkCmdSetRasterizationSamplesEXT             vkCmdSetRasterizationSamplesEXT             = 0;
+        PFN_vkCmdSetSampleMaskEXT                       vkCmdSetSampleMaskEXT                       = 0;
+        PFN_vkCmdSetAlphaToCoverageEnableEXT            vkCmdSetAlphaToCoverageEnableEXT            = 0;
+        PFN_vkCmdSetAlphaToOneEnableEXT                 vkCmdSetAlphaToOneEnableEXT                 = 0;
+        PFN_vkCmdSetLogicOpEnableEXT                    vkCmdSetLogicOpEnableEXT                    = 0;
+        PFN_vkCmdSetColorBlendEnableEXT                 vkCmdSetColorBlendEnableEXT                 = 0;
+        PFN_vkCmdSetColorBlendEquationEXT               vkCmdSetColorBlendEquationEXT               = 0;
+        PFN_vkCmdSetColorWriteMaskEXT                   vkCmdSetColorWriteMaskEXT                   = 0;
+        PFN_vkCmdSetTessellationDomainOriginEXT         vkCmdSetTessellationDomainOriginEXT         = 0;
+        PFN_vkCmdSetRasterizationStreamEXT              vkCmdSetRasterizationStreamEXT              = 0;
+        PFN_vkCmdSetConservativeRasterizationModeEXT    vkCmdSetConservativeRasterizationModeEXT    = 0;
+        PFN_vkCmdSetExtraPrimitiveOverestimationSizeEXT vkCmdSetExtraPrimitiveOverestimationSizeEXT = 0;
+        PFN_vkCmdSetDepthClipEnableEXT                  vkCmdSetDepthClipEnableEXT                  = 0;
+        PFN_vkCmdSetSampleLocationsEnableEXT            vkCmdSetSampleLocationsEnableEXT            = 0;
+        PFN_vkCmdSetColorBlendAdvancedEXT               vkCmdSetColorBlendAdvancedEXT               = 0;
+        PFN_vkCmdSetProvokingVertexModeEXT              vkCmdSetProvokingVertexModeEXT              = 0;
+        PFN_vkCmdSetLineRasterizationModeEXT            vkCmdSetLineRasterizationModeEXT            = 0;
+        PFN_vkCmdSetLineStippleEnableEXT                vkCmdSetLineStippleEnableEXT                = 0;
+        PFN_vkCmdSetDepthClipNegativeOneToOneEXT        vkCmdSetDepthClipNegativeOneToOneEXT        = 0;
+        PFN_vkCmdSetViewportWScalingEnableNV            vkCmdSetViewportWScalingEnableNV            = 0;
+        PFN_vkCmdSetViewportSwizzleNV                   vkCmdSetViewportSwizzleNV                   = 0;
+        PFN_vkCmdSetCoverageToColorEnableNV             vkCmdSetCoverageToColorEnableNV             = 0;
+        PFN_vkCmdSetCoverageToColorLocationNV           vkCmdSetCoverageToColorLocationNV           = 0;
+        PFN_vkCmdSetCoverageModulationModeNV            vkCmdSetCoverageModulationModeNV            = 0;
+        PFN_vkCmdSetCoverageModulationTableEnableNV     vkCmdSetCoverageModulationTableEnableNV     = 0;
+        PFN_vkCmdSetCoverageModulationTableNV           vkCmdSetCoverageModulationTableNV           = 0;
+        PFN_vkCmdSetShadingRateImageEnableNV            vkCmdSetShadingRateImageEnableNV            = 0;
+        PFN_vkCmdSetRepresentativeFragmentTestEnableNV  vkCmdSetRepresentativeFragmentTestEnableNV  = 0;
+        PFN_vkCmdSetCoverageReductionModeNV             vkCmdSetCoverageReductionModeNV             = 0;
 
         //=== VK_EXT_shader_module_identifier ===
-        vkGetShaderModuleIdentifierEXT = PFN_vkGetShaderModuleIdentifierEXT( vkGetDeviceProcAddr( device, "vkGetShaderModuleIdentifierEXT" ) );
-        vkGetShaderModuleCreateInfoIdentifierEXT =
-          PFN_vkGetShaderModuleCreateInfoIdentifierEXT( vkGetDeviceProcAddr( device, "vkGetShaderModuleCreateInfoIdentifierEXT" ) );
+        PFN_vkGetShaderModuleIdentifierEXT           vkGetShaderModuleIdentifierEXT           = 0;
+        PFN_vkGetShaderModuleCreateInfoIdentifierEXT vkGetShaderModuleCreateInfoIdentifierEXT = 0;
 
         //=== VK_NV_optical_flow ===
-        vkCreateOpticalFlowSessionNV    = PFN_vkCreateOpticalFlowSessionNV( vkGetDeviceProcAddr( device, "vkCreateOpticalFlowSessionNV" ) );
-        vkDestroyOpticalFlowSessionNV   = PFN_vkDestroyOpticalFlowSessionNV( vkGetDeviceProcAddr( device, "vkDestroyOpticalFlowSessionNV" ) );
-        vkBindOpticalFlowSessionImageNV = PFN_vkBindOpticalFlowSessionImageNV( vkGetDeviceProcAddr( device, "vkBindOpticalFlowSessionImageNV" ) );
-        vkCmdOpticalFlowExecuteNV       = PFN_vkCmdOpticalFlowExecuteNV( vkGetDeviceProcAddr( device, "vkCmdOpticalFlowExecuteNV" ) );
+        PFN_vkCreateOpticalFlowSessionNV    vkCreateOpticalFlowSessionNV    = 0;
+        PFN_vkDestroyOpticalFlowSessionNV   vkDestroyOpticalFlowSessionNV   = 0;
+        PFN_vkBindOpticalFlowSessionImageNV vkBindOpticalFlowSessionImageNV = 0;
+        PFN_vkCmdOpticalFlowExecuteNV       vkCmdOpticalFlowExecuteNV       = 0;
 
         //=== VK_KHR_maintenance5 ===
-        vkCmdBindIndexBuffer2KHR         = PFN_vkCmdBindIndexBuffer2KHR( vkGetDeviceProcAddr( device, "vkCmdBindIndexBuffer2KHR" ) );
-        vkGetRenderingAreaGranularityKHR = PFN_vkGetRenderingAreaGranularityKHR( vkGetDeviceProcAddr( device, "vkGetRenderingAreaGranularityKHR" ) );
-        vkGetDeviceImageSubresourceLayoutKHR =
-          PFN_vkGetDeviceImageSubresourceLayoutKHR( vkGetDeviceProcAddr( device, "vkGetDeviceImageSubresourceLayoutKHR" ) );
-        vkGetImageSubresourceLayout2KHR = PFN_vkGetImageSubresourceLayout2KHR( vkGetDeviceProcAddr( device, "vkGetImageSubresourceLayout2KHR" ) );
+        PFN_vkCmdBindIndexBuffer2KHR             vkCmdBindIndexBuffer2KHR             = 0;
+        PFN_vkGetRenderingAreaGranularityKHR     vkGetRenderingAreaGranularityKHR     = 0;
+        PFN_vkGetDeviceImageSubresourceLayoutKHR vkGetDeviceImageSubresourceLayoutKHR = 0;
+        PFN_vkGetImageSubresourceLayout2KHR      vkGetImageSubresourceLayout2KHR      = 0;
 
         //=== VK_AMD_anti_lag ===
-        vkAntiLagUpdateAMD = PFN_vkAntiLagUpdateAMD( vkGetDeviceProcAddr( device, "vkAntiLagUpdateAMD" ) );
+        PFN_vkAntiLagUpdateAMD vkAntiLagUpdateAMD = 0;
 
         //=== VK_EXT_shader_object ===
-        vkCreateShadersEXT         = PFN_vkCreateShadersEXT( vkGetDeviceProcAddr( device, "vkCreateShadersEXT" ) );
-        vkDestroyShaderEXT         = PFN_vkDestroyShaderEXT( vkGetDeviceProcAddr( device, "vkDestroyShaderEXT" ) );
-        vkGetShaderBinaryDataEXT   = PFN_vkGetShaderBinaryDataEXT( vkGetDeviceProcAddr( device, "vkGetShaderBinaryDataEXT" ) );
-        vkCmdBindShadersEXT        = PFN_vkCmdBindShadersEXT( vkGetDeviceProcAddr( device, "vkCmdBindShadersEXT" ) );
-        vkCmdSetDepthClampRangeEXT = PFN_vkCmdSetDepthClampRangeEXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthClampRangeEXT" ) );
+        PFN_vkCreateShadersEXT         vkCreateShadersEXT         = 0;
+        PFN_vkDestroyShaderEXT         vkDestroyShaderEXT         = 0;
+        PFN_vkGetShaderBinaryDataEXT   vkGetShaderBinaryDataEXT   = 0;
+        PFN_vkCmdBindShadersEXT        vkCmdBindShadersEXT        = 0;
+        PFN_vkCmdSetDepthClampRangeEXT vkCmdSetDepthClampRangeEXT = 0;
 
         //=== VK_KHR_pipeline_binary ===
-        vkCreatePipelineBinariesKHR      = PFN_vkCreatePipelineBinariesKHR( vkGetDeviceProcAddr( device, "vkCreatePipelineBinariesKHR" ) );
-        vkDestroyPipelineBinaryKHR       = PFN_vkDestroyPipelineBinaryKHR( vkGetDeviceProcAddr( device, "vkDestroyPipelineBinaryKHR" ) );
-        vkGetPipelineKeyKHR              = PFN_vkGetPipelineKeyKHR( vkGetDeviceProcAddr( device, "vkGetPipelineKeyKHR" ) );
-        vkGetPipelineBinaryDataKHR       = PFN_vkGetPipelineBinaryDataKHR( vkGetDeviceProcAddr( device, "vkGetPipelineBinaryDataKHR" ) );
-        vkReleaseCapturedPipelineDataKHR = PFN_vkReleaseCapturedPipelineDataKHR( vkGetDeviceProcAddr( device, "vkReleaseCapturedPipelineDataKHR" ) );
+        PFN_vkCreatePipelineBinariesKHR      vkCreatePipelineBinariesKHR      = 0;
+        PFN_vkDestroyPipelineBinaryKHR       vkDestroyPipelineBinaryKHR       = 0;
+        PFN_vkGetPipelineKeyKHR              vkGetPipelineKeyKHR              = 0;
+        PFN_vkGetPipelineBinaryDataKHR       vkGetPipelineBinaryDataKHR       = 0;
+        PFN_vkReleaseCapturedPipelineDataKHR vkReleaseCapturedPipelineDataKHR = 0;
 
         //=== VK_QCOM_tile_properties ===
-        vkGetFramebufferTilePropertiesQCOM = PFN_vkGetFramebufferTilePropertiesQCOM( vkGetDeviceProcAddr( device, "vkGetFramebufferTilePropertiesQCOM" ) );
-        vkGetDynamicRenderingTilePropertiesQCOM =
-          PFN_vkGetDynamicRenderingTilePropertiesQCOM( vkGetDeviceProcAddr( device, "vkGetDynamicRenderingTilePropertiesQCOM" ) );
+        PFN_vkGetFramebufferTilePropertiesQCOM      vkGetFramebufferTilePropertiesQCOM      = 0;
+        PFN_vkGetDynamicRenderingTilePropertiesQCOM vkGetDynamicRenderingTilePropertiesQCOM = 0;
 
         //=== VK_NV_low_latency2 ===
-        vkSetLatencySleepModeNV  = PFN_vkSetLatencySleepModeNV( vkGetDeviceProcAddr( device, "vkSetLatencySleepModeNV" ) );
-        vkLatencySleepNV         = PFN_vkLatencySleepNV( vkGetDeviceProcAddr( device, "vkLatencySleepNV" ) );
-        vkSetLatencyMarkerNV     = PFN_vkSetLatencyMarkerNV( vkGetDeviceProcAddr( device, "vkSetLatencyMarkerNV" ) );
-        vkGetLatencyTimingsNV    = PFN_vkGetLatencyTimingsNV( vkGetDeviceProcAddr( device, "vkGetLatencyTimingsNV" ) );
-        vkQueueNotifyOutOfBandNV = PFN_vkQueueNotifyOutOfBandNV( vkGetDeviceProcAddr( device, "vkQueueNotifyOutOfBandNV" ) );
+        PFN_vkSetLatencySleepModeNV  vkSetLatencySleepModeNV  = 0;
+        PFN_vkLatencySleepNV         vkLatencySleepNV         = 0;
+        PFN_vkSetLatencyMarkerNV     vkSetLatencyMarkerNV     = 0;
+        PFN_vkGetLatencyTimingsNV    vkGetLatencyTimingsNV    = 0;
+        PFN_vkQueueNotifyOutOfBandNV vkQueueNotifyOutOfBandNV = 0;
 
         //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
-        vkCmdSetAttachmentFeedbackLoopEnableEXT =
-          PFN_vkCmdSetAttachmentFeedbackLoopEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetAttachmentFeedbackLoopEnableEXT" ) );
+        PFN_vkCmdSetAttachmentFeedbackLoopEnableEXT vkCmdSetAttachmentFeedbackLoopEnableEXT = 0;
 
 #  if defined( VK_USE_PLATFORM_SCREEN_QNX )
         //=== VK_QNX_external_memory_screen_buffer ===
-        vkGetScreenBufferPropertiesQNX = PFN_vkGetScreenBufferPropertiesQNX( vkGetDeviceProcAddr( device, "vkGetScreenBufferPropertiesQNX" ) );
+        PFN_vkGetScreenBufferPropertiesQNX vkGetScreenBufferPropertiesQNX = 0;
+#  else
+        PFN_dummy vkGetScreenBufferPropertiesQNX_placeholder                    = 0;
 #  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
 
         //=== VK_KHR_line_rasterization ===
-        vkCmdSetLineStippleKHR = PFN_vkCmdSetLineStippleKHR( vkGetDeviceProcAddr( device, "vkCmdSetLineStippleKHR" ) );
+        PFN_vkCmdSetLineStippleKHR vkCmdSetLineStippleKHR = 0;
 
         //=== VK_KHR_calibrated_timestamps ===
-        vkGetCalibratedTimestampsKHR = PFN_vkGetCalibratedTimestampsKHR( vkGetDeviceProcAddr( device, "vkGetCalibratedTimestampsKHR" ) );
+        PFN_vkGetCalibratedTimestampsKHR vkGetCalibratedTimestampsKHR = 0;
 
         //=== VK_KHR_maintenance6 ===
-        vkCmdBindDescriptorSets2KHR = PFN_vkCmdBindDescriptorSets2KHR( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorSets2KHR" ) );
-        vkCmdPushConstants2KHR      = PFN_vkCmdPushConstants2KHR( vkGetDeviceProcAddr( device, "vkCmdPushConstants2KHR" ) );
-        vkCmdPushDescriptorSet2KHR  = PFN_vkCmdPushDescriptorSet2KHR( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSet2KHR" ) );
-        vkCmdPushDescriptorSetWithTemplate2KHR =
-          PFN_vkCmdPushDescriptorSetWithTemplate2KHR( vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetWithTemplate2KHR" ) );
-        vkCmdSetDescriptorBufferOffsets2EXT = PFN_vkCmdSetDescriptorBufferOffsets2EXT( vkGetDeviceProcAddr( device, "vkCmdSetDescriptorBufferOffsets2EXT" ) );
-        vkCmdBindDescriptorBufferEmbeddedSamplers2EXT =
-          PFN_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorBufferEmbeddedSamplers2EXT" ) );
+        PFN_vkCmdBindDescriptorSets2KHR                   vkCmdBindDescriptorSets2KHR                   = 0;
+        PFN_vkCmdPushConstants2KHR                        vkCmdPushConstants2KHR                        = 0;
+        PFN_vkCmdPushDescriptorSet2KHR                    vkCmdPushDescriptorSet2KHR                    = 0;
+        PFN_vkCmdPushDescriptorSetWithTemplate2KHR        vkCmdPushDescriptorSetWithTemplate2KHR        = 0;
+        PFN_vkCmdSetDescriptorBufferOffsets2EXT           vkCmdSetDescriptorBufferOffsets2EXT           = 0;
+        PFN_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT vkCmdBindDescriptorBufferEmbeddedSamplers2EXT = 0;
 
         //=== VK_EXT_device_generated_commands ===
-        vkGetGeneratedCommandsMemoryRequirementsEXT =
-          PFN_vkGetGeneratedCommandsMemoryRequirementsEXT( vkGetDeviceProcAddr( device, "vkGetGeneratedCommandsMemoryRequirementsEXT" ) );
-        vkCmdPreprocessGeneratedCommandsEXT = PFN_vkCmdPreprocessGeneratedCommandsEXT( vkGetDeviceProcAddr( device, "vkCmdPreprocessGeneratedCommandsEXT" ) );
-        vkCmdExecuteGeneratedCommandsEXT    = PFN_vkCmdExecuteGeneratedCommandsEXT( vkGetDeviceProcAddr( device, "vkCmdExecuteGeneratedCommandsEXT" ) );
-        vkCreateIndirectCommandsLayoutEXT   = PFN_vkCreateIndirectCommandsLayoutEXT( vkGetDeviceProcAddr( device, "vkCreateIndirectCommandsLayoutEXT" ) );
-        vkDestroyIndirectCommandsLayoutEXT  = PFN_vkDestroyIndirectCommandsLayoutEXT( vkGetDeviceProcAddr( device, "vkDestroyIndirectCommandsLayoutEXT" ) );
-        vkCreateIndirectExecutionSetEXT     = PFN_vkCreateIndirectExecutionSetEXT( vkGetDeviceProcAddr( device, "vkCreateIndirectExecutionSetEXT" ) );
-        vkDestroyIndirectExecutionSetEXT    = PFN_vkDestroyIndirectExecutionSetEXT( vkGetDeviceProcAddr( device, "vkDestroyIndirectExecutionSetEXT" ) );
-        vkUpdateIndirectExecutionSetPipelineEXT =
-          PFN_vkUpdateIndirectExecutionSetPipelineEXT( vkGetDeviceProcAddr( device, "vkUpdateIndirectExecutionSetPipelineEXT" ) );
-        vkUpdateIndirectExecutionSetShaderEXT =
-          PFN_vkUpdateIndirectExecutionSetShaderEXT( vkGetDeviceProcAddr( device, "vkUpdateIndirectExecutionSetShaderEXT" ) );
-      }
-
-    public:
-      //=== VK_VERSION_1_0 ===
-      PFN_vkGetDeviceProcAddr                vkGetDeviceProcAddr                = 0;
-      PFN_vkDestroyDevice                    vkDestroyDevice                    = 0;
-      PFN_vkGetDeviceQueue                   vkGetDeviceQueue                   = 0;
-      PFN_vkQueueSubmit                      vkQueueSubmit                      = 0;
-      PFN_vkQueueWaitIdle                    vkQueueWaitIdle                    = 0;
-      PFN_vkDeviceWaitIdle                   vkDeviceWaitIdle                   = 0;
-      PFN_vkAllocateMemory                   vkAllocateMemory                   = 0;
-      PFN_vkFreeMemory                       vkFreeMemory                       = 0;
-      PFN_vkMapMemory                        vkMapMemory                        = 0;
-      PFN_vkUnmapMemory                      vkUnmapMemory                      = 0;
-      PFN_vkFlushMappedMemoryRanges          vkFlushMappedMemoryRanges          = 0;
-      PFN_vkInvalidateMappedMemoryRanges     vkInvalidateMappedMemoryRanges     = 0;
-      PFN_vkGetDeviceMemoryCommitment        vkGetDeviceMemoryCommitment        = 0;
-      PFN_vkBindBufferMemory                 vkBindBufferMemory                 = 0;
-      PFN_vkBindImageMemory                  vkBindImageMemory                  = 0;
-      PFN_vkGetBufferMemoryRequirements      vkGetBufferMemoryRequirements      = 0;
-      PFN_vkGetImageMemoryRequirements       vkGetImageMemoryRequirements       = 0;
-      PFN_vkGetImageSparseMemoryRequirements vkGetImageSparseMemoryRequirements = 0;
-      PFN_vkQueueBindSparse                  vkQueueBindSparse                  = 0;
-      PFN_vkCreateFence                      vkCreateFence                      = 0;
-      PFN_vkDestroyFence                     vkDestroyFence                     = 0;
-      PFN_vkResetFences                      vkResetFences                      = 0;
-      PFN_vkGetFenceStatus                   vkGetFenceStatus                   = 0;
-      PFN_vkWaitForFences                    vkWaitForFences                    = 0;
-      PFN_vkCreateSemaphore                  vkCreateSemaphore                  = 0;
-      PFN_vkDestroySemaphore                 vkDestroySemaphore                 = 0;
-      PFN_vkCreateEvent                      vkCreateEvent                      = 0;
-      PFN_vkDestroyEvent                     vkDestroyEvent                     = 0;
-      PFN_vkGetEventStatus                   vkGetEventStatus                   = 0;
-      PFN_vkSetEvent                         vkSetEvent                         = 0;
-      PFN_vkResetEvent                       vkResetEvent                       = 0;
-      PFN_vkCreateQueryPool                  vkCreateQueryPool                  = 0;
-      PFN_vkDestroyQueryPool                 vkDestroyQueryPool                 = 0;
-      PFN_vkGetQueryPoolResults              vkGetQueryPoolResults              = 0;
-      PFN_vkCreateBuffer                     vkCreateBuffer                     = 0;
-      PFN_vkDestroyBuffer                    vkDestroyBuffer                    = 0;
-      PFN_vkCreateBufferView                 vkCreateBufferView                 = 0;
-      PFN_vkDestroyBufferView                vkDestroyBufferView                = 0;
-      PFN_vkCreateImage                      vkCreateImage                      = 0;
-      PFN_vkDestroyImage                     vkDestroyImage                     = 0;
-      PFN_vkGetImageSubresourceLayout        vkGetImageSubresourceLayout        = 0;
-      PFN_vkCreateImageView                  vkCreateImageView                  = 0;
-      PFN_vkDestroyImageView                 vkDestroyImageView                 = 0;
-      PFN_vkCreateShaderModule               vkCreateShaderModule               = 0;
-      PFN_vkDestroyShaderModule              vkDestroyShaderModule              = 0;
-      PFN_vkCreatePipelineCache              vkCreatePipelineCache              = 0;
-      PFN_vkDestroyPipelineCache             vkDestroyPipelineCache             = 0;
-      PFN_vkGetPipelineCacheData             vkGetPipelineCacheData             = 0;
-      PFN_vkMergePipelineCaches              vkMergePipelineCaches              = 0;
-      PFN_vkCreateGraphicsPipelines          vkCreateGraphicsPipelines          = 0;
-      PFN_vkCreateComputePipelines           vkCreateComputePipelines           = 0;
-      PFN_vkDestroyPipeline                  vkDestroyPipeline                  = 0;
-      PFN_vkCreatePipelineLayout             vkCreatePipelineLayout             = 0;
-      PFN_vkDestroyPipelineLayout            vkDestroyPipelineLayout            = 0;
-      PFN_vkCreateSampler                    vkCreateSampler                    = 0;
-      PFN_vkDestroySampler                   vkDestroySampler                   = 0;
-      PFN_vkCreateDescriptorSetLayout        vkCreateDescriptorSetLayout        = 0;
-      PFN_vkDestroyDescriptorSetLayout       vkDestroyDescriptorSetLayout       = 0;
-      PFN_vkCreateDescriptorPool             vkCreateDescriptorPool             = 0;
-      PFN_vkDestroyDescriptorPool            vkDestroyDescriptorPool            = 0;
-      PFN_vkResetDescriptorPool              vkResetDescriptorPool              = 0;
-      PFN_vkAllocateDescriptorSets           vkAllocateDescriptorSets           = 0;
-      PFN_vkFreeDescriptorSets               vkFreeDescriptorSets               = 0;
-      PFN_vkUpdateDescriptorSets             vkUpdateDescriptorSets             = 0;
-      PFN_vkCreateFramebuffer                vkCreateFramebuffer                = 0;
-      PFN_vkDestroyFramebuffer               vkDestroyFramebuffer               = 0;
-      PFN_vkCreateRenderPass                 vkCreateRenderPass                 = 0;
-      PFN_vkDestroyRenderPass                vkDestroyRenderPass                = 0;
-      PFN_vkGetRenderAreaGranularity         vkGetRenderAreaGranularity         = 0;
-      PFN_vkCreateCommandPool                vkCreateCommandPool                = 0;
-      PFN_vkDestroyCommandPool               vkDestroyCommandPool               = 0;
-      PFN_vkResetCommandPool                 vkResetCommandPool                 = 0;
-      PFN_vkAllocateCommandBuffers           vkAllocateCommandBuffers           = 0;
-      PFN_vkFreeCommandBuffers               vkFreeCommandBuffers               = 0;
-      PFN_vkBeginCommandBuffer               vkBeginCommandBuffer               = 0;
-      PFN_vkEndCommandBuffer                 vkEndCommandBuffer                 = 0;
-      PFN_vkResetCommandBuffer               vkResetCommandBuffer               = 0;
-      PFN_vkCmdBindPipeline                  vkCmdBindPipeline                  = 0;
-      PFN_vkCmdSetViewport                   vkCmdSetViewport                   = 0;
-      PFN_vkCmdSetScissor                    vkCmdSetScissor                    = 0;
-      PFN_vkCmdSetLineWidth                  vkCmdSetLineWidth                  = 0;
-      PFN_vkCmdSetDepthBias                  vkCmdSetDepthBias                  = 0;
-      PFN_vkCmdSetBlendConstants             vkCmdSetBlendConstants             = 0;
-      PFN_vkCmdSetDepthBounds                vkCmdSetDepthBounds                = 0;
-      PFN_vkCmdSetStencilCompareMask         vkCmdSetStencilCompareMask         = 0;
-      PFN_vkCmdSetStencilWriteMask           vkCmdSetStencilWriteMask           = 0;
-      PFN_vkCmdSetStencilReference           vkCmdSetStencilReference           = 0;
-      PFN_vkCmdBindDescriptorSets            vkCmdBindDescriptorSets            = 0;
-      PFN_vkCmdBindIndexBuffer               vkCmdBindIndexBuffer               = 0;
-      PFN_vkCmdBindVertexBuffers             vkCmdBindVertexBuffers             = 0;
-      PFN_vkCmdDraw                          vkCmdDraw                          = 0;
-      PFN_vkCmdDrawIndexed                   vkCmdDrawIndexed                   = 0;
-      PFN_vkCmdDrawIndirect                  vkCmdDrawIndirect                  = 0;
-      PFN_vkCmdDrawIndexedIndirect           vkCmdDrawIndexedIndirect           = 0;
-      PFN_vkCmdDispatch                      vkCmdDispatch                      = 0;
-      PFN_vkCmdDispatchIndirect              vkCmdDispatchIndirect              = 0;
-      PFN_vkCmdCopyBuffer                    vkCmdCopyBuffer                    = 0;
-      PFN_vkCmdCopyImage                     vkCmdCopyImage                     = 0;
-      PFN_vkCmdBlitImage                     vkCmdBlitImage                     = 0;
-      PFN_vkCmdCopyBufferToImage             vkCmdCopyBufferToImage             = 0;
-      PFN_vkCmdCopyImageToBuffer             vkCmdCopyImageToBuffer             = 0;
-      PFN_vkCmdUpdateBuffer                  vkCmdUpdateBuffer                  = 0;
-      PFN_vkCmdFillBuffer                    vkCmdFillBuffer                    = 0;
-      PFN_vkCmdClearColorImage               vkCmdClearColorImage               = 0;
-      PFN_vkCmdClearDepthStencilImage        vkCmdClearDepthStencilImage        = 0;
-      PFN_vkCmdClearAttachments              vkCmdClearAttachments              = 0;
-      PFN_vkCmdResolveImage                  vkCmdResolveImage                  = 0;
-      PFN_vkCmdSetEvent                      vkCmdSetEvent                      = 0;
-      PFN_vkCmdResetEvent                    vkCmdResetEvent                    = 0;
-      PFN_vkCmdWaitEvents                    vkCmdWaitEvents                    = 0;
-      PFN_vkCmdPipelineBarrier               vkCmdPipelineBarrier               = 0;
-      PFN_vkCmdBeginQuery                    vkCmdBeginQuery                    = 0;
-      PFN_vkCmdEndQuery                      vkCmdEndQuery                      = 0;
-      PFN_vkCmdResetQueryPool                vkCmdResetQueryPool                = 0;
-      PFN_vkCmdWriteTimestamp                vkCmdWriteTimestamp                = 0;
-      PFN_vkCmdCopyQueryPoolResults          vkCmdCopyQueryPoolResults          = 0;
-      PFN_vkCmdPushConstants                 vkCmdPushConstants                 = 0;
-      PFN_vkCmdBeginRenderPass               vkCmdBeginRenderPass               = 0;
-      PFN_vkCmdNextSubpass                   vkCmdNextSubpass                   = 0;
-      PFN_vkCmdEndRenderPass                 vkCmdEndRenderPass                 = 0;
-      PFN_vkCmdExecuteCommands               vkCmdExecuteCommands               = 0;
-
-      //=== VK_VERSION_1_1 ===
-      PFN_vkBindBufferMemory2                 vkBindBufferMemory2                 = 0;
-      PFN_vkBindImageMemory2                  vkBindImageMemory2                  = 0;
-      PFN_vkGetDeviceGroupPeerMemoryFeatures  vkGetDeviceGroupPeerMemoryFeatures  = 0;
-      PFN_vkCmdSetDeviceMask                  vkCmdSetDeviceMask                  = 0;
-      PFN_vkCmdDispatchBase                   vkCmdDispatchBase                   = 0;
-      PFN_vkGetImageMemoryRequirements2       vkGetImageMemoryRequirements2       = 0;
-      PFN_vkGetBufferMemoryRequirements2      vkGetBufferMemoryRequirements2      = 0;
-      PFN_vkGetImageSparseMemoryRequirements2 vkGetImageSparseMemoryRequirements2 = 0;
-      PFN_vkTrimCommandPool                   vkTrimCommandPool                   = 0;
-      PFN_vkGetDeviceQueue2                   vkGetDeviceQueue2                   = 0;
-      PFN_vkCreateSamplerYcbcrConversion      vkCreateSamplerYcbcrConversion      = 0;
-      PFN_vkDestroySamplerYcbcrConversion     vkDestroySamplerYcbcrConversion     = 0;
-      PFN_vkCreateDescriptorUpdateTemplate    vkCreateDescriptorUpdateTemplate    = 0;
-      PFN_vkDestroyDescriptorUpdateTemplate   vkDestroyDescriptorUpdateTemplate   = 0;
-      PFN_vkUpdateDescriptorSetWithTemplate   vkUpdateDescriptorSetWithTemplate   = 0;
-      PFN_vkGetDescriptorSetLayoutSupport     vkGetDescriptorSetLayoutSupport     = 0;
-
-      //=== VK_VERSION_1_2 ===
-      PFN_vkCmdDrawIndirectCount                vkCmdDrawIndirectCount                = 0;
-      PFN_vkCmdDrawIndexedIndirectCount         vkCmdDrawIndexedIndirectCount         = 0;
-      PFN_vkCreateRenderPass2                   vkCreateRenderPass2                   = 0;
-      PFN_vkCmdBeginRenderPass2                 vkCmdBeginRenderPass2                 = 0;
-      PFN_vkCmdNextSubpass2                     vkCmdNextSubpass2                     = 0;
-      PFN_vkCmdEndRenderPass2                   vkCmdEndRenderPass2                   = 0;
-      PFN_vkResetQueryPool                      vkResetQueryPool                      = 0;
-      PFN_vkGetSemaphoreCounterValue            vkGetSemaphoreCounterValue            = 0;
-      PFN_vkWaitSemaphores                      vkWaitSemaphores                      = 0;
-      PFN_vkSignalSemaphore                     vkSignalSemaphore                     = 0;
-      PFN_vkGetBufferDeviceAddress              vkGetBufferDeviceAddress              = 0;
-      PFN_vkGetBufferOpaqueCaptureAddress       vkGetBufferOpaqueCaptureAddress       = 0;
-      PFN_vkGetDeviceMemoryOpaqueCaptureAddress vkGetDeviceMemoryOpaqueCaptureAddress = 0;
-
-      //=== VK_VERSION_1_3 ===
-      PFN_vkCreatePrivateDataSlot                  vkCreatePrivateDataSlot                  = 0;
-      PFN_vkDestroyPrivateDataSlot                 vkDestroyPrivateDataSlot                 = 0;
-      PFN_vkSetPrivateData                         vkSetPrivateData                         = 0;
-      PFN_vkGetPrivateData                         vkGetPrivateData                         = 0;
-      PFN_vkCmdSetEvent2                           vkCmdSetEvent2                           = 0;
-      PFN_vkCmdResetEvent2                         vkCmdResetEvent2                         = 0;
-      PFN_vkCmdWaitEvents2                         vkCmdWaitEvents2                         = 0;
-      PFN_vkCmdPipelineBarrier2                    vkCmdPipelineBarrier2                    = 0;
-      PFN_vkCmdWriteTimestamp2                     vkCmdWriteTimestamp2                     = 0;
-      PFN_vkQueueSubmit2                           vkQueueSubmit2                           = 0;
-      PFN_vkCmdCopyBuffer2                         vkCmdCopyBuffer2                         = 0;
-      PFN_vkCmdCopyImage2                          vkCmdCopyImage2                          = 0;
-      PFN_vkCmdCopyBufferToImage2                  vkCmdCopyBufferToImage2                  = 0;
-      PFN_vkCmdCopyImageToBuffer2                  vkCmdCopyImageToBuffer2                  = 0;
-      PFN_vkCmdBlitImage2                          vkCmdBlitImage2                          = 0;
-      PFN_vkCmdResolveImage2                       vkCmdResolveImage2                       = 0;
-      PFN_vkCmdBeginRendering                      vkCmdBeginRendering                      = 0;
-      PFN_vkCmdEndRendering                        vkCmdEndRendering                        = 0;
-      PFN_vkCmdSetCullMode                         vkCmdSetCullMode                         = 0;
-      PFN_vkCmdSetFrontFace                        vkCmdSetFrontFace                        = 0;
-      PFN_vkCmdSetPrimitiveTopology                vkCmdSetPrimitiveTopology                = 0;
-      PFN_vkCmdSetViewportWithCount                vkCmdSetViewportWithCount                = 0;
-      PFN_vkCmdSetScissorWithCount                 vkCmdSetScissorWithCount                 = 0;
-      PFN_vkCmdBindVertexBuffers2                  vkCmdBindVertexBuffers2                  = 0;
-      PFN_vkCmdSetDepthTestEnable                  vkCmdSetDepthTestEnable                  = 0;
-      PFN_vkCmdSetDepthWriteEnable                 vkCmdSetDepthWriteEnable                 = 0;
-      PFN_vkCmdSetDepthCompareOp                   vkCmdSetDepthCompareOp                   = 0;
-      PFN_vkCmdSetDepthBoundsTestEnable            vkCmdSetDepthBoundsTestEnable            = 0;
-      PFN_vkCmdSetStencilTestEnable                vkCmdSetStencilTestEnable                = 0;
-      PFN_vkCmdSetStencilOp                        vkCmdSetStencilOp                        = 0;
-      PFN_vkCmdSetRasterizerDiscardEnable          vkCmdSetRasterizerDiscardEnable          = 0;
-      PFN_vkCmdSetDepthBiasEnable                  vkCmdSetDepthBiasEnable                  = 0;
-      PFN_vkCmdSetPrimitiveRestartEnable           vkCmdSetPrimitiveRestartEnable           = 0;
-      PFN_vkGetDeviceBufferMemoryRequirements      vkGetDeviceBufferMemoryRequirements      = 0;
-      PFN_vkGetDeviceImageMemoryRequirements       vkGetDeviceImageMemoryRequirements       = 0;
-      PFN_vkGetDeviceImageSparseMemoryRequirements vkGetDeviceImageSparseMemoryRequirements = 0;
-
-      //=== VK_KHR_swapchain ===
-      PFN_vkCreateSwapchainKHR                   vkCreateSwapchainKHR                   = 0;
-      PFN_vkDestroySwapchainKHR                  vkDestroySwapchainKHR                  = 0;
-      PFN_vkGetSwapchainImagesKHR                vkGetSwapchainImagesKHR                = 0;
-      PFN_vkAcquireNextImageKHR                  vkAcquireNextImageKHR                  = 0;
-      PFN_vkQueuePresentKHR                      vkQueuePresentKHR                      = 0;
-      PFN_vkGetDeviceGroupPresentCapabilitiesKHR vkGetDeviceGroupPresentCapabilitiesKHR = 0;
-      PFN_vkGetDeviceGroupSurfacePresentModesKHR vkGetDeviceGroupSurfacePresentModesKHR = 0;
-      PFN_vkAcquireNextImage2KHR                 vkAcquireNextImage2KHR                 = 0;
-
-      //=== VK_KHR_display_swapchain ===
-      PFN_vkCreateSharedSwapchainsKHR vkCreateSharedSwapchainsKHR = 0;
-
-      //=== VK_EXT_debug_marker ===
-      PFN_vkDebugMarkerSetObjectTagEXT  vkDebugMarkerSetObjectTagEXT  = 0;
-      PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectNameEXT = 0;
-      PFN_vkCmdDebugMarkerBeginEXT      vkCmdDebugMarkerBeginEXT      = 0;
-      PFN_vkCmdDebugMarkerEndEXT        vkCmdDebugMarkerEndEXT        = 0;
-      PFN_vkCmdDebugMarkerInsertEXT     vkCmdDebugMarkerInsertEXT     = 0;
-
-      //=== VK_KHR_video_queue ===
-      PFN_vkCreateVideoSessionKHR                vkCreateVideoSessionKHR                = 0;
-      PFN_vkDestroyVideoSessionKHR               vkDestroyVideoSessionKHR               = 0;
-      PFN_vkGetVideoSessionMemoryRequirementsKHR vkGetVideoSessionMemoryRequirementsKHR = 0;
-      PFN_vkBindVideoSessionMemoryKHR            vkBindVideoSessionMemoryKHR            = 0;
-      PFN_vkCreateVideoSessionParametersKHR      vkCreateVideoSessionParametersKHR      = 0;
-      PFN_vkUpdateVideoSessionParametersKHR      vkUpdateVideoSessionParametersKHR      = 0;
-      PFN_vkDestroyVideoSessionParametersKHR     vkDestroyVideoSessionParametersKHR     = 0;
-      PFN_vkCmdBeginVideoCodingKHR               vkCmdBeginVideoCodingKHR               = 0;
-      PFN_vkCmdEndVideoCodingKHR                 vkCmdEndVideoCodingKHR                 = 0;
-      PFN_vkCmdControlVideoCodingKHR             vkCmdControlVideoCodingKHR             = 0;
-
-      //=== VK_KHR_video_decode_queue ===
-      PFN_vkCmdDecodeVideoKHR vkCmdDecodeVideoKHR = 0;
-
-      //=== VK_EXT_transform_feedback ===
-      PFN_vkCmdBindTransformFeedbackBuffersEXT vkCmdBindTransformFeedbackBuffersEXT = 0;
-      PFN_vkCmdBeginTransformFeedbackEXT       vkCmdBeginTransformFeedbackEXT       = 0;
-      PFN_vkCmdEndTransformFeedbackEXT         vkCmdEndTransformFeedbackEXT         = 0;
-      PFN_vkCmdBeginQueryIndexedEXT            vkCmdBeginQueryIndexedEXT            = 0;
-      PFN_vkCmdEndQueryIndexedEXT              vkCmdEndQueryIndexedEXT              = 0;
-      PFN_vkCmdDrawIndirectByteCountEXT        vkCmdDrawIndirectByteCountEXT        = 0;
-
-      //=== VK_NVX_binary_import ===
-      PFN_vkCreateCuModuleNVX    vkCreateCuModuleNVX    = 0;
-      PFN_vkCreateCuFunctionNVX  vkCreateCuFunctionNVX  = 0;
-      PFN_vkDestroyCuModuleNVX   vkDestroyCuModuleNVX   = 0;
-      PFN_vkDestroyCuFunctionNVX vkDestroyCuFunctionNVX = 0;
-      PFN_vkCmdCuLaunchKernelNVX vkCmdCuLaunchKernelNVX = 0;
-
-      //=== VK_NVX_image_view_handle ===
-      PFN_vkGetImageViewHandleNVX  vkGetImageViewHandleNVX  = 0;
-      PFN_vkGetImageViewAddressNVX vkGetImageViewAddressNVX = 0;
-
-      //=== VK_AMD_draw_indirect_count ===
-      PFN_vkCmdDrawIndirectCountAMD        vkCmdDrawIndirectCountAMD        = 0;
-      PFN_vkCmdDrawIndexedIndirectCountAMD vkCmdDrawIndexedIndirectCountAMD = 0;
-
-      //=== VK_AMD_shader_info ===
-      PFN_vkGetShaderInfoAMD vkGetShaderInfoAMD = 0;
-
-      //=== VK_KHR_dynamic_rendering ===
-      PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR = 0;
-      PFN_vkCmdEndRenderingKHR   vkCmdEndRenderingKHR   = 0;
-
-#  if defined( VK_USE_PLATFORM_WIN32_KHR )
-      //=== VK_NV_external_memory_win32 ===
-      PFN_vkGetMemoryWin32HandleNV vkGetMemoryWin32HandleNV = 0;
-#  else
-      PFN_dummy vkGetMemoryWin32HandleNV_placeholder                          = 0;
-#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
-
-      //=== VK_KHR_device_group ===
-      PFN_vkGetDeviceGroupPeerMemoryFeaturesKHR vkGetDeviceGroupPeerMemoryFeaturesKHR = 0;
-      PFN_vkCmdSetDeviceMaskKHR                 vkCmdSetDeviceMaskKHR                 = 0;
-      PFN_vkCmdDispatchBaseKHR                  vkCmdDispatchBaseKHR                  = 0;
-
-      //=== VK_KHR_maintenance1 ===
-      PFN_vkTrimCommandPoolKHR vkTrimCommandPoolKHR = 0;
-
-#  if defined( VK_USE_PLATFORM_WIN32_KHR )
-      //=== VK_KHR_external_memory_win32 ===
-      PFN_vkGetMemoryWin32HandleKHR           vkGetMemoryWin32HandleKHR           = 0;
-      PFN_vkGetMemoryWin32HandlePropertiesKHR vkGetMemoryWin32HandlePropertiesKHR = 0;
-#  else
-      PFN_dummy vkGetMemoryWin32HandleKHR_placeholder                         = 0;
-      PFN_dummy vkGetMemoryWin32HandlePropertiesKHR_placeholder               = 0;
-#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
-
-      //=== VK_KHR_external_memory_fd ===
-      PFN_vkGetMemoryFdKHR           vkGetMemoryFdKHR           = 0;
-      PFN_vkGetMemoryFdPropertiesKHR vkGetMemoryFdPropertiesKHR = 0;
-
-#  if defined( VK_USE_PLATFORM_WIN32_KHR )
-      //=== VK_KHR_external_semaphore_win32 ===
-      PFN_vkImportSemaphoreWin32HandleKHR vkImportSemaphoreWin32HandleKHR = 0;
-      PFN_vkGetSemaphoreWin32HandleKHR    vkGetSemaphoreWin32HandleKHR    = 0;
-#  else
-      PFN_dummy vkImportSemaphoreWin32HandleKHR_placeholder                   = 0;
-      PFN_dummy vkGetSemaphoreWin32HandleKHR_placeholder                      = 0;
-#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
-
-      //=== VK_KHR_external_semaphore_fd ===
-      PFN_vkImportSemaphoreFdKHR vkImportSemaphoreFdKHR = 0;
-      PFN_vkGetSemaphoreFdKHR    vkGetSemaphoreFdKHR    = 0;
-
-      //=== VK_KHR_push_descriptor ===
-      PFN_vkCmdPushDescriptorSetKHR             vkCmdPushDescriptorSetKHR             = 0;
-      PFN_vkCmdPushDescriptorSetWithTemplateKHR vkCmdPushDescriptorSetWithTemplateKHR = 0;
-
-      //=== VK_EXT_conditional_rendering ===
-      PFN_vkCmdBeginConditionalRenderingEXT vkCmdBeginConditionalRenderingEXT = 0;
-      PFN_vkCmdEndConditionalRenderingEXT   vkCmdEndConditionalRenderingEXT   = 0;
-
-      //=== VK_KHR_descriptor_update_template ===
-      PFN_vkCreateDescriptorUpdateTemplateKHR  vkCreateDescriptorUpdateTemplateKHR  = 0;
-      PFN_vkDestroyDescriptorUpdateTemplateKHR vkDestroyDescriptorUpdateTemplateKHR = 0;
-      PFN_vkUpdateDescriptorSetWithTemplateKHR vkUpdateDescriptorSetWithTemplateKHR = 0;
-
-      //=== VK_NV_clip_space_w_scaling ===
-      PFN_vkCmdSetViewportWScalingNV vkCmdSetViewportWScalingNV = 0;
-
-      //=== VK_EXT_display_control ===
-      PFN_vkDisplayPowerControlEXT  vkDisplayPowerControlEXT  = 0;
-      PFN_vkRegisterDeviceEventEXT  vkRegisterDeviceEventEXT  = 0;
-      PFN_vkRegisterDisplayEventEXT vkRegisterDisplayEventEXT = 0;
-      PFN_vkGetSwapchainCounterEXT  vkGetSwapchainCounterEXT  = 0;
-
-      //=== VK_GOOGLE_display_timing ===
-      PFN_vkGetRefreshCycleDurationGOOGLE   vkGetRefreshCycleDurationGOOGLE   = 0;
-      PFN_vkGetPastPresentationTimingGOOGLE vkGetPastPresentationTimingGOOGLE = 0;
-
-      //=== VK_EXT_discard_rectangles ===
-      PFN_vkCmdSetDiscardRectangleEXT       vkCmdSetDiscardRectangleEXT       = 0;
-      PFN_vkCmdSetDiscardRectangleEnableEXT vkCmdSetDiscardRectangleEnableEXT = 0;
-      PFN_vkCmdSetDiscardRectangleModeEXT   vkCmdSetDiscardRectangleModeEXT   = 0;
-
-      //=== VK_EXT_hdr_metadata ===
-      PFN_vkSetHdrMetadataEXT vkSetHdrMetadataEXT = 0;
-
-      //=== VK_KHR_create_renderpass2 ===
-      PFN_vkCreateRenderPass2KHR   vkCreateRenderPass2KHR   = 0;
-      PFN_vkCmdBeginRenderPass2KHR vkCmdBeginRenderPass2KHR = 0;
-      PFN_vkCmdNextSubpass2KHR     vkCmdNextSubpass2KHR     = 0;
-      PFN_vkCmdEndRenderPass2KHR   vkCmdEndRenderPass2KHR   = 0;
-
-      //=== VK_KHR_shared_presentable_image ===
-      PFN_vkGetSwapchainStatusKHR vkGetSwapchainStatusKHR = 0;
-
-#  if defined( VK_USE_PLATFORM_WIN32_KHR )
-      //=== VK_KHR_external_fence_win32 ===
-      PFN_vkImportFenceWin32HandleKHR vkImportFenceWin32HandleKHR = 0;
-      PFN_vkGetFenceWin32HandleKHR    vkGetFenceWin32HandleKHR    = 0;
-#  else
-      PFN_dummy vkImportFenceWin32HandleKHR_placeholder                       = 0;
-      PFN_dummy vkGetFenceWin32HandleKHR_placeholder                          = 0;
-#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
-
-      //=== VK_KHR_external_fence_fd ===
-      PFN_vkImportFenceFdKHR vkImportFenceFdKHR = 0;
-      PFN_vkGetFenceFdKHR    vkGetFenceFdKHR    = 0;
-
-      //=== VK_KHR_performance_query ===
-      PFN_vkAcquireProfilingLockKHR vkAcquireProfilingLockKHR = 0;
-      PFN_vkReleaseProfilingLockKHR vkReleaseProfilingLockKHR = 0;
-
-      //=== VK_EXT_debug_utils ===
-      PFN_vkSetDebugUtilsObjectNameEXT    vkSetDebugUtilsObjectNameEXT    = 0;
-      PFN_vkSetDebugUtilsObjectTagEXT     vkSetDebugUtilsObjectTagEXT     = 0;
-      PFN_vkQueueBeginDebugUtilsLabelEXT  vkQueueBeginDebugUtilsLabelEXT  = 0;
-      PFN_vkQueueEndDebugUtilsLabelEXT    vkQueueEndDebugUtilsLabelEXT    = 0;
-      PFN_vkQueueInsertDebugUtilsLabelEXT vkQueueInsertDebugUtilsLabelEXT = 0;
-      PFN_vkCmdBeginDebugUtilsLabelEXT    vkCmdBeginDebugUtilsLabelEXT    = 0;
-      PFN_vkCmdEndDebugUtilsLabelEXT      vkCmdEndDebugUtilsLabelEXT      = 0;
-      PFN_vkCmdInsertDebugUtilsLabelEXT   vkCmdInsertDebugUtilsLabelEXT   = 0;
-
-#  if defined( VK_USE_PLATFORM_ANDROID_KHR )
-      //=== VK_ANDROID_external_memory_android_hardware_buffer ===
-      PFN_vkGetAndroidHardwareBufferPropertiesANDROID vkGetAndroidHardwareBufferPropertiesANDROID = 0;
-      PFN_vkGetMemoryAndroidHardwareBufferANDROID     vkGetMemoryAndroidHardwareBufferANDROID     = 0;
-#  else
-      PFN_dummy vkGetAndroidHardwareBufferPropertiesANDROID_placeholder       = 0;
-      PFN_dummy vkGetMemoryAndroidHardwareBufferANDROID_placeholder           = 0;
-#  endif /*VK_USE_PLATFORM_ANDROID_KHR*/
-
-#  if defined( VK_ENABLE_BETA_EXTENSIONS )
-      //=== VK_AMDX_shader_enqueue ===
-      PFN_vkCreateExecutionGraphPipelinesAMDX        vkCreateExecutionGraphPipelinesAMDX        = 0;
-      PFN_vkGetExecutionGraphPipelineScratchSizeAMDX vkGetExecutionGraphPipelineScratchSizeAMDX = 0;
-      PFN_vkGetExecutionGraphPipelineNodeIndexAMDX   vkGetExecutionGraphPipelineNodeIndexAMDX   = 0;
-      PFN_vkCmdInitializeGraphScratchMemoryAMDX      vkCmdInitializeGraphScratchMemoryAMDX      = 0;
-      PFN_vkCmdDispatchGraphAMDX                     vkCmdDispatchGraphAMDX                     = 0;
-      PFN_vkCmdDispatchGraphIndirectAMDX             vkCmdDispatchGraphIndirectAMDX             = 0;
-      PFN_vkCmdDispatchGraphIndirectCountAMDX        vkCmdDispatchGraphIndirectCountAMDX        = 0;
-#  else
-      PFN_dummy vkCreateExecutionGraphPipelinesAMDX_placeholder               = 0;
-      PFN_dummy vkGetExecutionGraphPipelineScratchSizeAMDX_placeholder        = 0;
-      PFN_dummy vkGetExecutionGraphPipelineNodeIndexAMDX_placeholder          = 0;
-      PFN_dummy vkCmdInitializeGraphScratchMemoryAMDX_placeholder             = 0;
-      PFN_dummy vkCmdDispatchGraphAMDX_placeholder                            = 0;
-      PFN_dummy vkCmdDispatchGraphIndirectAMDX_placeholder                    = 0;
-      PFN_dummy vkCmdDispatchGraphIndirectCountAMDX_placeholder               = 0;
-#  endif /*VK_ENABLE_BETA_EXTENSIONS*/
-
-      //=== VK_EXT_sample_locations ===
-      PFN_vkCmdSetSampleLocationsEXT vkCmdSetSampleLocationsEXT = 0;
-
-      //=== VK_KHR_get_memory_requirements2 ===
-      PFN_vkGetImageMemoryRequirements2KHR       vkGetImageMemoryRequirements2KHR       = 0;
-      PFN_vkGetBufferMemoryRequirements2KHR      vkGetBufferMemoryRequirements2KHR      = 0;
-      PFN_vkGetImageSparseMemoryRequirements2KHR vkGetImageSparseMemoryRequirements2KHR = 0;
-
-      //=== VK_KHR_acceleration_structure ===
-      PFN_vkCreateAccelerationStructureKHR                 vkCreateAccelerationStructureKHR                 = 0;
-      PFN_vkDestroyAccelerationStructureKHR                vkDestroyAccelerationStructureKHR                = 0;
-      PFN_vkCmdBuildAccelerationStructuresKHR              vkCmdBuildAccelerationStructuresKHR              = 0;
-      PFN_vkCmdBuildAccelerationStructuresIndirectKHR      vkCmdBuildAccelerationStructuresIndirectKHR      = 0;
-      PFN_vkBuildAccelerationStructuresKHR                 vkBuildAccelerationStructuresKHR                 = 0;
-      PFN_vkCopyAccelerationStructureKHR                   vkCopyAccelerationStructureKHR                   = 0;
-      PFN_vkCopyAccelerationStructureToMemoryKHR           vkCopyAccelerationStructureToMemoryKHR           = 0;
-      PFN_vkCopyMemoryToAccelerationStructureKHR           vkCopyMemoryToAccelerationStructureKHR           = 0;
-      PFN_vkWriteAccelerationStructuresPropertiesKHR       vkWriteAccelerationStructuresPropertiesKHR       = 0;
-      PFN_vkCmdCopyAccelerationStructureKHR                vkCmdCopyAccelerationStructureKHR                = 0;
-      PFN_vkCmdCopyAccelerationStructureToMemoryKHR        vkCmdCopyAccelerationStructureToMemoryKHR        = 0;
-      PFN_vkCmdCopyMemoryToAccelerationStructureKHR        vkCmdCopyMemoryToAccelerationStructureKHR        = 0;
-      PFN_vkGetAccelerationStructureDeviceAddressKHR       vkGetAccelerationStructureDeviceAddressKHR       = 0;
-      PFN_vkCmdWriteAccelerationStructuresPropertiesKHR    vkCmdWriteAccelerationStructuresPropertiesKHR    = 0;
-      PFN_vkGetDeviceAccelerationStructureCompatibilityKHR vkGetDeviceAccelerationStructureCompatibilityKHR = 0;
-      PFN_vkGetAccelerationStructureBuildSizesKHR          vkGetAccelerationStructureBuildSizesKHR          = 0;
-
-      //=== VK_KHR_ray_tracing_pipeline ===
-      PFN_vkCmdTraceRaysKHR                                 vkCmdTraceRaysKHR                                 = 0;
-      PFN_vkCreateRayTracingPipelinesKHR                    vkCreateRayTracingPipelinesKHR                    = 0;
-      PFN_vkGetRayTracingShaderGroupHandlesKHR              vkGetRayTracingShaderGroupHandlesKHR              = 0;
-      PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR vkGetRayTracingCaptureReplayShaderGroupHandlesKHR = 0;
-      PFN_vkCmdTraceRaysIndirectKHR                         vkCmdTraceRaysIndirectKHR                         = 0;
-      PFN_vkGetRayTracingShaderGroupStackSizeKHR            vkGetRayTracingShaderGroupStackSizeKHR            = 0;
-      PFN_vkCmdSetRayTracingPipelineStackSizeKHR            vkCmdSetRayTracingPipelineStackSizeKHR            = 0;
-
-      //=== VK_KHR_sampler_ycbcr_conversion ===
-      PFN_vkCreateSamplerYcbcrConversionKHR  vkCreateSamplerYcbcrConversionKHR  = 0;
-      PFN_vkDestroySamplerYcbcrConversionKHR vkDestroySamplerYcbcrConversionKHR = 0;
-
-      //=== VK_KHR_bind_memory2 ===
-      PFN_vkBindBufferMemory2KHR vkBindBufferMemory2KHR = 0;
-      PFN_vkBindImageMemory2KHR  vkBindImageMemory2KHR  = 0;
-
-      //=== VK_EXT_image_drm_format_modifier ===
-      PFN_vkGetImageDrmFormatModifierPropertiesEXT vkGetImageDrmFormatModifierPropertiesEXT = 0;
-
-      //=== VK_EXT_validation_cache ===
-      PFN_vkCreateValidationCacheEXT  vkCreateValidationCacheEXT  = 0;
-      PFN_vkDestroyValidationCacheEXT vkDestroyValidationCacheEXT = 0;
-      PFN_vkMergeValidationCachesEXT  vkMergeValidationCachesEXT  = 0;
-      PFN_vkGetValidationCacheDataEXT vkGetValidationCacheDataEXT = 0;
-
-      //=== VK_NV_shading_rate_image ===
-      PFN_vkCmdBindShadingRateImageNV          vkCmdBindShadingRateImageNV          = 0;
-      PFN_vkCmdSetViewportShadingRatePaletteNV vkCmdSetViewportShadingRatePaletteNV = 0;
-      PFN_vkCmdSetCoarseSampleOrderNV          vkCmdSetCoarseSampleOrderNV          = 0;
-
-      //=== VK_NV_ray_tracing ===
-      PFN_vkCreateAccelerationStructureNV                vkCreateAccelerationStructureNV                = 0;
-      PFN_vkDestroyAccelerationStructureNV               vkDestroyAccelerationStructureNV               = 0;
-      PFN_vkGetAccelerationStructureMemoryRequirementsNV vkGetAccelerationStructureMemoryRequirementsNV = 0;
-      PFN_vkBindAccelerationStructureMemoryNV            vkBindAccelerationStructureMemoryNV            = 0;
-      PFN_vkCmdBuildAccelerationStructureNV              vkCmdBuildAccelerationStructureNV              = 0;
-      PFN_vkCmdCopyAccelerationStructureNV               vkCmdCopyAccelerationStructureNV               = 0;
-      PFN_vkCmdTraceRaysNV                               vkCmdTraceRaysNV                               = 0;
-      PFN_vkCreateRayTracingPipelinesNV                  vkCreateRayTracingPipelinesNV                  = 0;
-      PFN_vkGetRayTracingShaderGroupHandlesNV            vkGetRayTracingShaderGroupHandlesNV            = 0;
-      PFN_vkGetAccelerationStructureHandleNV             vkGetAccelerationStructureHandleNV             = 0;
-      PFN_vkCmdWriteAccelerationStructuresPropertiesNV   vkCmdWriteAccelerationStructuresPropertiesNV   = 0;
-      PFN_vkCompileDeferredNV                            vkCompileDeferredNV                            = 0;
-
-      //=== VK_KHR_maintenance3 ===
-      PFN_vkGetDescriptorSetLayoutSupportKHR vkGetDescriptorSetLayoutSupportKHR = 0;
-
-      //=== VK_KHR_draw_indirect_count ===
-      PFN_vkCmdDrawIndirectCountKHR        vkCmdDrawIndirectCountKHR        = 0;
-      PFN_vkCmdDrawIndexedIndirectCountKHR vkCmdDrawIndexedIndirectCountKHR = 0;
-
-      //=== VK_EXT_external_memory_host ===
-      PFN_vkGetMemoryHostPointerPropertiesEXT vkGetMemoryHostPointerPropertiesEXT = 0;
-
-      //=== VK_AMD_buffer_marker ===
-      PFN_vkCmdWriteBufferMarkerAMD  vkCmdWriteBufferMarkerAMD  = 0;
-      PFN_vkCmdWriteBufferMarker2AMD vkCmdWriteBufferMarker2AMD = 0;
-
-      //=== VK_EXT_calibrated_timestamps ===
-      PFN_vkGetCalibratedTimestampsEXT vkGetCalibratedTimestampsEXT = 0;
-
-      //=== VK_NV_mesh_shader ===
-      PFN_vkCmdDrawMeshTasksNV              vkCmdDrawMeshTasksNV              = 0;
-      PFN_vkCmdDrawMeshTasksIndirectNV      vkCmdDrawMeshTasksIndirectNV      = 0;
-      PFN_vkCmdDrawMeshTasksIndirectCountNV vkCmdDrawMeshTasksIndirectCountNV = 0;
-
-      //=== VK_NV_scissor_exclusive ===
-      PFN_vkCmdSetExclusiveScissorEnableNV vkCmdSetExclusiveScissorEnableNV = 0;
-      PFN_vkCmdSetExclusiveScissorNV       vkCmdSetExclusiveScissorNV       = 0;
-
-      //=== VK_NV_device_diagnostic_checkpoints ===
-      PFN_vkCmdSetCheckpointNV        vkCmdSetCheckpointNV        = 0;
-      PFN_vkGetQueueCheckpointDataNV  vkGetQueueCheckpointDataNV  = 0;
-      PFN_vkGetQueueCheckpointData2NV vkGetQueueCheckpointData2NV = 0;
-
-      //=== VK_KHR_timeline_semaphore ===
-      PFN_vkGetSemaphoreCounterValueKHR vkGetSemaphoreCounterValueKHR = 0;
-      PFN_vkWaitSemaphoresKHR           vkWaitSemaphoresKHR           = 0;
-      PFN_vkSignalSemaphoreKHR          vkSignalSemaphoreKHR          = 0;
-
-      //=== VK_INTEL_performance_query ===
-      PFN_vkInitializePerformanceApiINTEL         vkInitializePerformanceApiINTEL         = 0;
-      PFN_vkUninitializePerformanceApiINTEL       vkUninitializePerformanceApiINTEL       = 0;
-      PFN_vkCmdSetPerformanceMarkerINTEL          vkCmdSetPerformanceMarkerINTEL          = 0;
-      PFN_vkCmdSetPerformanceStreamMarkerINTEL    vkCmdSetPerformanceStreamMarkerINTEL    = 0;
-      PFN_vkCmdSetPerformanceOverrideINTEL        vkCmdSetPerformanceOverrideINTEL        = 0;
-      PFN_vkAcquirePerformanceConfigurationINTEL  vkAcquirePerformanceConfigurationINTEL  = 0;
-      PFN_vkReleasePerformanceConfigurationINTEL  vkReleasePerformanceConfigurationINTEL  = 0;
-      PFN_vkQueueSetPerformanceConfigurationINTEL vkQueueSetPerformanceConfigurationINTEL = 0;
-      PFN_vkGetPerformanceParameterINTEL          vkGetPerformanceParameterINTEL          = 0;
-
-      //=== VK_AMD_display_native_hdr ===
-      PFN_vkSetLocalDimmingAMD vkSetLocalDimmingAMD = 0;
-
-      //=== VK_KHR_fragment_shading_rate ===
-      PFN_vkCmdSetFragmentShadingRateKHR vkCmdSetFragmentShadingRateKHR = 0;
-
-      //=== VK_KHR_dynamic_rendering_local_read ===
-      PFN_vkCmdSetRenderingAttachmentLocationsKHR    vkCmdSetRenderingAttachmentLocationsKHR    = 0;
-      PFN_vkCmdSetRenderingInputAttachmentIndicesKHR vkCmdSetRenderingInputAttachmentIndicesKHR = 0;
-
-      //=== VK_EXT_buffer_device_address ===
-      PFN_vkGetBufferDeviceAddressEXT vkGetBufferDeviceAddressEXT = 0;
-
-      //=== VK_KHR_present_wait ===
-      PFN_vkWaitForPresentKHR vkWaitForPresentKHR = 0;
-
-#  if defined( VK_USE_PLATFORM_WIN32_KHR )
-      //=== VK_EXT_full_screen_exclusive ===
-      PFN_vkAcquireFullScreenExclusiveModeEXT     vkAcquireFullScreenExclusiveModeEXT     = 0;
-      PFN_vkReleaseFullScreenExclusiveModeEXT     vkReleaseFullScreenExclusiveModeEXT     = 0;
-      PFN_vkGetDeviceGroupSurfacePresentModes2EXT vkGetDeviceGroupSurfacePresentModes2EXT = 0;
-#  else
-      PFN_dummy vkAcquireFullScreenExclusiveModeEXT_placeholder               = 0;
-      PFN_dummy vkReleaseFullScreenExclusiveModeEXT_placeholder               = 0;
-      PFN_dummy vkGetDeviceGroupSurfacePresentModes2EXT_placeholder           = 0;
-#  endif /*VK_USE_PLATFORM_WIN32_KHR*/
-
-      //=== VK_KHR_buffer_device_address ===
-      PFN_vkGetBufferDeviceAddressKHR              vkGetBufferDeviceAddressKHR              = 0;
-      PFN_vkGetBufferOpaqueCaptureAddressKHR       vkGetBufferOpaqueCaptureAddressKHR       = 0;
-      PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR vkGetDeviceMemoryOpaqueCaptureAddressKHR = 0;
-
-      //=== VK_EXT_line_rasterization ===
-      PFN_vkCmdSetLineStippleEXT vkCmdSetLineStippleEXT = 0;
-
-      //=== VK_EXT_host_query_reset ===
-      PFN_vkResetQueryPoolEXT vkResetQueryPoolEXT = 0;
-
-      //=== VK_EXT_extended_dynamic_state ===
-      PFN_vkCmdSetCullModeEXT              vkCmdSetCullModeEXT              = 0;
-      PFN_vkCmdSetFrontFaceEXT             vkCmdSetFrontFaceEXT             = 0;
-      PFN_vkCmdSetPrimitiveTopologyEXT     vkCmdSetPrimitiveTopologyEXT     = 0;
-      PFN_vkCmdSetViewportWithCountEXT     vkCmdSetViewportWithCountEXT     = 0;
-      PFN_vkCmdSetScissorWithCountEXT      vkCmdSetScissorWithCountEXT      = 0;
-      PFN_vkCmdBindVertexBuffers2EXT       vkCmdBindVertexBuffers2EXT       = 0;
-      PFN_vkCmdSetDepthTestEnableEXT       vkCmdSetDepthTestEnableEXT       = 0;
-      PFN_vkCmdSetDepthWriteEnableEXT      vkCmdSetDepthWriteEnableEXT      = 0;
-      PFN_vkCmdSetDepthCompareOpEXT        vkCmdSetDepthCompareOpEXT        = 0;
-      PFN_vkCmdSetDepthBoundsTestEnableEXT vkCmdSetDepthBoundsTestEnableEXT = 0;
-      PFN_vkCmdSetStencilTestEnableEXT     vkCmdSetStencilTestEnableEXT     = 0;
-      PFN_vkCmdSetStencilOpEXT             vkCmdSetStencilOpEXT             = 0;
-
-      //=== VK_KHR_deferred_host_operations ===
-      PFN_vkCreateDeferredOperationKHR            vkCreateDeferredOperationKHR            = 0;
-      PFN_vkDestroyDeferredOperationKHR           vkDestroyDeferredOperationKHR           = 0;
-      PFN_vkGetDeferredOperationMaxConcurrencyKHR vkGetDeferredOperationMaxConcurrencyKHR = 0;
-      PFN_vkGetDeferredOperationResultKHR         vkGetDeferredOperationResultKHR         = 0;
-      PFN_vkDeferredOperationJoinKHR              vkDeferredOperationJoinKHR              = 0;
-
-      //=== VK_KHR_pipeline_executable_properties ===
-      PFN_vkGetPipelineExecutablePropertiesKHR              vkGetPipelineExecutablePropertiesKHR              = 0;
-      PFN_vkGetPipelineExecutableStatisticsKHR              vkGetPipelineExecutableStatisticsKHR              = 0;
-      PFN_vkGetPipelineExecutableInternalRepresentationsKHR vkGetPipelineExecutableInternalRepresentationsKHR = 0;
-
-      //=== VK_EXT_host_image_copy ===
-      PFN_vkCopyMemoryToImageEXT          vkCopyMemoryToImageEXT          = 0;
-      PFN_vkCopyImageToMemoryEXT          vkCopyImageToMemoryEXT          = 0;
-      PFN_vkCopyImageToImageEXT           vkCopyImageToImageEXT           = 0;
-      PFN_vkTransitionImageLayoutEXT      vkTransitionImageLayoutEXT      = 0;
-      PFN_vkGetImageSubresourceLayout2EXT vkGetImageSubresourceLayout2EXT = 0;
-
-      //=== VK_KHR_map_memory2 ===
-      PFN_vkMapMemory2KHR   vkMapMemory2KHR   = 0;
-      PFN_vkUnmapMemory2KHR vkUnmapMemory2KHR = 0;
-
-      //=== VK_EXT_swapchain_maintenance1 ===
-      PFN_vkReleaseSwapchainImagesEXT vkReleaseSwapchainImagesEXT = 0;
-
-      //=== VK_NV_device_generated_commands ===
-      PFN_vkGetGeneratedCommandsMemoryRequirementsNV vkGetGeneratedCommandsMemoryRequirementsNV = 0;
-      PFN_vkCmdPreprocessGeneratedCommandsNV         vkCmdPreprocessGeneratedCommandsNV         = 0;
-      PFN_vkCmdExecuteGeneratedCommandsNV            vkCmdExecuteGeneratedCommandsNV            = 0;
-      PFN_vkCmdBindPipelineShaderGroupNV             vkCmdBindPipelineShaderGroupNV             = 0;
-      PFN_vkCreateIndirectCommandsLayoutNV           vkCreateIndirectCommandsLayoutNV           = 0;
-      PFN_vkDestroyIndirectCommandsLayoutNV          vkDestroyIndirectCommandsLayoutNV          = 0;
-
-      //=== VK_EXT_depth_bias_control ===
-      PFN_vkCmdSetDepthBias2EXT vkCmdSetDepthBias2EXT = 0;
-
-      //=== VK_EXT_private_data ===
-      PFN_vkCreatePrivateDataSlotEXT  vkCreatePrivateDataSlotEXT  = 0;
-      PFN_vkDestroyPrivateDataSlotEXT vkDestroyPrivateDataSlotEXT = 0;
-      PFN_vkSetPrivateDataEXT         vkSetPrivateDataEXT         = 0;
-      PFN_vkGetPrivateDataEXT         vkGetPrivateDataEXT         = 0;
-
-      //=== VK_KHR_video_encode_queue ===
-      PFN_vkGetEncodedVideoSessionParametersKHR vkGetEncodedVideoSessionParametersKHR = 0;
-      PFN_vkCmdEncodeVideoKHR                   vkCmdEncodeVideoKHR                   = 0;
-
-#  if defined( VK_ENABLE_BETA_EXTENSIONS )
-      //=== VK_NV_cuda_kernel_launch ===
-      PFN_vkCreateCudaModuleNV    vkCreateCudaModuleNV    = 0;
-      PFN_vkGetCudaModuleCacheNV  vkGetCudaModuleCacheNV  = 0;
-      PFN_vkCreateCudaFunctionNV  vkCreateCudaFunctionNV  = 0;
-      PFN_vkDestroyCudaModuleNV   vkDestroyCudaModuleNV   = 0;
-      PFN_vkDestroyCudaFunctionNV vkDestroyCudaFunctionNV = 0;
-      PFN_vkCmdCudaLaunchKernelNV vkCmdCudaLaunchKernelNV = 0;
-#  else
-      PFN_dummy vkCreateCudaModuleNV_placeholder                              = 0;
-      PFN_dummy vkGetCudaModuleCacheNV_placeholder                            = 0;
-      PFN_dummy vkCreateCudaFunctionNV_placeholder                            = 0;
-      PFN_dummy vkDestroyCudaModuleNV_placeholder                             = 0;
-      PFN_dummy vkDestroyCudaFunctionNV_placeholder                           = 0;
-      PFN_dummy vkCmdCudaLaunchKernelNV_placeholder                           = 0;
-#  endif /*VK_ENABLE_BETA_EXTENSIONS*/
-
-#  if defined( VK_USE_PLATFORM_METAL_EXT )
-      //=== VK_EXT_metal_objects ===
-      PFN_vkExportMetalObjectsEXT vkExportMetalObjectsEXT = 0;
-#  else
-      PFN_dummy vkExportMetalObjectsEXT_placeholder                           = 0;
-#  endif /*VK_USE_PLATFORM_METAL_EXT*/
-
-      //=== VK_KHR_synchronization2 ===
-      PFN_vkCmdSetEvent2KHR        vkCmdSetEvent2KHR        = 0;
-      PFN_vkCmdResetEvent2KHR      vkCmdResetEvent2KHR      = 0;
-      PFN_vkCmdWaitEvents2KHR      vkCmdWaitEvents2KHR      = 0;
-      PFN_vkCmdPipelineBarrier2KHR vkCmdPipelineBarrier2KHR = 0;
-      PFN_vkCmdWriteTimestamp2KHR  vkCmdWriteTimestamp2KHR  = 0;
-      PFN_vkQueueSubmit2KHR        vkQueueSubmit2KHR        = 0;
-
-      //=== VK_EXT_descriptor_buffer ===
-      PFN_vkGetDescriptorSetLayoutSizeEXT                          vkGetDescriptorSetLayoutSizeEXT                          = 0;
-      PFN_vkGetDescriptorSetLayoutBindingOffsetEXT                 vkGetDescriptorSetLayoutBindingOffsetEXT                 = 0;
-      PFN_vkGetDescriptorEXT                                       vkGetDescriptorEXT                                       = 0;
-      PFN_vkCmdBindDescriptorBuffersEXT                            vkCmdBindDescriptorBuffersEXT                            = 0;
-      PFN_vkCmdSetDescriptorBufferOffsetsEXT                       vkCmdSetDescriptorBufferOffsetsEXT                       = 0;
-      PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT             vkCmdBindDescriptorBufferEmbeddedSamplersEXT             = 0;
-      PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT                vkGetBufferOpaqueCaptureDescriptorDataEXT                = 0;
-      PFN_vkGetImageOpaqueCaptureDescriptorDataEXT                 vkGetImageOpaqueCaptureDescriptorDataEXT                 = 0;
-      PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT             vkGetImageViewOpaqueCaptureDescriptorDataEXT             = 0;
-      PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT               vkGetSamplerOpaqueCaptureDescriptorDataEXT               = 0;
-      PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT = 0;
-
-      //=== VK_NV_fragment_shading_rate_enums ===
-      PFN_vkCmdSetFragmentShadingRateEnumNV vkCmdSetFragmentShadingRateEnumNV = 0;
-
-      //=== VK_EXT_mesh_shader ===
-      PFN_vkCmdDrawMeshTasksEXT              vkCmdDrawMeshTasksEXT              = 0;
-      PFN_vkCmdDrawMeshTasksIndirectEXT      vkCmdDrawMeshTasksIndirectEXT      = 0;
-      PFN_vkCmdDrawMeshTasksIndirectCountEXT vkCmdDrawMeshTasksIndirectCountEXT = 0;
-
-      //=== VK_KHR_copy_commands2 ===
-      PFN_vkCmdCopyBuffer2KHR        vkCmdCopyBuffer2KHR        = 0;
-      PFN_vkCmdCopyImage2KHR         vkCmdCopyImage2KHR         = 0;
-      PFN_vkCmdCopyBufferToImage2KHR vkCmdCopyBufferToImage2KHR = 0;
-      PFN_vkCmdCopyImageToBuffer2KHR vkCmdCopyImageToBuffer2KHR = 0;
-      PFN_vkCmdBlitImage2KHR         vkCmdBlitImage2KHR         = 0;
-      PFN_vkCmdResolveImage2KHR      vkCmdResolveImage2KHR      = 0;
-
-      //=== VK_EXT_device_fault ===
-      PFN_vkGetDeviceFaultInfoEXT vkGetDeviceFaultInfoEXT = 0;
-
-      //=== VK_EXT_vertex_input_dynamic_state ===
-      PFN_vkCmdSetVertexInputEXT vkCmdSetVertexInputEXT = 0;
-
-#  if defined( VK_USE_PLATFORM_FUCHSIA )
-      //=== VK_FUCHSIA_external_memory ===
-      PFN_vkGetMemoryZirconHandleFUCHSIA           vkGetMemoryZirconHandleFUCHSIA           = 0;
-      PFN_vkGetMemoryZirconHandlePropertiesFUCHSIA vkGetMemoryZirconHandlePropertiesFUCHSIA = 0;
-#  else
-      PFN_dummy vkGetMemoryZirconHandleFUCHSIA_placeholder                    = 0;
-      PFN_dummy vkGetMemoryZirconHandlePropertiesFUCHSIA_placeholder          = 0;
-#  endif /*VK_USE_PLATFORM_FUCHSIA*/
-
-#  if defined( VK_USE_PLATFORM_FUCHSIA )
-      //=== VK_FUCHSIA_external_semaphore ===
-      PFN_vkImportSemaphoreZirconHandleFUCHSIA vkImportSemaphoreZirconHandleFUCHSIA = 0;
-      PFN_vkGetSemaphoreZirconHandleFUCHSIA    vkGetSemaphoreZirconHandleFUCHSIA    = 0;
-#  else
-      PFN_dummy vkImportSemaphoreZirconHandleFUCHSIA_placeholder              = 0;
-      PFN_dummy vkGetSemaphoreZirconHandleFUCHSIA_placeholder                 = 0;
-#  endif /*VK_USE_PLATFORM_FUCHSIA*/
-
-#  if defined( VK_USE_PLATFORM_FUCHSIA )
-      //=== VK_FUCHSIA_buffer_collection ===
-      PFN_vkCreateBufferCollectionFUCHSIA               vkCreateBufferCollectionFUCHSIA               = 0;
-      PFN_vkSetBufferCollectionImageConstraintsFUCHSIA  vkSetBufferCollectionImageConstraintsFUCHSIA  = 0;
-      PFN_vkSetBufferCollectionBufferConstraintsFUCHSIA vkSetBufferCollectionBufferConstraintsFUCHSIA = 0;
-      PFN_vkDestroyBufferCollectionFUCHSIA              vkDestroyBufferCollectionFUCHSIA              = 0;
-      PFN_vkGetBufferCollectionPropertiesFUCHSIA        vkGetBufferCollectionPropertiesFUCHSIA        = 0;
-#  else
-      PFN_dummy vkCreateBufferCollectionFUCHSIA_placeholder                   = 0;
-      PFN_dummy vkSetBufferCollectionImageConstraintsFUCHSIA_placeholder      = 0;
-      PFN_dummy vkSetBufferCollectionBufferConstraintsFUCHSIA_placeholder     = 0;
-      PFN_dummy vkDestroyBufferCollectionFUCHSIA_placeholder                  = 0;
-      PFN_dummy vkGetBufferCollectionPropertiesFUCHSIA_placeholder            = 0;
-#  endif /*VK_USE_PLATFORM_FUCHSIA*/
-
-      //=== VK_HUAWEI_subpass_shading ===
-      PFN_vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI = 0;
-      PFN_vkCmdSubpassShadingHUAWEI                       vkCmdSubpassShadingHUAWEI                       = 0;
-
-      //=== VK_HUAWEI_invocation_mask ===
-      PFN_vkCmdBindInvocationMaskHUAWEI vkCmdBindInvocationMaskHUAWEI = 0;
-
-      //=== VK_NV_external_memory_rdma ===
-      PFN_vkGetMemoryRemoteAddressNV vkGetMemoryRemoteAddressNV = 0;
-
-      //=== VK_EXT_pipeline_properties ===
-      PFN_vkGetPipelinePropertiesEXT vkGetPipelinePropertiesEXT = 0;
-
-      //=== VK_EXT_extended_dynamic_state2 ===
-      PFN_vkCmdSetPatchControlPointsEXT      vkCmdSetPatchControlPointsEXT      = 0;
-      PFN_vkCmdSetRasterizerDiscardEnableEXT vkCmdSetRasterizerDiscardEnableEXT = 0;
-      PFN_vkCmdSetDepthBiasEnableEXT         vkCmdSetDepthBiasEnableEXT         = 0;
-      PFN_vkCmdSetLogicOpEXT                 vkCmdSetLogicOpEXT                 = 0;
-      PFN_vkCmdSetPrimitiveRestartEnableEXT  vkCmdSetPrimitiveRestartEnableEXT  = 0;
-
-      //=== VK_EXT_color_write_enable ===
-      PFN_vkCmdSetColorWriteEnableEXT vkCmdSetColorWriteEnableEXT = 0;
-
-      //=== VK_KHR_ray_tracing_maintenance1 ===
-      PFN_vkCmdTraceRaysIndirect2KHR vkCmdTraceRaysIndirect2KHR = 0;
-
-      //=== VK_EXT_multi_draw ===
-      PFN_vkCmdDrawMultiEXT        vkCmdDrawMultiEXT        = 0;
-      PFN_vkCmdDrawMultiIndexedEXT vkCmdDrawMultiIndexedEXT = 0;
-
-      //=== VK_EXT_opacity_micromap ===
-      PFN_vkCreateMicromapEXT                 vkCreateMicromapEXT                 = 0;
-      PFN_vkDestroyMicromapEXT                vkDestroyMicromapEXT                = 0;
-      PFN_vkCmdBuildMicromapsEXT              vkCmdBuildMicromapsEXT              = 0;
-      PFN_vkBuildMicromapsEXT                 vkBuildMicromapsEXT                 = 0;
-      PFN_vkCopyMicromapEXT                   vkCopyMicromapEXT                   = 0;
-      PFN_vkCopyMicromapToMemoryEXT           vkCopyMicromapToMemoryEXT           = 0;
-      PFN_vkCopyMemoryToMicromapEXT           vkCopyMemoryToMicromapEXT           = 0;
-      PFN_vkWriteMicromapsPropertiesEXT       vkWriteMicromapsPropertiesEXT       = 0;
-      PFN_vkCmdCopyMicromapEXT                vkCmdCopyMicromapEXT                = 0;
-      PFN_vkCmdCopyMicromapToMemoryEXT        vkCmdCopyMicromapToMemoryEXT        = 0;
-      PFN_vkCmdCopyMemoryToMicromapEXT        vkCmdCopyMemoryToMicromapEXT        = 0;
-      PFN_vkCmdWriteMicromapsPropertiesEXT    vkCmdWriteMicromapsPropertiesEXT    = 0;
-      PFN_vkGetDeviceMicromapCompatibilityEXT vkGetDeviceMicromapCompatibilityEXT = 0;
-      PFN_vkGetMicromapBuildSizesEXT          vkGetMicromapBuildSizesEXT          = 0;
-
-      //=== VK_HUAWEI_cluster_culling_shader ===
-      PFN_vkCmdDrawClusterHUAWEI         vkCmdDrawClusterHUAWEI         = 0;
-      PFN_vkCmdDrawClusterIndirectHUAWEI vkCmdDrawClusterIndirectHUAWEI = 0;
-
-      //=== VK_EXT_pageable_device_local_memory ===
-      PFN_vkSetDeviceMemoryPriorityEXT vkSetDeviceMemoryPriorityEXT = 0;
-
-      //=== VK_KHR_maintenance4 ===
-      PFN_vkGetDeviceBufferMemoryRequirementsKHR      vkGetDeviceBufferMemoryRequirementsKHR      = 0;
-      PFN_vkGetDeviceImageMemoryRequirementsKHR       vkGetDeviceImageMemoryRequirementsKHR       = 0;
-      PFN_vkGetDeviceImageSparseMemoryRequirementsKHR vkGetDeviceImageSparseMemoryRequirementsKHR = 0;
-
-      //=== VK_VALVE_descriptor_set_host_mapping ===
-      PFN_vkGetDescriptorSetLayoutHostMappingInfoVALVE vkGetDescriptorSetLayoutHostMappingInfoVALVE = 0;
-      PFN_vkGetDescriptorSetHostMappingVALVE           vkGetDescriptorSetHostMappingVALVE           = 0;
-
-      //=== VK_NV_copy_memory_indirect ===
-      PFN_vkCmdCopyMemoryIndirectNV        vkCmdCopyMemoryIndirectNV        = 0;
-      PFN_vkCmdCopyMemoryToImageIndirectNV vkCmdCopyMemoryToImageIndirectNV = 0;
-
-      //=== VK_NV_memory_decompression ===
-      PFN_vkCmdDecompressMemoryNV              vkCmdDecompressMemoryNV              = 0;
-      PFN_vkCmdDecompressMemoryIndirectCountNV vkCmdDecompressMemoryIndirectCountNV = 0;
-
-      //=== VK_NV_device_generated_commands_compute ===
-      PFN_vkGetPipelineIndirectMemoryRequirementsNV vkGetPipelineIndirectMemoryRequirementsNV = 0;
-      PFN_vkCmdUpdatePipelineIndirectBufferNV       vkCmdUpdatePipelineIndirectBufferNV       = 0;
-      PFN_vkGetPipelineIndirectDeviceAddressNV      vkGetPipelineIndirectDeviceAddressNV      = 0;
-
-      //=== VK_EXT_extended_dynamic_state3 ===
-      PFN_vkCmdSetDepthClampEnableEXT                 vkCmdSetDepthClampEnableEXT                 = 0;
-      PFN_vkCmdSetPolygonModeEXT                      vkCmdSetPolygonModeEXT                      = 0;
-      PFN_vkCmdSetRasterizationSamplesEXT             vkCmdSetRasterizationSamplesEXT             = 0;
-      PFN_vkCmdSetSampleMaskEXT                       vkCmdSetSampleMaskEXT                       = 0;
-      PFN_vkCmdSetAlphaToCoverageEnableEXT            vkCmdSetAlphaToCoverageEnableEXT            = 0;
-      PFN_vkCmdSetAlphaToOneEnableEXT                 vkCmdSetAlphaToOneEnableEXT                 = 0;
-      PFN_vkCmdSetLogicOpEnableEXT                    vkCmdSetLogicOpEnableEXT                    = 0;
-      PFN_vkCmdSetColorBlendEnableEXT                 vkCmdSetColorBlendEnableEXT                 = 0;
-      PFN_vkCmdSetColorBlendEquationEXT               vkCmdSetColorBlendEquationEXT               = 0;
-      PFN_vkCmdSetColorWriteMaskEXT                   vkCmdSetColorWriteMaskEXT                   = 0;
-      PFN_vkCmdSetTessellationDomainOriginEXT         vkCmdSetTessellationDomainOriginEXT         = 0;
-      PFN_vkCmdSetRasterizationStreamEXT              vkCmdSetRasterizationStreamEXT              = 0;
-      PFN_vkCmdSetConservativeRasterizationModeEXT    vkCmdSetConservativeRasterizationModeEXT    = 0;
-      PFN_vkCmdSetExtraPrimitiveOverestimationSizeEXT vkCmdSetExtraPrimitiveOverestimationSizeEXT = 0;
-      PFN_vkCmdSetDepthClipEnableEXT                  vkCmdSetDepthClipEnableEXT                  = 0;
-      PFN_vkCmdSetSampleLocationsEnableEXT            vkCmdSetSampleLocationsEnableEXT            = 0;
-      PFN_vkCmdSetColorBlendAdvancedEXT               vkCmdSetColorBlendAdvancedEXT               = 0;
-      PFN_vkCmdSetProvokingVertexModeEXT              vkCmdSetProvokingVertexModeEXT              = 0;
-      PFN_vkCmdSetLineRasterizationModeEXT            vkCmdSetLineRasterizationModeEXT            = 0;
-      PFN_vkCmdSetLineStippleEnableEXT                vkCmdSetLineStippleEnableEXT                = 0;
-      PFN_vkCmdSetDepthClipNegativeOneToOneEXT        vkCmdSetDepthClipNegativeOneToOneEXT        = 0;
-      PFN_vkCmdSetViewportWScalingEnableNV            vkCmdSetViewportWScalingEnableNV            = 0;
-      PFN_vkCmdSetViewportSwizzleNV                   vkCmdSetViewportSwizzleNV                   = 0;
-      PFN_vkCmdSetCoverageToColorEnableNV             vkCmdSetCoverageToColorEnableNV             = 0;
-      PFN_vkCmdSetCoverageToColorLocationNV           vkCmdSetCoverageToColorLocationNV           = 0;
-      PFN_vkCmdSetCoverageModulationModeNV            vkCmdSetCoverageModulationModeNV            = 0;
-      PFN_vkCmdSetCoverageModulationTableEnableNV     vkCmdSetCoverageModulationTableEnableNV     = 0;
-      PFN_vkCmdSetCoverageModulationTableNV           vkCmdSetCoverageModulationTableNV           = 0;
-      PFN_vkCmdSetShadingRateImageEnableNV            vkCmdSetShadingRateImageEnableNV            = 0;
-      PFN_vkCmdSetRepresentativeFragmentTestEnableNV  vkCmdSetRepresentativeFragmentTestEnableNV  = 0;
-      PFN_vkCmdSetCoverageReductionModeNV             vkCmdSetCoverageReductionModeNV             = 0;
-
-      //=== VK_EXT_shader_module_identifier ===
-      PFN_vkGetShaderModuleIdentifierEXT           vkGetShaderModuleIdentifierEXT           = 0;
-      PFN_vkGetShaderModuleCreateInfoIdentifierEXT vkGetShaderModuleCreateInfoIdentifierEXT = 0;
-
-      //=== VK_NV_optical_flow ===
-      PFN_vkCreateOpticalFlowSessionNV    vkCreateOpticalFlowSessionNV    = 0;
-      PFN_vkDestroyOpticalFlowSessionNV   vkDestroyOpticalFlowSessionNV   = 0;
-      PFN_vkBindOpticalFlowSessionImageNV vkBindOpticalFlowSessionImageNV = 0;
-      PFN_vkCmdOpticalFlowExecuteNV       vkCmdOpticalFlowExecuteNV       = 0;
-
-      //=== VK_KHR_maintenance5 ===
-      PFN_vkCmdBindIndexBuffer2KHR             vkCmdBindIndexBuffer2KHR             = 0;
-      PFN_vkGetRenderingAreaGranularityKHR     vkGetRenderingAreaGranularityKHR     = 0;
-      PFN_vkGetDeviceImageSubresourceLayoutKHR vkGetDeviceImageSubresourceLayoutKHR = 0;
-      PFN_vkGetImageSubresourceLayout2KHR      vkGetImageSubresourceLayout2KHR      = 0;
-
-      //=== VK_AMD_anti_lag ===
-      PFN_vkAntiLagUpdateAMD vkAntiLagUpdateAMD = 0;
-
-      //=== VK_EXT_shader_object ===
-      PFN_vkCreateShadersEXT         vkCreateShadersEXT         = 0;
-      PFN_vkDestroyShaderEXT         vkDestroyShaderEXT         = 0;
-      PFN_vkGetShaderBinaryDataEXT   vkGetShaderBinaryDataEXT   = 0;
-      PFN_vkCmdBindShadersEXT        vkCmdBindShadersEXT        = 0;
-      PFN_vkCmdSetDepthClampRangeEXT vkCmdSetDepthClampRangeEXT = 0;
-
-      //=== VK_KHR_pipeline_binary ===
-      PFN_vkCreatePipelineBinariesKHR      vkCreatePipelineBinariesKHR      = 0;
-      PFN_vkDestroyPipelineBinaryKHR       vkDestroyPipelineBinaryKHR       = 0;
-      PFN_vkGetPipelineKeyKHR              vkGetPipelineKeyKHR              = 0;
-      PFN_vkGetPipelineBinaryDataKHR       vkGetPipelineBinaryDataKHR       = 0;
-      PFN_vkReleaseCapturedPipelineDataKHR vkReleaseCapturedPipelineDataKHR = 0;
-
-      //=== VK_QCOM_tile_properties ===
-      PFN_vkGetFramebufferTilePropertiesQCOM      vkGetFramebufferTilePropertiesQCOM      = 0;
-      PFN_vkGetDynamicRenderingTilePropertiesQCOM vkGetDynamicRenderingTilePropertiesQCOM = 0;
-
-      //=== VK_NV_low_latency2 ===
-      PFN_vkSetLatencySleepModeNV  vkSetLatencySleepModeNV  = 0;
-      PFN_vkLatencySleepNV         vkLatencySleepNV         = 0;
-      PFN_vkSetLatencyMarkerNV     vkSetLatencyMarkerNV     = 0;
-      PFN_vkGetLatencyTimingsNV    vkGetLatencyTimingsNV    = 0;
-      PFN_vkQueueNotifyOutOfBandNV vkQueueNotifyOutOfBandNV = 0;
-
-      //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
-      PFN_vkCmdSetAttachmentFeedbackLoopEnableEXT vkCmdSetAttachmentFeedbackLoopEnableEXT = 0;
-
-#  if defined( VK_USE_PLATFORM_SCREEN_QNX )
-      //=== VK_QNX_external_memory_screen_buffer ===
-      PFN_vkGetScreenBufferPropertiesQNX vkGetScreenBufferPropertiesQNX = 0;
-#  else
-      PFN_dummy vkGetScreenBufferPropertiesQNX_placeholder                    = 0;
-#  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
-
-      //=== VK_KHR_line_rasterization ===
-      PFN_vkCmdSetLineStippleKHR vkCmdSetLineStippleKHR = 0;
-
-      //=== VK_KHR_calibrated_timestamps ===
-      PFN_vkGetCalibratedTimestampsKHR vkGetCalibratedTimestampsKHR = 0;
-
-      //=== VK_KHR_maintenance6 ===
-      PFN_vkCmdBindDescriptorSets2KHR                   vkCmdBindDescriptorSets2KHR                   = 0;
-      PFN_vkCmdPushConstants2KHR                        vkCmdPushConstants2KHR                        = 0;
-      PFN_vkCmdPushDescriptorSet2KHR                    vkCmdPushDescriptorSet2KHR                    = 0;
-      PFN_vkCmdPushDescriptorSetWithTemplate2KHR        vkCmdPushDescriptorSetWithTemplate2KHR        = 0;
-      PFN_vkCmdSetDescriptorBufferOffsets2EXT           vkCmdSetDescriptorBufferOffsets2EXT           = 0;
-      PFN_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT vkCmdBindDescriptorBufferEmbeddedSamplers2EXT = 0;
-
-      //=== VK_EXT_device_generated_commands ===
-      PFN_vkGetGeneratedCommandsMemoryRequirementsEXT vkGetGeneratedCommandsMemoryRequirementsEXT = 0;
-      PFN_vkCmdPreprocessGeneratedCommandsEXT         vkCmdPreprocessGeneratedCommandsEXT         = 0;
-      PFN_vkCmdExecuteGeneratedCommandsEXT            vkCmdExecuteGeneratedCommandsEXT            = 0;
-      PFN_vkCreateIndirectCommandsLayoutEXT           vkCreateIndirectCommandsLayoutEXT           = 0;
-      PFN_vkDestroyIndirectCommandsLayoutEXT          vkDestroyIndirectCommandsLayoutEXT          = 0;
-      PFN_vkCreateIndirectExecutionSetEXT             vkCreateIndirectExecutionSetEXT             = 0;
-      PFN_vkDestroyIndirectExecutionSetEXT            vkDestroyIndirectExecutionSetEXT            = 0;
-      PFN_vkUpdateIndirectExecutionSetPipelineEXT     vkUpdateIndirectExecutionSetPipelineEXT     = 0;
-      PFN_vkUpdateIndirectExecutionSetShaderEXT       vkUpdateIndirectExecutionSetShaderEXT       = 0;
-    };
+        PFN_vkGetGeneratedCommandsMemoryRequirementsEXT vkGetGeneratedCommandsMemoryRequirementsEXT = 0;
+        PFN_vkCmdPreprocessGeneratedCommandsEXT         vkCmdPreprocessGeneratedCommandsEXT         = 0;
+        PFN_vkCmdExecuteGeneratedCommandsEXT            vkCmdExecuteGeneratedCommandsEXT            = 0;
+        PFN_vkCreateIndirectCommandsLayoutEXT           vkCreateIndirectCommandsLayoutEXT           = 0;
+        PFN_vkDestroyIndirectCommandsLayoutEXT          vkDestroyIndirectCommandsLayoutEXT          = 0;
+        PFN_vkCreateIndirectExecutionSetEXT             vkCreateIndirectExecutionSetEXT             = 0;
+        PFN_vkDestroyIndirectExecutionSetEXT            vkDestroyIndirectExecutionSetEXT            = 0;
+        PFN_vkUpdateIndirectExecutionSetPipelineEXT     vkUpdateIndirectExecutionSetPipelineEXT     = 0;
+        PFN_vkUpdateIndirectExecutionSetShaderEXT       vkUpdateIndirectExecutionSetShaderEXT       = 0;
+      };
+
+    }  // namespace detail
 
     //========================================
     //=== RAII HANDLE forward declarations ===
@@ -2754,16 +2854,22 @@ namespace VULKAN_HPP_NAMESPACE
     //=== RAII HANDLES ===
     //====================
 
+    template <typename Type>
+    struct isVulkanRAIIHandleType
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = false;
+    };
+
     class Context
     {
     public:
 #  if VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL
       Context()
-        : m_dispatcher( new VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ContextDispatcher(
+        : m_dispatcher( new VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::ContextDispatcher(
             m_dynamicLoader.getProcAddress<PFN_vkGetInstanceProcAddr>( "vkGetInstanceProcAddr" ) ) )
 #  else
       Context( PFN_vkGetInstanceProcAddr getInstanceProcAddr )
-        : m_dispatcher( new VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ContextDispatcher( getInstanceProcAddr ) )
+        : m_dispatcher( new VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::ContextDispatcher( getInstanceProcAddr ) )
 #  endif
       {
       }
@@ -2794,7 +2900,7 @@ namespace VULKAN_HPP_NAMESPACE
         return *this;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ContextDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::ContextDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return &*m_dispatcher;
@@ -2810,9 +2916,10 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_VERSION_1_0 ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Instance>::Type
-                           createInstance( VULKAN_HPP_NAMESPACE::InstanceCreateInfo const &                                createInfo,
-                                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Instance>::Type
+        createInstance( VULKAN_HPP_NAMESPACE::InstanceCreateInfo const &                                createInfo,
+                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::ExtensionProperties>
@@ -2826,9 +2933,9 @@ namespace VULKAN_HPP_NAMESPACE
 
     private:
 #  if VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL
-      VULKAN_HPP_NAMESPACE::DynamicLoader m_dynamicLoader;
+      VULKAN_HPP_NAMESPACE::detail::DynamicLoader m_dynamicLoader;
 #  endif
-      std::unique_ptr<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ContextDispatcher> m_dispatcher;
+      std::unique_ptr<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::ContextDispatcher> m_dispatcher;
     };
 
     class Instance
@@ -2856,8 +2963,8 @@ namespace VULKAN_HPP_NAMESPACE
                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr )
         : m_instance( instance ), m_allocator( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) )
       {
-        m_dispatcher.reset( new VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher( context.getDispatcher()->vkGetInstanceProcAddr,
-                                                                                                     static_cast<VkInstance>( m_instance ) ) );
+        m_dispatcher.reset( new VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher( context.getDispatcher()->vkGetInstanceProcAddr,
+                                                                                                             static_cast<VkInstance>( m_instance ) ) );
       }
 
       Instance( std::nullptr_t ) {}
@@ -2918,7 +3025,7 @@ namespace VULKAN_HPP_NAMESPACE
         return VULKAN_HPP_NAMESPACE::exchange( m_instance, nullptr );
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return &*m_dispatcher;
@@ -2933,8 +3040,8 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_VERSION_1_0 ===
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PhysicalDevice>>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PhysicalDevice>>::Type
         enumeratePhysicalDevices() const;
 
       VULKAN_HPP_NODISCARD PFN_vkVoidFunction getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT;
@@ -2945,60 +3052,66 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_KHR_display ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createDisplayPlaneSurfaceKHR( VULKAN_HPP_NAMESPACE::DisplaySurfaceCreateInfoKHR const &                       createInfo,
-                                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createDisplayPlaneSurfaceKHR( VULKAN_HPP_NAMESPACE::DisplaySurfaceCreateInfoKHR const &                       createInfo,
+                                      VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
 #  if defined( VK_USE_PLATFORM_XLIB_KHR )
       //=== VK_KHR_xlib_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createXlibSurfaceKHR( VULKAN_HPP_NAMESPACE::XlibSurfaceCreateInfoKHR const &                          createInfo,
-                                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createXlibSurfaceKHR( VULKAN_HPP_NAMESPACE::XlibSurfaceCreateInfoKHR const &                          createInfo,
+                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_XLIB_KHR*/
 
 #  if defined( VK_USE_PLATFORM_XCB_KHR )
       //=== VK_KHR_xcb_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createXcbSurfaceKHR( VULKAN_HPP_NAMESPACE::XcbSurfaceCreateInfoKHR const &                           createInfo,
-                                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createXcbSurfaceKHR( VULKAN_HPP_NAMESPACE::XcbSurfaceCreateInfoKHR const &                           createInfo,
+                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_XCB_KHR*/
 
 #  if defined( VK_USE_PLATFORM_WAYLAND_KHR )
       //=== VK_KHR_wayland_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createWaylandSurfaceKHR( VULKAN_HPP_NAMESPACE::WaylandSurfaceCreateInfoKHR const &                       createInfo,
-                                                    VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createWaylandSurfaceKHR( VULKAN_HPP_NAMESPACE::WaylandSurfaceCreateInfoKHR const &                       createInfo,
+                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_WAYLAND_KHR*/
 
 #  if defined( VK_USE_PLATFORM_ANDROID_KHR )
       //=== VK_KHR_android_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createAndroidSurfaceKHR( VULKAN_HPP_NAMESPACE::AndroidSurfaceCreateInfoKHR const &                       createInfo,
-                                                    VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createAndroidSurfaceKHR( VULKAN_HPP_NAMESPACE::AndroidSurfaceCreateInfoKHR const &                       createInfo,
+                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_ANDROID_KHR*/
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
       //=== VK_KHR_win32_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createWin32SurfaceKHR( VULKAN_HPP_NAMESPACE::Win32SurfaceCreateInfoKHR const &                         createInfo,
-                                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createWin32SurfaceKHR( VULKAN_HPP_NAMESPACE::Win32SurfaceCreateInfoKHR const &                         createInfo,
+                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
       //=== VK_EXT_debug_report ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugReportCallbackEXT>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugReportCallbackEXT>::Type
         createDebugReportCallbackEXT( VULKAN_HPP_NAMESPACE::DebugReportCallbackCreateInfoEXT const &                  createInfo,
                                       VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -3014,18 +3127,20 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_GGP )
       //=== VK_GGP_stream_descriptor_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createStreamDescriptorSurfaceGGP( VULKAN_HPP_NAMESPACE::StreamDescriptorSurfaceCreateInfoGGP const &              createInfo,
-                                                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createStreamDescriptorSurfaceGGP( VULKAN_HPP_NAMESPACE::StreamDescriptorSurfaceCreateInfoGGP const &              createInfo,
+                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_GGP*/
 
 #  if defined( VK_USE_PLATFORM_VI_NN )
       //=== VK_NN_vi_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createViSurfaceNN( VULKAN_HPP_NAMESPACE::ViSurfaceCreateInfoNN const &                             createInfo,
-                                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createViSurfaceNN( VULKAN_HPP_NAMESPACE::ViSurfaceCreateInfoNN const &                             createInfo,
+                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_VI_NN*/
 
@@ -3036,25 +3151,27 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_IOS_MVK )
       //=== VK_MVK_ios_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createIOSSurfaceMVK( VULKAN_HPP_NAMESPACE::IOSSurfaceCreateInfoMVK const &                           createInfo,
-                                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createIOSSurfaceMVK( VULKAN_HPP_NAMESPACE::IOSSurfaceCreateInfoMVK const &                           createInfo,
+                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_IOS_MVK*/
 
 #  if defined( VK_USE_PLATFORM_MACOS_MVK )
       //=== VK_MVK_macos_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createMacOSSurfaceMVK( VULKAN_HPP_NAMESPACE::MacOSSurfaceCreateInfoMVK const &                         createInfo,
-                                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createMacOSSurfaceMVK( VULKAN_HPP_NAMESPACE::MacOSSurfaceCreateInfoMVK const &                         createInfo,
+                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_MACOS_MVK*/
 
       //=== VK_EXT_debug_utils ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugUtilsMessengerEXT>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugUtilsMessengerEXT>::Type
         createDebugUtilsMessengerEXT( VULKAN_HPP_NAMESPACE::DebugUtilsMessengerCreateInfoEXT const &                  createInfo,
                                       VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -3066,50 +3183,61 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
       //=== VK_FUCHSIA_imagepipe_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createImagePipeSurfaceFUCHSIA( VULKAN_HPP_NAMESPACE::ImagePipeSurfaceCreateInfoFUCHSIA const &                 createInfo,
-                                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createImagePipeSurfaceFUCHSIA( VULKAN_HPP_NAMESPACE::ImagePipeSurfaceCreateInfoFUCHSIA const &                 createInfo,
+                                       VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
 #  if defined( VK_USE_PLATFORM_METAL_EXT )
       //=== VK_EXT_metal_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createMetalSurfaceEXT( VULKAN_HPP_NAMESPACE::MetalSurfaceCreateInfoEXT const &                         createInfo,
-                                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createMetalSurfaceEXT( VULKAN_HPP_NAMESPACE::MetalSurfaceCreateInfoEXT const &                         createInfo,
+                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_METAL_EXT*/
 
       //=== VK_EXT_headless_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createHeadlessSurfaceEXT( VULKAN_HPP_NAMESPACE::HeadlessSurfaceCreateInfoEXT const &                      createInfo,
-                                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createHeadlessSurfaceEXT( VULKAN_HPP_NAMESPACE::HeadlessSurfaceCreateInfoEXT const &                      createInfo,
+                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
 #  if defined( VK_USE_PLATFORM_DIRECTFB_EXT )
       //=== VK_EXT_directfb_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createDirectFBSurfaceEXT( VULKAN_HPP_NAMESPACE::DirectFBSurfaceCreateInfoEXT const &                      createInfo,
-                                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createDirectFBSurfaceEXT( VULKAN_HPP_NAMESPACE::DirectFBSurfaceCreateInfoEXT const &                      createInfo,
+                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_DIRECTFB_EXT*/
 
 #  if defined( VK_USE_PLATFORM_SCREEN_QNX )
       //=== VK_QNX_screen_surface ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                           createScreenSurfaceQNX( VULKAN_HPP_NAMESPACE::ScreenSurfaceCreateInfoQNX const &                        createInfo,
-                                                   VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+        createScreenSurfaceQNX( VULKAN_HPP_NAMESPACE::ScreenSurfaceCreateInfoQNX const &                        createInfo,
+                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
 
     private:
-      VULKAN_HPP_NAMESPACE::Instance                                                       m_instance  = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                    m_allocator = {};
-      std::unique_ptr<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher> m_dispatcher;
+      VULKAN_HPP_NAMESPACE::Instance                                                               m_instance  = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                            m_allocator = {};
+      std::unique_ptr<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher> m_dispatcher;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Instance>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class PhysicalDevice
@@ -3184,7 +3312,7 @@ namespace VULKAN_HPP_NAMESPACE
         return VULKAN_HPP_NAMESPACE::exchange( m_physicalDevice, nullptr );
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -3215,9 +3343,10 @@ namespace VULKAN_HPP_NAMESPACE
 
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::PhysicalDeviceMemoryProperties getMemoryProperties() const VULKAN_HPP_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Device>::Type
-                           createDevice( VULKAN_HPP_NAMESPACE::DeviceCreateInfo const &                                  createInfo,
-                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Device>::Type
+        createDevice( VULKAN_HPP_NAMESPACE::DeviceCreateInfo const &                                  createInfo,
+                      VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::ExtensionProperties>
@@ -3305,8 +3434,8 @@ namespace VULKAN_HPP_NAMESPACE
 
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::DisplayPlanePropertiesKHR> getDisplayPlanePropertiesKHR() const;
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>>::Type
         getDisplayPlaneSupportedDisplaysKHR( uint32_t planeIndex ) const;
 
 #  if defined( VK_USE_PLATFORM_XLIB_KHR )
@@ -3346,6 +3475,10 @@ namespace VULKAN_HPP_NAMESPACE
                            getVideoCapabilitiesKHR( const VULKAN_HPP_NAMESPACE::VideoProfileInfoKHR & videoProfile ) const;
 
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::VideoFormatPropertiesKHR>
+                           getVideoFormatPropertiesKHR( const VULKAN_HPP_NAMESPACE::PhysicalDeviceVideoFormatInfoKHR & videoFormatInfo ) const;
+
+      template <typename StructureChain>
+      VULKAN_HPP_NODISCARD std::vector<StructureChain>
                            getVideoFormatPropertiesKHR( const VULKAN_HPP_NAMESPACE::PhysicalDeviceVideoFormatInfoKHR & videoFormatInfo ) const;
 
       //=== VK_NV_external_memory_capabilities ===
@@ -3411,8 +3544,9 @@ namespace VULKAN_HPP_NAMESPACE
 
       void acquireXlibDisplayEXT( Display & dpy, VULKAN_HPP_NAMESPACE::DisplayKHR display ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
-                           getRandROutputDisplayEXT( Display & dpy, RROutput rrOutput ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
+        getRandROutputDisplayEXT( Display & dpy, RROutput rrOutput ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_XLIB_XRANDR_EXT*/
 
       //=== VK_EXT_display_surface_counter ===
@@ -3493,8 +3627,9 @@ namespace VULKAN_HPP_NAMESPACE
 
       void acquireDrmDisplayEXT( int32_t drmFd, VULKAN_HPP_NAMESPACE::DisplayKHR display ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
-                           getDrmDisplayEXT( int32_t drmFd, uint32_t connectorId ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
+        getDrmDisplayEXT( int32_t drmFd, uint32_t connectorId ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       //=== VK_KHR_video_encode_queue ===
 
@@ -3508,8 +3643,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
       //=== VK_NV_acquire_winrt_display ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
-                           getWinrtDisplayNV( uint32_t deviceRelativeId ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
+        getWinrtDisplayNV( uint32_t deviceRelativeId ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
 #  if defined( VK_USE_PLATFORM_DIRECTFB_EXT )
@@ -3539,9 +3675,20 @@ namespace VULKAN_HPP_NAMESPACE
 
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::TimeDomainKHR> getCalibrateableTimeDomainsKHR() const;
 
+      //=== VK_NV_cooperative_matrix2 ===
+
+      VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::CooperativeMatrixFlexibleDimensionsPropertiesNV>
+                           getCooperativeMatrixFlexibleDimensionsPropertiesNV() const;
+
     private:
-      VULKAN_HPP_NAMESPACE::PhysicalDevice                                        m_physicalDevice = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * m_dispatcher     = nullptr;
+      VULKAN_HPP_NAMESPACE::PhysicalDevice                                                m_physicalDevice = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * m_dispatcher     = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PhysicalDevice>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class PhysicalDevices : public std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PhysicalDevice>
@@ -3594,8 +3741,8 @@ namespace VULKAN_HPP_NAMESPACE
               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr )
         : m_device( device ), m_allocator( static_cast<const VULKAN_HPP_NAMESPACE::AllocationCallbacks *>( allocator ) )
       {
-        m_dispatcher.reset( new VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher( physicalDevice.getDispatcher()->vkGetDeviceProcAddr,
-                                                                                                   static_cast<VkDevice>( m_device ) ) );
+        m_dispatcher.reset( new VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher( physicalDevice.getDispatcher()->vkGetDeviceProcAddr,
+                                                                                                           static_cast<VkDevice>( m_device ) ) );
       }
 
       Device( std::nullptr_t ) {}
@@ -3656,7 +3803,7 @@ namespace VULKAN_HPP_NAMESPACE
         return VULKAN_HPP_NAMESPACE::exchange( m_device, nullptr );
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return &*m_dispatcher;
@@ -3673,13 +3820,14 @@ namespace VULKAN_HPP_NAMESPACE
 
       VULKAN_HPP_NODISCARD PFN_vkVoidFunction getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>::Type
-                           getQueue( uint32_t queueFamilyIndex, uint32_t queueIndex ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>::Type
+        getQueue( uint32_t queueFamilyIndex, uint32_t queueIndex ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       void waitIdle() const;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceMemory>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceMemory>::Type
         allocateMemory( VULKAN_HPP_NAMESPACE::MemoryAllocateInfo const &                                allocateInfo,
                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -3688,9 +3836,10 @@ namespace VULKAN_HPP_NAMESPACE
 
       void invalidateMappedMemoryRanges( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::MappedMemoryRange> const & memoryRanges ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
-                           createFence( VULKAN_HPP_NAMESPACE::FenceCreateInfo const &                                   createInfo,
-                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
+        createFence( VULKAN_HPP_NAMESPACE::FenceCreateInfo const &                                   createInfo,
+                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       void resetFences( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::Fence> const & fences ) const;
@@ -3699,125 +3848,138 @@ namespace VULKAN_HPP_NAMESPACE
                                                                        VULKAN_HPP_NAMESPACE::Bool32                                                waitAll,
                                                                        uint64_t timeout ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Semaphore>::Type
-                           createSemaphore( VULKAN_HPP_NAMESPACE::SemaphoreCreateInfo const &                               createInfo,
-                                            VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
-        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
-
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Event>::Type
-                           createEvent( VULKAN_HPP_NAMESPACE::EventCreateInfo const &                                   createInfo,
-                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
-        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
-
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::QueryPool>::Type
-                           createQueryPool( VULKAN_HPP_NAMESPACE::QueryPoolCreateInfo const &                               createInfo,
-                                            VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
-        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
-
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Buffer>::Type
-                           createBuffer( VULKAN_HPP_NAMESPACE::BufferCreateInfo const &                                  createInfo,
-                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
-        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
-
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferView>::Type
-                           createBufferView( VULKAN_HPP_NAMESPACE::BufferViewCreateInfo const &                              createInfo,
-                                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
-        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
-
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Image>::Type
-                           createImage( VULKAN_HPP_NAMESPACE::ImageCreateInfo const &                                   createInfo,
-                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
-        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
-
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ImageView>::Type
-                           createImageView( VULKAN_HPP_NAMESPACE::ImageViewCreateInfo const &                               createInfo,
-                                            VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Semaphore>::Type
+        createSemaphore( VULKAN_HPP_NAMESPACE::SemaphoreCreateInfo const &                               createInfo,
+                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderModule>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Event>::Type
+        createEvent( VULKAN_HPP_NAMESPACE::EventCreateInfo const &                                   createInfo,
+                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::QueryPool>::Type
+        createQueryPool( VULKAN_HPP_NAMESPACE::QueryPoolCreateInfo const &                               createInfo,
+                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Buffer>::Type
+        createBuffer( VULKAN_HPP_NAMESPACE::BufferCreateInfo const &                                  createInfo,
+                      VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferView>::Type
+        createBufferView( VULKAN_HPP_NAMESPACE::BufferViewCreateInfo const &                              createInfo,
+                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Image>::Type
+        createImage( VULKAN_HPP_NAMESPACE::ImageCreateInfo const &                                   createInfo,
+                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ImageView>::Type
+        createImageView( VULKAN_HPP_NAMESPACE::ImageViewCreateInfo const &                               createInfo,
+                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderModule>::Type
         createShaderModule( VULKAN_HPP_NAMESPACE::ShaderModuleCreateInfo const &                            createInfo,
                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache>::Type
         createPipelineCache( VULKAN_HPP_NAMESPACE::PipelineCacheCreateInfo const &                           createInfo,
                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
         createGraphicsPipelines( VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
                                  VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::GraphicsPipelineCreateInfo> const &                   createInfos,
                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
         createGraphicsPipeline( VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
                                 VULKAN_HPP_NAMESPACE::GraphicsPipelineCreateInfo const &                                                     createInfo,
                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
         createComputePipelines( VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
                                 VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::ComputePipelineCreateInfo> const &                    createInfos,
                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
         createComputePipeline( VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
                                VULKAN_HPP_NAMESPACE::ComputePipelineCreateInfo const &                                                      createInfo,
                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineLayout>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineLayout>::Type
         createPipelineLayout( VULKAN_HPP_NAMESPACE::PipelineLayoutCreateInfo const &                          createInfo,
                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Sampler>::Type
-                           createSampler( VULKAN_HPP_NAMESPACE::SamplerCreateInfo const &                                 createInfo,
-                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Sampler>::Type
+        createSampler( VULKAN_HPP_NAMESPACE::SamplerCreateInfo const &                                 createInfo,
+                       VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSetLayout>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSetLayout>::Type
         createDescriptorSetLayout( VULKAN_HPP_NAMESPACE::DescriptorSetLayoutCreateInfo const &                     createInfo,
                                    VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorPool>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorPool>::Type
         createDescriptorPool( VULKAN_HPP_NAMESPACE::DescriptorPoolCreateInfo const &                          createInfo,
                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSet>>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSet>>::Type
         allocateDescriptorSets( VULKAN_HPP_NAMESPACE::DescriptorSetAllocateInfo const & allocateInfo ) const;
 
       void updateDescriptorSets( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::WriteDescriptorSet> const & descriptorWrites,
                                  VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::CopyDescriptorSet> const &  descriptorCopies ) const
         VULKAN_HPP_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Framebuffer>::Type
-                           createFramebuffer( VULKAN_HPP_NAMESPACE::FramebufferCreateInfo const &                             createInfo,
-                                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
-        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
-
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
-                           createRenderPass( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo const &                              createInfo,
-                                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
-        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
-
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandPool>::Type
-                           createCommandPool( VULKAN_HPP_NAMESPACE::CommandPoolCreateInfo const &                             createInfo,
-                                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Framebuffer>::Type
+        createFramebuffer( VULKAN_HPP_NAMESPACE::FramebufferCreateInfo const &                             createInfo,
+                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandBuffer>>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
+        createRenderPass( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo const &                              createInfo,
+                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandPool>::Type
+        createCommandPool( VULKAN_HPP_NAMESPACE::CommandPoolCreateInfo const &                             createInfo,
+                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+        VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandBuffer>>::Type
         allocateCommandBuffers( VULKAN_HPP_NAMESPACE::CommandBufferAllocateInfo const & allocateInfo ) const;
 
       //=== VK_VERSION_1_1 ===
@@ -3846,17 +4008,18 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::SparseImageMemoryRequirements2>
                            getImageSparseMemoryRequirements2( const VULKAN_HPP_NAMESPACE::ImageSparseMemoryRequirementsInfo2 & info ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>::Type
-                           getQueue2( VULKAN_HPP_NAMESPACE::DeviceQueueInfo2 const & queueInfo ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>::Type
+        getQueue2( VULKAN_HPP_NAMESPACE::DeviceQueueInfo2 const & queueInfo ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SamplerYcbcrConversion>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SamplerYcbcrConversion>::Type
         createSamplerYcbcrConversion( VULKAN_HPP_NAMESPACE::SamplerYcbcrConversionCreateInfo const &                  createInfo,
                                       VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorUpdateTemplate>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorUpdateTemplate>::Type
         createDescriptorUpdateTemplate( VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplateCreateInfo const &                createInfo,
                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -3870,9 +4033,10 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_VERSION_1_2 ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
-                           createRenderPass2( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo2 const &                             createInfo,
-                                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
+        createRenderPass2( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo2 const &                             createInfo,
+                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::Result waitSemaphores( const VULKAN_HPP_NAMESPACE::SemaphoreWaitInfo & waitInfo, uint64_t timeout ) const;
@@ -3890,7 +4054,7 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_VERSION_1_3 ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PrivateDataSlot>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PrivateDataSlot>::Type
         createPrivateDataSlot( VULKAN_HPP_NAMESPACE::PrivateDataSlotCreateInfo const &                         createInfo,
                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -3921,10 +4085,34 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::SparseImageMemoryRequirements2>
                            getImageSparseMemoryRequirements( const VULKAN_HPP_NAMESPACE::DeviceImageMemoryRequirements & info ) const;
 
+      //=== VK_VERSION_1_4 ===
+
+      VULKAN_HPP_NODISCARD void * mapMemory2( const VULKAN_HPP_NAMESPACE::MemoryMapInfo & memoryMapInfo ) const;
+
+      void unmapMemory2( const VULKAN_HPP_NAMESPACE::MemoryUnmapInfo & memoryUnmapInfo ) const;
+
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::Extent2D
+                           getRenderingAreaGranularity( const VULKAN_HPP_NAMESPACE::RenderingAreaInfo & renderingAreaInfo ) const VULKAN_HPP_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::SubresourceLayout2
+                           getImageSubresourceLayout( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfo & info ) const VULKAN_HPP_NOEXCEPT;
+
+      template <typename X, typename Y, typename... Z>
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
+                           getImageSubresourceLayout( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfo & info ) const VULKAN_HPP_NOEXCEPT;
+
+      void copyMemoryToImage( const VULKAN_HPP_NAMESPACE::CopyMemoryToImageInfo & copyMemoryToImageInfo ) const;
+
+      void copyImageToMemory( const VULKAN_HPP_NAMESPACE::CopyImageToMemoryInfo & copyImageToMemoryInfo ) const;
+
+      void copyImageToImage( const VULKAN_HPP_NAMESPACE::CopyImageToImageInfo & copyImageToImageInfo ) const;
+
+      void transitionImageLayout( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::HostImageLayoutTransitionInfo> const & transitions ) const;
+
       //=== VK_KHR_swapchain ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>::Type
         createSwapchainKHR( VULKAN_HPP_NAMESPACE::SwapchainCreateInfoKHR const &                            createInfo,
                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -3939,13 +4127,13 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_KHR_display_swapchain ===
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>>::Type
         createSharedSwapchainsKHR( VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::SwapchainCreateInfoKHR> const & createInfos,
                                    VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks>        allocator = nullptr ) const;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>::Type
         createSharedSwapchainKHR( VULKAN_HPP_NAMESPACE::SwapchainCreateInfoKHR const &                            createInfo,
                                   VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -3959,26 +4147,27 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_KHR_video_queue ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionKHR>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionKHR>::Type
         createVideoSessionKHR( VULKAN_HPP_NAMESPACE::VideoSessionCreateInfoKHR const &                         createInfo,
                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionParametersKHR>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionParametersKHR>::Type
         createVideoSessionParametersKHR( VULKAN_HPP_NAMESPACE::VideoSessionParametersCreateInfoKHR const &               createInfo,
                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       //=== VK_NVX_binary_import ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuModuleNVX>::Type
-                           createCuModuleNVX( VULKAN_HPP_NAMESPACE::CuModuleCreateInfoNVX const &                             createInfo,
-                                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuModuleNVX>::Type
+        createCuModuleNVX( VULKAN_HPP_NAMESPACE::CuModuleCreateInfoNVX const &                             createInfo,
+                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuFunctionNVX>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuFunctionNVX>::Type
         createCuFunctionNVX( VULKAN_HPP_NAMESPACE::CuFunctionCreateInfoNVX const &                           createInfo,
                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -3986,6 +4175,8 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_NVX_image_view_handle ===
 
       VULKAN_HPP_NODISCARD uint32_t getImageViewHandleNVX( const VULKAN_HPP_NAMESPACE::ImageViewHandleInfoNVX & info ) const VULKAN_HPP_NOEXCEPT;
+
+      VULKAN_HPP_NODISCARD uint64_t getImageViewHandle64NVX( const VULKAN_HPP_NAMESPACE::ImageViewHandleInfoNVX & info ) const VULKAN_HPP_NOEXCEPT;
 
       //=== VK_KHR_device_group ===
 
@@ -4024,8 +4215,8 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_KHR_descriptor_update_template ===
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorUpdateTemplate>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorUpdateTemplate>::Type
         createDescriptorUpdateTemplateKHR( VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplateCreateInfo const &                createInfo,
                                            VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -4038,15 +4229,17 @@ namespace VULKAN_HPP_NAMESPACE
 
       void displayPowerControlEXT( VULKAN_HPP_NAMESPACE::DisplayKHR display, const VULKAN_HPP_NAMESPACE::DisplayPowerInfoEXT & displayPowerInfo ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
-                           registerEventEXT( VULKAN_HPP_NAMESPACE::DeviceEventInfoEXT const &                                deviceEventInfo,
-                                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
+        registerEventEXT( VULKAN_HPP_NAMESPACE::DeviceEventInfoEXT const &                                deviceEventInfo,
+                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
-                           registerDisplayEventEXT( VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR const &             display,
-                                                    VULKAN_HPP_NAMESPACE::DisplayEventInfoEXT const &                               displayEventInfo,
-                                                    VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
+        registerDisplayEventEXT( VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR const &             display,
+                                 VULKAN_HPP_NAMESPACE::DisplayEventInfoEXT const &                               displayEventInfo,
+                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       //=== VK_EXT_hdr_metadata ===
@@ -4056,9 +4249,10 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_KHR_create_renderpass2 ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
-                           createRenderPass2KHR( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo2 const &                             createInfo,
-                                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
+        createRenderPass2KHR( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo2 const &                             createInfo,
+                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
@@ -4105,17 +4299,18 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_AMDX_shader_enqueue ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
         createExecutionGraphPipelinesAMDX(
           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
           VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::ExecutionGraphPipelineCreateInfoAMDX> const &         createInfos,
           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks>                              allocator = nullptr ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
-                           createExecutionGraphPipelineAMDX(
-                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
-                             VULKAN_HPP_NAMESPACE::ExecutionGraphPipelineCreateInfoAMDX const &                                           createInfo,
-                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+        createExecutionGraphPipelineAMDX(
+          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
+          VULKAN_HPP_NAMESPACE::ExecutionGraphPipelineCreateInfoAMDX const &                                           createInfo,
+          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 #  endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
       //=== VK_KHR_get_memory_requirements2 ===
@@ -4139,8 +4334,8 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_KHR_acceleration_structure ===
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureKHR>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureKHR>::Type
         createAccelerationStructureKHR( VULKAN_HPP_NAMESPACE::AccelerationStructureCreateInfoKHR const &                createInfo,
                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -4189,24 +4384,25 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_KHR_ray_tracing_pipeline ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
         createRayTracingPipelinesKHR(
           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR> const & deferredOperation,
           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const &        pipelineCache,
           VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::RayTracingPipelineCreateInfoKHR> const &                     createInfos,
           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks>                                     allocator = nullptr ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
-                           createRayTracingPipelineKHR(
-                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR> const & deferredOperation,
-                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const &        pipelineCache,
-                             VULKAN_HPP_NAMESPACE::RayTracingPipelineCreateInfoKHR const &                                                       createInfo,
-                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+        createRayTracingPipelineKHR(
+          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR> const & deferredOperation,
+          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const &        pipelineCache,
+          VULKAN_HPP_NAMESPACE::RayTracingPipelineCreateInfoKHR const &                                                       createInfo,
+          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       //=== VK_KHR_sampler_ycbcr_conversion ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SamplerYcbcrConversion>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SamplerYcbcrConversion>::Type
         createSamplerYcbcrConversionKHR( VULKAN_HPP_NAMESPACE::SamplerYcbcrConversionCreateInfo const &                  createInfo,
                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -4224,15 +4420,15 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_EXT_validation_cache ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ValidationCacheEXT>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ValidationCacheEXT>::Type
         createValidationCacheEXT( VULKAN_HPP_NAMESPACE::ValidationCacheCreateInfoEXT const &                      createInfo,
                                   VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       //=== VK_NV_ray_tracing ===
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureNV>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureNV>::Type
         createAccelerationStructureNV( VULKAN_HPP_NAMESPACE::AccelerationStructureCreateInfoNV const &                 createInfo,
                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -4248,12 +4444,13 @@ namespace VULKAN_HPP_NAMESPACE
         VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::BindAccelerationStructureMemoryInfoNV> const & bindInfos ) const;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
         createRayTracingPipelinesNV( VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
                                      VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::RayTracingPipelineCreateInfoNV> const &               createInfos,
                                      VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
         createRayTracingPipelineNV( VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
                                     VULKAN_HPP_NAMESPACE::RayTracingPipelineCreateInfoNV const &                                                 createInfo,
                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
@@ -4293,8 +4490,8 @@ namespace VULKAN_HPP_NAMESPACE
 
       void uninitializePerformanceApiINTEL() const VULKAN_HPP_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PerformanceConfigurationINTEL>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PerformanceConfigurationINTEL>::Type
         acquirePerformanceConfigurationINTEL( VULKAN_HPP_NAMESPACE::PerformanceConfigurationAcquireInfoINTEL const & acquireInfo ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
@@ -4326,7 +4523,7 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_KHR_deferred_host_operations ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR>::Type
         createDeferredOperationKHR( VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
@@ -4343,19 +4540,19 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_EXT_host_image_copy ===
 
-      void copyMemoryToImageEXT( const VULKAN_HPP_NAMESPACE::CopyMemoryToImageInfoEXT & copyMemoryToImageInfo ) const;
+      void copyMemoryToImageEXT( const VULKAN_HPP_NAMESPACE::CopyMemoryToImageInfo & copyMemoryToImageInfo ) const;
 
-      void copyImageToMemoryEXT( const VULKAN_HPP_NAMESPACE::CopyImageToMemoryInfoEXT & copyImageToMemoryInfo ) const;
+      void copyImageToMemoryEXT( const VULKAN_HPP_NAMESPACE::CopyImageToMemoryInfo & copyImageToMemoryInfo ) const;
 
-      void copyImageToImageEXT( const VULKAN_HPP_NAMESPACE::CopyImageToImageInfoEXT & copyImageToImageInfo ) const;
+      void copyImageToImageEXT( const VULKAN_HPP_NAMESPACE::CopyImageToImageInfo & copyImageToImageInfo ) const;
 
-      void transitionImageLayoutEXT( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::HostImageLayoutTransitionInfoEXT> const & transitions ) const;
+      void transitionImageLayoutEXT( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::HostImageLayoutTransitionInfo> const & transitions ) const;
 
       //=== VK_KHR_map_memory2 ===
 
-      VULKAN_HPP_NODISCARD void * mapMemory2KHR( const VULKAN_HPP_NAMESPACE::MemoryMapInfoKHR & memoryMapInfo ) const;
+      VULKAN_HPP_NODISCARD void * mapMemory2KHR( const VULKAN_HPP_NAMESPACE::MemoryMapInfo & memoryMapInfo ) const;
 
-      void unmapMemory2KHR( const VULKAN_HPP_NAMESPACE::MemoryUnmapInfoKHR & memoryUnmapInfo ) const;
+      void unmapMemory2KHR( const VULKAN_HPP_NAMESPACE::MemoryUnmapInfo & memoryUnmapInfo ) const;
 
       //=== VK_EXT_swapchain_maintenance1 ===
 
@@ -4370,8 +4567,8 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
         getGeneratedCommandsMemoryRequirementsNV( const VULKAN_HPP_NAMESPACE::GeneratedCommandsMemoryRequirementsInfoNV & info ) const VULKAN_HPP_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutNV>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutNV>::Type
         createIndirectCommandsLayoutNV( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutCreateInfoNV const &                createInfo,
                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -4379,7 +4576,7 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_EXT_private_data ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PrivateDataSlot>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PrivateDataSlot>::Type
         createPrivateDataSlotEXT( VULKAN_HPP_NAMESPACE::PrivateDataSlotCreateInfo const &                         createInfo,
                                   VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -4410,13 +4607,13 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_NV_cuda_kernel_launch ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaModuleNV>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaModuleNV>::Type
         createCudaModuleNV( VULKAN_HPP_NAMESPACE::CudaModuleCreateInfoNV const &                            createInfo,
                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaFunctionNV>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaFunctionNV>::Type
         createCudaFunctionNV( VULKAN_HPP_NAMESPACE::CudaFunctionCreateInfoNV const &                          createInfo,
                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -4481,8 +4678,8 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
       //=== VK_FUCHSIA_buffer_collection ===
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferCollectionFUCHSIA>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferCollectionFUCHSIA>::Type
         createBufferCollectionFUCHSIA( VULKAN_HPP_NAMESPACE::BufferCollectionCreateInfoFUCHSIA const &                 createInfo,
                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -4499,9 +4696,10 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_EXT_opacity_micromap ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::MicromapEXT>::Type
-                           createMicromapEXT( VULKAN_HPP_NAMESPACE::MicromapCreateInfoEXT const &                             createInfo,
-                                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::MicromapEXT>::Type
+        createMicromapEXT( VULKAN_HPP_NAMESPACE::MicromapCreateInfoEXT const &                             createInfo,
+                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::Result
@@ -4580,7 +4778,7 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_NV_optical_flow ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::OpticalFlowSessionNV>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::OpticalFlowSessionNV>::Type
         createOpticalFlowSessionNV( VULKAN_HPP_NAMESPACE::OpticalFlowSessionCreateInfoNV const &                    createInfo,
                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
@@ -4588,14 +4786,14 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_KHR_maintenance5 ===
 
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::Extent2D
-                           getRenderingAreaGranularityKHR( const VULKAN_HPP_NAMESPACE::RenderingAreaInfoKHR & renderingAreaInfo ) const VULKAN_HPP_NOEXCEPT;
+                           getRenderingAreaGranularityKHR( const VULKAN_HPP_NAMESPACE::RenderingAreaInfo & renderingAreaInfo ) const VULKAN_HPP_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR
-                           getImageSubresourceLayoutKHR( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfoKHR & info ) const VULKAN_HPP_NOEXCEPT;
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::SubresourceLayout2
+                           getImageSubresourceLayoutKHR( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfo & info ) const VULKAN_HPP_NOEXCEPT;
 
       template <typename X, typename Y, typename... Z>
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
-                           getImageSubresourceLayoutKHR( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfoKHR & info ) const VULKAN_HPP_NOEXCEPT;
+                           getImageSubresourceLayoutKHR( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfo & info ) const VULKAN_HPP_NOEXCEPT;
 
       //=== VK_AMD_anti_lag ===
 
@@ -4604,19 +4802,20 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_EXT_shader_object ===
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>>::Type
         createShadersEXT( VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::ShaderCreateInfoEXT> const & createInfos,
                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks>     allocator = nullptr ) const;
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>::Type
-                           createShaderEXT( VULKAN_HPP_NAMESPACE::ShaderCreateInfoEXT const &                               createInfo,
-                                            VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
+      VULKAN_HPP_NODISCARD
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>::Type
+        createShaderEXT( VULKAN_HPP_NAMESPACE::ShaderCreateInfoEXT const &                               createInfo,
+                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       //=== VK_KHR_pipeline_binary ===
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineBinaryKHR>>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineBinaryKHR>>::Type
         createPipelineBinariesKHR( VULKAN_HPP_NAMESPACE::PipelineBinaryCreateInfoKHR const &                       createInfo,
                                    VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const;
 
@@ -4661,22 +4860,28 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
         getGeneratedCommandsMemoryRequirementsEXT( const VULKAN_HPP_NAMESPACE::GeneratedCommandsMemoryRequirementsInfoEXT & info ) const VULKAN_HPP_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutEXT>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutEXT>::Type
         createIndirectCommandsLayoutEXT( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutCreateInfoEXT const &               createInfo,
                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
-      VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectExecutionSetEXT>::Type
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectExecutionSetEXT>::Type
         createIndirectExecutionSetEXT( VULKAN_HPP_NAMESPACE::IndirectExecutionSetCreateInfoEXT const &                 createInfo,
                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                                       m_device    = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                  m_allocator = {};
-      std::unique_ptr<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher> m_dispatcher;
+      VULKAN_HPP_NAMESPACE::Device                                                               m_device    = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                          m_allocator = {};
+      std::unique_ptr<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher> m_dispatcher;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Device>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class AccelerationStructureKHR
@@ -4778,7 +4983,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -4793,10 +4998,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device                = {};
-      VULKAN_HPP_NAMESPACE::AccelerationStructureKHR                            m_accelerationStructure = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator             = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher            = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device                = {};
+      VULKAN_HPP_NAMESPACE::AccelerationStructureKHR                                    m_accelerationStructure = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator             = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher            = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureKHR>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class AccelerationStructureNV
@@ -4898,7 +5109,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -4921,10 +5132,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD DataType getHandle() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device                = {};
-      VULKAN_HPP_NAMESPACE::AccelerationStructureNV                             m_accelerationStructure = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator             = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher            = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device                = {};
+      VULKAN_HPP_NAMESPACE::AccelerationStructureNV                                     m_accelerationStructure = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator             = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher            = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureNV>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Buffer
@@ -5025,7 +5242,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -5046,10 +5263,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::MemoryRequirements getMemoryRequirements() const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::Buffer                                              m_buffer     = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::Buffer                                                      m_buffer     = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Buffer>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
@@ -5152,7 +5375,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -5175,11 +5398,18 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::BufferCollectionPropertiesFUCHSIA getProperties() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::BufferCollectionFUCHSIA                             m_collection = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::BufferCollectionFUCHSIA                                     m_collection = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
     };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferCollectionFUCHSIA>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
+    };
+
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
     class BufferView
@@ -5280,7 +5510,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -5295,10 +5525,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::BufferView                                          m_bufferView = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::BufferView                                                  m_bufferView = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferView>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class CommandPool
@@ -5399,7 +5635,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -5426,10 +5662,16 @@ namespace VULKAN_HPP_NAMESPACE
       void trimKHR( VULKAN_HPP_NAMESPACE::CommandPoolTrimFlags flags VULKAN_HPP_DEFAULT_ARGUMENT_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device      = {};
-      VULKAN_HPP_NAMESPACE::CommandPool                                         m_commandPool = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator   = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher  = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device      = {};
+      VULKAN_HPP_NAMESPACE::CommandPool                                                 m_commandPool = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator   = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher  = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandPool>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class CommandBuffer
@@ -5516,7 +5758,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -5805,6 +6047,41 @@ namespace VULKAN_HPP_NAMESPACE
       void setDepthBiasEnable( VULKAN_HPP_NAMESPACE::Bool32 depthBiasEnable ) const VULKAN_HPP_NOEXCEPT;
 
       void setPrimitiveRestartEnable( VULKAN_HPP_NAMESPACE::Bool32 primitiveRestartEnable ) const VULKAN_HPP_NOEXCEPT;
+
+      //=== VK_VERSION_1_4 ===
+
+      void setLineStipple( uint32_t lineStippleFactor, uint16_t lineStipplePattern ) const VULKAN_HPP_NOEXCEPT;
+
+      void bindIndexBuffer2( VULKAN_HPP_NAMESPACE::Buffer     buffer,
+                             VULKAN_HPP_NAMESPACE::DeviceSize offset,
+                             VULKAN_HPP_NAMESPACE::DeviceSize size,
+                             VULKAN_HPP_NAMESPACE::IndexType  indexType ) const VULKAN_HPP_NOEXCEPT;
+
+      void pushDescriptorSet( VULKAN_HPP_NAMESPACE::PipelineBindPoint                                                  pipelineBindPoint,
+                              VULKAN_HPP_NAMESPACE::PipelineLayout                                                     layout,
+                              uint32_t                                                                                 set,
+                              VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::WriteDescriptorSet> const & descriptorWrites ) const
+        VULKAN_HPP_NOEXCEPT;
+
+      template <typename DataType>
+      void pushDescriptorSetWithTemplate( VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplate descriptorUpdateTemplate,
+                                          VULKAN_HPP_NAMESPACE::PipelineLayout           layout,
+                                          uint32_t                                       set,
+                                          DataType const &                               data ) const VULKAN_HPP_NOEXCEPT;
+
+      void setRenderingAttachmentLocations( const VULKAN_HPP_NAMESPACE::RenderingAttachmentLocationInfo & locationInfo ) const VULKAN_HPP_NOEXCEPT;
+
+      void setRenderingInputAttachmentIndices( const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfo & inputAttachmentIndexInfo ) const
+        VULKAN_HPP_NOEXCEPT;
+
+      void bindDescriptorSets2( const VULKAN_HPP_NAMESPACE::BindDescriptorSetsInfo & bindDescriptorSetsInfo ) const VULKAN_HPP_NOEXCEPT;
+
+      void pushConstants2( const VULKAN_HPP_NAMESPACE::PushConstantsInfo & pushConstantsInfo ) const VULKAN_HPP_NOEXCEPT;
+
+      void pushDescriptorSet2( const VULKAN_HPP_NAMESPACE::PushDescriptorSetInfo & pushDescriptorSetInfo ) const VULKAN_HPP_NOEXCEPT;
+
+      void pushDescriptorSetWithTemplate2( const VULKAN_HPP_NAMESPACE::PushDescriptorSetWithTemplateInfo & pushDescriptorSetWithTemplateInfo ) const
+        VULKAN_HPP_NOEXCEPT;
 
       //=== VK_EXT_debug_marker ===
 
@@ -6131,9 +6408,9 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_KHR_dynamic_rendering_local_read ===
 
-      void setRenderingAttachmentLocationsKHR( const VULKAN_HPP_NAMESPACE::RenderingAttachmentLocationInfoKHR & locationInfo ) const VULKAN_HPP_NOEXCEPT;
+      void setRenderingAttachmentLocationsKHR( const VULKAN_HPP_NAMESPACE::RenderingAttachmentLocationInfo & locationInfo ) const VULKAN_HPP_NOEXCEPT;
 
-      void setRenderingInputAttachmentIndicesKHR( const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfoKHR & inputAttachmentIndexInfo ) const
+      void setRenderingInputAttachmentIndicesKHR( const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfo & inputAttachmentIndexInfo ) const
         VULKAN_HPP_NOEXCEPT;
 
       //=== VK_EXT_line_rasterization ===
@@ -6464,13 +6741,13 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_KHR_maintenance6 ===
 
-      void bindDescriptorSets2KHR( const VULKAN_HPP_NAMESPACE::BindDescriptorSetsInfoKHR & bindDescriptorSetsInfo ) const VULKAN_HPP_NOEXCEPT;
+      void bindDescriptorSets2KHR( const VULKAN_HPP_NAMESPACE::BindDescriptorSetsInfo & bindDescriptorSetsInfo ) const VULKAN_HPP_NOEXCEPT;
 
-      void pushConstants2KHR( const VULKAN_HPP_NAMESPACE::PushConstantsInfoKHR & pushConstantsInfo ) const VULKAN_HPP_NOEXCEPT;
+      void pushConstants2KHR( const VULKAN_HPP_NAMESPACE::PushConstantsInfo & pushConstantsInfo ) const VULKAN_HPP_NOEXCEPT;
 
-      void pushDescriptorSet2KHR( const VULKAN_HPP_NAMESPACE::PushDescriptorSetInfoKHR & pushDescriptorSetInfo ) const VULKAN_HPP_NOEXCEPT;
+      void pushDescriptorSet2KHR( const VULKAN_HPP_NAMESPACE::PushDescriptorSetInfo & pushDescriptorSetInfo ) const VULKAN_HPP_NOEXCEPT;
 
-      void pushDescriptorSetWithTemplate2KHR( const VULKAN_HPP_NAMESPACE::PushDescriptorSetWithTemplateInfoKHR & pushDescriptorSetWithTemplateInfo ) const
+      void pushDescriptorSetWithTemplate2KHR( const VULKAN_HPP_NAMESPACE::PushDescriptorSetWithTemplateInfo & pushDescriptorSetWithTemplateInfo ) const
         VULKAN_HPP_NOEXCEPT;
 
       void setDescriptorBufferOffsets2EXT( const VULKAN_HPP_NAMESPACE::SetDescriptorBufferOffsetsInfoEXT & setDescriptorBufferOffsetsInfo ) const
@@ -6488,10 +6765,16 @@ namespace VULKAN_HPP_NAMESPACE
                                         const VULKAN_HPP_NAMESPACE::GeneratedCommandsInfoEXT & generatedCommandsInfo ) const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device        = {};
-      VULKAN_HPP_NAMESPACE::CommandPool                                         m_commandPool   = {};
-      VULKAN_HPP_NAMESPACE::CommandBuffer                                       m_commandBuffer = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher    = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device        = {};
+      VULKAN_HPP_NAMESPACE::CommandPool                                                 m_commandPool   = {};
+      VULKAN_HPP_NAMESPACE::CommandBuffer                                               m_commandBuffer = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher    = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandBuffer>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class CommandBuffers : public std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandBuffer>
@@ -6618,7 +6901,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -6633,10 +6916,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::CuFunctionNVX                                       m_function   = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::CuFunctionNVX                                               m_function   = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuFunctionNVX>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class CuModuleNVX
@@ -6737,7 +7026,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -6752,10 +7041,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::CuModuleNVX                                         m_module     = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::CuModuleNVX                                                 m_module     = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuModuleNVX>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
 #  if defined( VK_ENABLE_BETA_EXTENSIONS )
@@ -6857,7 +7152,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -6872,11 +7167,18 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::CudaFunctionNV                                      m_function   = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::CudaFunctionNV                                              m_function   = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
     };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaFunctionNV>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
+    };
+
 #  endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
 #  if defined( VK_ENABLE_BETA_EXTENSIONS )
@@ -6978,7 +7280,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -6997,11 +7299,18 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD std::vector<uint8_t> getCache() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::CudaModuleNV                                        m_module     = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::CudaModuleNV                                                m_module     = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
     };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaModuleNV>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
+    };
+
 #  endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
     class DebugReportCallbackEXT
@@ -7103,7 +7412,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_instance;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -7118,10 +7427,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Instance                                              m_instance   = {};
-      VULKAN_HPP_NAMESPACE::DebugReportCallbackEXT                                m_callback   = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                           m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Instance                                                      m_instance   = {};
+      VULKAN_HPP_NAMESPACE::DebugReportCallbackEXT                                        m_callback   = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                   m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugReportCallbackEXT>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class DebugUtilsMessengerEXT
@@ -7223,7 +7538,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_instance;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -7238,10 +7553,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Instance                                              m_instance   = {};
-      VULKAN_HPP_NAMESPACE::DebugUtilsMessengerEXT                                m_messenger  = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                           m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Instance                                                      m_instance   = {};
+      VULKAN_HPP_NAMESPACE::DebugUtilsMessengerEXT                                        m_messenger  = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                   m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugUtilsMessengerEXT>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class DeferredOperationKHR
@@ -7342,7 +7663,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -7365,10 +7686,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::Result join() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::DeferredOperationKHR                                m_operation  = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::DeferredOperationKHR                                        m_operation  = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class DescriptorPool
@@ -7470,7 +7797,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -7489,10 +7816,16 @@ namespace VULKAN_HPP_NAMESPACE
       void reset( VULKAN_HPP_NAMESPACE::DescriptorPoolResetFlags flags VULKAN_HPP_DEFAULT_ARGUMENT_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device         = {};
-      VULKAN_HPP_NAMESPACE::DescriptorPool                                      m_descriptorPool = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator      = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher     = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device         = {};
+      VULKAN_HPP_NAMESPACE::DescriptorPool                                              m_descriptorPool = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator      = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher     = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorPool>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class DescriptorSet
@@ -7581,7 +7914,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -7610,10 +7943,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD void * getHostMappingVALVE() const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device         = {};
-      VULKAN_HPP_NAMESPACE::DescriptorPool                                      m_descriptorPool = {};
-      VULKAN_HPP_NAMESPACE::DescriptorSet                                       m_descriptorSet  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher     = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device         = {};
+      VULKAN_HPP_NAMESPACE::DescriptorPool                                              m_descriptorPool = {};
+      VULKAN_HPP_NAMESPACE::DescriptorSet                                               m_descriptorSet  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher     = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSet>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class DescriptorSets : public std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSet>
@@ -7741,7 +8080,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -7762,10 +8101,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::DeviceSize getBindingOffsetEXT( uint32_t binding ) const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device              = {};
-      VULKAN_HPP_NAMESPACE::DescriptorSetLayout                                 m_descriptorSetLayout = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator           = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher          = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device              = {};
+      VULKAN_HPP_NAMESPACE::DescriptorSetLayout                                         m_descriptorSetLayout = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator           = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher          = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSetLayout>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class DescriptorUpdateTemplate
@@ -7867,7 +8212,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -7882,10 +8227,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device                   = {};
-      VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplate                            m_descriptorUpdateTemplate = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator                = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher               = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device                   = {};
+      VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplate                                    m_descriptorUpdateTemplate = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator                = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher               = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorUpdateTemplate>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class DeviceMemory
@@ -7986,7 +8337,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -8021,10 +8372,16 @@ namespace VULKAN_HPP_NAMESPACE
       void setPriorityEXT( float priority ) const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::DeviceMemory                                        m_memory     = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::DeviceMemory                                                m_memory     = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceMemory>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class DisplayKHR
@@ -8131,7 +8488,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_physicalDevice;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -8149,13 +8506,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::DisplayModePropertiesKHR> getModeProperties() const;
 
       VULKAN_HPP_NODISCARD
-        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayModeKHR>::Type
+        VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayModeKHR>::Type
         createMode( VULKAN_HPP_NAMESPACE::DisplayModeCreateInfoKHR const &                          createInfo,
                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       //=== VK_KHR_get_display_properties2 ===
 
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::DisplayModeProperties2KHR> getModeProperties2() const;
+
+      template <typename StructureChain>
+      VULKAN_HPP_NODISCARD std::vector<StructureChain> getModeProperties2() const;
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
       //=== VK_NV_acquire_winrt_display ===
@@ -8164,9 +8524,15 @@ namespace VULKAN_HPP_NAMESPACE
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
     private:
-      VULKAN_HPP_NAMESPACE::PhysicalDevice                                        m_physicalDevice = {};
-      VULKAN_HPP_NAMESPACE::DisplayKHR                                            m_display        = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * m_dispatcher     = nullptr;
+      VULKAN_HPP_NAMESPACE::PhysicalDevice                                                m_physicalDevice = {};
+      VULKAN_HPP_NAMESPACE::DisplayKHR                                                    m_display        = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * m_dispatcher     = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class DisplayKHRs : public std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>
@@ -8279,7 +8645,7 @@ namespace VULKAN_HPP_NAMESPACE
         return VULKAN_HPP_NAMESPACE::exchange( m_displayModeKHR, nullptr );
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -8297,9 +8663,15 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::DisplayPlaneCapabilitiesKHR getDisplayPlaneCapabilities( uint32_t planeIndex ) const;
 
     private:
-      VULKAN_HPP_NAMESPACE::PhysicalDevice                                        m_physicalDevice = {};
-      VULKAN_HPP_NAMESPACE::DisplayModeKHR                                        m_displayModeKHR = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * m_dispatcher     = nullptr;
+      VULKAN_HPP_NAMESPACE::PhysicalDevice                                                m_physicalDevice = {};
+      VULKAN_HPP_NAMESPACE::DisplayModeKHR                                                m_displayModeKHR = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * m_dispatcher     = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayModeKHR>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Event
@@ -8400,7 +8772,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -8423,10 +8795,16 @@ namespace VULKAN_HPP_NAMESPACE
       void reset() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::Event                                               m_event      = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::Event                                                       m_event      = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Event>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Fence
@@ -8546,7 +8924,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -8565,10 +8943,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::Result getStatus() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::Fence                                               m_fence      = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::Fence                                                       m_fence      = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Framebuffer
@@ -8669,7 +9053,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -8688,10 +9072,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::TilePropertiesQCOM> getTilePropertiesQCOM() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device      = {};
-      VULKAN_HPP_NAMESPACE::Framebuffer                                         m_framebuffer = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator   = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher  = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device      = {};
+      VULKAN_HPP_NAMESPACE::Framebuffer                                                 m_framebuffer = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator   = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher  = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Framebuffer>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Image
@@ -8792,7 +9182,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -8817,33 +9207,48 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::SubresourceLayout
                            getSubresourceLayout( const VULKAN_HPP_NAMESPACE::ImageSubresource & subresource ) const VULKAN_HPP_NOEXCEPT;
 
+      //=== VK_VERSION_1_4 ===
+
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::SubresourceLayout2
+                           getSubresourceLayout2( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT;
+
+      template <typename X, typename Y, typename... Z>
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
+                           getSubresourceLayout2( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT;
+
       //=== VK_EXT_image_drm_format_modifier ===
 
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::ImageDrmFormatModifierPropertiesEXT getDrmFormatModifierPropertiesEXT() const;
 
       //=== VK_EXT_host_image_copy ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR
-                           getSubresourceLayout2EXT( const VULKAN_HPP_NAMESPACE::ImageSubresource2KHR & subresource ) const VULKAN_HPP_NOEXCEPT;
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::SubresourceLayout2
+                           getSubresourceLayout2EXT( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT;
 
       template <typename X, typename Y, typename... Z>
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
-                           getSubresourceLayout2EXT( const VULKAN_HPP_NAMESPACE::ImageSubresource2KHR & subresource ) const VULKAN_HPP_NOEXCEPT;
+                           getSubresourceLayout2EXT( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT;
 
       //=== VK_KHR_maintenance5 ===
 
-      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR
-                           getSubresourceLayout2KHR( const VULKAN_HPP_NAMESPACE::ImageSubresource2KHR & subresource ) const VULKAN_HPP_NOEXCEPT;
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::SubresourceLayout2
+                           getSubresourceLayout2KHR( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT;
 
       template <typename X, typename Y, typename... Z>
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
-                           getSubresourceLayout2KHR( const VULKAN_HPP_NAMESPACE::ImageSubresource2KHR & subresource ) const VULKAN_HPP_NOEXCEPT;
+                           getSubresourceLayout2KHR( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::Image                                               m_image      = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::Image                                                       m_image      = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Image>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class ImageView
@@ -8944,7 +9349,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -8963,10 +9368,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::ImageViewAddressPropertiesNVX getAddressNVX() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::ImageView                                           m_imageView  = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::ImageView                                                   m_imageView  = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ImageView>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class IndirectCommandsLayoutEXT
@@ -9068,7 +9479,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -9083,10 +9494,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device                 = {};
-      VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT                           m_indirectCommandsLayout = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator              = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher             = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device                 = {};
+      VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT                                   m_indirectCommandsLayout = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator              = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher             = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutEXT>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class IndirectCommandsLayoutNV
@@ -9188,7 +9605,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -9203,10 +9620,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device                 = {};
-      VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutNV                            m_indirectCommandsLayout = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator              = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher             = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device                 = {};
+      VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutNV                                    m_indirectCommandsLayout = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator              = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher             = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutNV>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class IndirectExecutionSetEXT
@@ -9308,7 +9731,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -9331,10 +9754,16 @@ namespace VULKAN_HPP_NAMESPACE
         VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device               = {};
-      VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT                             m_indirectExecutionSet = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator            = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher           = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device               = {};
+      VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT                                     m_indirectExecutionSet = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator            = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher           = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectExecutionSetEXT>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class MicromapEXT
@@ -9435,7 +9864,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -9450,10 +9879,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::MicromapEXT                                         m_micromap   = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::MicromapEXT                                                 m_micromap   = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::MicromapEXT>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class OpticalFlowSessionNV
@@ -9555,7 +9990,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -9576,10 +10011,16 @@ namespace VULKAN_HPP_NAMESPACE
                       VULKAN_HPP_NAMESPACE::ImageLayout                      layout ) const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::OpticalFlowSessionNV                                m_session    = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::OpticalFlowSessionNV                                        m_session    = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::OpticalFlowSessionNV>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class PerformanceConfigurationINTEL
@@ -9670,7 +10111,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -9684,9 +10125,15 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device        = {};
-      VULKAN_HPP_NAMESPACE::PerformanceConfigurationINTEL                       m_configuration = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher    = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device        = {};
+      VULKAN_HPP_NAMESPACE::PerformanceConfigurationINTEL                               m_configuration = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher    = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PerformanceConfigurationINTEL>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class PipelineCache
@@ -9788,7 +10235,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -9809,10 +10256,16 @@ namespace VULKAN_HPP_NAMESPACE
       void merge( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::PipelineCache> const & srcCaches ) const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device        = {};
-      VULKAN_HPP_NAMESPACE::PipelineCache                                       m_pipelineCache = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator     = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher    = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device        = {};
+      VULKAN_HPP_NAMESPACE::PipelineCache                                               m_pipelineCache = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator     = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher    = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Pipeline
@@ -9968,7 +10421,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -10025,11 +10478,17 @@ namespace VULKAN_HPP_NAMESPACE
       void compileDeferredNV( uint32_t shader ) const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device                 = {};
-      VULKAN_HPP_NAMESPACE::Pipeline                                            m_pipeline               = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator              = {};
-      VULKAN_HPP_NAMESPACE::Result                                              m_constructorSuccessCode = VULKAN_HPP_NAMESPACE::Result::eErrorUnknown;
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher             = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device                 = {};
+      VULKAN_HPP_NAMESPACE::Pipeline                                                    m_pipeline               = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator              = {};
+      VULKAN_HPP_NAMESPACE::Result                                                      m_constructorSuccessCode = VULKAN_HPP_NAMESPACE::Result::eErrorUnknown;
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher             = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Pipelines : public std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>
@@ -10204,7 +10663,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -10220,11 +10679,17 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device                 = {};
-      VULKAN_HPP_NAMESPACE::PipelineBinaryKHR                                   m_pipelineBinary         = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator              = {};
-      VULKAN_HPP_NAMESPACE::Result                                              m_constructorSuccessCode = VULKAN_HPP_NAMESPACE::Result::eErrorUnknown;
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher             = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device                 = {};
+      VULKAN_HPP_NAMESPACE::PipelineBinaryKHR                                           m_pipelineBinary         = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator              = {};
+      VULKAN_HPP_NAMESPACE::Result                                                      m_constructorSuccessCode = VULKAN_HPP_NAMESPACE::Result::eErrorUnknown;
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher             = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineBinaryKHR>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class PipelineBinaryKHRs : public std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineBinaryKHR>
@@ -10353,7 +10818,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -10368,10 +10833,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device         = {};
-      VULKAN_HPP_NAMESPACE::PipelineLayout                                      m_pipelineLayout = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator      = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher     = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device         = {};
+      VULKAN_HPP_NAMESPACE::PipelineLayout                                              m_pipelineLayout = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator      = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher     = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineLayout>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class PrivateDataSlot
@@ -10473,7 +10944,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -10488,10 +10959,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device          = {};
-      VULKAN_HPP_NAMESPACE::PrivateDataSlot                                     m_privateDataSlot = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator       = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher      = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device          = {};
+      VULKAN_HPP_NAMESPACE::PrivateDataSlot                                             m_privateDataSlot = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator       = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher      = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PrivateDataSlot>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class QueryPool
@@ -10592,7 +11069,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -10632,10 +11109,16 @@ namespace VULKAN_HPP_NAMESPACE
       void resetEXT( uint32_t firstQuery, uint32_t queryCount ) const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::QueryPool                                           m_queryPool  = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::QueryPool                                                   m_queryPool  = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::QueryPool>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Queue
@@ -10723,7 +11206,7 @@ namespace VULKAN_HPP_NAMESPACE
         return VULKAN_HPP_NAMESPACE::exchange( m_queue, nullptr );
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -10782,8 +11265,14 @@ namespace VULKAN_HPP_NAMESPACE
       void notifyOutOfBandNV( const VULKAN_HPP_NAMESPACE::OutOfBandQueueTypeInfoNV & queueTypeInfo ) const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Queue                                               m_queue      = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Queue                                                       m_queue      = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class RenderPass
@@ -10893,7 +11382,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -10916,10 +11405,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::Extent2D getSubpassShadingMaxWorkgroupSizeHUAWEI() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::RenderPass                                          m_renderPass = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::RenderPass                                                  m_renderPass = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Sampler
@@ -11020,7 +11515,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -11035,10 +11530,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::Sampler                                             m_sampler    = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::Sampler                                                     m_sampler    = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Sampler>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class SamplerYcbcrConversion
@@ -11140,7 +11641,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -11155,10 +11656,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device          = {};
-      VULKAN_HPP_NAMESPACE::SamplerYcbcrConversion                              m_ycbcrConversion = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator       = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher      = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device          = {};
+      VULKAN_HPP_NAMESPACE::SamplerYcbcrConversion                                      m_ycbcrConversion = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator       = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher      = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SamplerYcbcrConversion>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class Semaphore
@@ -11259,7 +11766,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -11282,10 +11789,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD uint64_t getCounterValueKHR() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::Semaphore                                           m_semaphore  = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::Semaphore                                                   m_semaphore  = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Semaphore>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class ShaderEXT
@@ -11397,7 +11910,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -11417,11 +11930,17 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD std::vector<uint8_t> getBinaryData() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device                 = {};
-      VULKAN_HPP_NAMESPACE::ShaderEXT                                           m_shader                 = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator              = {};
-      VULKAN_HPP_NAMESPACE::Result                                              m_constructorSuccessCode = VULKAN_HPP_NAMESPACE::Result::eErrorUnknown;
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher             = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device                 = {};
+      VULKAN_HPP_NAMESPACE::ShaderEXT                                                   m_shader                 = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator              = {};
+      VULKAN_HPP_NAMESPACE::Result                                                      m_constructorSuccessCode = VULKAN_HPP_NAMESPACE::Result::eErrorUnknown;
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher             = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class ShaderEXTs : public std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>
@@ -11549,7 +12068,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -11568,10 +12087,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::ShaderModuleIdentifierEXT getIdentifierEXT() const VULKAN_HPP_NOEXCEPT;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device       = {};
-      VULKAN_HPP_NAMESPACE::ShaderModule                                        m_shaderModule = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator    = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher   = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device       = {};
+      VULKAN_HPP_NAMESPACE::ShaderModule                                                m_shaderModule = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator    = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher   = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderModule>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class SurfaceKHR
@@ -11824,7 +12349,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_instance;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -11839,10 +12364,16 @@ namespace VULKAN_HPP_NAMESPACE
       }
 
     private:
-      VULKAN_HPP_NAMESPACE::Instance                                              m_instance   = {};
-      VULKAN_HPP_NAMESPACE::SurfaceKHR                                            m_surface    = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                           m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::InstanceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Instance                                                      m_instance   = {};
+      VULKAN_HPP_NAMESPACE::SurfaceKHR                                                    m_surface    = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                   m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::InstanceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class SwapchainKHR
@@ -11943,7 +12474,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -12007,10 +12538,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::LatencyTimingsFrameReportNV> getLatencyTimingsNV() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device     = {};
-      VULKAN_HPP_NAMESPACE::SwapchainKHR                                        m_swapchain  = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator  = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device     = {};
+      VULKAN_HPP_NAMESPACE::SwapchainKHR                                                m_swapchain  = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator  = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class SwapchainKHRs : public std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>
@@ -12139,7 +12676,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -12160,10 +12697,16 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD std::vector<uint8_t> getData() const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device          = {};
-      VULKAN_HPP_NAMESPACE::ValidationCacheEXT                                  m_validationCache = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator       = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher      = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device          = {};
+      VULKAN_HPP_NAMESPACE::ValidationCacheEXT                                          m_validationCache = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator       = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher      = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ValidationCacheEXT>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class VideoSessionKHR
@@ -12265,7 +12808,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -12286,10 +12829,16 @@ namespace VULKAN_HPP_NAMESPACE
       void bindMemory( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::BindVideoSessionMemoryInfoKHR> const & bindSessionMemoryInfos ) const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device       = {};
-      VULKAN_HPP_NAMESPACE::VideoSessionKHR                                     m_videoSession = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator    = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher   = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device       = {};
+      VULKAN_HPP_NAMESPACE::VideoSessionKHR                                             m_videoSession = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator    = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher   = nullptr;
+    };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionKHR>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
     };
 
     class VideoSessionParametersKHR
@@ -12391,7 +12940,7 @@ namespace VULKAN_HPP_NAMESPACE
         return m_device;
       }
 
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * getDispatcher() const
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * getDispatcher() const
       {
         VULKAN_HPP_ASSERT( m_dispatcher->getVkHeaderVersion() == VK_HEADER_VERSION );
         return m_dispatcher;
@@ -12410,11 +12959,68 @@ namespace VULKAN_HPP_NAMESPACE
       void update( const VULKAN_HPP_NAMESPACE::VideoSessionParametersUpdateInfoKHR & updateInfo ) const;
 
     private:
-      VULKAN_HPP_NAMESPACE::Device                                              m_device                 = {};
-      VULKAN_HPP_NAMESPACE::VideoSessionParametersKHR                           m_videoSessionParameters = {};
-      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                         m_allocator              = {};
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceDispatcher const * m_dispatcher             = nullptr;
+      VULKAN_HPP_NAMESPACE::Device                                                      m_device                 = {};
+      VULKAN_HPP_NAMESPACE::VideoSessionParametersKHR                                   m_videoSessionParameters = {};
+      const VULKAN_HPP_NAMESPACE::AllocationCallbacks *                                 m_allocator              = {};
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::DeviceDispatcher const * m_dispatcher             = nullptr;
     };
+
+    template <>
+    struct isVulkanRAIIHandleType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionParametersKHR>
+    {
+      static VULKAN_HPP_CONST_OR_CONSTEXPR bool value = true;
+    };
+
+    // operators to compare vk::raii-handles
+#  if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    template <typename T, typename std::enable_if<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::isVulkanRAIIHandleType<T>::value, bool>::type = 0>
+    auto operator<=>( T const & a, T const & b ) VULKAN_HPP_NOEXCEPT
+    {
+      return *a <=> *b;
+    }
+#  else
+    template <typename T, typename std::enable_if<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::isVulkanRAIIHandleType<T>::value, bool>::type = 0>
+    bool operator==( T const & a, T const & b ) VULKAN_HPP_NOEXCEPT
+    {
+      return *a == *b;
+    }
+
+    template <typename T, typename std::enable_if<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::isVulkanRAIIHandleType<T>::value, bool>::type = 0>
+    bool operator!=( T const & a, T const & b ) VULKAN_HPP_NOEXCEPT
+    {
+      return *a != *b;
+    }
+
+    template <typename T, typename std::enable_if<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::isVulkanRAIIHandleType<T>::value, bool>::type = 0>
+    bool operator<( T const & a, T const & b ) VULKAN_HPP_NOEXCEPT
+    {
+      return *a < *b;
+    }
+#  endif
+
+    template <typename T, typename std::enable_if<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::isVulkanRAIIHandleType<T>::value, bool>::type = 0>
+    bool operator==( const T & v, std::nullptr_t ) VULKAN_HPP_NOEXCEPT
+    {
+      return !*v;
+    }
+
+    template <typename T, typename std::enable_if<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::isVulkanRAIIHandleType<T>::value, bool>::type = 0>
+    bool operator==( std::nullptr_t, const T & v ) VULKAN_HPP_NOEXCEPT
+    {
+      return !*v;
+    }
+
+    template <typename T, typename std::enable_if<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::isVulkanRAIIHandleType<T>::value, bool>::type = 0>
+    bool operator!=( const T & v, std::nullptr_t ) VULKAN_HPP_NOEXCEPT
+    {
+      return *v;
+    }
+
+    template <typename T, typename std::enable_if<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::isVulkanRAIIHandleType<T>::value, bool>::type = 0>
+    bool operator!=( std::nullptr_t, const T & v ) VULKAN_HPP_NOEXCEPT
+    {
+      return *v;
+    }
 
     //===========================
     //=== COMMAND Definitions ===
@@ -12422,9 +13028,9 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_VERSION_1_0 ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Instance>::Type
-                        Context::createInstance( VULKAN_HPP_NAMESPACE::InstanceCreateInfo const &                                createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Instance>::Type
+      Context::createInstance( VULKAN_HPP_NAMESPACE::InstanceCreateInfo const &                                createInfo,
                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::Instance instance;
@@ -12444,8 +13050,8 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Instance( *this, *reinterpret_cast<VkInstance *>( &instance ), allocator );
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PhysicalDevice>>::Type
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+      std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PhysicalDevice>>::Type
       Instance::enumeratePhysicalDevices() const
     {
       std::vector<VULKAN_HPP_NAMESPACE::PhysicalDevice> physicalDevices;
@@ -12589,7 +13195,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Device>::Type
+      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Device>::Type
                         PhysicalDevice::createDevice( VULKAN_HPP_NAMESPACE::DeviceCreateInfo const &                                  createInfo,
                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -12726,7 +13332,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>::Type
+      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>::Type
                         Device::getQueue( uint32_t queueFamilyIndex, uint32_t queueIndex ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::Queue queue;
@@ -12761,9 +13367,9 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::waitIdle" );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceMemory>::Type
-                        Device::allocateMemory( VULKAN_HPP_NAMESPACE::MemoryAllocateInfo const &                                allocateInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeviceMemory>::Type
+      Device::allocateMemory( VULKAN_HPP_NAMESPACE::MemoryAllocateInfo const &                                allocateInfo,
                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::DeviceMemory memory;
@@ -12957,7 +13563,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
+      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
                         Device::createFence( VULKAN_HPP_NAMESPACE::FenceCreateInfo const &                                   createInfo,
                            VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13013,9 +13619,9 @@ namespace VULKAN_HPP_NAMESPACE
       return static_cast<VULKAN_HPP_NAMESPACE::Result>( result );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Semaphore>::Type
-                        Device::createSemaphore( VULKAN_HPP_NAMESPACE::SemaphoreCreateInfo const &                               createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Semaphore>::Type
+      Device::createSemaphore( VULKAN_HPP_NAMESPACE::SemaphoreCreateInfo const &                               createInfo,
                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::Semaphore semaphore;
@@ -13037,7 +13643,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Event>::Type
+      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Event>::Type
                         Device::createEvent( VULKAN_HPP_NAMESPACE::EventCreateInfo const &                                   createInfo,
                            VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13089,9 +13695,9 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Event::reset" );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::QueryPool>::Type
-                        Device::createQueryPool( VULKAN_HPP_NAMESPACE::QueryPoolCreateInfo const &                               createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::QueryPool>::Type
+      Device::createQueryPool( VULKAN_HPP_NAMESPACE::QueryPoolCreateInfo const &                               createInfo,
                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::QueryPool queryPool;
@@ -13158,7 +13764,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Buffer>::Type
+      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Buffer>::Type
                         Device::createBuffer( VULKAN_HPP_NAMESPACE::BufferCreateInfo const &                                  createInfo,
                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13180,9 +13786,9 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Buffer( *this, *reinterpret_cast<VkBuffer *>( &buffer ), allocator );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferView>::Type
-                        Device::createBufferView( VULKAN_HPP_NAMESPACE::BufferViewCreateInfo const &                              createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferView>::Type
+      Device::createBufferView( VULKAN_HPP_NAMESPACE::BufferViewCreateInfo const &                              createInfo,
                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13205,7 +13811,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Image>::Type
+      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Image>::Type
                         Device::createImage( VULKAN_HPP_NAMESPACE::ImageCreateInfo const &                                   createInfo,
                            VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13241,9 +13847,9 @@ namespace VULKAN_HPP_NAMESPACE
       return layout;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ImageView>::Type
-                        Device::createImageView( VULKAN_HPP_NAMESPACE::ImageViewCreateInfo const &                               createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ImageView>::Type
+      Device::createImageView( VULKAN_HPP_NAMESPACE::ImageViewCreateInfo const &                               createInfo,
                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::ImageView view;
@@ -13264,9 +13870,9 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ImageView( *this, *reinterpret_cast<VkImageView *>( &view ), allocator );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderModule>::Type
-                        Device::createShaderModule( VULKAN_HPP_NAMESPACE::ShaderModuleCreateInfo const &                            createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderModule>::Type
+      Device::createShaderModule( VULKAN_HPP_NAMESPACE::ShaderModuleCreateInfo const &                            createInfo,
                                   VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13288,9 +13894,9 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderModule( *this, *reinterpret_cast<VkShaderModule *>( &shaderModule ), allocator );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache>::Type
-                        Device::createPipelineCache( VULKAN_HPP_NAMESPACE::PipelineCacheCreateInfo const &                           createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache>::Type
+      Device::createPipelineCache( VULKAN_HPP_NAMESPACE::PipelineCacheCreateInfo const &                           createInfo,
                                    VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13352,7 +13958,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
       Device::createGraphicsPipelines(
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
         VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::GraphicsPipelineCreateInfo> const &                   createInfos,
@@ -13384,9 +13990,9 @@ namespace VULKAN_HPP_NAMESPACE
       return pipelinesRAII;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
-                        Device::createGraphicsPipeline(
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+      Device::createGraphicsPipeline(
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
         VULKAN_HPP_NAMESPACE::GraphicsPipelineCreateInfo const &                                                     createInfo,
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -13412,7 +14018,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
       Device::createComputePipelines(
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
         VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::ComputePipelineCreateInfo> const &                    createInfos,
@@ -13444,8 +14050,8 @@ namespace VULKAN_HPP_NAMESPACE
       return pipelinesRAII;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
       Device::createComputePipeline( VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
                                      VULKAN_HPP_NAMESPACE::ComputePipelineCreateInfo const &                                                      createInfo,
                                      VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
@@ -13471,9 +14077,9 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline( *this, *reinterpret_cast<VkPipeline *>( &pipeline ), allocator, result );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineLayout>::Type
-                        Device::createPipelineLayout( VULKAN_HPP_NAMESPACE::PipelineLayoutCreateInfo const &                          createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineLayout>::Type
+      Device::createPipelineLayout( VULKAN_HPP_NAMESPACE::PipelineLayoutCreateInfo const &                          createInfo,
                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13495,9 +14101,9 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineLayout( *this, *reinterpret_cast<VkPipelineLayout *>( &pipelineLayout ), allocator );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Sampler>::Type
-                        Device::createSampler( VULKAN_HPP_NAMESPACE::SamplerCreateInfo const &                                 createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Sampler>::Type
+      Device::createSampler( VULKAN_HPP_NAMESPACE::SamplerCreateInfo const &                                 createInfo,
                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::Sampler sampler;
@@ -13519,7 +14125,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSetLayout>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSetLayout>::Type
       Device::createDescriptorSetLayout( VULKAN_HPP_NAMESPACE::DescriptorSetLayoutCreateInfo const &                     createInfo,
                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -13542,12 +14148,15 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSetLayout( *this, *reinterpret_cast<VkDescriptorSetLayout *>( &setLayout ), allocator );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorPool>::Type
-                        Device::createDescriptorPool( VULKAN_HPP_NAMESPACE::DescriptorPoolCreateInfo const &                          createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorPool>::Type
+      Device::createDescriptorPool( VULKAN_HPP_NAMESPACE::DescriptorPoolCreateInfo const &                          createInfo,
                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
+      VULKAN_HPP_ASSERT(
+        createInfo.flags & vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet &&
+        "createInfo.flags need to have vk::DescriptorPoolCreateFlagBits::eFreeDesriptors set in order to allow destruction of VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSet which requires to return individual allocations to the pool" );
       VULKAN_HPP_NAMESPACE::DescriptorPool descriptorPool;
       VULKAN_HPP_NAMESPACE::Result         result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkCreateDescriptorPool(
         static_cast<VkDevice>( m_device ),
@@ -13574,8 +14183,8 @@ namespace VULKAN_HPP_NAMESPACE
         static_cast<VkDevice>( m_device ), static_cast<VkDescriptorPool>( m_descriptorPool ), static_cast<VkDescriptorPoolResetFlags>( flags ) );
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSet>>::Type
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+      std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSet>>::Type
       Device::allocateDescriptorSets( VULKAN_HPP_NAMESPACE::DescriptorSetAllocateInfo const & allocateInfo ) const
     {
       std::vector<VULKAN_HPP_NAMESPACE::DescriptorSet> descriptorSets( allocateInfo.descriptorSetCount );
@@ -13615,9 +14224,9 @@ namespace VULKAN_HPP_NAMESPACE
                                                reinterpret_cast<const VkCopyDescriptorSet *>( descriptorCopies.data() ) );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Framebuffer>::Type
-                        Device::createFramebuffer( VULKAN_HPP_NAMESPACE::FramebufferCreateInfo const &                             createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Framebuffer>::Type
+      Device::createFramebuffer( VULKAN_HPP_NAMESPACE::FramebufferCreateInfo const &                             createInfo,
                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13639,9 +14248,9 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Framebuffer( *this, *reinterpret_cast<VkFramebuffer *>( &framebuffer ), allocator );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
-                        Device::createRenderPass( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo const &                              createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
+      Device::createRenderPass( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo const &                              createInfo,
                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13674,9 +14283,9 @@ namespace VULKAN_HPP_NAMESPACE
       return granularity;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandPool>::Type
-                        Device::createCommandPool( VULKAN_HPP_NAMESPACE::CommandPoolCreateInfo const &                             createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandPool>::Type
+      Device::createCommandPool( VULKAN_HPP_NAMESPACE::CommandPoolCreateInfo const &                             createInfo,
                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -13707,8 +14316,8 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::CommandPool::reset" );
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandBuffer>>::Type
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+      std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CommandBuffer>>::Type
       Device::allocateCommandBuffers( VULKAN_HPP_NAMESPACE::CommandBufferAllocateInfo const & allocateInfo ) const
     {
       std::vector<VULKAN_HPP_NAMESPACE::CommandBuffer> commandBuffers( allocateInfo.commandBufferCount );
@@ -14701,7 +15310,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>::Type
+      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>::Type
                         Device::getQueue2( VULKAN_HPP_NAMESPACE::DeviceQueueInfo2 const & queueInfo ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::Queue queue;
@@ -14712,7 +15321,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SamplerYcbcrConversion>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SamplerYcbcrConversion>::Type
       Device::createSamplerYcbcrConversion( VULKAN_HPP_NAMESPACE::SamplerYcbcrConversionCreateInfo const &                  createInfo,
                                             VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -14737,7 +15346,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorUpdateTemplate>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorUpdateTemplate>::Type
       Device::createDescriptorUpdateTemplate( VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplateCreateInfo const &                createInfo,
                                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -14887,9 +15496,9 @@ namespace VULKAN_HPP_NAMESPACE
                                                       stride );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
-                        Device::createRenderPass2( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo2 const &                             createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
+      Device::createRenderPass2( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo2 const &                             createInfo,
                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -15048,7 +15657,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PrivateDataSlot>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PrivateDataSlot>::Type
       Device::createPrivateDataSlot( VULKAN_HPP_NAMESPACE::PrivateDataSlotCreateInfo const &                         createInfo,
                                      VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -15469,6 +16078,257 @@ namespace VULKAN_HPP_NAMESPACE
       return sparseMemoryRequirements;
     }
 
+    //=== VK_VERSION_1_4 ===
+
+    VULKAN_HPP_INLINE void CommandBuffer::setLineStipple( uint32_t lineStippleFactor, uint16_t lineStipplePattern ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdSetLineStipple &&
+                         "Function <vkCmdSetLineStipple> requires <VK_EXT_line_rasterization> or <VK_KHR_line_rasterization> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdSetLineStipple( static_cast<VkCommandBuffer>( m_commandBuffer ), lineStippleFactor, lineStipplePattern );
+    }
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE void * Device::mapMemory2( const VULKAN_HPP_NAMESPACE::MemoryMapInfo & memoryMapInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkMapMemory2 && "Function <vkMapMemory2> requires <VK_KHR_map_memory2> or <VK_VERSION_1_4>" );
+
+      void *                       pData;
+      VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
+        getDispatcher()->vkMapMemory2( static_cast<VkDevice>( m_device ), reinterpret_cast<const VkMemoryMapInfo *>( &memoryMapInfo ), &pData ) );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::mapMemory2" );
+
+      return pData;
+    }
+
+    VULKAN_HPP_INLINE void Device::unmapMemory2( const VULKAN_HPP_NAMESPACE::MemoryUnmapInfo & memoryUnmapInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkUnmapMemory2 && "Function <vkUnmapMemory2> requires <VK_KHR_map_memory2> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
+        getDispatcher()->vkUnmapMemory2( static_cast<VkDevice>( m_device ), reinterpret_cast<const VkMemoryUnmapInfo *>( &memoryUnmapInfo ) ) );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::unmapMemory2" );
+    }
+
+    VULKAN_HPP_INLINE void CommandBuffer::bindIndexBuffer2( VULKAN_HPP_NAMESPACE::Buffer     buffer,
+                                                            VULKAN_HPP_NAMESPACE::DeviceSize offset,
+                                                            VULKAN_HPP_NAMESPACE::DeviceSize size,
+                                                            VULKAN_HPP_NAMESPACE::IndexType  indexType ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdBindIndexBuffer2 && "Function <vkCmdBindIndexBuffer2> requires <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdBindIndexBuffer2( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                              static_cast<VkBuffer>( buffer ),
+                                              static_cast<VkDeviceSize>( offset ),
+                                              static_cast<VkDeviceSize>( size ),
+                                              static_cast<VkIndexType>( indexType ) );
+    }
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::Extent2D
+      Device::getRenderingAreaGranularity( const VULKAN_HPP_NAMESPACE::RenderingAreaInfo & renderingAreaInfo ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetRenderingAreaGranularity &&
+                         "Function <vkGetRenderingAreaGranularity> requires <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::Extent2D granularity;
+      getDispatcher()->vkGetRenderingAreaGranularity( static_cast<VkDevice>( m_device ),
+                                                      reinterpret_cast<const VkRenderingAreaInfo *>( &renderingAreaInfo ),
+                                                      reinterpret_cast<VkExtent2D *>( &granularity ) );
+
+      return granularity;
+    }
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::SubresourceLayout2
+      Device::getImageSubresourceLayout( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfo & info ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetDeviceImageSubresourceLayout &&
+                         "Function <vkGetDeviceImageSubresourceLayout> requires <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 layout;
+      getDispatcher()->vkGetDeviceImageSubresourceLayout( static_cast<VkDevice>( m_device ),
+                                                          reinterpret_cast<const VkDeviceImageSubresourceInfo *>( &info ),
+                                                          reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
+
+      return layout;
+    }
+
+    template <typename X, typename Y, typename... Z>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
+      Device::getImageSubresourceLayout( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfo & info ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetDeviceImageSubresourceLayout &&
+                         "Function <vkGetDeviceImageSubresourceLayout> requires <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...> structureChain;
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 &       layout = structureChain.template get<VULKAN_HPP_NAMESPACE::SubresourceLayout2>();
+      getDispatcher()->vkGetDeviceImageSubresourceLayout( static_cast<VkDevice>( m_device ),
+                                                          reinterpret_cast<const VkDeviceImageSubresourceInfo *>( &info ),
+                                                          reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
+
+      return structureChain;
+    }
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::SubresourceLayout2
+                                           Image::getSubresourceLayout2( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT(
+        getDispatcher()->vkGetImageSubresourceLayout2 &&
+        "Function <vkGetImageSubresourceLayout2> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 layout;
+      getDispatcher()->vkGetImageSubresourceLayout2( static_cast<VkDevice>( m_device ),
+                                                     static_cast<VkImage>( m_image ),
+                                                     reinterpret_cast<const VkImageSubresource2 *>( &subresource ),
+                                                     reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
+
+      return layout;
+    }
+
+    template <typename X, typename Y, typename... Z>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
+                                           Image::getSubresourceLayout2( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT(
+        getDispatcher()->vkGetImageSubresourceLayout2 &&
+        "Function <vkGetImageSubresourceLayout2> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...> structureChain;
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 &       layout = structureChain.template get<VULKAN_HPP_NAMESPACE::SubresourceLayout2>();
+      getDispatcher()->vkGetImageSubresourceLayout2( static_cast<VkDevice>( m_device ),
+                                                     static_cast<VkImage>( m_image ),
+                                                     reinterpret_cast<const VkImageSubresource2 *>( &subresource ),
+                                                     reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
+
+      return structureChain;
+    }
+
+    VULKAN_HPP_INLINE void CommandBuffer::pushDescriptorSet(
+      VULKAN_HPP_NAMESPACE::PipelineBindPoint                                                  pipelineBindPoint,
+      VULKAN_HPP_NAMESPACE::PipelineLayout                                                     layout,
+      uint32_t                                                                                 set,
+      VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::WriteDescriptorSet> const & descriptorWrites ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushDescriptorSet && "Function <vkCmdPushDescriptorSet> requires <VK_KHR_push_descriptor> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdPushDescriptorSet( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                               static_cast<VkPipelineBindPoint>( pipelineBindPoint ),
+                                               static_cast<VkPipelineLayout>( layout ),
+                                               set,
+                                               descriptorWrites.size(),
+                                               reinterpret_cast<const VkWriteDescriptorSet *>( descriptorWrites.data() ) );
+    }
+
+    template <typename DataType>
+    VULKAN_HPP_INLINE void CommandBuffer::pushDescriptorSetWithTemplate( VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplate descriptorUpdateTemplate,
+                                                                         VULKAN_HPP_NAMESPACE::PipelineLayout           layout,
+                                                                         uint32_t                                       set,
+                                                                         DataType const &                               data ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT(
+        getDispatcher()->vkCmdPushDescriptorSetWithTemplate &&
+        "Function <vkCmdPushDescriptorSetWithTemplate> requires <VK_KHR_descriptor_update_template> or <VK_KHR_push_descriptor> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdPushDescriptorSetWithTemplate( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                                           static_cast<VkDescriptorUpdateTemplate>( descriptorUpdateTemplate ),
+                                                           static_cast<VkPipelineLayout>( layout ),
+                                                           set,
+                                                           reinterpret_cast<const void *>( &data ) );
+    }
+
+    VULKAN_HPP_INLINE void
+      CommandBuffer::setRenderingAttachmentLocations( const VULKAN_HPP_NAMESPACE::RenderingAttachmentLocationInfo & locationInfo ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdSetRenderingAttachmentLocations &&
+                         "Function <vkCmdSetRenderingAttachmentLocations> requires <VK_KHR_dynamic_rendering_local_read> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdSetRenderingAttachmentLocations( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                                             reinterpret_cast<const VkRenderingAttachmentLocationInfo *>( &locationInfo ) );
+    }
+
+    VULKAN_HPP_INLINE void CommandBuffer::setRenderingInputAttachmentIndices(
+      const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfo & inputAttachmentIndexInfo ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdSetRenderingInputAttachmentIndices &&
+                         "Function <vkCmdSetRenderingInputAttachmentIndices> requires <VK_KHR_dynamic_rendering_local_read> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdSetRenderingInputAttachmentIndices( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                                                reinterpret_cast<const VkRenderingInputAttachmentIndexInfo *>( &inputAttachmentIndexInfo ) );
+    }
+
+    VULKAN_HPP_INLINE void
+      CommandBuffer::bindDescriptorSets2( const VULKAN_HPP_NAMESPACE::BindDescriptorSetsInfo & bindDescriptorSetsInfo ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdBindDescriptorSets2 &&
+                         "Function <vkCmdBindDescriptorSets2> requires <VK_KHR_maintenance6> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdBindDescriptorSets2( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                                 reinterpret_cast<const VkBindDescriptorSetsInfo *>( &bindDescriptorSetsInfo ) );
+    }
+
+    VULKAN_HPP_INLINE void CommandBuffer::pushConstants2( const VULKAN_HPP_NAMESPACE::PushConstantsInfo & pushConstantsInfo ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushConstants2 && "Function <vkCmdPushConstants2> requires <VK_KHR_maintenance6> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdPushConstants2( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                            reinterpret_cast<const VkPushConstantsInfo *>( &pushConstantsInfo ) );
+    }
+
+    VULKAN_HPP_INLINE void
+      CommandBuffer::pushDescriptorSet2( const VULKAN_HPP_NAMESPACE::PushDescriptorSetInfo & pushDescriptorSetInfo ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushDescriptorSet2 && "Function <vkCmdPushDescriptorSet2> requires <VK_KHR_maintenance6> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdPushDescriptorSet2( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                                reinterpret_cast<const VkPushDescriptorSetInfo *>( &pushDescriptorSetInfo ) );
+    }
+
+    VULKAN_HPP_INLINE void CommandBuffer::pushDescriptorSetWithTemplate2(
+      const VULKAN_HPP_NAMESPACE::PushDescriptorSetWithTemplateInfo & pushDescriptorSetWithTemplateInfo ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushDescriptorSetWithTemplate2 &&
+                         "Function <vkCmdPushDescriptorSetWithTemplate2> requires <VK_KHR_maintenance6> or <VK_VERSION_1_4>" );
+
+      getDispatcher()->vkCmdPushDescriptorSetWithTemplate2(
+        static_cast<VkCommandBuffer>( m_commandBuffer ), reinterpret_cast<const VkPushDescriptorSetWithTemplateInfo *>( &pushDescriptorSetWithTemplateInfo ) );
+    }
+
+    VULKAN_HPP_INLINE void Device::copyMemoryToImage( const VULKAN_HPP_NAMESPACE::CopyMemoryToImageInfo & copyMemoryToImageInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCopyMemoryToImage && "Function <vkCopyMemoryToImage> requires <VK_EXT_host_image_copy> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkCopyMemoryToImage(
+        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkCopyMemoryToImageInfo *>( &copyMemoryToImageInfo ) ) );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::copyMemoryToImage" );
+    }
+
+    VULKAN_HPP_INLINE void Device::copyImageToMemory( const VULKAN_HPP_NAMESPACE::CopyImageToMemoryInfo & copyImageToMemoryInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCopyImageToMemory && "Function <vkCopyImageToMemory> requires <VK_EXT_host_image_copy> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkCopyImageToMemory(
+        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkCopyImageToMemoryInfo *>( &copyImageToMemoryInfo ) ) );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::copyImageToMemory" );
+    }
+
+    VULKAN_HPP_INLINE void Device::copyImageToImage( const VULKAN_HPP_NAMESPACE::CopyImageToImageInfo & copyImageToImageInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCopyImageToImage && "Function <vkCopyImageToImage> requires <VK_EXT_host_image_copy> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
+        getDispatcher()->vkCopyImageToImage( static_cast<VkDevice>( m_device ), reinterpret_cast<const VkCopyImageToImageInfo *>( &copyImageToImageInfo ) ) );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::copyImageToImage" );
+    }
+
+    VULKAN_HPP_INLINE void
+      Device::transitionImageLayout( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::HostImageLayoutTransitionInfo> const & transitions ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkTransitionImageLayout &&
+                         "Function <vkTransitionImageLayout> requires <VK_EXT_host_image_copy> or <VK_VERSION_1_4>" );
+
+      VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkTransitionImageLayout(
+        static_cast<VkDevice>( m_device ), transitions.size(), reinterpret_cast<const VkHostImageLayoutTransitionInfo *>( transitions.data() ) ) );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::transitionImageLayout" );
+    }
+
     //=== VK_KHR_surface ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::Bool32 PhysicalDevice::getSurfaceSupportKHR( uint32_t                         queueFamilyIndex,
@@ -15568,9 +16428,9 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_KHR_swapchain ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>::Type
-                        Device::createSwapchainKHR( VULKAN_HPP_NAMESPACE::SwapchainCreateInfoKHR const &                            createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>::Type
+      Device::createSwapchainKHR( VULKAN_HPP_NAMESPACE::SwapchainCreateInfoKHR const &                            createInfo,
                                   VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -15793,7 +16653,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>>::Type
       PhysicalDevice::getDisplayPlaneSupportedDisplaysKHR( uint32_t planeIndex ) const
     {
       std::vector<VULKAN_HPP_NAMESPACE::DisplayKHR> displays;
@@ -15858,9 +16718,9 @@ namespace VULKAN_HPP_NAMESPACE
       return properties;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayModeKHR>::Type
-                        DisplayKHR::createMode( VULKAN_HPP_NAMESPACE::DisplayModeCreateInfoKHR const &                          createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayModeKHR>::Type
+      DisplayKHR::createMode( VULKAN_HPP_NAMESPACE::DisplayModeCreateInfoKHR const &                          createInfo,
                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::DisplayModeKHR mode;
@@ -15898,9 +16758,9 @@ namespace VULKAN_HPP_NAMESPACE
       return capabilities;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createDisplayPlaneSurfaceKHR( VULKAN_HPP_NAMESPACE::DisplaySurfaceCreateInfoKHR const &                       createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createDisplayPlaneSurfaceKHR( VULKAN_HPP_NAMESPACE::DisplaySurfaceCreateInfoKHR const &                       createInfo,
                                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -15924,8 +16784,8 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_KHR_display_swapchain ===
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>>::Type
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+      std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>>::Type
       Device::createSharedSwapchainsKHR( VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::SwapchainCreateInfoKHR> const & createInfos,
                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks>        allocator ) const
     {
@@ -15954,9 +16814,9 @@ namespace VULKAN_HPP_NAMESPACE
       return swapchainsRAII;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>::Type
-                        Device::createSharedSwapchainKHR( VULKAN_HPP_NAMESPACE::SwapchainCreateInfoKHR const &                            createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SwapchainKHR>::Type
+      Device::createSharedSwapchainKHR( VULKAN_HPP_NAMESPACE::SwapchainCreateInfoKHR const &                            createInfo,
                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -15982,9 +16842,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_XLIB_KHR )
     //=== VK_KHR_xlib_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createXlibSurfaceKHR( VULKAN_HPP_NAMESPACE::XlibSurfaceCreateInfoKHR const &                          createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createXlibSurfaceKHR( VULKAN_HPP_NAMESPACE::XlibSurfaceCreateInfoKHR const &                          createInfo,
                                       VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -16022,9 +16882,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_XCB_KHR )
     //=== VK_KHR_xcb_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createXcbSurfaceKHR( VULKAN_HPP_NAMESPACE::XcbSurfaceCreateInfoKHR const &                           createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createXcbSurfaceKHR( VULKAN_HPP_NAMESPACE::XcbSurfaceCreateInfoKHR const &                           createInfo,
                                      VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -16062,9 +16922,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_WAYLAND_KHR )
     //=== VK_KHR_wayland_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createWaylandSurfaceKHR( VULKAN_HPP_NAMESPACE::WaylandSurfaceCreateInfoKHR const &                       createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createWaylandSurfaceKHR( VULKAN_HPP_NAMESPACE::WaylandSurfaceCreateInfoKHR const &                       createInfo,
                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -16102,9 +16962,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_ANDROID_KHR )
     //=== VK_KHR_android_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createAndroidSurfaceKHR( VULKAN_HPP_NAMESPACE::AndroidSurfaceCreateInfoKHR const &                       createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createAndroidSurfaceKHR( VULKAN_HPP_NAMESPACE::AndroidSurfaceCreateInfoKHR const &                       createInfo,
                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -16130,9 +16990,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
     //=== VK_KHR_win32_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createWin32SurfaceKHR( VULKAN_HPP_NAMESPACE::Win32SurfaceCreateInfoKHR const &                         createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createWin32SurfaceKHR( VULKAN_HPP_NAMESPACE::Win32SurfaceCreateInfoKHR const &                         createInfo,
                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -16169,7 +17029,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_EXT_debug_report ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugReportCallbackEXT>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugReportCallbackEXT>::Type
       Instance::createDebugReportCallbackEXT( VULKAN_HPP_NAMESPACE::DebugReportCallbackCreateInfoEXT const &                  createInfo,
                                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -16327,8 +17187,54 @@ namespace VULKAN_HPP_NAMESPACE
       return videoFormatProperties;
     }
 
+    template <typename StructureChain>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE std::vector<StructureChain>
+      PhysicalDevice::getVideoFormatPropertiesKHR( const VULKAN_HPP_NAMESPACE::PhysicalDeviceVideoFormatInfoKHR & videoFormatInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetPhysicalDeviceVideoFormatPropertiesKHR &&
+                         "Function <vkGetPhysicalDeviceVideoFormatPropertiesKHR> requires <VK_KHR_video_queue>" );
+
+      std::vector<StructureChain>                                 structureChains;
+      std::vector<VULKAN_HPP_NAMESPACE::VideoFormatPropertiesKHR> videoFormatProperties;
+      uint32_t                                                    videoFormatPropertyCount;
+      VULKAN_HPP_NAMESPACE::Result                                result;
+      do
+      {
+        result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
+          getDispatcher()->vkGetPhysicalDeviceVideoFormatPropertiesKHR( static_cast<VkPhysicalDevice>( m_physicalDevice ),
+                                                                        reinterpret_cast<const VkPhysicalDeviceVideoFormatInfoKHR *>( &videoFormatInfo ),
+                                                                        &videoFormatPropertyCount,
+                                                                        nullptr ) );
+        if ( ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess ) && videoFormatPropertyCount )
+        {
+          structureChains.resize( videoFormatPropertyCount );
+          videoFormatProperties.resize( videoFormatPropertyCount );
+          for ( uint32_t i = 0; i < videoFormatPropertyCount; i++ )
+          {
+            videoFormatProperties[i].pNext = structureChains[i].template get<VULKAN_HPP_NAMESPACE::VideoFormatPropertiesKHR>().pNext;
+          }
+          result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
+            getDispatcher()->vkGetPhysicalDeviceVideoFormatPropertiesKHR( static_cast<VkPhysicalDevice>( m_physicalDevice ),
+                                                                          reinterpret_cast<const VkPhysicalDeviceVideoFormatInfoKHR *>( &videoFormatInfo ),
+                                                                          &videoFormatPropertyCount,
+                                                                          reinterpret_cast<VkVideoFormatPropertiesKHR *>( videoFormatProperties.data() ) ) );
+        }
+      } while ( result == VULKAN_HPP_NAMESPACE::Result::eIncomplete );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::PhysicalDevice::getVideoFormatPropertiesKHR" );
+      VULKAN_HPP_ASSERT( videoFormatPropertyCount <= videoFormatProperties.size() );
+      if ( videoFormatPropertyCount < videoFormatProperties.size() )
+      {
+        structureChains.resize( videoFormatPropertyCount );
+      }
+      for ( uint32_t i = 0; i < videoFormatPropertyCount; i++ )
+      {
+        structureChains[i].template get<VULKAN_HPP_NAMESPACE::VideoFormatPropertiesKHR>() = videoFormatProperties[i];
+      }
+      return structureChains;
+    }
+
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionKHR>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionKHR>::Type
       Device::createVideoSessionKHR( VULKAN_HPP_NAMESPACE::VideoSessionCreateInfoKHR const &                         createInfo,
                                      VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -16395,8 +17301,8 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::VideoSessionKHR::bindMemory" );
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionParametersKHR>::Type
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::VideoSessionParametersKHR>::Type
       Device::createVideoSessionParametersKHR( VULKAN_HPP_NAMESPACE::VideoSessionParametersCreateInfoKHR const &               createInfo,
                                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -16580,9 +17486,9 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_NVX_binary_import ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuModuleNVX>::Type
-                        Device::createCuModuleNVX( VULKAN_HPP_NAMESPACE::CuModuleCreateInfoNVX const &                             createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuModuleNVX>::Type
+      Device::createCuModuleNVX( VULKAN_HPP_NAMESPACE::CuModuleCreateInfoNVX const &                             createInfo,
                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -16604,9 +17510,9 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuModuleNVX( *this, *reinterpret_cast<VkCuModuleNVX *>( &module ), allocator );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuFunctionNVX>::Type
-                        Device::createCuFunctionNVX( VULKAN_HPP_NAMESPACE::CuFunctionCreateInfoNVX const &                           createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CuFunctionNVX>::Type
+      Device::createCuFunctionNVX( VULKAN_HPP_NAMESPACE::CuFunctionCreateInfoNVX const &                           createInfo,
                                    VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -16644,6 +17550,17 @@ namespace VULKAN_HPP_NAMESPACE
 
       uint32_t result =
         getDispatcher()->vkGetImageViewHandleNVX( static_cast<VkDevice>( m_device ), reinterpret_cast<const VkImageViewHandleInfoNVX *>( &info ) );
+
+      return result;
+    }
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE uint64_t
+      Device::getImageViewHandle64NVX( const VULKAN_HPP_NAMESPACE::ImageViewHandleInfoNVX & info ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetImageViewHandle64NVX && "Function <vkGetImageViewHandle64NVX> requires <VK_NVX_image_view_handle>" );
+
+      uint64_t result =
+        getDispatcher()->vkGetImageViewHandle64NVX( static_cast<VkDevice>( m_device ), reinterpret_cast<const VkImageViewHandleInfoNVX *>( &info ) );
 
       return result;
     }
@@ -16759,9 +17676,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_GGP )
     //=== VK_GGP_stream_descriptor_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createStreamDescriptorSurfaceGGP( VULKAN_HPP_NAMESPACE::StreamDescriptorSurfaceCreateInfoGGP const &              createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createStreamDescriptorSurfaceGGP( VULKAN_HPP_NAMESPACE::StreamDescriptorSurfaceCreateInfoGGP const &              createInfo,
                                                   VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -17093,9 +18010,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_VI_NN )
     //=== VK_NN_vi_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createViSurfaceNN( VULKAN_HPP_NAMESPACE::ViSurfaceCreateInfoNN const &                             createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createViSurfaceNN( VULKAN_HPP_NAMESPACE::ViSurfaceCreateInfoNN const &                             createInfo,
                                    VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -17317,7 +18234,8 @@ namespace VULKAN_HPP_NAMESPACE
       uint32_t                                                                                 set,
       VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::WriteDescriptorSet> const & descriptorWrites ) const VULKAN_HPP_NOEXCEPT
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushDescriptorSetKHR && "Function <vkCmdPushDescriptorSetKHR> requires <VK_KHR_push_descriptor>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushDescriptorSetKHR &&
+                         "Function <vkCmdPushDescriptorSetKHR> requires <VK_KHR_push_descriptor> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdPushDescriptorSetKHR( static_cast<VkCommandBuffer>( m_commandBuffer ),
                                                   static_cast<VkPipelineBindPoint>( pipelineBindPoint ),
@@ -17333,8 +18251,9 @@ namespace VULKAN_HPP_NAMESPACE
                                                                             uint32_t                                       set,
                                                                             DataType const &                               data ) const VULKAN_HPP_NOEXCEPT
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushDescriptorSetWithTemplateKHR &&
-                         "Function <vkCmdPushDescriptorSetWithTemplateKHR> requires <VK_KHR_descriptor_update_template> or <VK_KHR_push_descriptor>" );
+      VULKAN_HPP_ASSERT(
+        getDispatcher()->vkCmdPushDescriptorSetWithTemplateKHR &&
+        "Function <vkCmdPushDescriptorSetWithTemplateKHR> requires <VK_KHR_descriptor_update_template> or <VK_KHR_push_descriptor> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdPushDescriptorSetWithTemplateKHR( static_cast<VkCommandBuffer>( m_commandBuffer ),
                                                               static_cast<VkDescriptorUpdateTemplate>( descriptorUpdateTemplate ),
@@ -17366,7 +18285,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_KHR_descriptor_update_template ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorUpdateTemplate>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorUpdateTemplate>::Type
       Device::createDescriptorUpdateTemplateKHR( VULKAN_HPP_NAMESPACE::DescriptorUpdateTemplateCreateInfo const &                createInfo,
                                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -17442,9 +18361,9 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::PhysicalDevice::acquireXlibDisplayEXT" );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
-                        PhysicalDevice::getRandROutputDisplayEXT( Display & dpy, RROutput rrOutput ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
+      PhysicalDevice::getRandROutputDisplayEXT( Display & dpy, RROutput rrOutput ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::DisplayKHR display;
       VULKAN_HPP_NAMESPACE::Result     result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkGetRandROutputDisplayEXT(
@@ -17493,7 +18412,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
+      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
                         Device::registerEventEXT( VULKAN_HPP_NAMESPACE::DeviceEventInfoEXT const &                                deviceEventInfo,
                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -17517,7 +18436,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
+      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Fence>::Type
                         Device::registerDisplayEventEXT( VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR const &             display,
                                        VULKAN_HPP_NAMESPACE::DisplayEventInfoEXT const &                               displayEventInfo,
                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
@@ -17655,9 +18574,9 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_KHR_create_renderpass2 ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
-                        Device::createRenderPass2KHR( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo2 const &                             createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::RenderPass>::Type
+      Device::createRenderPass2KHR( VULKAN_HPP_NAMESPACE::RenderPassCreateInfo2 const &                             createInfo,
                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -18065,6 +18984,48 @@ namespace VULKAN_HPP_NAMESPACE
       return properties;
     }
 
+    template <typename StructureChain>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE std::vector<StructureChain> DisplayKHR::getModeProperties2() const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetDisplayModeProperties2KHR &&
+                         "Function <vkGetDisplayModeProperties2KHR> requires <VK_KHR_get_display_properties2>" );
+
+      std::vector<StructureChain>                                  structureChains;
+      std::vector<VULKAN_HPP_NAMESPACE::DisplayModeProperties2KHR> properties;
+      uint32_t                                                     propertyCount;
+      VULKAN_HPP_NAMESPACE::Result                                 result;
+      do
+      {
+        result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkGetDisplayModeProperties2KHR(
+          static_cast<VkPhysicalDevice>( m_physicalDevice ), static_cast<VkDisplayKHR>( m_display ), &propertyCount, nullptr ) );
+        if ( ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess ) && propertyCount )
+        {
+          structureChains.resize( propertyCount );
+          properties.resize( propertyCount );
+          for ( uint32_t i = 0; i < propertyCount; i++ )
+          {
+            properties[i].pNext = structureChains[i].template get<VULKAN_HPP_NAMESPACE::DisplayModeProperties2KHR>().pNext;
+          }
+          result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
+            getDispatcher()->vkGetDisplayModeProperties2KHR( static_cast<VkPhysicalDevice>( m_physicalDevice ),
+                                                             static_cast<VkDisplayKHR>( m_display ),
+                                                             &propertyCount,
+                                                             reinterpret_cast<VkDisplayModeProperties2KHR *>( properties.data() ) ) );
+        }
+      } while ( result == VULKAN_HPP_NAMESPACE::Result::eIncomplete );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::DisplayKHR::getModeProperties2" );
+      VULKAN_HPP_ASSERT( propertyCount <= properties.size() );
+      if ( propertyCount < properties.size() )
+      {
+        structureChains.resize( propertyCount );
+      }
+      for ( uint32_t i = 0; i < propertyCount; i++ )
+      {
+        structureChains[i].template get<VULKAN_HPP_NAMESPACE::DisplayModeProperties2KHR>() = properties[i];
+      }
+      return structureChains;
+    }
+
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::DisplayPlaneCapabilities2KHR
       PhysicalDevice::getDisplayPlaneCapabilities2KHR( const VULKAN_HPP_NAMESPACE::DisplayPlaneInfo2KHR & displayPlaneInfo ) const
     {
@@ -18084,9 +19045,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_IOS_MVK )
     //=== VK_MVK_ios_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createIOSSurfaceMVK( VULKAN_HPP_NAMESPACE::IOSSurfaceCreateInfoMVK const &                           createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createIOSSurfaceMVK( VULKAN_HPP_NAMESPACE::IOSSurfaceCreateInfoMVK const &                           createInfo,
                                      VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -18112,9 +19073,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_MACOS_MVK )
     //=== VK_MVK_macos_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createMacOSSurfaceMVK( VULKAN_HPP_NAMESPACE::MacOSSurfaceCreateInfoMVK const &                         createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createMacOSSurfaceMVK( VULKAN_HPP_NAMESPACE::MacOSSurfaceCreateInfoMVK const &                         createInfo,
                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -18202,7 +19163,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugUtilsMessengerEXT>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DebugUtilsMessengerEXT>::Type
       Instance::createDebugUtilsMessengerEXT( VULKAN_HPP_NAMESPACE::DebugUtilsMessengerCreateInfoEXT const &                  createInfo,
                                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -18292,7 +19253,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_AMDX_shader_enqueue ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
       Device::createExecutionGraphPipelinesAMDX(
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
         VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::ExecutionGraphPipelineCreateInfoAMDX> const &         createInfos,
@@ -18324,9 +19285,9 @@ namespace VULKAN_HPP_NAMESPACE
       return pipelinesRAII;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
-                        Device::createExecutionGraphPipelineAMDX(
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+      Device::createExecutionGraphPipelineAMDX(
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
         VULKAN_HPP_NAMESPACE::ExecutionGraphPipelineCreateInfoAMDX const &                                           createInfo,
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -18547,7 +19508,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_KHR_acceleration_structure ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureKHR>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureKHR>::Type
       Device::createAccelerationStructureKHR( VULKAN_HPP_NAMESPACE::AccelerationStructureCreateInfoKHR const &                createInfo,
                                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -18890,7 +19851,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
       Device::createRayTracingPipelinesKHR(
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR> const & deferredOperation,
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const &        pipelineCache,
@@ -18925,9 +19886,9 @@ namespace VULKAN_HPP_NAMESPACE
       return pipelinesRAII;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
-                        Device::createRayTracingPipelineKHR(
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+      Device::createRayTracingPipelineKHR(
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR> const & deferredOperation,
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const &        pipelineCache,
         VULKAN_HPP_NAMESPACE::RayTracingPipelineCreateInfoKHR const &                                                       createInfo,
@@ -19074,7 +20035,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_KHR_sampler_ycbcr_conversion ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SamplerYcbcrConversion>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SamplerYcbcrConversion>::Type
       Device::createSamplerYcbcrConversionKHR( VULKAN_HPP_NAMESPACE::SamplerYcbcrConversionCreateInfo const &                  createInfo,
                                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -19151,7 +20112,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_EXT_validation_cache ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ValidationCacheEXT>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ValidationCacheEXT>::Type
       Device::createValidationCacheEXT( VULKAN_HPP_NAMESPACE::ValidationCacheCreateInfoEXT const &                      createInfo,
                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -19253,7 +20214,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_NV_ray_tracing ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureNV>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::AccelerationStructureNV>::Type
       Device::createAccelerationStructureNV( VULKAN_HPP_NAMESPACE::AccelerationStructureCreateInfoNV const &                 createInfo,
                                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -19387,7 +20348,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>>::Type
       Device::createRayTracingPipelinesNV(
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
         VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::RayTracingPipelineCreateInfoNV> const &               createInfos,
@@ -19419,9 +20380,9 @@ namespace VULKAN_HPP_NAMESPACE
       return pipelinesRAII;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
-                        Device::createRayTracingPipelineNV(
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Pipeline>::Type
+      Device::createRayTracingPipelineNV(
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineCache> const & pipelineCache,
         VULKAN_HPP_NAMESPACE::RayTracingPipelineCreateInfoNV const &                                                 createInfo,
         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -19934,8 +20895,8 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::CommandBuffer::setPerformanceOverrideINTEL" );
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PerformanceConfigurationINTEL>::Type
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PerformanceConfigurationINTEL>::Type
       Device::acquirePerformanceConfigurationINTEL( VULKAN_HPP_NAMESPACE::PerformanceConfigurationAcquireInfoINTEL const & acquireInfo ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -19993,9 +20954,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
     //=== VK_FUCHSIA_imagepipe_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createImagePipeSurfaceFUCHSIA( VULKAN_HPP_NAMESPACE::ImagePipeSurfaceCreateInfoFUCHSIA const &                 createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createImagePipeSurfaceFUCHSIA( VULKAN_HPP_NAMESPACE::ImagePipeSurfaceCreateInfoFUCHSIA const &                 createInfo,
                                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -20021,9 +20982,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_METAL_EXT )
     //=== VK_EXT_metal_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createMetalSurfaceEXT( VULKAN_HPP_NAMESPACE::MetalSurfaceCreateInfoEXT const &                         createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createMetalSurfaceEXT( VULKAN_HPP_NAMESPACE::MetalSurfaceCreateInfoEXT const &                         createInfo,
                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -20093,24 +21054,24 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_KHR_dynamic_rendering_local_read ===
 
-    VULKAN_HPP_INLINE void CommandBuffer::setRenderingAttachmentLocationsKHR(
-      const VULKAN_HPP_NAMESPACE::RenderingAttachmentLocationInfoKHR & locationInfo ) const VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_INLINE void
+      CommandBuffer::setRenderingAttachmentLocationsKHR( const VULKAN_HPP_NAMESPACE::RenderingAttachmentLocationInfo & locationInfo ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( getDispatcher()->vkCmdSetRenderingAttachmentLocationsKHR &&
-                         "Function <vkCmdSetRenderingAttachmentLocationsKHR> requires <VK_KHR_dynamic_rendering_local_read>" );
+                         "Function <vkCmdSetRenderingAttachmentLocationsKHR> requires <VK_KHR_dynamic_rendering_local_read> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdSetRenderingAttachmentLocationsKHR( static_cast<VkCommandBuffer>( m_commandBuffer ),
-                                                                reinterpret_cast<const VkRenderingAttachmentLocationInfoKHR *>( &locationInfo ) );
+                                                                reinterpret_cast<const VkRenderingAttachmentLocationInfo *>( &locationInfo ) );
     }
 
     VULKAN_HPP_INLINE void CommandBuffer::setRenderingInputAttachmentIndicesKHR(
-      const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfoKHR & inputAttachmentIndexInfo ) const VULKAN_HPP_NOEXCEPT
+      const VULKAN_HPP_NAMESPACE::RenderingInputAttachmentIndexInfo & inputAttachmentIndexInfo ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( getDispatcher()->vkCmdSetRenderingInputAttachmentIndicesKHR &&
-                         "Function <vkCmdSetRenderingInputAttachmentIndicesKHR> requires <VK_KHR_dynamic_rendering_local_read>" );
+                         "Function <vkCmdSetRenderingInputAttachmentIndicesKHR> requires <VK_KHR_dynamic_rendering_local_read> or <VK_VERSION_1_4>" );
 
-      getDispatcher()->vkCmdSetRenderingInputAttachmentIndicesKHR(
-        static_cast<VkCommandBuffer>( m_commandBuffer ), reinterpret_cast<const VkRenderingInputAttachmentIndexInfoKHR *>( &inputAttachmentIndexInfo ) );
+      getDispatcher()->vkCmdSetRenderingInputAttachmentIndicesKHR( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                                                   reinterpret_cast<const VkRenderingInputAttachmentIndexInfo *>( &inputAttachmentIndexInfo ) );
     }
 
     //=== VK_EXT_buffer_device_address ===
@@ -20315,9 +21276,9 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_EXT_headless_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createHeadlessSurfaceEXT( VULKAN_HPP_NAMESPACE::HeadlessSurfaceCreateInfoEXT const &                      createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createHeadlessSurfaceEXT( VULKAN_HPP_NAMESPACE::HeadlessSurfaceCreateInfoEXT const &                      createInfo,
                                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -20383,7 +21344,7 @@ namespace VULKAN_HPP_NAMESPACE
     VULKAN_HPP_INLINE void CommandBuffer::setLineStippleEXT( uint32_t lineStippleFactor, uint16_t lineStipplePattern ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( getDispatcher()->vkCmdSetLineStippleEXT &&
-                         "Function <vkCmdSetLineStippleEXT> requires <VK_EXT_line_rasterization> or <VK_KHR_line_rasterization>" );
+                         "Function <vkCmdSetLineStippleEXT> requires <VK_EXT_line_rasterization> or <VK_KHR_line_rasterization> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdSetLineStippleEXT( static_cast<VkCommandBuffer>( m_commandBuffer ), lineStippleFactor, lineStipplePattern );
     }
@@ -20540,7 +21501,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_KHR_deferred_host_operations ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DeferredOperationKHR>::Type
       Device::createDeferredOperationKHR( VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -20701,97 +21662,98 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_EXT_host_image_copy ===
 
-    VULKAN_HPP_INLINE void Device::copyMemoryToImageEXT( const VULKAN_HPP_NAMESPACE::CopyMemoryToImageInfoEXT & copyMemoryToImageInfo ) const
+    VULKAN_HPP_INLINE void Device::copyMemoryToImageEXT( const VULKAN_HPP_NAMESPACE::CopyMemoryToImageInfo & copyMemoryToImageInfo ) const
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkCopyMemoryToImageEXT && "Function <vkCopyMemoryToImageEXT> requires <VK_EXT_host_image_copy>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCopyMemoryToImageEXT && "Function <vkCopyMemoryToImageEXT> requires <VK_EXT_host_image_copy> or <VK_VERSION_1_4>" );
 
       VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkCopyMemoryToImageEXT(
-        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkCopyMemoryToImageInfoEXT *>( &copyMemoryToImageInfo ) ) );
+        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkCopyMemoryToImageInfo *>( &copyMemoryToImageInfo ) ) );
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::copyMemoryToImageEXT" );
     }
 
-    VULKAN_HPP_INLINE void Device::copyImageToMemoryEXT( const VULKAN_HPP_NAMESPACE::CopyImageToMemoryInfoEXT & copyImageToMemoryInfo ) const
+    VULKAN_HPP_INLINE void Device::copyImageToMemoryEXT( const VULKAN_HPP_NAMESPACE::CopyImageToMemoryInfo & copyImageToMemoryInfo ) const
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkCopyImageToMemoryEXT && "Function <vkCopyImageToMemoryEXT> requires <VK_EXT_host_image_copy>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCopyImageToMemoryEXT && "Function <vkCopyImageToMemoryEXT> requires <VK_EXT_host_image_copy> or <VK_VERSION_1_4>" );
 
       VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkCopyImageToMemoryEXT(
-        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkCopyImageToMemoryInfoEXT *>( &copyImageToMemoryInfo ) ) );
+        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkCopyImageToMemoryInfo *>( &copyImageToMemoryInfo ) ) );
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::copyImageToMemoryEXT" );
     }
 
-    VULKAN_HPP_INLINE void Device::copyImageToImageEXT( const VULKAN_HPP_NAMESPACE::CopyImageToImageInfoEXT & copyImageToImageInfo ) const
+    VULKAN_HPP_INLINE void Device::copyImageToImageEXT( const VULKAN_HPP_NAMESPACE::CopyImageToImageInfo & copyImageToImageInfo ) const
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkCopyImageToImageEXT && "Function <vkCopyImageToImageEXT> requires <VK_EXT_host_image_copy>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCopyImageToImageEXT && "Function <vkCopyImageToImageEXT> requires <VK_EXT_host_image_copy> or <VK_VERSION_1_4>" );
 
       VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkCopyImageToImageEXT(
-        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkCopyImageToImageInfoEXT *>( &copyImageToImageInfo ) ) );
+        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkCopyImageToImageInfo *>( &copyImageToImageInfo ) ) );
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::copyImageToImageEXT" );
     }
 
-    VULKAN_HPP_INLINE void Device::transitionImageLayoutEXT(
-      VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::HostImageLayoutTransitionInfoEXT> const & transitions ) const
+    VULKAN_HPP_INLINE void
+      Device::transitionImageLayoutEXT( VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::HostImageLayoutTransitionInfo> const & transitions ) const
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkTransitionImageLayoutEXT && "Function <vkTransitionImageLayoutEXT> requires <VK_EXT_host_image_copy>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkTransitionImageLayoutEXT &&
+                         "Function <vkTransitionImageLayoutEXT> requires <VK_EXT_host_image_copy> or <VK_VERSION_1_4>" );
 
       VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkTransitionImageLayoutEXT(
-        static_cast<VkDevice>( m_device ), transitions.size(), reinterpret_cast<const VkHostImageLayoutTransitionInfoEXT *>( transitions.data() ) ) );
+        static_cast<VkDevice>( m_device ), transitions.size(), reinterpret_cast<const VkHostImageLayoutTransitionInfo *>( transitions.data() ) ) );
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::transitionImageLayoutEXT" );
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR
-      Image::getSubresourceLayout2EXT( const VULKAN_HPP_NAMESPACE::ImageSubresource2KHR & subresource ) const VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::SubresourceLayout2
+      Image::getSubresourceLayout2EXT( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT(
         getDispatcher()->vkGetImageSubresourceLayout2EXT &&
-        "Function <vkGetImageSubresourceLayout2EXT> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5>" );
+        "Function <vkGetImageSubresourceLayout2EXT> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
 
-      VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR layout;
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 layout;
       getDispatcher()->vkGetImageSubresourceLayout2EXT( static_cast<VkDevice>( m_device ),
                                                         static_cast<VkImage>( m_image ),
-                                                        reinterpret_cast<const VkImageSubresource2KHR *>( &subresource ),
-                                                        reinterpret_cast<VkSubresourceLayout2KHR *>( &layout ) );
+                                                        reinterpret_cast<const VkImageSubresource2 *>( &subresource ),
+                                                        reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
 
       return layout;
     }
 
     template <typename X, typename Y, typename... Z>
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
-      Image::getSubresourceLayout2EXT( const VULKAN_HPP_NAMESPACE::ImageSubresource2KHR & subresource ) const VULKAN_HPP_NOEXCEPT
+      Image::getSubresourceLayout2EXT( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT(
         getDispatcher()->vkGetImageSubresourceLayout2EXT &&
-        "Function <vkGetImageSubresourceLayout2EXT> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5>" );
+        "Function <vkGetImageSubresourceLayout2EXT> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
 
       VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...> structureChain;
-      VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR &    layout = structureChain.template get<VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR>();
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 &       layout = structureChain.template get<VULKAN_HPP_NAMESPACE::SubresourceLayout2>();
       getDispatcher()->vkGetImageSubresourceLayout2EXT( static_cast<VkDevice>( m_device ),
                                                         static_cast<VkImage>( m_image ),
-                                                        reinterpret_cast<const VkImageSubresource2KHR *>( &subresource ),
-                                                        reinterpret_cast<VkSubresourceLayout2KHR *>( &layout ) );
+                                                        reinterpret_cast<const VkImageSubresource2 *>( &subresource ),
+                                                        reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
 
       return structureChain;
     }
 
     //=== VK_KHR_map_memory2 ===
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE void * Device::mapMemory2KHR( const VULKAN_HPP_NAMESPACE::MemoryMapInfoKHR & memoryMapInfo ) const
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE void * Device::mapMemory2KHR( const VULKAN_HPP_NAMESPACE::MemoryMapInfo & memoryMapInfo ) const
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkMapMemory2KHR && "Function <vkMapMemory2KHR> requires <VK_KHR_map_memory2>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkMapMemory2KHR && "Function <vkMapMemory2KHR> requires <VK_KHR_map_memory2> or <VK_VERSION_1_4>" );
 
       void *                       pData;
       VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
-        getDispatcher()->vkMapMemory2KHR( static_cast<VkDevice>( m_device ), reinterpret_cast<const VkMemoryMapInfoKHR *>( &memoryMapInfo ), &pData ) );
+        getDispatcher()->vkMapMemory2KHR( static_cast<VkDevice>( m_device ), reinterpret_cast<const VkMemoryMapInfo *>( &memoryMapInfo ), &pData ) );
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::mapMemory2KHR" );
 
       return pData;
     }
 
-    VULKAN_HPP_INLINE void Device::unmapMemory2KHR( const VULKAN_HPP_NAMESPACE::MemoryUnmapInfoKHR & memoryUnmapInfo ) const
+    VULKAN_HPP_INLINE void Device::unmapMemory2KHR( const VULKAN_HPP_NAMESPACE::MemoryUnmapInfo & memoryUnmapInfo ) const
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkUnmapMemory2KHR && "Function <vkUnmapMemory2KHR> requires <VK_KHR_map_memory2>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkUnmapMemory2KHR && "Function <vkUnmapMemory2KHR> requires <VK_KHR_map_memory2> or <VK_VERSION_1_4>" );
 
       VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
-        getDispatcher()->vkUnmapMemory2KHR( static_cast<VkDevice>( m_device ), reinterpret_cast<const VkMemoryUnmapInfoKHR *>( &memoryUnmapInfo ) ) );
+        getDispatcher()->vkUnmapMemory2KHR( static_cast<VkDevice>( m_device ), reinterpret_cast<const VkMemoryUnmapInfo *>( &memoryUnmapInfo ) ) );
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::unmapMemory2KHR" );
     }
 
@@ -20874,7 +21836,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutNV>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutNV>::Type
       Device::createIndirectCommandsLayoutNV( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutCreateInfoNV const &                createInfo,
                                               VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -20918,9 +21880,9 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::PhysicalDevice::acquireDrmDisplayEXT" );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
-                        PhysicalDevice::getDrmDisplayEXT( int32_t drmFd, uint32_t connectorId ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
+      PhysicalDevice::getDrmDisplayEXT( int32_t drmFd, uint32_t connectorId ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::DisplayKHR display;
       VULKAN_HPP_NAMESPACE::Result     result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkGetDrmDisplayEXT(
@@ -20940,7 +21902,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_EXT_private_data ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PrivateDataSlot>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PrivateDataSlot>::Type
       Device::createPrivateDataSlotEXT( VULKAN_HPP_NAMESPACE::PrivateDataSlotCreateInfo const &                         createInfo,
                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -21119,9 +22081,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_ENABLE_BETA_EXTENSIONS )
     //=== VK_NV_cuda_kernel_launch ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaModuleNV>::Type
-                        Device::createCudaModuleNV( VULKAN_HPP_NAMESPACE::CudaModuleCreateInfoNV const &                            createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaModuleNV>::Type
+      Device::createCudaModuleNV( VULKAN_HPP_NAMESPACE::CudaModuleCreateInfoNV const &                            createInfo,
                                   VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -21170,9 +22132,9 @@ namespace VULKAN_HPP_NAMESPACE
       return cacheData;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaFunctionNV>::Type
-                        Device::createCudaFunctionNV( VULKAN_HPP_NAMESPACE::CudaFunctionCreateInfoNV const &                          createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CudaFunctionNV>::Type
+      Device::createCudaFunctionNV( VULKAN_HPP_NAMESPACE::CudaFunctionCreateInfoNV const &                          createInfo,
                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -21600,9 +22562,9 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::DisplayKHR::acquireWinrtNV" );
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
-                        PhysicalDevice::getWinrtDisplayNV( uint32_t deviceRelativeId ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DisplayKHR>::Type
+      PhysicalDevice::getWinrtDisplayNV( uint32_t deviceRelativeId ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::DisplayKHR display;
       VULKAN_HPP_NAMESPACE::Result     result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkGetWinrtDisplayNV(
@@ -21623,9 +22585,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_DIRECTFB_EXT )
     //=== VK_EXT_directfb_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createDirectFBSurfaceEXT( VULKAN_HPP_NAMESPACE::DirectFBSurfaceCreateInfoEXT const &                      createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createDirectFBSurfaceEXT( VULKAN_HPP_NAMESPACE::DirectFBSurfaceCreateInfoEXT const &                      createInfo,
                                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -21744,7 +22706,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_FUCHSIA_buffer_collection ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferCollectionFUCHSIA>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::BufferCollectionFUCHSIA>::Type
       Device::createBufferCollectionFUCHSIA( VULKAN_HPP_NAMESPACE::BufferCollectionCreateInfoFUCHSIA const &                 createInfo,
                                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -21923,9 +22885,9 @@ namespace VULKAN_HPP_NAMESPACE
 #  if defined( VK_USE_PLATFORM_SCREEN_QNX )
     //=== VK_QNX_screen_surface ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
-                        Instance::createScreenSurfaceQNX( VULKAN_HPP_NAMESPACE::ScreenSurfaceCreateInfoQNX const &                        createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::SurfaceKHR>::Type
+      Instance::createScreenSurfaceQNX( VULKAN_HPP_NAMESPACE::ScreenSurfaceCreateInfoQNX const &                        createInfo,
                                         VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -22016,9 +22978,9 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_EXT_opacity_micromap ===
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::MicromapEXT>::Type
-                        Device::createMicromapEXT( VULKAN_HPP_NAMESPACE::MicromapCreateInfoEXT const &                             createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::MicromapEXT>::Type
+      Device::createMicromapEXT( VULKAN_HPP_NAMESPACE::MicromapCreateInfoEXT const &                             createInfo,
                                  VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
@@ -22863,7 +23825,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::OpticalFlowSessionNV>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::OpticalFlowSessionNV>::Type
       Device::createOpticalFlowSessionNV( VULKAN_HPP_NAMESPACE::OpticalFlowSessionCreateInfoNV const &                    createInfo,
                                           VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -22918,7 +23880,8 @@ namespace VULKAN_HPP_NAMESPACE
                                                                VULKAN_HPP_NAMESPACE::DeviceSize size,
                                                                VULKAN_HPP_NAMESPACE::IndexType  indexType ) const VULKAN_HPP_NOEXCEPT
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdBindIndexBuffer2KHR && "Function <vkCmdBindIndexBuffer2KHR> requires <VK_KHR_maintenance5>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdBindIndexBuffer2KHR &&
+                         "Function <vkCmdBindIndexBuffer2KHR> requires <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdBindIndexBuffer2KHR( static_cast<VkCommandBuffer>( m_commandBuffer ),
                                                  static_cast<VkBuffer>( buffer ),
@@ -22928,78 +23891,79 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::Extent2D
-      Device::getRenderingAreaGranularityKHR( const VULKAN_HPP_NAMESPACE::RenderingAreaInfoKHR & renderingAreaInfo ) const VULKAN_HPP_NOEXCEPT
+      Device::getRenderingAreaGranularityKHR( const VULKAN_HPP_NAMESPACE::RenderingAreaInfo & renderingAreaInfo ) const VULKAN_HPP_NOEXCEPT
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkGetRenderingAreaGranularityKHR && "Function <vkGetRenderingAreaGranularityKHR> requires <VK_KHR_maintenance5>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetRenderingAreaGranularityKHR &&
+                         "Function <vkGetRenderingAreaGranularityKHR> requires <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
 
       VULKAN_HPP_NAMESPACE::Extent2D granularity;
       getDispatcher()->vkGetRenderingAreaGranularityKHR( static_cast<VkDevice>( m_device ),
-                                                         reinterpret_cast<const VkRenderingAreaInfoKHR *>( &renderingAreaInfo ),
+                                                         reinterpret_cast<const VkRenderingAreaInfo *>( &renderingAreaInfo ),
                                                          reinterpret_cast<VkExtent2D *>( &granularity ) );
 
       return granularity;
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR
-      Device::getImageSubresourceLayoutKHR( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfoKHR & info ) const VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::SubresourceLayout2
+      Device::getImageSubresourceLayoutKHR( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfo & info ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( getDispatcher()->vkGetDeviceImageSubresourceLayoutKHR &&
-                         "Function <vkGetDeviceImageSubresourceLayoutKHR> requires <VK_KHR_maintenance5>" );
+                         "Function <vkGetDeviceImageSubresourceLayoutKHR> requires <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
 
-      VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR layout;
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 layout;
       getDispatcher()->vkGetDeviceImageSubresourceLayoutKHR( static_cast<VkDevice>( m_device ),
-                                                             reinterpret_cast<const VkDeviceImageSubresourceInfoKHR *>( &info ),
-                                                             reinterpret_cast<VkSubresourceLayout2KHR *>( &layout ) );
+                                                             reinterpret_cast<const VkDeviceImageSubresourceInfo *>( &info ),
+                                                             reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
 
       return layout;
     }
 
     template <typename X, typename Y, typename... Z>
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
-      Device::getImageSubresourceLayoutKHR( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfoKHR & info ) const VULKAN_HPP_NOEXCEPT
+      Device::getImageSubresourceLayoutKHR( const VULKAN_HPP_NAMESPACE::DeviceImageSubresourceInfo & info ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( getDispatcher()->vkGetDeviceImageSubresourceLayoutKHR &&
-                         "Function <vkGetDeviceImageSubresourceLayoutKHR> requires <VK_KHR_maintenance5>" );
+                         "Function <vkGetDeviceImageSubresourceLayoutKHR> requires <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
 
       VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...> structureChain;
-      VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR &    layout = structureChain.template get<VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR>();
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 &       layout = structureChain.template get<VULKAN_HPP_NAMESPACE::SubresourceLayout2>();
       getDispatcher()->vkGetDeviceImageSubresourceLayoutKHR( static_cast<VkDevice>( m_device ),
-                                                             reinterpret_cast<const VkDeviceImageSubresourceInfoKHR *>( &info ),
-                                                             reinterpret_cast<VkSubresourceLayout2KHR *>( &layout ) );
+                                                             reinterpret_cast<const VkDeviceImageSubresourceInfo *>( &info ),
+                                                             reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
 
       return structureChain;
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR
-      Image::getSubresourceLayout2KHR( const VULKAN_HPP_NAMESPACE::ImageSubresource2KHR & subresource ) const VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::SubresourceLayout2
+      Image::getSubresourceLayout2KHR( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT(
         getDispatcher()->vkGetImageSubresourceLayout2KHR &&
-        "Function <vkGetImageSubresourceLayout2KHR> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5>" );
+        "Function <vkGetImageSubresourceLayout2KHR> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
 
-      VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR layout;
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 layout;
       getDispatcher()->vkGetImageSubresourceLayout2KHR( static_cast<VkDevice>( m_device ),
                                                         static_cast<VkImage>( m_image ),
-                                                        reinterpret_cast<const VkImageSubresource2KHR *>( &subresource ),
-                                                        reinterpret_cast<VkSubresourceLayout2KHR *>( &layout ) );
+                                                        reinterpret_cast<const VkImageSubresource2 *>( &subresource ),
+                                                        reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
 
       return layout;
     }
 
     template <typename X, typename Y, typename... Z>
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
-      Image::getSubresourceLayout2KHR( const VULKAN_HPP_NAMESPACE::ImageSubresource2KHR & subresource ) const VULKAN_HPP_NOEXCEPT
+      Image::getSubresourceLayout2KHR( const VULKAN_HPP_NAMESPACE::ImageSubresource2 & subresource ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT(
         getDispatcher()->vkGetImageSubresourceLayout2KHR &&
-        "Function <vkGetImageSubresourceLayout2KHR> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5>" );
+        "Function <vkGetImageSubresourceLayout2KHR> requires <VK_EXT_host_image_copy> or <VK_EXT_image_compression_control> or <VK_KHR_maintenance5> or <VK_VERSION_1_4>" );
 
       VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...> structureChain;
-      VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR &    layout = structureChain.template get<VULKAN_HPP_NAMESPACE::SubresourceLayout2KHR>();
+      VULKAN_HPP_NAMESPACE::SubresourceLayout2 &       layout = structureChain.template get<VULKAN_HPP_NAMESPACE::SubresourceLayout2>();
       getDispatcher()->vkGetImageSubresourceLayout2KHR( static_cast<VkDevice>( m_device ),
                                                         static_cast<VkImage>( m_image ),
-                                                        reinterpret_cast<const VkImageSubresource2KHR *>( &subresource ),
-                                                        reinterpret_cast<VkSubresourceLayout2KHR *>( &layout ) );
+                                                        reinterpret_cast<const VkImageSubresource2 *>( &subresource ),
+                                                        reinterpret_cast<VkSubresourceLayout2 *>( &layout ) );
 
       return structureChain;
     }
@@ -23016,7 +23980,7 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_EXT_shader_object ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>>::Type
       Device::createShadersEXT( VULKAN_HPP_NAMESPACE::ArrayProxy<VULKAN_HPP_NAMESPACE::ShaderCreateInfoEXT> const & createInfos,
                                 VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks>     allocator ) const
     {
@@ -23045,9 +24009,9 @@ namespace VULKAN_HPP_NAMESPACE
       return shadersRAII;
     }
 
-    VULKAN_HPP_NODISCARD
-      VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>::Type
-                        Device::createShaderEXT( VULKAN_HPP_NAMESPACE::ShaderCreateInfoEXT const &                               createInfo,
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::ShaderEXT>::Type
+      Device::createShaderEXT( VULKAN_HPP_NAMESPACE::ShaderCreateInfoEXT const &                               createInfo,
                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
       VULKAN_HPP_NAMESPACE::ShaderEXT shader;
@@ -23130,8 +24094,8 @@ namespace VULKAN_HPP_NAMESPACE
 
     //=== VK_KHR_pipeline_binary ===
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineBinaryKHR>>::Type
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+      std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PipelineBinaryKHR>>::Type
       Device::createPipelineBinariesKHR( VULKAN_HPP_NAMESPACE::PipelineBinaryCreateInfoKHR const &                       createInfo,
                                          VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
     {
@@ -23426,7 +24390,7 @@ namespace VULKAN_HPP_NAMESPACE
     VULKAN_HPP_INLINE void CommandBuffer::setLineStippleKHR( uint32_t lineStippleFactor, uint16_t lineStipplePattern ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( getDispatcher()->vkCmdSetLineStippleKHR &&
-                         "Function <vkCmdSetLineStippleKHR> requires <VK_EXT_line_rasterization> or <VK_KHR_line_rasterization>" );
+                         "Function <vkCmdSetLineStippleKHR> requires <VK_EXT_line_rasterization> or <VK_KHR_line_rasterization> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdSetLineStippleKHR( static_cast<VkCommandBuffer>( m_commandBuffer ), lineStippleFactor, lineStipplePattern );
     }
@@ -23501,40 +24465,41 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_KHR_maintenance6 ===
 
     VULKAN_HPP_INLINE void
-      CommandBuffer::bindDescriptorSets2KHR( const VULKAN_HPP_NAMESPACE::BindDescriptorSetsInfoKHR & bindDescriptorSetsInfo ) const VULKAN_HPP_NOEXCEPT
+      CommandBuffer::bindDescriptorSets2KHR( const VULKAN_HPP_NAMESPACE::BindDescriptorSetsInfo & bindDescriptorSetsInfo ) const VULKAN_HPP_NOEXCEPT
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdBindDescriptorSets2KHR && "Function <vkCmdBindDescriptorSets2KHR> requires <VK_KHR_maintenance6>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdBindDescriptorSets2KHR &&
+                         "Function <vkCmdBindDescriptorSets2KHR> requires <VK_KHR_maintenance6> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdBindDescriptorSets2KHR( static_cast<VkCommandBuffer>( m_commandBuffer ),
-                                                    reinterpret_cast<const VkBindDescriptorSetsInfoKHR *>( &bindDescriptorSetsInfo ) );
+                                                    reinterpret_cast<const VkBindDescriptorSetsInfo *>( &bindDescriptorSetsInfo ) );
     }
 
-    VULKAN_HPP_INLINE void CommandBuffer::pushConstants2KHR( const VULKAN_HPP_NAMESPACE::PushConstantsInfoKHR & pushConstantsInfo ) const VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_INLINE void CommandBuffer::pushConstants2KHR( const VULKAN_HPP_NAMESPACE::PushConstantsInfo & pushConstantsInfo ) const VULKAN_HPP_NOEXCEPT
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushConstants2KHR && "Function <vkCmdPushConstants2KHR> requires <VK_KHR_maintenance6>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushConstants2KHR && "Function <vkCmdPushConstants2KHR> requires <VK_KHR_maintenance6> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdPushConstants2KHR( static_cast<VkCommandBuffer>( m_commandBuffer ),
-                                               reinterpret_cast<const VkPushConstantsInfoKHR *>( &pushConstantsInfo ) );
+                                               reinterpret_cast<const VkPushConstantsInfo *>( &pushConstantsInfo ) );
     }
 
     VULKAN_HPP_INLINE void
-      CommandBuffer::pushDescriptorSet2KHR( const VULKAN_HPP_NAMESPACE::PushDescriptorSetInfoKHR & pushDescriptorSetInfo ) const VULKAN_HPP_NOEXCEPT
+      CommandBuffer::pushDescriptorSet2KHR( const VULKAN_HPP_NAMESPACE::PushDescriptorSetInfo & pushDescriptorSetInfo ) const VULKAN_HPP_NOEXCEPT
     {
-      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushDescriptorSet2KHR && "Function <vkCmdPushDescriptorSet2KHR> requires <VK_KHR_maintenance6>" );
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushDescriptorSet2KHR &&
+                         "Function <vkCmdPushDescriptorSet2KHR> requires <VK_KHR_maintenance6> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdPushDescriptorSet2KHR( static_cast<VkCommandBuffer>( m_commandBuffer ),
-                                                   reinterpret_cast<const VkPushDescriptorSetInfoKHR *>( &pushDescriptorSetInfo ) );
+                                                   reinterpret_cast<const VkPushDescriptorSetInfo *>( &pushDescriptorSetInfo ) );
     }
 
     VULKAN_HPP_INLINE void CommandBuffer::pushDescriptorSetWithTemplate2KHR(
-      const VULKAN_HPP_NAMESPACE::PushDescriptorSetWithTemplateInfoKHR & pushDescriptorSetWithTemplateInfo ) const VULKAN_HPP_NOEXCEPT
+      const VULKAN_HPP_NAMESPACE::PushDescriptorSetWithTemplateInfo & pushDescriptorSetWithTemplateInfo ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( getDispatcher()->vkCmdPushDescriptorSetWithTemplate2KHR &&
-                         "Function <vkCmdPushDescriptorSetWithTemplate2KHR> requires <VK_KHR_maintenance6>" );
+                         "Function <vkCmdPushDescriptorSetWithTemplate2KHR> requires <VK_KHR_maintenance6> or <VK_VERSION_1_4>" );
 
       getDispatcher()->vkCmdPushDescriptorSetWithTemplate2KHR(
-        static_cast<VkCommandBuffer>( m_commandBuffer ),
-        reinterpret_cast<const VkPushDescriptorSetWithTemplateInfoKHR *>( &pushDescriptorSetWithTemplateInfo ) );
+        static_cast<VkCommandBuffer>( m_commandBuffer ), reinterpret_cast<const VkPushDescriptorSetWithTemplateInfo *>( &pushDescriptorSetWithTemplateInfo ) );
     }
 
     VULKAN_HPP_INLINE void CommandBuffer::setDescriptorBufferOffsets2EXT(
@@ -23613,8 +24578,8 @@ namespace VULKAN_HPP_NAMESPACE
                                                          reinterpret_cast<const VkGeneratedCommandsInfoEXT *>( &generatedCommandsInfo ) );
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutEXT>::Type
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutEXT>::Type
       Device::createIndirectCommandsLayoutEXT( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutCreateInfoEXT const &               createInfo,
                                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -23639,7 +24604,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE
-      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectExecutionSetEXT>::Type
+      VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::IndirectExecutionSetEXT>::Type
       Device::createIndirectExecutionSetEXT( VULKAN_HPP_NAMESPACE::IndirectExecutionSetCreateInfoEXT const &                 createInfo,
                                              VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
@@ -23685,6 +24650,39 @@ namespace VULKAN_HPP_NAMESPACE
                                                               static_cast<VkIndirectExecutionSetEXT>( m_indirectExecutionSet ),
                                                               executionSetWrites.size(),
                                                               reinterpret_cast<const VkWriteIndirectExecutionSetShaderEXT *>( executionSetWrites.data() ) );
+    }
+
+    //=== VK_NV_cooperative_matrix2 ===
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE std::vector<VULKAN_HPP_NAMESPACE::CooperativeMatrixFlexibleDimensionsPropertiesNV>
+                                           PhysicalDevice::getCooperativeMatrixFlexibleDimensionsPropertiesNV() const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV &&
+                         "Function <vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV> requires <VK_NV_cooperative_matrix2>" );
+
+      std::vector<VULKAN_HPP_NAMESPACE::CooperativeMatrixFlexibleDimensionsPropertiesNV> properties;
+      uint32_t                                                                           propertyCount;
+      VULKAN_HPP_NAMESPACE::Result                                                       result;
+      do
+      {
+        result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV(
+          static_cast<VkPhysicalDevice>( m_physicalDevice ), &propertyCount, nullptr ) );
+        if ( ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess ) && propertyCount )
+        {
+          properties.resize( propertyCount );
+          result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV(
+            static_cast<VkPhysicalDevice>( m_physicalDevice ),
+            &propertyCount,
+            reinterpret_cast<VkCooperativeMatrixFlexibleDimensionsPropertiesNV *>( properties.data() ) ) );
+        }
+      } while ( result == VULKAN_HPP_NAMESPACE::Result::eIncomplete );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::PhysicalDevice::getCooperativeMatrixFlexibleDimensionsPropertiesNV" );
+      VULKAN_HPP_ASSERT( propertyCount <= properties.size() );
+      if ( propertyCount < properties.size() )
+      {
+        properties.resize( propertyCount );
+      }
+      return properties;
     }
 
     //====================
