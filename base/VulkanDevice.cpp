@@ -15,8 +15,15 @@
 #include <VulkanDevice.h>
 #include <unordered_set>
 
+#include "swappy/swappyVk.h"
+
+#include "Log.h"
+
 namespace vks
 {	
+	// This is a bit of a hack because of how swappy reports extensions
+	static char *swappy_extension_strings = nullptr;
+
 	/**
 	* Default constructor
 	*
@@ -42,18 +49,73 @@ namespace vks
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
 
 		// Get list of supported extensions
-		uint32_t extCount = 0;
-		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, nullptr);
-		if (extCount > 0)
-		{
-			std::vector<VkExtensionProperties> extensions(extCount);
-			if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
-			{
-				for (auto& ext : extensions)
-				{
-					supportedExtensions.push_back(ext.extensionName);
-				}
+		uint32_t extension_count = 0;
+		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extension_count, nullptr);
+		// if (extension_count > 0)
+		// {
+		// 	std::vector<VkExtensionProperties> extensions(extension_count);
+		// 	if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extension_count, &extensions.front()) == VK_SUCCESS)
+		// 	{
+		// 		for (auto& ext : extensions)
+		// 		{
+		// 			supportedExtensions.push_back(ext.extensionName);
+		// 		}
+		// 	}
+		// }
+
+		// SWAPPY: Add any available extensions Swappy wants
+		std::vector<VkExtensionProperties> available_extensions(extension_count);
+		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extension_count,
+											available_extensions.data());
+
+		// Add any available extensions Swappy wants
+		uint32_t swappy_extension_count = 0;
+		SwappyVk_determineDeviceExtensions(physicalDevice, extension_count, available_extensions.data(),
+											&swappy_extension_count, nullptr);
+
+		ALOGI("VulkanDevice::VulkanDevice SwappyVk_determineDeviceExtensions: %d", swappy_extension_count); // 1 // VK_GOOGLE_display_timing
+
+		std::vector<const char *> device_extensions;
+
+		// Swappy expects valid string buffers for its extension names, rather than just copying
+		// pointers to its constants. Make a buffer for it to strcpy into
+		const size_t swappy_string_size = VK_MAX_EXTENSION_NAME_SIZE * swappy_extension_count;
+		if (swappy_extension_count > 0) {
+			if (swappy_extension_strings != nullptr) {
+			free(swappy_extension_strings);
 			}
+			swappy_extension_strings = (char *) malloc(swappy_string_size);
+			memset(swappy_extension_strings, 0, swappy_string_size);
+		}
+		char *base = swappy_extension_strings;
+		for (uint32_t i = 0; i < swappy_extension_count; ++i) {
+			device_extensions.push_back(base);
+			base += VK_MAX_EXTENSION_NAME_SIZE;
+		}
+
+		SwappyVk_determineDeviceExtensions(physicalDevice, extension_count, available_extensions.data(),
+											&swappy_extension_count,
+											const_cast<char **>(device_extensions.data()));
+
+		device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME); // VK_KHR_swapchain
+
+		// If we are on a Vulkan 1.0 device, require the VK_KHR_maintenance1 extension, which is
+		// core from Vulkan 1.1+
+		VkPhysicalDeviceProperties device_properties{};
+		vkGetPhysicalDeviceProperties(physicalDevice, &device_properties);
+		const uint32_t device_major_version = VK_VERSION_MAJOR(device_properties.apiVersion);
+		const uint32_t device_minor_version = VK_VERSION_MINOR(device_properties.apiVersion);
+		if (device_major_version == 1 && device_minor_version == 0) {
+			device_extensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+		}
+
+		for ( int i = 0; i < device_extensions.size(); i++ ) {
+			std::string ext(device_extensions[i]);
+			supportedExtensions.push_back(ext);
+            swappyExtensions.push_back(ext);
+			ALOGI("VulkanDevice::VulkanDevice supportedExtensions: %s", ext.c_str());
+			//2024-09-05 11:51:07.844 13472-13520 ADPF                    de....awillems.vulkanScenerendering  I  VulkanDevice::VulkanDevice supportedExtensions: VK_GOOGLE_display_timing
+			//2024-09-05 11:51:07.844 13472-13520 ADPF                    de....awillems.vulkanScenerendering  I  VulkanDevice::VulkanDevice supportedExtensions: VK_KHR_swapchain
 		}
 	}
 
@@ -71,6 +133,12 @@ namespace vks
 		if (logicalDevice)
 		{
 			vkDestroyDevice(logicalDevice, nullptr);
+		}
+
+		// Take this opportunity to clean up the swappy string alloc, if it exists
+		if (swappy_extension_strings != nullptr) {
+			free(swappy_extension_strings);
+			swappy_extension_strings = nullptr;
 		}
 	}
 
@@ -277,6 +345,10 @@ namespace vks
 		}
 #endif
 
+		for (const std::string &swappyExtension : swappyExtensions)
+        {
+          deviceExtensions.push_back(swappyExtension.c_str());
+        }
 		if (deviceExtensions.size() > 0)
 		{
 			for (const char* enabledExtension : deviceExtensions)

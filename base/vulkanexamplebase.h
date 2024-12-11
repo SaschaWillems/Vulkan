@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <__config>
 #ifdef _WIN32
 #pragma comment(linker, "/subsystem:windows")
 #include <windows.h>
@@ -17,7 +18,8 @@
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 #include <android/native_activity.h>
 #include <android/asset_manager.h>
-#include <android_native_app_glue.h>
+// #include <android_native_app_glue.h>
+#include "game-activity/native_app_glue/android_native_app_glue.h"
 #include <sys/system_properties.h>
 #include "VulkanAndroid.h"
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
@@ -164,6 +166,12 @@ public:
 	vks::UIOverlay ui;
 	CommandLineParser commandLineParser;
 
+	void *native_window = nullptr;
+	void *and_app = nullptr;
+	void *activity_obj = nullptr;
+	void *jni_env = nullptr;
+	void initAndroidObjects(void *app);
+
 	/** @brief Last frame time measured using a high performance timer (if available) */
 	float frameTimer = 1.0f;
 
@@ -298,6 +306,8 @@ public:
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	static int32_t handleAppInput(struct android_app* app, AInputEvent* event);
 	static void handleAppCommand(android_app* app, int32_t cmd);
+	virtual void handleGameActivityInput();
+	virtual void processMotionEvent(const void* event);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 	void* setupWindow(void* view);
 	void displayLinkOutputCb();
@@ -384,6 +394,8 @@ public:
 	virtual void getEnabledFeatures();
 	/** @brief (Virtual) Called after the physical device extensions have been read, can be used to enable extensions based on the supported extension listing*/
 	virtual void getEnabledExtensions();
+
+	virtual void setupFramePacing();
 
 	/** @brief Prepares all Vulkan resources and functions required to run the sample */
 	virtual void prepare();
