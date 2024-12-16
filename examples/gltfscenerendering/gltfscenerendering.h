@@ -167,4 +167,5 @@ public:
 	void prepare();
 	virtual void render();
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay);
+	virtual void handleGameActivityInput();
 };

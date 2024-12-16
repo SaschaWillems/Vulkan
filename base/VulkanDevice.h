@@ -37,6 +37,8 @@ struct VulkanDevice
 	std::vector<VkQueueFamilyProperties> queueFamilyProperties;
 	/** @brief List of extensions supported by the device */
 	std::vector<std::string> supportedExtensions;
+	/** @brief List of extensions needed to enable for swappy */
+    std::vector<std::string> swappyExtensions;
 	/** @brief Default command pool for the graphics queue family index */
 	VkCommandPool commandPool = VK_NULL_HANDLE;
 	/** @brief Contains queue family indices */

@@ -8,6 +8,12 @@
 
 #include "vulkanexamplebase.h"
 
+#include "swappy/swappyVk.h"
+
+#include "Log.h"
+
+#define USE_SWAPPY 1
+
 #if defined(VK_EXAMPLE_XCODE_GENERATED)
 #if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 #include <Cocoa/Cocoa.h>
@@ -189,6 +195,21 @@ void VulkanExampleBase::destroyCommandBuffers()
 	vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.size()), drawCmdBuffers.data());
 }
 
+void VulkanExampleBase::initAndroidObjects(void* app)
+{
+	and_app = app;
+	android_app* androidApp = (android_app*)app;
+	JNIEnv* env;
+	activity_obj = androidApp->activity->javaGameActivity;
+	native_window = androidApp->window;
+	if ( 0 != androidApp->activity->vm->AttachCurrentThread(&env, NULL) ) {
+		ALOGI("VulkanExampleBase::initAndroidObjects failed to get JNIEnv");
+	} else {
+		ALOGI("VulkanExampleBase::initAndroidObjects get JNIEnv");
+		jni_env = env;
+	}
+}
+
 std::string VulkanExampleBase::getShadersPath() const
 {
 	return getShaderBasePath() + shaderDir + "/";
@@ -212,6 +233,7 @@ void VulkanExampleBase::prepare()
 	setupRenderPass();
 	createPipelineCache();
 	setupFrameBuffer();
+	setupFramePacing();
 	settings.overlay = settings.overlay && (!benchmark.active);
 	if (settings.overlay) {
 		ui.device = vulkanDevice;
@@ -371,7 +393,7 @@ void VulkanExampleBase::renderLoop()
 		// Exit loop, example will be destroyed in application main
 		if (destroy)
 		{
-			ANativeActivity_finish(androidApp->activity);
+			//ANativeActivity_finish(androidApp->activity);
 			break;
 		}
 
@@ -405,6 +427,9 @@ void VulkanExampleBase::renderLoop()
 			updateOverlay();
 
 			bool updateView = false;
+
+			// HandleGameActivityInput
+			handleGameActivityInput();
 
 			// Check touch state (for movement)
 			if (touchDown) {
@@ -769,15 +794,15 @@ void VulkanExampleBase::submitFrame()
 {
 	VkResult result = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-		windowResize();
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			return;
-		}
-	}
-	else {
-		VK_CHECK_RESULT(result);
-	}
+	// if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+	// 	windowResize();
+	// 	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+	// 		return;
+	// 	}
+	// }
+	// else {
+	// 	VK_CHECK_RESULT(result);
+	// }
 	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
 
@@ -1409,6 +1434,76 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	OnHandleMessage(hWnd, uMsg, wParam, lParam);
 }
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+void VulkanExampleBase::processMotionEvent(const void* event)
+{
+	const GameActivityMotionEvent* motionEvent = (GameActivityMotionEvent*) event;
+	if ( motionEvent->source == AINPUT_SOURCE_TOUCHSCREEN && motionEvent->pointerCount > 0 ) {
+		const uint32_t pointerIndex = 0;
+		const GameActivityPointerAxes pointerAxes = motionEvent->pointers[0];
+		const int action = motionEvent->action;
+		const int actionMasked = action & AMOTION_EVENT_ACTION_MASK;
+		const int64_t eventTime = motionEvent->eventTime;
+		const int64_t downTime = motionEvent->downTime;
+		switch (actionMasked ) {
+			case AMOTION_EVENT_ACTION_UP:
+			case AMOTION_EVENT_ACTION_POINTER_UP:
+				lastTapTime = eventTime;
+				touchPos.x = pointerAxes.rawX;
+				touchPos.y = pointerAxes.rawY;
+				touchTimer = 0.0;
+				touchDown = false;
+				camera.keys.up = false;
+
+				// Detect single tap
+				if ( eventTime - downTime <= vks::android::TAP_TIMEOUT) {
+					mouseState.buttons.left = true;
+				}
+				break;
+			case AMOTION_EVENT_ACTION_DOWN:
+			case AMOTION_EVENT_ACTION_POINTER_DOWN:
+				if ( eventTime - lastTapTime <= vks::android::DOUBLE_TAP_TIMEOUT ) {
+					keyPressed(TOUCH_DOUBLE_TAP);
+					touchDown = false;
+				} else {
+					touchDown = true;
+				}
+				touchPos.x = pointerAxes.rawX;
+				touchPos.y = pointerAxes.rawY;
+				mouseState.position.x = pointerAxes.rawX;
+				mouseState.position.y = pointerAxes.rawY;
+				break;
+			case AMOTION_EVENT_ACTION_MOVE:
+				bool handled = false;
+				if ( settings.overlay ) {
+					ImGuiIO& io = ImGui::GetIO();
+					handled = io.WantCaptureMouse && ui.visible;
+				}
+				if ( !handled ) {
+					int32_t eventX = pointerAxes.rawX;
+					int32_t eventY = pointerAxes.rawY;
+
+					float deltaX = (float)(touchPos.y - eventY) * camera.rotationSpeed * 0.5f;
+					float deltaY = (float)(touchPos.x - eventX) * camera.rotationSpeed * 0.5f;
+
+					camera.rotate(glm::vec3(deltaX, 0.0f, 0.0f));
+					camera.rotate(glm::vec3(0.0f, -deltaY, 0.0f));
+
+					touchPos.x = eventX;
+					touchPos.y = eventY;
+				}
+				break;
+		}
+	}
+}
+
+/**
+ *	Stub to be implemented by child class
+ *	Actually we can abstract some implementation here, but not sure why there is linker error
+ *	when accessing all the android objects (eg: android_app_swap_input_buffers) here
+ */
+void VulkanExampleBase::handleGameActivityInput() {
+}
+
 int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* event)
 {
 	VulkanExampleBase* vulkanExample = reinterpret_cast<VulkanExampleBase*>(app->userData);
@@ -1570,6 +1665,7 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		LOGD("APP_CMD_INIT_WINDOW");
 		if (androidApp->window != NULL)
 		{
+			vulkanExample->native_window = androidApp->window;
 			if (vulkanExample->initVulkan()) {
 				vulkanExample->prepare();
 				assert(vulkanExample->prepared);
@@ -3173,6 +3269,36 @@ void VulkanExampleBase::getEnabledFeatures() {}
 
 void VulkanExampleBase::getEnabledExtensions() {}
 
+void VulkanExampleBase::setupFramePacing() {
+#if defined(USE_SWAPPY)
+    uint64_t refresh_rate = 0;
+
+	assert(jni_env);
+	assert(activity_obj);
+	assert(physicalDevice);
+	assert(device);
+	assert(swapChain.swapChain);
+
+    uint32_t present_queue_index_ = vulkanDevice->queueFamilyIndices.graphics;
+    ALOGI("VulkanExampleBase::setupFramePacing present_queue_index_ %d", present_queue_index_);
+    SwappyVk_setQueueFamilyIndex(device, queue, present_queue_index_);
+
+	bool success = SwappyVk_initAndGetRefreshCycleDuration(
+            (JNIEnv*) (jni_env),
+            (jobject) activity_obj,
+            physicalDevice, device, swapChain.swapChain, &refresh_rate
+    );
+	ALOGI("VulkanExampleBase::setupFramePacing result: %d", success);
+
+    SwappyVk_setSwapIntervalNS(device, swapChain.swapChain, SWAPPY_SWAP_60FPS);
+    SwappyVk_setWindow(device, swapChain.swapChain, (ANativeWindow*)native_window);
+
+//	AdpfPerfHintMgr::getInstance().setupQueryTimer();
+//	AdpfPerfHintMgr::getInstance().updateTargetWorkDuration(SWAPPY_SWAP_60FPS);
+
+#endif
+}
+
 void VulkanExampleBase::windowResize()
 {
 	if (!prepared)
@@ -3189,6 +3315,8 @@ void VulkanExampleBase::windowResize()
 	width = destWidth;
 	height = destHeight;
 	createSwapChain();
+	// Reset swappy to use the new swap chain
+	setupFramePacing();
 
 	// Recreate the frame buffers
 	vkDestroyImageView(device, depthStencil.view, nullptr);

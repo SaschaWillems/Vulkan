@@ -45,12 +45,12 @@ void android_main(android_app* state)																\
 	vulkanExample = new VulkanExample();															\
 	state->userData = vulkanExample;																\
 	state->onAppCmd = VulkanExample::handleAppCommand;												\
-	state->onInputEvent = VulkanExample::handleAppInput;											\
 	androidApp = state;																				\
 	vks::android::getDeviceConfig();																\
+	vulkanExample->initAndroidObjects(state);														\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\
-}
+}																									\
 
 #elif defined(_DIRECT2DISPLAY)
 /*

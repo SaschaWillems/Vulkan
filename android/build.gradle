@@ -40,8 +40,8 @@ allprojects {
 ext {
     abiFilters = "arm64-v8a"
     minSdkVersion = 21
-    targetSdkVersion = 26
-    compileSdkVersion = 26
+    targetSdkVersion = 35
+    compileSdkVersion = 35
     shaderPath = '../../../shaders/'
     assetPath = '../../../assets/'
 }

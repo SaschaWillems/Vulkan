@@ -12,6 +12,7 @@
 	#include <android/log.h>
 	#include <dlfcn.h>
 	#include <android/native_window_jni.h>
+	#include "Log.h"
 
 android_app* androidApp;
 
@@ -352,10 +353,10 @@ namespace vks
 
 			jstring jmessage = jni->NewStringUTF(message);
 
-			jclass clazz = jni->GetObjectClass(androidApp->activity->clazz);
+			jclass clazz = jni->GetObjectClass(androidApp->activity->javaGameActivity);
 			// Signature has to match java implementation (arguments)
 			jmethodID methodID = jni->GetMethodID(clazz, "showAlert", "(Ljava/lang/String;)V");
-			jni->CallVoidMethod(androidApp->activity->clazz, methodID, jmessage);
+			jni->CallVoidMethod(androidApp->activity->javaGameActivity, methodID, jmessage);
 			jni->DeleteLocalRef(jmessage);
 
 			androidApp->activity->vm->DetachCurrentThread();
