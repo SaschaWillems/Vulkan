@@ -35,8 +35,8 @@ foreach(comp ${XCB_FIND_COMPONENTS})
         ${PC_${comp}_LIBRARY_DIRS}
         )
 
-    find_package_handle_standard_args(${comp}
-        FOUND_VAR ${comp}_FOUND
+    find_package_handle_standard_args(${compname}
+        FOUND_VAR ${compname}_FOUND
         REQUIRED_VARS ${compname}_INCLUDE_DIR ${compname}_LIBRARY)
     mark_as_advanced(${compname}_INCLUDE_DIR ${compname}_LIBRARY)
 
