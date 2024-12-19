@@ -179,7 +179,7 @@ std::string VulkanExampleBase::getWindowTitle() const
 void VulkanExampleBase::createCommandBuffers()
 {
 	// Create one command buffer for each swap chain image
-	drawCmdBuffers.resize(swapChain.imageCount);
+	drawCmdBuffers.resize(swapChain.images.size());
 	VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data()));
 }
@@ -751,7 +751,7 @@ void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 void VulkanExampleBase::prepareFrame()
 {
 	// Acquire the next image from the swap chain
-	VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+	VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, currentBuffer);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
 	// SRS - If no longer optimal (VK_SUBOPTIMAL_KHR), wait until submitFrame() in case number of swapchain images will change on resize
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
@@ -3077,11 +3077,11 @@ void VulkanExampleBase::setupDepthStencil()
 void VulkanExampleBase::setupFrameBuffer()
 {
 	// Create frame buffers for every swap chain image
-	frameBuffers.resize(swapChain.imageCount);
+	frameBuffers.resize(swapChain.images.size());
 	for (uint32_t i = 0; i < frameBuffers.size(); i++)
 	{
 		const VkImageView attachments[2] = {
-			swapChain.buffers[i].view,
+			swapChain.imageViews[i],
 			// Depth/Stencil attachment is the same for all frame buffers
 			depthStencil.view
 		};
@@ -3290,7 +3290,7 @@ void VulkanExampleBase::createSurface()
 
 void VulkanExampleBase::createSwapChain()
 {
-	swapChain.create(&width, &height, settings.vsync, settings.fullscreen);
+	swapChain.create(width, height, settings.vsync, settings.fullscreen);
 }
 
 void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}

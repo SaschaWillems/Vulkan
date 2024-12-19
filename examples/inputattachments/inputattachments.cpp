@@ -210,7 +210,7 @@ public:
 		frameBuffers.resize(swapChain.imageCount);
 		for (uint32_t i = 0; i < frameBuffers.size(); i++)
 		{
-			views[0] = swapChain.buffers[i].view;
+			views[0] = swapChain.imageViews[i];
 			views[1] = attachments[i].color.view;
 			views[2] = attachments[i].depth.view;
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCI, nullptr, &frameBuffers[i]));

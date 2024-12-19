@@ -251,7 +251,7 @@ public:
 		frameBuffers.resize(swapChain.imageCount);
 		for (uint32_t i = 0; i < frameBuffers.size(); i++)
 		{
-			attachments[0] = swapChain.buffers[i].view;
+			attachments[0] = swapChain.imageViews[i];
 			attachments[1] = this->attachments.position.view;
 			attachments[2] = this->attachments.normal.view;
 			attachments[3] = this->attachments.albedo.view;

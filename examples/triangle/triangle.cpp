@@ -510,7 +510,7 @@ public:
 		{
 			std::array<VkImageView, 2> attachments{};
 			// Color attachment is the view of the swapchain image
-			attachments[0] = swapChain.buffers[i].view;
+			attachments[0] = swapChain.imageViews[i];
 			// Depth/Stencil attachment is the same for all frame buffers due to how depth works with current GPUs
 			attachments[1] = depthStencil.view;         
 

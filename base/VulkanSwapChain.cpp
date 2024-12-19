@@ -208,7 +208,7 @@ void VulkanSwapChain::setContext(VkInstance instance, VkPhysicalDevice physicalD
 	this->device = device;
 }
 
-void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool fullscreen)
+void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool fullscreen)
 {
 	assert(physicalDevice);
 	assert(device);
@@ -221,33 +221,30 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 	VkSurfaceCapabilitiesKHR surfCaps;
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps));
 
-	// Get available present modes
+	VkExtent2D swapchainExtent = {};
+	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
+	if (surfCaps.currentExtent.width == (uint32_t)-1)
+	{
+		// If the surface size is undefined, the size is set to the size of the images requested
+		swapchainExtent.width = width;
+		swapchainExtent.height = height;
+	}
+	else
+	{
+		// If the surface size is defined, the swap chain size must match
+		swapchainExtent = surfCaps.currentExtent;
+		width = surfCaps.currentExtent.width;
+		height = surfCaps.currentExtent.height;
+	}
+
+
+	// Select a present mode for the swapchain
 	uint32_t presentModeCount;
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL));
 	assert(presentModeCount > 0);
 
 	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()));
-
-	VkExtent2D swapchainExtent = {};
-	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
-	if (surfCaps.currentExtent.width == (uint32_t)-1)
-	{
-		// If the surface size is undefined, the size is set to
-		// the size of the images requested.
-		swapchainExtent.width = *width;
-		swapchainExtent.height = *height;
-	}
-	else
-	{
-		// If the surface size is defined, the swap chain size must match
-		swapchainExtent = surfCaps.currentExtent;
-		*width = surfCaps.currentExtent.width;
-		*height = surfCaps.currentExtent.height;
-	}
-
-
-	// Select a present mode for the swapchain
 
 	// The VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
 	// This mode waits for the vertical blank ("v-sync")
@@ -348,25 +345,23 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 
 	VK_CHECK_RESULT(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain));
 
-	// If an existing swap chain is re-created, destroy the old swap chain
-	// This also cleans up all the presentable images
-	if (oldSwapchain != VK_NULL_HANDLE) 
-	{ 
-		for (uint32_t i = 0; i < imageCount; i++)
-		{
-			vkDestroyImageView(device, buffers[i].view, nullptr);
+	// If an existing swap chain is re-created, destroy the old swap chain and the ressources owned by the application (image views, images are owned by the swap chain)
+	if (oldSwapchain != VK_NULL_HANDLE) { 
+		for (auto i = 0; i < images.size(); i++) {
+			vkDestroyImageView(device, imageViews[i], nullptr);
 		}
 		vkDestroySwapchainKHR(device, oldSwapchain, nullptr);
 	}
-	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(device, swapChain, &imageCount, NULL));
+	uint32_t imageCount{ 0 };
+	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr));
 
 	// Get the swap chain images
 	images.resize(imageCount);
 	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(device, swapChain, &imageCount, images.data()));
 
 	// Get the swap chain buffers containing the image and imageview
-	buffers.resize(imageCount);
-	for (uint32_t i = 0; i < imageCount; i++)
+	imageViews.resize(imageCount);
+	for (auto i = 0; i < images.size(); i++)
 	{
 		VkImageViewCreateInfo colorAttachmentView = {};
 		colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -385,20 +380,16 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync, bool
 		colorAttachmentView.subresourceRange.layerCount = 1;
 		colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		colorAttachmentView.flags = 0;
-
-		buffers[i].image = images[i];
-
-		colorAttachmentView.image = buffers[i].image;
-
-		VK_CHECK_RESULT(vkCreateImageView(device, &colorAttachmentView, nullptr, &buffers[i].view));
+		colorAttachmentView.image = images[i];
+		VK_CHECK_RESULT(vkCreateImageView(device, &colorAttachmentView, nullptr, &imageViews[i]));
 	}
 }
 
-VkResult VulkanSwapChain::acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex)
+VkResult VulkanSwapChain::acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t& imageIndex)
 {
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
-	return vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);
+	return vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, &imageIndex);
 }
 
 VkResult VulkanSwapChain::queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
@@ -421,16 +412,13 @@ VkResult VulkanSwapChain::queuePresent(VkQueue queue, uint32_t imageIndex, VkSem
 
 void VulkanSwapChain::cleanup()
 {
-	if (swapChain != VK_NULL_HANDLE)
-	{
-		for (uint32_t i = 0; i < imageCount; i++)
-		{
-			vkDestroyImageView(device, buffers[i].view, nullptr);
+	if (swapChain != VK_NULL_HANDLE) {
+		for (auto i = 0; i < images.size(); i++) {
+			vkDestroyImageView(device, imageViews[i], nullptr);
 		}
-	}
-	if (surface != VK_NULL_HANDLE)
-	{
 		vkDestroySwapchainKHR(device, swapChain, nullptr);
+	}
+	if (surface != VK_NULL_HANDLE) {
 		vkDestroySurfaceKHR(instance, surface, nullptr);
 	}
 	surface = VK_NULL_HANDLE;

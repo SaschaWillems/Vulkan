@@ -333,7 +333,7 @@ public:
 		frameBuffers.resize(swapChain.imageCount);
 		for (uint32_t i = 0; i < frameBuffers.size(); i++)
 		{
-			attachments[1] = swapChain.buffers[i].view;
+			attachments[1] = swapChain.imageViews[i];
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
 		}
 	}
