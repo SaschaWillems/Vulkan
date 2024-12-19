@@ -505,7 +505,7 @@ public:
 	void setupFrameBuffer()
 	{
 		// Create a frame buffer for every image in the swapchain
-		frameBuffers.resize(swapChain.imageCount);
+		frameBuffers.resize(swapChain.images.size());
 		for (size_t i = 0; i < frameBuffers.size(); i++)
 		{
 			std::array<VkImageView, 2> attachments{};

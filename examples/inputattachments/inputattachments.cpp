@@ -180,7 +180,7 @@ public:
 			}
 
 			// SRS - Recreate attachments and descriptors in case number of swapchain images has changed on resize
-			attachments.resize(swapChain.imageCount);
+			attachments.resize(swapChain.images.size());
 			for (auto i = 0; i < attachments.size(); i++) {
 				createAttachment(colorFormat, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments[i].color);
 				createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &attachments[i].depth);
@@ -207,7 +207,7 @@ public:
 		frameBufferCI.height = height;
 		frameBufferCI.layers = 1;
 
-		frameBuffers.resize(swapChain.imageCount);
+		frameBuffers.resize(swapChain.images.size());
 		for (uint32_t i = 0; i < frameBuffers.size(); i++)
 		{
 			views[0] = swapChain.imageViews[i];
@@ -222,7 +222,7 @@ public:
 	{
 		attachmentSize = { width, height };		
 
-		attachments.resize(swapChain.imageCount);
+		attachments.resize(swapChain.images.size());
 		for (auto i = 0; i < attachments.size(); i++) {
 			createAttachment(colorFormat, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments[i].color);
 			createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, &attachments[i].depth);
