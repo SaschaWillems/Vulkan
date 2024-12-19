@@ -21,7 +21,7 @@ jobs:
       - name: Install Vulkan libraries
         run: |
           sudo apt update
-          sudo apt install libvulkan-dev
+          sudo apt install libvulkan-dev libxcb1-dev
 
       - name: Build
         run: |
