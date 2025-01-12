@@ -1,6 +1,6 @@
 # Vulkan C++ examples and demos
 
-A comprehensive collection of open source C++ examples for [Vulkan®](https://www.khronos.org/vulkan/), the new generation graphics and compute API from Khronos.
+A comprehensive collection of open source C++ examples for [Vulkan®](https://www.vulkan.org), the low-level graphics and compute API from Khronos.
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BHXPMV6ZKPH9E)
 
@@ -51,10 +51,6 @@ Existing repositories can be updated manually:
 git submodule init
 git submodule update
 ```
-
-## Assets
-
-**Important notice:** As of may 2023 assets have been moved to a [submodule](https://github.com/SaschaWillems/Vulkan-Assets). If you have cloned the repository before this date, you may need to initialize and update submodules. If you do a fresh clone, no action is required to get the assets.
 
 ## Building
 
