@@ -27,10 +27,10 @@ namespace vks
 			std::string prefix;
 
 			if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
+				prefix = "VERBOSE: ";
 #if defined(_WIN32)
 				prefix = "\033[32m" + prefix + "\033[0m";
 #endif
-				prefix = "VERBOSE: ";
 			}
 			else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
 				prefix = "INFO: ";
