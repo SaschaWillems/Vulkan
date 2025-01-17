@@ -3,7 +3,7 @@
 *
 * Relevant code parts are marked with [POI]
 *
-* Copyright (C) 2018-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -23,19 +23,18 @@ public:
 			glm::mat4 view;
 			glm::mat4 model;
 		} matrices;
-		VkDescriptorSet descriptorSet;
+		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 		vks::Texture2D texture;
 		vks::Buffer uniformBuffer;
-		glm::vec3 rotation;
+		glm::vec3 rotation{ 0.0f };
 	};
 	std::array<Cube, 2> cubes;
 
 	vkglTF::Model model;
 
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
-
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -365,8 +364,8 @@ public:
 			if (cubes[0].rotation.x > 360.0f)
 				cubes[0].rotation.x -= 360.0f;
 			cubes[1].rotation.y += 2.0f * frameTimer;
-			if (cubes[1].rotation.x > 360.0f)
-				cubes[1].rotation.x -= 360.0f;
+			if (cubes[1].rotation.y > 360.0f)
+				cubes[1].rotation.y -= 360.0f;
 		}
 		if ((camera.updated) || (animate && !paused)) {
 			updateUniformBuffers();
