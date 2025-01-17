@@ -21,7 +21,7 @@ VSOutput main([[vk::location(0)]] float3 Pos : POSITION0)
 {
 	VSOutput output = (VSOutput)0;
 	output.UVW = Pos;
-	output.UVW.yz *= -1.0;
+	output.UVW.xy *= -1.0;
 	// Remove translation from view matrix
 	float4x4 viewMat = ubo.model;
 	viewMat[0][3] = 0.0;
