@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+# Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 # This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
 cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
@@ -137,7 +137,7 @@ endif()
 
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB SOURCE *.cpp )
