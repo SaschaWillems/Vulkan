@@ -70,14 +70,17 @@ public:
 	} graphics;
 
 	// Resources for the compute part of the example
+	// SRS - Number of compute command buffers: set to 1 for serialized processing or 2 for in-parallel with graphics queue
+	#define COMPUTE_CMD_BUFFERS 2
 	struct Compute {
-		struct Semaphores {
+		typedef struct Semaphores_t {
 			VkSemaphore ready{ VK_NULL_HANDLE };
 			VkSemaphore complete{ VK_NULL_HANDLE };
-		} semaphores;
+		} semaphores_t;
+		std::array<semaphores_t, COMPUTE_CMD_BUFFERS> semaphores{};
 		VkQueue queue{ VK_NULL_HANDLE };
 		VkCommandPool commandPool{ VK_NULL_HANDLE };
-		std::array<VkCommandBuffer, 2> commandBuffers{};
+		std::array<VkCommandBuffer, COMPUTE_CMD_BUFFERS> commandBuffers{};
 		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 		std::array<VkDescriptorSet, 2> descriptorSets{ VK_NULL_HANDLE };
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
@@ -126,8 +129,10 @@ public:
 			vkDestroyPipelineLayout(device, compute.pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
 			vkDestroyPipeline(device, compute.pipeline, nullptr);
-			vkDestroySemaphore(device, compute.semaphores.ready, nullptr);
-			vkDestroySemaphore(device, compute.semaphores.complete, nullptr);
+			for (uint32_t i = 0; i < compute.semaphores.size(); i++) {
+				vkDestroySemaphore(device, compute.semaphores[i].ready, nullptr);
+				vkDestroySemaphore(device, compute.semaphores[i].complete, nullptr);
+			}
 			vkDestroyCommandPool(device, compute.commandPool, nullptr);
 
 			// SSBOs
@@ -176,7 +181,7 @@ public:
 		}
 	}
 
-	void addComputeToComputeBarriers(VkCommandBuffer commandBuffer)
+	void addComputeToComputeBarriers(VkCommandBuffer commandBuffer, uint32_t readSet)
 	{
 		VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
 		bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -185,10 +190,20 @@ public:
 		bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		bufferBarrier.size = VK_WHOLE_SIZE;
 		std::vector<VkBufferMemoryBarrier> bufferBarriers;
-		bufferBarrier.buffer = storageBuffers.input.buffer;
-		bufferBarriers.push_back(bufferBarrier);
-		bufferBarrier.buffer = storageBuffers.output.buffer;
-		bufferBarriers.push_back(bufferBarrier);
+		if (readSet == 0)
+		{
+			// SRS - we have written to output.buffer and need a memory barrier before reading it
+			//	   - don't need a memory barrier for input.buffer, the execution barrier is enough
+			bufferBarrier.buffer = storageBuffers.output.buffer;
+			bufferBarriers.push_back(bufferBarrier);
+		}
+		else //if (readSet == 1)
+		{
+			// SRS - we have written to input.buffer and need a memory barrier before reading it
+			//	   - don't need a memory barrier for output.buffer, the execution barrier is enough
+			bufferBarrier.buffer = storageBuffers.input.buffer;
+			bufferBarriers.push_back(bufferBarrier);
+		}
 		vkCmdPipelineBarrier(
 			commandBuffer,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -280,7 +295,7 @@ public:
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 
 			// release the storage buffers to the compute queue
-			addGraphicsToComputeBarriers(drawCmdBuffers[i], VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 0, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+			addGraphicsToComputeBarriers(drawCmdBuffers[i], VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
@@ -292,12 +307,12 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 		cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-		for (uint32_t i = 0; i < 2; i++) {
+		for (uint32_t i = 0; i < compute.commandBuffers.size(); i++) {
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffers[i], &cmdBufInfo));
 
 			// Acquire the storage buffers from the graphics queue
-			addGraphicsToComputeBarriers(compute.commandBuffers[i], 0, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+			addGraphicsToComputeBarriers(compute.commandBuffers[i], 0, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 			vkCmdBindPipeline(compute.commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
 
@@ -305,6 +320,7 @@ public:
 			vkCmdPushConstants(compute.commandBuffers[i], compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &calculateNormals);
 
 			// Dispatch the compute job
+			// SRS - Iterations **must** be an even number, so that readSet starts at 1 and the final result ends up in output.buffer with readSet equal to 0
 			const uint32_t iterations = 64;
 			for (uint32_t j = 0; j < iterations; j++) {
 				readSet = 1 - readSet;
@@ -319,7 +335,7 @@ public:
 
 				// Don't add a barrier on the last iteration of the loop, since we'll have an explicit release to the graphics queue
 				if (j != iterations - 1) {
-					addComputeToComputeBarriers(compute.commandBuffers[i]);
+					addComputeToComputeBarriers(compute.commandBuffers[i], readSet);
 				}
 
 			}
@@ -386,7 +402,7 @@ public:
 		// Add an initial release barrier to the graphics queue,
 		// so that when the compute command buffer executes for the first time
 		// it doesn't complain about a lack of a corresponding "release" to its "acquire"
-		addGraphicsToComputeBarriers(copyCmd, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 0, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+		addGraphicsToComputeBarriers(copyCmd, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
 		stagingBuffer.destroy();
@@ -595,13 +611,15 @@ public:
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
 
 		// Create a command buffer for compute operations
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 2);
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(compute.commandBuffers.size()));
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffers[0]));
 
 		// Semaphores for graphics / compute synchronization
 		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &compute.semaphores.ready));
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &compute.semaphores.complete));
+		for (uint32_t i = 0; i < compute.semaphores.size(); i++) {
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &compute.semaphores[i].ready));
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &compute.semaphores[i].complete));
+		}
 
 		// Build a single command buffer containing the compute dispatch commands
 		buildComputeCommandBuffer();
@@ -643,20 +661,46 @@ public:
 		// We'll be using semaphores to synchronize between the compute shader updating the cloth and the graphics pipeline drawing it
 
 		static bool firstDraw = true;
+		static uint32_t computeSubmitIndex{ 0 }, graphicsSubmitIndex{ 0 };
+		if (COMPUTE_CMD_BUFFERS > 1) // should be constexpr, but requires C++17
+		{
+			// SRS - if we are double buffering the compute queue, swap the compute command buffer indices
+			graphicsSubmitIndex = computeSubmitIndex;
+			computeSubmitIndex = 1 - graphicsSubmitIndex;
+		}
+
 		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
 		VkPipelineStageFlags computeWaitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		if (!firstDraw) {
 			computeSubmitInfo.waitSemaphoreCount = 1;
-			computeSubmitInfo.pWaitSemaphores = &compute.semaphores.ready;
+			computeSubmitInfo.pWaitSemaphores = &compute.semaphores[computeSubmitIndex].ready;
 			computeSubmitInfo.pWaitDstStageMask = &computeWaitDstStageMask;
 		}
 		else {
 			firstDraw = false;
+			if (COMPUTE_CMD_BUFFERS > 1) // should be constexpr, but requires C++17
+			{
+				// SRS - if we are double buffering the compute queue, submit extra command buffer at start
+				computeSubmitInfo.signalSemaphoreCount = 1;
+				computeSubmitInfo.pSignalSemaphores = &compute.semaphores[graphicsSubmitIndex].complete;
+				computeSubmitInfo.commandBufferCount = 1;
+				computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[graphicsSubmitIndex];
+
+				VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
+
+				// Add an extra set of acquire and release barriers to the graphics queue,
+				// so that when the second compute command buffer executes for the first time
+				// it doesn't complain about a lack of a corresponding "acquire" to its "release" and vice versa
+				VkCommandBuffer barrierCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+				addComputeToGraphicsBarriers(barrierCmd, 0, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT);
+				addGraphicsToComputeBarriers(barrierCmd, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+				vulkanDevice->flushCommandBuffer(barrierCmd, queue, true);
+			}
 		}
 		computeSubmitInfo.signalSemaphoreCount = 1;
-		computeSubmitInfo.pSignalSemaphores = &compute.semaphores.complete;
+		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[computeSubmitIndex].complete;
 		computeSubmitInfo.commandBufferCount = 1;
-		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[readSet];
+		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[computeSubmitIndex];
 
 		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
 
@@ -667,10 +711,10 @@ public:
 			submitPipelineStages, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
 		};
 		VkSemaphore waitSemaphores[2] = {
-			semaphores.presentComplete, compute.semaphores.complete
+			semaphores.presentComplete, compute.semaphores[graphicsSubmitIndex].complete
 		};
 		VkSemaphore signalSemaphores[2] = {
-			semaphores.renderComplete, compute.semaphores.ready
+			semaphores.renderComplete, compute.semaphores[graphicsSubmitIndex].ready
 		};
 
 		submitInfo.waitSemaphoreCount = 2;
