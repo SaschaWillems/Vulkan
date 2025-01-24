@@ -4,7 +4,7 @@
 * A compute shader updates a shader storage buffer that contains particles held together by springs and also does basic
 * collision detection against a sphere. This storage buffer is then used as the vertex input for the graphics part of the sample
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -70,17 +70,17 @@ public:
 	} graphics;
 
 	// Resources for the compute part of the example
-	// SRS - Number of compute command buffers: set to 1 for serialized processing or 2 for in-parallel with graphics queue
-	#define COMPUTE_CMD_BUFFERS 2
+	// Number of compute command buffers: set to 1 for serialized processing or 2 for in-parallel with graphics queue
+	static constexpr size_t computeCommandBufferCount = 2 ;
 	struct Compute {
 		typedef struct Semaphores_t {
 			VkSemaphore ready{ VK_NULL_HANDLE };
 			VkSemaphore complete{ VK_NULL_HANDLE };
 		} semaphores_t;
-		std::array<semaphores_t, COMPUTE_CMD_BUFFERS> semaphores{};
+		std::array<semaphores_t, computeCommandBufferCount> semaphores{};
 		VkQueue queue{ VK_NULL_HANDLE };
 		VkCommandPool commandPool{ VK_NULL_HANDLE };
-		std::array<VkCommandBuffer, COMPUTE_CMD_BUFFERS> commandBuffers{};
+		std::array<VkCommandBuffer, computeCommandBufferCount> commandBuffers{};
 		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 		std::array<VkDescriptorSet, 2> descriptorSets{ VK_NULL_HANDLE };
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
@@ -492,10 +492,10 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 
 		// Rendering pipeline
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-		shaderStages[0] = loadShader(getShadersPath() + "computecloth/cloth.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "computecloth/cloth.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
+			loadShader(getShadersPath() + "computecloth/cloth.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "computecloth/cloth.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+		};
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(graphics.pipelineLayout, renderPass);
 
@@ -536,8 +536,10 @@ public:
 		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssemblyState.primitiveRestartEnable = VK_FALSE;
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-		shaderStages[0] = loadShader(getShadersPath() + "computecloth/sphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "computecloth/sphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages = {
+			loadShader(getShadersPath() + "computecloth/sphere.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "computecloth/sphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+		};
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &graphics.pipelines.sphere));
 
 		buildCommandBuffers();
@@ -662,7 +664,7 @@ public:
 
 		static bool firstDraw = true;
 		static uint32_t computeSubmitIndex{ 0 }, graphicsSubmitIndex{ 0 };
-		if (COMPUTE_CMD_BUFFERS > 1) // should be constexpr, but requires C++17
+		if (computeCommandBufferCount > 1)
 		{
 			// SRS - if we are double buffering the compute queue, swap the compute command buffer indices
 			graphicsSubmitIndex = computeSubmitIndex;
@@ -678,7 +680,7 @@ public:
 		}
 		else {
 			firstDraw = false;
-			if (COMPUTE_CMD_BUFFERS > 1) // should be constexpr, but requires C++17
+			if (computeCommandBufferCount > 1)
 			{
 				// SRS - if we are double buffering the compute queue, submit extra command buffer at start
 				computeSubmitInfo.signalSemaphoreCount = 1;
