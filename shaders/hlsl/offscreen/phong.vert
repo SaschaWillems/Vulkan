@@ -37,7 +37,7 @@ VSOutput main(VSInput input)
 	output.LightVec = normalize(ubo.lightPos.xyz - output.EyePos);
 
 	// Clip against reflection plane
-	float4 clipPlane = float4(0.0, -1.0, 0.0, 1.5);
+	float4 clipPlane = float4(0.0, -1.0, 0.0, 0.0);
 	output.ClipDistance = dot(input.Pos, clipPlane);
 	return output;
 }
