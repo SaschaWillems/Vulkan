@@ -85,23 +85,37 @@ public:
         return "UNKNOWN";
 
     }
-#define AM_CHECK_RESULT(ctx, f)																				\
-{																										\
-	media_status_t res = (f);																					\
-	if (res != AMEDIA_OK)																				\
-	{																									\
-		LOGE("Fatal : %s \"%s\" in %s at line %d", ctx, amErrorString(res), __FILE__, __LINE__); \
-	} else {                                     \
-		LOGI("OK : %s \"%s\" in %s at line %d", ctx, amErrorString(res), __FILE__, __LINE__); \
-                                              \
-    }                                    \
+#define AM_CHECK_RESULT(ctx, f)																	\
+{																								\
+	media_status_t res = (f);																	\
+	if (res != AMEDIA_OK)																		\
+	{																							\
+		LOGE("Fatal : %s \"%s\" in %s at line %d", ctx, amErrorString(res), __FILE__, __LINE__);\
+	} else {                                                                                    \
+		LOGI("OK : %s \"%s\" in %s at line %d", ctx, amErrorString(res), __FILE__, __LINE__);   \
+    }                                                                                           \
 }
+
+#define AM_CHECK_RESULT_ERR(ctx, f)																\
+{																								\
+	media_status_t res = (f);																	\
+	if (res != AMEDIA_OK)																		\
+	{																							\
+		LOGE("Fatal : %s \"%s\" in %s at line %d", ctx, amErrorString(res), __FILE__, __LINE__);\
+    }                                                                                           \
+}
+
 static constexpr int COLOR_FormatSurface                   = 0x7F000789;
+    VulkanSwapChain codecSwapChain;
+    // Active frame buffer index
+    uint32_t codecCurrentBuffer = 0;
+    AMediaCodec *codec;
+    FILE* h264file= nullptr;
 
     void setupCodec() {
         const char* codecname = "c2.qti.avc.encoder";
-        AMediaCodec *c = AMediaCodec_createCodecByName(codecname);
-        LOGI("AMediaCodec_createCodecByName %s %p", codecname, c);
+        codec = AMediaCodec_createCodecByName(codecname);
+        LOGI("AMediaCodec_createCodecByName %s %p", codecname, codec);
         AMediaFormat *format = AMediaFormat_new();
         AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, "video/avc");
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1280);
@@ -111,19 +125,23 @@ static constexpr int COLOR_FormatSurface                   = 0x7F000789;
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 42);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, COLOR_FormatSurface);
 
-        AM_CHECK_RESULT("AMediaCodec_configure", AMediaCodec_configure(c, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE));
+        AM_CHECK_RESULT("AMediaCodec_configure", AMediaCodec_configure(codec, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE));
 
         ANativeWindow* w;
-        AM_CHECK_RESULT("AMediaCodec_createInputSurface", AMediaCodec_createInputSurface(c, &w));
-        VulkanSwapChain swapChain;
-        swapChain.setContext(instance, physicalDevice, device);
-        swapChain.initSurface(w);
+        AM_CHECK_RESULT("AMediaCodec_createInputSurface", AMediaCodec_createInputSurface(codec, &w));
+        codecSwapChain.setContext(instance, physicalDevice, device);
+        codecSwapChain.initSurface(w);
         LOGI("after swapChain.initSurface");
         uint32_t _width=0;
         uint32_t _height=0;
-        swapChain.create(_width, _height);
+        codecSwapChain.create(_width, _height);
         LOGI("after swapChain.create %ux%u", _width, _height);
-        AM_CHECK_RESULT("AMediaCodec_start", AMediaCodec_start(c));
+        AM_CHECK_RESULT("AMediaCodec_start", AMediaCodec_start(codec));
+        h264file = fopen("/data/user/0/de.saschawillems.vulkanScreenshot/video.h264", "w");
+        if (!h264file) {
+            LOGE("cant open file for writing");
+        }
+
     }
 
 	void loadAssets()
@@ -476,6 +494,59 @@ static constexpr int COLOR_FormatSurface                   = 0x7F000789;
 		prepared = true;
 	}
 
+    void codecDraw() {
+
+        VK_CHECK_RESULT(codecSwapChain.acquireNextImage(semaphores.presentComplete, codecCurrentBuffer));
+        VkImage srcImage = swapChain.images[currentBuffer];
+        VkImage dstImage = codecSwapChain.images[codecCurrentBuffer];
+        VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+        VkOffset3D blitSize;
+        blitSize.x = width;
+        blitSize.y = height;
+        blitSize.z = 1;
+
+        VkOffset3D blitDstSize;
+        blitDstSize.x = 1280;
+        blitDstSize.y = 720;
+        blitDstSize.z = 1;
+        VkImageBlit imageBlitRegion{};
+        imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBlitRegion.srcSubresource.layerCount = 1;
+        imageBlitRegion.srcOffsets[1] = blitSize;
+        imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBlitRegion.dstSubresource.layerCount = 1;
+        imageBlitRegion.dstOffsets[1] = blitDstSize;
+
+        // Issue the blit command
+        vkCmdBlitImage(
+                copyCmd,
+                srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,
+                &imageBlitRegion,
+                VK_FILTER_LINEAR);
+        vulkanDevice->flushCommandBuffer(copyCmd, queue);
+        VK_CHECK_RESULT(codecSwapChain.queuePresent(queue, codecCurrentBuffer, semaphores.renderComplete));
+        VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+        AMediaCodecBufferInfo info{};
+        ssize_t idx = AMediaCodec_dequeueOutputBuffer(codec, &info, 1000 * 16);
+        if (idx >= 0) {
+            size_t outsize = 0;
+            uint8_t *encoded = AMediaCodec_getOutputBuffer(codec, idx, &outsize);
+            LOGI("AMediaCodec_dequeueOutputBuffer %u/%u offset %d size %d pts: %ld flags: %u outsize: %zu ptr: %p",
+                 currentBuffer, codecCurrentBuffer,
+                 info.offset, info.size, info.presentationTimeUs, info.flags, outsize, encoded);
+            if (h264file) {
+                if (1 != fwrite(encoded, info.size, 1, h264file)) {
+                    LOGE("write failed");
+                }
+            }
+            AM_CHECK_RESULT_ERR("AMediaCodec_releaseOutputBuffer", AMediaCodec_releaseOutputBuffer(codec, idx, false));
+        } else if (idx != AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
+            LOGI("AMediaCodec_dequeueOutputBuffer %zd", idx);
+        }
+    }
+
 	void draw()
 	{
 		VulkanExampleBase::prepareFrame();
@@ -483,6 +554,7 @@ static constexpr int COLOR_FormatSurface                   = 0x7F000789;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 		VulkanExampleBase::submitFrame();
+        codecDraw();
 	}
 
 	virtual void render()
