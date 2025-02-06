@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Minimal headless compute example
 *
-* Copyright (C) 2017-2022 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -607,7 +607,7 @@ void android_main(android_app* state) {
 #else
 int main(int argc, char* argv[]) {
 	commandLineParser.add("help", { "--help" }, 0, "Show help");
-	commandLineParser.add("shaders", { "-s", "--shaders" }, 1, "Select shader type to use (glsl or hlsl)");
+	commandLineParser.add("shaders", { "-s", "--shaders" }, 1, "Select shader type to use (glsl, hlsl or slang)");
 	commandLineParser.parse(argc, argv);
 	if (commandLineParser.isSet("help")) {
 		commandLineParser.printHelp();
