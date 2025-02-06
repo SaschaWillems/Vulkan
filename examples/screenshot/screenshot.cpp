@@ -10,6 +10,7 @@
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
+#include <media/NdkMediaCodec.h>
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -49,11 +50,86 @@ public:
 			uniformBuffer.destroy();
 		}
 	}
+    static const char* amErrorString(media_status_t status) {
+        /** The requested media operation completed successfully. */
+        switch (status) {
+            case AMEDIA_OK: return "AMEDIA_OK";
+            case AMEDIACODEC_ERROR_INSUFFICIENT_RESOURCE: return "AMEDIACODEC_ERROR_INSUFFICIENT_RESOURCE";
+            case AMEDIACODEC_ERROR_RECLAIMED: return "AMEDIACODEC_ERROR_RECLAIMED";
+            case AMEDIA_ERROR_UNKNOWN: return "AMEDIA_ERROR_UNKNOWN";
+            case AMEDIA_ERROR_MALFORMED: return "AMEDIA_ERROR_MALFORMED";
+            case AMEDIA_ERROR_UNSUPPORTED: return "AMEDIA_ERROR_UNSUPPORTED";
+            case AMEDIA_ERROR_INVALID_OBJECT: return "AMEDIA_ERROR_INVALID_OBJECT";
+            case AMEDIA_ERROR_INVALID_PARAMETER: return "AMEDIA_ERROR_INVALID_PARAMETER";
+            case AMEDIA_ERROR_INVALID_OPERATION: return "AMEDIA_ERROR_INVALID_OPERATION";
+            case AMEDIA_ERROR_END_OF_STREAM: return "AMEDIA_ERROR_END_OF_STREAM";
+            case AMEDIA_ERROR_IO: return "AMEDIA_ERROR_IO";
+            case AMEDIA_ERROR_WOULD_BLOCK: return "AMEDIA_ERROR_WOULD_BLOCK";
+            case AMEDIA_DRM_ERROR_BASE: return "AMEDIA_DRM_ERROR_BASE";
+            case AMEDIA_DRM_NOT_PROVISIONED: return "AMEDIA_DRM_NOT_PROVISIONED";
+            case AMEDIA_DRM_RESOURCE_BUSY: return "AMEDIA_DRM_RESOURCE_BUSY";
+            case AMEDIA_DRM_DEVICE_REVOKED: return "AMEDIA_DRM_DEVICE_REVOKED";
+            case AMEDIA_DRM_SHORT_BUFFER: return "AMEDIA_DRM_SHORT_BUFFER";
+            case AMEDIA_DRM_SESSION_NOT_OPENED: return "AMEDIA_DRM_SESSION_NOT_OPENED";
+            case AMEDIA_DRM_TAMPER_DETECTED: return "AMEDIA_DRM_TAMPER_DETECTED";
+            case AMEDIA_DRM_VERIFY_FAILED: return "AMEDIA_DRM_VERIFY_FAILED";
+            case AMEDIA_DRM_NEED_KEY: return "AMEDIA_DRM_NEED_KEY";
+            case AMEDIA_DRM_LICENSE_EXPIRED: return "AMEDIA_DRM_LICENSE_EXPIRED";
+            case AMEDIA_IMGREADER_ERROR_BASE: return "AMEDIA_IMGREADER_ERROR_BASE";
+            case AMEDIA_IMGREADER_NO_BUFFER_AVAILABLE: return "AMEDIA_IMGREADER_NO_BUFFER_AVAILABLE";
+            case AMEDIA_IMGREADER_MAX_IMAGES_ACQUIRED: return "AMEDIA_IMGREADER_MAX_IMAGES_ACQUIRED";
+            case AMEDIA_IMGREADER_CANNOT_LOCK_IMAGE: return "AMEDIA_IMGREADER_CANNOT_LOCK_IMAGE";
+            case AMEDIA_IMGREADER_CANNOT_UNLOCK_IMAGE: return "AMEDIA_IMGREADER_CANNOT_UNLOCK_IMAGE";
+            case AMEDIA_IMGREADER_IMAGE_NOT_LOCKED: return "AMEDIA_IMGREADER_IMAGE_NOT_LOCKED";
+        }
+        return "UNKNOWN";
+
+    }
+#define AM_CHECK_RESULT(ctx, f)																				\
+{																										\
+	media_status_t res = (f);																					\
+	if (res != AMEDIA_OK)																				\
+	{																									\
+		LOGE("Fatal : %s \"%s\" in %s at line %d", ctx, amErrorString(res), __FILE__, __LINE__); \
+	} else {                                     \
+		LOGI("OK : %s \"%s\" in %s at line %d", ctx, amErrorString(res), __FILE__, __LINE__); \
+                                              \
+    }                                    \
+}
+static constexpr int COLOR_FormatSurface                   = 0x7F000789;
+
+    void setupCodec() {
+        const char* codecname = "c2.qti.avc.encoder";
+        AMediaCodec *c = AMediaCodec_createCodecByName(codecname);
+        LOGI("AMediaCodec_createCodecByName %s %p", codecname, c);
+        AMediaFormat *format = AMediaFormat_new();
+        AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, "video/avc");
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1280);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 720);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, 2000000);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 60);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 42);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, COLOR_FormatSurface);
+
+        AM_CHECK_RESULT("AMediaCodec_configure", AMediaCodec_configure(c, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE));
+
+        ANativeWindow* w;
+        AM_CHECK_RESULT("AMediaCodec_createInputSurface", AMediaCodec_createInputSurface(c, &w));
+        VulkanSwapChain swapChain;
+        swapChain.setContext(instance, physicalDevice, device);
+        swapChain.initSurface(w);
+        LOGI("after swapChain.initSurface");
+        uint32_t _width=0;
+        uint32_t _height=0;
+        swapChain.create(_width, _height);
+        LOGI("after swapChain.create %ux%u", _width, _height);
+    }
 
 	void loadAssets()
 	{
 		model.loadFromFile(getAssetPath() + "models/chinesedragon.gltf", vulkanDevice, queue, vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY);
-	}
+        setupCodec();
+    }
 
 	void buildCommandBuffers()
 	{
@@ -338,7 +414,7 @@ public:
 
 		// Map image memory so we can start copying from it
 		const char* data;
-		vkMapMemory(device, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void**)&data);
+        VK_CHECK_RESULT(vkMapMemory(device, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void**)&data));
 		data += subResourceLayout.offset;
 
 		std::ofstream file(filename, std::ios::out | std::ios::binary);
