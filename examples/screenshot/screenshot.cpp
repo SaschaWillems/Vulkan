@@ -123,6 +123,7 @@ static constexpr int COLOR_FormatSurface                   = 0x7F000789;
         uint32_t _height=0;
         swapChain.create(_width, _height);
         LOGI("after swapChain.create %ux%u", _width, _height);
+        AM_CHECK_RESULT("AMediaCodec_start", AMediaCodec_start(c));
     }
 
 	void loadAssets()
