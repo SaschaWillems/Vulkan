@@ -27,7 +27,7 @@ struct PushConstants
 [[vk::push_constant]]
 PushConstants pushConstants;
 
-[shader("fragment")]
+[shader("vertex")]
 VSOutput main(VSInput input)
 {
 	VSOutput output;
