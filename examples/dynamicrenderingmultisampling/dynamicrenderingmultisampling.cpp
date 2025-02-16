@@ -34,13 +34,13 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
 	// Intermediate images used for multi sampling
-	struct RenderImage {
+	struct Image {
 		VkImage image{ VK_NULL_HANDLE };
 		VkImageView view{ VK_NULL_HANDLE };
 		VkDeviceMemory memory{ VK_NULL_HANDLE };
 	};
-	std::vector<RenderImage> renderImages;
-	RenderImage depthStencilRenderImage;
+	Image renderImage;
+	Image depthStencilRenderImage;
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -74,11 +74,9 @@ public:
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 			uniformBuffer.destroy();
-			for (auto i = 0; i < renderImages.size(); i++) {
-				vkDestroyImage(device, renderImages[i].image, nullptr);
-				vkDestroyImageView(device, renderImages[i].view, nullptr);
-				vkFreeMemory(device, renderImages[i].memory, nullptr);
-			}
+			vkDestroyImage(device, renderImage.image, nullptr);
+			vkDestroyImageView(device, renderImage.view, nullptr);
+			vkFreeMemory(device, renderImage.memory, nullptr);
 		}
 	}
 
@@ -92,37 +90,34 @@ public:
 	{
 		// With VK_KHR_dynamic_rendering we no longer need a frame buffer, so we can so skip the sample base framebuffer setup
 		// For multi sampling we need intermediate images that are then resolved to the final presentation image 
-		renderImages.resize(swapChain.images.size());
-		for (auto i = 0; i < renderImages.size(); i++) {
-			vkDestroyImage(device, renderImages[i].image, nullptr);
-			vkDestroyImageView(device, renderImages[i].view, nullptr);
-			vkFreeMemory(device, renderImages[i].memory, nullptr);
-			VkImageCreateInfo renderImageCI = vks::initializers::imageCreateInfo();
-			renderImageCI.imageType = VK_IMAGE_TYPE_2D;
-			renderImageCI.format = swapChain.colorFormat;
-			renderImageCI.extent = { width, height, 1 };
-			renderImageCI.mipLevels = 1;
-			renderImageCI.arrayLayers = 1;
-			renderImageCI.samples = multiSampleCount;
-			renderImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-			renderImageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-			renderImageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			VK_CHECK_RESULT(vkCreateImage(device, &renderImageCI, nullptr, &renderImages[i].image));
-			VkMemoryRequirements memReqs{};
-			vkGetImageMemoryRequirements(device, renderImages[i].image, &memReqs);
-			VkMemoryAllocateInfo memAllloc{};
-			memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-			memAllloc.allocationSize = memReqs.size;
-			memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllloc, nullptr, &renderImages[i].memory));
-			VK_CHECK_RESULT(vkBindImageMemory(device, renderImages[i].image, renderImages[i].memory, 0));
-			VkImageViewCreateInfo imageViewCI = vks::initializers::imageViewCreateInfo();
-			imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			imageViewCI.image = renderImages[i].image;
-			imageViewCI.format = swapChain.colorFormat;
-			imageViewCI.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-			VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &renderImages[i].view));
-		}
+		vkDestroyImage(device, renderImage.image, nullptr);
+		vkDestroyImageView(device, renderImage.view, nullptr);
+		vkFreeMemory(device, renderImage.memory, nullptr);
+		VkImageCreateInfo renderImageCI = vks::initializers::imageCreateInfo();
+		renderImageCI.imageType = VK_IMAGE_TYPE_2D;
+		renderImageCI.format = swapChain.colorFormat;
+		renderImageCI.extent = { width, height, 1 };
+		renderImageCI.mipLevels = 1;
+		renderImageCI.arrayLayers = 1;
+		renderImageCI.samples = multiSampleCount;
+		renderImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+		renderImageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		renderImageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VK_CHECK_RESULT(vkCreateImage(device, &renderImageCI, nullptr, &renderImage.image));
+		VkMemoryRequirements memReqs{};
+		vkGetImageMemoryRequirements(device, renderImage.image, &memReqs);
+		VkMemoryAllocateInfo memAllloc{};
+		memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		memAllloc.allocationSize = memReqs.size;
+		memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllloc, nullptr, &renderImage.memory));
+		VK_CHECK_RESULT(vkBindImageMemory(device, renderImage.image, renderImage.memory, 0));
+		VkImageViewCreateInfo imageViewCI = vks::initializers::imageViewCreateInfo();
+		imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageViewCI.image = renderImage.image;
+		imageViewCI.format = swapChain.colorFormat;
+		imageViewCI.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &renderImage.view));
 	}
 
 	// We need to override the default depth/stencil setup to create a depth image that supports multi sampling
@@ -191,7 +186,7 @@ public:
 			// This set of barriers prepares the color and depth images for output
 			vks::tools::insertImageMemoryBarrier(
 				drawCmdBuffers[i],
-				renderImages[i].image,
+				renderImage.image,
 				0,
 				VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 				VK_IMAGE_LAYOUT_UNDEFINED,
@@ -218,7 +213,7 @@ public:
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.clearValue.color = { 0.0f,0.0f,0.0f,0.0f };
 			// When multi sampling is used, we use intermediate images to render and resolve to the swap chain images
-			colorAttachment.imageView = renderImages[i].view;
+			colorAttachment.imageView = renderImage.view;
 			colorAttachment.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
 			colorAttachment.resolveImageView = swapChain.imageViews[i];
 			colorAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_GENERAL;
