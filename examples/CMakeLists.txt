@@ -109,6 +109,7 @@ set(EXAMPLES
 	displacement
 	distancefieldfonts
 	dynamicrendering
+	dynamicrenderingmultisampling
 	dynamicstate
 	dynamicuniformbuffer	
 	gears
