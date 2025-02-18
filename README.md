@@ -446,6 +446,10 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 
     Shows usage of the VK_KHR_dynamic_rendering extension, which simplifies the rendering setup by no longer requiring render pass objects or framebuffers.
 
+- [Dynamic rendering with multi sampling (VK_KHR_dynamic_rendering)](examples/dynamicrenderingmultisampling/)
+
+    Based on the dynamic rendering sample, this sample shows how to do implement multi sampling with dynamic rendering.
+
 - [Graphics pipeline library (VK_EXT_graphics_pipeline_library)](./examples/graphicspipelinelibrary)
     
     Uses the graphics pipeline library extensions to improve run-time pipeline creation. Instead of creating the whole pipeline at once, this sample pre builds shared pipeline parts like like vertex input state and fragment output state. These are then used to create full pipelines at runtime, reducing build times and possible hick-ups.
