@@ -223,8 +223,6 @@ public:
 		accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
 		accelerationStructureBuildGeometryInfo.geometryCount = static_cast<uint32_t>(geometries.size());
 		accelerationStructureBuildGeometryInfo.pGeometries = geometries.data();
-		
-		const uint32_t numTriangles = maxPrimitiveCounts[0];
 
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
 		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
