@@ -40,6 +40,11 @@
 #   include "../examples/triangle/triangle.cpp"
 #endif
 
+// Does not run. MoltenVK does not yet support Vulkan 1.3
+#ifdef MVK_trianglevulkan13
+#   include "../examples/trianglevulkan13/trianglevulkan13.cpp"
+#endif
+
 #ifdef MVK_pipelines
 #   include "../examples/pipelines/pipelines.cpp"
 #endif
@@ -150,14 +155,9 @@
 #   include "../examples/screenshot/screenshot.cpp"
 #endif
 
-// Runs, but some Apple GPUs may not support stores and atomic operations in the fragment stage.
+// Not supported on iOS Simulator due to VkDeviceMemory resource limitations.
 #ifdef MVK_oit
 #   include "../examples/oit/oit.cpp"
-#endif
-
-// Does not run.  Sparse image binding and residency not supported by MoltenVK/Metal.
-#ifdef MVK_texturesparseresidency
-#   include "../examples/texturesparseresidency/texturesparseresidency.cpp"
 #endif
 
 
@@ -179,9 +179,14 @@
 #   include "../examples/occlusionquery/occlusionquery.cpp"
 #endif
 
-// Does not run.  MoltenVK/Metal does not support pipeline statistics.
+// Does not run. MoltenVK/Metal does not support pipeline statistics.
 #ifdef MVK_pipelinestatistics
 #   include "../examples/pipelinestatistics/pipelinestatistics.cpp"
+#endif
+
+// Does not run. Sparse image binding and residency not supported by MoltenVK/Metal.
+#ifdef MVK_texturesparseresidency
+#   include "../examples/texturesparseresidency/texturesparseresidency.cpp"
 #endif
 
 
@@ -277,52 +282,52 @@
 
 // RAY TRACING - Currently unsupported by MoltenVK/Metal
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_raytracingbasic
 #   include "../examples/raytracingbasic/raytracingbasic.cpp"
 #endif
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_raytracingshadows
 #   include "../examples/raytracingshadows/raytracingshadows.cpp"
 #endif
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_raytracingreflections
 #   include "../examples/raytracingreflections/raytracingreflections.cpp"
 #endif
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_raytracingtextures
 #   include "../examples/raytracingtextures/raytracingtextures.cpp"
 #endif
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_raytracingcallable
 #   include "../examples/raytracingcallable/raytracingcallable.cpp"
 #endif
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_raytracingintersection
 #   include "../examples/raytracingintersection/raytracingintersection.cpp"
 #endif
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_raytracinggltf
 #   include "../examples/raytracinggltf/raytracinggltf.cpp"
 #endif
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_rayquery
 #   include "../examples/rayquery/rayquery.cpp"
 #endif
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_raytracingpositionfetch
 #   include "../examples/raytracingpositionfetch/raytracingpositionfetch.cpp"
 #endif
 
-// Does not run.  Missing Vulkan extensions for ray tracing
+// Does not run. Missing Vulkan extensions for ray tracing.
 #ifdef MVK_raytracingsbtdata
 #   include "../examples/raytracingsbtdata/raytracingsbtdata.cpp"
 #endif
@@ -356,25 +361,6 @@
 #endif
 
 
-// EFFECTS
-
-#ifdef MVK_radialblur
-#   include "../examples/radialblur/radialblur.cpp"
-#endif
-
-#ifdef MVK_bloom
-#   include "../examples/bloom/bloom.cpp"
-#endif
-
-#ifdef MVK_parallaxmapping
-#   include "../examples/parallaxmapping/parallaxmapping.cpp"
-#endif
-
-#ifdef MVK_sphericalenvmapping
-#   include "../examples/sphericalenvmapping/sphericalenvmapping.cpp"
-#endif
-
-
 // EXTENSIONS
 
 // Does not run. Requires VK_EXT_conservative_rasterization.
@@ -401,7 +387,6 @@
 
 // Runs on MoltenVK 1.2.5 or later with VK_KHR_shader_non_semantic_info extension and VK_LAYER_KHRONOS_validation enabled.
 // No VK_LAYER_KHRONOS_validation layer when using MoltenVK examples project, builds/runs fine using vulkanExamples project.
-// Enable VK_LAYER_KHRONOS_validation layer with khronos_validation.enables = VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
 //#ifdef MVK_debugprintf
 //#   include "../examples/debugprintf/debugprintf.cpp"
 //#endif
@@ -419,13 +404,18 @@
 #   include "../examples/variablerateshading/variablerateshading.cpp"
 #endif
 
-// Runs on macOS 11.0 or later with Metal argument buffers enabled.  Not yet supported on iOS.
+// Runs on macOS 11.0 or later with Metal argument buffers enabled.
+// Supported on iOS (not Simulator) as of MoltenVK version 1.2.10 / Vulkan SDK 1.3.290
 #ifdef MVK_descriptorindexing
 #   include "../examples/descriptorindexing/descriptorindexing.cpp"
 #endif
 
 #ifdef MVK_dynamicrendering
 #   include "../examples/dynamicrendering/dynamicrendering.cpp"
+#endif
+
+#ifdef MVK_dynamicrenderingmultisampling
+#   include "../examples/dynamicrenderingmultisampling/dynamicrenderingmultisampling.cpp"
 #endif
 
 // Does not run. Requires VK_KHR_pipeline_library and VK_EXT_graphics_pipeline_library.
@@ -448,9 +438,41 @@
 #   include "../examples/shaderobjects/shaderobjects.cpp"
 #endif
 
+#ifdef MVK_hostimagecopy
+#   include "../examples/hostimagecopy/hostimagecopy.cpp"
+#endif
+
+// Not supported on iOS Simulator.
+#ifdef MVK_bufferdeviceaddress
+#   include "../examples/bufferdeviceaddress/bufferdeviceaddress.cpp"
+#endif
+
+#ifdef MVK_timelinesemaphore
+#   include "../examples/timelinesemaphore/timelinesemaphore.cpp"
+#endif
+
 // Runs, but most VK_EXT_extended_dynamic_state3 features not supported on MoltenVK.
 #ifdef MVK_dynamicstate
 #   include "../examples/dynamicstate/dynamicstate.cpp"
+#endif
+
+
+// EFFECTS
+
+#ifdef MVK_radialblur
+#   include "../examples/radialblur/radialblur.cpp"
+#endif
+
+#ifdef MVK_bloom
+#   include "../examples/bloom/bloom.cpp"
+#endif
+
+#ifdef MVK_parallaxmapping
+#   include "../examples/parallaxmapping/parallaxmapping.cpp"
+#endif
+
+#ifdef MVK_sphericalenvmapping
+#   include "../examples/sphericalenvmapping/sphericalenvmapping.cpp"
 #endif
 
 

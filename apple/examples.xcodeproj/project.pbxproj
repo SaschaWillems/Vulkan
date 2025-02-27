@@ -79,6 +79,8 @@
 		AAEE728A2BD6003F0053521D /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = AAEE72892BD6003F0053521D /* shaders */; };
 		AAEE728C2BD600830053521D /* assets in Resources */ = {isa = PBXBuildFile; fileRef = AAEE728B2BD600830053521D /* assets */; };
 		AAEE728E2BD600970053521D /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = AAEE728D2BD600970053521D /* shaders */; };
+		AAF62FC42D6C319900E69F39 /* vkloader.c in Sources */ = {isa = PBXBuildFile; fileRef = AAF62FC32D6C319900E69F39 /* vkloader.c */; };
+		AAF62FC52D6C319900E69F39 /* vkloader.c in Sources */ = {isa = PBXBuildFile; fileRef = AAF62FC32D6C319900E69F39 /* vkloader.c */; };
 		C9A79EFC204504E000696219 /* VulkanUIOverlay.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EFB204504E000696219 /* VulkanUIOverlay.cpp */; };
 		C9A79EFD2045051D00696219 /* VulkanUIOverlay.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EFB204504E000696219 /* VulkanUIOverlay.cpp */; };
 		C9A79EFE2045051D00696219 /* VulkanUIOverlay.h in Sources */ = {isa = PBXBuildFile; fileRef = C9A79EFA204504E000696219 /* VulkanUIOverlay.h */; };
@@ -200,6 +202,7 @@
 		AAEE72892BD6003F0053521D /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../shaders; sourceTree = "<group>"; };
 		AAEE728B2BD600830053521D /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../assets; sourceTree = "<group>"; };
 		AAEE728D2BD600970053521D /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../shaders; sourceTree = "<group>"; };
+		AAF62FC32D6C319900E69F39 /* vkloader.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vkloader.c; path = ../external/ktx/lib/vkloader.c; sourceTree = "<group>"; };
 		C9788FD02044D78D00AB0892 /* benchmark.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = benchmark.hpp; sourceTree = "<group>"; };
 		C9A79EFA204504E000696219 /* VulkanUIOverlay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VulkanUIOverlay.h; sourceTree = "<group>"; };
 		C9A79EFB204504E000696219 /* VulkanUIOverlay.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VulkanUIOverlay.cpp; sourceTree = "<group>"; };
@@ -295,6 +298,7 @@
 				A951FF011E9C349000FA9144 /* frustum.hpp */,
 				A951FF021E9C349000FA9144 /* keycodes.hpp */,
 				A951FF031E9C349000FA9144 /* threadpool.hpp */,
+				AAF62FC32D6C319900E69F39 /* vkloader.c */,
 			);
 			name = base;
 			path = ../base;
@@ -567,6 +571,7 @@
 				AA54A6BE26E52CE300485C4A /* checkheader.c in Sources */,
 				A9B67B7C1C3AAE9800373FFD /* main.m in Sources */,
 				AA54A1B826E5275300485C4A /* VulkanDevice.cpp in Sources */,
+				AAF62FC42D6C319900E69F39 /* vkloader.c in Sources */,
 				AA54A1C026E5276C00485C4A /* VulkanSwapChain.cpp in Sources */,
 				AA54A6E426E52CE400485C4A /* imgui_demo.cpp in Sources */,
 				AA54A6E026E52CE400485C4A /* imgui.cpp in Sources */,
@@ -602,6 +607,7 @@
 				AA54A6D926E52CE400485C4A /* swap.c in Sources */,
 				AA54A6BF26E52CE300485C4A /* checkheader.c in Sources */,
 				A951FF1C1E9C349000FA9144 /* VulkanTools.cpp in Sources */,
+				AAF62FC52D6C319900E69F39 /* vkloader.c in Sources */,
 				A951FF1A1E9C349000FA9144 /* vulkanexamplebase.cpp in Sources */,
 				A9B67B8D1C3AAEA200373FFD /* DemoViewController.mm in Sources */,
 				AA54A6E526E52CE400485C4A /* imgui_demo.cpp in Sources */,
