@@ -140,6 +140,14 @@ public:
 		}
 	}
 
+	virtual void getEnabledFeatures() override
+	{
+		// Vulkan 1.3 device support is required for this example
+		if (deviceProperties.apiVersion < VK_API_VERSION_1_3) {
+			vks::tools::exitFatal("Selected GPU does not support support Vulkan 1.3", VK_ERROR_INCOMPATIBLE_DRIVER);
+		}
+	}
+
 	// This function is used to request a device memory type that supports all the property flags we request (e.g. device local, host visible)
 	// Upon success it will return the index of the memory type that fits our requested memory properties
 	// This is necessary as implementations can offer an arbitrary number of memory types with different memory properties
@@ -381,7 +389,7 @@ public:
 
 	// Create the depth (and stencil) buffer attachments
 	// While we don't do any depth testing in this sample, having depth testing is very common so it's a good idea to learn it from the very start
-	void setupDepthStencil()
+	void setupDepthStencil() override
 	{
 		// Create an optimal tiled image used as the depth stencil attachment
 		VkImageCreateInfo imageCI{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -661,7 +669,7 @@ public:
 
 	}
 
-	void prepare()
+	void prepare() override
 	{
 		VulkanExampleBase::prepare();
 		createSynchronizationPrimitives();

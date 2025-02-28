@@ -160,7 +160,7 @@ public:
 	}
 
 	// Enable physical device features required for this example
-	virtual void getEnabledFeatures()
+	virtual void getEnabledFeatures() override
 	{
 		// Enable anisotropic filtering if supported
 		if (deviceFeatures.samplerAnisotropy) {
@@ -174,7 +174,7 @@ public:
 		model.loadFromFile(getAssetPath() + "models/voyager.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
-	void buildCommandBuffers()
+	void buildCommandBuffers() override
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -365,7 +365,7 @@ public:
 		memcpy(uniformBuffer.mapped, &uniformData, sizeof(uniformData));
 	}
 
-	void prepare()
+	void prepare() override
 	{
 		VulkanExampleBase::prepare();
 
@@ -390,7 +390,7 @@ public:
 		VulkanExampleBase::submitFrame();
 	}
 
-	virtual void render()
+	virtual void render() override
 	{
 		if (!prepared)
 			return;
