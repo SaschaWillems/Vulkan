@@ -117,7 +117,7 @@ public:
 		deviceCreatepNextChain = &enabledFeatures;
 	}
 
-	~VulkanExample()
+	~VulkanExample() override
 	{
 		// Clean up used Vulkan resources
 		// Note: Inherited destructor cleans up resources stored in base class
@@ -381,7 +381,7 @@ public:
 
 	// Create the depth (and stencil) buffer attachments
 	// While we don't do any depth testing in this sample, having depth testing is very common so it's a good idea to learn it from the very start
-	void setupDepthStencil()
+	void setupDepthStencil() override
 	{
 		// Create an optimal tiled image used as the depth stencil attachment
 		VkImageCreateInfo imageCI{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -428,7 +428,7 @@ public:
 	// Vulkan loads its shaders from an immediate binary representation called SPIR-V
 	// Shaders are compiled offline from e.g. GLSL using the reference glslang compiler
 	// This function loads such a shader from a binary file and returns a shader module structure
-	VkShaderModule loadSPIRVShader(std::string filename)
+	VkShaderModule loadSPIRVShader(const std::string& filename)
 	{
 		size_t shaderSize;
 		char* shaderCode{ nullptr };
@@ -661,7 +661,7 @@ public:
 
 	}
 
-	void prepare()
+	void prepare() override
 	{
 		VulkanExampleBase::prepare();
 		createSynchronizationPrimitives();
@@ -673,7 +673,7 @@ public:
 		prepared = true;
 	}
 
-	virtual void render() override
+	void render() override
 	{
 		// Use a fence to wait until the command buffer has finished execution before using it again
 		vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX);
