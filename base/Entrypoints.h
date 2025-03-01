@@ -3,7 +3,7 @@
  *
  * Platform specific macros for the example main entry points
  * 
- * Copyright (C) 2024 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2024-2025 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -42,12 +42,12 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_  HINSTANCE hPrevInstance
 VulkanExample *vulkanExample;																		\
 void android_main(android_app* state)																\
 {																									\
+	androidApp = state;																				\
+	vks::android::getDeviceConfig();																\
 	vulkanExample = new VulkanExample();															\
 	state->userData = vulkanExample;																\
 	state->onAppCmd = VulkanExample::handleAppCommand;												\
 	state->onInputEvent = VulkanExample::handleAppInput;											\
-	androidApp = state;																				\
-	vks::android::getDeviceConfig();																\
 	vulkanExample->renderLoop();																	\
 	delete(vulkanExample);																			\
 }
