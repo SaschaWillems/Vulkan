@@ -60,6 +60,11 @@ task copyTask {
        include 'metalplate01_rgba.ktx'
     }
 
+    copy {
+       from rootProject.ext.assetPath + 'models'
+       into 'assets/models'
+       include 'plane_z.gltf'
+    }
 
 }
 
