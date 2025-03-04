@@ -110,6 +110,11 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-30.0f, -45.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -5.0f));
+
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
+		// SRS - on macOS/iOS set environment variable to configure MoltenVK for using a dedicated compute queue
+		setenv("MVK_CONFIG_SPECIALIZED_QUEUE_FAMILIES", "1", 1);
+#endif
 	}
 
 	~VulkanExample()

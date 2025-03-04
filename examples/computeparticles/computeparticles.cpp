@@ -73,6 +73,11 @@ public:
 	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Compute shader particle system";
+
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
+		// SRS - on macOS/iOS set environment variable to configure MoltenVK for using a dedicated compute queue
+		setenv("MVK_CONFIG_SPECIALIZED_QUEUE_FAMILIES", "1", 1);
+#endif
 	}
 
 	~VulkanExample()

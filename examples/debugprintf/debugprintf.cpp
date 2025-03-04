@@ -53,6 +53,12 @@ public:
 
 		// SRS - RenderDoc not available on macOS so redirect debugPrintfEXT output to stdout
 		setenv("VK_KHRONOS_VALIDATION_PRINTF_TO_STDOUT", "1", 1);
+
+		// Enable required features and set API version for Validation Layer debugPrintfEXT
+		enabledFeatures.fragmentStoresAndAtomics = VK_TRUE;
+		enabledFeatures.vertexPipelineStoresAndAtomics = VK_TRUE;
+
+		apiVersion = VK_API_VERSION_1_1;
 #endif
 	}
 
