@@ -8,7 +8,7 @@
         android:icon="@drawable/icon"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity android:name="de.saschawillems.vulkanSample.VulkanActivity"
-            android:screenOrientation="landscape"
+            android:screenOrientation="portrait"
             android:configChanges="orientation|keyboardHidden"
             android:exported="true">
             <meta-data android:name="android.app.lib_name"
