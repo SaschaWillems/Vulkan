@@ -811,6 +811,7 @@ VulkanExampleBase::VulkanExampleBase()
 		std::cin.get();
 		exit(0);
 	}
+    settings.validation = true;
 	if (commandLineParser.isSet("validation")) {
 		settings.validation = true;
 	}
