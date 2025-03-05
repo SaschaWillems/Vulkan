@@ -117,7 +117,7 @@ public:
 		deviceCreatepNextChain = &enabledFeatures;
 	}
 
-	~VulkanExample()
+	~VulkanExample() override
 	{
 		// Clean up used Vulkan resources
 		// Note: Inherited destructor cleans up resources stored in base class
@@ -436,7 +436,7 @@ public:
 	// Vulkan loads its shaders from an immediate binary representation called SPIR-V
 	// Shaders are compiled offline from e.g. GLSL using the reference glslang compiler
 	// This function loads such a shader from a binary file and returns a shader module structure
-	VkShaderModule loadSPIRVShader(std::string filename)
+	VkShaderModule loadSPIRVShader(const std::string& filename)
 	{
 		size_t shaderSize;
 		char* shaderCode{ nullptr };
@@ -681,7 +681,7 @@ public:
 		prepared = true;
 	}
 
-	virtual void render() override
+	void render() override
 	{
 		// Use a fence to wait until the command buffer has finished execution before using it again
 		vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX);

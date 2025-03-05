@@ -40,7 +40,6 @@ public:
 		VkDeviceMemory memory{ VK_NULL_HANDLE };
 	};
 	Image renderImage;
-	Image depthStencilRenderImage;
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -67,7 +66,7 @@ public:
 		deviceCreatepNextChain = &enabledDynamicRenderingFeaturesKHR;
 	}
 
-	~VulkanExample()
+	~VulkanExample() override
 	{
 		if (device) {
 			vkDestroyPipeline(device, pipeline, nullptr);
@@ -160,7 +159,7 @@ public:
 	}
 
 	// Enable physical device features required for this example
-	virtual void getEnabledFeatures() override
+	void getEnabledFeatures() override
 	{
 		// Enable anisotropic filtering if supported
 		if (deviceFeatures.samplerAnisotropy) {
@@ -390,7 +389,7 @@ public:
 		VulkanExampleBase::submitFrame();
 	}
 
-	virtual void render() override
+	void render() override
 	{
 		if (!prepared)
 			return;

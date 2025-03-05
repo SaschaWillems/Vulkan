@@ -70,7 +70,7 @@ public:
 		deviceCreatepNextChain = &enabledPhysicalDeviceHostImageCopyFeaturesEXT;
 	}
 
-	~VulkanExample()
+	~VulkanExample() override
 	{
 		if (device) {
 			destroyTextureImage(texture);
@@ -82,7 +82,7 @@ public:
 	}
 
 	// Enable physical device features required for this example
-	virtual void getEnabledFeatures()
+	void getEnabledFeatures() override
 	{
 		// Enable anisotropic filtering if supported
 		if (deviceFeatures.samplerAnisotropy) {
@@ -134,7 +134,6 @@ public:
 		texture.height = ktxTexture->baseHeight;
 		texture.mipLevels = ktxTexture->numLevels;
 		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
-		ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
 
 		const VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
@@ -271,7 +270,7 @@ public:
 		vkFreeMemory(device, texture.deviceMemory, nullptr);
 	}
 
-	void buildCommandBuffers()
+	void buildCommandBuffers() override
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -371,11 +370,11 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
-
-		// Shaders
-		shaderStages[0] = loadShader(getShadersPath() + "texture/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "texture/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+        // Shaders
+		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages = {
+		    loadShader(getShadersPath() + "texture/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+		    loadShader(getShadersPath() + "texture/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+        };
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
@@ -413,7 +412,7 @@ public:
 		plane.loadFromFile(getAssetPath() + "models/plane_z.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
-	void prepare()
+	void prepare() override
 	{
 		VulkanExampleBase::prepare();
 
@@ -440,7 +439,7 @@ public:
 		VulkanExampleBase::submitFrame();
 	}
 
-	virtual void render()
+	void render() override
 	{
 		if (!prepared)
 			return;
@@ -448,7 +447,7 @@ public:
 		draw();
 	}
 
-	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
+	void OnUpdateUIOverlay(vks::UIOverlay *overlay) override
 	{
 		if (overlay->header("Settings")) {
 			if (overlay->sliderFloat("LOD bias", &uniformData.lodBias, 0.0f, (float)texture.mipLevels)) {

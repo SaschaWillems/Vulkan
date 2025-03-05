@@ -6,7 +6,7 @@
 *	Contrary to the other examples, this one won't make use of helper functions or initializers
 *	Except in a few cases (swap chain setup e.g.)
 *
-* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -126,7 +126,7 @@ public:
 		// Values not set here are initialized in the base class constructor
 	}
 
-	~VulkanExample()
+	~VulkanExample() override
 	{
 		// Clean up used Vulkan resources
 		// Note: Inherited destructor cleans up resources stored in base class
@@ -452,7 +452,7 @@ public:
 
 	// Create the depth (and stencil) buffer attachments used by our framebuffers
 	// Note: Override of virtual function in the base class and called from within VulkanExampleBase::prepare
-	void setupDepthStencil()
+	void setupDepthStencil() override
 	{
 		// Create an optimal image used as the depth stencil attachment
 		VkImageCreateInfo imageCI{};
@@ -502,7 +502,7 @@ public:
 
 	// Create a frame buffer for each swap chain image
 	// Note: Override of virtual function in the base class and called from within VulkanExampleBase::prepare
-	void setupFrameBuffer()
+	void setupFrameBuffer() override
 	{
 		// Create a frame buffer for every image in the swapchain
 		frameBuffers.resize(swapChain.images.size());
@@ -533,7 +533,7 @@ public:
 	// This allows the driver to know up-front what the rendering will look like and is a good opportunity to optimize especially on tile-based renderers (with multiple subpasses)
 	// Using sub pass dependencies also adds implicit layout transitions for the attachment used, so we don't need to add explicit image memory barriers to transform them
 	// Note: Override of virtual function in the base class and called from within VulkanExampleBase::prepare
-	void setupRenderPass()
+	void setupRenderPass() override
 	{
 		// This example will use a single render pass with one subpass
 
@@ -622,7 +622,7 @@ public:
 	// Vulkan loads its shaders from an immediate binary representation called SPIR-V
 	// Shaders are compiled offline from e.g. GLSL using the reference glslang compiler
 	// This function loads such a shader from a binary file and returns a shader module structure
-	VkShaderModule loadSPIRVShader(std::string filename)
+	VkShaderModule loadSPIRVShader(const std::string& filename)
 	{
 		size_t shaderSize;
 		char* shaderCode{ nullptr };
@@ -886,7 +886,7 @@ public:
 
 	}
 
-	void prepare()
+	void prepare() override
 	{
 		VulkanExampleBase::prepare();
 		createSynchronizationPrimitives();
@@ -900,7 +900,7 @@ public:
 		prepared = true;
 	}
 
-	virtual void render()
+	void render() override
 	{
 		if (!prepared)
 			return;

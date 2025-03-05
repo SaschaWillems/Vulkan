@@ -76,7 +76,7 @@ VkResult VulkanExampleBase::createInstance()
 #endif
 
 	// Enabled requested instance extensions
-	if (enabledInstanceExtensions.size() > 0)
+	if (!enabledInstanceExtensions.empty())
 	{
 		for (const char * enabledExtension : enabledInstanceExtensions)
 		{
@@ -120,7 +120,7 @@ VkResult VulkanExampleBase::createInstance()
 		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
 
-	if (instanceExtensions.size() > 0) {
+	if (!instanceExtensions.empty()) {
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 	}
@@ -316,7 +316,7 @@ void VulkanExampleBase::renderLoop()
 
 		benchmark.run([=] { render(); }, vulkanDevice->properties);
 		vkDeviceWaitIdle(device);
-		if (benchmark.filename != "") {
+		if (!benchmark.filename.empty()) {
 			benchmark.saveResults();
 		}
 		return;
@@ -344,7 +344,7 @@ void VulkanExampleBase::renderLoop()
 		}
 	}
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-	while (1)
+	while (true)
 	{
 		int ident;
 		int events;
@@ -353,9 +353,9 @@ void VulkanExampleBase::renderLoop()
 
 		focused = true;
 
-		while ((ident = ALooper_pollOnce(focused ? 0 : -1, NULL, &events, (void**)&source)) > ALOOPER_POLL_TIMEOUT)
+		while ((ident = ALooper_pollOnce(focused ? 0 : -1, nullptr, &events, (void**)&source)) > ALOOPER_POLL_TIMEOUT)
 		{
-			if (source != NULL)
+			if (source != nullptr)
 			{
 				source->process(androidApp, source);
 			}
@@ -404,8 +404,6 @@ void VulkanExampleBase::renderLoop()
 
 			updateOverlay();
 
-			bool updateView = false;
-
 			// Check touch state (for movement)
 			if (touchDown) {
 				touchTimer += frameTimer;
@@ -422,23 +420,20 @@ void VulkanExampleBase::renderLoop()
 				if (std::abs(gamePadState.axisLeft.x) > deadZone)
 				{
 					camera.rotate(glm::vec3(0.0f, gamePadState.axisLeft.x * 0.5f, 0.0f));
-					updateView = true;
 				}
 				if (std::abs(gamePadState.axisLeft.y) > deadZone)
 				{
 					camera.rotate(glm::vec3(gamePadState.axisLeft.y * 0.5f, 0.0f, 0.0f));
-					updateView = true;
 				}
 				// Zoom
 				if (std::abs(gamePadState.axisRight.y) > deadZone)
 				{
 					camera.translate(glm::vec3(0.0f, 0.0f, gamePadState.axisRight.y * 0.01f));
-					updateView = true;
 				}
 			}
 			else
 			{
-				updateView = camera.updatePad(gamePadState.axisLeft, gamePadState.axisRight, frameTimer);
+				camera.updatePad(gamePadState.axisLeft, gamePadState.axisRight, frameTimer);
 			}
 		}
 	}
@@ -915,9 +910,9 @@ VulkanExampleBase::~VulkanExampleBase()
 	{
 		vkDestroyRenderPass(device, renderPass, nullptr);
 	}
-	for (uint32_t i = 0; i < frameBuffers.size(); i++)
+	for (auto& frameBuffer : frameBuffers)
 	{
-		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
+		vkDestroyFramebuffer(device, frameBuffer, nullptr);
 	}
 
 	for (auto& shaderModule : shaderModules)
@@ -1509,7 +1504,6 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 	{
 		int32_t keyCode = AKeyEvent_getKeyCode((const AInputEvent*)event);
 		int32_t action = AKeyEvent_getAction((const AInputEvent*)event);
-		int32_t button = 0;
 
 		if (action == AKEY_EVENT_ACTION_UP)
 			return 0;
@@ -1554,7 +1548,7 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 
 void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 {
-	assert(app->userData != NULL);
+	assert(app->userData != nullptr);
 	VulkanExampleBase* vulkanExample = reinterpret_cast<VulkanExampleBase*>(app->userData);
 	switch (cmd)
 	{
@@ -1568,7 +1562,7 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		break;
 	case APP_CMD_INIT_WINDOW:
 		LOGD("APP_CMD_INIT_WINDOW");
-		if (androidApp->window != NULL)
+		if (androidApp->window != nullptr)
 		{
 			if (vulkanExample->initVulkan()) {
 				vulkanExample->prepare();
@@ -3195,8 +3189,8 @@ void VulkanExampleBase::windowResize()
 	vkDestroyImage(device, depthStencil.image, nullptr);
 	vkFreeMemory(device, depthStencil.memory, nullptr);
 	setupDepthStencil();
-	for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-		vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
+	for (auto& frameBuffer : frameBuffers) {
+		vkDestroyFramebuffer(device, frameBuffer, nullptr);
 	}
 	setupFrameBuffer();
 
