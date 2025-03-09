@@ -27,6 +27,7 @@ CALayer* layer;
     MVKExample* _mvkExample;
     CADisplayLink* _displayLink;
     BOOL _viewHasAppeared;
+	BOOL _appInForeground;
 	CGPoint _startPoint;
 }
 
@@ -75,6 +76,7 @@ CALayer* layer;
 	[self.view addGestureRecognizer: pinchSelector];
 
     _viewHasAppeared = NO;
+	_appInForeground = NO;
 }
 
 -(void) viewDidAppear: (BOOL) animated {
@@ -85,8 +87,18 @@ CALayer* layer;
 -(BOOL) canBecomeFirstResponder { return _viewHasAppeared; }
 
 -(void) renderFrame {
-	//_mvkExample->renderFrame();
-	_mvkExample->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to animate frames vs. renderFrame() for static image
+	if (_appInForeground)
+	{
+		_mvkExample->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to render/animate at displayLink frame rate
+	}
+}
+
+- (void)appInForeground {
+	_appInForeground = YES;
+}
+
+- (void)appInBackground {
+	_appInForeground = NO;
 }
 
 -(void) shutdownExample {

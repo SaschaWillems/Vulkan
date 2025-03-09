@@ -13,6 +13,8 @@
 
 /** The main view controller for the demo storyboard. */
 @interface DemoViewController : UIViewController <UIKeyInput>
+-(void) appInBackground;
+-(void) appInForeground;
 -(void) shutdownExample;
 @end
 
