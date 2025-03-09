@@ -65,7 +65,7 @@ public:
 		glm::vec4 normalAndDistance;
 	};
 	struct SceneObject {
-		SceneObjectProperty objectProperties;
+		SceneObjectProperty objectProperties{};
 		glm::vec3 diffuse;
 		float specular{ 1.0f };
 		uint32_t id{ 0 };

@@ -171,6 +171,7 @@
 #   include "../examples/instancing/instancing.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support indirect drawing.
 #ifdef MVK_indirectdraw
 #   include "../examples/indirectdraw/indirectdraw.cpp"
 #endif
@@ -247,6 +248,7 @@
 #   include "../examples/computecloth/computecloth.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support indirect drawing.
 #ifdef MVK_computecullandlod
 #   include "../examples/computecullandlod/computecullandlod.cpp"
 #endif
@@ -356,6 +358,7 @@
 #   include "../examples/distancefieldfonts/distancefieldfonts.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support indexed drawing with a non-zero base vertex.
 #ifdef MVK_imgui
 #   include "../examples/imgui/main.cpp"
 #endif
@@ -376,6 +379,7 @@
 #   include "../examples/inlineuniformblocks/inlineuniformblocks.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support rendering to array (layered) attachments.
 #ifdef MVK_multiview
 #   include "../examples/multiview/multiview.cpp"
 #endif
