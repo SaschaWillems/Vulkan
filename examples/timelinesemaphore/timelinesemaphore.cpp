@@ -96,8 +96,20 @@ public:
 		deviceCreatepNextChain = &enabledTimelineSemaphoreFeaturesKHR;
 
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
-		// SRS - on macOS/iOS set environment variable to configure MoltenVK for using a dedicated compute queue
-		setenv("MVK_CONFIG_SPECIALIZED_QUEUE_FAMILIES", "1", 1);
+		// Use layer settings extension to configure MoltenVK
+		enabledInstanceExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+
+		// Configure MoltenVK to use to use a dedicated compute queue
+		VkLayerSettingEXT layerSetting;
+		layerSetting.pLayerName = "MoltenVK";
+		layerSetting.pSettingName = "MVK_CONFIG_SPECIALIZED_QUEUE_FAMILIES";
+		layerSetting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+		layerSetting.valueCount = 1;
+
+		// Make this static so layer setting reference remains valid after leaving constructor scope
+		static const VkBool32 layerSettingOn = VK_TRUE;
+		layerSetting.pValues = &layerSettingOn;
+		enabledLayerSettings.push_back(layerSetting);
 #endif
 	}
 
