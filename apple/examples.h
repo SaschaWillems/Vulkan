@@ -77,6 +77,7 @@
 #   include "../examples/texturecubemap/texturecubemap.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support cube map arrays.
 #ifdef MVK_texturecubemaparray
 #   include "../examples/texturecubemaparray/texturecubemaparray.cpp"
 #endif
@@ -139,18 +140,22 @@
 #   include "../examples/shadowmapping/shadowmapping.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support rendering to array (layered) attachments.
 #ifdef MVK_shadowmappingcascade
 #   include "../examples/shadowmappingcascade/shadowmappingcascade.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support rendering to array (layered) attachments.
 #ifdef MVK_shadowmappingomni
 #   include "../examples/shadowmappingomni/shadowmappingomni.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support arrays of samplers.
 #ifdef MVK_texturemipmapgen
 #   include "../examples/texturemipmapgen/texturemipmapgen.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support blitting to linear tiled images.
 #ifdef MVK_screenshot
 #   include "../examples/screenshot/screenshot.cpp"
 #endif
@@ -269,14 +274,17 @@
 
 // TESSELLATION
 
+// Not supported on iOS Simulator which does not support tessellation shaders.
 #ifdef MVK_displacement
 #   include "../examples/displacement/displacement.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support tessellation shaders.
 #ifdef MVK_terraintessellation
 #   include "../examples/terraintessellation/terraintessellation.cpp"
 #endif
 
+// Not supported on iOS Simulator which does not support tessellation shaders.
 #ifdef MVK_tessellation
 #   include "../examples/tessellation/tessellation.cpp"
 #endif
@@ -481,9 +489,9 @@
 
 // MISC
 
+// Not supported on iOS Simulator which does not support indexed drawing with a non-zero base instance.
 #ifdef MVK_gears
 #   include "../examples/gears/gears.cpp"
-#   include "../examples/gears/vulkangear.cpp"
 #endif
 
 #ifdef MVK_vulkanscene
