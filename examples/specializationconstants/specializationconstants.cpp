@@ -46,11 +46,6 @@ public:
 		camera.setPerspective(60.0f, ((float)width / 3.0f) / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-40.0f, -90.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -2.0f));
-		
-#if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
-		// SRS - on macOS set environment variable to ensure MoltenVK disables Metal argument buffers for this example
-		setenv("MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS", "0", 1);
-#endif
 	}
 
 	~VulkanExample()
