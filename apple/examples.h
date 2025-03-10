@@ -358,7 +358,6 @@
 #   include "../examples/distancefieldfonts/distancefieldfonts.cpp"
 #endif
 
-// Not supported on iOS Simulator which does not support indexed drawing with a non-zero base vertex.
 #ifdef MVK_imgui
 #   include "../examples/imgui/main.cpp"
 #endif

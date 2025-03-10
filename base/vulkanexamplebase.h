@@ -29,6 +29,8 @@
 //
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 #include <xcb/xcb.h>
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
+#include <TargetConditionals.h>
 #endif
 
 #include <stdio.h>
