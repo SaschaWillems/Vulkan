@@ -29,8 +29,6 @@ def findCompiler():
 
     sys.exit("Could not find slangc executable on PATH, and was not specified with --slangc")
 
-file_extensions = tuple([".vert", ".frag", ".comp", ".geom", ".tesc", ".tese", ".rgen", ".rchit", ".rmiss", ".mesh", ".task"])
-
 compiler_path = findCompiler()
 
 print("Found slang compiler at %s", compiler_path)
@@ -43,6 +41,6 @@ for root, dirs, files in os.walk(dir_path):
             input_file = os.path.join(root, file)
             output_file = input_file + ".spv"
             output_file = output_file.replace(".slang", "")
-            res = subprocess.call("%s %s -profile glsl_460 -target spirv -o %s -entry %s" % (compiler_path, input_file, output_file, "main"), shell=True)
+            res = subprocess.call("%s %s -profile spirv_1_4 -target spirv -o %s -entry %s" % (compiler_path, input_file, output_file, "main"), shell=True)
             if res != 0:
                 sys.exit(res)
