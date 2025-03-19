@@ -77,8 +77,8 @@ class VulkanExampleBase
 {
 private:
 	std::string getWindowTitle() const;
-	uint32_t destWidth;
-	uint32_t destHeight;
+	uint32_t destWidth{};
+	uint32_t destHeight{};
 	bool resizing = false;
 	void handleMouseMove(int32_t x, int32_t y);
 	void nextFrame();
@@ -122,13 +122,13 @@ protected:
 	// Handle to the device graphics queue that command buffers are submitted to
 	VkQueue queue{ VK_NULL_HANDLE };
 	// Depth buffer format (selected during Vulkan initialization)
-	VkFormat depthFormat;
+	VkFormat depthFormat{VK_FORMAT_UNDEFINED};
 	// Command buffer pool
 	VkCommandPool cmdPool{ VK_NULL_HANDLE };
 	/** @brief Pipeline stages used to wait at for graphics queue submissions */
 	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	// Contains command buffers and semaphores to be presented to the queue
-	VkSubmitInfo submitInfo;
+	VkSubmitInfo submitInfo{};
 	// Command buffers used for rendering
 	std::vector<VkCommandBuffer> drawCmdBuffers;
 	// Global render pass for frame buffer writes
@@ -151,7 +151,7 @@ protected:
 		VkSemaphore presentComplete;
 		// Command buffer submission and execution
 		VkSemaphore renderComplete;
-	} semaphores;
+	} semaphores{};
 	std::vector<VkFence> waitFences;
 	bool requiresStencil{ false };
 public:
@@ -170,7 +170,7 @@ public:
 	vks::Benchmark benchmark;
 
 	/** @brief Encapsulated physical and logical vulkan device */
-	vks::VulkanDevice *vulkanDevice;
+	vks::VulkanDevice *vulkanDevice{};
 
 	/** @brief Example settings that can be changed e.g. by command line arguments */
 	struct Settings {
@@ -234,7 +234,7 @@ public:
 	struct TouchPos {
 		int32_t x;
 		int32_t y;
-	} touchPos;
+	} touchPos{};
 	bool touchDown = false;
 	double touchTimer = 0.0;
 	int64_t lastTapTime = 0;

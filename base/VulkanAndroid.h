@@ -1,7 +1,7 @@
 /*
 * Android Vulkan function pointer prototypes
 *
-* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -28,16 +28,6 @@
 #include <android/configuration.h>
 #include <memory>
 #include <string>
-
-// Missing from the NDK
-namespace std
-{
-	template<typename T, typename... Args>
-	std::unique_ptr<T> make_unique(Args&&... args)
-	{
-		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-	}
-}
 
 // Global reference to android application object
 extern android_app* androidApp;
