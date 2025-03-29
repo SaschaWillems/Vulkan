@@ -244,16 +244,21 @@ public:
 		// Binding 1 are the fragment shader images, which use indexing
 		// In the fragment shader:
 		//	layout (set = 0, binding = 1) uniform sampler2D textures[];
+
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
+		// Disable variable descriptor count feature on macOS/iOS until MoltenVK supports this feature when using combined image sampler textures
+		// Note we are using only 1 descriptor set with a fixed descriptor count/pool size, so we can simply turn off the capability for now
 		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags = {
 			0,
-#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
-			// SRS - disable variable descriptor counts on macOS/iOS until MoltenVK supports this feature when using combined image sampler textures
-			//     - note we are using only 1 descriptor set with a fixed descriptor count/pool size, so we can simply turn off the capability for now
 			0
-#else
-			VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
-#endif
 		};
+#else
+		// Enable variable descriptor count feature on platforms other than macOS/iOS
+		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags = {
+			0,
+			VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
+		};
+#endif
 		setLayoutBindingFlags.pBindingFlags = descriptorBindingFlags.data();
 
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
@@ -261,6 +266,14 @@ public:
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout));
 
 		// [POI] Descriptor sets
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
+		// Disable variable descriptor count feature on macOS/iOS until MoltenVK supports this feature when using combined image sampler textures
+		// Note we are using only 1 descriptor set with a fixed descriptor count/pool size, so we can simply turn off the capability for now
+		allocInfo.pNext = nullptr;
+#else
+		// Enable variable descriptor count feature on platforms other than macOS/iOS
 		// We need to provide the descriptor counts for bindings with variable counts using a new structure
 		std::vector<uint32_t> variableDesciptorCounts = {
 			static_cast<uint32_t>(textures.size())
@@ -271,12 +284,6 @@ public:
 		variableDescriptorCountAllocInfo.descriptorSetCount = static_cast<uint32_t>(variableDesciptorCounts.size());
 		variableDescriptorCountAllocInfo.pDescriptorCounts  = variableDesciptorCounts.data();
 
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
-		// SRS - disable variable descriptor counts on macOS/iOS until MoltenVK supports this feature when using combined image sampler textures
-		//     - note we are using only 1 descriptor set with a fixed descriptor count/pool size, so we can simply turn off the capability for now
-		allocInfo.pNext = nullptr;
-#else
 		allocInfo.pNext = &variableDescriptorCountAllocInfo;
 #endif
 
