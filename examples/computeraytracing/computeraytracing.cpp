@@ -65,7 +65,7 @@ public:
 		glm::vec4 normalAndDistance;
 	};
 	struct SceneObject {
-		SceneObjectProperty objectProperties;
+		SceneObjectProperty objectProperties{};
 		glm::vec3 diffuse;
 		float specular{ 1.0f };
 		uint32_t id{ 0 };
@@ -85,11 +85,6 @@ public:
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -4.0f));
 		camera.rotationSpeed = 0.0f;
 		camera.movementSpeed = 2.5f;
-		
-#if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
-		// SRS - on macOS set environment variable to ensure MoltenVK disables Metal argument buffers for this example
-		setenv("MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS", "0", 1);
-#endif
 	}
 
 	~VulkanExample()

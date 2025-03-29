@@ -29,6 +29,8 @@
 //
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 #include <xcb/xcb.h>
+#elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
+#include <TargetConditionals.h>
 #endif
 
 #include <stdio.h>
@@ -114,7 +116,10 @@ protected:
 	VkPhysicalDeviceFeatures enabledFeatures{};
 	/** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
 	std::vector<const char*> enabledDeviceExtensions;
+	/** @brief Set of instance extensions to be enabled for this example (must be set in the derived constructor) */
 	std::vector<const char*> enabledInstanceExtensions;
+	/** @brief Set of layer settings to be enabled for this example (must be set in the derived constructor) */
+	std::vector<VkLayerSettingEXT> enabledLayerSettings;
 	/** @brief Optional pNext structure for passing extension structures to device creation */
 	void* deviceCreatepNextChain = nullptr;
 	/** @brief Logical device, application's view of the physical device (GPU) */

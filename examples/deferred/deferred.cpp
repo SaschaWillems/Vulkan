@@ -56,8 +56,8 @@ public:
 	} uniformDataComposition;
 
 	struct {
-		vks::Buffer offscreen{ VK_NULL_HANDLE };
-		vks::Buffer composition{ VK_NULL_HANDLE };
+		vks::Buffer offscreen;
+		vks::Buffer composition;
 	} uniformBuffers;
 
 	struct {

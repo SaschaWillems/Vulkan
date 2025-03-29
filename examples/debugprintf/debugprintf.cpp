@@ -47,12 +47,39 @@ public:
 		enabledDeviceExtensions.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
 
 #if (defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && defined(VK_EXAMPLE_XCODE_GENERATED)
-		// SRS - Force validation on since debugPrintfEXT provided by VK_LAYER_KHRONOS_validation on macOS
+		// SRS - Force validation on since shader printf provided by VK_LAYER_KHRONOS_validation on macOS
 		settings.validation = true;
-		setenv("VK_LAYER_ENABLES", "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT", 1);
 
-		// SRS - RenderDoc not available on macOS so redirect debugPrintfEXT output to stdout
-		setenv("VK_KHRONOS_VALIDATION_PRINTF_TO_STDOUT", "1", 1);
+		// Use layer settings extension to configure Validation Layer
+		enabledInstanceExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+
+		// SRS - Enable the Validation Layer's printf feature
+		VkLayerSettingEXT layerSetting;
+		layerSetting.pLayerName = "VK_LAYER_KHRONOS_validation";
+		layerSetting.pSettingName = "enables";
+		layerSetting.type = VK_LAYER_SETTING_TYPE_STRING_EXT;
+		layerSetting.valueCount = 1;
+
+		// Make static so layer setting reference remains valid after leaving constructor scope
+		static const char *layerEnables = "VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT";
+		layerSetting.pValues = &layerEnables;
+		enabledLayerSettings.push_back(layerSetting);
+
+		// SRS - RenderDoc not available on macOS so redirect printf output to stdout
+		layerSetting.pSettingName = "printf_to_stdout";
+		layerSetting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+		layerSetting.valueCount = 1;
+
+		// Make static so layer setting reference remains valid after leaving constructor scope
+		static const VkBool32 layerSettingOn = VK_TRUE;
+		layerSetting.pValues = &layerSettingOn;
+		enabledLayerSettings.push_back(layerSetting);
+
+		// Enable required features and set API version for Validation Layer printf
+		enabledFeatures.fragmentStoresAndAtomics = VK_TRUE;
+		enabledFeatures.vertexPipelineStoresAndAtomics = VK_TRUE;
+
+		apiVersion = VK_API_VERSION_1_1;
 #endif
 	}
 

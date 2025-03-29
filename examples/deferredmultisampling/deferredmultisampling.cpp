@@ -56,8 +56,8 @@ public:
 	} uniformDataComposition;
 
 	struct {
-		vks::Buffer offscreen{ VK_NULL_HANDLE };
-		vks::Buffer composition{ VK_NULL_HANDLE };
+		vks::Buffer offscreen;
+		vks::Buffer composition;
 	} uniformBuffers;
 
 	struct {
@@ -72,7 +72,7 @@ public:
 		VkDescriptorSet model{ VK_NULL_HANDLE };
 		VkDescriptorSet background{ VK_NULL_HANDLE };
 		VkDescriptorSet composition{ VK_NULL_HANDLE };
-	} descriptorSets{ VK_NULL_HANDLE };
+	} descriptorSets;
 
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
