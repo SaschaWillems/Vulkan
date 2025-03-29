@@ -870,6 +870,21 @@ VulkanExampleBase::VulkanExampleBase()
 	if(commandLineParser.isSet("resourcepath")) {
 		vks::tools::resourcePath = commandLineParser.getValueAsString("resourcepath", "");
 	}
+#else
+	// On Apple platforms, use layer settings extension to configure MoltenVK with common project config settings
+	enabledInstanceExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+
+	// Configure MoltenVK to use to use a dedicated compute queue (see compute[*] and timelinesemaphore samples)
+	VkLayerSettingEXT layerSetting;
+	layerSetting.pLayerName   = "MoltenVK";
+	layerSetting.pSettingName = "MVK_CONFIG_SPECIALIZED_QUEUE_FAMILIES";
+	layerSetting.type         = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+	layerSetting.valueCount   = 1;
+
+	// Make this static so layer setting reference remains valid after leaving constructor scope
+	static const VkBool32 layerSettingOn = VK_TRUE;
+	layerSetting.pValues = &layerSettingOn;
+	enabledLayerSettings.push_back(layerSetting);
 #endif
 
 #if !defined(VK_USE_PLATFORM_ANDROID_KHR)
