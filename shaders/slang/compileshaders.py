@@ -29,6 +29,17 @@ def findCompiler():
 
     sys.exit("Could not find slangc executable on PATH, and was not specified with --slangc")
 
+def getShaderStages(filename):
+    stages = []
+    with open(filename) as f:
+        filecontent = f.read()
+        if '[shader("vertex")]' in filecontent:
+            stages.append("vertex")
+        if '[shader("fragment")]' in filecontent:
+            stages.append("fragment")
+        f.close()
+    return stages
+
 compiler_path = findCompiler()
 
 print("Found slang compiler at %s", compiler_path)
@@ -39,8 +50,25 @@ for root, dirs, files in os.walk(dir_path):
     for file in files:
         if file.endswith(".slang"):
             input_file = os.path.join(root, file)
-            output_file = input_file + ".spv"
-            output_file = output_file.replace(".slang", "")
-            res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s" % (compiler_path, input_file, output_file, "main"), shell=True)
-            if res != 0:
-                sys.exit(res)
+            # Slang can store multiple shader stages in a single file, we need to split into separate SPIR-V files for the sample framework
+            stages = getShaderStages(input_file)
+            print("Compiling %s" % input_file)
+            for stage in stages:
+                if (len(stages) > 1):
+                    entry_point = stage + "main"
+                else:
+                    entry_point = "main"
+                output_ext = ""
+                match stage:
+                    case "vertex":
+                        output_ext = ".vert"
+                    case "fragment":
+                        output_ext = ".frag"
+                output_file = input_file + output_ext + ".spv"
+                output_file = output_file.replace(".slang", "")
+                res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
+                print(output_file)
+                
+            # res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s" % (compiler_path, input_file, output_file, "main"), shell=True)
+            # if res != 0:
+                # sys.exit(res)
