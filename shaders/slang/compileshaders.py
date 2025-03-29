@@ -55,7 +55,7 @@ for root, dirs, files in os.walk(dir_path):
             print("Compiling %s" % input_file)
             for stage in stages:
                 if (len(stages) > 1):
-                    entry_point = stage + "main"
+                    entry_point = stage + "Main"
                 else:
                     entry_point = "main"
                 output_ext = ""
@@ -67,8 +67,5 @@ for root, dirs, files in os.walk(dir_path):
                 output_file = input_file + output_ext + ".spv"
                 output_file = output_file.replace(".slang", "")
                 res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
-                print(output_file)
-                
-            # res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s" % (compiler_path, input_file, output_file, "main"), shell=True)
-            # if res != 0:
-                # sys.exit(res)
+                if res != 0:
+                    sys.exit(res)
