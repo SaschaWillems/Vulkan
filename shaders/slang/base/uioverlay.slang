@@ -4,18 +4,20 @@
  *
  */
 
+Sampler2D fontTexture;
+
 struct VSInput
 {
-	[[vk::location(0)]]float2 Pos : POSITION0;
-	[[vk::location(1)]]float2 UV : TEXCOORD0;
-	[[vk::location(2)]]float4 Color : COLOR0;
+	float2 Pos : POSITION0;
+	float2 UV;
+	float4 Color;
 };
 
 struct VSOutput
 {
 	float4 Pos : SV_POSITION;
-	[[vk::location(0)]]float2 UV : TEXCOORD0;
-	[[vk::location(1)]]float4 Color : COLOR0;
+	float2 UV;
+	float4 Color;
 };
 
 struct PushConstants
@@ -24,15 +26,18 @@ struct PushConstants
 	float2 translate;
 };
 
-[[vk::push_constant]]
-PushConstants pushConstants;
-
 [shader("vertex")]
-VSOutput main(VSInput input)
+VSOutput vertexMain(VSInput input, uniform PushConstants pushConstants)
 {
 	VSOutput output;
 	output.Pos = float4(input.Pos * pushConstants.scale + pushConstants.translate, 0.0, 1.0);
 	output.UV = input.UV;
 	output.Color = input.Color;
 	return output;
+}
+
+[shader("fragment")]
+float4 fragmentMain(VSOutput input)
+{
+    return input.Color * fontTexture.Sample(input.UV);
 }

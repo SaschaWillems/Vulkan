@@ -4,12 +4,14 @@
  *
  */
 
+Sampler2D samplerColorMap;
+
 struct VSInput
 {
-    [[vk::location(0)]] float3 Pos;
-    [[vk::location(1)]] float3 Normal;
-    [[vk::location(2)]] float2 UV;
-    [[vk::location(3)]] float3 Color;
+    float3 Pos;
+    float3 Normal;
+    float2 UV;
+    float3 Color;
 };
 
 struct MatrixReference {
@@ -22,18 +24,17 @@ struct PushConsts {
     // Pointer to the buffer for the data for each model
     ConstBufferPointer<MatrixReference> modelDataReference;
 };
-[[vk::push_constant]] PushConsts pushConstants;
 
 struct VSOutput
 {
     float4 Pos : SV_POSITION;
-    [[vk::location(0)]] float3 Normal;
-    [[vk::location(1)]] float3 Color;
-    [[vk::location(2)]] float2 UV;
+    float3 Normal;
+    float3 Color;
+    float2 UV;
 };
 
 [shader("vertex")]
-VSOutput main(VSInput input) 
+VSOutput vertexMain(VSInput input, uniform PushConsts pushConstants) 
 {
     MatrixReference sceneData = pushConstants.sceneDataReference.get();
     MatrixReference modelData = pushConstants.modelDataReference.get();
@@ -44,4 +45,10 @@ VSOutput main(VSInput input)
     output.UV = input.UV;
     output.Pos = mul(sceneData.matrix, mul(modelData.matrix, float4(input.Pos.xyz, 1.0)));
     return output;
+}
+
+[shader("fragment")]
+float4 fragmentMain(VSOutput input)
+{
+    return samplerColorMap.Sample(input.UV) * float4(input.Color, 1.0);
 }

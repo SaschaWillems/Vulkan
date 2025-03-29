@@ -26,10 +26,16 @@ struct VSOutput
 };
 
 [shader("vertex")]
-VSOutput main(VSInput input)
+VSOutput vertexMain(VSInput input)
 {
 	VSOutput output;
 	output.Color = input.Color;
 	output.Pos = mul(ubo.projectionMatrix, mul(ubo.viewMatrix, mul(ubo.modelMatrix, float4(input.Pos.xyz, 1.0))));
 	return output;
+}
+
+[shader("fragment")]
+float4 fragmentMain(VSOutput input)
+{
+    return float4(input.Color, 1.0);
 }

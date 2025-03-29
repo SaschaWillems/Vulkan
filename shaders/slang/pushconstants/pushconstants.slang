@@ -27,7 +27,7 @@ struct VSOutput
 
 // Uniform entry-point parameters are automatically bound to push constants by slang
 [shader("vertex")]
-VSOutput main(VSInput input, uniform float4 pushColor, uniform float4 pushPosition)
+VSOutput vertexMain(VSInput input, uniform float4 pushColor, uniform float4 pushPosition)
 {
     VSOutput output;
     output.Color = input.Color * pushColor.rgb;
@@ -35,4 +35,10 @@ VSOutput main(VSInput input, uniform float4 pushColor, uniform float4 pushPositi
     float3 worldPos = locPos + pushPosition.xyz;
 	output.Pos = mul(ubo.projection, mul(ubo.view, float4(worldPos.xyz, 1.0)));
 	return output;
+}
+
+[shader("fragment")]
+float4 fragmentMain(VSOutput input) : SV_TARGET
+{
+    return float4(input.Color, 1.0);
 }
