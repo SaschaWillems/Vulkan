@@ -7,8 +7,8 @@
 struct VSInput
 {
 	float3 Pos : POSITION0;
-	float3 Normal : NORMAL0;
-	float3 Color : COLOR0;
+	float3 Normal;
+	float3 Color;
 };
 
 struct UBO
