@@ -37,6 +37,14 @@ def getShaderStages(filename):
             stages.append("vertex")
         if '[shader("fragment")]' in filecontent:
             stages.append("fragment")
+        if '[shader("raygeneration")]' in filecontent:
+            stages.append("raygeneration")
+        if '[shader("miss")]' in filecontent:
+            stages.append("miss")
+        if '[shader("closesthit")]' in filecontent:
+            stages.append("closesthit")
+        if '[shader("callable")]' in filecontent:
+            stages.append("callable")            
         f.close()
     return stages
 
@@ -64,6 +72,14 @@ for root, dirs, files in os.walk(dir_path):
                         output_ext = ".vert"
                     case "fragment":
                         output_ext = ".frag"
+                    case "raygeneration":
+                        output_ext = ".rgen"
+                    case "miss":
+                        output_ext = ".rmiss"
+                    case "closesthit":
+                        output_ext = ".rchit"
+                    case "callable":
+                        output_ext = ".rcall"
                 output_file = input_file + output_ext + ".spv"
                 output_file = output_file.replace(".slang", "")
                 res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
