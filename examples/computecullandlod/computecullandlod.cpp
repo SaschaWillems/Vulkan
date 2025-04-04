@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Compute shader culling and LOD using indirect rendering
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
@@ -14,12 +14,12 @@
 
 // Total number of objects (^3) in the scene
 #if defined(__ANDROID__)
-#define OBJECT_COUNT 32
+constexpr auto OBJECT_COUNT 32;
 #else
-#define OBJECT_COUNT 64
+constexpr auto OBJECT_COUNT = 64;
 #endif
 
-#define MAX_LOD_LEVEL 5
+constexpr auto MAX_LOD_LEVEL = 5;
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -31,8 +31,8 @@ public:
 
 	// Per-instance data block
 	struct InstanceData {
-		glm::vec3 pos;
-		float scale;
+		glm::vec3 pos{ 0.0f };
+		float scale{ 1.0f };
 	};
 
 	// Contains the instanced data
@@ -61,13 +61,10 @@ public:
 		vks::Buffer scene;
 	} uniformData;
 
-	struct {
-		VkPipeline plants;
-	} pipelines;
-
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 
 	// Resources for the compute part of the example
 	struct {
@@ -81,7 +78,7 @@ public:
 		VkDescriptorSet descriptorSet;				// Compute shader bindings
 		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
 		VkPipeline pipeline;						// Compute pipeline for updating particle positions
-	} compute;
+	} compute{};
 
 	// View frustum for culling invisible objects
 	vks::Frustum frustum;
@@ -101,7 +98,7 @@ public:
 	~VulkanExample()
 	{
 		if (device) {
-			vkDestroyPipeline(device, pipelines.plants, nullptr);
+			vkDestroyPipeline(device, pipeline, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 			instanceBuffer.destroy();
@@ -124,13 +121,15 @@ public:
 		if (deviceFeatures.multiDrawIndirect) {
 			enabledFeatures.multiDrawIndirect = VK_TRUE;
 		}
+		// This is required for for using firstInstance
+		enabledFeatures.drawIndirectFirstInstance = VK_TRUE;
 	}
 
 	void buildCommandBuffers()
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[2];
+		VkClearValue clearValues[2]{};
 		clearValues[0].color = { { 0.18f, 0.27f, 0.5f, 0.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
@@ -186,7 +185,7 @@ public:
 			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 			// Mesh containing the LODs
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.plants);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &lodModel.vertices.buffer, offsets);
 			vkCmdBindVertexBuffers(drawCmdBuffers[i], 1, 1, &instanceBuffer.buffer, offsets);
 
@@ -400,6 +399,7 @@ public:
 		inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
 		inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
 
+		// Indirect (and instanced) pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -409,9 +409,11 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
+			loadShader(getShadersPath() + "computecullandlod/indirectdraw.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "computecullandlod/indirectdraw.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+		};
 		pipelineCreateInfo.pVertexInputState = &inputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
@@ -422,11 +424,7 @@ public:
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
-
-		// Indirect (and instanced) pipeline for the plants
-		shaderStages[0] = loadShader(getShadersPath() + "computecullandlod/indirectdraw.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "computecullandlod/indirectdraw.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipelines.plants));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
 	void prepareBuffers()
@@ -555,7 +553,7 @@ public:
 		uint32_t n = 0;
 		for (auto node : lodModel.nodes)
 		{
-			LOD lod;
+			LOD lod{};
 			lod.firstIndex = node->mesh->primitives[0]->firstIndex;	// First index for this LOD
 			lod.indexCount = node->mesh->primitives[0]->indexCount;	// Index count for this LOD
 			lod.distance = 5.0f + n * 5.0f;							// Starting distance (to viewer) for this LOD
@@ -675,7 +673,7 @@ public:
 				&compute.lodLevelsBuffers.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, NULL);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
 
 		// Create pipeline
 		VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
@@ -689,7 +687,7 @@ public:
 
 		uint32_t specializationData = static_cast<uint32_t>(lodModel.nodes.size()) - 1;
 
-		VkSpecializationInfo specializationInfo;
+		VkSpecializationInfo specializationInfo{};
 		specializationInfo.mapEntryCount = 1;
 		specializationInfo.pMapEntries = &specializationEntry;
 		specializationInfo.dataSize = sizeof(specializationData);
