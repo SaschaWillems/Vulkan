@@ -1,3 +1,6 @@
+# Copyright (c) 2016-2025, Sascha Willems
+# SPDX-License-Identifier: MIT
+
 file(GLOB BASE_SRC "*.cpp" "*.hpp" "*.h" "../external/imgui/*.cpp")
 file(GLOB BASE_HEADERS "*.hpp" "*.h")
 
