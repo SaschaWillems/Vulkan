@@ -1,7 +1,7 @@
 /*
  * Vulkan Example - Rendering a glTF model using hardware accelerated ray tracing example (for proper transparency, this sample does frame accumulation)
  *
- * Copyright (C) 2023-2024 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2023-2025 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -142,7 +142,6 @@ public:
 		
 		// Build
 		// One geometry per glTF node, so we can index materials using gl_GeometryIndexEXT
-		uint32_t maxPrimCount{ 0 };
 		std::vector<uint32_t> maxPrimitiveCounts{};
 		std::vector<VkAccelerationStructureGeometryKHR> geometries{};
 		std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRangeInfos{};
@@ -174,7 +173,6 @@ public:
 						geometry.geometry.triangles.transformData = transformBufferDeviceAddress;
 						geometries.push_back(geometry);
 						maxPrimitiveCounts.push_back(primitive->indexCount / 3);
-						maxPrimCount += primitive->indexCount / 3;
 
 						VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo{};
 						buildRangeInfo.firstVertex = 0;
@@ -224,8 +222,6 @@ public:
 		accelerationStructureBuildGeometryInfo.geometryCount = static_cast<uint32_t>(geometries.size());
 		accelerationStructureBuildGeometryInfo.pGeometries = geometries.data();
 		
-		const uint32_t numTriangles = maxPrimitiveCounts[0];
-
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
 		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 		vkGetAccelerationStructureBuildSizesKHR(
