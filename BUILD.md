@@ -1,6 +1,6 @@
 # Building
 
-The repository contains everything required to compile and build the examples on Windows, Linux, Android and MacOS using a C++ compiler that supports at least C++14. All required dependencies are included. The project uses [CMake](https://cmake.org/) as the build system.
+The repository contains everything required to compile and build the examples on Windows, Linux, Android and MacOS using a C++ compiler that supports at least C++20. All required dependencies are included. The project uses [CMake](https://cmake.org/) as the build system, min. required version is CMake 3.10.0.
 
 ## General CMake options
 

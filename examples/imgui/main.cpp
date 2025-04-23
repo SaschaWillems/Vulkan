@@ -524,7 +524,13 @@ public:
 					vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
 					indexOffset += pcmd->ElemCount;
 				}
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && TARGET_OS_SIMULATOR
+				// Apple Device Simulator does not support vkCmdDrawIndexed() with vertexOffset > 0, so rebind vertex buffer instead
+				offsets[0] += cmd_list->VtxBuffer.Size * sizeof(ImDrawVert);
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
+#else
 				vertexOffset += cmd_list->VtxBuffer.Size;
+#endif
 			}
 		}
 	}

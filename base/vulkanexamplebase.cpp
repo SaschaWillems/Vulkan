@@ -111,7 +111,7 @@ VkResult VulkanExampleBase::createInstance()
 	if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) != supportedInstanceExtensions.end())
 	{
 		instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-		instanceCreateInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+		instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 	}
 #endif
 
@@ -148,6 +148,18 @@ VkResult VulkanExampleBase::createInstance()
 			std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled";
 		}
 	}
+
+	// If layer settings are defined, then activate the sample's required layer settings during instance creation.
+	// Layer settings are typically used to activate specific features of a layer, such as the Validation Layer's
+	// printf feature, or to configure specific capabilities of drivers such as MoltenVK on macOS and/or iOS.
+	VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo{VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT};
+	if (enabledLayerSettings.size() > 0) {
+		layerSettingsCreateInfo.settingCount = static_cast<uint32_t>(enabledLayerSettings.size());
+		layerSettingsCreateInfo.pSettings = enabledLayerSettings.data();
+		layerSettingsCreateInfo.pNext = instanceCreateInfo.pNext;
+		instanceCreateInfo.pNext = &layerSettingsCreateInfo;
+	}
+
 	VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 
 	// If the debug utils extension is present we set up debug functions, so samples can label objects for debugging
@@ -853,6 +865,21 @@ VulkanExampleBase::VulkanExampleBase()
 	if(commandLineParser.isSet("resourcepath")) {
 		vks::tools::resourcePath = commandLineParser.getValueAsString("resourcepath", "");
 	}
+#else
+	// On Apple platforms, use layer settings extension to configure MoltenVK with common project config settings
+	enabledInstanceExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+
+	// Configure MoltenVK to use to use a dedicated compute queue (see compute[*] and timelinesemaphore samples)
+	VkLayerSettingEXT layerSetting;
+	layerSetting.pLayerName   = "MoltenVK";
+	layerSetting.pSettingName = "MVK_CONFIG_SPECIALIZED_QUEUE_FAMILIES";
+	layerSetting.type         = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+	layerSetting.valueCount   = 1;
+
+	// Make this static so layer setting reference remains valid after leaving constructor scope
+	static const VkBool32 layerSettingOn = VK_TRUE;
+	layerSetting.pValues = &layerSettingOn;
+	enabledLayerSettings.push_back(layerSetting);
 #endif
 
 #if !defined(VK_USE_PLATFORM_ANDROID_KHR)

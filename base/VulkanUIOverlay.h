@@ -28,6 +28,10 @@
 #include "VulkanAndroid.h"
 #endif
 
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
 namespace vks
 {
 	class UIOverlay
