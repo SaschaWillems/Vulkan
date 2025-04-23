@@ -45,6 +45,8 @@ def getShaderStages(filename):
             stages.append("closesthit")
         if '[shader("callable")]' in filecontent:
             stages.append("callable")            
+        if '[shader("compute")]' in filecontent:
+            stages.append("compute")            
         f.close()
     return stages
 
@@ -52,10 +54,14 @@ compiler_path = findCompiler()
 
 print("Found slang compiler at %s", compiler_path)
 
+compile_single_sample = "computeparticles"
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
 for root, dirs, files in os.walk(dir_path):
     for file in files:
+        if (compile_single_sample != "" and os.path.basename(root) != compile_single_sample):
+            continue
         if file.endswith(".slang"):
             input_file = os.path.join(root, file)
             # Slang can store multiple shader stages in a single file, we need to split into separate SPIR-V files for the sample framework
@@ -80,8 +86,10 @@ for root, dirs, files in os.walk(dir_path):
                         output_ext = ".rchit"
                     case "callable":
                         output_ext = ".rcall"
+                    case "compute":
+                        output_ext = ".comp"
                 output_file = input_file + output_ext + ".spv"
                 output_file = output_file.replace(".slang", "")
-                res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
+                res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s -warnings-disable 39001" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
                 if res != 0:
                     sys.exit(res)
