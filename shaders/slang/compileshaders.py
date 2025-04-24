@@ -9,6 +9,7 @@ import sys
 
 parser = argparse.ArgumentParser(description='Compile all slang shaders')
 parser.add_argument('--slangc', type=str, help='path to slangc executable')
+parser.add_argument('--sample', type=str, help='can be used to compile shaders for a single sample only')
 args = parser.parse_args()
 
 def findCompiler():
@@ -54,7 +55,9 @@ compiler_path = findCompiler()
 
 print("Found slang compiler at %s", compiler_path)
 
-compile_single_sample = "computeparticles"
+compile_single_sample = ""
+if args.sample != None:
+    compile_single_sample = args.sample
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
