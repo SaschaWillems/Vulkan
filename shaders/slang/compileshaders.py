@@ -48,6 +48,10 @@ def getShaderStages(filename):
             stages.append("callable")            
         if '[shader("compute")]' in filecontent:
             stages.append("compute")            
+        if '[shader("amplification")]' in filecontent:
+            stages.append("amplification")            
+        if '[shader("mesh")]' in filecontent:
+            stages.append("mesh")            
         f.close()
     return stages
 
@@ -58,6 +62,9 @@ print("Found slang compiler at %s", compiler_path)
 compile_single_sample = ""
 if args.sample != None:
     compile_single_sample = args.sample
+    if (not os.path.isdir(compile_single_sample)):
+        print("ERROR: No directory found with name %s" % compile_single_sample) 
+        exit(-1)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
@@ -91,6 +98,10 @@ for root, dirs, files in os.walk(dir_path):
                         output_ext = ".rcall"
                     case "compute":
                         output_ext = ".comp"
+                    case "mesh":
+                        output_ext = ".mesh"
+                    case "amplification":
+                        output_ext = ".task"
                 output_file = input_file + output_ext + ".spv"
                 output_file = output_file.replace(".slang", "")
                 res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s -warnings-disable 39001" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
