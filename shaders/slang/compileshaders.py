@@ -70,10 +70,10 @@ if args.sample != None:
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
 for root, dirs, files in os.walk(dir_path):
+    folder_name = os.path.basename(root)
+    if (compile_single_sample != "" and folder_name != compile_single_sample):
+        continue
     for file in files:
-        folder_name = os.path.basename(root)
-        if (compile_single_sample != "" and folder_name != compile_single_sample):
-            continue
         if file.endswith(".slang"):
             input_file = os.path.join(root, file)
             # Slang can store multiple shader stages in a single file, we need to split into separate SPIR-V files for the sample framework

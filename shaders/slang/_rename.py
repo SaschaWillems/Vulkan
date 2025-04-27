@@ -13,5 +13,11 @@ def checkRenameFiles(samplename):
                 "raytracingbasic.rmiss.spv": "miss.rmiss.spv",
                 "raytracingbasic.rgen.spv": "raygen.rgen.spv",
             }
+        case "raytracingreflections":
+            mappings = {
+                "raytracingreflections.rchit.spv": "closesthit.rchit.spv",
+                "raytracingreflections.rmiss.spv": "miss.rmiss.spv",
+                "raytracingreflections.rgen.spv": "raygen.rgen.spv",
+            }  
     for x, y in mappings.items():
         move(samplename + "\\" + x, samplename + "\\" + y)
