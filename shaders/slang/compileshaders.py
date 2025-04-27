@@ -6,6 +6,7 @@ import fileinput
 import os
 import subprocess
 import sys
+from _rename import *
 
 parser = argparse.ArgumentParser(description='Compile all slang shaders')
 parser.add_argument('--slangc', type=str, help='path to slangc executable')
@@ -70,13 +71,15 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
 for root, dirs, files in os.walk(dir_path):
     for file in files:
-        if (compile_single_sample != "" and os.path.basename(root) != compile_single_sample):
+        folder_name = os.path.basename(root)
+        if (compile_single_sample != "" and folder_name != compile_single_sample):
             continue
         if file.endswith(".slang"):
             input_file = os.path.join(root, file)
             # Slang can store multiple shader stages in a single file, we need to split into separate SPIR-V files for the sample framework
             stages = getShaderStages(input_file)
             print("Compiling %s" % input_file)
+            output_base_file_name = input_file
             for stage in stages:
                 if (len(stages) > 1):
                     entry_point = stage + "Main"
@@ -102,8 +105,9 @@ for root, dirs, files in os.walk(dir_path):
                         output_ext = ".mesh"
                     case "amplification":
                         output_ext = ".task"
-                output_file = input_file + output_ext + ".spv"
+                output_file = output_base_file_name + output_ext + ".spv"
                 output_file = output_file.replace(".slang", "")
                 res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s -warnings-disable 39001" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
                 if res != 0:
                     sys.exit(res)
+    checkRenameFiles(folder_name)
