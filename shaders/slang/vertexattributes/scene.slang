@@ -4,20 +4,24 @@
  *
  */
 
+/* Copyright (c) 2025, Sascha Willems
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ */
+
 struct VSInput
 {
-	float3 Pos;
-	float3 Normal;
-	float2 UV;
-	float3 Color;
-	float4 Tangent;
+    float3 Pos;
+    float3 Normal;
+    float2 UV;
+    float4 Tangent;
 };
 
 struct VSOutput
 {
     float4 Pos : SV_POSITION;
     float3 Normal;
-    float3 Color;
     float2 UV;
     float3 ViewVec;
     float3 LightVec;
@@ -26,46 +30,42 @@ struct VSOutput
 
 struct UBO
 {
-	float4x4 projection;
-	float4x4 view;
-	float4 lightPos;
-	float4 viewPos;
+    float4x4 projection;
+    float4x4 view;
+    float4 lightPos;
+    float4 viewPos;
 };
 ConstantBuffer<UBO> ubo;
 
 [[vk::binding(0, 1)]] Sampler2D samplerColorMap;
 [[vk::binding(1, 1)]] Sampler2D samplerNormalMap;
 
-[SpecializationConstant] const bool ALPHA_MASK = false;
-[SpecializationConstant] const float ALPHA_MASK_CUTOFF = 0.0;
-
 [shader("vertex")]
 VSOutput vertexMain(VSInput input, uniform float4x4 modelMat)
 {
-	VSOutput output;
-	output.Normal = input.Normal;
-	output.Color = input.Color;
-	output.UV = input.UV;
-	output.Tangent = input.Tangent;
+    VSOutput output;
+    output.Normal = input.Normal;
+    output.UV = input.UV;
+    output.Tangent = input.Tangent;
 
     float4x4 modelView = mul(ubo.view, modelMat);
 
-	output.Pos = mul(ubo.projection, mul(modelView, float4(input.Pos.xyz, 1.0)));
+    output.Pos = mul(ubo.projection, mul(modelView, float4(input.Pos.xyz, 1.0)));
 
     output.Normal = mul((float3x3)modelMat, input.Normal);
     float4 pos = mul(modelMat, float4(input.Pos, 1.0));
-	output.LightVec = ubo.lightPos.xyz - pos.xyz;
-	output.ViewVec = ubo.viewPos.xyz - pos.xyz;
-	return output;
+    output.LightVec = ubo.lightPos.xyz - pos.xyz;
+    output.ViewVec = ubo.viewPos.xyz - pos.xyz;
+    return output;
 }
 
 [shader("fragment")]
-float4 fragmentMain(VSOutput input)
+float4 fragmentMain(VSOutput input, uniform float4x4 modelMat, uniform uint alphaMask, uniform float alphaMaskCutoff)
 {
-    float4 color = samplerColorMap.Sample(input.UV) * float4(input.Color, 1.0);
+    float4 color = samplerColorMap.Sample(input.UV);
 
-    if (ALPHA_MASK) {
-        if (color.a < ALPHA_MASK_CUTOFF) {
+    if (alphaMask == 1) {
+        if (color.a < alphaMaskCutoff) {
             discard;
         }
     }
