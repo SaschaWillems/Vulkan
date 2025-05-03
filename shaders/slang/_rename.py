@@ -7,6 +7,11 @@ from shutil import move
 def checkRenameFiles(samplename):
     mappings = {}
     match samplename:
+        case "geometryshader":
+            mappings = {
+                "normaldebug.vert.spv": "base.vert.spv",
+                "normaldebug.frag.spv": "base.frag.spv",
+            }        
         case "raytracingbasic":
             mappings = {
                 "raytracingbasic.rchit.spv": "closesthit.rchit.spv",
@@ -18,6 +23,10 @@ def checkRenameFiles(samplename):
                 "raytracingreflections.rchit.spv": "closesthit.rchit.spv",
                 "raytracingreflections.rmiss.spv": "miss.rmiss.spv",
                 "raytracingreflections.rgen.spv": "raygen.rgen.spv",
-            }  
+            }
+        case "viewportarray":
+            mappings = {
+                "scene.geom.spv": "multiview.geom.spv",
+            }
     for x, y in mappings.items():
         move(samplename + "\\" + x, samplename + "\\" + y)

@@ -46,13 +46,15 @@ def getShaderStages(filename):
         if '[shader("closesthit")]' in filecontent:
             stages.append("closesthit")
         if '[shader("callable")]' in filecontent:
-            stages.append("callable")            
+            stages.append("callable")
         if '[shader("compute")]' in filecontent:
-            stages.append("compute")            
+            stages.append("compute")
         if '[shader("amplification")]' in filecontent:
-            stages.append("amplification")            
+            stages.append("amplification")
         if '[shader("mesh")]' in filecontent:
-            stages.append("mesh")            
+            stages.append("mesh")
+        if '[shader("geometry")]' in filecontent:
+            stages.append("geometry")
         f.close()
     return stages
 
@@ -64,7 +66,7 @@ compile_single_sample = ""
 if args.sample != None:
     compile_single_sample = args.sample
     if (not os.path.isdir(compile_single_sample)):
-        print("ERROR: No directory found with name %s" % compile_single_sample) 
+        print("ERROR: No directory found with name %s" % compile_single_sample)
         exit(-1)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -105,6 +107,8 @@ for root, dirs, files in os.walk(dir_path):
                         output_ext = ".mesh"
                     case "amplification":
                         output_ext = ".task"
+                    case "geometry":
+                        output_ext = ".geom"
                 output_file = output_base_file_name + output_ext + ".spv"
                 output_file = output_file.replace(".slang", "")
                 res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s -warnings-disable 39001" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
