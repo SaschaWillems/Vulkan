@@ -83,7 +83,7 @@ for root, dirs, files in os.walk(dir_path):
             print("Compiling %s" % input_file)
             output_base_file_name = input_file
             for stage in stages:
-                if (len(stages) > 1):
+                if (len(stages) > 0):
                     entry_point = stage + "Main"
                 else:
                     entry_point = "main"
