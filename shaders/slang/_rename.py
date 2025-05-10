@@ -24,6 +24,19 @@ def checkRenameFiles(samplename):
                 "raytracingreflections.rmiss.spv": "miss.rmiss.spv",
                 "raytracingreflections.rgen.spv": "raygen.rgen.spv",
             }
+        case "raytracingshadows":
+            mappings = {
+                "raytracingshadows.rchit.spv": "closesthit.rchit.spv",
+                "raytracingshadows.rmiss.spv": "miss.rmiss.spv",
+                "raytracingshadows.rgen.spv": "raygen.rgen.spv",
+            }
+        case "raytracingintersection":
+            mappings = {
+                "raytracingintersection.rchit.spv": "closesthit.rchit.spv",
+                "raytracingintersection.rmiss.spv": "miss.rmiss.spv",
+                "raytracingintersection.rgen.spv": "raygen.rgen.spv",
+                "raytracingintersection.rint.spv": "intersection.rint.spv",
+            }                   
         case "viewportarray":
             mappings = {
                 "scene.geom.spv": "multiview.geom.spv",
