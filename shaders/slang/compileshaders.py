@@ -47,6 +47,10 @@ def getShaderStages(filename):
             stages.append("closesthit")
         if '[shader("callable")]' in filecontent:
             stages.append("callable")
+        if '[shader("intersection")]' in filecontent:
+            stages.append("intersection")
+        if '[shader("anyhit")]' in filecontent:
+            stages.append("anyhit")
         if '[shader("compute")]' in filecontent:
             stages.append("compute")
         if '[shader("amplification")]' in filecontent:
@@ -55,6 +59,10 @@ def getShaderStages(filename):
             stages.append("mesh")
         if '[shader("geometry")]' in filecontent:
             stages.append("geometry")
+        if '[shader("hull")]' in filecontent:
+            stages.append("hull")            
+        if '[shader("domain")]' in filecontent:
+            stages.append("domain")            
         f.close()
     return stages
 
@@ -83,10 +91,7 @@ for root, dirs, files in os.walk(dir_path):
             print("Compiling %s" % input_file)
             output_base_file_name = input_file
             for stage in stages:
-                if (len(stages) > 0):
-                    entry_point = stage + "Main"
-                else:
-                    entry_point = "main"
+                entry_point = stage + "Main"
                 output_ext = ""
                 match stage:
                     case "vertex":
@@ -101,6 +106,10 @@ for root, dirs, files in os.walk(dir_path):
                         output_ext = ".rchit"
                     case "callable":
                         output_ext = ".rcall"
+                    case "intersection":
+                        output_ext = ".rint"
+                    case "anyhit":
+                        output_ext = ".rahit"
                     case "compute":
                         output_ext = ".comp"
                     case "mesh":
@@ -109,9 +118,15 @@ for root, dirs, files in os.walk(dir_path):
                         output_ext = ".task"
                     case "geometry":
                         output_ext = ".geom"
+                    case "hull":
+                        output_ext = ".tesc"
+                    case "domain":
+                        output_ext = ".tese"
                 output_file = output_base_file_name + output_ext + ".spv"
                 output_file = output_file.replace(".slang", "")
+                print(output_file)
                 res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s -warnings-disable 39001" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
                 if res != 0:
+                    print("Error %s", res)
                     sys.exit(res)
     checkRenameFiles(folder_name)
