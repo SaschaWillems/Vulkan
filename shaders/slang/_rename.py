@@ -24,13 +24,25 @@ def checkRenameFiles(samplename):
                 "raytracinggltf.rmiss.spv": "miss.rmiss.spv",
                 "raytracinggltf.rgen.spv": "raygen.rgen.spv",
                 "raytracinggltf.rahit.spv": "anyhit.rahit.spv",
-            }            
+            }
+        case "raytracingpositionfetch":
+            mappings = {
+                "raytracingpositionfetch.rchit.spv": "closesthit.rchit.spv",
+                "raytracingpositionfetch.rmiss.spv": "miss.rmiss.spv",
+                "raytracingpositionfetch.rgen.spv": "raygen.rgen.spv",
+            }                     
         case "raytracingreflections":
             mappings = {
                 "raytracingreflections.rchit.spv": "closesthit.rchit.spv",
                 "raytracingreflections.rmiss.spv": "miss.rmiss.spv",
                 "raytracingreflections.rgen.spv": "raygen.rgen.spv",
             }
+        case "raytracingsbtdata":
+            mappings = {
+                "raytracingsbtdata.rchit.spv": "closesthit.rchit.spv",
+                "raytracingsbtdata.rmiss.spv": "miss.rmiss.spv",
+                "raytracingsbtdata.rgen.spv": "raygen.rgen.spv",
+            }             
         case "raytracingshadows":
             mappings = {
                 "raytracingshadows.rchit.spv": "closesthit.rchit.spv",
