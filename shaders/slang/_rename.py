@@ -16,7 +16,11 @@ def checkRenameFiles(samplename):
             mappings = {
                 "normaldebug.vert.spv": "base.vert.spv",
                 "normaldebug.frag.spv": "base.frag.spv",
-            }        
+            }
+        case "graphicspipelinelibrary":
+            mappings = {
+                "uber.vert.spv": "shared.vert.spv",
+            }             
         case "raytracingbasic":
             mappings = {
                 "raytracingbasic.rchit.spv": "closesthit.rchit.spv",
