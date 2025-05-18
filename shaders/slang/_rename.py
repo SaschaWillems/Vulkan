@@ -7,6 +7,11 @@ from shutil import move
 def checkRenameFiles(samplename):
     mappings = {}
     match samplename:
+        case "displacement":
+            mappings = {
+                "displacement.vert.spv": "base.vert.spv",
+                "displacement.frag.spv": "base.frag.spv",
+            }        
         case "geometryshader":
             mappings = {
                 "normaldebug.vert.spv": "base.vert.spv",
@@ -18,6 +23,12 @@ def checkRenameFiles(samplename):
                 "raytracingbasic.rmiss.spv": "miss.rmiss.spv",
                 "raytracingbasic.rgen.spv": "raygen.rgen.spv",
             }
+        case "raytracingcallable":
+            mappings = {
+                "raytracingcallable.rchit.spv": "closesthit.rchit.spv",
+                "raytracingcallable.rmiss.spv": "miss.rmiss.spv",
+                "raytracingcallable.rgen.spv": "raygen.rgen.spv",
+            }            
         case "raytracinggltf":
             mappings = {
                 "raytracinggltf.rchit.spv": "closesthit.rchit.spv",
