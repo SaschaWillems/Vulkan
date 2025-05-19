@@ -391,8 +391,8 @@ public:
 		    vks::initializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, color)),	// Location 2: Texture coordinates
 		    // Per-Instance attributes
 		    // These are fetched for each instance rendered
-		    vks::initializers::vertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, pos)),	// Location 4: Position
-		    vks::initializers::vertexInputAttributeDescription(1, 5, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, scale)),		// Location 5: Scale
+		    vks::initializers::vertexInputAttributeDescription(1, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, pos)),	// Location 4: Position
+		    vks::initializers::vertexInputAttributeDescription(1, 4, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, scale)),		// Location 5: Scale
 		};
 		inputState.pVertexBindingDescriptions = bindingDescriptions.data();
 		inputState.pVertexAttributeDescriptions = attributeDescriptions.data();
