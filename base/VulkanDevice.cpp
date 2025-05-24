@@ -3,7 +3,7 @@
  * 
  * Encapsulates a physical Vulkan device and its logical representation
  *
- * Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -433,7 +433,7 @@ namespace vks
 	*/
 	void VulkanDevice::copyBuffer(vks::Buffer *src, vks::Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion)
 	{
-		assert(dst->size <= src->size);
+		assert(dst->size >= src->size);
 		assert(src->buffer);
 		VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		VkBufferCopy bufferCopy{};
