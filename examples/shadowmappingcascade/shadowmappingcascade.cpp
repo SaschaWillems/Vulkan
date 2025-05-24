@@ -1,10 +1,8 @@
 /*
 	Vulkan Example - Cascaded shadow mapping for directional light sources
-	Copyright by Sascha Willems - www.saschawillems.de
+	Copyright (c) 2016-2025 by Sascha Willems - www.saschawillems.de
 	This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
 
-/*
 	This example implements projective cascaded shadow mapping. This technique splits up the camera frustum into
 	multiple frustums with each getting its own full-res shadow map, implemented as a layered depth-only image.
 	The shader then selects the proper shadow map layer depending on what split of the frustum the depth value
@@ -175,7 +173,7 @@ public:
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 		// Floor
-		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
 		models.terrain.draw(commandBuffer, vkglTF::RenderFlags::BindImages, pipelineLayout);
 
 		// Trees
@@ -189,7 +187,7 @@ public:
 
 		for (auto& position : positions) {
 			pushConstBlock.position = glm::vec4(position, 0.0f);
-			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
 			// This will also bind the texture images to set 1
 			models.tree.draw(commandBuffer, vkglTF::RenderFlags::BindImages, pipelineLayout);
 		}
@@ -413,7 +411,7 @@ public:
 					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debugShadowMap);
 					PushConstBlock pushConstBlock = {};
 					pushConstBlock.cascadeIndex = displayDepthMapCascadeIndex;
-					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
 					vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
 				}
 
@@ -490,7 +488,7 @@ public:
 
 		// Shared pipeline layout (scene and depth map debug display)
 		{
-			VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(PushConstBlock), 0);
+			VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushConstBlock), 0);
 			std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayout, vkglTF::descriptorSetLayoutImage };
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
@@ -500,7 +498,7 @@ public:
 
 		// Depth pass pipeline layout
 		{
-			VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(PushConstBlock), 0);
+			VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushConstBlock), 0);
 			std::array<VkDescriptorSetLayout, 2> setLayouts = { descriptorSetLayout, vkglTF::descriptorSetLayoutImage };
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
