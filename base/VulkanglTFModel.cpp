@@ -1442,9 +1442,7 @@ void vkglTF::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t
 void vkglTF::Model::draw(VkCommandBuffer commandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet)
 {
 	if (!buffersBound) {
-		const VkDeviceSize offsets[1] = {0};
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		bindBuffers(commandBuffer);
 	}
 	for (auto& node : nodes) {
 		drawNode(node, commandBuffer, renderFlags, pipelineLayout, bindImageSet);
