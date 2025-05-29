@@ -802,6 +802,7 @@ VulkanExampleBase::VulkanExampleBase()
 	// Command line arguments
 	commandLineParser.add("help", { "--help" }, 0, "Show help");
 	commandLineParser.add("validation", { "-v", "--validation" }, 0, "Enable validation layers");
+	commandLineParser.add("validationlog", { "-vl", "--validationlog" }, 0, "Log validation messages to a textfile (validation.txt)");
 	commandLineParser.add("vsync", { "-vs", "--vsync" }, 0, "Enable V-Sync");
 	commandLineParser.add("fullscreen", { "-f", "--fullscreen" }, 0, "Start in fullscreen mode");
 	commandLineParser.add("width", { "-w", "--width" }, 1, "Set window width");
@@ -829,6 +830,13 @@ VulkanExampleBase::VulkanExampleBase()
 	}
 	if (commandLineParser.isSet("validation")) {
 		settings.validation = true;
+	}
+	if (commandLineParser.isSet("validationlog")) {
+		vks::debug::logToFile = true;
+		std::ofstream logfile;
+		logfile.open("validation.txt", std::ios_base::app);
+		logfile << std::endl << "Sample: " << name <<  std::endl;
+		logfile.close();
 	}
 	if (commandLineParser.isSet("vsync")) {
 		settings.vsync = true;

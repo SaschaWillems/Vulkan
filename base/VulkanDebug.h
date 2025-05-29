@@ -1,7 +1,7 @@
 /*
  * Vulkan examples debug wrapper
  *
- * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -34,6 +34,8 @@ namespace vks
 {
 	namespace debug
 	{
+		extern bool logToFile;
+
 		// Default debug callback
 		VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessageCallback(
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
