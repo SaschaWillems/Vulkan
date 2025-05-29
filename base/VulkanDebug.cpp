@@ -1,7 +1,7 @@
 /*
  * Vulkan examples debug wrapper
  *
- * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -13,6 +13,8 @@ namespace vks
 {
 	namespace debug
 	{
+		bool logToFile{ false };
+
 		PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
 		PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
 		VkDebugUtilsMessengerEXT debugUtilsMessenger;
@@ -72,6 +74,12 @@ namespace vks
 				std::cerr << debugMessage.str() << "\n\n";
 			} else {
 				std::cout << debugMessage.str() << "\n\n";
+			}
+			if (logToFile) {
+				std::ofstream logfile;
+				logfile.open("validation.txt", std::ios_base::app);
+				logfile << debugMessage.str() << std::endl;
+				logfile.close();
 			}
 			fflush(stdout);
 #endif
