@@ -73,7 +73,7 @@ VSOutput vertexMain(VSInput input)
 }
 
 [shader("fragment")]
-float4 fragmentMain(VSOutput input, float2 pointCoord: SV_PointCoord) : SV_TARGET
+float4 fragmentMain(VSOutput input, float2 pointCoord: SV_PointCoord)
 {
     float3 color = samplerGradientRamp.Sample(float2(input.GradientPos, 0.0)).rgb;
     return float4(samplerColorMap.Sample(pointCoord).rgb * color, 1.0);

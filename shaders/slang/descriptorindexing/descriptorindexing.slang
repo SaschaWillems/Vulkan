@@ -37,7 +37,7 @@ VSOutput vertexMain(VSInput input)
 }
 
 [shader("fragment")]
-float4 fragmentMain(VSOutput input) : SV_TARGET
+float4 fragmentMain(VSOutput input)
 {
     return textures[NonUniformResourceIndex(input.TextureIndex)].Sample(input.UV);
 }

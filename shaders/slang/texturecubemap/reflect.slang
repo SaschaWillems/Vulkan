@@ -48,7 +48,7 @@ VSOutput vertexMain(VSInput input)
 }
 
 [shader("fragment")]
-float4 fragmentMain(VSOutput input) : SV_TARGET
+float4 fragmentMain(VSOutput input)
 {
 	float3 cI = normalize (input.ViewVec);
 	float3 cR = reflect (cI, normalize(input.Normal));

@@ -57,7 +57,7 @@ VSOutput vertexMain(VSInput input)
 }
 
 [shader("fragment")]
-float4 fragmentMain(VSOutput input) : SV_TARGET
+float4 fragmentMain(VSOutput input)
 {
 	switch (LIGHTING_MODEL) {
 		case 0: // Phong

@@ -38,7 +38,7 @@ VSOutput vertexMain(VSInput input, uniform float4 pushColor, uniform float4 push
 }
 
 [shader("fragment")]
-float4 fragmentMain(VSOutput input) : SV_TARGET
+float4 fragmentMain(VSOutput input)
 {
     return float4(input.Color, 1.0);
 }
