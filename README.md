@@ -68,7 +68,7 @@ Once built, examples can be run from the bin directory. The list of available co
  -vs, --vsync: Enable V-Sync
  -f, --fullscreen: Start in fullscreen mode
  -w, --width: Set window width
- -s, --shaders: Select shader type to use (glsl, hlsl, slang)
+ -s, --shaders: Select shader type to use (glsl, slang, hlsl)
  -g, --gpu: Select GPU to run on
  -gl, --listgpus: Display a list of available Vulkan devices
  -b, --benchmark: Run example in benchmark mode
@@ -83,7 +83,7 @@ Note that some examples require specific device features, and if you are on a mu
 
 ## Shaders
 
-Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](shaders/glsl), most samples also come with [HLSL](shaders/hlsl) and [slang](shaders/slang/) shader sources
+Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](shaders/glsl), most samples also come with [slang](shaders/slang/) and [HLSL](shaders/hlsl) shader sources, making it easy to compare the differences between those shading languages.
 
 ## A note on synchronization
 
