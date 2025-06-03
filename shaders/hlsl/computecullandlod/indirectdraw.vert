@@ -6,8 +6,8 @@ struct VSInput
 [[vk::location(1)]] float3 Normal : NORMAL0;
 [[vk::location(2)]] float3 Color : COLOR0;
 // Instanced attributes
-[[vk::location(4)]] float3 instancePos : TEXCOORD0;
-[[vk::location(5)]] float instanceScale : TEXCOORD1;
+[[vk::location(3)]] float3 instancePos : TEXCOORD0;
+[[vk::location(4)]] float instanceScale : TEXCOORD1;
 };
 
 struct UBO

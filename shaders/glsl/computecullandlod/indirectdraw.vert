@@ -6,8 +6,8 @@ layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec3 inColor;
 
 // Instanced attributes
-layout (location = 4) in vec3 instancePos;
-layout (location = 5) in float instanceScale;
+layout (location = 3) in vec3 instancePos;
+layout (location = 4) in float instanceScale;
 
 layout (binding = 0) uniform UBO 
 {
