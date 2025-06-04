@@ -14,7 +14,7 @@
 
 // Total number of objects (^3) in the scene
 #if defined(__ANDROID__)
-constexpr auto OBJECT_COUNT 32;
+constexpr auto OBJECT_COUNT = 32;
 #else
 constexpr auto OBJECT_COUNT = 64;
 #endif
