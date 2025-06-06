@@ -7,7 +7,7 @@
 *
 * Relevant code parts are marked with [POI]
 *
-* Copyright (C) 2021-2023 Sascha Willems - www.saschawillems.de
+* Copyright (C) 2021-2025 Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -112,11 +112,11 @@ public:
 			const int32_t dim = 3;
 			const size_t bufferSize = dim * dim * 4;
 			std::vector<uint8_t> texture(bufferSize);
-			for (size_t i = 0; i < dim * dim; i++) {
-				texture[i * 4]     = rndDist(rndEngine);
-				texture[i * 4 + 1] = rndDist(rndEngine);
-				texture[i * 4 + 2] = rndDist(rndEngine);
-				texture[i * 4 + 3] = 255;
+			for (size_t j = 0; j < dim * dim; j++) {
+				texture[j * 4]     = rndDist(rndEngine);
+				texture[j * 4 + 1] = rndDist(rndEngine);
+				texture[j * 4 + 2] = rndDist(rndEngine);
+				texture[j * 4 + 3] = 255;
 			}
 			textures[i].fromBuffer(texture.data(), bufferSize, VK_FORMAT_R8G8B8A8_UNORM, dim, dim, vulkanDevice, queue, VK_FILTER_NEAREST);
 		}
