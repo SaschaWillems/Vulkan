@@ -3,7 +3,7 @@
 * 
 * A swap chain is a collection of framebuffers used for rendering and presentation to the windowing system
 *
-* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -341,7 +341,6 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 		}
 		vkDestroySwapchainKHR(device, oldSwapchain, nullptr);
 	}
-	uint32_t imageCount{ 0 };
 	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr));
 
 	// Get the swap chain images

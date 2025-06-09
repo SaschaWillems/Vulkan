@@ -5,7 +5,7 @@
 * This is a variation of the the triangle sample that makes use of Vulkan 1.3 features
 * This simplifies the api a bit, esp. with dynamic rendering replacing render passes (and with that framebuffers)
 *
-* Copyright (C) 2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2024-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -87,16 +87,17 @@ public:
 	// Synchronization primitives
 	// Synchronization is an important concept of Vulkan that OpenGL mostly hid away. Getting this right is crucial to using Vulkan.
 	// Semaphores are used to coordinate operations within the graphics queue and ensure correct command ordering
-	std::array<VkSemaphore, MAX_CONCURRENT_FRAMES> presentCompleteSemaphores{};
-	std::array<VkSemaphore, MAX_CONCURRENT_FRAMES> renderCompleteSemaphores{};
+	std::vector<VkSemaphore> presentCompleteSemaphores{};
+	std::vector<VkSemaphore> renderCompleteSemaphores{};
 	// Fences are used to make sure command buffers aren't rerecorded until they've finished executing
 	std::array<VkFence, MAX_CONCURRENT_FRAMES> waitFences{};
 
 	VkCommandPool commandPool{ VK_NULL_HANDLE };
 	std::array<VkCommandBuffer, MAX_CONCURRENT_FRAMES> commandBuffers{};
 
-	// To select the correct sync and command objects, we need to keep track of the current frame
+	// To select the correct sync and command objects, we need to keep track of the current frame and (swapchain) image index
 	uint32_t currentFrame{ 0 };
+	uint32_t currentSemaphore{ 0 };
 
 	VkPhysicalDeviceVulkan13Features enabledFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
 
@@ -130,10 +131,14 @@ public:
 			vkDestroyBuffer(device, indexBuffer.handle, nullptr);
 			vkFreeMemory(device, indexBuffer.memory, nullptr);
 			vkDestroyCommandPool(device, commandPool, nullptr);
+			for (size_t i = 0; i < presentCompleteSemaphores.size(); i++) {
+				vkDestroySemaphore(device, presentCompleteSemaphores[i], nullptr);
+			}
+			for (size_t i = 0; i < presentCompleteSemaphores.size(); i++) {
+				vkDestroySemaphore(device, renderCompleteSemaphores[i], nullptr);
+			}
 			for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {
 				vkDestroyFence(device, waitFences[i], nullptr);
-				vkDestroySemaphore(device, presentCompleteSemaphores[i], nullptr);
-				vkDestroySemaphore(device, renderCompleteSemaphores[i], nullptr);
 				vkDestroyBuffer(device, uniformBuffers[i].handle, nullptr);
 				vkFreeMemory(device, uniformBuffers[i].memory, nullptr);
 			}
@@ -166,21 +171,27 @@ public:
 		throw "Could not find a suitable memory type!";
 	}
 
-	// Create the per-frame (in flight) Vulkan synchronization primitives used in this example
+	// Create the per-frame (in flight) and per (swapchain image) Vulkan synchronization primitives used in this example
 	void createSynchronizationPrimitives()
 	{
+		// Fences are per frame in flight
 		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {		
-			// Semaphores are used for correct command ordering within a queue
-			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-			// Semaphore used to ensure that image presentation is complete before starting to submit again
-			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentCompleteSemaphores[i]));
-			// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
-			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &renderCompleteSemaphores[i]));		
 			// Fence used to ensure that command buffer has completed exection before using it again
 			VkFenceCreateInfo fenceCI{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 			// Create the fences in signaled state (so we don't wait on first render of each command buffer)
 			fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCI, nullptr, &waitFences[i]));
+		}
+		// Semaphores are per swapchain image
+		presentCompleteSemaphores.resize(swapChain.images.size());
+		renderCompleteSemaphores.resize(swapChain.images.size());
+		for (size_t i = 0; i < swapChain.images.size(); i++) {
+			// Semaphores are used for correct command ordering within a queue
+			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+			// Semaphore used to ensure that image presentation is complete before starting to submit again
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentCompleteSemaphores[i]));
+			// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &renderCompleteSemaphores[i]));
 		}
 	}
 
@@ -689,8 +700,8 @@ public:
 
 		// Get the next swap chain image from the implementation
 		// Note that the implementation is free to return the images in any order, so we must use the acquire function and can't just cycle through the images/imageIndex on our own
-		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(device, swapChain.swapChain, UINT64_MAX, presentCompleteSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+		uint32_t imageIndex{ 0 };
+		VkResult result = vkAcquireNextImageKHR(device, swapChain.swapChain, UINT64_MAX, presentCompleteSemaphores[currentSemaphore], VK_NULL_HANDLE, &imageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			windowResize();
 			return;
@@ -777,10 +788,10 @@ public:
 		submitInfo.commandBufferCount = 1;                  // We submit a single command buffer
 
 		// Semaphore to wait upon before the submitted command buffer starts executing
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame]; 
+		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentSemaphore];
 		submitInfo.waitSemaphoreCount = 1;
 		// Semaphore to be signaled when command buffers have completed
-		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentFrame];
+		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentSemaphore];
 		submitInfo.signalSemaphoreCount = 1;
 
 		// Submit to the graphics queue passing a wait fence
@@ -791,7 +802,7 @@ public:
 		// This ensures that the image is not presented to the windowing system until all commands have been submitted
 		VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentFrame];
+		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentSemaphore];
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &swapChain.swapChain;
 		presentInfo.pImageIndices = &imageIndex;
@@ -804,6 +815,8 @@ public:
 
 		// Select the next frame to render to, based on the max. no. of concurrent frames
 		currentFrame = (currentFrame + 1) % MAX_CONCURRENT_FRAMES;
+		// Similar for the semaphores, which need to be unique to the swapchain images
+		currentSemaphore = (currentSemaphore + 1) % swapChain.imageCount;
 	}
 
 	// Override these as otherwise the base class would generate frame buffers and render passes
