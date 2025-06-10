@@ -143,7 +143,7 @@ public:
 			for (size_t i = 0; i < presentCompleteSemaphores.size(); i++) {
 				vkDestroySemaphore(device, presentCompleteSemaphores[i], nullptr);
 			}
-			for (size_t i = 0; i < presentCompleteSemaphores.size(); i++) {
+			for (size_t i = 0; i < renderCompleteSemaphores.size(); i++) {
 				vkDestroySemaphore(device, renderCompleteSemaphores[i], nullptr);
 			}
 			for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {
