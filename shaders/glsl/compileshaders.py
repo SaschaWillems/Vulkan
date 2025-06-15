@@ -19,7 +19,7 @@ def findGlslang():
     if args.glslang != None and isExe(args.glslang):
         return args.glslang
 
-    exe_name = "glslangvalidator"
+    exe_name = "glslangValidator"
     if os.name == "nt":
         exe_name += ".exe"
 
