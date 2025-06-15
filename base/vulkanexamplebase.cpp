@@ -100,9 +100,16 @@ VkResult VulkanExampleBase::createInstance()
 
 	VkApplicationInfo appInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = name.c_str();
+	appInfo.pApplicationName = title.c_str();
 	appInfo.pEngineName = name.c_str();
 	appInfo.apiVersion = apiVersion;
+
+	if (vks::debug::logToFile) {
+		std::ofstream logfile;
+		logfile.open("validation.txt", std::ios_base::app);
+		logfile << std::endl << "Sample: " << title <<  std::endl;
+		logfile.close();
+	}
 
 	VkInstanceCreateInfo instanceCreateInfo{};
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -833,10 +840,6 @@ VulkanExampleBase::VulkanExampleBase()
 	}
 	if (commandLineParser.isSet("validationlog")) {
 		vks::debug::logToFile = true;
-		std::ofstream logfile;
-		logfile.open("validation.txt", std::ios_base::app);
-		logfile << std::endl << "Sample: " << name <<  std::endl;
-		logfile.close();
 	}
 	if (commandLineParser.isSet("vsync")) {
 		settings.vsync = true;
