@@ -35,6 +35,7 @@ namespace vks
 	namespace debug
 	{
 		extern bool logToFile;
+		extern std::string logFileName;
 
 		// Default debug callback
 		VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessageCallback(
@@ -49,6 +50,7 @@ namespace vks
 		void freeDebugCallback(VkInstance instance);
 		// Used to populate a VkDebugUtilsMessengerCreateInfoEXT with our example messenger function and desired flags
 		void setupDebugingMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& debugUtilsMessengerCI);
+		void log(std::string message);
 	}
 
 	// Wrapper for the VK_EXT_debug_utils extension

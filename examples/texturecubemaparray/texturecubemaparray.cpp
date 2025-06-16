@@ -4,7 +4,7 @@
 * This sample shows how load and render an cubemap array texture. A single image contains multiple cube maps.
 * The cubemap to be displayed is selected in the fragment shader
 *
-* Copyright (C) 2020-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -50,7 +50,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		title = "Cube map textures";
+		title = "Cube map texture arrays";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.0f));
 		camera.setRotationSpeed(0.25f);

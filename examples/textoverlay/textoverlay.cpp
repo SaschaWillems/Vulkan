@@ -4,7 +4,7 @@
 * This sample renders a basic text overlay on top of a 3D scene that can be used e.g. for debug purposes
 * For a more complete GUI sample see the ImGui sample
 * 
-* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -462,7 +462,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		title = "Vulkan Example - Text overlay";
+		title = "Text overlay";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
 		camera.setRotation(glm::vec3(-25.0f, -0.0f, 0.0f));

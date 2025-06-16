@@ -1,9 +1,9 @@
 /*
 * Vulkan Demo Scene
 *
-* Don't take this a an example, it's more of a personal playground
+* Don't take this a an example, it's more of a playground
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -44,7 +44,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		title = "Vulkan Demo Scene (c) by Sascha Willems";
+		title = "Vulkan Demo Scene";
 		camera.type = Camera::CameraType::lookat;
 		//camera.flipY = true;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -3.75f));

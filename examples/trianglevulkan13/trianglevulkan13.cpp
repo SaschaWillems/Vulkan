@@ -103,7 +103,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		title = "Vulkan Example - Basic indexed triangle using Vulkan 1.3";
+		title = "Basic indexed triangle using Vulkan 1.3";
 		// To keep things simple, we don't use the UI overlay from the framework
 		settings.overlay = false;
 		// Setup a default look-at camera
