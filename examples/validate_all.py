@@ -11,7 +11,6 @@ import os
 
 if os.path.exists("validation_output.txt"):
   os.remove("validation_output.txt")
-i = 0
 for sample in glob.glob("*.exe"):
     # Skip headless samples, as they require manual keypress
     if "headless" in sample:
