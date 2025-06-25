@@ -110,9 +110,8 @@ public:
 	std::array<VkCommandBuffer, MAX_CONCURRENT_FRAMES> commandBuffers{};
 	std::array<VkFence, MAX_CONCURRENT_FRAMES> waitFences{};
 
-	// To select the correct sync and command objects, we need to keep track of the current frame and (swapchain) image index
+	// To select the correct sync and command objects, we need to keep track of the current frame
 	uint32_t currentFrame{ 0 };
-	uint32_t currentSemaphore{ 0 };
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -189,16 +188,19 @@ public:
 			// Fence used to ensure that command buffer has completed exection before using it again
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCI, nullptr, &waitFences[i]));
 		}
-		// Semaphores are per swapchain image
-		presentCompleteSemaphores.resize(swapChain.images.size());
-		renderCompleteSemaphores.resize(swapChain.images.size());
-		for (size_t i = 0; i < swapChain.images.size(); i++) {
-			// Semaphores are used for correct command ordering within a queue
+		// Semaphores are used for correct command ordering within a queue
+		// Used to ensure that image presentation is complete before starting to submit again
+		presentCompleteSemaphores.resize(MAX_CONCURRENT_FRAMES);
+		for (auto& semaphore : presentCompleteSemaphores) {
 			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-			// Semaphore used to ensure that image presentation is complete before starting to submit again
-			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentCompleteSemaphores[i]));
-			// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
-			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &renderCompleteSemaphores[i]));
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
+		}
+		// Render completion
+		// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
+		renderCompleteSemaphores.resize(swapChain.images.size());
+		for (auto& semaphore : renderCompleteSemaphores) {
+			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
 		}
 	}
 
@@ -915,7 +917,7 @@ public:
 		// Get the next swap chain image from the implementation
 		// Note that the implementation is free to return the images in any order, so we must use the acquire function and can't just cycle through the images/imageIndex on our own
 		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(device, swapChain.swapChain, UINT64_MAX, presentCompleteSemaphores[currentSemaphore], VK_NULL_HANDLE, &imageIndex);
+		VkResult result = vkAcquireNextImageKHR(device, swapChain.swapChain, UINT64_MAX, presentCompleteSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			windowResize();
 			return;
@@ -1011,10 +1013,10 @@ public:
 		submitInfo.commandBufferCount = 1;                  // We submit a single command buffer
 
 		// Semaphore to wait upon before the submitted command buffer starts executing
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentSemaphore];
+		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame];
 		submitInfo.waitSemaphoreCount = 1;
 		// Semaphore to be signaled when command buffers have completed
-		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentSemaphore];
+		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[imageIndex];
 		submitInfo.signalSemaphoreCount = 1;
 
 		// Submit to the graphics queue passing a wait fence
@@ -1027,7 +1029,7 @@ public:
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentSemaphore];
+		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[imageIndex];
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &swapChain.swapChain;
 		presentInfo.pImageIndices = &imageIndex;
@@ -1042,8 +1044,6 @@ public:
 
 		// Select the next frame to render to, based on the max. no. of concurrent frames
 		currentFrame = (currentFrame + 1) % MAX_CONCURRENT_FRAMES;
-		// Similar for the semaphores, which need to be unique to the swapchain images
-		currentSemaphore = (currentSemaphore + 1) % swapChain.imageCount;
 	}
 };
 
