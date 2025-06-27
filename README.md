@@ -83,7 +83,7 @@ Note that some examples require specific device features, and if you are on a mu
 
 ## Shaders
 
-Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](shaders/glsl), most samples also come with [slang](shaders/slang/) and [HLSL](shaders/hlsl) shader sources, making it easy to compare the differences between those shading languages.
+Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](shaders/glsl), most samples also come with [slang](shaders/slang/) and [HLSL](shaders/hlsl) shader sources, making it easy to compare the differences between those shading languages. The [Rust GPU](https://rust-gpu.github.io/) project maintains [Rust](https://www.rust-lang.org/) shader sources in a [separate repo](https://github.com/Rust-GPU/VulkanShaderExamples/tree/master/shaders/rust).
 
 ## A note on synchronization
 
