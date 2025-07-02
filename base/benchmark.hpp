@@ -28,11 +28,13 @@ namespace vks
 		uint32_t duration = 10;
 		std::vector<double> frameTimes;
 		std::string filename = "";
+		std::string screenshotPath = "";
+		int32_t screenshotFrameIndex = -1;
 
 		double runtime = 0.0;
 		uint32_t frameCount = 0;
 
-		void run(std::function<void()> renderFunc, VkPhysicalDeviceProperties deviceProps) {
+		void run(std::function<void()> renderFunc, std::function<void(const std::string&)> screenshotFunc, VkPhysicalDeviceProperties deviceProps) {
 			active = true;
 			this->deviceProps = deviceProps;
 #if defined(_WIN32)
@@ -64,6 +66,10 @@ namespace vks
 					auto tDiff = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
 					runtime += tDiff;
 					frameTimes.push_back(tDiff);
+					// Capture screenshot at specified frame
+					if (screenshotFrameIndex >= 0 && frameCount == screenshotFrameIndex && !screenshotPath.empty()) {
+						screenshotFunc(screenshotPath);
+					}
 					frameCount++;
 					if (outputFrames != -1 && outputFrames == frameCount) break;
 				};
@@ -73,6 +79,9 @@ namespace vks
 				std::cout << "runtime: " << (runtime / 1000.0) << "\n";
 				std::cout << "frames : " << frameCount << "\n";
 				std::cout << "fps    : " << frameCount / (runtime / 1000.0) << "\n";
+				if (!screenshotPath.empty() && screenshotFrameIndex >= 0) {
+					std::cout << "screenshot saved to: " << screenshotPath << "\n";
+				}
 			}
 		}
 

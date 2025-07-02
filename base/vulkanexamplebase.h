@@ -216,6 +216,10 @@ public:
 	float timerSpeed = 0.25f;
 	bool paused = false;
 
+	// Screenshot functionality
+	std::string screenshotPath = "";
+	int32_t screenshotFrameIndex = -1;
+
 	Camera camera;
 
 	std::string title = "Vulkan Example";
@@ -387,6 +391,8 @@ public:
 	virtual void setupRenderPass();
 	/** @brief (Virtual) Called after the physical device features have been read, can be used to set features to enable on the device */
 	virtual void getEnabledFeatures();
+	/** @brief Save screenshot of current swapchain image to file */
+	void saveScreenshot(const std::string& filename);
 	/** @brief (Virtual) Called after the physical device extensions have been read, can be used to enable extensions based on the supported extension listing*/
 	virtual void getEnabledExtensions();
 
