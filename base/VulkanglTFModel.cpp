@@ -1,7 +1,7 @@
 /*
 * Vulkan glTF model and texture loading class based on tinyglTF (https://github.com/syoyo/tinygltf)
 *
-* Copyright (C) 2018-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -108,6 +108,7 @@ void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path
 			buffer = &gltfimage.image[0];
 			bufferSize = gltfimage.image.size();
 		}
+		assert(buffer);
 
 		format = VK_FORMAT_R8G8B8A8_UNORM;
 
@@ -140,7 +141,7 @@ void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path
 		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &stagingMemory));
 		VK_CHECK_RESULT(vkBindBufferMemory(device->logicalDevice, stagingBuffer, stagingMemory, 0));
 
-		uint8_t* data;
+		uint8_t* data{nullptr};
 		VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
 		memcpy(data, buffer, bufferSize);
 		vkUnmapMemory(device->logicalDevice, stagingMemory);
@@ -337,7 +338,7 @@ void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path
 		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &stagingMemory));
 		VK_CHECK_RESULT(vkBindBufferMemory(device->logicalDevice, stagingBuffer, stagingMemory, 0));
 
-		uint8_t* data;
+		uint8_t* data{ nullptr };
 		VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
 		memcpy(data, ktxTextureData, ktxTextureSize);
 		vkUnmapMemory(device->logicalDevice, stagingMemory);
@@ -408,8 +409,6 @@ void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path
 	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 	samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
 	samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-	samplerInfo.maxAnisotropy = 1.0;
-	samplerInfo.anisotropyEnable = VK_FALSE;
 	samplerInfo.maxLod = (float)mipLevels;
 	samplerInfo.maxAnisotropy = 8.0f;
 	samplerInfo.anisotropyEnable = VK_TRUE;
@@ -651,7 +650,7 @@ void vkglTF::Model::createEmptyTexture(VkQueue transferQueue)
 	VK_CHECK_RESULT(vkBindBufferMemory(device->logicalDevice, stagingBuffer, stagingMemory, 0));
 
 	// Copy texture data into staging buffer
-	uint8_t* data;
+	uint8_t* data{ nullptr };
 	VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
 	memcpy(data, buffer, bufferSize);
 	vkUnmapMemory(device->logicalDevice, stagingMemory);
@@ -733,13 +732,13 @@ vkglTF::Model::~Model()
 	vkFreeMemory(device->logicalDevice, vertices.memory, nullptr);
 	vkDestroyBuffer(device->logicalDevice, indices.buffer, nullptr);
 	vkFreeMemory(device->logicalDevice, indices.memory, nullptr);
-	for (auto texture : textures) {
+	for (auto& texture : textures) {
 		texture.destroy();
 	}
-	for (auto node : nodes) {
+	for (auto& node : nodes) {
 		delete node;
 	}
-    for (auto skin : skins) {
+    for (auto& skin : skins) {
         delete skin;
     }
 	if (descriptorSetLayoutUbo != VK_NULL_HANDLE) {
@@ -885,8 +884,10 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 						switch (numColorComponents) {
 							case 3: 
 								vert.color = glm::vec4(glm::make_vec3(&bufferColors[v * 3]), 1.0f);
+								break;
 							case 4:
 								vert.color = glm::make_vec4(&bufferColors[v * 4]);
+								break;
 						}
 					}
 					else {
@@ -1256,7 +1257,7 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 		}
 	}
 
-	for (auto extension : gltfModel.extensionsUsed) {
+	for (auto& extension : gltfModel.extensionsUsed) {
 		if (extension == "KHR_materials_pbrSpecularGlossiness") {
 			std::cout << "Required extension: " << extension;
 			metallicRoughnessWorkflow = false;
@@ -1273,7 +1274,7 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	struct StagingBuffer {
 		VkBuffer buffer;
 		VkDeviceMemory memory;
-	} vertexStaging, indexStaging;
+	} vertexStaging{}, indexStaging{};
 
 	// Create staging buffers
 	// Vertex data
@@ -1332,12 +1333,12 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 	// Setup descriptors
 	uint32_t uboCount{ 0 };
 	uint32_t imageCount{ 0 };
-	for (auto node : linearNodes) {
+	for (auto& node : linearNodes) {
 		if (node->mesh) {
 			uboCount++;
 		}
 	}
-	for (auto material : materials) {
+	for (auto& material : materials) {
 		if (material.baseColorTexture != nullptr) {
 			imageCount++;
 		}
