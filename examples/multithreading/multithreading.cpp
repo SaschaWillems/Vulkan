@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Multi threaded command buffer generation and rendering
 *
-* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -329,7 +329,7 @@ public:
 
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[2];
+		VkClearValue clearValues[2]{};
 		clearValues[0].color = defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
@@ -369,7 +369,7 @@ public:
 		{
 			for (uint32_t i = 0; i < numObjectsPerThread; i++)
 			{
-				threadPool.threads[t]->addJob([=] { threadRenderCode(t, i, inheritanceInfo); });
+				threadPool.threads[t]->addJob([=, this] { threadRenderCode(t, i, inheritanceInfo); });
 			}
 		}
 
@@ -428,7 +428,7 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
 		pipelineCI.pInputAssemblyState = &inputAssemblyState;

@@ -334,8 +334,7 @@ void VulkanExampleBase::renderLoop()
 		if (wl_display_dispatch_pending(display) == -1)
 			return;
 #endif
-
-		benchmark.run([=] { render(); }, vulkanDevice->properties);
+		benchmark.run([=, this] { render(); }, vulkanDevice->properties);
 		vkDeviceWaitIdle(device);
 		if (!benchmark.filename.empty()) {
 			benchmark.saveResults();
