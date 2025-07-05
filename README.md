@@ -54,7 +54,7 @@ git submodule update
 
 ## Building
 
-The repository contains everything required to compile and build the examples on <img src="./images/windowslogo.png" alt="" height="22px" valign="bottom"> Windows, <img src="./images/linuxlogo.png" alt="" height="24px" valign="bottom"> Linux, <img src="./images/androidlogo.png" alt="" height="24px" valign="bottom"> Android, <img src="./images/applelogo.png" alt="" valign="bottom" height="24px"> iOS and macOS (using MoltenVK) using a C++ compiler that supports C++20.
+The repository contains everything required to compile and build the examples on Windows, Android, iOS and macOS (using MoltenVK) using a C++ compiler that supports C++20.
 
 See [BUILD.md](BUILD.md) for details on how to build for the different platforms.
 
