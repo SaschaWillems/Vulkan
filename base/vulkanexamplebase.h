@@ -158,6 +158,14 @@ protected:
 		VkSemaphore renderComplete;
 	} semaphores{};
 	std::vector<VkFence> waitFences;
+
+	// This sample will be using a new synchronisation setup, which is closer to what should be used with Vulkan
+	bool useNewSync{ false };
+	const uint32_t maxConcurrentFrames{ 2 };
+	uint32_t currentImageIndex{ 0 };
+	std::vector<VkSemaphore> presentCompleteSemaphores{};
+	std::vector<VkSemaphore> renderCompleteSemaphores{};
+
 	bool requiresStencil{ false };
 public:
 	bool prepared = false;
