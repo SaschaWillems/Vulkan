@@ -412,7 +412,7 @@ public:
 	/** @brief Adds the drawing commands for the ImGui overlay to the given command buffer */
 	void drawUI(const VkCommandBuffer commandBuffer);
 
-	/** Prepare the next frame for workload submission by acquiring the next swap chain image */
+	/** Prepare the next frame for workload submission by acquiring the next swap chain image and waiting for the previous command buffer to finish */
 	void prepareFrame();
 	/** @brief Presents the current image to the swap chain */
 	void submitFrame();
