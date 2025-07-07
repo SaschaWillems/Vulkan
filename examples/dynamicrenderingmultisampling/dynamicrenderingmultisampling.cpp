@@ -292,11 +292,10 @@ public:
 
 	void buildCommandBuffer()
 	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
 		vkResetCommandBuffer(cmdBuffer, 0);
 
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
 
 		// With dynamic rendering there are no subpass dependencies, so we need to take care of proper layout transitions by using barriers
