@@ -20,13 +20,13 @@ public:
 		glm::mat4 modelView;
 		glm::vec4 lightPos = glm::vec4(0.0f, 2.0f, 1.0f, 0.0f);
 	} uniformData;
-	vks::Buffer uniformBuffer;
+	std::vector<vks::Buffer> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	std::vector<VkDescriptorSet> descriptorSets;
 
-	VkShaderEXT shaders[2];
+	VkShaderEXT shaders[2]{};
 
 	VkPhysicalDeviceShaderObjectFeaturesEXT enabledShaderObjectFeaturesEXT{};
 	VkPhysicalDeviceDynamicRenderingFeaturesKHR enabledDynamicRenderingFeaturesKHR{};
@@ -65,6 +65,8 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		useNewSync = true;
+
 		title = "Shader objects (VK_EXT_shader_object)";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -10.5f));
@@ -96,6 +98,9 @@ public:
 		enabledDynamicRenderingFeaturesKHR.pNext = &enabledShaderObjectFeaturesEXT;
 
 		deviceCreatepNextChain = &enabledDynamicRenderingFeaturesKHR;
+
+		uniformBuffers.resize(maxConcurrentFrames);
+		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()
@@ -103,7 +108,9 @@ public:
 		if (device) {
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-			uniformBuffer.destroy();
+			for (auto& buffer : uniformBuffers) {
+				buffer.destroy();
+			}
 			vkDestroyShaderEXT(device, shaders[0], nullptr);
 			vkDestroyShaderEXT(device, shaders[1], nullptr);
 		}
@@ -119,27 +126,27 @@ public:
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1)
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames)
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0)
 		};
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
-		// Sets
+		// Sets per frame, just like the buffers themselves
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor) 
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	// Loads a binary shader file
@@ -261,166 +268,20 @@ public:
 		}
 	}
 
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			// Transition color and depth images for drawing
-			vks::tools::insertImageMemoryBarrier(
-				drawCmdBuffers[i],
-				swapChain.images[i],
-				0,
-				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-				VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
-			vks::tools::insertImageMemoryBarrier(
-				drawCmdBuffers[i],
-				depthStencil.image,
-				0,
-				VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-				VkImageSubresourceRange{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 });
-
-			// New structures are used to define the attachments used in dynamic rendering
-			VkRenderingAttachmentInfoKHR colorAttachment{};
-			colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-			colorAttachment.imageView = swapChain.imageViews[i];
-			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			colorAttachment.clearValue.color = { 0.0f,0.0f,0.0f,0.0f };
-
-			// A single depth stencil attachment info can be used, but they can also be specified separately.
-			// When both are specified separately, the only requirement is that the image view is identical.			
-			VkRenderingAttachmentInfoKHR depthStencilAttachment{};
-			depthStencilAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-			depthStencilAttachment.imageView = depthStencil.view;
-			depthStencilAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			depthStencilAttachment.clearValue.depthStencil = { 1.0f,  0 };
-
-			VkRenderingInfoKHR renderingInfo{};
-			renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
-			renderingInfo.renderArea = { 0, 0, width, height };
-			renderingInfo.layerCount = 1;
-			renderingInfo.colorAttachmentCount = 1;
-			renderingInfo.pColorAttachments = &colorAttachment;
-			renderingInfo.pDepthAttachment = &depthStencilAttachment;
-			renderingInfo.pStencilAttachment = &depthStencilAttachment;
-
-			// Begin dynamic rendering
-			vkCmdBeginRenderingKHR(drawCmdBuffers[i], &renderingInfo);
-
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-
-			// No more pipelines required, everything is bound at command buffer level
-			// This also means that we need to explicitly set a lot of the state to be spec compliant
-
-			vkCmdSetViewportWithCountEXT(drawCmdBuffers[i], 1, &viewport);
-			vkCmdSetScissorWithCountEXT(drawCmdBuffers[i], 1, &scissor);
-			vkCmdSetCullModeEXT(drawCmdBuffers[i], VK_CULL_MODE_BACK_BIT);
-			vkCmdSetFrontFaceEXT(drawCmdBuffers[i], VK_FRONT_FACE_COUNTER_CLOCKWISE);
-			vkCmdSetDepthTestEnableEXT(drawCmdBuffers[i], VK_TRUE);
-			vkCmdSetDepthWriteEnableEXT(drawCmdBuffers[i], VK_TRUE);
-			vkCmdSetDepthCompareOpEXT(drawCmdBuffers[i], VK_COMPARE_OP_LESS_OR_EQUAL);
-			vkCmdSetPrimitiveTopologyEXT(drawCmdBuffers[i], VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-			vkCmdSetRasterizerDiscardEnableEXT(drawCmdBuffers[i], VK_FALSE);
-			vkCmdSetPolygonModeEXT(drawCmdBuffers[i], VK_POLYGON_MODE_FILL);
-			vkCmdSetRasterizationSamplesEXT(drawCmdBuffers[i], VK_SAMPLE_COUNT_1_BIT);
-			vkCmdSetAlphaToCoverageEnableEXT(drawCmdBuffers[i], VK_FALSE);
-			vkCmdSetDepthBiasEnableEXT(drawCmdBuffers[i], VK_FALSE);
-			vkCmdSetStencilTestEnableEXT(drawCmdBuffers[i], VK_FALSE);
-			vkCmdSetPrimitiveRestartEnableEXT(drawCmdBuffers[i], VK_FALSE);
-
-			const uint32_t sampleMask = 0xFF;
-			vkCmdSetSampleMaskEXT(drawCmdBuffers[i], VK_SAMPLE_COUNT_1_BIT, &sampleMask);
-
-			const VkBool32 colorBlendEnables = false;
-			const VkColorComponentFlags colorBlendComponentFlags = 0xf;
-			const VkColorBlendEquationEXT colorBlendEquation{};
-			vkCmdSetColorBlendEnableEXT(drawCmdBuffers[i], 0, 1, &colorBlendEnables);
-			vkCmdSetColorWriteMaskEXT(drawCmdBuffers[i], 0, 1, &colorBlendComponentFlags);
-
-			VkVertexInputBindingDescription2EXT vertexInputBinding{};
-			vertexInputBinding.sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
-			vertexInputBinding.binding = 0;
-			vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-			vertexInputBinding.stride = sizeof(vkglTF::Vertex);
-			vertexInputBinding.divisor = 1;
-
-			std::vector<VkVertexInputAttributeDescription2EXT> vertexAttributes = {
-				{ VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT, nullptr, 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, pos) },
-				{ VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT, nullptr, 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, normal) },
-				{ VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT, nullptr, 2, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(vkglTF::Vertex, color) }
-			};
-
-			vkCmdSetVertexInputEXT(drawCmdBuffers[i], 1, &vertexInputBinding, 3, vertexAttributes.data());
-
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-			scene.bindBuffers(drawCmdBuffers[i]);
-
-			// Binding the shaders
-			VkShaderStageFlagBits stages[2] = { VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT };
-			vkCmdBindShadersEXT(drawCmdBuffers[i], 2, stages, shaders);
-			scene.draw(drawCmdBuffers[i]);
-
-			// @todo: Currently disabled, the UI needs to be adopated to work with shader objects
-			// drawUI(drawCmdBuffers[i]);
-
-			// End dynamic rendering
-			vkCmdEndRenderingKHR(drawCmdBuffers[i]);
-
-			// Transition color image for presentation
-			vks::tools::insertImageMemoryBarrier(
-				drawCmdBuffers[i],
-				swapChain.images[i],
-				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-				0,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-				VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
-	}
-
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Create the vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(UniformData)));
-		VK_CHECK_RESULT(uniformBuffer.map());
-		updateUniformBuffers();
+		for (auto& buffer : uniformBuffers) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData), &uniformData));
+			VK_CHECK_RESULT(buffer.map());
+		}
 	}
 
 	void updateUniformBuffers()
 	{
 		uniformData.projection = camera.matrices.perspective;
 		uniformData.modelView = camera.matrices.view;
-		memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
+		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void prepare()
@@ -465,12 +326,151 @@ public:
 		prepared = true;
 	}
 
+	void buildCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		// Transition color and depth images for drawing
+		vks::tools::insertImageMemoryBarrier(
+			cmdBuffer,
+			swapChain.images[currentImageIndex],
+			0,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+		vks::tools::insertImageMemoryBarrier(
+			cmdBuffer,
+			depthStencil.image,
+			0,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			VkImageSubresourceRange{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 });
+
+		// New structures are used to define the attachments used in dynamic rendering
+		VkRenderingAttachmentInfoKHR colorAttachment{};
+		colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+		colorAttachment.imageView = swapChain.imageViews[currentImageIndex];
+		colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.clearValue.color = { 0.0f,0.0f,0.0f,0.0f };
+
+		// A single depth stencil attachment info can be used, but they can also be specified separately.
+		// When both are specified separately, the only requirement is that the image view is identical.			
+		VkRenderingAttachmentInfoKHR depthStencilAttachment{};
+		depthStencilAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+		depthStencilAttachment.imageView = depthStencil.view;
+		depthStencilAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depthStencilAttachment.clearValue.depthStencil = { 1.0f,  0 };
+
+		VkRenderingInfoKHR renderingInfo{};
+		renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+		renderingInfo.renderArea = { 0, 0, width, height };
+		renderingInfo.layerCount = 1;
+		renderingInfo.colorAttachmentCount = 1;
+		renderingInfo.pColorAttachments = &colorAttachment;
+		renderingInfo.pDepthAttachment = &depthStencilAttachment;
+		renderingInfo.pStencilAttachment = &depthStencilAttachment;
+
+		// Begin dynamic rendering
+		vkCmdBeginRenderingKHR(cmdBuffer, &renderingInfo);
+
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+
+		// No more pipelines required, everything is bound at command buffer level
+		// This also means that we need to explicitly set a lot of the state to be spec compliant
+
+		vkCmdSetViewportWithCountEXT(cmdBuffer, 1, &viewport);
+		vkCmdSetScissorWithCountEXT(cmdBuffer, 1, &scissor);
+		vkCmdSetCullModeEXT(cmdBuffer, VK_CULL_MODE_BACK_BIT);
+		vkCmdSetFrontFaceEXT(cmdBuffer, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+		vkCmdSetDepthTestEnableEXT(cmdBuffer, VK_TRUE);
+		vkCmdSetDepthWriteEnableEXT(cmdBuffer, VK_TRUE);
+		vkCmdSetDepthCompareOpEXT(cmdBuffer, VK_COMPARE_OP_LESS_OR_EQUAL);
+		vkCmdSetPrimitiveTopologyEXT(cmdBuffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+		vkCmdSetRasterizerDiscardEnableEXT(cmdBuffer, VK_FALSE);
+		vkCmdSetPolygonModeEXT(cmdBuffer, VK_POLYGON_MODE_FILL);
+		vkCmdSetRasterizationSamplesEXT(cmdBuffer, VK_SAMPLE_COUNT_1_BIT);
+		vkCmdSetAlphaToCoverageEnableEXT(cmdBuffer, VK_FALSE);
+		vkCmdSetDepthBiasEnableEXT(cmdBuffer, VK_FALSE);
+		vkCmdSetStencilTestEnableEXT(cmdBuffer, VK_FALSE);
+		vkCmdSetPrimitiveRestartEnableEXT(cmdBuffer, VK_FALSE);
+
+		const uint32_t sampleMask = 0xFF;
+		vkCmdSetSampleMaskEXT(cmdBuffer, VK_SAMPLE_COUNT_1_BIT, &sampleMask);
+
+		const VkBool32 colorBlendEnables = false;
+		const VkColorComponentFlags colorBlendComponentFlags = 0xf;
+		const VkColorBlendEquationEXT colorBlendEquation{};
+		vkCmdSetColorBlendEnableEXT(cmdBuffer, 0, 1, &colorBlendEnables);
+		vkCmdSetColorWriteMaskEXT(cmdBuffer, 0, 1, &colorBlendComponentFlags);
+
+		VkVertexInputBindingDescription2EXT vertexInputBinding{};
+		vertexInputBinding.sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
+		vertexInputBinding.binding = 0;
+		vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		vertexInputBinding.stride = sizeof(vkglTF::Vertex);
+		vertexInputBinding.divisor = 1;
+
+		std::vector<VkVertexInputAttributeDescription2EXT> vertexAttributes = {
+			{ VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT, nullptr, 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, pos) },
+			{ VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT, nullptr, 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, normal) },
+			{ VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT, nullptr, 2, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(vkglTF::Vertex, color) }
+		};
+
+		vkCmdSetVertexInputEXT(cmdBuffer, 1, &vertexInputBinding, 3, vertexAttributes.data());
+
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+		scene.bindBuffers(cmdBuffer);
+
+		// Binding the shaders
+		VkShaderStageFlagBits stages[2] = { VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT };
+		vkCmdBindShadersEXT(cmdBuffer, 2, stages, shaders);
+		scene.draw(cmdBuffer);
+
+		// @todo: Currently disabled, the UI needs to be adopated to work with shader objects
+		// drawUI(cmdBuffer);
+
+		// End dynamic rendering
+		vkCmdEndRenderingKHR(cmdBuffer);
+
+		// Transition color image for presentation
+		vks::tools::insertImageMemoryBarrier(
+			cmdBuffer,
+			swapChain.images[currentImageIndex],
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			0,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+	}
+
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
+		VulkanExampleBase::prepareFrame();
 		updateUniformBuffers();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
 	}
 };
 
