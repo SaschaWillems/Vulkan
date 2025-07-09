@@ -1,7 +1,7 @@
 /*
  * Vulkan Example - Passing vertex attributes using interleaved and separate buffers
  * 
- * Copyright (C) 2022-2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2022-2025 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -93,15 +93,13 @@ public:
 	// Index buffer for all primitives of the scene
 	vks::Buffer indices;
 
-	struct ShaderData {
-		vks::Buffer buffer;
-		struct Values {
-			glm::mat4 projection;
-			glm::mat4 view;
-			glm::vec4 lightPos = glm::vec4(0.0f, 2.5f, 0.0f, 1.0f);
-			glm::vec4 viewPos;
-		} values;
-	} shaderData;
+	struct UniformData {
+		glm::mat4 projection;
+		glm::mat4 view;
+		glm::vec4 lightPos = glm::vec4(0.0f, 2.5f, 0.0f, 1.0f);
+		glm::vec4 viewPos;
+	} uniformData;
+	std::vector<vks::Buffer> uniformBuffers;
 
 	struct Pipelines {
 		VkPipeline vertexAttributesInterleaved;
@@ -113,7 +111,7 @@ public:
 		VkDescriptorSetLayout matrices;
 		VkDescriptorSetLayout textures;
 	} descriptorSetLayouts;
-	VkDescriptorSet descriptorSet;
+	std::vector<VkDescriptorSet> descriptorSets;
 
 	struct Scene {
 		std::vector<Image> images;
@@ -124,7 +122,6 @@ public:
 	VulkanExample();
 	~VulkanExample();
 	virtual void getEnabledFeatures();
-	void buildCommandBuffers();
 	void uploadVertexData();
 	void loadglTFFile(std::string filename);
 	void loadAssets();
@@ -135,6 +132,7 @@ public:
 	void prepare();
 	void loadSceneNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, Node* parent);
 	void drawSceneNode(VkCommandBuffer commandBuffer, Node node);
+	void buildCommandBuffer();
 	virtual void render();
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay);
 };
