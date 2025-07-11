@@ -1,7 +1,7 @@
 /*
  * Vulkan Example - Texture mapping with transparency using accelerated ray tracing example
  *
- * Copyright (C) 2024 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2024-2025 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -42,20 +42,23 @@ public:
 		glm::mat4 viewInverse;
 		glm::mat4 projInverse;
 	} uniformData;
-	vks::Buffer ubo;
+	std::vector<vks::Buffer> uniformBuffers;
 
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	std::vector<VkDescriptorSet> descriptorSets;
 
 	VulkanExample() : VulkanRaytracingSample()
 	{
+		useNewSync = true;
 		title = "Ray tracing textures";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(45.0f, 0.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
+		uniformBuffers.resize(maxConcurrentFrames);
+		descriptorSets.resize(maxConcurrentFrames);
 		enableExtensions();
 		// Buffer device address requires the 64-bit integer feature to be enabled
 		enabledFeatures.shaderInt64 = VK_TRUE;
@@ -75,8 +78,10 @@ public:
 		shaderBindingTables.raygen.destroy();
 		shaderBindingTables.miss.destroy();
 		shaderBindingTables.hit.destroy();
-		ubo.destroy();
 		texture.destroy();
+		for (auto& buffer : uniformBuffers) {
+			buffer.destroy();
+		}
 	}
 
 	void createAccelerationStructureBuffer(AccelerationStructure &accelerationStructure, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo)
@@ -389,43 +394,53 @@ public:
 	void createDescriptorSets()
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
-			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
+			{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, maxConcurrentFrames },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, maxConcurrentFrames },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxConcurrentFrames }
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
+		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool));
 
-		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocateInfo, &descriptorSet));
+		// Sets per frame, just like the buffers themselves
+		// Acceleration structure and images do not need to be duplicated per frame, we use the same for each descriptor to keep things simple
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+		for (auto i = 0; i < maxConcurrentFrames; i++) {
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i]));
 
-		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo = vks::initializers::writeDescriptorSetAccelerationStructureKHR();
-		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-		descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.handle;
+			// The fragment shader needs access to the ray tracing acceleration structure, so we pass it as a descriptor
 
-		VkWriteDescriptorSet accelerationStructureWrite{};
-		accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		// The specialized acceleration structure descriptor has to be chained
-		accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
-		accelerationStructureWrite.dstSet = descriptorSet;
-		accelerationStructureWrite.dstBinding = 0;
-		accelerationStructureWrite.descriptorCount = 1;
-		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+			VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
+			descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+			descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+			descriptorAccelerationStructureInfo.pAccelerationStructures = &topLevelAS.handle;
 
-		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, storageImage.view, VK_IMAGE_LAYOUT_GENERAL };
+			VkWriteDescriptorSet accelerationStructureWrite{};
+			accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			// The specialized acceleration structure descriptor has to be chained
+			accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
+			accelerationStructureWrite.dstSet = descriptorSets[i];
+			accelerationStructureWrite.dstBinding = 0;
+			accelerationStructureWrite.descriptorCount = 1;
+			accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			// Binding 0: Top level acceleration structure
-			accelerationStructureWrite,
-			// Binding 1: Ray tracing result image
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor),
-			// Binding 2: Uniform data
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &ubo.descriptor),
-			// Binding 3: Texture image
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texture.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
+			VkDescriptorImageInfo storageImageDescriptor{};
+			storageImageDescriptor.imageView = storageImage.view;
+			storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				// Binding 0: Top level acceleration structure
+				accelerationStructureWrite,
+				// Binding 1: Ray tracing result image
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor),
+				// Binding 2: Uniform data
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffers[i].descriptor),
+				// Binding 3: Texture image
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texture.descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
+		}
 	}
 
 	/*
@@ -523,15 +538,10 @@ public:
 	*/
 	void createUniformBuffer()
 	{
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&ubo,
-			sizeof(uniformData),
-			&uniformData));
-		VK_CHECK_RESULT(ubo.map());
-
-		updateUniformBuffers();
+		for (auto& buffer : uniformBuffers) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData), &uniformData));
+			VK_CHECK_RESULT(buffer.map());
+		}
 	}
 
 	/*
@@ -542,114 +552,20 @@ public:
 		// Recreate image
 		createStorageImage(swapChain.colorFormat, { width, height, 1 });
 		// Update descriptor
+		// Update descriptors
 		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, storageImage.view, VK_IMAGE_LAYOUT_GENERAL };
-		VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
-		vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);
+		for (auto i = 0; i < maxConcurrentFrames; i++) {
+			VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
+			vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);
+		}
 		resized = false;
-	}
-
-	/*
-		Command buffer generation
-	*/
-	void buildCommandBuffers()
-	{
-		if (resized)
-		{
-			handleResize();
-		}
-
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			/*
-				Dispatch the ray tracing commands
-			*/
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
-
-			struct BufferReferences {
-				uint64_t vertices;
-				uint64_t indices;
-			} bufferReferences; 
-
-			bufferReferences.vertices = getBufferDeviceAddress(vertexBuffer.buffer);
-			bufferReferences.indices = getBufferDeviceAddress(indexBuffer.buffer);
-
-			// We set the buffer references for the mesh to be rendered using a push constant
-			// If we wanted to render multiple objecets this would make it very easy to access their vertex and index buffers
-			vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 0, sizeof(uint64_t) * 2, &bufferReferences);
-
-			VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
-			vkCmdTraceRaysKHR(
-				drawCmdBuffers[i],
-				&shaderBindingTables.raygen.stridedDeviceAddressRegion,
-				&shaderBindingTables.miss.stridedDeviceAddressRegion,
-				&shaderBindingTables.hit.stridedDeviceAddressRegion,
-				&emptySbtEntry,
-				width,
-				height,
-				1);
-
-			/*
-				Copy ray tracing output to swap chain image
-			*/
-
-			// Prepare current swap chain image as transfer destination
-			vks::tools::setImageLayout(
-				drawCmdBuffers[i],
-				swapChain.images[i],
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				subresourceRange);
-
-			// Prepare ray tracing output image as transfer source
-			vks::tools::setImageLayout(
-				drawCmdBuffers[i],
-				storageImage.image,
-				VK_IMAGE_LAYOUT_GENERAL,
-				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				subresourceRange);
-
-			VkImageCopy copyRegion{};
-			copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-			copyRegion.srcOffset = { 0, 0, 0 };
-			copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-			copyRegion.dstOffset = { 0, 0, 0 };
-			copyRegion.extent = { width, height, 1 };
-			vkCmdCopyImage(drawCmdBuffers[i], storageImage.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapChain.images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
-
-			// Transition swap chain image back for presentation
-			vks::tools::setImageLayout(
-				drawCmdBuffers[i],
-				swapChain.images[i],
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				subresourceRange);
-
-			// Transition ray tracing output image back to general layout
-			vks::tools::setImageLayout(
-				drawCmdBuffers[i],
-				storageImage.image,
-				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				VK_IMAGE_LAYOUT_GENERAL,
-				subresourceRange);
-
-			drawUI(drawCmdBuffers[i], frameBuffers[i]);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
 	}
 
 	void updateUniformBuffers()
 	{
 		uniformData.projInverse = glm::inverse(camera.matrices.perspective);
 		uniformData.viewInverse = glm::inverse(camera.matrices.view);
-		memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
+		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(uniformData));
 	}
 
 	void getEnabledFeatures()
@@ -689,26 +605,111 @@ public:
 		createRayTracingPipeline();
 		createShaderBindingTables();
 		createDescriptorSets();
-		buildCommandBuffers();
 		prepared = true;
 	}
 
-	void draw()
+	void buildCommandBuffer()
 	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
+		if (resized)
+		{
+			handleResize();
+		}
+
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		/*
+			Dispatch the ray tracing commands
+		*/
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, 0);
+
+		struct BufferReferences {
+			uint64_t vertices;
+			uint64_t indices;
+		} bufferReferences;
+
+		bufferReferences.vertices = getBufferDeviceAddress(vertexBuffer.buffer);
+		bufferReferences.indices = getBufferDeviceAddress(indexBuffer.buffer);
+
+		// We set the buffer references for the mesh to be rendered using a push constant
+		// If we wanted to render multiple objecets this would make it very easy to access their vertex and index buffers
+		vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 0, sizeof(uint64_t) * 2, &bufferReferences);
+
+		VkStridedDeviceAddressRegionKHR emptySbtEntry = {};
+		vkCmdTraceRaysKHR(
+			cmdBuffer,
+			&shaderBindingTables.raygen.stridedDeviceAddressRegion,
+			&shaderBindingTables.miss.stridedDeviceAddressRegion,
+			&shaderBindingTables.hit.stridedDeviceAddressRegion,
+			&emptySbtEntry,
+			width,
+			height,
+			1);
+
+		/*
+			Copy ray tracing output to swap chain image
+		*/
+
+		// Prepare current swap chain image as transfer destination
+		vks::tools::setImageLayout(
+			cmdBuffer,
+			swapChain.images[currentImageIndex],
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			subresourceRange);
+
+		// Prepare ray tracing output image as transfer source
+		vks::tools::setImageLayout(
+			cmdBuffer,
+			storageImage.image,
+			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			subresourceRange);
+
+		VkImageCopy copyRegion{};
+		copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+		copyRegion.srcOffset = { 0, 0, 0 };
+		copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+		copyRegion.dstOffset = { 0, 0, 0 };
+		copyRegion.extent = { width, height, 1 };
+		vkCmdCopyImage(cmdBuffer, storageImage.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapChain.images[currentImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+
+		// Transition swap chain image back for presentation
+		vks::tools::setImageLayout(
+			cmdBuffer,
+			swapChain.images[currentImageIndex],
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			subresourceRange);
+
+		// Transition ray tracing output image back to general layout
+		vks::tools::setImageLayout(
+			cmdBuffer,
+			storageImage.image,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			VK_IMAGE_LAYOUT_GENERAL,
+			subresourceRange);
+
+		drawUI(cmdBuffer, frameBuffers[currentImageIndex]);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
-		if (camera.updated)
-			updateUniformBuffers();
+		VulkanExampleBase::prepareFrame();
+		updateUniformBuffers();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
 	}
 };
 
