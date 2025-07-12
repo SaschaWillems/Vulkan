@@ -551,7 +551,6 @@ public:
 	{
 		// Recreate image
 		createStorageImage(swapChain.colorFormat, { width, height, 1 });
-		// Update descriptor
 		// Update descriptors
 		VkDescriptorImageInfo storageImageDescriptor{ VK_NULL_HANDLE, storageImage.view, VK_IMAGE_LAYOUT_GENERAL };
 		for (auto i = 0; i < maxConcurrentFrames; i++) {
