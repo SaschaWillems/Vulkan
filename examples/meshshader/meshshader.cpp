@@ -158,6 +158,19 @@ public:
 		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 	}
 
+	void prepare()
+	{
+		VulkanExampleBase::prepare();
+
+		// Get the function pointer of the mesh shader drawing funtion
+		vkCmdDrawMeshTasksEXT = reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksEXT"));
+
+		prepareUniformBuffers();
+		setupDescriptors();
+		preparePipelines();
+		prepared = true;
+	}
+
 	void buildCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
@@ -201,28 +214,6 @@ public:
 		vkCmdEndRenderPass(cmdBuffer);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
-	}
-
-	void prepare()
-	{
-		VulkanExampleBase::prepare();
-
-		// Get the function pointer of the mesh shader drawing funtion
-		vkCmdDrawMeshTasksEXT = reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksEXT"));
-
-		prepareUniformBuffers();
-		setupDescriptors();
-		preparePipelines();
-		prepared = true;
 	}
 
 	virtual void render()
