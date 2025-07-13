@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Example for the VK_EXT_debug_utils extension. Can be used in conjunction with a debugging app like RenderDoc (https://renderdoc.org)
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -19,12 +19,12 @@ public:
 		vkglTF::Model scene, sceneGlow;
 	} models;
 
-	struct UBOVS {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0f, 5.0f, 15.0f, 1.0f);
 	} uniformData;
-	vks::Buffer uniformBuffer;
+	std::vector<vks::Buffer> uniformBuffers;
 
 	struct Pipelines {
 		VkPipeline toonshading;
@@ -35,7 +35,7 @@ public:
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	std::vector<VkDescriptorSet> descriptorSets;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -68,11 +68,14 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		useNewSync = true;
 		title = "Debugging with VK_EXT_debug_utils";
 		camera.setRotation(glm::vec3(-4.35f, 16.25f, 0.0f));
 		camera.setRotationSpeed(0.5f);
 		camera.setPosition(glm::vec3(0.1f, 1.1f, -8.5f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
+		uniformBuffers.resize(maxConcurrentFrames);
+		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	// Enable physical device features required for this example
@@ -94,11 +97,11 @@ public:
 			if (pipelines.wireframe != VK_NULL_HANDLE) {
 				vkDestroyPipeline(device, pipelines.wireframe, nullptr);
 			}
-
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-			uniformBuffer.destroy();
+			for (auto& buffer : uniformBuffers) {
+				buffer.destroy();
+			}
 
 			// Offscreen
 			// Color attachment
@@ -232,7 +235,7 @@ public:
 	// Function for naming Vulkan objects
 	// In Vulkan, all objects (that can be named) are opaque unsigned 64 bit handles, and can be cased to uint64_t
 
-	void setObjectName(VkDevice device, VkObjectType object_type, uint64_t object_handle, const char* object_name)
+	void setObjectName(VkDevice device, VkObjectType object_type, uint64_t object_handle, std::string object_name)
 	{
 		if (!debugUtilsSupported) {
 			return;
@@ -240,7 +243,7 @@ public:
 		VkDebugUtilsObjectNameInfoEXT name_info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 		name_info.objectType = object_type;
 		name_info.objectHandle = object_handle;
-		name_info.pObjectName = object_name;
+		name_info.pObjectName = object_name.c_str();
 		vkSetDebugUtilsObjectNameEXT(device, &name_info);
 	}
 
@@ -434,144 +437,14 @@ public:
 		}
 	}
 
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-		VkClearValue clearValues[2];
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			/*
-				First render pass: Offscreen rendering
-			*/
-			if (glow)
-			{
-				VkClearValue clearValues[2];
-				clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-				clearValues[1].depthStencil = { 1.0f, 0 };
-
-				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-				renderPassBeginInfo.renderPass = offscreenPass.renderPass;
-				renderPassBeginInfo.framebuffer = offscreenPass.frameBuffer;
-				renderPassBeginInfo.renderArea.extent.width = offscreenPass.width;
-				renderPassBeginInfo.renderArea.extent.height = offscreenPass.height;
-				renderPassBeginInfo.clearValueCount = 2;
-				renderPassBeginInfo.pClearValues = clearValues;
-
-				cmdBeginLabel(drawCmdBuffers[i], "Off-screen scene rendering", { 1.0f, 0.78f, 0.05f, 1.0f });
-
-				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				VkViewport viewport = vks::initializers::viewport((float)offscreenPass.width, (float)offscreenPass.height, 0.0f, 1.0f);
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-				VkRect2D scissor = vks::initializers::rect2D(offscreenPass.width, offscreenPass.height, 0, 0);
-				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.color);
-
-				drawModel(models.sceneGlow, drawCmdBuffers[i]);
-
-				vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-				cmdEndLabel(drawCmdBuffers[i]);
-			}
-
-			/*
-				Note: Explicit synchronization is not required between the render pass, as this is done implicit via sub pass dependencies
-			*/
-
-			/*
-				Second render pass: Scene rendering with applied bloom
-			*/
-			{
-				clearValues[0].color = defaultClearColor;
-				clearValues[1].depthStencil = { 1.0f, 0 };
-
-				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-				renderPassBeginInfo.renderPass = renderPass;
-				renderPassBeginInfo.framebuffer = frameBuffers[i];
-				renderPassBeginInfo.renderArea.extent.width = width;
-				renderPassBeginInfo.renderArea.extent.height = height;
-				renderPassBeginInfo.clearValueCount = 2;
-				renderPassBeginInfo.pClearValues = clearValues;
-
-				cmdBeginLabel(drawCmdBuffers[i], "Render scene", { 0.5f, 0.76f, 0.34f, 1.0f });
-
-				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-				VkRect2D scissor = vks::initializers::rect2D(wireframe ? width / 2 : width, height, 0, 0);
-				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-
-				// Solid rendering
-
-				cmdBeginLabel(drawCmdBuffers[i], "Toon shading draw", { 0.78f, 0.74f, 0.9f, 1.0f });
-
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toonshading);
-				drawModel(models.scene, drawCmdBuffers[i]);
-
-				cmdEndLabel(drawCmdBuffers[i]);
-
-				// Wireframe rendering
-				if (wireframe)
-				{
-					cmdBeginLabel(drawCmdBuffers[i], "Wireframe draw", { 0.53f, 0.78f, 0.91f, 1.0f });
-
-					scissor.offset.x = width / 2;
-					vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireframe);
-					drawModel(models.scene, drawCmdBuffers[i]);
-
-					cmdEndLabel(drawCmdBuffers[i]);
-
-					scissor.offset.x = 0;
-					scissor.extent.width = width;
-					vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-				}
-
-				// Post processing
-				if (glow)
-				{
-					cmdBeginLabel(drawCmdBuffers[i], "Apply post processing", { 0.93f, 0.89f, 0.69f, 1.0f });
-
-					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.postprocess);
-					// Full screen quad is generated by the vertex shaders, so we reuse four vertices (for four invocations) from current vertex buffer
-					vkCmdDraw(drawCmdBuffers[i], 4, 1, 0, 0);
-
-					cmdEndLabel(drawCmdBuffers[i]);
-				}
-
-				cmdBeginLabel(drawCmdBuffers[i], "UI overlay", { 0.23f, 0.65f, 0.28f, 1.0f });
-				drawUI(drawCmdBuffers[i]);
-				cmdEndLabel(drawCmdBuffers[i]);
-
-				vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-				cmdEndLabel(drawCmdBuffers[i]);
-
-			}
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
-	}
-
 	void setupDescriptors()
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxConcurrentFrames),
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Layout
@@ -584,16 +457,19 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		// Set
+		// Sets per frame, just like the buffers themselves
+		// Images do not need to be duplicated per frame, we use the same for each descriptor to keep things simple
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
-			// Binding 1 : Color map
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &offscreenPass.descriptor)
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				// Binding 0 : Vertex shader uniform buffer
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor),
+				// Binding 1 : Color map
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &offscreenPass.descriptor)
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
@@ -671,7 +547,6 @@ public:
 		setObjectName(device, VK_OBJECT_TYPE_IMAGE, (uint64_t)offscreenPass.depth.image, "Off-screen depth framebuffer");
 		setObjectName(device, VK_OBJECT_TYPE_SAMPLER, (uint64_t)offscreenPass.sampler, "Off-screen framebuffer default sampler");
 
-		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)uniformBuffer.buffer, "Scene uniform buffer block");
 		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)models.scene.vertices.buffer, "Scene vertex buffer");
 		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)models.scene.indices.buffer, "Scene index buffer");
 		setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)models.sceneGlow.vertices.buffer, "Glow vertex buffer");
@@ -694,42 +569,28 @@ public:
 		}
 		setObjectName(device, VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipelines.postprocess, "Post processing pipeline");
 
+		// Shared objects
 		setObjectName(device, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (uint64_t)descriptorSetLayout, "Shared descriptor set layout");
-		setObjectName(device, VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64_t)descriptorSet, "Shared descriptor set");
+		for (uint32_t i = 0; i < maxConcurrentFrames; i++) {
+			setObjectName(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)uniformBuffers[i].buffer, "Scene uniform buffer block for frame " + std::to_string(i));
+			setObjectName(device, VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64_t)descriptorSets[i], "Shared descriptor set for frame " + std::to_string(i));
+		}
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffer,
-			sizeof(uniformData)));
-
-		// Map persistent
-		VK_CHECK_RESULT(uniformBuffer.map());
-
-		updateUniformBuffers();
+		for (auto& buffer : uniformBuffers) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData), &uniformData));
+			VK_CHECK_RESULT(buffer.map());
+		}
 	}
 
 	void updateUniformBuffers()
 	{
 		uniformData.projection = camera.matrices.perspective;
 		uniformData.model = camera.matrices.view;
-		memcpy(uniformBuffer.mapped, &uniformData, sizeof(uniformData));
-	}
-
-	void draw()
-	{
-		queueBeginLabel(queue, "Graphics queue command buffer submission", { 1.0f, 1.0f, 1.0f, 1.0f });
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
-		queueEndLabel(queue);
+		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(uniformData));
 	}
 
 	void prepare()
@@ -741,17 +602,150 @@ public:
 		prepareUniformBuffers();
 		setupDescriptors();
 		preparePipelines();
-		buildCommandBuffers();
 		nameDebugObjects();
 		prepared = true;
+	}
+
+	void buildCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+		VkClearValue clearValues[2]{};
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		/*
+			First render pass: Offscreen rendering
+		*/
+		if (glow)
+		{
+			clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+			clearValues[1].depthStencil = { 1.0f, 0 };
+
+			VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo.renderPass = offscreenPass.renderPass;
+			renderPassBeginInfo.framebuffer = offscreenPass.frameBuffer;
+			renderPassBeginInfo.renderArea.extent.width = offscreenPass.width;
+			renderPassBeginInfo.renderArea.extent.height = offscreenPass.height;
+			renderPassBeginInfo.clearValueCount = 2;
+			renderPassBeginInfo.pClearValues = clearValues;
+
+			cmdBeginLabel(cmdBuffer, "Off-screen scene rendering", { 1.0f, 0.78f, 0.05f, 1.0f });
+
+			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkViewport viewport = vks::initializers::viewport((float)offscreenPass.width, (float)offscreenPass.height, 0.0f, 1.0f);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor = vks::initializers::rect2D(offscreenPass.width, offscreenPass.height, 0, 0);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.color);
+
+			drawModel(models.sceneGlow, cmdBuffer);
+
+			vkCmdEndRenderPass(cmdBuffer);
+
+			cmdEndLabel(cmdBuffer);
+		}
+
+		/*
+			Note: Explicit synchronization is not required between the render pass, as this is done implicit via sub pass dependencies
+		*/
+
+		/*
+			Second render pass: Scene rendering with applied bloom
+		*/
+		{
+			clearValues[0].color = defaultClearColor;
+			clearValues[1].depthStencil = { 1.0f, 0 };
+
+			VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo.renderPass = renderPass;
+			renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+			renderPassBeginInfo.renderArea.extent.width = width;
+			renderPassBeginInfo.renderArea.extent.height = height;
+			renderPassBeginInfo.clearValueCount = 2;
+			renderPassBeginInfo.pClearValues = clearValues;
+
+			cmdBeginLabel(cmdBuffer, "Render scene", { 0.5f, 0.76f, 0.34f, 1.0f });
+
+			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor = vks::initializers::rect2D(wireframe ? width / 2 : width, height, 0, 0);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+
+			// Solid rendering
+
+			cmdBeginLabel(cmdBuffer, "Toon shading draw", { 0.78f, 0.74f, 0.9f, 1.0f });
+
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.toonshading);
+			drawModel(models.scene, cmdBuffer);
+
+			cmdEndLabel(cmdBuffer);
+
+			// Wireframe rendering
+			if (wireframe)
+			{
+				cmdBeginLabel(cmdBuffer, "Wireframe draw", { 0.53f, 0.78f, 0.91f, 1.0f });
+
+				scissor.offset.x = width / 2;
+				vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.wireframe);
+				drawModel(models.scene, cmdBuffer);
+
+				cmdEndLabel(cmdBuffer);
+
+				scissor.offset.x = 0;
+				scissor.extent.width = width;
+				vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+			}
+
+			// Post processing
+			if (glow)
+			{
+				cmdBeginLabel(cmdBuffer, "Apply post processing", { 0.93f, 0.89f, 0.69f, 1.0f });
+
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.postprocess);
+				// Full screen quad is generated by the vertex shaders, so we reuse four vertices (for four invocations) from current vertex buffer
+				vkCmdDraw(cmdBuffer, 4, 1, 0, 0);
+
+				cmdEndLabel(cmdBuffer);
+			}
+
+			cmdBeginLabel(cmdBuffer, "UI overlay", { 0.23f, 0.65f, 0.28f, 1.0f });
+			drawUI(cmdBuffer);
+			cmdEndLabel(cmdBuffer);
+
+			vkCmdEndRenderPass(cmdBuffer);
+
+			cmdEndLabel(cmdBuffer);
+
+		}
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
+		queueBeginLabel(queue, "Graphics queue command buffer submission", { 1.0f, 1.0f, 1.0f, 1.0f });
+		VulkanExampleBase::prepareFrame();
 		updateUniformBuffers();
-		draw();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
+		queueEndLabel(queue);
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
@@ -760,13 +754,9 @@ public:
 			overlay->text("VK_EXT_debug_utils %s", (debugUtilsSupported? "supported" : "not supported"));
 		}
 		if (overlay->header("Settings")) {
-			if (overlay->checkBox("Glow", &glow)) {
-				buildCommandBuffers();
-			}
+			overlay->checkBox("Glow", &glow);
 			if (deviceFeatures.fillModeNonSolid) {
-				if (overlay->checkBox("Wireframe", &wireframe)) {
-					buildCommandBuffers();
-				}
+				overlay->checkBox("Wireframe", &wireframe);
 			}
 		}
 	}
