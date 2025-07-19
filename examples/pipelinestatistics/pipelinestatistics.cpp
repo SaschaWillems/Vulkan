@@ -270,7 +270,6 @@ public:
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData), &uniformData));
 			VK_CHECK_RESULT(buffer.map());
 		}
-
 	}
 
 	void updateUniformBuffers()
@@ -288,7 +287,6 @@ public:
 		prepareUniformBuffers();
 		setupDescriptors();
 		preparePipelines();
-		buildCommandBuffers();
 		prepared = true;
 	}
 
@@ -356,8 +354,6 @@ public:
 
 	virtual void render()
 	{
-		if (!prepared)
-			return;
 		if (!prepared)
 			return;
 		VulkanExampleBase::prepareFrame();
