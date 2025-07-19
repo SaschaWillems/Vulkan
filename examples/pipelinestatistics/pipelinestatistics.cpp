@@ -48,7 +48,6 @@ public:
 	VulkanExample() : VulkanExampleBase()
 	{
 		useNewSync = true;
-
 		title = "Pipeline statistics";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPosition(glm::vec3(-3.0f, 1.0f, -2.75f));
@@ -56,7 +55,6 @@ public:
 		camera.movementSpeed = 4.0f;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.rotationSpeed = 0.25f;
-
 		uniformBuffers.resize(maxConcurrentFrames);
 		descriptorSets.resize(maxConcurrentFrames);
 	}
