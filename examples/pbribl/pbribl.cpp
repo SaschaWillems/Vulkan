@@ -3,7 +3,7 @@
 *
 * This sample adds imaged based lighting from an environment map to the PBR equation
 * 
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -41,7 +41,7 @@ public:
 		vks::Texture2D lutBrdf;
 		vks::TextureCubeMap irradianceCube;
 		vks::TextureCubeMap prefilteredCube;
-	} textures;
+	} textures{};
 
 	struct Meshes {
 		vkglTF::Model skybox;
@@ -49,37 +49,38 @@ public:
 		int32_t objectIndex = 0;
 	} models;
 
-	struct {
-		vks::Buffer object;
+	struct UniformBuffers {
+		vks::Buffer scene;
 		vks::Buffer skybox;
 		vks::Buffer params;
-	} uniformBuffers;
+	};
+	std::vector<UniformBuffers> uniformBuffers;
 
-	struct UBOMatrices {
+	struct UniformDataMatrices {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::mat4 view;
 		glm::vec3 camPos;
-	} uboMatrices;
+	} uniformDataMatrices;
 
-	struct UBOParams {
+	struct UniformDataParams {
 		glm::vec4 lights[4];
 		float exposure = 4.5f;
 		float gamma = 2.2f;
-	} uboParams;
+	} uniformDataParams;
 
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	struct {
 		VkPipeline skybox{ VK_NULL_HANDLE };
 		VkPipeline pbr{ VK_NULL_HANDLE };
 	} pipelines;
 
-	struct {
-		VkDescriptorSet object{ VK_NULL_HANDLE };
-		VkDescriptorSet skybox{ VK_NULL_HANDLE };
-	} descriptorSets;
-
-	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	struct DescriptorSets {
+		VkDescriptorSet scene{ VK_NULL_HANDLE };
+		VkDescriptorSet skybox{ VK_NULL_HANDLE };
+	};
+	std::vector<DescriptorSets> descriptorSets;
 
 	// Default materials to select from
 	std::vector<Material> materials;
@@ -90,15 +91,16 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		useNewSync = true;
 		title = "PBR with image based lighting";
-
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 4.0f;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.rotationSpeed = 0.25f;
-
 		camera.setRotation({ -3.75f, 180.0f, 0.0f });
 		camera.setPosition({ 0.55f, 0.85f, 12.0f });
+		uniformBuffers.resize(maxConcurrentFrames);
+		descriptorSets.resize(maxConcurrentFrames);
 
 		// Setup some default materials (source: https://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
 		materials.push_back(Material("Gold", glm::vec3(1.0f, 0.765557f, 0.336057f)));
@@ -115,7 +117,7 @@ public:
 		materials.push_back(Material("Red", glm::vec3(1.0f, 0.0f, 0.0f)));
 		materials.push_back(Material("Blue", glm::vec3(0.0f, 0.0f, 1.0f)));
 
-		for (auto material : materials) {
+		for (auto& material : materials) {
 			materialNames.push_back(material.name);
 		}
 		objectNames = { "Sphere", "Teapot", "Torusknot", "Venus" };
@@ -130,9 +132,11 @@ public:
 			vkDestroyPipeline(device, pipelines.pbr, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-			uniformBuffers.object.destroy();
-			uniformBuffers.skybox.destroy();
-			uniformBuffers.params.destroy();
+			for (auto& buffer : uniformBuffers) {
+				buffer.scene.destroy();
+				buffer.params.destroy();
+				buffer.skybox.destroy();
+			}
 			textures.environmentCube.destroy();
 			textures.irradianceCube.destroy();
 			textures.prefilteredCube.destroy();
@@ -144,70 +148,6 @@ public:
 	{
 		if (deviceFeatures.samplerAnisotropy) {
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
-		}
-	}
-
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.1f, 0.1f, 0.1f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		for (size_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			VkViewport viewport = vks::initializers::viewport((float)width,	(float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = vks::initializers::rect2D(width,	height,	0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-			// Skybox
-			if (displaySkybox)
-			{
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.skybox, 0, NULL);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skybox);
-				models.skybox.draw(drawCmdBuffers[i]);
-			}
-
-			// Objects
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.object, 0, NULL);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pbr);
-
-			// Render a line of objects with the selected material and vary roughness/metallic material parameters
-			Material mat = materials[materialIndex];
-			const uint32_t objcount = 10;
-			for (uint32_t x = 0; x < objcount; x++) {
-				glm::vec3 pos = glm::vec3(float(x - (objcount / 2.0f)) * 2.15f, 0.0f, 0.0f);
-				mat.params.roughness = 1.0f-glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
-				mat.params.metallic = glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
-				models.objects[models.objectIndex].draw(drawCmdBuffers[i]);
-
-			}
-			drawUI(drawCmdBuffers[i]);
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
@@ -228,15 +168,15 @@ public:
 
 	void setupDescriptors()
 	{
-		// Descriptor Pool
+		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6)
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames * 4),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxConcurrentFrames * 6)
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =	vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo =	vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames * 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
-		// Descriptor set layout
+		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
@@ -247,28 +187,30 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = 	vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		// Descriptor sets
+		// Sets per frame, just like the buffers themselves
+		// Images do not need to be duplicated per frame, we reuse the same one for each frame
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			// Scene
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].scene));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i].scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].scene.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &uniformBuffers[i].params.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textures.irradianceCube.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textures.lutBrdf.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textures.prefilteredCube.descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
-		// Objects
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.object));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSets.object, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.object.descriptor),
-			vks::initializers::writeDescriptorSet(descriptorSets.object, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &uniformBuffers.params.descriptor),
-			vks::initializers::writeDescriptorSet(descriptorSets.object, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textures.irradianceCube.descriptor),
-			vks::initializers::writeDescriptorSet(descriptorSets.object, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textures.lutBrdf.descriptor),
-			vks::initializers::writeDescriptorSet(descriptorSets.object, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textures.prefilteredCube.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
-
-		// Sky box
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.skybox));
-		writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSets.skybox, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.skybox.descriptor),
-			vks::initializers::writeDescriptorSet(descriptorSets.skybox, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &uniformBuffers.params.descriptor),
-			vks::initializers::writeDescriptorSet(descriptorSets.skybox, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textures.environmentCube.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+			// Sky box
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].skybox));
+			writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i].skybox, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].skybox.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].skybox, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &uniformBuffers[i].params.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].skybox, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textures.environmentCube.descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
@@ -1142,7 +1084,7 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelinelayout, renderpass);
 		pipelineCI.pInputAssemblyState = &inputAssemblyState;
@@ -1307,59 +1249,39 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Object vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.object,
-			sizeof(uboMatrices)));
-
-		// Skybox vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.skybox,
-			sizeof(uboMatrices)));
-
-		// Shared parameter uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.params,
-			sizeof(uboParams)));
-
-		// Map persistent
-		VK_CHECK_RESULT(uniformBuffers.object.map());
-		VK_CHECK_RESULT(uniformBuffers.skybox.map());
-		VK_CHECK_RESULT(uniformBuffers.params.map());
-
-		updateUniformBuffers();
-		updateParams();
+		for (auto& buffer : uniformBuffers) {
+			// Scene matrices uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.scene, sizeof(UniformDataMatrices)));
+			VK_CHECK_RESULT(buffer.scene.map());
+			// Skybox matrices uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.skybox, sizeof(UniformDataMatrices)));
+			VK_CHECK_RESULT(buffer.skybox.map());
+			// Shared parameter uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.params, sizeof(UniformDataParams)));
+			VK_CHECK_RESULT(buffer.params.map());
+		}
 	}
 
 	void updateUniformBuffers()
 	{
-		// 3D object
-		uboMatrices.projection = camera.matrices.perspective;
-		uboMatrices.view = camera.matrices.view;
-		uboMatrices.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f + (models.objectIndex == 1 ? 45.0f : 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboMatrices.camPos = camera.position * -1.0f;
-		memcpy(uniformBuffers.object.mapped, &uboMatrices, sizeof(uboMatrices));
+		// 3D objects
+		uniformDataMatrices.projection = camera.matrices.perspective;
+		uniformDataMatrices.view = camera.matrices.view;
+		uniformDataMatrices.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f + (models.objectIndex == 1 ? 45.0f : 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
+		uniformDataMatrices.camPos = camera.position * -1.0f;
+		memcpy(uniformBuffers[currentBuffer].scene.mapped, &uniformDataMatrices, sizeof(UniformDataMatrices));
 
 		// Skybox
-		uboMatrices.model = glm::mat4(glm::mat3(camera.matrices.view));
-		memcpy(uniformBuffers.skybox.mapped, &uboMatrices, sizeof(uboMatrices));
-	}
+		uniformDataMatrices.model = glm::mat4(glm::mat3(camera.matrices.view));
+		memcpy(uniformBuffers[currentBuffer].skybox.mapped, &uniformDataMatrices, sizeof(UniformDataMatrices));
 
-	void updateParams()
-	{
+		// PBR parameters
 		const float p = 15.0f;
-		uboParams.lights[0] = glm::vec4(-p, -p*0.5f, -p, 1.0f);
-		uboParams.lights[1] = glm::vec4(-p, -p*0.5f,  p, 1.0f);
-		uboParams.lights[2] = glm::vec4( p, -p*0.5f,  p, 1.0f);
-		uboParams.lights[3] = glm::vec4( p, -p*0.5f, -p, 1.0f);
-
-		memcpy(uniformBuffers.params.mapped, &uboParams, sizeof(uboParams));
+		uniformDataParams.lights[0] = glm::vec4(-p, -p * 0.5f, -p, 1.0f);
+		uniformDataParams.lights[1] = glm::vec4(-p, -p * 0.5f, p, 1.0f);
+		uniformDataParams.lights[2] = glm::vec4(p, -p * 0.5f, p, 1.0f);
+		uniformDataParams.lights[3] = glm::vec4(p, -p * 0.5f, -p, 1.0f);
+		memcpy(uniformBuffers[currentBuffer].params.mapped, &uniformDataParams, sizeof(UniformDataParams));
 	}
 
 	void prepare()
@@ -1372,46 +1294,89 @@ public:
 		prepareUniformBuffers();
 		setupDescriptors();
 		preparePipelines();
-		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void buildCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = { { 0.1f, 0.1f, 0.1f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		// Skybox
+		if (displaySkybox)
+		{
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer].skybox, 0, nullptr);
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skybox);
+			models.skybox.draw(cmdBuffer);
+		}
+
+		// Objects
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer].scene, 0, nullptr);
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pbr);
+
+		// Render a line of objects with the selected material and vary roughness/metallic material parameters
+		Material mat = materials[materialIndex];
+		const uint32_t objcount = 10;
+		for (uint32_t x = 0; x < objcount; x++) {
+			glm::vec3 pos = glm::vec3(float(x - (objcount / 2.0f)) * 2.15f, 0.0f, 0.0f);
+			mat.params.roughness = 1.0f - glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
+			mat.params.metallic = glm::clamp((float)x / (float)objcount, 0.005f, 1.0f);
+			vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
+			vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
+			models.objects[models.objectIndex].draw(cmdBuffer);
+
+		}
+		drawUI(cmdBuffer);
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		updateUniformBuffers();
-		draw();
-	}
-
-	void draw()
-	{
 		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		updateUniformBuffers();
+		buildCommandBuffer();
 		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (overlay->comboBox("Material", &materialIndex, materialNames)) {
-				buildCommandBuffers();
-			}
-			if (overlay->comboBox("Object type", &models.objectIndex, objectNames)) {
-				updateUniformBuffers();
-				buildCommandBuffers();
-			}
-			if (overlay->inputFloat("Exposure", &uboParams.exposure, 0.1f, 2)) {
-				updateParams();
-			}
-			if (overlay->inputFloat("Gamma", &uboParams.gamma, 0.1f, 2)) {
-				updateParams();
-			}
-			if (overlay->checkBox("Skybox", &displaySkybox)) {
-				buildCommandBuffers();
-			}
+			overlay->comboBox("Material", &materialIndex, materialNames);
+			overlay->comboBox("Object type", &models.objectIndex, objectNames);
+			overlay->inputFloat("Exposure", &uniformDataParams.exposure, 0.1f, 2);
+			overlay->inputFloat("Gamma", &uniformDataParams.gamma, 0.1f, 2);
+			overlay->checkBox("Skybox", &displaySkybox);
 		}
 	}
 

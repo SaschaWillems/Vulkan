@@ -368,11 +368,8 @@ public:
 		if (overlay->header("Settings")) {
 			if (overlay->comboBox("Object type", &models.objectIndex, models.names)) {
 				updateUniformBuffers();
-				buildCommandBuffers();
 			}
-			if (overlay->sliderInt("Grid size", &gridSize, 1, 10)) {
-				buildCommandBuffers();
-			}
+			overlay->sliderInt("Grid size", &gridSize, 1, 10);
 			// To avoid having to create pipelines for all the settings up front, we recreate a single pipelin with different settings instead
 			bool recreatePipeline{ false };
 			std::vector<std::string> cullModeNames = { "None", "Front", "Back", "Back and front" };
@@ -388,7 +385,6 @@ public:
 			}
 			if (recreatePipeline) {
 				preparePipelines();
-				buildCommandBuffers();
 			}
 		}
 		if (!pipelineStats.empty()) {

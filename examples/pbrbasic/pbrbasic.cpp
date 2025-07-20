@@ -3,7 +3,7 @@
 *
 * See http://graphicrants.blogspot.de/2013/08/specular-brdf-reference.html for a good reference to the different functions that make up a specular BRDF
 *
-* Copyright (C) 2017-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -37,26 +37,27 @@ public:
 		int32_t objectIndex = 0;
 	} models;
 
-	struct {
-		vks::Buffer object;
+	struct UniformBuffers {
+		vks::Buffer scene;
 		vks::Buffer params;
-	} uniformBuffers;
+	};
+	std::vector<UniformBuffers> uniformBuffers;
 
-	struct UBOMatrices {
+	struct UniformDataMatrices {
 		glm::mat4 projection;
 		glm::mat4 model;
 		glm::mat4 view;
 		glm::vec3 camPos;
-	} uboMatrices;
+	} uniformDataMatrices;
 
-	struct UBOParams {
+	struct UniformDataParams {
 		glm::vec4 lights[4];
-	} uboParams;
+	} uniformDataParams;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	std::vector<VkDescriptorSet> descriptorSets;
 
 	// Default materials to select from
 	std::vector<Material> materials;
@@ -67,6 +68,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		useNewSync = true;
 		title = "Physical based shading basics";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPosition(glm::vec3(10.0f, 13.0f, 1.8f));
@@ -75,6 +77,8 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.rotationSpeed = 0.25f;
 		timerSpeed *= 0.25f;
+		uniformBuffers.resize(maxConcurrentFrames);
+		descriptorSets.resize(maxConcurrentFrames);
 
 		// Setup some default materials (source: https://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
 		materials.push_back(Material("Gold", glm::vec3(1.0f, 0.765557f, 0.336057f), 0.1f, 1.0f));
@@ -90,7 +94,7 @@ public:
 		materials.push_back(Material("Blue", glm::vec3(0.0f, 0.0f, 1.0f), 0.1f, 1.0f));
 		materials.push_back(Material("Black", glm::vec3(0.0f), 0.1f, 1.0f));
 
-		for (auto material : materials) {
+		for (auto& material : materials) {
 			materialNames.push_back(material.name);
 		}
 		objectNames = { "Sphere", "Teapot", "Torusknot", "Venus" };
@@ -104,69 +108,10 @@ public:
 			vkDestroyPipeline(device, pipeline, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-			uniformBuffers.object.destroy();
-			uniformBuffers.params.destroy();
-		}
-	}
-
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-			// Draw a grid of spheres using varying material parameters
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-
-			Material mat = materials[materialIndex];
-
-			const uint32_t gridSize = 7;
-
-			// Render a 2D grid of objects with varying PBR parameters
-			for (uint32_t y = 0; y < gridSize; y++) {
-				for (uint32_t x = 0; x < gridSize; x++) {
-					glm::vec3 pos = glm::vec3(float(x - (gridSize / 2.0f)) * 2.5f, 0.0f, float(y - (gridSize / 2.0f)) * 2.5f);
-					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
-					// Vary metallic and roughness, two important PBR parameters
-					mat.params.metallic = glm::clamp((float)x / (float)(gridSize - 1), 0.1f, 1.0f);
-					mat.params.roughness = glm::clamp((float)y / (float)(gridSize - 1), 0.05f, 1.0f);
-					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
-					models.objects[models.objectIndex].draw(drawCmdBuffers[i]);
-				}
+			for (auto& buffer : uniformBuffers) {
+				buffer.scene.destroy();
+				buffer.params.destroy();
 			}
-
-			drawUI(drawCmdBuffers[i]);
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
@@ -183,9 +128,9 @@ public:
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames * 2),
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Layout
@@ -196,15 +141,16 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		// Set
+		// Sets per frame, just like the buffers themselves
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.object.descriptor),
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &uniformBuffers.params.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].scene.descriptor),
+			vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &uniformBuffers[i].params.descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
@@ -232,7 +178,7 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
 
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 		pipelineCI.pInputAssemblyState = &inputAssemblyState;
 		pipelineCI.pRasterizationState = &rasterizationState;
 		pipelineCI.pColorBlendState = &colorBlendState;
@@ -256,55 +202,44 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Object vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.object, sizeof(uboMatrices)));
-
-		// Shared parameter uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.params, sizeof(uboParams)));
-
-		// Map persistent
-		VK_CHECK_RESULT(uniformBuffers.object.map());
-		VK_CHECK_RESULT(uniformBuffers.params.map());
+		for (auto& buffer : uniformBuffers) {
+			// Scene matrices uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.scene, sizeof(UniformDataMatrices)));
+			VK_CHECK_RESULT(buffer.scene.map());
+			// Shared parameter uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.params, sizeof(UniformDataParams)));
+			VK_CHECK_RESULT(buffer.params.map());
+		}
 	}
 
 	void updateUniformBuffers()
 	{
 		// 3D object
-		uboMatrices.projection = camera.matrices.perspective;
-		uboMatrices.view = camera.matrices.view;
-		uboMatrices.model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f + (models.objectIndex == 1 ? 45.0f : 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
-		uboMatrices.camPos = camera.position * -1.0f;
-		memcpy(uniformBuffers.object.mapped, &uboMatrices, sizeof(uboMatrices));
+		uniformDataMatrices.projection = camera.matrices.perspective;
+		uniformDataMatrices.view = camera.matrices.view;
+		uniformDataMatrices.model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f + (models.objectIndex == 1 ? 45.0f : 0.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
+		uniformDataMatrices.camPos = camera.position * -1.0f;
+		memcpy(uniformBuffers[currentBuffer].scene.mapped, &uniformDataMatrices, sizeof(uniformDataMatrices));
 	}
 
 	void updateLights()
 	{
 		const float p = 15.0f;
-		uboParams.lights[0] = glm::vec4(-p, -p*0.5f, -p, 1.0f);
-		uboParams.lights[1] = glm::vec4(-p, -p*0.5f,  p, 1.0f);
-		uboParams.lights[2] = glm::vec4( p, -p*0.5f,  p, 1.0f);
-		uboParams.lights[3] = glm::vec4( p, -p*0.5f, -p, 1.0f);
+		uniformDataParams.lights[0] = glm::vec4(-p, -p*0.5f, -p, 1.0f);
+		uniformDataParams.lights[1] = glm::vec4(-p, -p*0.5f,  p, 1.0f);
+		uniformDataParams.lights[2] = glm::vec4( p, -p*0.5f,  p, 1.0f);
+		uniformDataParams.lights[3] = glm::vec4( p, -p*0.5f, -p, 1.0f);
 
 		if (!paused)
 		{
-			uboParams.lights[0].x = sin(glm::radians(timer * 360.0f)) * 20.0f;
-			uboParams.lights[0].z = cos(glm::radians(timer * 360.0f)) * 20.0f;
-			uboParams.lights[1].x = cos(glm::radians(timer * 360.0f)) * 20.0f;
-			uboParams.lights[1].y = sin(glm::radians(timer * 360.0f)) * 20.0f;
+			// Two lights are static, the other two move around
+			uniformDataParams.lights[0].x = sin(glm::radians(timer * 360.0f)) * 20.0f;
+			uniformDataParams.lights[0].z = cos(glm::radians(timer * 360.0f)) * 20.0f;
+			uniformDataParams.lights[1].x = cos(glm::radians(timer * 360.0f)) * 20.0f;
+			uniformDataParams.lights[1].y = sin(glm::radians(timer * 360.0f)) * 20.0f;
 		}
 
-		memcpy(uniformBuffers.params.mapped, &uboParams, sizeof(uboParams));
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VulkanExampleBase::submitFrame();
+		memcpy(uniformBuffers[currentBuffer].params.mapped, &uniformDataParams, sizeof(uniformDataParams));
 	}
 
 	void prepare()
@@ -314,31 +249,84 @@ public:
 		prepareUniformBuffers();
 		setupDescriptors();
 		preparePipelines();
-		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void buildCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = defaultClearColor;
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		// Draw a grid of spheres using varying material parameters
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+
+		Material mat = materials[materialIndex];
+
+		const uint32_t gridSize = 7;
+
+		// Render a 2D grid of objects with varying PBR parameters
+		for (uint32_t y = 0; y < gridSize; y++) {
+			for (uint32_t x = 0; x < gridSize; x++) {
+				glm::vec3 pos = glm::vec3(float(x - (gridSize / 2.0f)) * 2.5f, 0.0f, float(y - (gridSize / 2.0f)) * 2.5f);
+				vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
+				// Vary metallic and roughness, two important PBR parameters
+				mat.params.metallic = glm::clamp((float)x / (float)(gridSize - 1), 0.1f, 1.0f);
+				mat.params.roughness = glm::clamp((float)y / (float)(gridSize - 1), 0.05f, 1.0f);
+				vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(Material::PushBlock), &mat);
+				models.objects[models.objectIndex].draw(cmdBuffer);
+			}
+		}
+
+		drawUI(cmdBuffer);
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
+		VulkanExampleBase::prepareFrame();
+		updateLights();
 		updateUniformBuffers();
-		if (!paused) {
-			updateLights();
-		}
-		draw();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (overlay->comboBox("Material", &materialIndex, materialNames)) {
-				buildCommandBuffers();
-			}
-			if (overlay->comboBox("Object type", &models.objectIndex, objectNames)) {
-				updateUniformBuffers();
-				buildCommandBuffers();
-			}
+			overlay->comboBox("Material", &materialIndex, materialNames);
+			overlay->comboBox("Object type", &models.objectIndex, objectNames);
 		}
 	}
 };

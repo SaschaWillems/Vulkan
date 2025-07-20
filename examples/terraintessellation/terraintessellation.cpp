@@ -49,7 +49,7 @@ public:
 		vks::Buffer skysphereVertex;
 	} uniformBuffers;
 
-	// Shared values for tessellation control and evaluation stages
+	// Shared values for vertex, tessellation control and evaluation stages
 	struct UniformDataTessellation {
 		glm::mat4 projection;
 		glm::mat4 modelview;
