@@ -651,7 +651,7 @@ public:
 			vkCmdEndRenderPass(cmdBuffer);
 		}
 
-		// Second pass: Composition
+		// Second render pass: Composition
 		// Note: Explicit synchronization is not required between the render pass, as this is done implicit via sub pass dependencies
 
 		{
