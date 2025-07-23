@@ -248,7 +248,6 @@ public:
 			VkGraphicsPipelineCreateInfo pipelineLibraryCI{};
 			pipelineLibraryCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 			pipelineLibraryCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
-			pipelineLibraryCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 			pipelineLibraryCI.pNext = &libraryInfo;
 			pipelineLibraryCI.pInputAssemblyState = &inputAssemblyState;
 			pipelineLibraryCI.pVertexInputState = &vertexInputState;
@@ -314,7 +313,6 @@ public:
 			libraryInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT;
 
 			VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-			VkPipelineMultisampleStateCreateInfo  multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 
 			// Using the pipeline library extension, we can skip the pipeline shader module creation and directly pass the shader code to the pipeline
 			ShaderInfo shaderInfo{};
@@ -354,7 +352,6 @@ public:
 				pipelineCI.layout = pipelineLayout;
 				pipelineCI.renderPass = renderPass;
 				pipelineCI.pDepthStencilState = &depthStencilState;
-				pipelineCI.pMultisampleState = &multisampleState;
 
 				VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, threadPipelineCache, 1, &pipelineCI, nullptr,&pipelineLibrary.fragmentShaders[lighting_model]));
 			}
