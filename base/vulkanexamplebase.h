@@ -75,6 +75,8 @@
 #include "camera.hpp"
 #include "benchmark.hpp"
 
+constexpr uint32_t maxConcurrentFrames{ 2 };
+
 class VulkanExampleBase
 {
 private:
@@ -161,7 +163,6 @@ protected:
 
 	// This sample will be using a new synchronisation setup, which is closer to what should be used with Vulkan
 	bool useNewSync{ false };
-	const uint32_t maxConcurrentFrames{ 2 };
 	uint32_t currentImageIndex{ 0 };
 	std::vector<VkSemaphore> presentCompleteSemaphores{};
 	std::vector<VkSemaphore> renderCompleteSemaphores{};
