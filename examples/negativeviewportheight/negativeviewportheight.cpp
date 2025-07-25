@@ -3,7 +3,7 @@
 *
 * Note: Requires a device that supports VK_KHR_MAINTENANCE1
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -20,9 +20,9 @@ public:
 	int32_t cullMode = (int32_t)VK_CULL_MODE_BACK_BIT;
 	int32_t quadType = 0;
 
-	VkPipelineLayout pipelineLayout;
-	VkPipeline pipeline = VK_NULL_HANDLE;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 	struct DescriptorSets {
 		VkDescriptorSet CW;
 		VkDescriptorSet CCW;
@@ -31,7 +31,7 @@ public:
 	struct Textures {
 		vks::Texture2D CW;
 		vks::Texture2D CCW;
-	} textures;
+	} textures{};
 
 	struct Quad {
 		vks::Buffer verticesYUp;
@@ -49,6 +49,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		useNewSync = true;
 		title = "Negative Viewport height";
 		// [POI] VK_KHR_MAINTENANCE1 is required for using negative viewport heights
 		// Note: This is core as of Vulkan 1.1. So if you target 1.1 you don't have to explicitly enable this
@@ -63,76 +64,6 @@ public:
 		textures.CW.destroy();
 		textures.CCW.destroy();
 		quad.destroy();
-	}
-
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[2];
-		clearValues[0].color = defaultClearColor;
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i) {
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-			// [POI] Viewport setup
-			VkViewport viewport{};
-			if (negativeViewport) {
-				viewport.x = offsetx;
-				// [POI] When using a negative viewport height, the origin needs to be adjusted too
-				viewport.y = (float)height - offsety;
-				viewport.width = (float)width;
-				// [POI] Flip the sign of the viewport's height
-				viewport.height = -(float)height;
-			}
-			else {
-				viewport.x = offsetx;
-				viewport.y = offsety;
-				viewport.width = (float)width;
-				viewport.height = (float)height;
-			}
-			viewport.minDepth = 0.0f;
-			viewport.maxDepth = 1.0f;
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-			VkDeviceSize offsets[1] = { 0 };
-
-			// Render the quad with clock wise and counter clock wise indices, visibility is determined by pipeline settings
-
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.CW, 0, nullptr);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], quad.indicesCW.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, quadType == 0 ? &quad.verticesYDown.buffer : &quad.verticesYUp.buffer, offsets);
-			vkCmdDrawIndexed(drawCmdBuffers[i], 6, 1, 0, 0, 0);
-
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.CCW, 0, nullptr);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], quad.indicesCCW.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(drawCmdBuffers[i], 6, 1, 0, 0, 0);
-
-			drawUI(drawCmdBuffers[i]);
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
 	}
 
 	void loadAssets()
@@ -262,51 +193,106 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfoCI, nullptr, &pipeline));
 	}
 
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
-	}
-
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
 		loadAssets();
 		setupDescriptors();
 		preparePipelines();
-		buildCommandBuffers();
 		prepared = true;
 	}
+
+	void buildCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = defaultClearColor;
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+		// [POI] Viewport setup
+		VkViewport viewport{};
+		if (negativeViewport) {
+			viewport.x = offsetx;
+			// [POI] When using a negative viewport height, the origin needs to be adjusted too
+			viewport.y = (float)height - offsety;
+			viewport.width = (float)width;
+			// [POI] Flip the sign of the viewport's height
+			viewport.height = -(float)height;
+		}
+		else {
+			viewport.x = offsetx;
+			viewport.y = offsety;
+			viewport.width = (float)width;
+			viewport.height = (float)height;
+		}
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		VkDeviceSize offsets[1] = { 0 };
+
+		// Render the quad with clock wise and counter clock wise indices, visibility is determined by pipeline settings
+
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.CW, 0, nullptr);
+		vkCmdBindIndexBuffer(cmdBuffer, quad.indicesCW.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, quadType == 0 ? &quad.verticesYDown.buffer : &quad.verticesYUp.buffer, offsets);
+		vkCmdDrawIndexed(cmdBuffer, 6, 1, 0, 0, 0);
+
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.CCW, 0, nullptr);
+		vkCmdBindIndexBuffer(cmdBuffer, quad.indicesCCW.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmdBuffer, 6, 1, 0, 0, 0);
+
+		drawUI(cmdBuffer);
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+	}
+
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		draw();
+		VulkanExampleBase::prepareFrame();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Scene")) {
 			overlay->text("Quad type");
-			if (overlay->comboBox("##quadtype", &quadType, { "VK (y negative)", "GL (y positive)" })) {
-				buildCommandBuffers();
-			}
+			overlay->comboBox("##quadtype", &quadType, { "VK (y negative)", "GL (y positive)" });
 		}
 
 		if (overlay->header("Viewport")) {
-			if (overlay->checkBox("Negative viewport height", &negativeViewport)) {
-				buildCommandBuffers();
-			}
-			if (overlay->sliderFloat("offset x", &offsetx, -(float)width, (float)width)) {
-				buildCommandBuffers();
-			}
-			if (overlay->sliderFloat("offset y", &offsety, -(float)height, (float)height)) {
-				buildCommandBuffers();
-			}
+			overlay->checkBox("Negative viewport height", &negativeViewport);
+			overlay->sliderFloat("offset x", &offsetx, -(float)width, (float)width);
+			overlay->sliderFloat("offset y", &offsety, -(float)height, (float)height);
 		}
 		if (overlay->header("Pipeline")) {
 			overlay->text("Winding order");
