@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Scene rendering
 *
-* Copyright (C) 2020-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 *
@@ -136,28 +136,26 @@ class VulkanExample : public VulkanExampleBase
 public:
 	VulkanglTFScene glTFScene;
 
-	struct ShaderData {
-		vks::Buffer buffer;
-		struct Values {
-			glm::mat4 projection;
-			glm::mat4 view;
-			glm::vec4 lightPos = glm::vec4(0.0f, 2.5f, 0.0f, 1.0f);
-			glm::vec4 viewPos;
-		} values;
-	} shaderData;
+	struct UniformData {
+		glm::mat4 projection;
+		glm::mat4 view;
+		glm::vec4 lightPos = glm::vec4(0.0f, 2.5f, 0.0f, 1.0f);
+		glm::vec4 viewPos;
+	} uniformData;
+	std::vector<vks::Buffer> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 
 	struct DescriptorSetLayouts {
 		VkDescriptorSetLayout matrices{ VK_NULL_HANDLE };
 		VkDescriptorSetLayout textures{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
+	std::vector<VkDescriptorSet> descriptorSets;
 
 	VulkanExample();
 	~VulkanExample();
 	virtual void getEnabledFeatures();
-	void buildCommandBuffers();
+	void buildCommandBuffer();
 	void loadglTFFile(std::string filename);
 	void loadAssets();
 	void setupDescriptors();
