@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Screen space ambient occlusion example
 *
-* Copyright (C) by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -41,13 +41,6 @@ public:
 	} uboSSAOParams;
 
 	struct {
-		VkPipeline offscreen{ VK_NULL_HANDLE };
-		VkPipeline composition{ VK_NULL_HANDLE };
-		VkPipeline ssao{ VK_NULL_HANDLE };
-		VkPipeline ssaoBlur{ VK_NULL_HANDLE };
-	} pipelines;
-
-	struct {
 		VkPipelineLayout gBuffer{ VK_NULL_HANDLE };
 		VkPipelineLayout ssao{ VK_NULL_HANDLE };
 		VkPipelineLayout ssaoBlur{ VK_NULL_HANDLE };
@@ -55,12 +48,11 @@ public:
 	} pipelineLayouts;
 
 	struct {
-		VkDescriptorSet gBuffer{ VK_NULL_HANDLE };
-		VkDescriptorSet ssao{ VK_NULL_HANDLE };
-		VkDescriptorSet ssaoBlur{ VK_NULL_HANDLE };
-		VkDescriptorSet composition{ VK_NULL_HANDLE };
-		const uint32_t count = 4;
-	} descriptorSets;
+		VkPipeline offscreen{ VK_NULL_HANDLE };
+		VkPipeline composition{ VK_NULL_HANDLE };
+		VkPipeline ssao{ VK_NULL_HANDLE };
+		VkPipeline ssaoBlur{ VK_NULL_HANDLE };
+	} pipelines;
 
 	struct {
 		VkDescriptorSetLayout gBuffer{ VK_NULL_HANDLE };
@@ -69,11 +61,20 @@ public:
 		VkDescriptorSetLayout composition{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
 
-	struct {
+	struct DescriptorSets {
+		VkDescriptorSet gBuffer{ VK_NULL_HANDLE };
+		VkDescriptorSet ssao{ VK_NULL_HANDLE };
+		VkDescriptorSet ssaoBlur{ VK_NULL_HANDLE };
+		VkDescriptorSet composition{ VK_NULL_HANDLE };
+	};
+	std::vector<DescriptorSets> descriptorSets;
+
+	struct UniformBuffers {
 		vks::Buffer sceneParams;
 		vks::Buffer ssaoKernel;
 		vks::Buffer ssaoParams;
-	} uniformBuffers;
+	};
+	std::vector<UniformBuffers> uniformBuffers;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -118,6 +119,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		useNewSync = true;
 		title = "Screen space ambient occlusion";
 		camera.type = Camera::CameraType::firstperson;
 #ifndef __ANDROID__
@@ -126,46 +128,40 @@ public:
 		camera.position = { 1.0f, 0.75f, 0.0f };
 		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, uboSceneParams.nearPlane, uboSceneParams.farPlane);
+		uniformBuffers.resize(maxConcurrentFrames);
+		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()
 	{
 		if (device) {
 			vkDestroySampler(device, colorSampler, nullptr);
-
-			// Attachments
 			frameBuffers.offscreen.position.destroy(device);
 			frameBuffers.offscreen.normal.destroy(device);
 			frameBuffers.offscreen.albedo.destroy(device);
 			frameBuffers.offscreen.depth.destroy(device);
 			frameBuffers.ssao.color.destroy(device);
 			frameBuffers.ssaoBlur.color.destroy(device);
-
-			// Framebuffers
 			frameBuffers.offscreen.destroy(device);
 			frameBuffers.ssao.destroy(device);
 			frameBuffers.ssaoBlur.destroy(device);
-
 			vkDestroyPipeline(device, pipelines.offscreen, nullptr);
 			vkDestroyPipeline(device, pipelines.composition, nullptr);
 			vkDestroyPipeline(device, pipelines.ssao, nullptr);
 			vkDestroyPipeline(device, pipelines.ssaoBlur, nullptr);
-
 			vkDestroyPipelineLayout(device, pipelineLayouts.gBuffer, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayouts.ssao, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayouts.ssaoBlur, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayouts.composition, nullptr);
-
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.gBuffer, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.ssao, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.ssaoBlur, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.composition, nullptr);
-
-			// Uniform buffers
-			uniformBuffers.sceneParams.destroy();
-			uniformBuffers.ssaoKernel.destroy();
-			uniformBuffers.ssaoParams.destroy();
-
+			for (auto& buffer : uniformBuffers) {
+				buffer.sceneParams.destroy();
+				buffer.ssaoKernel.destroy();
+				buffer.ssaoParams.destroy();
+			}
 			ssaoNoise.destroy();
 		}
 	}
@@ -306,23 +302,31 @@ public:
 			subpass.pDepthStencilAttachment = &depthReference;
 
 			// Use subpass dependencies for attachment layout transitions
-			std::array<VkSubpassDependency, 2> dependencies;
+			std::array<VkSubpassDependency, 3> dependencies{};
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[0].dstSubpass = 0;
-			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+			dependencies[0].dependencyFlags = 0;
 
-			dependencies[1].srcSubpass = 0;
-			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[1].dstSubpass = 0;
+			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[1].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+			dependencies[2].srcSubpass = 0;
+			dependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[2].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[2].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[2].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 			VkRenderPassCreateInfo renderPassInfo = {};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -334,7 +338,7 @@ public:
 			renderPassInfo.pDependencies = dependencies.data();
 			VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &frameBuffers.offscreen.renderPass));
 
-			std::array<VkImageView, 4> attachments;
+			std::array<VkImageView, 4> attachments{};
 			attachments[0] = frameBuffers.offscreen.position.view;
 			attachments[1] = frameBuffers.offscreen.normal.view;
 			attachments[2] = frameBuffers.offscreen.albedo.view;
@@ -369,7 +373,7 @@ public:
 			subpass.pColorAttachments = &colorReference;
 			subpass.colorAttachmentCount = 1;
 
-			std::array<VkSubpassDependency, 2> dependencies;
+			std::array<VkSubpassDependency, 2> dependencies{};
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[0].dstSubpass = 0;
@@ -426,7 +430,7 @@ public:
 			subpass.pColorAttachments = &colorReference;
 			subpass.colorAttachmentCount = 1;
 
-			std::array<VkSubpassDependency, 2> dependencies;
+			std::array<VkSubpassDependency, 2> dependencies{};
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[0].dstSubpass = 0;
@@ -487,248 +491,109 @@ public:
 		scene.loadFromFile(getAssetPath() + "models/sponza/sponza.gltf", vulkanDevice, queue, gltfLoadingFlags);
 	}
 
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			/*
-				Offscreen SSAO generation
-			*/
-			{
-				// Clear values for all attachments written in the fragment shader
-				std::vector<VkClearValue> clearValues(4);
-				clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-				clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-				clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-				clearValues[3].depthStencil = { 1.0f, 0 };
-
-				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-				renderPassBeginInfo.renderPass = frameBuffers.offscreen.renderPass;
-				renderPassBeginInfo.framebuffer = frameBuffers.offscreen.frameBuffer;
-				renderPassBeginInfo.renderArea.extent.width = frameBuffers.offscreen.width;
-				renderPassBeginInfo.renderArea.extent.height = frameBuffers.offscreen.height;
-				renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-				renderPassBeginInfo.pClearValues = clearValues.data();
-
-				/*
-					First pass: Fill G-Buffer components (positions+depth, normals, albedo) using MRT
-				*/
-
-				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				VkViewport viewport = vks::initializers::viewport((float)frameBuffers.offscreen.width, (float)frameBuffers.offscreen.height, 0.0f, 1.0f);
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-				VkRect2D scissor = vks::initializers::rect2D(frameBuffers.offscreen.width, frameBuffers.offscreen.height, 0, 0);
-				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
-
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.gBuffer, 0, 1, &descriptorSets.gBuffer, 0, nullptr);
-				scene.draw(drawCmdBuffers[i], vkglTF::RenderFlags::BindImages, pipelineLayouts.gBuffer);
-
-				vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-				/*
-					Second pass: SSAO generation
-				*/
-
-				clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-				clearValues[1].depthStencil = { 1.0f, 0 };
-
-				renderPassBeginInfo.framebuffer = frameBuffers.ssao.frameBuffer;
-				renderPassBeginInfo.renderPass = frameBuffers.ssao.renderPass;
-				renderPassBeginInfo.renderArea.extent.width = frameBuffers.ssao.width;
-				renderPassBeginInfo.renderArea.extent.height = frameBuffers.ssao.height;
-				renderPassBeginInfo.clearValueCount = 2;
-				renderPassBeginInfo.pClearValues = clearValues.data();
-
-				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				viewport = vks::initializers::viewport((float)frameBuffers.ssao.width, (float)frameBuffers.ssao.height, 0.0f, 1.0f);
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-				scissor = vks::initializers::rect2D(frameBuffers.ssao.width, frameBuffers.ssao.height, 0, 0);
-				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.ssao, 0, 1, &descriptorSets.ssao, 0, nullptr);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ssao);
-				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
-
-				vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-				/*
-					Third pass: SSAO blur
-				*/
-
-				renderPassBeginInfo.framebuffer = frameBuffers.ssaoBlur.frameBuffer;
-				renderPassBeginInfo.renderPass = frameBuffers.ssaoBlur.renderPass;
-				renderPassBeginInfo.renderArea.extent.width = frameBuffers.ssaoBlur.width;
-				renderPassBeginInfo.renderArea.extent.height = frameBuffers.ssaoBlur.height;
-
-				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				viewport = vks::initializers::viewport((float)frameBuffers.ssaoBlur.width, (float)frameBuffers.ssaoBlur.height, 0.0f, 1.0f);
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-				scissor = vks::initializers::rect2D(frameBuffers.ssaoBlur.width, frameBuffers.ssaoBlur.height, 0, 0);
-				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.ssaoBlur, 0, 1, &descriptorSets.ssaoBlur, 0, nullptr);
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ssaoBlur);
-				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
-
-				vkCmdEndRenderPass(drawCmdBuffers[i]);
-			}
-
-			/*
-				Note: Explicit synchronization is not required between the render pass, as this is done implicit via sub pass dependencies
-			*/
-
-			/*
-				Final render pass: Scene rendering with applied radial blur
-			*/
-			{
-				std::vector<VkClearValue> clearValues(2);
-				clearValues[0].color = defaultClearColor;
-				clearValues[1].depthStencil = { 1.0f, 0 };
-
-				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-				renderPassBeginInfo.renderPass = renderPass;
-				renderPassBeginInfo.framebuffer = VulkanExampleBase::frameBuffers[i];
-				renderPassBeginInfo.renderArea.extent.width = width;
-				renderPassBeginInfo.renderArea.extent.height = height;
-				renderPassBeginInfo.clearValueCount = 2;
-				renderPassBeginInfo.pClearValues = clearValues.data();
-
-				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-				VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.composition, 0, 1, &descriptorSets.composition, 0, NULL);
-
-				// Final composition pass
-				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.composition);
-				vkCmdDraw(drawCmdBuffers[i], 3, 1, 0, 0);
-
-				drawUI(drawCmdBuffers[i]);
-
-				vkCmdEndRenderPass(drawCmdBuffers[i]);
-			}
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
-	}
-
 	void setupDescriptors()
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 12)
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames * 4),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxConcurrentFrames * 8)
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes,  descriptorSets.count);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames * 4);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
-		VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo;
 		VkDescriptorSetAllocateInfo descriptorAllocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, nullptr, 1);
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-		std::vector<VkDescriptorImageInfo> imageDescriptors;
 
-		// Layouts and Sets
+		// Layouts
 
 		// G-Buffer creation (offscreen scene rendering)
-		setLayoutBindings = {
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),	// VS + FS Parameter UBO
 		};
-		setLayoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
+		VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &setLayoutCreateInfo, nullptr, &descriptorSetLayouts.gBuffer));
-
-		descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.gBuffer;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets.gBuffer));
-		writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSets.gBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.sceneParams.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-
+		
 		// SSAO Generation
 		setLayoutBindings = {
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),						// FS Position+Depth
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),						// FS Normals
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),						// FS SSAO Noise
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),								// FS SSAO Kernel UBO
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 4),								// FS Params UBO
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 4),
 		};
 		setLayoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &setLayoutCreateInfo, nullptr, &descriptorSetLayouts.ssao));
 
-		descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.ssao;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets.ssao));
-		imageDescriptors = {
-			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.offscreen.position.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.offscreen.normal.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-		};
-		writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSets.ssao, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imageDescriptors[0]),					// FS Position+Depth
-			vks::initializers::writeDescriptorSet(descriptorSets.ssao, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &imageDescriptors[1]),					// FS Normals
-			vks::initializers::writeDescriptorSet(descriptorSets.ssao, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &ssaoNoise.descriptor),		// FS SSAO Noise
-			vks::initializers::writeDescriptorSet(descriptorSets.ssao, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &uniformBuffers.ssaoKernel.descriptor),		// FS SSAO Kernel UBO
-			vks::initializers::writeDescriptorSet(descriptorSets.ssao, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &uniformBuffers.ssaoParams.descriptor),		// FS SSAO Params UBO
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-
 		// SSAO Blur
 		setLayoutBindings = {
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),						// FS Sampler SSAO
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
 		};
 		setLayoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &setLayoutCreateInfo, nullptr, &descriptorSetLayouts.ssaoBlur));
-		descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.ssaoBlur;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets.ssaoBlur));
-		imageDescriptors = {
-			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.ssao.color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-		};
-		writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSets.ssaoBlur, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imageDescriptors[0]),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
 		// Composition
 		setLayoutBindings = {
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),						// FS Position+Depth
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),						// FS Normals
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),						// FS Albedo
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),						// FS SSAO
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4),						// FS SSAO blurred
-			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 5),								// FS Lights UBO
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 5),
 		};
 		setLayoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &setLayoutCreateInfo, nullptr, &descriptorSetLayouts.composition));
-		descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.composition;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets.composition));
-		imageDescriptors = {
-			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.offscreen.position.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.offscreen.normal.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.offscreen.albedo.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.ssao.color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-			vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.ssaoBlur.color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-		};
-		writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imageDescriptors[0]),			// FS Sampler Position+Depth
-			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &imageDescriptors[1]),			// FS Sampler Normals
-			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &imageDescriptors[2]),			// FS Sampler Albedo
-			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &imageDescriptors[3]),			// FS Sampler SSAO
-			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &imageDescriptors[4]),			// FS Sampler SSAO blurred
-			vks::initializers::writeDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5, &uniformBuffers.ssaoParams.descriptor),	// FS SSAO Params UBO
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+
+		// Descriptor info for all images used as descriptors
+		VkDescriptorImageInfo positionImgDescriptor = vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.offscreen.position.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VkDescriptorImageInfo normalImgDescriptor = vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.offscreen.normal.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VkDescriptorImageInfo albedoImgDescriptor = vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.offscreen.albedo.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VkDescriptorImageInfo ssaoImgDescriptor = vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.ssao.color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VkDescriptorImageInfo ssaoBlurImgDescriptor = vks::initializers::descriptorImageInfo(colorSampler, frameBuffers.ssaoBlur.color.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		// Sets per frame, just like the buffers themselves
+		// Images do not need to be duplicated per frame, we reuse the same one for each frame
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			// G-Buffer creation (offscreen scene rendering)
+			descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.gBuffer;
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets[i].gBuffer));
+			writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i].gBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].sceneParams.descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+
+			// SSAO Generation
+			descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.ssao;
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets[i].ssao));
+			writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i].ssao, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &positionImgDescriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].ssao, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &normalImgDescriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].ssao, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &ssaoNoise.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].ssao, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &uniformBuffers[i].ssaoKernel.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].ssao, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &uniformBuffers[i].ssaoParams.descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+
+			// SSAO Blur
+			descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.ssaoBlur;
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets[i].ssaoBlur));
+			writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i].ssaoBlur, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &ssaoImgDescriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+
+			// Composition
+			descriptorAllocInfo.pSetLayouts = &descriptorSetLayouts.composition;
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocInfo, &descriptorSets[i].composition));
+			writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &positionImgDescriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &normalImgDescriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &albedoImgDescriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &ssaoImgDescriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &ssaoBlurImgDescriptor),
+				vks::initializers::writeDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5, &uniformBuffers[i].ssaoParams.descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
@@ -763,7 +628,7 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo( pipelineLayouts.composition, renderPass, 0);
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
@@ -836,34 +701,13 @@ public:
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
-	void prepareUniformBuffers()
+	void prepareBuffers()
 	{
-		// Scene matrices
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.sceneParams,
-			sizeof(uboSceneParams));
-
-		// SSAO parameters
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.ssaoParams,
-			sizeof(uboSSAOParams));
-
-		// Update
-		updateUniformBufferMatrices();
-		updateUniformBufferSSAOParams();
-
-		// SSAO
+		// Set up SSAO sample kernel
 		std::default_random_engine rndEngine(benchmark.active ? 0 : (unsigned)time(nullptr));
 		std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
-
-		// Sample kernel
 		std::vector<glm::vec4> ssaoKernel(SSAO_KERNEL_SIZE);
-		for (uint32_t i = 0; i < SSAO_KERNEL_SIZE; ++i)
-		{
+		for (uint32_t i = 0; i < SSAO_KERNEL_SIZE; ++i) {
 			glm::vec3 sample(rndDist(rndEngine) * 2.0 - 1.0, rndDist(rndEngine) * 2.0 - 1.0, rndDist(rndEngine));
 			sample = glm::normalize(sample);
 			sample *= rndDist(rndEngine);
@@ -872,41 +716,36 @@ public:
 			ssaoKernel[i] = glm::vec4(sample * scale, 0.0f);
 		}
 
-		// Upload as UBO
-		vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers.ssaoKernel,
-			ssaoKernel.size() * sizeof(glm::vec4),
-			ssaoKernel.data());
+		for (auto& buffer : uniformBuffers) {
+			// Scene matrices
+			vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.sceneParams, sizeof(uboSceneParams));
+			VK_CHECK_RESULT(buffer.sceneParams.map());
+			// SSAO parameters
+			vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.ssaoParams, sizeof(uboSSAOParams));
+			VK_CHECK_RESULT(buffer.ssaoParams.map());
+			// SSAO kernel
+			vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.ssaoKernel, ssaoKernel.size() * sizeof(glm::vec4), ssaoKernel.data());
+		}
 
-		// Random noise
+		// Random noise for smoothing SSAO is uploaded as a texture
 		std::vector<glm::vec4> noiseValues(SSAO_NOISE_DIM * SSAO_NOISE_DIM);
 		for (uint32_t i = 0; i < static_cast<uint32_t>(noiseValues.size()); i++) {
 			noiseValues[i] = glm::vec4(rndDist(rndEngine) * 2.0f - 1.0f, rndDist(rndEngine) * 2.0f - 1.0f, 0.0f, 0.0f);
 		}
-		// Upload as texture
 		ssaoNoise.fromBuffer(noiseValues.data(), noiseValues.size() * sizeof(glm::vec4), VK_FORMAT_R32G32B32A32_SFLOAT, SSAO_NOISE_DIM, SSAO_NOISE_DIM, vulkanDevice, queue, VK_FILTER_NEAREST);
 	}
 
-	void updateUniformBufferMatrices()
+	void updateUniformBuffers()
 	{
+		// Scene
 		uboSceneParams.projection = camera.matrices.perspective;
 		uboSceneParams.view = camera.matrices.view;
 		uboSceneParams.model = glm::mat4(1.0f);
+		uniformBuffers[currentBuffer].sceneParams.copyTo(&uboSceneParams, sizeof(uboSceneParams));
 
-		VK_CHECK_RESULT(uniformBuffers.sceneParams.map());
-		uniformBuffers.sceneParams.copyTo(&uboSceneParams, sizeof(uboSceneParams));
-		uniformBuffers.sceneParams.unmap();
-	}
-
-	void updateUniformBufferSSAOParams()
-	{
+		// SSAO parameters
 		uboSSAOParams.projection = camera.matrices.perspective;
-
-		VK_CHECK_RESULT(uniformBuffers.ssaoParams.map());
-		uniformBuffers.ssaoParams.copyTo(&uboSSAOParams, sizeof(uboSSAOParams));
-		uniformBuffers.ssaoParams.unmap();
+		uniformBuffers[currentBuffer].ssaoParams.copyTo(&uboSSAOParams, sizeof(uboSSAOParams));
 	}
 
 	void prepare()
@@ -914,20 +753,149 @@ public:
 		VulkanExampleBase::prepare();
 		loadAssets();
 		prepareOffscreenFramebuffers();
-		prepareUniformBuffers();
+		prepareBuffers();
 		setupDescriptors();
 		preparePipelines();
-		buildCommandBuffers();
 		prepared = true;
 	}
 
-	void draw()
+	void buildCommandBuffer()
 	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		/*
+			Offscreen SSAO generation
+		*/
+		{
+			// Clear values for all attachments written in the fragment shader
+			std::array<VkClearValue, 4> clearValues{};
+			clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+			clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+			clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+			clearValues[3].depthStencil = { 1.0f, 0 };
+
+			VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo.renderPass = frameBuffers.offscreen.renderPass;
+			renderPassBeginInfo.framebuffer = frameBuffers.offscreen.frameBuffer;
+			renderPassBeginInfo.renderArea.extent.width = frameBuffers.offscreen.width;
+			renderPassBeginInfo.renderArea.extent.height = frameBuffers.offscreen.height;
+			renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+			renderPassBeginInfo.pClearValues = clearValues.data();
+
+			/*
+				First pass: Fill G-Buffer components (positions+depth, normals, albedo) using MRT
+			*/
+
+			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkViewport viewport = vks::initializers::viewport((float)frameBuffers.offscreen.width, (float)frameBuffers.offscreen.height, 0.0f, 1.0f);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor = vks::initializers::rect2D(frameBuffers.offscreen.width, frameBuffers.offscreen.height, 0, 0);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.gBuffer, 0, 1, &descriptorSets[currentBuffer].gBuffer, 0, nullptr);
+			scene.draw(cmdBuffer, vkglTF::RenderFlags::BindImages, pipelineLayouts.gBuffer);
+
+			vkCmdEndRenderPass(cmdBuffer);
+
+			/*
+				Second pass: SSAO generation
+			*/
+
+			clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+			clearValues[1].depthStencil = { 1.0f, 0 };
+
+			renderPassBeginInfo.framebuffer = frameBuffers.ssao.frameBuffer;
+			renderPassBeginInfo.renderPass = frameBuffers.ssao.renderPass;
+			renderPassBeginInfo.renderArea.extent.width = frameBuffers.ssao.width;
+			renderPassBeginInfo.renderArea.extent.height = frameBuffers.ssao.height;
+			renderPassBeginInfo.clearValueCount = 2;
+			renderPassBeginInfo.pClearValues = clearValues.data();
+
+			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			viewport = vks::initializers::viewport((float)frameBuffers.ssao.width, (float)frameBuffers.ssao.height, 0.0f, 1.0f);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+			scissor = vks::initializers::rect2D(frameBuffers.ssao.width, frameBuffers.ssao.height, 0, 0);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.ssao, 0, 1, &descriptorSets[currentBuffer].ssao, 0, nullptr);
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ssao);
+			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+
+			vkCmdEndRenderPass(cmdBuffer);
+
+			/*
+				Third pass: SSAO blur
+			*/
+
+			renderPassBeginInfo.framebuffer = frameBuffers.ssaoBlur.frameBuffer;
+			renderPassBeginInfo.renderPass = frameBuffers.ssaoBlur.renderPass;
+			renderPassBeginInfo.renderArea.extent.width = frameBuffers.ssaoBlur.width;
+			renderPassBeginInfo.renderArea.extent.height = frameBuffers.ssaoBlur.height;
+
+			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			viewport = vks::initializers::viewport((float)frameBuffers.ssaoBlur.width, (float)frameBuffers.ssaoBlur.height, 0.0f, 1.0f);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+			scissor = vks::initializers::rect2D(frameBuffers.ssaoBlur.width, frameBuffers.ssaoBlur.height, 0, 0);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.ssaoBlur, 0, 1, &descriptorSets[currentBuffer].ssaoBlur, 0, nullptr);
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.ssaoBlur);
+			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+
+			vkCmdEndRenderPass(cmdBuffer);
+		}
+
+		/*
+			Note: Explicit synchronization is not required between the render pass, as this is done implicit via sub pass dependencies
+		*/
+
+		/*
+			Final render pass: Scene rendering with applied radial blur
+		*/
+		{
+			std::array<VkClearValue, 2> clearValues{};
+			clearValues[0].color = defaultClearColor;
+			clearValues[1].depthStencil = { 1.0f, 0 };
+
+			VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo.renderPass = renderPass;
+			renderPassBeginInfo.framebuffer = VulkanExampleBase::frameBuffers[currentImageIndex];
+			renderPassBeginInfo.renderArea.extent.width = width;
+			renderPassBeginInfo.renderArea.extent.height = height;
+			renderPassBeginInfo.clearValueCount = 2;
+			renderPassBeginInfo.pClearValues = clearValues.data();
+
+			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.composition, 0, 1, &descriptorSets[currentBuffer].composition, 0, nullptr);
+
+			// Final composition pass
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.composition);
+			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+
+			drawUI(cmdBuffer);
+
+			vkCmdEndRenderPass(cmdBuffer);
+		}
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	virtual void render()
@@ -935,9 +903,10 @@ public:
 		if (!prepared) {
 			return;
 		}
-		updateUniformBufferMatrices();
-		updateUniformBufferSSAOParams();
-		draw();
+		VulkanExampleBase::prepareFrame();
+		updateUniformBuffers();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
