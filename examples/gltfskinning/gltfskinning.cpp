@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - glTF skinned animation
 *
-* Copyright (C) 2020-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -44,16 +44,16 @@ VulkanglTFModel::~VulkanglTFModel()
 	vkFreeMemory(vulkanDevice->logicalDevice, vertices.memory, nullptr);
 	vkDestroyBuffer(vulkanDevice->logicalDevice, indices.buffer, nullptr);
 	vkFreeMemory(vulkanDevice->logicalDevice, indices.memory, nullptr);
-	for (Image image : images)
-	{
+	for (auto& image : images) {
 		vkDestroyImageView(vulkanDevice->logicalDevice, image.texture.view, nullptr);
 		vkDestroyImage(vulkanDevice->logicalDevice, image.texture.image, nullptr);
 		vkDestroySampler(vulkanDevice->logicalDevice, image.texture.sampler, nullptr);
 		vkFreeMemory(vulkanDevice->logicalDevice, image.texture.deviceMemory, nullptr);
 	}
-	for (Skin skin : skins)
-	{
-		skin.ssbo.destroy();
+	for (auto& skin : skins) {
+		for (auto& buffer : skin.storageBuffers) {
+			buffer.destroy();
+		}
 	}
 }
 
@@ -200,14 +200,15 @@ void VulkanglTFModel::loadSkins(tinygltf::Model &input)
 			memcpy(skins[i].inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::mat4));
 
 			// Store inverse bind matrices for this skin in a shader storage buffer object
-			// To keep this sample simple, we create a host visible shader storage buffer
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-			    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			    &skins[i].ssbo,
-			    sizeof(glm::mat4) * skins[i].inverseBindMatrices.size(),
-			    skins[i].inverseBindMatrices.data()));
-			VK_CHECK_RESULT(skins[i].ssbo.map());
+			// Just like other buffers that can be updated on the CPU while the GPU reads we need to duplicate them per frames in flight
+			// To keep things simple, we use separate buffers, in a real-world application a better solution would be using one large storage buffer with separate regions per frames in flight
+			skins[i].storageBuffers.resize(maxConcurrentFrames);
+			skins[i].descriptorSets.resize(maxConcurrentFrames);
+
+			for (auto& buffer : skins[i].storageBuffers) {
+				VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(glm::mat4) * skins[i].inverseBindMatrices.size(), skins[i].inverseBindMatrices.data()));
+				VK_CHECK_RESULT(buffer.map());
+			}
 		}
 	}
 }
@@ -505,7 +506,7 @@ void VulkanglTFModel::updateJoints(VulkanglTFModel::Node *node)
 			jointMatrices[i] = inverseTransform * jointMatrices[i];
 		}
 		// Update ssbo
-		skin.ssbo.copyTo(jointMatrices.data(), jointMatrices.size() * sizeof(glm::mat4));
+		skin.storageBuffers[currentBuffer].copyTo(jointMatrices.data(), jointMatrices.size() * sizeof(glm::mat4));
 	}
 
 	for (auto &child : node->children)
@@ -515,8 +516,10 @@ void VulkanglTFModel::updateJoints(VulkanglTFModel::Node *node)
 }
 
 // POI: Update the current animation
-void VulkanglTFModel::updateAnimation(float deltaTime)
+void VulkanglTFModel::updateAnimation(float deltaTime, uint32_t currentBuffer)
 {
+	this->currentBuffer = currentBuffer;
+
 	if (activeAnimation > static_cast<uint32_t>(animations.size()) - 1)
 	{
 		std::cout << "No animation with index " << activeAnimation << std::endl;
@@ -598,7 +601,7 @@ void VulkanglTFModel::drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout p
 		// Pass the final matrix to the vertex shader using push constants
 		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &nodeMatrix);
 		// Bind SSBO with skin data for this node to set 1
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &skins[node.skin].descriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &skins[node.skin].descriptorSets[currentBuffer], 0, nullptr);
 		for (VulkanglTFModel::Primitive &primitive : node.mesh.primitives)
 		{
 			if (primitive.indexCount > 0)
@@ -639,28 +642,32 @@ void VulkanglTFModel::draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipel
 
 VulkanExample::VulkanExample() : VulkanExampleBase()
 {
-	title        = "glTF vertex skinning";
+	useNewSync = true;
+	title = "glTF vertex skinning";
 	camera.type  = Camera::CameraType::lookat;
 	camera.flipY = true;
 	camera.setPosition(glm::vec3(0.0f, 0.75f, -2.0f));
 	camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 	camera.setPerspective(60.0f, (float) width / (float) height, 0.1f, 256.0f);
+	uniformBuffers.resize(maxConcurrentFrames);
+	descriptorSets.resize(maxConcurrentFrames);
 }
 
 VulkanExample::~VulkanExample()
 {
-	vkDestroyPipeline(device, pipelines.solid, nullptr);
-	if (pipelines.wireframe != VK_NULL_HANDLE)
-	{
-		vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+	if (device) {
+		vkDestroyPipeline(device, pipelines.solid, nullptr);
+		if (pipelines.wireframe != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		}
+		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.jointMatrices, nullptr);
+		for (auto& buffer : uniformBuffers) {
+			buffer.destroy();
+		}
 	}
-
-	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
-	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
-	vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.jointMatrices, nullptr);
-
-	shaderData.buffer.destroy();
 }
 
 void VulkanExample::getEnabledFeatures()
@@ -670,44 +677,6 @@ void VulkanExample::getEnabledFeatures()
 	{
 		enabledFeatures.fillModeNonSolid = VK_TRUE;
 	};
-}
-
-void VulkanExample::buildCommandBuffers()
-{
-	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-	VkClearValue clearValues[2];
-	clearValues[0].color = {{0.25f, 0.25f, 0.25f, 1.0f}};
-	;
-	clearValues[1].depthStencil = {1.0f, 0};
-
-	VkRenderPassBeginInfo renderPassBeginInfo    = vks::initializers::renderPassBeginInfo();
-	renderPassBeginInfo.renderPass               = renderPass;
-	renderPassBeginInfo.renderArea.offset.x      = 0;
-	renderPassBeginInfo.renderArea.offset.y      = 0;
-	renderPassBeginInfo.renderArea.extent.width  = width;
-	renderPassBeginInfo.renderArea.extent.height = height;
-	renderPassBeginInfo.clearValueCount          = 2;
-	renderPassBeginInfo.pClearValues             = clearValues;
-
-	const VkViewport viewport = vks::initializers::viewport((float) width, (float) height, 0.0f, 1.0f);
-	const VkRect2D   scissor  = vks::initializers::rect2D(width, height, 0, 0);
-
-	for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-	{
-		renderPassBeginInfo.framebuffer = frameBuffers[i];
-		VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-		vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-		vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-		// Bind scene matrices descriptor to set 0
-		vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-		vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.solid);
-		glTFModel.draw(drawCmdBuffers[i], pipelineLayout);
-		drawUI(drawCmdBuffers[i]);
-		vkCmdEndRenderPass(drawCmdBuffers[i]);
-		VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-	}
 }
 
 void VulkanExample::loadglTFFile(std::string filename)
@@ -762,27 +731,21 @@ void VulkanExample::loadglTFFile(std::string filename)
 	size_t indexBufferSize  = indexBuffer.size() * sizeof(uint32_t);
 	glTFModel.indices.count = static_cast<uint32_t>(indexBuffer.size());
 
-	struct StagingBuffer
-	{
-		VkBuffer       buffer;
-		VkDeviceMemory memory;
-	} vertexStaging, indexStaging;
+	vks::Buffer vertexStaging, indexStaging;
 
 	// Create host visible staging buffers (source)
 	VK_CHECK_RESULT(vulkanDevice->createBuffer(
 	    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 	    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	    &vertexStaging,
 	    vertexBufferSize,
-	    &vertexStaging.buffer,
-	    &vertexStaging.memory,
 	    vertexBuffer.data()));
 	// Index data
 	VK_CHECK_RESULT(vulkanDevice->createBuffer(
 	    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 	    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	    &indexStaging,
 	    indexBufferSize,
-	    &indexStaging.buffer,
-	    &indexStaging.memory,
 	    indexBuffer.data()));
 
 	// Create device local buffers (target)
@@ -808,11 +771,8 @@ void VulkanExample::loadglTFFile(std::string filename)
 	vkCmdCopyBuffer(copyCmd, indexStaging.buffer, glTFModel.indices.buffer, 1, &copyRegion);
 	vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
 
-	// Free staging resources
-	vkDestroyBuffer(device, vertexStaging.buffer, nullptr);
-	vkFreeMemory(device, vertexStaging.memory, nullptr);
-	vkDestroyBuffer(device, indexStaging.buffer, nullptr);
-	vkFreeMemory(device, indexStaging.memory, nullptr);
+	vertexStaging.destroy();
+	indexStaging.destroy();
 }
 
 void VulkanExample::setupDescriptors()
@@ -822,15 +782,15 @@ void VulkanExample::setupDescriptors()
 	*/
 
 	std::vector<VkDescriptorPoolSize> poolSizes = {
-	    vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+	    vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames),
 	    // One combined image sampler per material image/texture
-	    vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(glTFModel.images.size())),
+	    vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(glTFModel.images.size()) * maxConcurrentFrames),
 	    // One ssbo per skin
-	    vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, static_cast<uint32_t>(glTFModel.skins.size())),
+	    vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, static_cast<uint32_t>(glTFModel.skins.size()) * maxConcurrentFrames),
 	};
 	// Number of descriptor sets = One for the scene ubo + one per image + one per skin
 	const uint32_t             maxSetCount        = static_cast<uint32_t>(glTFModel.images.size()) + static_cast<uint32_t>(glTFModel.skins.size()) + 1;
-	VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxSetCount);
+	VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxSetCount * maxConcurrentFrames);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 	// Descriptor set layouts
@@ -849,22 +809,23 @@ void VulkanExample::setupDescriptors()
 	setLayoutBinding = vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayouts.jointMatrices));
 
-	// Descriptor set for scene matrices
-	VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.matrices, 1);
-	VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-	VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor);
-	vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
-
-	// Descriptor set for glTF model skin joint matrices
-	for (auto &skin : glTFModel.skins)
-	{
-		const VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.jointMatrices, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &skin.descriptorSet));
-		VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(skin.descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &skin.ssbo.descriptor);
+	// Descriptor set for scene matrices and skin storage buffers are per frame, just like the buffers themselves
+	for (auto i = 0; i < uniformBuffers.size(); i++) {
+		// Scene matrices
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.matrices, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i]));
+		VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor);
 		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		// glTF model skin joint matrices
+		for (auto& skin : glTFModel.skins) {
+			const VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.jointMatrices, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &skin.descriptorSets[i]));
+			VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(skin.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &skin.storageBuffers[i].descriptor);
+			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		}
 	}
 
-	// Descriptor sets for glTF model materials
+	// Descriptor sets for glTF materials, since they only use static images, no need to duplicate them per frame		
 	for (auto &image : glTFModel.images)
 	{
 		const VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.textures, 1);
@@ -954,16 +915,17 @@ void VulkanExample::preparePipelines()
 
 void VulkanExample::prepareUniformBuffers()
 {
-	VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &shaderData.buffer, sizeof(shaderData.values)));
-	VK_CHECK_RESULT(shaderData.buffer.map());
-	updateUniformBuffers();
+	for (auto& buffer : uniformBuffers) {
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData), &uniformData));
+		VK_CHECK_RESULT(buffer.map());
+	}
 }
 
 void VulkanExample::updateUniformBuffers()
 {
-	shaderData.values.projection = camera.matrices.perspective;
-	shaderData.values.model      = camera.matrices.view;
-	memcpy(shaderData.buffer.mapped, &shaderData.values, sizeof(shaderData.values));
+	uniformData.projection = camera.matrices.perspective;
+	uniformData.model      = camera.matrices.view;
+	memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 }
 
 void VulkanExample::loadAssets()
@@ -978,28 +940,64 @@ void VulkanExample::prepare()
 	prepareUniformBuffers();
 	setupDescriptors();
 	preparePipelines();
-	buildCommandBuffers();
 	prepared = true;
+}
+
+void VulkanExample::buildCommandBuffer()
+{
+	VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+	vkResetCommandBuffer(cmdBuffer, 0);
+
+	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+	VkClearValue clearValues[2]{};
+	clearValues[0].color = { {0.25f, 0.25f, 0.25f, 1.0f} };
+	clearValues[1].depthStencil = { 1.0f, 0 };
+
+	VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+	renderPassBeginInfo.renderPass = renderPass;
+	renderPassBeginInfo.renderArea.offset.x = 0;
+	renderPassBeginInfo.renderArea.offset.y = 0;
+	renderPassBeginInfo.renderArea.extent.width = width;
+	renderPassBeginInfo.renderArea.extent.height = height;
+	renderPassBeginInfo.clearValueCount = 2;
+	renderPassBeginInfo.pClearValues = clearValues;
+	renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+	VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+	vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+	const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+	// Bind scene matrices descriptor to set 0
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.solid);
+	glTFModel.draw(cmdBuffer, pipelineLayout);
+	drawUI(cmdBuffer);
+	vkCmdEndRenderPass(cmdBuffer);
+	VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 }
 
 void VulkanExample::render()
 {
+	if (!prepared)
+		return;
+	VulkanExampleBase::prepareFrame();
 	updateUniformBuffers();
 	// POI: Advance animation
 	if (!paused) {
-		glTFModel.updateAnimation(frameTimer);
+		glTFModel.updateAnimation(frameTimer, currentBuffer);
 	}
-	renderFrame();
+	buildCommandBuffer();
+	VulkanExampleBase::submitFrame();
+	updateUniformBuffers();
 }
 
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay *overlay)
 {
-	if (overlay->header("Settings"))
-	{
-		if (overlay->checkBox("Wireframe", &wireframe))
-		{
-			buildCommandBuffers();
-		}
+	if (overlay->header("Settings")) {
+		overlay->checkBox("Wireframe", &wireframe);
 	}
 }
 
