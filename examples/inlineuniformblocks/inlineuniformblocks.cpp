@@ -5,7 +5,7 @@
 *
 * Relevant code parts are marked with [POI]
 *
-* Copyright (C) 2018-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -27,7 +27,7 @@ public:
 			float r, g, b;
 			float ambient;
 		} material;
-		VkDescriptorSet descriptorSet;
+		std::vector<VkDescriptorSet> descriptorSets;
 		void setRandomMaterial(bool applyRandomSeed) {
 			std::random_device rndDevice;
 			std::default_random_engine rndEngine(applyRandomSeed ? rndDevice() : 0);
@@ -48,19 +48,22 @@ public:
 		glm::mat4 view;
 		glm::vec3 camPos;
 	} uniformData;
-	vks::Buffer uniformBuffer;
+	std::vector<vks::Buffer> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline pipeline{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 
 	struct DescriptorSetLaysts {
 		VkDescriptorSetLayout scene{ VK_NULL_HANDLE };
 		VkDescriptorSetLayout object{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
+	std::vector<VkDescriptorSet> descriptorSets;
+
+	bool doUpdateMaterials{ false };
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		useNewSync = true;
 		title = "Inline uniform blocks";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -10.0f));
@@ -68,6 +71,8 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.movementSpeed = 4.0f;
 		camera.rotationSpeed = 0.25f;
+		uniformBuffers.resize(maxConcurrentFrames);
+		descriptorSets.resize(maxConcurrentFrames);
 
 		/*
 			[POI] Enable extensions required for inline uniform blocks
@@ -91,67 +96,9 @@ public:
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.scene, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.object, nullptr);
-			uniformBuffer.destroy();
-		}
-	}
-
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.15f, 0.15f, 0.15f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-			// Render objects
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-			uint32_t objcount = static_cast<uint32_t>(objects.size());
-			for (uint32_t x = 0; x < objcount; x++) {
-				/*
-					[POI] Bind descriptor sets
-					Set 0 = Scene matrices:
-					Set 1 = Object inline uniform block (In shader pbr.frag: layout (set = 1, binding = 0) uniform UniformInline ... )
-				*/
-				std::vector<VkDescriptorSet> descriptorSets = {
-					descriptorSet,
-					objects[x].descriptorSet
-				};
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, descriptorSets.data(), 0, nullptr);
-
-				glm::vec3 pos = glm::vec3(sin(glm::radians(x * (360.0f / objcount))), cos(glm::radians(x * (360.0f / objcount))), 0.0f) * 3.5f;
-
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
-				model.draw(drawCmdBuffers[i]);
+			for (auto& buffer : uniformBuffers) {
+				buffer.destroy();
 			}
-			drawUI(drawCmdBuffers[i]);
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
 
@@ -169,11 +116,11 @@ public:
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames),
 			/* [POI] Allocate inline uniform blocks */
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, static_cast<uint32_t>(objects.size()) * sizeof(Object::Material)),
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolCI = vks::initializers::descriptorPoolCreateInfo(poolSizes, static_cast<uint32_t>(objects.size()) + 1);
+		VkDescriptorPoolCreateInfo descriptorPoolCI = vks::initializers::descriptorPoolCreateInfo(poolSizes, (static_cast<uint32_t>(objects.size()) + 1) * maxConcurrentFrames);
 		/*
 			[POI] New structure that has to be chained into the descriptor pool's createinfo if you want to allocate inline uniform blocks
 		*/
@@ -203,43 +150,45 @@ public:
 		descriptorLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayouts.object));
 
-		// Sets
-		// Scene
-		VkDescriptorSetAllocateInfo descriptorAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.scene, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &descriptorSet));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-		// Objects
-		for (auto& object : objects) {
-			VkDescriptorSetAllocateInfo descriptorAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.object, 1);
-			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &object.descriptorSet));
+		// Sets per frame, just like the buffers themselves
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			VkDescriptorSetAllocateInfo descriptorAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.scene, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+			// Objects with inline uniform blocks
+			for (auto& object : objects) {
+				object.descriptorSets.resize(maxConcurrentFrames);
+				VkDescriptorSetAllocateInfo descriptorAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.object, 1);
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &object.descriptorSets[i]));
 
-			/*
-				[POI] New structure that defines size and data of the inline uniform block needs to be chained into the write descriptor set
-				We will be using this inline uniform block to pass per-object material information to the fragment shader
-			*/
-			VkWriteDescriptorSetInlineUniformBlockEXT writeDescriptorSetInlineUniformBlock{};
-			writeDescriptorSetInlineUniformBlock.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
-			writeDescriptorSetInlineUniformBlock.dataSize = sizeof(Object::Material);
-			// Uniform data for the inline block
-			writeDescriptorSetInlineUniformBlock.pData = &object.material;
+				/*
+					[POI] New structure that defines size and data of the inline uniform block needs to be chained into the write descriptor set
+					We will be using this inline uniform block to pass per-object material information to the fragment shader
+				*/
+				VkWriteDescriptorSetInlineUniformBlockEXT writeDescriptorSetInlineUniformBlock{};
+				writeDescriptorSetInlineUniformBlock.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+				writeDescriptorSetInlineUniformBlock.dataSize = sizeof(Object::Material);
+				// Uniform data for the inline block
+				writeDescriptorSetInlineUniformBlock.pData = &object.material;
 
-			/*
-				[POI] Setup the inline uniform block
-			*/
-			VkWriteDescriptorSet writeDescriptorSet{};
-			writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
-			writeDescriptorSet.dstSet = object.descriptorSet;
-			writeDescriptorSet.dstBinding = 0;
-			// Descriptor count for an inline uniform block contains data sizes of the block(last parameter)
-			writeDescriptorSet.descriptorCount = sizeof(Object::Material);
-			// Chain inline uniform block structure
-			writeDescriptorSet.pNext = &writeDescriptorSetInlineUniformBlock;
+				/*
+					[POI] Setup the inline uniform block
+				*/
+				VkWriteDescriptorSet writeDescriptorSet{};
+				writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
+				writeDescriptorSet.dstSet = object.descriptorSets[i];
+				writeDescriptorSet.dstBinding = 0;
+				// Descriptor count for an inline uniform block contains data sizes of the block(last parameter)
+				writeDescriptorSet.descriptorCount = sizeof(Object::Material);
+				// Chain inline uniform block structure
+				writeDescriptorSet.pNext = &writeDescriptorSetInlineUniformBlock;
 
-			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+				vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+			}
 		}
 	}
 
@@ -273,7 +222,7 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -294,9 +243,10 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(UniformData)));
-		VK_CHECK_RESULT(uniformBuffer.map());
-		updateUniformBuffers();
+		for (auto& buffer : uniformBuffers) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData), &uniformData));
+			VK_CHECK_RESULT(buffer.map());
+		}
 	}
 
 	void updateUniformBuffers()
@@ -305,47 +255,14 @@ public:
 		uniformData.view = camera.matrices.view;
 		uniformData.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
 		uniformData.camPos = camera.position * glm::vec3(-1.0f, 1.0f, -1.0f);
-		memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
-	}
-
-	void prepare()
-	{
-		VulkanExampleBase::prepare();
-		loadAssets();
-		prepareUniformBuffers();
-		setupDescriptors();
-		preparePipelines();
-		buildCommandBuffers();
-		prepared = true;
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
-	}
-
-	virtual void render()
-	{
-		if (!prepared)
-			return;
-		updateUniformBuffers();
-		draw();
+		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 	}
 
 	/*
-		[POI] Update descriptor sets at runtime, called from the UI to randomize materials
+		[POI] Update descriptor set data at runtime using inline uniform blocks
 	*/
 	void updateMaterials() {
-		// Setup random materials for every object in the scene
-		for (uint32_t i = 0; i < objects.size(); i++) {
-			objects[i].setRandomMaterial(!benchmark.active);
-		}
-
-		for (auto &object : objects) {
+		for (auto& object : objects) {
 			/*
 				[POI] New structure that defines size and data of the inline uniform block needs to be chained into the write descriptor set
 				We will be using this inline uniform block to pass per-object material information to the fragment shader
@@ -362,7 +279,7 @@ public:
 			VkWriteDescriptorSet writeDescriptorSet{};
 			writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
-			writeDescriptorSet.dstSet = object.descriptorSet;
+			writeDescriptorSet.dstSet = object.descriptorSets[currentBuffer];
 			writeDescriptorSet.dstBinding = 0;
 			writeDescriptorSet.descriptorCount = sizeof(Object::Material);
 			writeDescriptorSet.pNext = &writeDescriptorSetInlineUniformBlock;
@@ -371,10 +288,93 @@ public:
 		}
 	}
 
+	void prepare()
+	{
+		VulkanExampleBase::prepare();
+		loadAssets();
+		prepareUniformBuffers();
+		setupDescriptors();
+		preparePipelines();
+		prepared = true;
+	}
+
+	void buildCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = { { 0.15f, 0.15f, 0.15f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		// Render objects
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+		uint32_t objcount = static_cast<uint32_t>(objects.size());
+		for (uint32_t i = 0; i < objcount; i++) {
+			/*
+				[POI] Bind descriptor sets
+				Set 0 = Scene matrices:
+				Set 1 = Object inline uniform block (In shader pbr.frag: layout (set = 1, binding = 0) uniform UniformInline ... )
+			*/
+			std::vector<VkDescriptorSet> sets = {
+				descriptorSets[currentBuffer],
+				objects[i].descriptorSets[currentBuffer]
+			};
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, sets.data(), 0, nullptr);
+
+			glm::vec3 pos = glm::vec3(sin(glm::radians(i * (360.0f / objcount))), cos(glm::radians(i * (360.0f / objcount))), 0.0f) * 3.5f;
+
+			vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::vec3), &pos);
+			model.draw(cmdBuffer);
+		}
+		drawUI(cmdBuffer);
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+	}
+
+	virtual void render()
+	{
+		if (!prepared)
+			return;
+		VulkanExampleBase::prepareFrame();
+		updateUniformBuffers();
+		updateMaterials();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
+	}
+
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->button("Randomize")) {
-			updateMaterials();
+			// Randomize material properties
+			for (uint32_t i = 0; i < objects.size(); i++) {
+				objects[i].setRandomMaterial(!benchmark.active);
+			}
 		}
 	}
 
