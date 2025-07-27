@@ -34,7 +34,6 @@ public:
 		std::vector<DescriptorSets> descriptorSets;
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };				// Layout of the graphics pipeline
 		VkPipeline pipeline{ VK_NULL_HANDLE };							// Image display pipeline
-		std::vector<VkSemaphore> semaphores;							// Execution dependency between compute & graphic submission
 		// Used to pass data to the graphics shaders
 		struct UniformData {
 			glm::mat4 projection;
@@ -47,9 +46,8 @@ public:
 	struct Compute {
 		VkQueue queue{ VK_NULL_HANDLE };								// Separate queue for compute commands (queue family may differ from the one used for graphics)
 		VkCommandPool commandPool{ VK_NULL_HANDLE };					// Use a separate command pool (queue family may differ from the one used for graphics)
-		VkCommandBuffer commandBuffer{ VK_NULL_HANDLE };				// Command buffer storing the dispatch commands and barriers
-		std::vector<VkSemaphore> semaphores;							// Execution dependency between compute & graphic submission
-		VkFence waitFence{ VK_NULL_HANDLE };							// Used to wait for the compute command buffer to finish
+		std::vector<VkCommandBuffer> commandBuffers;					// Command buffers storing the dispatch commands and barriers
+		std::vector<VkFence> fences;									// Synchronization fence to avoid rewriting compute CB if still in use
 		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };	// Compute shader binding layout
 		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };				// Compute shader bindings
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };				// Layout of the compute pipeline
@@ -83,9 +81,6 @@ public:
 			vkDestroyPipeline(device, graphics.pipeline, nullptr);
 			vkDestroyPipelineLayout(device, graphics.pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, graphics.descriptorSetLayout, nullptr);
-			for (auto& semaphore : graphics.semaphores) {
-				vkDestroySemaphore(device, semaphore, nullptr);
-			}
 			for (auto& buffer : graphics.uniformBuffers) {
 				buffer.destroy();
 			}
@@ -93,10 +88,9 @@ public:
 			for (auto& pipeline : compute.pipelines) {
 				vkDestroyPipeline(device, pipeline, nullptr);
 			}
-			for (auto& semaphore : compute.semaphores) {
-				vkDestroySemaphore(device, semaphore, nullptr);
+			for (auto& fence : compute.fences) {
+				vkDestroyFence(device, fence, nullptr);
 			}
-			vkDestroyFence(device, compute.waitFence, nullptr);
 			vkDestroyPipelineLayout(device, compute.pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
 			vkDestroyCommandPool(device, compute.commandPool, nullptr);
@@ -255,20 +249,6 @@ public:
 	// Prepare the graphics resources used to display the ray traced output of the compute shader
 	void prepareGraphics()
 	{
-		// Create a semaphore for compute & graphics sync
-		graphics.semaphores.resize(swapChain.images.size());
-		for (auto& semaphore : graphics.semaphores) {
-			VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphore));
-			// Signal the semaphore
-			// @todo: maybe remove
-			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
-			submitInfo.signalSemaphoreCount = 1;
-			submitInfo.pSignalSemaphores = &semaphore;
-			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		}
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
-
 		// Setup descriptors
 
 		// The graphics pipeline uses two sets with two bindings
@@ -355,18 +335,31 @@ public:
 
 	void prepareCompute()
 	{
-		// Sync objects required to sync graphics and compute submissions
-		// These are used in addition to the sync objects defined in the sample base class
-		compute.semaphores.resize(swapChain.images.size());
-		for (auto& semaphore : compute.semaphores) {
-			VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphore));
-		}
-		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &compute.waitFence));
-
 		// Get a compute queue from the device
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.compute, 0, &compute.queue);
+
+		// Separate command pool as queue family for compute may be different from the graphics one
+		VkCommandPoolCreateInfo cmdPoolInfo = {};
+		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		cmdPoolInfo.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
+		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
+
+		// Some objects need to be duplicated per frames in flight
+
+		// Create command buffers for compute operations
+		compute.commandBuffers.resize(maxConcurrentFrames);
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+		for (auto& commandBuffer : compute.commandBuffers) {
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer));
+		}
+
+		// Fences for compute CB sync
+		compute.fences.resize(maxConcurrentFrames);
+		for (auto& fence : compute.fences) {
+			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+		}
 
 		// Create compute pipeline
 		// Compute pipelines are created separate from graphics pipelines even if they use the same queue
@@ -404,17 +397,6 @@ public:
 			VK_CHECK_RESULT(vkCreateComputePipelines(device, pipelineCache, 1, &computePipelineCreateInfo, nullptr, &pipeline));
 			compute.pipelines.push_back(pipeline);
 		}
-
-		// Separate command pool as queue family for compute may be different than graphics
-		VkCommandPoolCreateInfo cmdPoolInfo = {};
-		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		cmdPoolInfo.queueFamilyIndex = vulkanDevice->queueFamilyIndices.compute;
-		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
-
-		// Create a command buffer for compute operations
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo( compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffer));
 	}
 
 	void prepareUniformBuffers()
@@ -450,15 +432,17 @@ public:
 
 	void buildComputeCommandBuffer()
 	{
+		VkCommandBuffer cmdBuffer = compute.commandBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-		VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffer, &cmdBufInfo));
-		vkCmdBindPipeline(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[compute.pipelineIndex]);
-		vkCmdBindDescriptorSets(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSet, 0, 0);
-		vkCmdDispatch(compute.commandBuffer, storageImage.width / 16, storageImage.height / 16, 1);
-		vkEndCommandBuffer(compute.commandBuffer);
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[compute.pipelineIndex]);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSet, 0, 0);
+		vkCmdDispatch(cmdBuffer, storageImage.width / 16, storageImage.height / 16, 1);
+		vkEndCommandBuffer(cmdBuffer);
 	}
 
-	void buildCommandBuffer()
+	void buildGraphicsCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
 		vkResetCommandBuffer(cmdBuffer, 0);
@@ -539,45 +523,19 @@ public:
 		if (!prepared)
 			return;
 
-		VulkanExampleBase::prepareFrame();
-
-		updateUniformBuffers();
-
-		// Alsow wait for comnpute to finish (graphics wait is done in prepareFrame)
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.waitFence, VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &compute.waitFence));
-
+		// Use a fence to ensure that compute command buffer has finished executing before using it again
+		vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX);
+		vkResetFences(device, 1, &compute.fences[currentBuffer]);
 		buildComputeCommandBuffer();
 
-		const VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-		// Submit compute commands
 		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
 		computeSubmitInfo.commandBufferCount = 1;
-		computeSubmitInfo.pCommandBuffers = &compute.commandBuffer;
-		computeSubmitInfo.waitSemaphoreCount = 1;
-		computeSubmitInfo.pWaitSemaphores = &graphics.semaphores[currentBuffer];
-		computeSubmitInfo.pWaitDstStageMask = &waitStageMask;
-		computeSubmitInfo.signalSemaphoreCount = 1;
-		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.waitFence));
+		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
 
-		buildCommandBuffer();
-
-		VkPipelineStageFlags graphicsWaitStageMasks[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		VkSemaphore graphicsWaitSemaphores[] = { compute.semaphores[currentBuffer], presentCompleteSemaphores[currentBuffer] };
-		VkSemaphore graphicsSignalSemaphores[] = { graphics.semaphores[currentBuffer], renderCompleteSemaphores[currentImageIndex]};
-
-		// Submit graphics commands
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		submitInfo.waitSemaphoreCount = 2;
-		submitInfo.pWaitSemaphores = graphicsWaitSemaphores;
-		submitInfo.pWaitDstStageMask = graphicsWaitStageMasks;
-		submitInfo.signalSemaphoreCount = 2;
-		submitInfo.pSignalSemaphores = graphicsSignalSemaphores;
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
-
+		VulkanExampleBase::prepareFrame();
+		updateUniformBuffers();
+		buildGraphicsCommandBuffer();
 		VulkanExampleBase::submitFrame();
 	}
 
