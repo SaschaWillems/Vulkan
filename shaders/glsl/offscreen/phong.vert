@@ -26,6 +26,6 @@ void main()
 	outLightVec = normalize(ubo.lightPos.xyz - outEyePos);
 
 	// Clip against reflection plane
-	vec4 clipPlane = vec4(0.0, -1.0, 0.0, 0.0);	
+	vec4 clipPlane = vec4(0.0, 0.0, 0.0, 0.0);	
 	gl_ClipDistance[0] = dot(vec4(inPos, 1.0), clipPlane);	
 }
