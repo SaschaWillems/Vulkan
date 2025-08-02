@@ -179,6 +179,7 @@ VkResult VulkanExampleBase::createInstance()
 	return result;
 }
 
+// @todo: Only used by few examples, can be removed when new sync is fully in place
 void VulkanExampleBase::renderFrame()
 {
 	VulkanExampleBase::prepareFrame();
@@ -800,17 +801,19 @@ void VulkanExampleBase::prepareFrame()
 	}
 }
 
-void VulkanExampleBase::submitFrame()
+void VulkanExampleBase::submitFrame(bool skipQueueSubmit)
 {
 	if (useNewSync) {
-		submitInfo.commandBufferCount = 1;
 		// @todo: make this an argument
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentBuffer];
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
-		submitInfo.signalSemaphoreCount = 1;
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+		if (!skipQueueSubmit) {
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+			submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentBuffer];
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
+			submitInfo.signalSemaphoreCount = 1;
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+		}
 
 		VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 		presentInfo.waitSemaphoreCount = 1;
@@ -1208,6 +1211,7 @@ bool VulkanExampleBase::initVulkan()
 	// Set up submit info structure
 	// Semaphores will stay the same during application lifetime
 	// Command buffer submission info is set by each example
+	// @todo: Rework when new sync is fully in place, feels odd building/setting this up in multiple places
 	submitInfo = vks::initializers::submitInfo();
 	submitInfo.pWaitDstStageMask = &submitPipelineStages;
 	submitInfo.waitSemaphoreCount = 1;

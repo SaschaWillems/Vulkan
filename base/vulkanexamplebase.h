@@ -416,7 +416,8 @@ public:
 	/** Prepare the next frame for workload submission by acquiring the next swap chain image and waiting for the previous command buffer to finish */
 	void prepareFrame();
 	/** @brief Presents the current image to the swap chain */
-	void submitFrame();
+	// @todo: rework once new sync is in place, maybe overload with submission info
+	void submitFrame(bool skipQueueSubmit = false);
 	/** @brief (Virtual) Default image acquire + submission and command buffer submission function */
 	virtual void renderFrame();
 
