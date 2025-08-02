@@ -26,7 +26,7 @@ public:
 
 	struct Cube {
 		vks::Texture2D texture;
-		std::vector<vks::Buffer> uniformBuffers;
+		std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 		glm::vec3 rotation;
 		glm::mat4 modelMat;
 	};
@@ -38,7 +38,7 @@ public:
 		glm::mat4 projection;
 		glm::mat4 view;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
@@ -55,11 +55,6 @@ public:
 		// Enable extension required for push descriptors
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
-
-		uniformBuffers.resize(maxConcurrentFrames);
-		for (auto& cube : cubes) {
-			cube.uniformBuffers.resize(maxConcurrentFrames);
-		}
 	}
 
 	~VulkanExample()

@@ -64,7 +64,7 @@ public:
 		// Size of the particle buffer in bytes
 		size_t size{ 0 };
 	};
-	std::vector<ParticleBuffer> particleBuffers;
+	std::array<ParticleBuffer, maxConcurrentFrames> particleBuffers;
 
 	struct UniformBuffers {
 		vks::Buffer particles;
@@ -72,7 +72,7 @@ public:
 		VkDescriptorSet particlesDescriptor{ VK_NULL_HANDLE };
 		VkDescriptorSet environmentDescriptor{ VK_NULL_HANDLE };
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct UniformDataParticles {
 		glm::mat4 projection;
@@ -216,7 +216,6 @@ public:
 		}
 
 		// One buffer per concurrent frame, so we can update one frame while the other is still rendering
-		particleBuffers.resize(maxConcurrentFrames);
 		for (auto& buffer : particleBuffers) {
 			buffer.size = particles.size() * sizeof(Particle);
 
@@ -449,7 +448,6 @@ public:
 	// Prepare and initialize uniform buffers containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		uniformBuffers.resize(maxConcurrentFrames);
 		for (auto& buffer : uniformBuffers) {
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.particles, sizeof(UniformDataParticles)));
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.environment, sizeof(UniformDataEnvironment)));
