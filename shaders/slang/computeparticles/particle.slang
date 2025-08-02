@@ -27,8 +27,10 @@ struct Particle
 	float2 vel;
 	float4 gradientPos;
 };
-// Binding 0 : Position storage buffer
-[[vk::binding(0, 0)]] RWStructuredBuffer<Particle> particles;
+// Previous particles storage buffer
+[[vk::binding(0, 0)]] RWStructuredBuffer<Particle> particlesIn;
+// Current particles storage buffer
+[[vk::binding(1, 0)]] RWStructuredBuffer<Particle> particlesOut;
 
 struct UBO
 {
@@ -37,7 +39,7 @@ struct UBO
 	float destY;
 	int particleCount;
 };
-[[vk::binding(1, 0)]] ConstantBuffer<UBO> ubo;
+[[vk::binding(2, 0)]] ConstantBuffer<UBO> ubo;
 
 struct PushConsts
 {
@@ -90,9 +92,10 @@ void computeMain(uint3 GlobalInvocationID : SV_DispatchThreadID)
         return;
     }
 
-    // Read position and velocity
-    float2 vVel = particles[index].vel.xy;
-    float2 vPos = particles[index].pos.xy;
+    // Read position and velocity from previous frame
+    float2 vVel = particlesIn[index].vel.xy;
+    float2 vPos = particlesIn[index].pos.xy;
+    float4 gPos = particlesIn[index].gradientPos;
 
     float2 destPos = float2(ubo.destX, ubo.destY);
 
@@ -107,14 +110,14 @@ void computeMain(uint3 GlobalInvocationID : SV_DispatchThreadID)
     if ((vPos.x < -1.0) || (vPos.x > 1.0) || (vPos.y < -1.0) || (vPos.y > 1.0)) {
         vVel = (-vVel * 0.1) + attraction(vPos, destPos) * 12;
     } else {
-        particles[index].pos.xy = vPos;
+        particlesOut[index].pos.xy = vPos;
     }
 
     // Write back
-    particles[index].vel.xy = vVel;
-    particles[index].gradientPos.x += 0.02 * ubo.deltaT;
-    if (particles[index].gradientPos.x > 1.0) {
-        particles[index].gradientPos.x -= 1.0;
+    particlesOut[index].vel.xy = vVel;
+    particlesOut[index].gradientPos.x = gPos.x + 0.02 * ubo.deltaT;
+    if (particlesOut[index].gradientPos.x > 1.0) {
+        particlesOut[index].gradientPos.x -= 1.0;
     }
 }
 

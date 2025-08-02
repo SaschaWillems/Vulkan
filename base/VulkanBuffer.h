@@ -3,7 +3,7 @@
 *
 * Encapsulates a Vulkan buffer
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -34,6 +34,7 @@ namespace vks
 		VkBufferUsageFlags usageFlags;
 		/** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
 		VkMemoryPropertyFlags memoryPropertyFlags;
+		uint64_t deviceAddress;
 		VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 		void unmap();
 		VkResult bind(VkDeviceSize offset = 0);

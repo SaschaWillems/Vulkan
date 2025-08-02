@@ -75,6 +75,8 @@
 #include "camera.hpp"
 #include "benchmark.hpp"
 
+constexpr uint32_t maxConcurrentFrames{ 2 };
+
 class VulkanExampleBase
 {
 private:
@@ -158,6 +160,13 @@ protected:
 		VkSemaphore renderComplete;
 	} semaphores{};
 	std::vector<VkFence> waitFences;
+
+	// This sample will be using a new synchronisation setup, which is closer to what should be used with Vulkan
+	bool useNewSync{ false };
+	uint32_t currentImageIndex{ 0 };
+	std::vector<VkSemaphore> presentCompleteSemaphores{};
+	std::vector<VkSemaphore> renderCompleteSemaphores{};
+
 	bool requiresStencil{ false };
 public:
 	bool prepared = false;
@@ -404,10 +413,11 @@ public:
 	/** @brief Adds the drawing commands for the ImGui overlay to the given command buffer */
 	void drawUI(const VkCommandBuffer commandBuffer);
 
-	/** Prepare the next frame for workload submission by acquiring the next swap chain image */
+	/** Prepare the next frame for workload submission by acquiring the next swap chain image and waiting for the previous command buffer to finish */
 	void prepareFrame();
 	/** @brief Presents the current image to the swap chain */
-	void submitFrame();
+	// @todo: rework once new sync is in place, maybe overload with submission info
+	void submitFrame(bool skipQueueSubmit = false);
 	/** @brief (Virtual) Default image acquire + submission and command buffer submission function */
 	virtual void renderFrame();
 

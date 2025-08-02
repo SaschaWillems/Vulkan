@@ -6,12 +6,6 @@ layout (location = 1) in vec4 inGradientPos;
 layout (location = 0) out vec4 outColor;
 layout (location = 1) out float outGradientPos;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-	float gl_PointSize;
-};
-
 void main () 
 {
   gl_PointSize = 8.0;

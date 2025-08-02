@@ -1,3 +1,9 @@
+/* Copyright (c) 2016-2025, Sascha Willems
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ */
+
 #version 450
 
 struct Particle
@@ -7,15 +13,17 @@ struct Particle
 	vec4 gradientPos;
 };
 
-// Binding 0 : Position storage buffer
-layout(std140, binding = 0) buffer Pos 
-{
-   Particle particles[ ];
+layout(std140, binding = 0) readonly buffer ParticleSSBOIn {
+   Particle particlesIn[ ];
+};
+
+layout(std140, binding = 1) buffer ParticleSSBOOut {
+   Particle particlesOut[ ];
 };
 
 layout (local_size_x = 256) in;
 
-layout (binding = 1) uniform UBO 
+layout (binding = 2) uniform UBO 
 {
 	float deltaT;
 	float destX;
@@ -48,9 +56,10 @@ void main()
     if (index >= ubo.particleCount) 
 		return;	
 
-    // Read position and velocity
-    vec2 vVel = particles[index].vel.xy;
-    vec2 vPos = particles[index].pos.xy;
+    // Read position and velocity from previous frame
+    vec2 vVel = particlesIn[index].vel.xy;
+    vec2 vPos = particlesIn[index].pos.xy;
+    vec4 gPos = particlesIn[index].gradientPos;
 
     vec2 destPos = vec2(ubo.destX, ubo.destY);
 
@@ -65,12 +74,12 @@ void main()
     if ((vPos.x < -1.0) || (vPos.x > 1.0) || (vPos.y < -1.0) || (vPos.y > 1.0))
     	vVel = (-vVel * 0.1) + attraction(vPos, destPos) * 12;
     else
-    	particles[index].pos.xy = vPos;
+    	particlesOut[index].pos.xy = vPos;
 
     // Write back
-    particles[index].vel.xy = vVel;
-	particles[index].gradientPos.x += 0.02 * ubo.deltaT;
-	if (particles[index].gradientPos.x > 1.0)
-		particles[index].gradientPos.x -= 1.0;
+    particlesOut[index].vel.xy = vVel;
+	particlesOut[index].gradientPos.x = gPos.x + 0.02 * ubo.deltaT;
+	if (particlesOut[index].gradientPos.x > 1.0)
+		particlesOut[index].gradientPos.x -= 1.0;
 }
 
