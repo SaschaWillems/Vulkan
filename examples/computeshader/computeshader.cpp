@@ -31,7 +31,7 @@ public:
 			VkDescriptorSet preCompute{ VK_NULL_HANDLE };				// Image display shader bindings before compute shader image manipulation
 			VkDescriptorSet postCompute{ VK_NULL_HANDLE };				// Image display shader bindings after compute shader image manipulation
 		};
-		std::vector<DescriptorSets> descriptorSets;
+		std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };				// Layout of the graphics pipeline
 		VkPipeline pipeline{ VK_NULL_HANDLE };							// Image display pipeline
 		// Used to pass data to the graphics shaders
@@ -39,15 +39,15 @@ public:
 			glm::mat4 projection;
 			glm::mat4 modelView;
 		} uniformData;
-		std::vector<vks::Buffer> uniformBuffers;
+		std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 	} graphics;
 
 	// Resources for the compute part of the example
 	struct Compute {
 		VkQueue queue{ VK_NULL_HANDLE };								// Separate queue for compute commands (queue family may differ from the one used for graphics)
 		VkCommandPool commandPool{ VK_NULL_HANDLE };					// Use a separate command pool (queue family may differ from the one used for graphics)
-		std::vector<VkCommandBuffer> commandBuffers;					// Command buffers storing the dispatch commands and barriers
-		std::vector<VkFence> fences;									// Synchronization fence to avoid rewriting compute CB if still in use
+		std::array<VkCommandBuffer, maxConcurrentFrames> commandBuffers;// Command buffers storing the dispatch commands and barriers
+		std::array<VkFence, maxConcurrentFrames> fences;				// Synchronization fence to avoid rewriting compute CB if still in use
 		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };	// Compute shader binding layout
 		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };				// Compute shader bindings
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };				// Layout of the compute pipeline
@@ -70,8 +70,6 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -2.0f));
 		camera.setRotation(glm::vec3(0.0f));
 		camera.setPerspective(60.0f, (float)width * 0.5f / (float)height, 1.0f, 256.0f);
-		graphics.uniformBuffers.resize(maxConcurrentFrames);
-		graphics.descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()
@@ -348,14 +346,12 @@ public:
 		// Some objects need to be duplicated per frames in flight
 
 		// Create command buffers for compute operations
-		compute.commandBuffers.resize(maxConcurrentFrames);
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
 		for (auto& commandBuffer : compute.commandBuffers) {
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer));
 		}
 
 		// Fences for compute CB sync
-		compute.fences.resize(maxConcurrentFrames);
 		for (auto& fence : compute.fences) {
 			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));

@@ -24,7 +24,7 @@ public:
 		glm::mat4 model;
 		glm::vec4 lightPos = glm::vec4(0.0f, 5.0f, 15.0f, 1.0f);
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	struct Pipelines {
 		VkPipeline toonshading;
@@ -35,7 +35,7 @@ public:
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -74,8 +74,6 @@ public:
 		camera.setRotationSpeed(0.5f);
 		camera.setPosition(glm::vec3(0.1f, 1.1f, -8.5f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	// Enable physical device features required for this example

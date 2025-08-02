@@ -38,7 +38,7 @@ public:
 		vks::Buffer scene;
 		vks::Buffer offscreen;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipeline scene{ VK_NULL_HANDLE };
@@ -55,7 +55,7 @@ public:
 		VkDescriptorSet scene{ VK_NULL_HANDLE };
 		VkDescriptorSet offscreen{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
@@ -93,8 +93,6 @@ public:
 		camera.setRotation(glm::vec3(-20.5f, -673.0f, 0.0f));
 		camera.setPosition(glm::vec3(0.0f, 0.5f, -15.0f));
 		timerSpeed *= 0.5f;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

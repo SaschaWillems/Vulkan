@@ -27,7 +27,7 @@ public:
 			float r, g, b;
 			float ambient;
 		} material;
-		std::vector<VkDescriptorSet> descriptorSets;
+		std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 		void setRandomMaterial(bool applyRandomSeed) {
 			std::random_device rndDevice;
 			std::default_random_engine rndEngine(applyRandomSeed ? rndDevice() : 0);
@@ -48,7 +48,7 @@ public:
 		glm::mat4 view;
 		glm::vec3 camPos;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline pipeline{ VK_NULL_HANDLE };
@@ -57,7 +57,7 @@ public:
 		VkDescriptorSetLayout scene{ VK_NULL_HANDLE };
 		VkDescriptorSetLayout object{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	bool doUpdateMaterials{ false };
 
@@ -71,8 +71,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.movementSpeed = 4.0f;
 		camera.rotationSpeed = 0.25f;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 
 		/*
 			[POI] Enable extensions required for inline uniform blocks
@@ -160,7 +158,6 @@ public:
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 			// Objects with inline uniform blocks
 			for (auto& object : objects) {
-				object.descriptorSets.resize(maxConcurrentFrames);
 				VkDescriptorSetAllocateInfo descriptorAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.object, 1);
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &object.descriptorSets[i]));
 

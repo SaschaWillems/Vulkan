@@ -20,11 +20,11 @@ public:
 		glm::mat4 modelView;
 		glm::vec4 lightPos = glm::vec4(0.0f, 2.0f, 1.0f, 0.0f);
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VkShaderEXT shaders[2]{};
 
@@ -98,9 +98,6 @@ public:
 		enabledDynamicRenderingFeaturesKHR.pNext = &enabledShaderObjectFeaturesEXT;
 
 		deviceCreatepNextChain = &enabledDynamicRenderingFeaturesKHR;
-
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

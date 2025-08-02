@@ -24,14 +24,14 @@ public:
 		glm::mat4 model;
 		glm::vec3 lightPos;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	vkglTF::Model scene;
 
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VulkanRaytracingSample::AccelerationStructure bottomLevelAS{};
 	VulkanRaytracingSample::AccelerationStructure topLevelAS{};
@@ -47,8 +47,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 3.0f, -10.0f));
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 		rayQueryOnly = true;
 		enableExtensions();
 		enabledDeviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);

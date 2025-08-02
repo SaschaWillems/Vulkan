@@ -85,12 +85,12 @@ public:
 		glm::vec4 viewPos;
 		float lodBias = 0.0f;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	//todo: comment
 	VkSemaphore bindSparseSemaphore{ VK_NULL_HANDLE };

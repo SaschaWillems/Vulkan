@@ -35,7 +35,7 @@ public:
 		glm::mat4 projection;
 		glm::mat4 model;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	struct PipelineLayouts {
 		VkPipelineLayout scene{ VK_NULL_HANDLE };
@@ -58,7 +58,7 @@ public:
 		VkDescriptorSet scene{ VK_NULL_HANDLE };
 		VkDescriptorSet fullscreen{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -83,8 +83,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -2.0f));
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 
 		// Enable extension required for conservative rasterization
 		enabledDeviceExtensions.push_back(VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME);

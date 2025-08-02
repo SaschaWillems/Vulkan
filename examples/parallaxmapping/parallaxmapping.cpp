@@ -42,12 +42,12 @@ public:
 		vks::Buffer vertexShader;
 		vks::Buffer fragmentShader;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	const std::vector<std::string> mappingModes = {
 		"Color only",
@@ -66,8 +66,6 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 1.25f, -1.5f));
 		camera.setRotation(glm::vec3(-45.0f, 0.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

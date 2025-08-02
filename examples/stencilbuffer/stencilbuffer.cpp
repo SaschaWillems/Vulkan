@@ -21,7 +21,7 @@ public:
 		// Vertex shader extrudes model by this value along normals for outlining
 		float outlineWidth = 0.025f;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipeline stencil{ VK_NULL_HANDLE };
@@ -30,7 +30,7 @@ public:
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -43,9 +43,6 @@ public:
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -2.0f));
 		// This samples requires a format that supports depth AND stencil, which will be handled by the base class
 		requiresStencil = true;
-
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

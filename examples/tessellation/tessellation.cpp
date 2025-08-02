@@ -27,7 +27,7 @@ public:
 		float tessAlpha = 1.0f;
 		float tessLevel = 3.0f;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	struct Pipelines {
 		VkPipeline solid{ VK_NULL_HANDLE };
@@ -38,7 +38,7 @@ public:
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -48,8 +48,6 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.0f));
 		camera.setRotation(glm::vec3(-350.0f, 60.0f, 0.0f));
 		camera.setPerspective(45.0f, (float)(width * ((splitScreen) ? 0.5f : 1.0f)) / (float)height, 0.1f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

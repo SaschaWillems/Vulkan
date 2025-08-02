@@ -49,7 +49,7 @@ public:
 		vks::Buffer GBuffer;
 		vks::Buffer lights;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipeline offscreen;
@@ -74,7 +74,7 @@ public:
 		VkDescriptorSet composition;
 		VkDescriptorSet transparent;
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	// G-Buffer framebuffer attachments
 	struct FrameBufferAttachment {
@@ -102,8 +102,6 @@ public:
 		camera.setRotation(glm::vec3(0.5f, 210.05f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		ui.subpass = 2;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 
 		enabledFeatures.fragmentStoresAndAtomics = VK_TRUE;
 	}

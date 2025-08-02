@@ -37,7 +37,7 @@ public:
 		glm::mat4 inverseModelview;
 		float exposure{ 1.0f };
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipelineLayout models{ VK_NULL_HANDLE };
@@ -65,7 +65,7 @@ public:
 		VkDescriptorSet composition{ VK_NULL_HANDLE };
 		VkDescriptorSet bloomFilter{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets{};
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -105,8 +105,6 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -6.0f));
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()
@@ -436,7 +434,7 @@ public:
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames * 2),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxConcurrentFrames * 5)
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxConcurrentFrames * 6)
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), maxConcurrentFrames * 4);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));

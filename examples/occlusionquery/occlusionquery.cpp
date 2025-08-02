@@ -24,7 +24,7 @@ public:
 		vks::Buffer teapot;
 		vks::Buffer sphere;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct UniformData {
 		glm::mat4 projection;
@@ -49,7 +49,7 @@ public:
 		VkDescriptorSet teapot;
 		VkDescriptorSet sphere;
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	// Pool that stores all occlusion queries
 	VkQueryPool queryPool;
@@ -66,8 +66,6 @@ public:
 		camera.setRotation(glm::vec3(0.0f, -123.75f, 0.0f));
 		camera.setRotationSpeed(0.5f);
 		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

@@ -40,7 +40,7 @@ public:
 		vks::Buffer skybox;
 		vks::Buffer params;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct UniformDataMatrices {
 		glm::mat4 projection;
@@ -66,7 +66,7 @@ public:
 		VkDescriptorSet scene{ VK_NULL_HANDLE };
 		VkDescriptorSet skybox{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -78,8 +78,6 @@ public:
 		camera.rotationSpeed = 0.25f;
 		camera.setRotation({ -7.75f, 150.25f, 0.0f });
 		camera.setPosition({ 0.7f, 0.1f, 1.7f });
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

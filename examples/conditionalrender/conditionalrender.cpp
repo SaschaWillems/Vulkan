@@ -27,15 +27,15 @@ public:
 		glm::mat4 view;
 		glm::mat4 model;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	std::vector<int32_t> conditionalVisibility{};
-	std::vector<vks::Buffer> conditionalBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> conditionalBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -46,8 +46,6 @@ public:
 		camera.setRotation(glm::vec3(-2.25f, -52.0f, 0.0f));
 		camera.setTranslation(glm::vec3(1.9f, -2.05f, -18.0f));
 		camera.rotationSpeed *= 0.25f;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 
 		/*
 			[POI] Enable extension required for conditional rendering
@@ -246,7 +244,6 @@ public:
 			This sample renders multiple rows of objects conditionally, so we setup a buffer with one value per row
 			As buffers are written by the CPU and read by the GPU, we need one buffer per frame in flight
 		*/
-		conditionalBuffers.resize(maxConcurrentFrames);
 		for (auto& buffer : conditionalBuffers) {
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(
 				VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT,

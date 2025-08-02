@@ -142,7 +142,7 @@ public:
 		glm::vec4 lightPos = glm::vec4(0.0f, 2.5f, 0.0f, 1.0f);
 		glm::vec4 viewPos;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 
@@ -150,7 +150,7 @@ public:
 		VkDescriptorSetLayout matrices{ VK_NULL_HANDLE };
 		VkDescriptorSetLayout textures{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample();
 	~VulkanExample();

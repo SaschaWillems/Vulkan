@@ -41,7 +41,7 @@ public:
 
 	// We use a shader storage buffer object to store the particlces
 	// This is updated by the compute pipeline and displayed as a vertex buffer by the graphics pipeline
-	std::vector<vks::Buffer> storageBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> storageBuffers;
 
 	// Resources for the graphics part of the example
 	struct Graphics {
@@ -54,20 +54,20 @@ public:
 
 	// Resources for the compute part of the example
 	struct Compute {
-		uint32_t queueFamilyIndex;					// Used to check if compute and graphics queue families differ and require additional barriers
-		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
-		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
-		std::vector<VkCommandBuffer> commandBuffers;// Command buffer storing the dispatch commands and barriers
-		std::vector<VkFence> fences;				// Synchronization fence to avoid rewriting compute CB if still in use
-		VkDescriptorSetLayout descriptorSetLayout;	// Compute shader binding layout
-		std::vector<VkDescriptorSet> descriptorSets;// Compute shader bindings
-		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
-		VkPipeline pipeline;						// Compute pipeline for updating particle positions
-		std::vector<vks::Buffer> uniformBuffers;	// Uniform buffer object containing particle system parameters
-		struct UniformData {						// Compute shader uniform block object
-			float deltaT;							//		Frame delta time
-			float destX;							//		x position of the attractor
-			float destY;							//		y position of the attractor
+		uint32_t queueFamilyIndex;											// Used to check if compute and graphics queue families differ and require additional barriers
+		VkQueue queue;														// Separate queue for compute commands (queue family may differ from the one used for graphics)
+		VkCommandPool commandPool;											// Use a separate command pool (queue family may differ from the one used for graphics)
+		std::array<VkCommandBuffer, maxConcurrentFrames> commandBuffers;	// Command buffer storing the dispatch commands and barriers
+		std::array<VkFence, maxConcurrentFrames> fences;					// Synchronization fence to avoid rewriting compute CB if still in use
+		VkDescriptorSetLayout descriptorSetLayout;							// Compute shader binding layout
+		std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};	// Compute shader bindings
+		VkPipelineLayout pipelineLayout;									// Layout of the compute pipeline
+		VkPipeline pipeline;												// Compute pipeline for updating particle positions
+		std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;		// Uniform buffer object containing particle system parameters
+		struct UniformData {												// Compute shader uniform block object
+			float deltaT;													//		Frame delta time
+			float destX;													//		x position of the attractor
+			float destY;													//		y position of the attractor
 			int32_t particleCount = PARTICLE_COUNT;
 		} uniformData{};
 	} compute{};
@@ -76,11 +76,6 @@ public:
 	{
 		useNewSync = true;
 		title = "Compute shader particle system";
-		storageBuffers.resize(maxConcurrentFrames);
-		compute.uniformBuffers.resize(maxConcurrentFrames);
-		compute.descriptorSets.resize(maxConcurrentFrames);
-		compute.commandBuffers.resize(maxConcurrentFrames);
-		compute.fences.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()
@@ -296,14 +291,12 @@ public:
 		// Some objects need to be duplicated per frames in flight
 
 		// Create command buffers for compute operations
-		compute.commandBuffers.resize(maxConcurrentFrames);
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
 		for (auto& commandBuffer : compute.commandBuffers) {
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer));
 		}
 
 		// Fences for compute CB sync
-		compute.fences.resize(maxConcurrentFrames);
 		for (auto& fence : compute.fences) {
 			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));

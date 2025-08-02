@@ -59,7 +59,7 @@ public:
 		vks::Buffer offscreen;
 		vks::Buffer composition;
 	};
-	std::vector<UniformBuffes> uniformBuffers;
+	std::array<UniformBuffes, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipeline deferred{ VK_NULL_HANDLE };					// Deferred lighting calculation
@@ -74,7 +74,7 @@ public:
 		VkDescriptorSet background{ VK_NULL_HANDLE };
 		VkDescriptorSet composition{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
@@ -92,8 +92,6 @@ public:
 		camera.position = { 2.15f, 0.3f, -8.75f };
 		camera.setRotation(glm::vec3(-0.75f, 12.5f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

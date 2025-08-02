@@ -67,7 +67,7 @@ public:
 		// Per-cascade matrices will be passed to the shaders as a linear array
 		vks::Buffer cascadeViewProjMatrices;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	struct Pipelines {
@@ -77,7 +77,7 @@ public:
 	} pipelines;
 
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	// For simplicity all pipelines use the same push constant block layout
 	struct PushConstBlock {
@@ -130,8 +130,6 @@ public:
 		camera.setPosition(glm::vec3(-0.12f, 1.14f, -2.25f));
 		camera.setRotation(glm::vec3(-17.0f, 7.0f, 0.0f));
 		timer = 0.2f;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

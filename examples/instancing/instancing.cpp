@@ -51,7 +51,7 @@ public:
 		float locSpeed = 0.0f;
 		float globSpeed = 0.0f;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	struct {
@@ -65,7 +65,7 @@ public:
 		VkDescriptorSet instancedRocks{ VK_NULL_HANDLE };
 		VkDescriptorSet staticObjects{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -75,8 +75,6 @@ public:
 		camera.setPosition(glm::vec3(5.5f, -1.85f, -18.5f));
 		camera.setRotation(glm::vec3(-17.2f, -4.7f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

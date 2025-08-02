@@ -26,7 +26,7 @@ public:
 		glm::mat4 modelview;
 		glm::vec4 lightPos{ -10.0f, -10.0f, 10.0f, 1.0f };
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	int32_t cullMode{ VK_CULL_MODE_BACK_BIT };
 	bool blending{ false };
@@ -37,7 +37,7 @@ public:
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VkQueryPool queryPool{ VK_NULL_HANDLE };
 
@@ -55,8 +55,7 @@ public:
 		camera.movementSpeed = 4.0f;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		camera.rotationSpeed = 0.25f;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
+
 	}
 
 	~VulkanExample()

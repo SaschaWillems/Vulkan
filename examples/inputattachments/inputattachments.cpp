@@ -34,7 +34,7 @@ public:
 		vks::Buffer matrices;
 		vks::Buffer params;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipelineLayout attachmentWrite{ VK_NULL_HANDLE };
@@ -55,7 +55,7 @@ public:
 		VkDescriptorSet attachmentWrite{ VK_NULL_HANDLE };
 		VkDescriptorSet attachmentRead{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets{};
 
 	struct FrameBufferAttachment {
 		VkImage image{ VK_NULL_HANDLE };
@@ -80,8 +80,6 @@ public:
 		camera.setRotation(glm::vec3(-12.75f, 380.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
 		ui.subpass = 1;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

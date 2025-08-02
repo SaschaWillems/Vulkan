@@ -35,7 +35,7 @@ public:
 		// Used by the fragment shader to select the cubemap from the array cubemap
 		int cubeMapIndex = 1;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipeline skybox{ VK_NULL_HANDLE };
@@ -44,7 +44,7 @@ public:
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	std::vector<std::string> objectNames;
 
@@ -56,8 +56,6 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.0f));
 		camera.setRotationSpeed(0.25f);
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

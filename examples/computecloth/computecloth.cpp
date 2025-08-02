@@ -53,7 +53,7 @@ public:
 	// Resources for the graphics part of the example
 	struct Graphics {
 		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+		std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 		struct Pipelines {
 			VkPipeline cloth{ VK_NULL_HANDLE };
@@ -66,21 +66,21 @@ public:
 			glm::mat4 view;
 			glm::vec4 lightPos{ -2.0f, 4.0f, -2.0f, 1.0f };
 		} uniformData;
-		vks::Buffer uniformBuffer;
+		std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 	} graphics;
 
 	// Resources for the compute part of the example
 	// Number of compute command buffers: set to 1 for serialized processing or 2 for in-parallel with graphics queue
-	static constexpr size_t computeCommandBufferCount = 2 ;
 	struct Compute {
 		typedef struct Semaphores_t {
 			VkSemaphore ready{ VK_NULL_HANDLE };
 			VkSemaphore complete{ VK_NULL_HANDLE };
 		} semaphores_t;
-		std::array<semaphores_t, computeCommandBufferCount> semaphores{};
+		std::array<semaphores_t, maxConcurrentFrames> semaphores{};
+		std::array<VkFence, maxConcurrentFrames> fences{};
 		VkQueue queue{ VK_NULL_HANDLE };
 		VkCommandPool commandPool{ VK_NULL_HANDLE };
-		std::array<VkCommandBuffer, computeCommandBufferCount> commandBuffers{};
+		std::array<VkCommandBuffer, maxConcurrentFrames> commandBuffers{};
 		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 		std::array<VkDescriptorSet, 2> descriptorSets{ VK_NULL_HANDLE };
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
@@ -100,16 +100,19 @@ public:
 			glm::vec4 gravity{ 0.0f, 9.8f, 0.0f, 0.0f };
 			glm::ivec2 particleCount{ 0 };
 		} uniformData;
+		// @todo: no need to duplicate? Only set up once
 		vks::Buffer uniformBuffer;
 	} compute;
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		useNewSync = true;
 		title = "Compute shader cloth simulation";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-30.0f, -45.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -5.0f));
+		settings.overlay = false;
 	}
 
 	~VulkanExample()
@@ -117,7 +120,9 @@ public:
 		if (device) {
 			// Graphics
 			graphics.indices.destroy();
-			graphics.uniformBuffer.destroy();
+			for (auto& buffer : graphics.uniformBuffers) {
+				buffer.destroy();
+			}
 			vkDestroyPipeline(device, graphics.pipelines.cloth, nullptr);
 			vkDestroyPipeline(device, graphics.pipelines.sphere, nullptr);
 			vkDestroyPipelineLayout(device, graphics.pipelineLayout, nullptr);
@@ -239,113 +244,6 @@ public:
 		}
 	}
 
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			// Acquire storage buffers from compute queue
-			addComputeToGraphicsBarriers(drawCmdBuffers[i], 0, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT);
-
-			// Draw the particle system using the update vertex buffer
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-			VkDeviceSize offsets[1] = { 0 };
-
-			// Render sphere
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelines.sphere);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, NULL);
-			modelSphere.draw(drawCmdBuffers[i]);
-
-			// Render cloth
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelines.cloth);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSet, 0, NULL);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], graphics.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &storageBuffers.output.buffer, offsets);
-			vkCmdDrawIndexed(drawCmdBuffers[i], indexCount, 1, 0, 0, 0);
-
-			drawUI(drawCmdBuffers[i]);
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			// release the storage buffers to the compute queue
-			addGraphicsToComputeBarriers(drawCmdBuffers[i], VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
-
-	}
-
-	void buildComputeCommandBuffer()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-		cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-		for (uint32_t i = 0; i < compute.commandBuffers.size(); i++) {
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffers[i], &cmdBufInfo));
-
-			// Acquire the storage buffers from the graphics queue
-			addGraphicsToComputeBarriers(compute.commandBuffers[i], 0, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-			vkCmdBindPipeline(compute.commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
-
-			uint32_t calculateNormals = 0;
-			vkCmdPushConstants(compute.commandBuffers[i], compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &calculateNormals);
-
-			// Dispatch the compute job
-			// SRS - Iterations **must** be an even number, so that readSet starts at 1 and the final result ends up in output.buffer with readSet equal to 0
-			const uint32_t iterations = 64;
-			for (uint32_t j = 0; j < iterations; j++) {
-				readSet = 1 - readSet;
-				vkCmdBindDescriptorSets(compute.commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSets[readSet], 0, 0);
-
-				if (j == iterations - 1) {
-					calculateNormals = 1;
-					vkCmdPushConstants(compute.commandBuffers[i], compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &calculateNormals);
-				}
-
-				vkCmdDispatch(compute.commandBuffers[i], cloth.gridsize.x / 10, cloth.gridsize.y / 10, 1);
-
-				// Don't add a barrier on the last iteration of the loop, since we'll have an explicit release to the graphics queue
-				if (j != iterations - 1) {
-					addComputeToComputeBarriers(compute.commandBuffers[i], readSet);
-				}
-
-			}
-
-			// release the storage buffers back to the graphics queue
-			addComputeToGraphicsBarriers(compute.commandBuffers[i], VK_ACCESS_SHADER_WRITE_BIT, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-			vkEndCommandBuffer(compute.commandBuffers[i]);
-		}
-	}
-
 	// Setup and fill the shader storage buffers containing the particles
 	// These buffers are used as shader storage buffers in the compute shader (to update them) and as vertex input in the vertex shader (to display them)
 	void prepareStorageBuffers()
@@ -446,17 +344,19 @@ public:
 	// Prepare the resources used for the graphics part of the sample
 	void prepareGraphics()
 	{
-		// Uniform buffer for passing data to the vertex shader
-		vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &graphics.uniformBuffer, sizeof(Graphics::UniformData));
-		VK_CHECK_RESULT(graphics.uniformBuffer.map());
+		// Uniform buffers for passing data to the vertex shader
+		for (auto& buffer : graphics.uniformBuffers) {
+			vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(Graphics::UniformData));
+			VK_CHECK_RESULT(buffer.map());
+		}
 
 		// Descriptor pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames * 3),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, maxConcurrentFrames * 4),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxConcurrentFrames * 2)
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 3);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames * 3);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Descriptor layout
@@ -467,14 +367,16 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &graphics.descriptorSetLayout));
 
-		// Decscriptor set
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &graphics.descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &graphics.descriptorSet));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(graphics.descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &graphics.uniformBuffer.descriptor),
-			vks::initializers::writeDescriptorSet(graphics.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureCloth.descriptor)
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		// Sets per frame in flight as the uniform buffer is written by the CPU and read by the GPU
+		for (auto i = 0; i < graphics.uniformBuffers.size(); i++) {
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &graphics.descriptorSetLayout, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &graphics.descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(graphics.descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &graphics.uniformBuffers[i].descriptor),
+				vks::initializers::writeDescriptorSet(graphics.descriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureCloth.descriptor)
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 
 		// Layout
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&graphics.descriptorSetLayout, 1);
@@ -541,8 +443,6 @@ public:
 			loadShader(getShadersPath() + "computecloth/sphere.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &graphics.pipelines.sphere));
-
-		buildCommandBuffers();
 	}
 
 	// Prepare the resources used for the compute part of the sample
@@ -623,8 +523,11 @@ public:
 			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &compute.semaphores[i].complete));
 		}
 
-		// Build a single command buffer containing the compute dispatch commands
-		buildComputeCommandBuffer();
+		// @todo
+		for (auto& fence : compute.fences) {
+			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+		}
 	}
 
 	void updateComputeUBO()
@@ -654,7 +557,7 @@ public:
 	{
 		graphics.uniformData.projection = camera.matrices.perspective;
 		graphics.uniformData.view = camera.matrices.view;
-		memcpy(graphics.uniformBuffer.mapped, &graphics.uniformData, sizeof(Graphics::UniformData));
+		memcpy(graphics.uniformBuffers[currentBuffer].mapped, &graphics.uniformData, sizeof(Graphics::UniformData));
 	}
 
 	void draw()
@@ -663,32 +566,42 @@ public:
 		// We'll be using semaphores to synchronize between the compute shader updating the cloth and the graphics pipeline drawing it
 
 		static bool firstDraw = true;
-		static uint32_t computeSubmitIndex{ 0 }, graphicsSubmitIndex{ 0 };
-		if (computeCommandBufferCount > 1)
-		{
-			// SRS - if we are double buffering the compute queue, swap the compute command buffer indices
-			graphicsSubmitIndex = computeSubmitIndex;
-			computeSubmitIndex = 1 - graphicsSubmitIndex;
-		}
+		//static uint32_t computeSubmitIndex{ 0 }, graphicsSubmitIndex{ 0 };
+		//if (maxConcurrentFrames > 1)
+		//{
+		//	// SRS - if we are double buffering the compute queue, swap the compute command buffer indices
+		//	graphicsSubmitIndex = computeSubmitIndex;
+		//	computeSubmitIndex = 1 - graphicsSubmitIndex;
+		//}
+
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
+
+		buildComputeCommandBuffer();
+
+		updateComputeUBO();
 
 		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
 		VkPipelineStageFlags computeWaitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		if (!firstDraw) {
 			computeSubmitInfo.waitSemaphoreCount = 1;
-			computeSubmitInfo.pWaitSemaphores = &compute.semaphores[computeSubmitIndex].ready;
+			computeSubmitInfo.pWaitSemaphores = &compute.semaphores[((int)currentBuffer - 1) % maxConcurrentFrames].ready;
 			computeSubmitInfo.pWaitDstStageMask = &computeWaitDstStageMask;
 		}
 		else {
 			firstDraw = false;
-			if (computeCommandBufferCount > 1)
+			if (maxConcurrentFrames > 1)
 			{
 				// SRS - if we are double buffering the compute queue, submit extra command buffer at start
 				computeSubmitInfo.signalSemaphoreCount = 1;
-				computeSubmitInfo.pSignalSemaphores = &compute.semaphores[graphicsSubmitIndex].complete;
+				computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer].complete;
 				computeSubmitInfo.commandBufferCount = 1;
-				computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[graphicsSubmitIndex];
+				computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
 
-				VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
+				VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
+
+				VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
+				VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
 
 				// Add an extra set of acquire and release barriers to the graphics queue,
 				// so that when the second compute command buffer executes for the first time
@@ -697,26 +610,31 @@ public:
 				addComputeToGraphicsBarriers(barrierCmd, 0, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT);
 				addGraphicsToComputeBarriers(barrierCmd, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 				vulkanDevice->flushCommandBuffer(barrierCmd, queue, true);
+
 			}
 		}
 		computeSubmitInfo.signalSemaphoreCount = 1;
-		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[computeSubmitIndex].complete;
+		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer].complete;
 		computeSubmitInfo.commandBufferCount = 1;
-		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[computeSubmitIndex];
+		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
 
-		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
 
 		// Submit graphics commands
 		VulkanExampleBase::prepareFrame();
+
+		updateGraphicsUBO();
+
+		buildGraphicsCommandBuffer();
 
 		VkPipelineStageFlags waitDstStageMask[2] = {
 			submitPipelineStages, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
 		};
 		VkSemaphore waitSemaphores[2] = {
-			semaphores.presentComplete, compute.semaphores[graphicsSubmitIndex].complete
+			semaphores.presentComplete, compute.semaphores[currentBuffer].complete
 		};
 		VkSemaphore signalSemaphores[2] = {
-			semaphores.renderComplete, compute.semaphores[graphicsSubmitIndex].ready
+			semaphores.renderComplete, compute.semaphores[currentBuffer].ready
 		};
 
 		submitInfo.waitSemaphoreCount = 2;
@@ -726,9 +644,9 @@ public:
 		submitInfo.pSignalSemaphores = signalSemaphores;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
 
-		VulkanExampleBase::submitFrame();
+		VulkanExampleBase::submitFrame(true);
 	}
 
 	void prepare()
@@ -748,12 +666,113 @@ public:
 		prepared = true;
 	}
 
+	void buildGraphicsCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		// Acquire storage buffers from compute queue
+		addComputeToGraphicsBarriers(cmdBuffer, 0, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT);
+
+		// Draw the particle system using the update vertex buffer
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		VkDeviceSize offsets[1] = { 0 };
+
+		// Render sphere
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelines.sphere);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSets[currentBuffer], 0, nullptr);
+		modelSphere.draw(cmdBuffer);
+
+		// Render cloth
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelines.cloth);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.pipelineLayout, 0, 1, &graphics.descriptorSets[currentBuffer], 0, nullptr);
+		vkCmdBindIndexBuffer(cmdBuffer, graphics.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &storageBuffers.output.buffer, offsets);
+		vkCmdDrawIndexed(cmdBuffer, indexCount, 1, 0, 0, 0);
+
+		drawUI(cmdBuffer);
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		// release the storage buffers to the compute queue
+		addGraphicsToComputeBarriers(cmdBuffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+	}
+
+	void buildComputeCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = compute.commandBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		// Acquire the storage buffers from the graphics queue
+		addGraphicsToComputeBarriers(cmdBuffer, 0, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
+
+		uint32_t calculateNormals = 0;
+		vkCmdPushConstants(cmdBuffer, compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &calculateNormals);
+
+		// Dispatch the compute job
+		// SRS - Iterations **must** be an even number, so that readSet starts at 1 and the final result ends up in output.buffer with readSet equal to 0
+		const uint32_t iterations = 64;
+		for (uint32_t j = 0; j < iterations; j++) {
+			readSet = 1 - readSet;
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSets[readSet], 0, 0);
+
+			if (j == iterations - 1) {
+				calculateNormals = 1;
+				vkCmdPushConstants(cmdBuffer, compute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &calculateNormals);
+			}
+
+			vkCmdDispatch(cmdBuffer, cloth.gridsize.x / 10, cloth.gridsize.y / 10, 1);
+
+			// Don't add a barrier on the last iteration of the loop, since we'll have an explicit release to the graphics queue
+			if (j != iterations - 1) {
+				addComputeToComputeBarriers(cmdBuffer, readSet);
+			}
+
+		}
+
+		// release the storage buffers back to the graphics queue
+		addComputeToGraphicsBarriers(cmdBuffer, VK_ACCESS_SHADER_WRITE_BIT, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+		vkEndCommandBuffer(cmdBuffer);
+	}
+
 	virtual void render()
 	{
 		if (!prepared)
 			return;
-		updateGraphicsUBO();
-		updateComputeUBO();
 		draw();
 	}
 

@@ -20,7 +20,7 @@ public:
 		glm::mat4 projection;
 		glm::mat4 modelView;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipeline solid{ VK_NULL_HANDLE };
@@ -29,7 +29,7 @@ public:
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -39,8 +39,6 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -1.0f));
 		camera.setRotation(glm::vec3(0.0f, -25.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 128.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

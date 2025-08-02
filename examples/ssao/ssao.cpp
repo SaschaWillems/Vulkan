@@ -67,14 +67,14 @@ public:
 		VkDescriptorSet ssaoBlur{ VK_NULL_HANDLE };
 		VkDescriptorSet composition{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	struct UniformBuffers {
 		vks::Buffer sceneParams;
 		vks::Buffer ssaoKernel;
 		vks::Buffer ssaoParams;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -128,8 +128,6 @@ public:
 		camera.position = { 1.0f, 0.75f, 0.0f };
 		camera.setRotation(glm::vec3(0.0f, 90.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, uboSceneParams.nearPlane, uboSceneParams.farPlane);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

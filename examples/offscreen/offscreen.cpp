@@ -35,7 +35,7 @@ public:
 		vks::Buffer mirror;
 		vks::Buffer offscreen;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipelineLayout textured{ VK_NULL_HANDLE };
@@ -59,7 +59,7 @@ public:
 		VkDescriptorSet mirror{ VK_NULL_HANDLE };
 		VkDescriptorSet model{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -89,8 +89,6 @@ public:
 		camera.setRotation(glm::vec3(-2.5f, 0.0f, 0.0f));
 		camera.setRotationSpeed(0.5f);
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 		// The scene shader uses a clipping plane, so this feature has to be enabled
 		enabledFeatures.shaderClipDistance = VK_TRUE;
 	}

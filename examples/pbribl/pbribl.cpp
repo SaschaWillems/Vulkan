@@ -54,7 +54,7 @@ public:
 		vks::Buffer skybox;
 		vks::Buffer params;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct UniformDataMatrices {
 		glm::mat4 projection;
@@ -80,7 +80,7 @@ public:
 		VkDescriptorSet scene{ VK_NULL_HANDLE };
 		VkDescriptorSet skybox{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets{};
 
 	// Default materials to select from
 	std::vector<Material> materials;
@@ -99,8 +99,6 @@ public:
 		camera.rotationSpeed = 0.25f;
 		camera.setRotation({ -3.75f, 180.0f, 0.0f });
 		camera.setPosition({ 0.55f, 0.85f, 12.0f });
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 
 		// Setup some default materials (source: https://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
 		materials.push_back(Material("Gold", glm::vec3(1.0f, 0.765557f, 0.336057f)));

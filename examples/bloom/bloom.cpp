@@ -48,7 +48,7 @@ public:
 		vks::Buffer skyBox;
 		vks::Buffer blurParams;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers{};
 
 	struct {
 		VkPipelineLayout blur;
@@ -74,7 +74,7 @@ public:
 		VkDescriptorSet scene;
 		VkDescriptorSet skyBox;
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets{};
 
 	// Framebuffer for offscreen rendering
 	struct FrameBufferAttachment {
@@ -103,8 +103,6 @@ public:
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -10.25f));
 		camera.setRotation(glm::vec3(7.5f, -343.0f, 0.0f));
 		camera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

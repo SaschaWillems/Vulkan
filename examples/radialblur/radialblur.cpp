@@ -36,7 +36,7 @@ public:
 		vks::Buffer scene;
 		vks::Buffer blurParams;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipeline radialBlur{ VK_NULL_HANDLE };
@@ -54,7 +54,7 @@ public:
 		VkDescriptorSet scene{ VK_NULL_HANDLE };
 		VkDescriptorSet radialBlur{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	struct {
 		VkDescriptorSetLayout scene{ VK_NULL_HANDLE };
@@ -90,8 +90,6 @@ public:
 		camera.setRotation(glm::vec3(-16.25f, -28.75f, 0.0f));
 		camera.setPerspective(45.0f, (float)width / (float)height, 1.0f, 256.0f);
 		timerSpeed *= 0.5f;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

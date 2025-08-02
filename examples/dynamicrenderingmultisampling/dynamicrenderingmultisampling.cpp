@@ -26,12 +26,12 @@ public:
 		glm::mat4 modelView;
 		glm::vec4 viewPos;
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	// Intermediate images used for multi sampling
 	struct Image {
@@ -65,9 +65,6 @@ public:
 		enabledDynamicRenderingFeaturesKHR.dynamicRendering = VK_TRUE;
 
 		deviceCreatepNextChain = &enabledDynamicRenderingFeaturesKHR;
-
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample() override

@@ -30,14 +30,14 @@ public:
 
 	// Resources for the compute part of the example
 	struct Compute {
-		VkQueue queue{ VK_NULL_HANDLE };								// Separate queue for compute commands (queue family may differ from the one used for graphics)
-		VkCommandPool commandPool{ VK_NULL_HANDLE };					// Use a separate command pool (queue family may differ from the one used for graphics)
-		std::vector<VkCommandBuffer> commandBuffers;					// Command buffers storing the dispatch commands and barriers
-		std::vector<VkFence> fences;									// Synchronization fence to avoid rewriting compute CB if still in use
-		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };	// Compute shader binding layout
-		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };				// Layout of the compute pipeline
-		VkPipeline pipeline{ VK_NULL_HANDLE };							// Compute raytracing pipeline
-		struct UniformDataCompute {										// Compute shader uniform block object
+		VkQueue queue{ VK_NULL_HANDLE };									// Separate queue for compute commands (queue family may differ from the one used for graphics)
+		VkCommandPool commandPool{ VK_NULL_HANDLE };						// Use a separate command pool (queue family may differ from the one used for graphics)
+		std::array<VkCommandBuffer, maxConcurrentFrames> commandBuffers;	// Command buffers storing the dispatch commands and barriers
+		std::array<VkFence, maxConcurrentFrames> fences;					// Synchronization fence to avoid rewriting compute CB if still in use
+		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };		// Compute shader binding layout
+		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };					// Layout of the compute pipeline
+		VkPipeline pipeline{ VK_NULL_HANDLE };								// Compute raytracing pipeline
+		struct UniformDataCompute {											// Compute shader uniform block object
 			glm::vec3 lightPos;
 			float aspectRatio{ 1.0f };
 			glm::vec4 fogColor = glm::vec4(0.0f);
@@ -53,8 +53,8 @@ public:
 		vks::Buffer objectStorageBuffer;
 		// Uniform buffer object containing scene parameters
 		// These need to be per frames in flight, as CPU writes to while GPU reads from
-		std::vector<vks::Buffer> uniformBuffers;
-		std::vector<VkDescriptorSet> descriptorSets;
+		std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
+		std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 	} compute;
 
 	// Definitions for scene objects
@@ -87,8 +87,6 @@ public:
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -4.0f));
 		camera.rotationSpeed = 0.0f;
 		camera.movementSpeed = 2.5f;
-		compute.uniformBuffers.resize(maxConcurrentFrames);
-		compute.descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()
@@ -371,14 +369,12 @@ public:
 		// Some objects need to be duplicated per frames in flight
 
 		// Create command buffers for compute operations
-		compute.commandBuffers.resize(maxConcurrentFrames);
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(compute.commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
 		for (auto& commandBuffer : compute.commandBuffers) {
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer));
 		}
 
 		// Fences for compute CB sync
-		compute.fences.resize(maxConcurrentFrames);
 		for (auto& fence : compute.fences) {
 			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));

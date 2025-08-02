@@ -24,14 +24,14 @@ public:
 		glm::mat4 modelView;
 		glm::vec4 lightPos{ 0.0f, 2.0f, 1.0f, 0.0f };
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	float clearColor[4] = { 0.0f, 0.0f, 0.2f, 1.0f };
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	// This sample demonstrates different dynamic states, so we check and store what extension is available
 	bool hasDynamicState{ false };
@@ -78,8 +78,6 @@ public:
 		camera.setRotation(glm::vec3(-25.0f, 15.0f, 0.0f));
 		camera.setRotationSpeed(0.5f);
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 256.0f);
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 		
 		// Note: We enable the dynamic state extensions dynamically, based on which ones the device supports see getEnabledExtensions
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);

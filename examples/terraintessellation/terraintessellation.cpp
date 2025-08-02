@@ -42,7 +42,7 @@ public:
 		vks::Buffer terrainTessellation;
 		vks::Buffer skysphereVertex;
 	};
-	std::vector<UniformBuffers> uniformBuffers;
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	// Shared values for vertex, tessellation control and evaluation stages
 	struct UniformDataTessellation {
@@ -82,7 +82,7 @@ public:
 		VkDescriptorSet terrain{ VK_NULL_HANDLE };
 		VkDescriptorSet skysphere{ VK_NULL_HANDLE };
 	};
-	std::vector<DescriptorSets> descriptorSets;
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	// If supported, this sample will gather pipeline statistics to show e.g. tessellation related information
 	struct {
@@ -104,8 +104,6 @@ public:
 		camera.setRotation(glm::vec3(-12.0f, 159.0f, 0.0f));
 		camera.setTranslation(glm::vec3(18.0f, 22.5f, 57.5f));
 		camera.movementSpeed = 10.0f;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 	}
 
 	~VulkanExample()

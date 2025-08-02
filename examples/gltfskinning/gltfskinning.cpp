@@ -202,9 +202,6 @@ void VulkanglTFModel::loadSkins(tinygltf::Model &input)
 			// Store inverse bind matrices for this skin in a shader storage buffer object
 			// Just like other buffers that can be updated on the CPU while the GPU reads we need to duplicate them per frames in flight
 			// To keep things simple, we use separate buffers, in a real-world application a better solution would be using one large storage buffer with separate regions per frames in flight
-			skins[i].storageBuffers.resize(maxConcurrentFrames);
-			skins[i].descriptorSets.resize(maxConcurrentFrames);
-
 			for (auto& buffer : skins[i].storageBuffers) {
 				VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(glm::mat4) * skins[i].inverseBindMatrices.size(), skins[i].inverseBindMatrices.data()));
 				VK_CHECK_RESULT(buffer.map());
@@ -649,8 +646,6 @@ VulkanExample::VulkanExample() : VulkanExampleBase()
 	camera.setPosition(glm::vec3(0.0f, 0.75f, -2.0f));
 	camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 	camera.setPerspective(60.0f, (float) width / (float) height, 0.1f, 256.0f);
-	uniformBuffers.resize(maxConcurrentFrames);
-	descriptorSets.resize(maxConcurrentFrames);
 }
 
 VulkanExample::~VulkanExample()

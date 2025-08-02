@@ -215,7 +215,7 @@ public:
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	// Even though this sample renders multiple objects (gears), we only use single buffers
 	// This is a best practices and Vulkan applications should keep the number of memory allocations as small as possible
@@ -231,7 +231,7 @@ public:
 		// The model matrix is used to rotate a given gear, so we have one mat4 per gear
 		glm::mat4 model[numGears];
 	} uniformData;
-	std::vector<vks::Buffer> uniformBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -242,8 +242,6 @@ public:
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.001f, 256.0f);
 		timerSpeed *= 0.25f;
-		uniformBuffers.resize(maxConcurrentFrames);
-		descriptorSets.resize(maxConcurrentFrames);
 		settings.overlay = false;
 	}
 
