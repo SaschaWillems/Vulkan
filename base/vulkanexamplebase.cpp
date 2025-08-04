@@ -236,6 +236,7 @@ void VulkanExampleBase::prepare()
 	setupFrameBuffer();
 	settings.overlay = settings.overlay && (!benchmark.active);
 	if (settings.overlay) {
+		ui.maxConcurrentFrames = maxConcurrentFrames;
 		ui.device = vulkanDevice;
 		ui.queue = queue;
 		ui.shaders = {
@@ -270,7 +271,6 @@ void VulkanExampleBase::nextFrame()
 	{
 		viewUpdated = false;
 	}
-
 	render();
 	frameCounter++;
 	auto tEnd = std::chrono::high_resolution_clock::now();
@@ -309,8 +309,6 @@ void VulkanExampleBase::nextFrame()
 		lastTimestamp = tEnd;
 	}
 	tPrevEnd = tEnd;
-
-	updateOverlay();
 }
 
 void VulkanExampleBase::renderLoop()
@@ -699,12 +697,12 @@ void VulkanExampleBase::updateOverlay()
 
 	// The overlay does not need to be updated with each frame, so we limit the update rate
 	// Not only does this save performance but it also makes display of fast changig values like fps more stable
-	ui.updateTimer -= frameTimer;
-	if (ui.updateTimer >= 0.0f) {
+	ui.buffers[currentBuffer].updateTimer -= frameTimer;
+	if (ui.buffers[currentBuffer].updateTimer >= 0.0f) {
 		return;
 	}
 	// Update at max. rate of 30 fps
-	ui.updateTimer = 1.0f / 30.0f;
+	ui.buffers[currentBuffer].updateTimer = 1.0f / 30.0f;
 
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -740,10 +738,7 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::PopStyleVar();
 	ImGui::Render();
 
-	if (ui.update() || ui.updated) {
-		buildCommandBuffers();
-		ui.updated = false;
-	}
+	ui.update(currentBuffer);
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	if (mouseState.buttons.left) {
@@ -759,8 +754,7 @@ void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-		ui.draw(commandBuffer);
+		ui.draw(commandBuffer, currentBuffer);
 	}
 }
 
@@ -770,6 +764,8 @@ void VulkanExampleBase::prepareFrame()
 		// Ensure command buffer execution has finished
 		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+		// Update UI if necessary
+		updateOverlay();
 		// Acquire the next image from the swap chain
 		VkResult result = swapChain.acquireNextImage(presentCompleteSemaphores[currentBuffer], currentImageIndex);
 		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
@@ -1396,7 +1392,6 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			break;
 		case KEY_F1:
 			ui.visible = !ui.visible;
-			ui.updated = true;
 			break;
 		case KEY_F2:
 			if (camera.type == Camera::CameraType::lookat) {
@@ -1635,7 +1630,6 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 		case AKEYCODE_F1:
 		case AKEYCODE_BUTTON_L1:
 			vulkanExample->ui.visible = !vulkanExample->ui.visible;
-			vulkanExample->ui.updated = true;
 			break;
 		case AKEYCODE_BUTTON_R1:
 			vulkanExample->keyPressed(GAMEPAD_BUTTON_R1);
@@ -1839,7 +1833,6 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 		case KEY_1:										// support keyboards with no function keys
 		case KEY_F1:
 			vulkanExample->ui.visible = !vulkanExample->ui.visible;
-			vulkanExample->ui.updated = true;
 			break;
 		case KEY_DELETE:								// support keyboards with no escape key
 		case KEY_ESCAPE:
@@ -2235,8 +2228,6 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 				break;
 			case KEY_F1:
 				ui.visible = !ui.visible;
-				ui.updated = true;
-				break;
 			default:
 				break;
 		}
@@ -2410,7 +2401,6 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 	case KEY_F1:
 		if (state) {
 			ui.visible = !ui.visible;
-			ui.updated = true;
 		}
 		break;
 	case KEY_ESCAPE:
@@ -2778,7 +2768,6 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				break;
 			case KEY_F1:
 				ui.visible = !ui.visible;
-				ui.updated = true;
 				break;
 		}
 	}
@@ -2904,7 +2893,6 @@ void VulkanExampleBase::handleEvent()
 							break;
 						case KEYCODE_F1:
 							ui.visible = !ui.visible;
-							ui.updated = true;
 							break;
 						default:
 							break;

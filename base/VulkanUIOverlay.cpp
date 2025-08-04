@@ -2,7 +2,7 @@
 /*
 * UI overlay class using ImGui
 *
-* Copyright (C) 2017-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -83,7 +83,7 @@ namespace vks
 		io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
 		VkDeviceSize uploadSize = texWidth*texHeight * 4 * sizeof(char);
 
-		//SRS - Set ImGui style scale factor to handle retina and other HiDPI displays (same as font scaling above)
+		// Set ImGui style scale factor to handle retina and other HiDPI displays (same as font scaling above)
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.ScaleAllSizes(scale);
 
@@ -214,6 +214,10 @@ namespace vks
 			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &fontDescriptor)
 		};
 		vkUpdateDescriptorSets(device->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+
+		// Buffers per max. frames-in-flight
+		assert(maxConcurrentFrames > 0);
+		buffers.resize(maxConcurrentFrames);
 	}
 
 	/** Prepare a separate pipeline for the UI overlay rendering decoupled from the main application */
@@ -278,7 +282,7 @@ namespace vks
 		pipelineCreateInfo.subpass = subpass;
 		
 #if defined(VK_KHR_dynamic_rendering)
-		// SRS - if we are using dynamic rendering (i.e. renderPass null), must define color, depth and stencil attachments at pipeline create time
+		// Of we are using dynamic rendering (i.e. renderPass null), we must define color, depth and stencil attachments at pipeline create time
 		VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {};
 		if (renderPass == VK_NULL_HANDLE) {
 			pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
@@ -311,12 +315,13 @@ namespace vks
 	}
 
 	/** Update vertex and index buffer containing the imGui elements when required */
-	bool UIOverlay::update()
+	void UIOverlay::update(uint32_t currentBuffer)
 	{
 		ImDrawData* imDrawData = ImGui::GetDrawData();
-		bool updateCmdBuffers = false;
 
-		if (!imDrawData) { return false; };
+		if (!imDrawData) {
+			return;
+		}
 
 		// Note: Alignment is done inside buffer creation
 		VkDeviceSize vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
@@ -324,33 +329,31 @@ namespace vks
 
 		// Update buffers only if vertex or index count has been changed compared to current buffer size
 		if ((vertexBufferSize == 0) || (indexBufferSize == 0)) {
-			return false;
+			return;
 		}
 
 		// Vertex buffer
-		if ((vertexBuffer.buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
-			vertexBuffer.unmap();
-			vertexBuffer.destroy();
-			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &vertexBuffer, vertexBufferSize));
-			vertexCount = imDrawData->TotalVtxCount;
-			vertexBuffer.unmap();
-			vertexBuffer.map();
-			updateCmdBuffers = true;
+		if ((buffers[currentBuffer].vertexBuffer.buffer == VK_NULL_HANDLE) || (buffers[currentBuffer].vertexCount != imDrawData->TotalVtxCount)) {
+			buffers[currentBuffer].vertexBuffer.unmap();
+			buffers[currentBuffer].vertexBuffer.destroy();
+			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &buffers[currentBuffer].vertexBuffer, vertexBufferSize));
+			buffers[currentBuffer].vertexCount = imDrawData->TotalVtxCount;
+			//buffers[currentBuffer].vertexBuffer.unmap();
+			buffers[currentBuffer].vertexBuffer.map();
 		}
 
 		// Index buffer
-		if ((indexBuffer.buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
-			indexBuffer.unmap();
-			indexBuffer.destroy();
-			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &indexBuffer, indexBufferSize));
-			indexCount = imDrawData->TotalIdxCount;
-			indexBuffer.map();
-			updateCmdBuffers = true;
+		if ((buffers[currentBuffer].indexBuffer.buffer == VK_NULL_HANDLE) || (buffers[currentBuffer].indexCount < imDrawData->TotalIdxCount)) {
+			buffers[currentBuffer].indexBuffer.unmap();
+			buffers[currentBuffer].indexBuffer.destroy();
+			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &buffers[currentBuffer].indexBuffer, indexBufferSize));
+			buffers[currentBuffer].indexCount = imDrawData->TotalIdxCount;
+			buffers[currentBuffer].indexBuffer.map();
 		}
 
 		// Upload data
-		ImDrawVert* vtxDst = (ImDrawVert*)vertexBuffer.mapped;
-		ImDrawIdx* idxDst = (ImDrawIdx*)indexBuffer.mapped;
+		ImDrawVert* vtxDst = (ImDrawVert*)buffers[currentBuffer].vertexBuffer.mapped;
+		ImDrawIdx* idxDst = (ImDrawIdx*)buffers[currentBuffer].indexBuffer.mapped;
 
 		for (int n = 0; n < imDrawData->CmdListsCount; n++) {
 			const ImDrawList* cmd_list = imDrawData->CmdLists[n];
@@ -361,19 +364,21 @@ namespace vks
 		}
 
 		// Flush to make writes visible to GPU
-		vertexBuffer.flush();
-		indexBuffer.flush();
-
-		return updateCmdBuffers;
+		buffers[currentBuffer].vertexBuffer.flush();
+		buffers[currentBuffer].indexBuffer.flush();
 	}
 
-	void UIOverlay::draw(const VkCommandBuffer commandBuffer)
+	void UIOverlay::draw(const VkCommandBuffer commandBuffer, uint32_t currentBuffer)
 	{
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 		int32_t vertexOffset = 0;
 		int32_t indexOffset = 0;
 
 		if ((!imDrawData) || (imDrawData->CmdListsCount == 0)) {
+			return;
+		}
+
+		if (buffers[currentBuffer].vertexBuffer.buffer == VK_NULL_HANDLE || buffers[currentBuffer].indexBuffer.buffer == VK_NULL_HANDLE) {
 			return;
 		}
 
@@ -386,9 +391,11 @@ namespace vks
 		pushConstBlock.translate = glm::vec2(-1.0f);
 		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
 
+		assert(buffers[currentBuffer].vertexBuffer.buffer != VK_NULL_HANDLE && buffers[currentBuffer].indexBuffer.buffer != VK_NULL_HANDLE);
+
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffers[currentBuffer].vertexBuffer.buffer, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, buffers[currentBuffer].indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
 
 		for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
 		{
@@ -408,7 +415,7 @@ namespace vks
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && TARGET_OS_SIMULATOR
 			// Apple Device Simulator does not support vkCmdDrawIndexed() with vertexOffset > 0, so rebind vertex buffer instead
 			offsets[0] += cmd_list->VtxBuffer.Size * sizeof(ImDrawVert);
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffers[currentBuffer].vertexBuffer.buffer, offsets);
 #else
 			vertexOffset += cmd_list->VtxBuffer.Size;
 #endif
@@ -423,8 +430,10 @@ namespace vks
 
 	void UIOverlay::freeResources()
 	{
-		vertexBuffer.destroy();
-		indexBuffer.destroy();
+		for (auto& buffer : buffers) {
+			buffers[currentBuffer].vertexBuffer.destroy();
+			buffers[currentBuffer].indexBuffer.destroy();
+		}
 		vkDestroyImageView(device->logicalDevice, fontView, nullptr);
 		vkDestroyImage(device->logicalDevice, fontImage, nullptr);
 		vkFreeMemory(device->logicalDevice, fontMemory, nullptr);
@@ -442,9 +451,7 @@ namespace vks
 
 	bool UIOverlay::checkBox(const char *caption, bool *value)
 	{
-		bool res = ImGui::Checkbox(caption, value);
-		if (res) { updated = true; };
-		return res;
+		return ImGui::Checkbox(caption, value);
 	}
 
 	bool UIOverlay::checkBox(const char *caption, int32_t *value)
@@ -452,36 +459,27 @@ namespace vks
 		bool val = (*value == 1);
 		bool res = ImGui::Checkbox(caption, &val);
 		*value = val;
-		if (res) { updated = true; };
 		return res;
 	}
 
 	bool UIOverlay::radioButton(const char* caption, bool value)
 	{
-		bool res = ImGui::RadioButton(caption, value);
-		if (res) { updated = true; };
-		return res;
+		return ImGui::RadioButton(caption, value);
 	}
 
 	bool UIOverlay::inputFloat(const char *caption, float *value, float step, uint32_t precision)
 	{
-		bool res = ImGui::InputFloat(caption, value, step, step * 10.0f, precision);
-		if (res) { updated = true; };
-		return res;
+		return ImGui::InputFloat(caption, value, step, step * 10.0f, precision);
 	}
 
 	bool UIOverlay::sliderFloat(const char* caption, float* value, float min, float max)
 	{
-		bool res = ImGui::SliderFloat(caption, value, min, max);
-		if (res) { updated = true; };
-		return res;
+		return ImGui::SliderFloat(caption, value, min, max);
 	}
 
 	bool UIOverlay::sliderInt(const char* caption, int32_t* value, int32_t min, int32_t max)
 	{
-		bool res = ImGui::SliderInt(caption, value, min, max);
-		if (res) { updated = true; };
-		return res;
+		return ImGui::SliderInt(caption, value, min, max);
 	}
 
 	bool UIOverlay::comboBox(const char *caption, int32_t *itemindex, std::vector<std::string> items)
@@ -495,22 +493,16 @@ namespace vks
 			charitems.push_back(items[i].c_str());
 		}
 		uint32_t itemCount = static_cast<uint32_t>(charitems.size());
-		bool res = ImGui::Combo(caption, itemindex, &charitems[0], itemCount, itemCount);
-		if (res) { updated = true; };
-		return res;
+		return ImGui::Combo(caption, itemindex, &charitems[0], itemCount, itemCount);
 	}
 
 	bool UIOverlay::button(const char *caption)
 	{
-		bool res = ImGui::Button(caption);
-		if (res) { updated = true; };
-		return res;
+		return ImGui::Button(caption);
 	}
 
 	bool UIOverlay::colorPicker(const char* caption, float* color) {
-		bool res = ImGui::ColorEdit4(caption, color, ImGuiColorEditFlags_NoInputs);
-		if (res) { updated = true; };
-		return res;
+		return ImGui::ColorEdit4(caption, color, ImGuiColorEditFlags_NoInputs);
 	}
 
 	void UIOverlay::text(const char *formatstr, ...)
