@@ -160,9 +160,7 @@ namespace vks
 
 		inline VkSubmitInfo submitInfo()
 		{
-			VkSubmitInfo submitInfo {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			return submitInfo;
+			return { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
 		}
 
 		inline VkViewport viewport(

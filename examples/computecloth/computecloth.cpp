@@ -112,7 +112,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(-30.0f, -45.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -5.0f));
-		settings.overlay = false;
 	}
 
 	~VulkanExample()
@@ -628,7 +627,7 @@ public:
 		buildGraphicsCommandBuffer();
 
 		VkPipelineStageFlags waitDstStageMask[2] = {
-			submitPipelineStages, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
 		};
 		VkSemaphore waitSemaphores[2] = {
 			semaphores.presentComplete, compute.semaphores[currentBuffer].complete
@@ -637,6 +636,7 @@ public:
 			semaphores.renderComplete, compute.semaphores[currentBuffer].ready
 		};
 
+		VkSubmitInfo submitInfo = vks::initializers::submitInfo();
 		submitInfo.waitSemaphoreCount = 2;
 		submitInfo.pWaitDstStageMask = waitDstStageMask;
 		submitInfo.pWaitSemaphores = waitSemaphores;

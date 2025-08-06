@@ -338,7 +338,6 @@ namespace vks
 			buffers[currentBuffer].vertexBuffer.destroy();
 			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &buffers[currentBuffer].vertexBuffer, vertexBufferSize));
 			buffers[currentBuffer].vertexCount = imDrawData->TotalVtxCount;
-			//buffers[currentBuffer].vertexBuffer.unmap();
 			buffers[currentBuffer].vertexBuffer.map();
 		}
 

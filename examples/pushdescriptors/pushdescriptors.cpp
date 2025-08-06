@@ -223,7 +223,6 @@ public:
 		prepareUniformBuffers();
 		setupDescriptorSetLayout();
 		preparePipelines();
-		buildCommandBuffers();
 		prepared = true;
 	}
 

@@ -432,7 +432,6 @@ public:
 		prepareGeometryPass();
 		setupDescriptors();
 		preparePipelines();
-		buildCommandBuffers();
 		prepared = true;
 	}
 
@@ -570,7 +569,6 @@ public:
 		vkResetDescriptorPool(device, descriptorPool, 0);
 		updateDescriptors();
 		resized = false;
-		buildCommandBuffers();
 	}
 
 	void destroyGeometryPass()

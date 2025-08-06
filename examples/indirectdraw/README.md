@@ -75,12 +75,12 @@ To use a buffer for indirect draw commands you need to specify the ```VK_BUFFER_
 ### Rendering
 If the [`multiDrawIndirect`](http://vulkan.gpuinfo.org/listreports.php?feature=multiDrawIndirect) is supported, we can issue all indirect draws with one single draw call:
 ```cpp
-void buildCommandBuffers()
+void buildCommandBuffer()
 {
   ...
   for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
   {
-    vkCmdDrawIndexedIndirect(drawCmdBuffers[i], indirectCommandsBuffer.buffer, 0, indirectDrawCount, sizeof(VkDrawIndexedIndirectCommand));
+    vkCmdDrawIndexedIndirect(cmdBuffer, indirectCommandsBuffer.buffer, 0, indirectDrawCount, sizeof(VkDrawIndexedIndirectCommand));
   }
 }
 ```
@@ -92,7 +92,7 @@ for (auto indirectCmd : indirectCommands)
   {
     for (uint32_t j = 0; j < indirectCmd.instanceCount; j++)
     {
-      vkCmdDrawIndexed(drawCmdBuffers[i], indirectCmd.indexCount, 1, indirectCmd.firstIndex, 0, indirectCmd.firstInstance + j);
+      vkCmdDrawIndexed(cmdBuffer, indirectCmd.indexCount, 1, indirectCmd.firstIndex, 0, indirectCmd.firstInstance + j);
     }
   }
 ```
@@ -101,7 +101,7 @@ If the GPU does not support ```multiDrawIndirect``` we have to issue the indirec
 ```cpp
 for (auto j = 0; j < indirectCommands.size(); j++)
 {
-  vkCmdDrawIndexedIndirect(drawCmdBuffers[i], indirectCommandsBuffer.buffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+  vkCmdDrawIndexedIndirect(cmdBuffer, indirectCommandsBuffer.buffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 }
 ```
 

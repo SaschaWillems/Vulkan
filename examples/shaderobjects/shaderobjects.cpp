@@ -319,7 +319,6 @@ public:
 		prepareUniformBuffers();
 		setupDescriptors();
 		createShaderObjects();
-		buildCommandBuffers();
 		prepared = true;
 	}
 

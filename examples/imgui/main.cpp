@@ -17,8 +17,8 @@ class ImGUI {
 private:
 	// Vulkan resources for rendering the UI
 	struct Buffers {
-		vks::Buffer vertexBuffer;
-		vks::Buffer indexBuffer;
+		vks::Buffer vertexBuffer{ VK_NULL_HANDLE };
+		vks::Buffer indexBuffer{ VK_NULL_HANDLE };
 		int32_t vertexCount = 0;
 		int32_t indexCount = 0;
 	};
