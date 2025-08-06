@@ -74,7 +74,6 @@ public:
 	struct TimeLineSemaphore {
 		VkSemaphore handle{ VK_NULL_HANDLE };
 		uint64_t value{ 0 };
-		bool firstFrame{ true };
 	} timeLineSemaphore;
 
 	VkPhysicalDeviceTimelineSemaphoreFeaturesKHR enabledTimelineSemaphoreFeaturesKHR{};
@@ -622,19 +621,15 @@ public:
 		const uint64_t graphicsFinished = timeLineSemaphore.value;
 		const uint64_t computeFinished = timeLineSemaphore.value + 1;
 		const uint64_t allFinished = timeLineSemaphore.value + 2;
-		const uint64_t firstFrameWait = 0;
 
 		VulkanExampleBase::prepareFrame(false);
 		
 		// Timeline semaphores can also be used to replace fences
-
 		VkSemaphoreWaitInfo semaphoreWaitInfo{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
 		semaphoreWaitInfo.semaphoreCount = 1;
 		semaphoreWaitInfo.pSemaphores = &timeLineSemaphore.handle;
 		semaphoreWaitInfo.pValues = &timeLineSemaphore.value;
 		vkWaitSemaphoresKHR(device, &semaphoreWaitInfo, UINT64_MAX);
-
-		timeLineSemaphore.firstFrame = false;
 
 		updateComputeUniformBuffers();
 		buildComputeCommandBuffer();
