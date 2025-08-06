@@ -106,7 +106,7 @@ public:
             size_t outsize = 0;
             uint8_t *encoded = AMediaCodec_getOutputBuffer(codec, idx, &outsize);
             if (h264file) {
-                if (1 != fwrite(encoded, info.size, 1, h264file)) {
+                if (1 != fwrite(encoded + info.offset, info.size, 1, h264file)) {
                     LOGE("write failed");
                 } else {
                     framesEncoded++;
