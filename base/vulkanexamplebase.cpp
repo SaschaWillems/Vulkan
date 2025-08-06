@@ -179,16 +179,6 @@ VkResult VulkanExampleBase::createInstance()
 	return result;
 }
 
-// @todo: Only used by few examples, can be removed when new sync is fully in place
-void VulkanExampleBase::renderFrame()
-{
-	VulkanExampleBase::prepareFrame();
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-	VulkanExampleBase::submitFrame();
-}
-
 std::string VulkanExampleBase::getWindowTitle() const
 {
 	std::string windowTitle{ title + " - " + deviceProperties.deviceName };
@@ -758,12 +748,14 @@ void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 	}
 }
 
-void VulkanExampleBase::prepareFrame()
+void VulkanExampleBase::prepareFrame(bool waitForFence)
 {
 	if (useNewSync) {
 		// Ensure command buffer execution has finished
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+		if (waitForFence) {
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+		}
 		// Update UI if necessary
 		updateOverlay();
 		// Acquire the next image from the swap chain
@@ -797,13 +789,20 @@ void VulkanExampleBase::prepareFrame()
 	}
 }
 
-void VulkanExampleBase::submitFrame(bool skipQueueSubmit)
+void VulkanExampleBase::submitFrame(VkCommandBuffer cmdBuffer, bool skipQueueSubmit)
 {
 	if (useNewSync) {
 		// @todo: make this an argument
 		if (!skipQueueSubmit) {
+			const VkPipelineStageFlags waitPipelineStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+			VkSubmitInfo submitInfo{ .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
+			submitInfo.pWaitDstStageMask = &waitPipelineStage;
 			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+			if (cmdBuffer != VK_NULL_HANDLE) {
+				submitInfo.pCommandBuffers = &cmdBuffer;
+			} else {
+				submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+			}
 			submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentBuffer];
 			submitInfo.waitSemaphoreCount = 1;
 			submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
@@ -1203,17 +1202,6 @@ bool VulkanExampleBase::initVulkan()
 	// Create a semaphore used to synchronize command submission
 	// Ensures that the image is not presented until all commands have been submitted and executed
 	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete));
-
-	// Set up submit info structure
-	// Semaphores will stay the same during application lifetime
-	// Command buffer submission info is set by each example
-	// @todo: Rework when new sync is fully in place, feels odd building/setting this up in multiple places
-	submitInfo = vks::initializers::submitInfo();
-	submitInfo.pWaitDstStageMask = &submitPipelineStages;
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 	return true;
 }

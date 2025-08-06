@@ -132,10 +132,6 @@ protected:
 	VkFormat depthFormat{VK_FORMAT_UNDEFINED};
 	// Command buffer pool
 	VkCommandPool cmdPool{ VK_NULL_HANDLE };
-	/** @brief Pipeline stages used to wait at for graphics queue submissions */
-	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	// Contains command buffers and semaphores to be presented to the queue
-	VkSubmitInfo submitInfo{};
 	// Command buffers used for rendering
 	std::vector<VkCommandBuffer> drawCmdBuffers;
 	// Global render pass for frame buffer writes
@@ -159,13 +155,13 @@ protected:
 		// Command buffer submission and execution
 		VkSemaphore renderComplete;
 	} semaphores{};
-	std::vector<VkFence> waitFences;
 
 	// This sample will be using a new synchronisation setup, which is closer to what should be used with Vulkan
 	bool useNewSync{ false };
 	uint32_t currentImageIndex{ 0 };
 	std::vector<VkSemaphore> presentCompleteSemaphores{};
 	std::vector<VkSemaphore> renderCompleteSemaphores{};
+	std::vector<VkFence> waitFences;
 
 	bool requiresStencil{ false };
 public:
@@ -414,12 +410,11 @@ public:
 	void drawUI(const VkCommandBuffer commandBuffer);
 
 	/** Prepare the next frame for workload submission by acquiring the next swap chain image and waiting for the previous command buffer to finish */
-	void prepareFrame();
+	// @todo: rework once new sync is in place, maybe overload with submission info
+	void prepareFrame(bool waitForFence = true);
 	/** @brief Presents the current image to the swap chain */
 	// @todo: rework once new sync is in place, maybe overload with submission info
-	void submitFrame(bool skipQueueSubmit = false);
-	/** @brief (Virtual) Default image acquire + submission and command buffer submission function */
-	virtual void renderFrame();
+	void submitFrame(VkCommandBuffer cmdBuffer = VK_NULL_HANDLE, bool skipQueueSubmit = false);
 
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);
