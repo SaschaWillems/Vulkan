@@ -750,100 +750,67 @@ void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 
 void VulkanExampleBase::prepareFrame(bool waitForFence)
 {
-	if (useNewSync) {
-		// Ensure command buffer execution has finished
-		if (waitForFence) {
-			VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-			VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+	// Ensure command buffer execution has finished
+	if (waitForFence) {
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+	}
+	// Update UI if necessary
+	updateOverlay();
+	// Acquire the next image from the swap chain
+	VkResult result = swapChain.acquireNextImage(presentCompleteSemaphores[currentBuffer], currentImageIndex);
+	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
+	// If no longer optimal (VK_SUBOPTIMAL_KHR), wait until submitFrame() in case number of swapchain images will change on resize
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			windowResize();
 		}
-		// Update UI if necessary
-		updateOverlay();
-		// Acquire the next image from the swap chain
-		VkResult result = swapChain.acquireNextImage(presentCompleteSemaphores[currentBuffer], currentImageIndex);
-		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
-		// If no longer optimal (VK_SUBOPTIMAL_KHR), wait until submitFrame() in case number of swapchain images will change on resize
-		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-				windowResize();
-			}
-			return;
-		}
-		else {
-			VK_CHECK_RESULT(result);
-		}
+		return;
 	}
 	else {
-		// Acquire the next image from the swap chain
-		VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, currentBuffer);
-		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
-		// SRS - If no longer optimal (VK_SUBOPTIMAL_KHR), wait until submitFrame() in case number of swapchain images will change on resize
-		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-				windowResize();
-			}
-			return;
-		}
-		else {
-			VK_CHECK_RESULT(result);
-		}
+		VK_CHECK_RESULT(result);
 	}
 }
 
 void VulkanExampleBase::submitFrame(VkCommandBuffer cmdBuffer, bool skipQueueSubmit)
 {
-	if (useNewSync) {
-		// @todo: make this an argument
-		if (!skipQueueSubmit) {
-			const VkPipelineStageFlags waitPipelineStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-			VkSubmitInfo submitInfo{ .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
-			submitInfo.pWaitDstStageMask = &waitPipelineStage;
-			submitInfo.commandBufferCount = 1;
-			if (cmdBuffer != VK_NULL_HANDLE) {
-				submitInfo.pCommandBuffers = &cmdBuffer;
-			} else {
-				submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-			}
-			submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentBuffer];
-			submitInfo.waitSemaphoreCount = 1;
-			submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
-			submitInfo.signalSemaphoreCount = 1;
-			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+	// @todo: make this an argument
+	if (!skipQueueSubmit) {
+		const VkPipelineStageFlags waitPipelineStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		VkSubmitInfo submitInfo{ .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		submitInfo.pWaitDstStageMask = &waitPipelineStage;
+		submitInfo.commandBufferCount = 1;
+		if (cmdBuffer != VK_NULL_HANDLE) {
+			submitInfo.pCommandBuffers = &cmdBuffer;
+		} else {
+			submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		}
+		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentBuffer];
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
+		submitInfo.signalSemaphoreCount = 1;
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+	}
 
-		VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &swapChain.swapChain;
-		presentInfo.pImageIndices = &currentImageIndex;
-		VkResult result = vkQueuePresentKHR(queue, &presentInfo);
-		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-			windowResize();
-			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-				return;
-			}
+	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &swapChain.swapChain;
+	presentInfo.pImageIndices = &currentImageIndex;
+	VkResult result = vkQueuePresentKHR(queue, &presentInfo);
+	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+		windowResize();
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			return;
 		}
-		else {
-			VK_CHECK_RESULT(result);
-		}
-		// Select the next frame to render to, based on the max. no. of concurrent frames
-		currentBuffer = (currentBuffer + 1) % maxConcurrentFrames;
 	}
 	else {
-		VkResult result = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-			windowResize();
-			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-				return;
-			}
-		}
-		else {
-			VK_CHECK_RESULT(result);
-		}
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+		VK_CHECK_RESULT(result);
 	}
+	// Select the next frame to render to, based on the max. no. of concurrent frames
+	currentBuffer = (currentBuffer + 1) % maxConcurrentFrames;
 }
 
 VulkanExampleBase::VulkanExampleBase()
@@ -1016,19 +983,15 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyCommandPool(device, cmdPool, nullptr);
 
-	vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
-	vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
 	for (auto& fence : waitFences) {
 		vkDestroyFence(device, fence, nullptr);
 	}
 
-	if (useNewSync) {
-		for (size_t i = 0; i < presentCompleteSemaphores.size(); i++) {
-			vkDestroySemaphore(device, presentCompleteSemaphores[i], nullptr);
-		}
-		for (size_t i = 0; i < renderCompleteSemaphores.size(); i++) {
-			vkDestroySemaphore(device, renderCompleteSemaphores[i], nullptr);
-		}
+	for (auto& semaphore : presentCompleteSemaphores) {
+		vkDestroySemaphore(device, semaphore, nullptr);
+	}
+	for (auto& semaphore : renderCompleteSemaphores) {
+		vkDestroySemaphore(device, semaphore, nullptr);
 	}
 
 	if (settings.overlay) {
@@ -1193,15 +1156,6 @@ bool VulkanExampleBase::initVulkan()
 	assert(validFormat);
 
 	swapChain.setContext(instance, physicalDevice, device);
-
-	// Create synchronization objects
-	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-	// Create a semaphore used to synchronize image presentation
-	// Ensures that the image is displayed before we start submitting new commands to the queue
-	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete));
-	// Create a semaphore used to synchronize command submission
-	// Ensures that the image is not presented until all commands have been submitted and executed
-	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete));
 
 	return true;
 }
@@ -3091,8 +3045,6 @@ void VulkanExampleBase::keyPressed(uint32_t) {}
 
 void VulkanExampleBase::mouseMoved(double x, double y, bool & handled) {}
 
-void VulkanExampleBase::buildCommandBuffers() {}
-
 void VulkanExampleBase::createSynchronizationPrimitives()
 {
 	// Wait fences to sync command buffer access
@@ -3101,19 +3053,17 @@ void VulkanExampleBase::createSynchronizationPrimitives()
 	for (auto& fence : waitFences) {
 		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
 	}
-	if (useNewSync) {
-		// Used to ensure that image presentation is complete before starting to submit again
-		presentCompleteSemaphores.resize(maxConcurrentFrames);
-		for (auto& semaphore : presentCompleteSemaphores) {
-			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
-		}
-		// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
-		renderCompleteSemaphores.resize(swapChain.images.size());
-		for (auto& semaphore : renderCompleteSemaphores) {
-			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
-		}
+	// Used to ensure that image presentation is complete before starting to submit again
+	presentCompleteSemaphores.resize(maxConcurrentFrames);
+	for (auto& semaphore : presentCompleteSemaphores) {
+		VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
+	}
+	// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
+	renderCompleteSemaphores.resize(swapChain.images.size());
+	for (auto& semaphore : renderCompleteSemaphores) {
+		VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
 	}
 }
 
@@ -3299,13 +3249,12 @@ void VulkanExampleBase::windowResize()
 		}
 	}
 
-	// Command buffers need to be recreated as they may store
-	// references to the recreated frame buffer
-	destroyCommandBuffers();
-	createCommandBuffers();
-	buildCommandBuffers();
-
-	// SRS - Recreate fences in case number of swapchain images has changed on resize
+	for (auto& semaphore : presentCompleteSemaphores) {
+		vkDestroySemaphore(device, semaphore, nullptr);
+	}
+	for (auto& semaphore : renderCompleteSemaphores) {
+		vkDestroySemaphore(device, semaphore, nullptr);
+	}
 	for (auto& fence : waitFences) {
 		vkDestroyFence(device, fence, nullptr);
 	}
