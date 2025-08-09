@@ -589,28 +589,23 @@ public:
 		}
 		else {
 			firstDraw = false;
-			if (maxConcurrentFrames > 1)
-			{
-				// SRS - if we are double buffering the compute queue, submit extra command buffer at start
-				computeSubmitInfo.signalSemaphoreCount = 1;
-				computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer].complete;
-				computeSubmitInfo.commandBufferCount = 1;
-				computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
+			computeSubmitInfo.signalSemaphoreCount = 1;
+			computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer].complete;
+			computeSubmitInfo.commandBufferCount = 1;
+			computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
 
-				VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
+			VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
 
-				VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
-				VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
 
-				// Add an extra set of acquire and release barriers to the graphics queue,
-				// so that when the second compute command buffer executes for the first time
-				// it doesn't complain about a lack of a corresponding "acquire" to its "release" and vice versa
-				VkCommandBuffer barrierCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-				addComputeToGraphicsBarriers(barrierCmd, 0, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT);
-				addGraphicsToComputeBarriers(barrierCmd, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-				vulkanDevice->flushCommandBuffer(barrierCmd, queue, true);
-
-			}
+			// Add an extra set of acquire and release barriers to the graphics queue,
+			// so that when the second compute command buffer executes for the first time
+			// it doesn't complain about a lack of a corresponding "acquire" to its "release" and vice versa
+			VkCommandBuffer barrierCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			addComputeToGraphicsBarriers(barrierCmd, 0, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT);
+			addGraphicsToComputeBarriers(barrierCmd, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+			vulkanDevice->flushCommandBuffer(barrierCmd, queue, true);
 		}
 		computeSubmitInfo.signalSemaphoreCount = 1;
 		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer].complete;
@@ -626,15 +621,9 @@ public:
 
 		buildGraphicsCommandBuffer();
 
-		VkPipelineStageFlags waitDstStageMask[2] = {
-			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
-		};
-		VkSemaphore waitSemaphores[2] = {
-			semaphores.presentComplete, compute.semaphores[currentBuffer].complete
-		};
-		VkSemaphore signalSemaphores[2] = {
-			semaphores.renderComplete, compute.semaphores[currentBuffer].ready
-		};
+		VkPipelineStageFlags waitDstStageMask[2] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT };
+		VkSemaphore waitSemaphores[2] = { presentCompleteSemaphores[currentBuffer], compute.semaphores[currentBuffer].complete };
+		VkSemaphore signalSemaphores[2] = { renderCompleteSemaphores[currentImageIndex], compute.semaphores[currentBuffer].ready };
 
 		VkSubmitInfo submitInfo = vks::initializers::submitInfo();
 		submitInfo.waitSemaphoreCount = 2;
