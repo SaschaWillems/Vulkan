@@ -72,7 +72,7 @@ public:
 	// Resources for the compute part of the example
 	// Number of compute command buffers: set to 1 for serialized processing or 2 for in-parallel with graphics queue
 	struct Compute {
-		typedef struct ComputeSemaphores {
+		struct ComputeSemaphores {
 			VkSemaphore ready{ VK_NULL_HANDLE };
 			VkSemaphore complete{ VK_NULL_HANDLE };
 		};
@@ -683,45 +683,52 @@ public:
 		if (!prepared)
 			return;
 
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
+		// Submit compute commands
+		{
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
 
-		updateComputeUBO();
-		buildComputeCommandBuffer();
+			updateComputeUBO();
+			buildComputeCommandBuffer();
 
-		VkPipelineStageFlags computeWaitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
-		computeSubmitInfo.waitSemaphoreCount = 1;
-		computeSubmitInfo.pWaitSemaphores = &compute.semaphores[((int)currentBuffer - 1) % maxConcurrentFrames].ready;
-		computeSubmitInfo.pWaitDstStageMask = &computeWaitDstStageMask;
-		computeSubmitInfo.signalSemaphoreCount = 1;
-		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer].complete;
-		computeSubmitInfo.commandBufferCount = 1;
-		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
-
-		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
+			VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = &compute.semaphores[((int)currentBuffer - 1) % maxConcurrentFrames].ready;
+			submitInfo.pWaitDstStageMask = &waitDstStageMask;
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer].complete;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
+			VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &submitInfo, compute.fences[currentBuffer]));
+		}
 
 		// Submit graphics commands
-		VulkanExampleBase::prepareFrame();
+		{
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
 
-		updateGraphicsUBO();
-		buildGraphicsCommandBuffer();
+			VulkanExampleBase::prepareFrame(false);
 
-		VkPipelineStageFlags waitDstStageMask[2] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT };
-		VkSemaphore waitSemaphores[2] = { presentCompleteSemaphores[currentBuffer], compute.semaphores[currentBuffer].complete };
-		VkSemaphore signalSemaphores[2] = { renderCompleteSemaphores[currentImageIndex], compute.semaphores[currentBuffer].ready };
+			updateGraphicsUBO();
+			buildGraphicsCommandBuffer();
 
-		VkSubmitInfo submitInfo = vks::initializers::submitInfo();
-		submitInfo.waitSemaphoreCount = 2;
-		submitInfo.pWaitDstStageMask = waitDstStageMask;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.signalSemaphoreCount = 2;
-		submitInfo.pSignalSemaphores = signalSemaphores;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+			VkPipelineStageFlags waitDstStageMask[2] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT };
+			VkSemaphore waitSemaphores[2] = { presentCompleteSemaphores[currentBuffer], compute.semaphores[currentBuffer].complete };
+			VkSemaphore signalSemaphores[2] = { renderCompleteSemaphores[currentImageIndex], compute.semaphores[currentBuffer].ready };
 
-		VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
+			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+			submitInfo.waitSemaphoreCount = 2;
+			submitInfo.pWaitSemaphores = waitSemaphores;
+			submitInfo.pWaitDstStageMask = waitDstStageMask;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+			submitInfo.signalSemaphoreCount = 2;
+			submitInfo.pSignalSemaphores = signalSemaphores;
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+
+			VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
+		}
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay* overlay)
