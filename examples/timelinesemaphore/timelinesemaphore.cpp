@@ -229,9 +229,8 @@ public:
 		stagingBuffer.destroy();
 	}
 
-	void prepareGraphics()
+	void prepareDescriptorPool()
 	{
-		// Descriptor pool
 		// This is shared between graphics and compute
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames * 2),
@@ -240,7 +239,10 @@ public:
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames * 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
+	}
 
+	void prepareGraphics()
+	{
 		// Descriptor layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
 		setLayoutBindings = {
@@ -257,7 +259,6 @@ public:
 			VK_CHECK_RESULT(buffer.map());
 		}
 
-		// Descriptor set
 		// Sets per frame, just like the buffers themselves
 		for (auto i = 0; i < graphics.uniformBuffers.size(); i++) {
 			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &graphics.descriptorSetLayout, 1);
@@ -411,6 +412,7 @@ public:
 		vkWaitSemaphoresKHR = reinterpret_cast<PFN_vkWaitSemaphoresKHR>(vkGetDeviceProcAddr(device, "vkWaitSemaphoresKHR"));
 
 		loadAssets();
+		prepareDescriptorPool();
 		prepareStorageBuffers();
 		prepareGraphics();
 		prepareCompute();
