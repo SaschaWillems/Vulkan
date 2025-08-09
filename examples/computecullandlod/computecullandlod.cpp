@@ -70,7 +70,12 @@ public:
 		VkCommandPool commandPool;											// Use a separate command pool (queue family may differ from the one used for graphics)
 		std::array<VkCommandBuffer, maxConcurrentFrames> commandBuffers;	// Command buffer storing the dispatch commands and barriers
 		std::array<VkFence, maxConcurrentFrames> fences;					// Synchronization fence to avoid rewriting compute CB if still in use
-		std::array<VkSemaphore, maxConcurrentFrames> semaphores;			// Used as a wait semaphore for graphics submission
+		struct ComputeSemaphores {
+			VkSemaphore ready{ VK_NULL_HANDLE };
+			VkSemaphore complete{ VK_NULL_HANDLE };
+		};
+		std::array<ComputeSemaphores, maxConcurrentFrames> semaphores{};	// Used as a wait semaphore for graphics submission
+		//std::array<VkSemaphore, maxConcurrentFrames> semaphores;			// Used as a wait semaphore for graphics submission
 		VkDescriptorSetLayout descriptorSetLayout;							// Compute shader binding layout
 		std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};	// Compute shader bindings
 		VkPipelineLayout pipelineLayout;									// Layout of the compute pipeline
@@ -90,7 +95,6 @@ public:
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setTranslation(glm::vec3(0.5f, 0.0f, 0.0f));
 		camera.movementSpeed = 5.0f;
-		settings.overlay = false;
 	}
 
 	~VulkanExample()
@@ -118,7 +122,8 @@ public:
 				vkDestroyFence(device, fence, nullptr);
 			}
 			for (auto& semaphore : compute.semaphores) {
-				vkDestroySemaphore(device, semaphore, nullptr);
+				vkDestroySemaphore(device, semaphore.complete, nullptr);
+				vkDestroySemaphore(device, semaphore.ready, nullptr);
 			}
 
 		}
@@ -406,37 +411,17 @@ public:
 
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0: Instance input data buffer
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				0),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
 			// Binding 1: Indirect draw command output buffer (input)
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				1),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
 			// Binding 2: Uniform buffer with global matrices (input)
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				2),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
 			// Binding 3: Indirect draw stats (output)
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				3),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
 			// Binding 4: LOD info (input)
-			vks::initializers::descriptorSetLayoutBinding(
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				VK_SHADER_STAGE_COMPUTE_BIT,
-				4),
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT,4),
 		};
-
-		VkDescriptorSetLayoutCreateInfo descriptorLayout =
-			vks::initializers::descriptorSetLayoutCreateInfo(
-				setLayoutBindings.data(),
-				static_cast<uint32_t>(setLayoutBindings.size()));
-
+		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &compute.descriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayout, 1);
@@ -445,8 +430,7 @@ public:
 		for (auto i = 0; i < uniformBuffers.size(); i++) {
 			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayout, 1);
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets[i]));
-			std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets =
-			{
+			std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets = {
 				// Binding 0: Instance input data buffer
 				vks::initializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &instanceBuffer.descriptor),
 				// Binding 1: Indirect draw command output buffer
@@ -504,8 +488,14 @@ public:
 		// Semaphores to order compute and graphics submissions
 		for (auto& semaphore : compute.semaphores) {
 			VkSemaphoreCreateInfo semaphoreInfo{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore.complete));
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore.ready));
 		}
+		// Signal first used ready semaphore
+		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
+		computeSubmitInfo.signalSemaphoreCount = 1;
+		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[-1 % maxConcurrentFrames].ready;
+		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
 	}
 
 	void updateUniformBuffer()
@@ -731,8 +721,6 @@ public:
 				0, nullptr);
 		}
 
-		// todo: barrier for indirect stats buffer?
-
 		vkEndCommandBuffer(cmdBuffer);
 	}
 
@@ -741,55 +729,55 @@ public:
 		if (!prepared)
 			return;
 
-		VulkanExampleBase::prepareFrame(false);
-
 		// Submit compute commands
+		{
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
 
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
+			// Get draw count from compute
+			memcpy(&indirectStats, indirectDrawCountBuffers[currentBuffer].mapped, sizeof(indirectStats));
+			buildComputeCommandBuffer();
 
-		// Get draw count from compute
-		memcpy(&indirectStats, indirectDrawCountBuffers[currentBuffer].mapped, sizeof(indirectStats));
-
-		//updateComputeUniformBuffers();
-		buildComputeCommandBuffer();
-
-		// Wait for rendering finished
-		VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
-		computeSubmitInfo.commandBufferCount = 1;
-		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
-		computeSubmitInfo.pWaitDstStageMask = &waitStageMask;
-		computeSubmitInfo.signalSemaphoreCount = 1;
-		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
-
-		// Submit graphics commands
-
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
-
-		// @todo: need to split for new sycn
-		updateUniformBuffer();
-		buildGraphicsCommandBuffer();
-
-		VkPipelineStageFlags graphicsWaitStageMasks[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		VkSemaphore graphicsWaitSemaphores[] = { compute.semaphores[currentBuffer], presentCompleteSemaphores[currentBuffer] };
+			// Wait for rendering finished
+			VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = &compute.semaphores[((int)currentBuffer - 1) % maxConcurrentFrames].ready;
+			submitInfo.pWaitDstStageMask = &waitDstStageMask;
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer].complete;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
+			VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &submitInfo, compute.fences[currentBuffer]));
+		}
 
 		// Submit graphics commands
-		VkSubmitInfo graphicsSubmitInfo = vks::initializers::submitInfo();
-		graphicsSubmitInfo.commandBufferCount = 1;
-		graphicsSubmitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		graphicsSubmitInfo.waitSemaphoreCount = 2;
-		graphicsSubmitInfo.pWaitSemaphores = graphicsWaitSemaphores;
-		graphicsSubmitInfo.pWaitDstStageMask = graphicsWaitStageMasks;
-		graphicsSubmitInfo.signalSemaphoreCount = 1;
-		graphicsSubmitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &graphicsSubmitInfo, waitFences[currentBuffer]));
+		{
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+		
+			VulkanExampleBase::prepareFrame(false);
 
-		VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
+			updateUniformBuffer();
+			buildGraphicsCommandBuffer();
 
+			VkPipelineStageFlags waitDstStageMask[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT };
+			VkSemaphore waitSemaphores[2] = { presentCompleteSemaphores[currentBuffer], compute.semaphores[currentBuffer].complete };
+			VkSemaphore signalSemaphores[2] = { renderCompleteSemaphores[currentImageIndex], compute.semaphores[currentBuffer].ready };
+
+			// Submit graphics commands
+			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+			submitInfo.waitSemaphoreCount = 2;
+			submitInfo.pWaitDstStageMask = waitDstStageMask;
+			submitInfo.pWaitSemaphores = waitSemaphores;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+			submitInfo.signalSemaphoreCount = 2;
+			submitInfo.pSignalSemaphores = signalSemaphores;
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+
+			VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
+		}
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
