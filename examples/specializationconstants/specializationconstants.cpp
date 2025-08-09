@@ -41,7 +41,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Specialization constants";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, ((float)width / 3.0f) / (float)height, 0.1f, 512.0f);

@@ -96,7 +96,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Bloom (offscreen rendering)";
 		timerSpeed *= 0.5f;
 		camera.type = Camera::CameraType::lookat;

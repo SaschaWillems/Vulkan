@@ -639,7 +639,6 @@ void VulkanglTFModel::draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipel
 
 VulkanExample::VulkanExample() : VulkanExampleBase()
 {
-	useNewSync = true;
 	title = "glTF vertex skinning";
 	camera.type  = Camera::CameraType::lookat;
 	camera.flipY = true;

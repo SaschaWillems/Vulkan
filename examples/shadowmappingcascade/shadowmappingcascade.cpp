@@ -121,7 +121,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Cascaded shadow mapping";
 		timerSpeed *= 0.025f;
 		camera.type = Camera::CameraType::firstperson;

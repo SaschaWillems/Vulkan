@@ -86,7 +86,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Point light shadows (cubemap)";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(45.0f, (float)width / (float)height, zNear, zFar);

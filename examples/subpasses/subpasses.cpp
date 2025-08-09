@@ -91,7 +91,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Subpasses";
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 5.0f;

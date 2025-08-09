@@ -68,7 +68,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Debugging with VK_EXT_debug_utils";
 		camera.setRotation(glm::vec3(-4.35f, 16.25f, 0.0f));
 		camera.setRotationSpeed(0.5f);

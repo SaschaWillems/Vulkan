@@ -81,7 +81,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Offscreen rendering";
 		timerSpeed *= 0.25f;
 		camera.type = Camera::CameraType::lookat;

@@ -522,7 +522,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "User interfaces with ImGui";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(-1.0f, 0.0f, -4.8f));

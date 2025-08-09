@@ -45,7 +45,6 @@ public:
 	// This sample is derived from an extended base class that saves most of the ray tracing setup boiler plate
 	VulkanExample() : VulkanRaytracingSample()
 	{
-		useNewSync = true;
 		title = "Ray tracing position fetch";
 		timerSpeed *= 0.5f;
 		camera.rotationSpeed *= 0.25f;

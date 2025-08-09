@@ -56,7 +56,6 @@ public:
 	// This sample is derived from an extended base class that saves most of the ray tracing setup boiler plate
 	VulkanExample() : VulkanRaytracingSample()
 	{
-		useNewSync = true;
 		title = "Ray tracing intersection shaders";
 		timerSpeed *= 0.25f;
 		camera.type = Camera::CameraType::lookat;

@@ -59,7 +59,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Parallax Mapping";
 		timerSpeed *= 0.5f;
 		camera.type = Camera::CameraType::firstperson;

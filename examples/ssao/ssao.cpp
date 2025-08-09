@@ -119,7 +119,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Screen space ambient occlusion";
 		camera.type = Camera::CameraType::firstperson;
 #ifndef __ANDROID__

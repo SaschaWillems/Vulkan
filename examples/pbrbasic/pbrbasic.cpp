@@ -68,7 +68,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Physical based shading basics";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPosition(glm::vec3(10.0f, 13.0f, 1.8f));

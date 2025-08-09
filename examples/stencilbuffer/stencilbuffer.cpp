@@ -34,7 +34,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Stencil buffer outlines";
 		timerSpeed *= 0.25f;
 		camera.type = Camera::CameraType::lookat;

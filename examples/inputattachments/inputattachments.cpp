@@ -72,7 +72,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Input attachments";
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 2.5f;

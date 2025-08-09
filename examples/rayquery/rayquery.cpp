@@ -40,7 +40,6 @@ public:
 
 	VulkanExample() : VulkanRaytracingSample()
 	{
-		useNewSync = true;
 		title = "Ray queries for ray traced shadows";
 		camera.type = Camera::CameraType::lookat;
 		timerSpeed *= 0.25f;

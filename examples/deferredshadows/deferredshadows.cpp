@@ -109,7 +109,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Deferred shading with shadows";
 		camera.type = Camera::CameraType::firstperson;
 #if defined(__ANDROID__)

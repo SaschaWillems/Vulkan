@@ -70,7 +70,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Textured PBR with IBL";
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 4.0f;

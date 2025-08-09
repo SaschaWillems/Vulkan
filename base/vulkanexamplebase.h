@@ -147,9 +147,6 @@ protected:
 	// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VulkanSwapChain swapChain;
 
-	// This sample will be using a new synchronisation setup, which is closer to what should be used with Vulkan
-	bool useNewSync{ false };
-
 	// Synchronization related objects and variables
 	// These are used to have multiple frame buffers "in flight" to get some CPU/GPU parallelism
 	uint32_t currentImageIndex{ 0 };

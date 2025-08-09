@@ -78,7 +78,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Compute shader ray tracing";
 		timerSpeed *= 0.25f;
 		camera.type = Camera::CameraType::lookat;

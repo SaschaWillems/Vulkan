@@ -47,7 +47,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Pipeline statistics";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPosition(glm::vec3(-3.0f, 1.0f, -2.75f));

@@ -406,7 +406,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "glTF model rendering";
 		camera.type = Camera::CameraType::lookat;
 		camera.flipY = true;

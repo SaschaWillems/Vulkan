@@ -96,7 +96,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Deferred shading";
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 5.0f;

@@ -74,7 +74,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Compute shader particle system";
 	}
 

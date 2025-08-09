@@ -37,7 +37,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Debug output with shader printf";
 		camera.setRotation(glm::vec3(-4.35f, 16.25f, 0.0f));
 		camera.setRotationSpeed(0.5f);

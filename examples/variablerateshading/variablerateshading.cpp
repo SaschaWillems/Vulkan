@@ -10,7 +10,6 @@
 
 VulkanExample::VulkanExample() : VulkanExampleBase()
 {
-	useNewSync = true;
 	title = "Variable rate shading";
 	apiVersion = VK_API_VERSION_1_1;
 	camera.type = Camera::CameraType::firstperson;

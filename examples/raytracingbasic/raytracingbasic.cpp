@@ -77,7 +77,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Ray tracing basic";
 		settings.overlay = false;
 		camera.type = Camera::CameraType::lookat;

@@ -51,7 +51,6 @@ public:
 
 	VulkanExample() : VulkanRaytracingSample()
 	{
-		useNewSync = true;
 		title = "Ray tracing textures";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);

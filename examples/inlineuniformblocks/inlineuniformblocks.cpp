@@ -63,7 +63,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Inline uniform blocks";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPosition(glm::vec3(0.0f, 0.0f, -10.0f));

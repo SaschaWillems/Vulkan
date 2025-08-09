@@ -44,7 +44,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Vulkan Demo Scene";
 		camera.type = Camera::CameraType::lookat;
 		//camera.flipY = true;

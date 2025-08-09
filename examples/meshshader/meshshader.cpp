@@ -31,7 +31,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Mesh shaders";
 		timerSpeed *= 0.25f;
 		camera.type = Camera::CameraType::lookat;

@@ -69,7 +69,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Instanced mesh rendering";
 		camera.type = Camera::CameraType::lookat;
 		camera.setPosition(glm::vec3(5.5f, -1.85f, -18.5f));

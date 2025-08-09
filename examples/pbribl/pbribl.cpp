@@ -91,7 +91,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "PBR with image based lighting";
 		camera.type = Camera::CameraType::firstperson;
 		camera.movementSpeed = 4.0f;

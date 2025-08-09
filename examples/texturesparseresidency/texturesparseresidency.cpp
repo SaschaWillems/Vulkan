@@ -148,7 +148,6 @@ void VirtualTexture::destroy()
 */
 VulkanExample::VulkanExample() : VulkanExampleBase()
 {
-	useNewSync = true;
 	title = "Sparse texture residency";
 	std::cout.imbue(std::locale(""));
 	camera.type = Camera::CameraType::lookat;

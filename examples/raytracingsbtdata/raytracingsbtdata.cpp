@@ -81,7 +81,6 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		useNewSync = true;
 		title = "Ray tracing SBT data";
 		settings.overlay = false;
 		camera.type = Camera::CameraType::lookat;
