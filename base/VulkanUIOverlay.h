@@ -48,8 +48,6 @@ namespace vks
 			vks::Buffer indexBuffer;
 			int32_t vertexCount{ 0 };
 			int32_t indexCount{ 0 };
-			// UI update rate is capped for performance reasons, so we need to know when to update
-			float updateTimer{ 0.0f };
 		};
 		std::vector<Buffers> buffers;
 		uint32_t maxConcurrentFrames{ 0 };

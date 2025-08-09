@@ -232,11 +232,8 @@ namespace vks
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 		// Setup graphics pipeline for UI rendering
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-
-		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
 		// Enable blending
 		VkPipelineColorBlendAttachmentState blendAttachmentState{};
@@ -249,27 +246,13 @@ namespace vks
 		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 
-		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS);
-
-		VkPipelineViewportStateCreateInfo viewportState =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vks::initializers::pipelineMultisampleStateCreateInfo(rasterizationSamples);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-
+		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS);
+		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(rasterizationSamples);
+		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
-
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
 		pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -316,7 +299,7 @@ namespace vks
 
 	/** Update vertex and index buffer containing the imGui elements when required */
 	void UIOverlay::update(uint32_t currentBuffer)
-	{
+	{	
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 
 		if (!imDrawData) {
@@ -326,14 +309,19 @@ namespace vks
 		// Note: Alignment is done inside buffer creation
 		VkDeviceSize vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
 		VkDeviceSize indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
-
+		
 		// Update buffers only if vertex or index count has been changed compared to current buffer size
 		if ((vertexBufferSize == 0) || (indexBufferSize == 0)) {
 			return;
 		}
 
-		// Vertex buffer
-		if ((buffers[currentBuffer].vertexBuffer.buffer == VK_NULL_HANDLE) || (buffers[currentBuffer].vertexCount != imDrawData->TotalVtxCount)) {
+		// Create buffers with multiple of a chunk size to minimize the need to recreate them
+		const VkDeviceSize chunkSize = 16384;
+		vertexBufferSize = ((vertexBufferSize + chunkSize - 1) / chunkSize) * chunkSize;
+		indexBufferSize = ((indexBufferSize + chunkSize - 1) / chunkSize) * chunkSize;
+
+		// Recreate vertex buffer only if necessary
+		if ((buffers[currentBuffer].vertexBuffer.buffer == VK_NULL_HANDLE) || (buffers[currentBuffer].vertexBuffer.size < vertexBufferSize)) {
 			buffers[currentBuffer].vertexBuffer.unmap();
 			buffers[currentBuffer].vertexBuffer.destroy();
 			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &buffers[currentBuffer].vertexBuffer, vertexBufferSize));
@@ -341,8 +329,8 @@ namespace vks
 			buffers[currentBuffer].vertexBuffer.map();
 		}
 
-		// Index buffer
-		if ((buffers[currentBuffer].indexBuffer.buffer == VK_NULL_HANDLE) || (buffers[currentBuffer].indexCount < imDrawData->TotalIdxCount)) {
+		// Recreate index buffer only if necessary
+		if ((buffers[currentBuffer].indexBuffer.buffer == VK_NULL_HANDLE) || (buffers[currentBuffer].indexBuffer.size < indexBufferSize)) {
 			buffers[currentBuffer].indexBuffer.unmap();
 			buffers[currentBuffer].indexBuffer.destroy();
 			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &buffers[currentBuffer].indexBuffer, indexBufferSize));
@@ -382,7 +370,7 @@ namespace vks
 		}
 
 		ImGuiIO& io = ImGui::GetIO();
-
+		
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
@@ -396,11 +384,9 @@ namespace vks
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffers[currentBuffer].vertexBuffer.buffer, offsets);
 		vkCmdBindIndexBuffer(commandBuffer, buffers[currentBuffer].indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-		for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
-		{
+		for (int32_t i = 0; i < imDrawData->CmdListsCount; i++) {
 			const ImDrawList* cmd_list = imDrawData->CmdLists[i];
-			for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
-			{
+			for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
 				const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
 				VkRect2D scissorRect;
 				scissorRect.offset.x = std::max((int32_t)(pcmd->ClipRect.x), 0);

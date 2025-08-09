@@ -685,15 +685,6 @@ void VulkanExampleBase::updateOverlay()
 	if (!settings.overlay)
 		return;
 
-	// The overlay does not need to be updated with each frame, so we limit the update rate
-	// Not only does this save performance but it also makes display of fast changig values like fps more stable
-	ui.buffers[currentBuffer].updateTimer -= frameTimer;
-	if (ui.buffers[currentBuffer].updateTimer >= 0.0f) {
-		return;
-	}
-	// Update at max. rate of 30 fps
-	ui.buffers[currentBuffer].updateTimer = 1.0f / 30.0f;
-
 	ImGuiIO& io = ImGui::GetIO();
 
 	io.DisplaySize = ImVec2((float)width, (float)height);
@@ -755,7 +746,6 @@ void VulkanExampleBase::prepareFrame(bool waitForFence)
 		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
 	}
-	// Update UI if necessary
 	updateOverlay();
 	// Acquire the next image from the swap chain
 	VkResult result = swapChain.acquireNextImage(presentCompleteSemaphores[currentBuffer], currentImageIndex);
