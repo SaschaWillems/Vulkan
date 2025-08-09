@@ -38,46 +38,43 @@ public:
 	// Contains the instanced data
 	vks::Buffer instanceBuffer;
 	// Contains the indirect drawing commands
-	vks::Buffer indirectCommandsBuffer;
-	vks::Buffer indirectDrawCountBuffer;
+	std::array<vks::Buffer, maxConcurrentFrames> indirectCommandsBuffers;
+	std::array<vks::Buffer, maxConcurrentFrames> indirectDrawCountBuffers;
 
 	// Indirect draw statistics (updated via compute)
 	struct {
 		uint32_t drawCount;						// Total number of indirect draw counts to be issued
 		uint32_t lodCount[MAX_LOD_LEVEL + 1];	// Statistics for number of draws per LOD level (written by compute shader)
-	} indirectStats;
+	} indirectStats{};
 
 	// Store the indirect draw commands containing index offsets and instance count per object
 	std::vector<VkDrawIndexedIndirectCommand> indirectCommands;
 
-	struct {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 modelview;
 		glm::vec4 cameraPos;
 		glm::vec4 frustumPlanes[6];
-	} uboScene;
-
-	struct {
-		vks::Buffer scene;
 	} uniformData;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	// Resources for the compute part of the example
-	struct {
-		vks::Buffer lodLevelsBuffers;				// Contains index start and counts for the different lod levels
-		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
-		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
-		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
-		VkFence fence;								// Synchronization fence to avoid rewriting compute CB if still in use
-		VkSemaphore semaphore;						// Used as a wait semaphore for graphics submission
-		VkDescriptorSetLayout descriptorSetLayout;	// Compute shader binding layout
-		VkDescriptorSet descriptorSet;				// Compute shader bindings
-		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
-		VkPipeline pipeline;						// Compute pipeline for updating particle positions
+	struct Compute {
+		vks::Buffer lodLevelsBuffers;										// Contains index start and counts for the different lod levels
+		VkQueue queue;														// Separate queue for compute commands (queue family may differ from the one used for graphics)
+		VkCommandPool commandPool;											// Use a separate command pool (queue family may differ from the one used for graphics)
+		std::array<VkCommandBuffer, maxConcurrentFrames> commandBuffers;	// Command buffer storing the dispatch commands and barriers
+		std::array<VkFence, maxConcurrentFrames> fences;					// Synchronization fence to avoid rewriting compute CB if still in use
+		std::array<VkSemaphore, maxConcurrentFrames> semaphores;			// Used as a wait semaphore for graphics submission
+		VkDescriptorSetLayout descriptorSetLayout;							// Compute shader binding layout
+		std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};	// Compute shader bindings
+		VkPipelineLayout pipelineLayout;									// Layout of the compute pipeline
+		VkPipeline pipeline;												// Compute pipeline
 	} compute{};
 
 	// View frustum for culling invisible objects
@@ -87,12 +84,13 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
+		useNewSync = true;
 		title = "Compute cull and lod";
 		camera.type = Camera::CameraType::firstperson;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setTranslation(glm::vec3(0.5f, 0.0f, 0.0f));
 		camera.movementSpeed = 5.0f;
-		memset(&indirectStats, 0, sizeof(indirectStats));
+		settings.overlay = false;
 	}
 
 	~VulkanExample()
@@ -102,16 +100,27 @@ public:
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 			instanceBuffer.destroy();
-			indirectCommandsBuffer.destroy();
-			uniformData.scene.destroy();
-			indirectDrawCountBuffer.destroy();
+			for (auto& buffer : uniformBuffers) {
+				buffer.destroy();
+			}
+			for (auto& buffer : indirectDrawCountBuffers) {
+				buffer.destroy();
+			}
+			for (auto& buffer : indirectCommandsBuffers) {
+				buffer.destroy();
+			}
 			compute.lodLevelsBuffers.destroy();
 			vkDestroyPipelineLayout(device, compute.pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, compute.descriptorSetLayout, nullptr);
 			vkDestroyPipeline(device, compute.pipeline, nullptr);
-			vkDestroyFence(device, compute.fence, nullptr);
 			vkDestroyCommandPool(device, compute.commandPool, nullptr);
-			vkDestroySemaphore(device, compute.semaphore, nullptr);
+			for (auto& fence : compute.fences) {
+				vkDestroyFence(device, fence, nullptr);
+			}
+			for (auto& semaphore : compute.semaphores) {
+				vkDestroySemaphore(device, semaphore, nullptr);
+			}
+
 		}
 	}
 
@@ -125,118 +134,6 @@ public:
 		enabledFeatures.drawIndirectFirstInstance = VK_TRUE;
 	}
 
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[2]{};
-		clearValues[0].color = { { 0.18f, 0.27f, 0.5f, 0.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			// Acquire barrier
-			if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
-			{
-				VkBufferMemoryBarrier buffer_barrier =
-				{
-					VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-					nullptr,
-					0,
-					VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
-					vulkanDevice->queueFamilyIndices.compute,
-					vulkanDevice->queueFamilyIndices.graphics,
-					indirectCommandsBuffer.buffer,
-					0,
-					indirectCommandsBuffer.descriptor.range
-				};
-
-				vkCmdPipelineBarrier(
-					drawCmdBuffers[i],
-					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-					VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
-					0,
-					0, nullptr,
-					1, &buffer_barrier,
-					0, nullptr);
-			}
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-
-			// Mesh containing the LODs
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &lodModel.vertices.buffer, offsets);
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 1, 1, &instanceBuffer.buffer, offsets);
-
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], lodModel.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-			if (vulkanDevice->features.multiDrawIndirect)
-			{
-				vkCmdDrawIndexedIndirect(drawCmdBuffers[i], indirectCommandsBuffer.buffer, 0, static_cast<uint32_t>(indirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
-			}
-			else
-			{
-				// If multi draw is not available, we must issue separate draw commands
-				for (auto j = 0; j < indirectCommands.size(); j++)
-				{
-					vkCmdDrawIndexedIndirect(drawCmdBuffers[i], indirectCommandsBuffer.buffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
-				}
-			}
-
-			drawUI(drawCmdBuffers[i]);
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			// Release barrier
-			if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
-			{
-				VkBufferMemoryBarrier buffer_barrier =
-				{
-					VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-					nullptr,
-					VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
-					0,
-					vulkanDevice->queueFamilyIndices.graphics,
-					vulkanDevice->queueFamilyIndices.compute,
-					indirectCommandsBuffer.buffer,
-					0,
-					indirectCommandsBuffer.descriptor.range
-				};
-
-				vkCmdPipelineBarrier(
-					drawCmdBuffers[i],
-					VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
-					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-					0,
-					0, nullptr,
-					1, &buffer_barrier,
-					0, nullptr);
-			}
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
-	}
 
 	void loadAssets()
 	{
@@ -244,106 +141,19 @@ public:
 		lodModel.loadFromFile(getAssetPath() + "models/suzanne_lods.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}
 
-	void buildComputeCommandBuffer()
+	void prepareDescriptorPool()
 	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(compute.commandBuffer, &cmdBufInfo));
-
-		// Acquire barrier
-		// Add memory barrier to ensure that the indirect commands have been consumed before the compute shader updates them
-		if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
-		{
-			VkBufferMemoryBarrier buffer_barrier =
-			{
-				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-				nullptr,
-				0,
-				VK_ACCESS_SHADER_WRITE_BIT,
-				vulkanDevice->queueFamilyIndices.graphics,
-				vulkanDevice->queueFamilyIndices.compute,
-				indirectCommandsBuffer.buffer,
-				0,
-				indirectCommandsBuffer.descriptor.range
-			};
-
-			vkCmdPipelineBarrier(
-				compute.commandBuffer,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-				VK_FLAGS_NONE,
-				0, nullptr,
-				1, &buffer_barrier,
-				0, nullptr);
-		}
-
-		vkCmdBindPipeline(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
-		vkCmdBindDescriptorSets(compute.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSet, 0, 0);
-
-		// Clear the buffer that the compute shader pass will write statistics and draw calls to
-		vkCmdFillBuffer(compute.commandBuffer, indirectDrawCountBuffer.buffer, 0, indirectCommandsBuffer.descriptor.range, 0);
-
-		// This barrier ensures that the fill command is finished before the compute shader can start writing to the buffer
-		VkMemoryBarrier memoryBarrier = vks::initializers::memoryBarrier();
-		memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		vkCmdPipelineBarrier(
-			compute.commandBuffer,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-			VK_FLAGS_NONE,
-			1, &memoryBarrier,
-			0, nullptr,
-			0, nullptr);
-
-		// Dispatch the compute job
-		// The compute shader will do the frustum culling and adjust the indirect draw calls depending on object visibility.
-		// It also determines the lod to use depending on distance to the viewer.
-		vkCmdDispatch(compute.commandBuffer, objectCount / 16, 1, 1);
-
-		// Release barrier
-		// Add memory barrier to ensure that the compute shader has finished writing the indirect command buffer before it's consumed
-		if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
-		{
-			VkBufferMemoryBarrier buffer_barrier =
-			{
-				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-				nullptr,
-				VK_ACCESS_SHADER_WRITE_BIT,
-				0,
-				vulkanDevice->queueFamilyIndices.compute,
-				vulkanDevice->queueFamilyIndices.graphics,
-				indirectCommandsBuffer.buffer,
-				0,
-				indirectCommandsBuffer.descriptor.range
-			};
-
-			vkCmdPipelineBarrier(
-				compute.commandBuffer,
-				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-				VK_FLAGS_NONE,
-				0, nullptr,
-				1, &buffer_barrier,
-				0, nullptr);
-		}
-
-		// todo: barrier for indirect stats buffer?
-
-		vkEndCommandBuffer(compute.commandBuffer);
+		// This is shared between graphics and compute
+		std::vector<VkDescriptorPoolSize> poolSizes = {
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames * 2),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, maxConcurrentFrames * 4)
+		};
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames * 2);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 	}
 
-	void setupDescriptors()
+	void prepareGraphics()
 	{
-		// Pool
-		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4)
-		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-
 		// Layout
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			// Binding 0: Vertex shader uniform buffer
@@ -352,19 +162,18 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		// Set
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			// Binding 0: Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformData.scene.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-	}
+		// Sets per frame, just like the buffers themselves
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				// Binding 0: Vertex shader uniform buffer
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 
-	void preparePipelines()
-	{
-		// Layout
+		// Pipeline layout
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
@@ -433,16 +242,13 @@ public:
 
 		vks::Buffer stagingBuffer;
 
-		std::vector<InstanceData> instanceData(objectCount);
 		indirectCommands.resize(objectCount);
 
 		// Indirect draw commands
-		for (uint32_t x = 0; x < OBJECT_COUNT; x++)
-		{
-			for (uint32_t y = 0; y < OBJECT_COUNT; y++)
-			{
-				for (uint32_t z = 0; z < OBJECT_COUNT; z++)
-				{
+
+		for (uint32_t x = 0; x < OBJECT_COUNT; x++) {
+			for (uint32_t y = 0; y < OBJECT_COUNT; y++) {
+				for (uint32_t z = 0; z < OBJECT_COUNT; z++) {
 					uint32_t index = x + y * OBJECT_COUNT + z * OBJECT_COUNT * OBJECT_COUNT;
 					indirectCommands[index].instanceCount = 1;
 					indirectCommands[index].firstInstance = index;
@@ -460,32 +266,54 @@ public:
 			indirectCommands.size() * sizeof(VkDrawIndexedIndirectCommand),
 			indirectCommands.data()));
 
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			&indirectCommandsBuffer,
-			stagingBuffer.size));
+		for (auto& indirectCommandsBuffer : indirectCommandsBuffers) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				&indirectCommandsBuffer,
+				stagingBuffer.size));
 
-		vulkanDevice->copyBuffer(&stagingBuffer, &indirectCommandsBuffer, queue);
+			vulkanDevice->copyBuffer(&stagingBuffer, &indirectCommandsBuffer, queue);
+
+			// Add an initial release barrier to the graphics queue,
+			// so that when the compute command buffer executes for the first time
+			// it doesn't complain about a lack of a corresponding "release" to its "acquire"
+			VkCommandBuffer barrierCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+			if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
+			{
+				VkBufferMemoryBarrier buffer_barrier =
+				{
+					VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+					nullptr,
+					VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+					0,
+					vulkanDevice->queueFamilyIndices.graphics,
+					vulkanDevice->queueFamilyIndices.compute,
+					indirectCommandsBuffer.buffer,
+					0,
+					indirectCommandsBuffer.descriptor.range
+				};
+
+				vkCmdPipelineBarrier(
+					barrierCmd,
+					VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+					0,
+					0, nullptr,
+					1, &buffer_barrier,
+					0, nullptr);
+			}
+			vulkanDevice->flushCommandBuffer(barrierCmd, queue, true);
+		}
 
 		stagingBuffer.destroy();
 
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&indirectDrawCountBuffer,
-			sizeof(indirectStats)));
-
-		// Map for host access
-		VK_CHECK_RESULT(indirectDrawCountBuffer.map());
-
 		// Instance data
-		for (uint32_t x = 0; x < OBJECT_COUNT; x++)
-		{
-			for (uint32_t y = 0; y < OBJECT_COUNT; y++)
-			{
-				for (uint32_t z = 0; z < OBJECT_COUNT; z++)
-				{
+		std::vector<InstanceData> instanceData(objectCount);
+
+		for (uint32_t x = 0; x < OBJECT_COUNT; x++) {
+			for (uint32_t y = 0; y < OBJECT_COUNT; y++) {
+				for (uint32_t z = 0; z < OBJECT_COUNT; z++) {
 					uint32_t index = x + y * OBJECT_COUNT + z * OBJECT_COUNT * OBJECT_COUNT;
 					instanceData[index].pos = glm::vec3((float)x, (float)y, (float)z) - glm::vec3((float)OBJECT_COUNT / 2.0f);
 					instanceData[index].scale = 2.0f;
@@ -506,40 +334,23 @@ public:
 			&instanceBuffer,
 			stagingBuffer.size));
 
-		// Copy from staging buffer to instance buffer
-		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		VkBufferCopy copyRegion = {};
-		copyRegion.size = stagingBuffer.size;
-		vkCmdCopyBuffer(copyCmd, stagingBuffer.buffer, instanceBuffer.buffer, 1, &copyRegion);
-		// Add an initial release barrier to the graphics queue,
-		// so that when the compute command buffer executes for the first time
-		// it doesn't complain about a lack of a corresponding "release" to its "acquire"
-		if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
-		{			VkBufferMemoryBarrier buffer_barrier =
-			{
-				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-				nullptr,
-				VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
-				0,
-				vulkanDevice->queueFamilyIndices.graphics,
-				vulkanDevice->queueFamilyIndices.compute,
-				indirectCommandsBuffer.buffer,
-				0,
-				indirectCommandsBuffer.descriptor.range
-			};
-
-			vkCmdPipelineBarrier(
-				copyCmd,
-				VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
-				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-				0,
-				0, nullptr,
-				1, &buffer_barrier,
-				0, nullptr);
-		}
-		vulkanDevice->flushCommandBuffer(copyCmd, queue, true);
+		vulkanDevice->copyBuffer(&stagingBuffer, &instanceBuffer, queue);
 
 		stagingBuffer.destroy();
+
+		// Draw count buffer for host side info readback
+		for (auto& indirectDrawCountBuffer : indirectDrawCountBuffers) {
+
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&indirectDrawCountBuffer,
+				sizeof(indirectStats)));
+
+			// Map for host access
+			VK_CHECK_RESULT(indirectDrawCountBuffer.map());
+		}
+
 
 		// Shader storage buffer containing index offsets and counts for the LODs
 		struct LOD
@@ -579,15 +390,10 @@ public:
 		stagingBuffer.destroy();
 
 		// Scene uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformData.scene,
-			sizeof(uboScene)));
-
-		VK_CHECK_RESULT(uniformData.scene.map());
-
-		updateUniformBuffer();
+		for (auto& buffer : uniformBuffers) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData)));
+			VK_CHECK_RESULT(buffer.map());
+		}
 	}
 
 	void prepareCompute()
@@ -636,44 +442,24 @@ public:
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &compute.pipelineLayout));
 
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSet));
-
-		std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets =
-		{
-			// Binding 0: Instance input data buffer
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				0,
-				&instanceBuffer.descriptor),
-			// Binding 1: Indirect draw command output buffer
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				1,
-				&indirectCommandsBuffer.descriptor),
-			// Binding 2: Uniform buffer with global matrices
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				2,
-				&uniformData.scene.descriptor),
-			// Binding 3: Atomic counter (written in shader)
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				3,
-				&indirectDrawCountBuffer.descriptor),
-			// Binding 4: LOD info
-			vks::initializers::writeDescriptorSet(
-				compute.descriptorSet,
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				4,
-				&compute.lodLevelsBuffers.descriptor)
-		};
-
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &compute.descriptorSetLayout, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &compute.descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets =
+			{
+				// Binding 0: Instance input data buffer
+				vks::initializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &instanceBuffer.descriptor),
+				// Binding 1: Indirect draw command output buffer
+				vks::initializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &indirectCommandsBuffers[i].descriptor),
+				// Binding 2: Uniform buffer with global matrices
+				vks::initializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uniformBuffers[i].descriptor),
+				// Binding 3: Atomic counter (written in shader)
+				vks::initializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &indirectDrawCountBuffers[i].descriptor),
+				// Binding 4: LOD info
+				vks::initializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &compute.lodLevelsBuffers.descriptor)
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
+		}
 
 		// Create pipeline
 		VkComputePipelineCreateInfo computePipelineCreateInfo = vks::initializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
@@ -704,37 +490,34 @@ public:
 		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		VK_CHECK_RESULT(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &compute.commandPool));
 
-		// Create a command buffer for compute operations
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-			vks::initializers::commandBufferAllocateInfo(
-				compute.commandPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1);
+		// Create command buffers for compute operations
+		for (auto& cmdBuffer : compute.commandBuffers) {
+			cmdBuffer = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, compute.commandPool);
+		}
 
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &compute.commandBuffer));
+		// Fences to check for command buffer completion
+		for (auto& fence : compute.fences) {
+			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+		}
 
-		// Fence for compute CB sync
-		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &compute.fence));
-
-		VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &compute.semaphore));
-
-		// Build a single command buffer containing the compute dispatch commands
-		buildComputeCommandBuffer();
+		// Semaphores to order compute and graphics submissions
+		for (auto& semaphore : compute.semaphores) {
+			VkSemaphoreCreateInfo semaphoreInfo{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
+		}
 	}
 
 	void updateUniformBuffer()
 	{
-		uboScene.projection = camera.matrices.perspective;
-		uboScene.modelview = camera.matrices.view;
-		if (!fixedFrustum)
-		{
-			uboScene.cameraPos = glm::vec4(camera.position, 1.0f) * -1.0f;
-			frustum.update(uboScene.projection * uboScene.modelview);
-			memcpy(uboScene.frustumPlanes, frustum.planes.data(), sizeof(glm::vec4) * 6);
+		uniformData.projection = camera.matrices.perspective;
+		uniformData.modelview = camera.matrices.view;
+		if (!fixedFrustum) {
+			uniformData.cameraPos = glm::vec4(camera.position, 1.0f) * -1.0f;
+			frustum.update(uniformData.projection * uniformData.modelview);
+			memcpy(uniformData.frustumPlanes, frustum.planes.data(), sizeof(glm::vec4) * 6);
 		}
-		memcpy(uniformData.scene.mapped, &uboScene, sizeof(uboScene));
+		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void prepare()
@@ -742,67 +525,271 @@ public:
 		VulkanExampleBase::prepare();
 		loadAssets();
 		prepareBuffers();
-		setupDescriptors();
-		preparePipelines();
+		prepareDescriptorPool();
+		prepareGraphics();
 		prepareCompute();
-		buildCommandBuffers();
 		prepared = true;
 	}
 
-	void draw()
+	void buildGraphicsCommandBuffer()
 	{
-		VulkanExampleBase::prepareFrame();
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
 
-		// Submit compute shader for frustum culling
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		// Wait for fence to ensure that compute buffer writes have finished
-		vkWaitForFences(device, 1, &compute.fence, VK_TRUE, UINT64_MAX);
-		vkResetFences(device, 1, &compute.fence);
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = { { 0.18f, 0.27f, 0.5f, 0.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
 
-		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
-		computeSubmitInfo.commandBufferCount = 1;
-		computeSubmitInfo.pCommandBuffers = &compute.commandBuffer;
-		computeSubmitInfo.signalSemaphoreCount = 1;
-		computeSubmitInfo.pSignalSemaphores = &compute.semaphore;
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
 
-		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
 
-		// Submit graphics command buffer
+		// Acquire barrier
+		if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
+		{
+			VkBufferMemoryBarrier buffer_barrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				0,
+				VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+				vulkanDevice->queueFamilyIndices.compute,
+				vulkanDevice->queueFamilyIndices.graphics,
+				indirectCommandsBuffers[currentBuffer].buffer,
+				0,
+				indirectCommandsBuffers[currentBuffer].descriptor.range
+			};
 
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+			vkCmdPipelineBarrier(
+				cmdBuffer,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+				0,
+				0, nullptr,
+				1, &buffer_barrier,
+				0, nullptr);
+		}
 
-		// Wait on present and compute semaphores
-		std::array<VkPipelineStageFlags, 2> stageFlags = {
-			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+
+		// Mesh containing the LODs
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &lodModel.vertices.buffer, offsets);
+		vkCmdBindVertexBuffers(cmdBuffer, 1, 1, &instanceBuffer.buffer, offsets);
+
+		vkCmdBindIndexBuffer(cmdBuffer, lodModel.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+		if (vulkanDevice->features.multiDrawIndirect)
+		{
+			vkCmdDrawIndexedIndirect(cmdBuffer, indirectCommandsBuffers[currentBuffer].buffer, 0, static_cast<uint32_t>(indirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
+		}
+		else
+		{
+			// If multi draw is not available, we must issue separate draw commands
+			for (auto j = 0; j < indirectCommands.size(); j++)
+			{
+				vkCmdDrawIndexedIndirect(cmdBuffer, indirectCommandsBuffers[currentBuffer].buffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+			}
+		}
+
+		drawUI(cmdBuffer);
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		// Release barrier
+		if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
+		{
+			VkBufferMemoryBarrier buffer_barrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+				0,
+				vulkanDevice->queueFamilyIndices.graphics,
+				vulkanDevice->queueFamilyIndices.compute,
+				indirectCommandsBuffers[currentBuffer].buffer,
+				0,
+				indirectCommandsBuffers[currentBuffer].descriptor.range
+			};
+
+			vkCmdPipelineBarrier(
+				cmdBuffer,
+				VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				0,
+				0, nullptr,
+				1, &buffer_barrier,
+				0, nullptr);
+		}
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+	}
+
+
+	void buildComputeCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = compute.commandBuffers[currentBuffer];
+		vkResetCommandBuffer(cmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		// Acquire barrier
+		// Add memory barrier to ensure that the indirect commands have been consumed before the compute shader updates them
+		if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
+		{
+			VkBufferMemoryBarrier buffer_barrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				0,
+				VK_ACCESS_SHADER_WRITE_BIT,
+				vulkanDevice->queueFamilyIndices.graphics,
+				vulkanDevice->queueFamilyIndices.compute,
+				indirectCommandsBuffers[currentBuffer].buffer,
+				0,
+				indirectCommandsBuffers[currentBuffer].descriptor.range
+			};
+
+			vkCmdPipelineBarrier(
+				cmdBuffer,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				1, &buffer_barrier,
+				0, nullptr);
+		}
+
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSets[currentBuffer], 0, nullptr);
+
+		// Clear the buffer that the compute shader pass will write statistics and draw calls to
+		vkCmdFillBuffer(cmdBuffer, indirectDrawCountBuffers[currentBuffer].buffer, 0, indirectDrawCountBuffers[currentBuffer].descriptor.range, 0);
+
+		// This barrier ensures that the fill command is finished before the compute shader can start writing to the buffer
+		VkMemoryBarrier memoryBarrier = vks::initializers::memoryBarrier();
+		memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		vkCmdPipelineBarrier(
+			cmdBuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-		};
-		std::array<VkSemaphore, 2> waitSemaphores = {
-			semaphores.presentComplete,						// Wait for presentation to finished
-			compute.semaphore								// Wait for compute to finish
-		};
+			VK_FLAGS_NONE,
+			1, &memoryBarrier,
+			0, nullptr,
+			0, nullptr);
 
-		submitInfo.pWaitSemaphores = waitSemaphores.data();
-		submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
-		submitInfo.pWaitDstStageMask = stageFlags.data();
+		// Dispatch the compute job
+		// The compute shader will do the frustum culling and adjust the indirect draw calls depending on object visibility.
+		// It also determines the lod to use depending on distance to the viewer.
+		vkCmdDispatch(cmdBuffer, objectCount / 16, 1, 1);
 
-		// Submit to queue
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, compute.fence));
+		// Release barrier
+		// Add memory barrier to ensure that the compute shader has finished writing the indirect command buffer before it's consumed
+		if (vulkanDevice->queueFamilyIndices.graphics != vulkanDevice->queueFamilyIndices.compute)
+		{
+			VkBufferMemoryBarrier buffer_barrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				VK_ACCESS_SHADER_WRITE_BIT,
+				0,
+				vulkanDevice->queueFamilyIndices.compute,
+				vulkanDevice->queueFamilyIndices.graphics,
+				indirectCommandsBuffers[currentBuffer].buffer,
+				0,
+				indirectCommandsBuffers[currentBuffer].descriptor.range
+			};
 
-		VulkanExampleBase::submitFrame();
+			vkCmdPipelineBarrier(
+				cmdBuffer,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				1, &buffer_barrier,
+				0, nullptr);
+		}
 
-		// Get draw count from compute
-		memcpy(&indirectStats, indirectDrawCountBuffer.mapped, sizeof(indirectStats));
+		// todo: barrier for indirect stats buffer?
+
+		vkEndCommandBuffer(cmdBuffer);
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
-		{
 			return;
-		}
+
+		VulkanExampleBase::prepareFrame(false);
+
+		// Submit compute commands
+
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
+
+		// Get draw count from compute
+		memcpy(&indirectStats, indirectDrawCountBuffers[currentBuffer].mapped, sizeof(indirectStats));
+
+		//updateComputeUniformBuffers();
+		buildComputeCommandBuffer();
+
+		// Wait for rendering finished
+		VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
+		computeSubmitInfo.commandBufferCount = 1;
+		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
+		computeSubmitInfo.pWaitDstStageMask = &waitStageMask;
+		computeSubmitInfo.signalSemaphoreCount = 1;
+		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer];
+		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
+
+		// Submit graphics commands
+
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+
+		// @todo: need to split for new sycn
 		updateUniformBuffer();
-		draw();
+		buildGraphicsCommandBuffer();
+
+		VkPipelineStageFlags graphicsWaitStageMasks[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		VkSemaphore graphicsWaitSemaphores[] = { compute.semaphores[currentBuffer], presentCompleteSemaphores[currentBuffer] };
+
+		// Submit graphics commands
+		VkSubmitInfo graphicsSubmitInfo = vks::initializers::submitInfo();
+		graphicsSubmitInfo.commandBufferCount = 1;
+		graphicsSubmitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		graphicsSubmitInfo.waitSemaphoreCount = 2;
+		graphicsSubmitInfo.pWaitSemaphores = graphicsWaitSemaphores;
+		graphicsSubmitInfo.pWaitDstStageMask = graphicsWaitStageMasks;
+		graphicsSubmitInfo.signalSemaphoreCount = 1;
+		graphicsSubmitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &graphicsSubmitInfo, waitFences[currentBuffer]));
+
+		VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
+
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
