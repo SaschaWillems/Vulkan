@@ -63,7 +63,11 @@ public:
 		VkDescriptorSetLayout descriptorSetLayout;							// Compute shader binding layout
 		std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets;	// Compute shader bindings
 		std::array<VkFence, maxConcurrentFrames> fences{};					// Fences to make sure command buffers are done
-		std::array<VkSemaphore, maxConcurrentFrames> semaphores{};			// Semaphores for submission ordering
+		struct ComputeSemaphores {
+			VkSemaphore ready{ VK_NULL_HANDLE };
+			VkSemaphore complete{ VK_NULL_HANDLE };
+		};
+		std::array<ComputeSemaphores, maxConcurrentFrames> semaphores{};	// Semaphores for submission ordering
 		VkPipelineLayout pipelineLayout;									// Layout of the compute pipeline
 		VkPipeline pipelineCalculate;										// Compute pipeline for N-Body velocity calculation (1st pass)
 		VkPipeline pipelineIntegrate;										// Compute pipeline for euler integration (2nd pass)
@@ -113,7 +117,8 @@ public:
 				vkDestroyFence(device, fence, nullptr);
 			}
 			for (auto& semaphore : compute.semaphores) {
-				vkDestroySemaphore(device, semaphore, nullptr);
+				vkDestroySemaphore(device, semaphore.ready, nullptr);
+				vkDestroySemaphore(device, semaphore.complete, nullptr);
 			}
 
 			storageBuffer.destroy();
@@ -415,8 +420,14 @@ public:
 		// Semaphores to order compute and graphics submissions
 		for (auto& semaphore : compute.semaphores) {
 			VkSemaphoreCreateInfo semaphoreInfo{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
+			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore.ready);
+			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore.complete);
 		}
+		// Signal first used ready semaphore
+		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
+		computeSubmitInfo.signalSemaphoreCount = 1;
+		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[-1 % maxConcurrentFrames].ready;
+		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
 	}
 
 	void updateComputeUniformBuffers()
@@ -645,50 +656,53 @@ public:
 		if (!prepared)
 			return;
 
-		VulkanExampleBase::prepareFrame(false);
-
 		// Submit compute commands
-		
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
+		{
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &compute.fences[currentBuffer]));
 
-		updateComputeUniformBuffers();
-		buildComputeCommandBuffer();
+			updateComputeUniformBuffers();
+			buildComputeCommandBuffer();
 
-		// Wait for rendering finished
-		VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
-		computeSubmitInfo.commandBufferCount = 1;
-		computeSubmitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
-		computeSubmitInfo.pWaitDstStageMask = &waitStageMask;
-		computeSubmitInfo.signalSemaphoreCount = 1;
-		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
-
-		// Submit graphics commands
-		
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
-
-		updateGraphicsUniformBuffers();
-		buildGraphicsCommandBuffer();
-
-		VkPipelineStageFlags graphicsWaitStageMasks[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		VkSemaphore graphicsWaitSemaphores[] = { compute.semaphores[currentBuffer], presentCompleteSemaphores[currentBuffer] };
+			// Wait for rendering finished
+			VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = &compute.semaphores[((int)currentBuffer - 1) % maxConcurrentFrames].ready;
+			submitInfo.pWaitDstStageMask = &waitDstStageMask;
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &compute.semaphores[currentBuffer].complete;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &compute.commandBuffers[currentBuffer];
+			VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &submitInfo, compute.fences[currentBuffer]));
+		}
 
 		// Submit graphics commands
-		VkSubmitInfo graphicsSubmitInfo = vks::initializers::submitInfo();
-		graphicsSubmitInfo.commandBufferCount = 1;
-		graphicsSubmitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		graphicsSubmitInfo.waitSemaphoreCount = 2;
-		graphicsSubmitInfo.pWaitSemaphores = graphicsWaitSemaphores;
-		graphicsSubmitInfo.pWaitDstStageMask = graphicsWaitStageMasks;
-		graphicsSubmitInfo.signalSemaphoreCount = 1;
-		graphicsSubmitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &graphicsSubmitInfo, waitFences[currentBuffer]));
+		{
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
 
-		VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
+			VulkanExampleBase::prepareFrame(false);
+
+			updateGraphicsUniformBuffers();
+			buildGraphicsCommandBuffer();
+
+			VkPipelineStageFlags waitDstStageMask[2] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT };
+			VkSemaphore waitSemaphores[2] = { presentCompleteSemaphores[currentBuffer], compute.semaphores[currentBuffer].complete };
+			VkSemaphore signalSemaphores[2] = { renderCompleteSemaphores[currentImageIndex], compute.semaphores[currentBuffer].ready };
+
+			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+			submitInfo.waitSemaphoreCount = 2;
+			submitInfo.pWaitSemaphores = waitSemaphores;
+			submitInfo.pWaitDstStageMask = waitDstStageMask;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+			submitInfo.signalSemaphoreCount = 2;
+			submitInfo.pSignalSemaphores = signalSemaphores;
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+
+			VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
+		}
 	}
 };
 
