@@ -585,7 +585,6 @@ public:
 			renderPassBeginInfo.clearValueCount = 1;
 			renderPassBeginInfo.pClearValues = clearValues.data();
 
-			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
 			VkViewport viewport = vks::initializers::viewport((float)offscreenframeBuffers.shadow->width, (float)offscreenframeBuffers.shadow->height, 0.0f, 1.0f);
 			vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 			VkRect2D scissor = vks::initializers::rect2D(offscreenframeBuffers.shadow->width, offscreenframeBuffers.shadow->height, 0, 0);
