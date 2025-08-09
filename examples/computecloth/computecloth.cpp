@@ -646,7 +646,7 @@ public:
 		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
 
-		VulkanExampleBase::submitFrame(true);
+		VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
 	}
 
 	void prepare()
