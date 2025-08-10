@@ -66,6 +66,9 @@ public:
 
 		// Buffer device address requires the 64-bit integer feature to be enabled
 		enabledFeatures.shaderInt64 = VK_TRUE;
+		// Format for the storage image is decided at runtime, so we can't explicilily state it in the shader
+		enabledFeatures.shaderStorageImageReadWithoutFormat = VK_TRUE;
+		enabledFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
 
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
