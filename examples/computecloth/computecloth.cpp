@@ -535,7 +535,7 @@ public:
 		// Signal first used ready semaphore
 		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
 		computeSubmitInfo.signalSemaphoreCount = 1;
-		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[-1 % maxConcurrentFrames].ready;
+		computeSubmitInfo.pSignalSemaphores = &compute.semaphores[maxConcurrentFrames - 1].ready;
 		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
 	}
 
@@ -727,7 +727,7 @@ public:
 			submitInfo.pSignalSemaphores = signalSemaphores;
 			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
 
-			VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
+			VulkanExampleBase::submitFrame(true);
 		}
 	}
 

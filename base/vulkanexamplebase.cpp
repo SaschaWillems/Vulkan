@@ -762,7 +762,7 @@ void VulkanExampleBase::prepareFrame(bool waitForFence)
 	}
 }
 
-void VulkanExampleBase::submitFrame(VkCommandBuffer cmdBuffer, bool skipQueueSubmit)
+void VulkanExampleBase::submitFrame(bool skipQueueSubmit)
 {
 	// @todo: make this an argument
 	if (!skipQueueSubmit) {
@@ -770,11 +770,7 @@ void VulkanExampleBase::submitFrame(VkCommandBuffer cmdBuffer, bool skipQueueSub
 		VkSubmitInfo submitInfo{ .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
 		submitInfo.pWaitDstStageMask = &waitPipelineStage;
 		submitInfo.commandBufferCount = 1;
-		if (cmdBuffer != VK_NULL_HANDLE) {
-			submitInfo.pCommandBuffers = &cmdBuffer;
-		} else {
-			submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		}
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
 		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentBuffer];
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];

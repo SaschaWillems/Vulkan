@@ -690,7 +690,7 @@ public:
 		// Increase timeline value base for next frame
 		timeLineSemaphore.value = allFinished;
 
-		VulkanExampleBase::submitFrame(VK_NULL_HANDLE, true);
+		VulkanExampleBase::submitFrame(true);
 	}
 };
 

@@ -34,7 +34,6 @@ public:
 		VkPipeline starsphere{ VK_NULL_HANDLE };
 	} pipelines;
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
-	std::array<VkCommandBuffer, maxConcurrentFrames> primaryCommandBuffers{};
 
 	// Secondary scene command buffers used to store backdrop and user interface
 	struct SecondaryCommandBuffers {
@@ -133,14 +132,9 @@ public:
 	// Create all threads and initialize shader push constants
 	void prepareMultiThreadedRenderer()
 	{
-		// Since this demo updates the command buffers on each frame
-		// we don't use the per-framebuffer command buffers from the
-		// base class, and create a single primary command buffer instead
+		// The actual commands are issued in secondary command buffers, this also applies to the background and the user interface
 		for (uint32_t i = 0; i < maxConcurrentFrames; i++) {
-			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &primaryCommandBuffers[i]));
-			// Create additional secondary CBs for background and ui
-			cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers[i].background));
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &secondaryCommandBuffers[i].ui));
 		}
@@ -378,34 +372,12 @@ public:
 		prepared = true;
 	}
 
-	void draw()
-	{
-		// Wait for fence to signal that all command buffers are ready
-		//VkResult fenceRes;
-		//do {
-		//	fenceRes = vkWaitForFences(device, 1, &renderFence, VK_TRUE, 100000000);
-		//} while (fenceRes == VK_TIMEOUT);
-		//VK_CHECK_RESULT(fenceRes);
-		//vkResetFences(device, 1, &renderFence);
-
-		//VulkanExampleBase::prepareFrame();
-
-		//updateCommandBuffers(frameBuffers[currentBuffer]);
-
-		//submitInfo.commandBufferCount = 1;
-		//submitInfo.pCommandBuffers = &primaryCommandBuffer;
-
-		//VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, renderFence));
-
-		//VulkanExampleBase::submitFrame();
-	}
-
 	// Updates the secondary command buffers using a thread pool
 	// and puts them into the primary command buffer that's
 	// lat submitted to the queue for rendering
 	void updateCommandBuffer()
 	{
-		VkCommandBuffer cmdBuffer = primaryCommandBuffers[currentBuffer];
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
 		vkResetCommandBuffer(cmdBuffer, 0);
 
 		// Contains the list of secondary command buffers to be submitted
@@ -427,13 +399,11 @@ public:
 		renderPassBeginInfo.pClearValues = clearValues;
 		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
 
-		// Set target frame buffer
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers[currentBuffer], &cmdBufInfo));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[currentBuffer], &cmdBufInfo));
 
 		// The primary command buffer does not contain any rendering commands
 		// These are stored (and retrieved) from the secondary command buffers
-		vkCmdBeginRenderPass(primaryCommandBuffers[currentBuffer], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+		vkCmdBeginRenderPass(drawCmdBuffers[currentBuffer], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 		// Inheritance info for the secondary command buffers
 		VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
@@ -472,11 +442,11 @@ public:
 		}
 
 		// Execute render commands from the secondary command buffer
-		vkCmdExecuteCommands(primaryCommandBuffers[currentBuffer], static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+		vkCmdExecuteCommands(drawCmdBuffers[currentBuffer], static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
-		vkCmdEndRenderPass(primaryCommandBuffers[currentBuffer]);
+		vkCmdEndRenderPass(drawCmdBuffers[currentBuffer]);
 
-		VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers[currentBuffer]));
+		VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[currentBuffer]));
 	}
 
 
@@ -490,7 +460,7 @@ public:
 		updateMatrices();
 		// @todo: maybe find a better way than passing the cmd buffer like this
 		// Or use drawCmdBuffes from base
-		VulkanExampleBase::submitFrame(primaryCommandBuffers[currentBuffer]);
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)

@@ -404,7 +404,7 @@ public:
 	void prepareFrame(bool waitForFence = true);
 	/** @brief Presents the current image to the swap chain */
 	// @todo: rework once new sync is in place, maybe overload with submission info
-	void submitFrame(VkCommandBuffer cmdBuffer = VK_NULL_HANDLE, bool skipQueueSubmit = false);
+	void submitFrame(bool skipQueueSubmit = false);
 
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);
