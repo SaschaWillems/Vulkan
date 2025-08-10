@@ -743,6 +743,9 @@ public:
 		enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
 
 		deviceCreatepNextChain = &enabledAccelerationStructureFeatures;
+
+		// Format for the storage image is decided at runtime, so we can't explicilily state it in the shader
+		enabledFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
 	}
 
 	void prepare()

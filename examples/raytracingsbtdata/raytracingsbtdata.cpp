@@ -105,6 +105,9 @@ public:
 
 		// Required by VK_KHR_spirv_1_4
 		enabledDeviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+
+		// Format for the storage image is decided at runtime, so we can't explicilily state it in the shader
+		enabledFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
 	}
 
 	~VulkanExample()
