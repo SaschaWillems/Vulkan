@@ -101,8 +101,8 @@ public:
 
 		// Combined image samples : 1 per object texture
 		descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		// Images are static, and never update after initial upload, so no need to duplicate these per frame in flight
-		descriptorPoolSizes[1].descriptorCount = static_cast<uint32_t>(cubes.size());
+		// Images are static, and never update after initial upload, but as they use the same descriptor set as buffers, we need to duplicate the descriptor count here too
+		descriptorPoolSizes[1].descriptorCount = static_cast<uint32_t>(cubes.size()) * maxConcurrentFrames;
 
 		// Create the global descriptor pool
 		VkDescriptorPoolCreateInfo descriptorPoolCI = {};
