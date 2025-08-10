@@ -257,10 +257,6 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 void VulkanExampleBase::nextFrame()
 {
 	auto tStart = std::chrono::high_resolution_clock::now();
-	if (viewUpdated)
-	{
-		viewUpdated = false;
-	}
 	render();
 	frameCounter++;
 	auto tEnd = std::chrono::high_resolution_clock::now();
@@ -272,10 +268,6 @@ void VulkanExampleBase::nextFrame()
 #endif
 	frameTimer = (float)tDiff / 1000.0f;
 	camera.update(frameTimer);
-	if (camera.moving())
-	{
-		viewUpdated = true;
-	}
 	// Convert to clamped timer value
 	if (!paused)
 	{
@@ -450,20 +442,12 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 		render();
 		frameCounter++;
 		auto tEnd = std::chrono::high_resolution_clock::now();
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -486,10 +470,6 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 		DFBWindowEvent event;
 		while (!event_buffer->GetEvent(event_buffer, DFB_EVENT(&event)))
 		{
@@ -501,10 +481,6 @@ void VulkanExampleBase::renderLoop()
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -527,10 +503,6 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 
 		while (!configured)
 		{
@@ -553,10 +525,6 @@ void VulkanExampleBase::renderLoop()
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -585,10 +553,6 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 		xcb_generic_event_t *event;
 		while ((event = xcb_poll_for_event(connection)))
 		{
@@ -601,10 +565,6 @@ void VulkanExampleBase::renderLoop()
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -634,20 +594,12 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 		render();
 		frameCounter++;
 		auto tEnd = std::chrono::high_resolution_clock::now();
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		timer += timerSpeed * frameTimer;
 		if (timer > 1.0)
@@ -764,7 +716,6 @@ void VulkanExampleBase::prepareFrame(bool waitForFence)
 
 void VulkanExampleBase::submitFrame(bool skipQueueSubmit)
 {
-	// @todo: make this an argument
 	if (!skipQueueSubmit) {
 		const VkPipelineStageFlags waitPipelineStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		VkSubmitInfo submitInfo{ .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -1399,7 +1350,6 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	{
 		short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 		camera.translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f));
-		viewUpdated = true;
 		break;
 	}
 	case WM_MOUSEMOVE:
@@ -1878,25 +1828,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 	short wheelDelta = [event deltaY];
 	vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f,
 		-(float)wheelDelta * 0.05f * vulkanExample->camera.movementSpeed));
-	vulkanExample->viewUpdated = true;
 }
-
-// SRS - Window resizing already handled by windowResize() in VulkanExampleBase::submitFrame()
-//	   - handling window resize events here is redundant and can cause thread interaction problems
-/*
-- (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
-{
-	CVDisplayLinkStop(displayLink);
-	vulkanExample->windowWillResize(frameSize.width, frameSize.height);
-	return frameSize;
-}
-
-- (void)windowDidResize:(NSNotification *)notification
-{
-	vulkanExample->windowDidResize();
-	CVDisplayLinkStart(displayLink);
-}
-*/
 
 - (void)windowWillEnterFullScreen:(NSNotification *)notification
 {
@@ -2193,34 +2125,27 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 	}
 }
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-/*static*/void VulkanExampleBase::registryGlobalCb(void *data,
-		wl_registry *registry, uint32_t name, const char *interface,
-		uint32_t version)
+/*static*/void VulkanExampleBase::registryGlobalCb(void *data, wl_registry *registry, uint32_t name, const char *interface, uint32_t version)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->registryGlobal(registry, name, interface, version);
 }
 
-/*static*/void VulkanExampleBase::seatCapabilitiesCb(void *data, wl_seat *seat,
-		uint32_t caps)
+/*static*/void VulkanExampleBase::seatCapabilitiesCb(void *data, wl_seat *seat, uint32_t caps)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->seatCapabilities(seat, caps);
 }
 
-/*static*/void VulkanExampleBase::pointerEnterCb(void *data,
-		wl_pointer *pointer, uint32_t serial, wl_surface *surface,
-		wl_fixed_t sx, wl_fixed_t sy)
+/*static*/void VulkanExampleBase::pointerEnterCb(void *data, wl_pointer *pointer, uint32_t serial, wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy)
 {
 }
 
-/*static*/void VulkanExampleBase::pointerLeaveCb(void *data,
-		wl_pointer *pointer, uint32_t serial, wl_surface *surface)
+/*static*/void VulkanExampleBase::pointerLeaveCb(void *data, wl_pointer *pointer, uint32_t serial, wl_surface *surface)
 {
 }
 
-/*static*/void VulkanExampleBase::pointerMotionCb(void *data,
-		wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy)
+/*static*/void VulkanExampleBase::pointerMotionCb(void *data, wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->pointerMotion(pointer, time, sx, sy);
@@ -2230,16 +2155,13 @@ void VulkanExampleBase::pointerMotion(wl_pointer *pointer, uint32_t time, wl_fix
 	handleMouseMove(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
 }
 
-/*static*/void VulkanExampleBase::pointerButtonCb(void *data,
-		wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button,
-		uint32_t state)
+/*static*/void VulkanExampleBase::pointerButtonCb(void *data, wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->pointerButton(pointer, serial, time, button, state);
 }
 
-void VulkanExampleBase::pointerButton(struct wl_pointer *pointer,
-		uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
+void VulkanExampleBase::pointerButton(struct wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
 {
 	switch (button)
 	{
@@ -2257,56 +2179,44 @@ void VulkanExampleBase::pointerButton(struct wl_pointer *pointer,
 	}
 }
 
-/*static*/void VulkanExampleBase::pointerAxisCb(void *data,
-		wl_pointer *pointer, uint32_t time, uint32_t axis,
-		wl_fixed_t value)
+/*static*/void VulkanExampleBase::pointerAxisCb(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->pointerAxis(pointer, time, axis, value);
 }
 
-void VulkanExampleBase::pointerAxis(wl_pointer *pointer, uint32_t time,
-		uint32_t axis, wl_fixed_t value)
+void VulkanExampleBase::pointerAxis(wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value)
 {
 	double d = wl_fixed_to_double(value);
 	switch (axis)
 	{
 	case REL_X:
 		camera.translate(glm::vec3(0.0f, 0.0f, d * 0.005f));
-		viewUpdated = true;
 		break;
 	default:
 		break;
 	}
 }
 
-/*static*/void VulkanExampleBase::keyboardKeymapCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t format, int fd, uint32_t size)
+/*static*/void VulkanExampleBase::keyboardKeymapCb(void *data, struct wl_keyboard *keyboard, uint32_t format, int fd, uint32_t size)
 {
 }
 
-/*static*/void VulkanExampleBase::keyboardEnterCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t serial,
-		struct wl_surface *surface, struct wl_array *keys)
+/*static*/void VulkanExampleBase::keyboardEnterCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface, struct wl_array *keys)
 {
 }
 
-/*static*/void VulkanExampleBase::keyboardLeaveCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t serial,
-		struct wl_surface *surface)
+/*static*/void VulkanExampleBase::keyboardLeaveCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface)
 {
 }
 
-/*static*/void VulkanExampleBase::keyboardKeyCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t serial, uint32_t time,
-		uint32_t key, uint32_t state)
+/*static*/void VulkanExampleBase::keyboardKeyCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->keyboardKey(keyboard, serial, time, key, state);
 }
 
-void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
-		uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
+void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
 {
 	switch (key)
 	{
@@ -2340,9 +2250,7 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 		keyPressed(key);
 }
 
-/*static*/void VulkanExampleBase::keyboardModifiersCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t serial, uint32_t mods_depressed,
-		uint32_t mods_latched, uint32_t mods_locked, uint32_t group)
+/*static*/void VulkanExampleBase::keyboardModifiersCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group)
 {
 }
 
@@ -2386,8 +2294,7 @@ static const struct xdg_wm_base_listener xdg_wm_base_listener = {
 	xdg_wm_base_ping,
 };
 
-void VulkanExampleBase::registryGlobal(wl_registry *registry, uint32_t name,
-		const char *interface, uint32_t version)
+void VulkanExampleBase::registryGlobal(wl_registry *registry, uint32_t name, const char *interface, uint32_t version)
 {
 	if (strcmp(interface, "wl_compositor") == 0)
 	{
@@ -2411,8 +2318,7 @@ void VulkanExampleBase::registryGlobal(wl_registry *registry, uint32_t name,
 	}
 }
 
-/*static*/void VulkanExampleBase::registryGlobalRemoveCb(void *data,
-		struct wl_registry *registry, uint32_t name)
+/*static*/void VulkanExampleBase::registryGlobalRemoveCb(void *data, struct wl_registry *registry, uint32_t name)
 {
 }
 
@@ -2464,8 +2370,7 @@ void VulkanExampleBase::setSize(int width, int height)
 }
 
 static void
-xdg_surface_handle_configure(void *data, struct xdg_surface *surface,
-			     uint32_t serial)
+xdg_surface_handle_configure(void *data, struct xdg_surface *surface, uint32_t serial)
 {
 	VulkanExampleBase *base = (VulkanExampleBase *) data;
 
@@ -2479,9 +2384,7 @@ static const struct xdg_surface_listener xdg_surface_listener = {
 
 
 static void
-xdg_toplevel_handle_configure(void *data, struct xdg_toplevel *toplevel,
-			      int32_t width, int32_t height,
-			      struct wl_array *states)
+xdg_toplevel_handle_configure(void *data, struct xdg_toplevel *toplevel, int32_t width, int32_t height, struct wl_array *states)
 {
 	VulkanExampleBase *base = (VulkanExampleBase *) data;
 
@@ -2914,7 +2817,6 @@ void VulkanExampleBase::handleEvent()
 				}
 				if (val != 0) {
 					camera.translate(glm::vec3(0.0f, 0.0f, (float)val * 0.005f));
-					viewUpdated = true;
 				}
 
 				rc = screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_POSITION, pos);
@@ -3278,15 +3180,12 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 
 	if (mouseState.buttons.left) {
 		camera.rotate(glm::vec3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
-		viewUpdated = true;
 	}
 	if (mouseState.buttons.right) {
 		camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f));
-		viewUpdated = true;
 	}
 	if (mouseState.buttons.middle) {
 		camera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
-		viewUpdated = true;
 	}
 	mouseState.position = glm::vec2((float)x, (float)y);
 }
