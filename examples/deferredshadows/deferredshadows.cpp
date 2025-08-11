@@ -13,7 +13,7 @@
 #include "VulkanglTFModel.h"
 
 // Must match the LIGHT_COUNT define in the shadow and deferred shaders
-#define LIGHT_COUNT 3
+constexpr auto LIGHT_COUNT = 3;
 
 class VulkanExample : public VulkanExampleBase
 {
