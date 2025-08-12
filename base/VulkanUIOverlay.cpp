@@ -416,8 +416,8 @@ namespace vks
 	void UIOverlay::freeResources()
 	{
 		for (auto& buffer : buffers) {
-			buffers[currentBuffer].vertexBuffer.destroy();
-			buffers[currentBuffer].indexBuffer.destroy();
+			buffer.vertexBuffer.destroy();
+			buffer.indexBuffer.destroy();
 		}
 		vkDestroyImageView(device->logicalDevice, fontView, nullptr);
 		vkDestroyImage(device->logicalDevice, fontImage, nullptr);
