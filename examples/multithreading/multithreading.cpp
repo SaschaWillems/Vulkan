@@ -378,8 +378,7 @@ public:
 	void updateCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		vkResetCommandBuffer(cmdBuffer, 0);
-
+		
 		// Contains the list of secondary command buffers to be submitted
 		std::vector<VkCommandBuffer> commandBuffers;
 

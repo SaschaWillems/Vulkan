@@ -548,8 +548,7 @@ public:
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		vkResetCommandBuffer(cmdBuffer, 0);
-
+		
 		/*
 			The blur method used in this example is multi pass and renders the vertical blur first and then the horizontal one
 			While it's possible to blur in one pass, this method is widely used as it requires far less samples to generate the blur

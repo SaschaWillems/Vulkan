@@ -182,8 +182,7 @@ public:
 	void buildCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		vkResetCommandBuffer(cmdBuffer, 0);
-
+		
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2]{};

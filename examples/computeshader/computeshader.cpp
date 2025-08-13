@@ -428,7 +428,6 @@ public:
 	void buildComputeCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = compute.commandBuffers[currentBuffer];
-		vkResetCommandBuffer(cmdBuffer, 0);
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[compute.pipelineIndex]);
@@ -440,8 +439,7 @@ public:
 	void buildGraphicsCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		vkResetCommandBuffer(cmdBuffer, 0);
-
+		
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2]{};

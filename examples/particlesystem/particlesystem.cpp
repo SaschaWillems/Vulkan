@@ -505,8 +505,7 @@ public:
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		vkResetCommandBuffer(cmdBuffer, 0);
-
+		
 		// Set target frame buffer
 		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
 

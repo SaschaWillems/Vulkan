@@ -410,8 +410,7 @@ public:
 	void buildCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		vkResetCommandBuffer(cmdBuffer, 0);
-
+		
 		VkClearValue clearValues[2]{};
 		clearValues[0].color = defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };

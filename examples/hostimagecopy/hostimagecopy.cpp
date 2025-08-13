@@ -2,8 +2,8 @@
 * Vulkan Example - Host image copy using VK_EXT_host_image_copy
 * 
 * This sample shows how to use host image copies to directly upload an image to the devic without having to use staging
-
-* Copyright (C) 2024 by Sascha Willems - www.saschawillems.de
+*
+* Copyright (C) 2024-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -296,7 +296,7 @@ public:
 		// Dynamic and static resources in one set for simplicity
 
 		// Setup a descriptor image info for the current texture to be used as a combined image sampler
-		VkDescriptorImageInfo textureDescriptor;
+		VkDescriptorImageInfo textureDescriptor{};
 		textureDescriptor.imageView = texture.view;
 		textureDescriptor.sampler = texture.sampler;
 		textureDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -393,7 +393,6 @@ public:
 	void buildCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		vkResetCommandBuffer(cmdBuffer, 0);
 
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
