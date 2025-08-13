@@ -190,8 +190,6 @@ std::string VulkanExampleBase::getWindowTitle() const
 
 void VulkanExampleBase::createCommandBuffers()
 {
-	// Create one command buffer for each swap chain image
-	drawCmdBuffers.resize(swapChain.images.size());
 	VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data()));
 }
@@ -2937,12 +2935,10 @@ void VulkanExampleBase::createSynchronizationPrimitives()
 {
 	// Wait fences to sync command buffer access
 	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-	waitFences.resize(drawCmdBuffers.size());
 	for (auto& fence : waitFences) {
 		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
 	}
 	// Used to ensure that image presentation is complete before starting to submit again
-	presentCompleteSemaphores.resize(maxConcurrentFrames);
 	for (auto& semaphore : presentCompleteSemaphores) {
 		VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
