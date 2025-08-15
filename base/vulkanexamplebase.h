@@ -56,8 +56,6 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <string>
-#include <numeric>
-#include <array>
 
 #include "vulkan/vulkan.h"
 
