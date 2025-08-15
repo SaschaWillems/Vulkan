@@ -10,56 +10,58 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-// Options and values to display/toggle from the UI
-struct UISettings {
-	bool displayModels = true;
-	bool displayLogos = true;
-	bool displayBackground = true;
-	bool animateLight = false;
-	float lightSpeed = 0.25f;
-	std::array<float, 50> frameTimes{};
-	float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
-	float lightTimer = 0.0f;
-} uiSettings;
-
 // ----------------------------------------------------------------------------
 // ImGUI class
 // ----------------------------------------------------------------------------
 class ImGUI {
 private:
 	// Vulkan resources for rendering the UI
-	VkSampler sampler;
-	vks::Buffer vertexBuffer;
-	vks::Buffer indexBuffer;
-	int32_t vertexCount = 0;
-	int32_t indexCount = 0;
-	VkDeviceMemory fontMemory = VK_NULL_HANDLE;
-	VkImage fontImage = VK_NULL_HANDLE;
-	VkImageView fontView = VK_NULL_HANDLE;
-	VkPipelineCache pipelineCache;
-	VkPipelineLayout pipelineLayout;
-	VkPipeline pipeline;
-	VkDescriptorPool descriptorPool;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkDescriptorSet descriptorSet;
+	struct Buffers {
+		vks::Buffer vertexBuffer{ VK_NULL_HANDLE };
+		vks::Buffer indexBuffer{ VK_NULL_HANDLE };
+		int32_t vertexCount = 0;
+		int32_t indexCount = 0;
+	};
+	std::array<Buffers, maxConcurrentFrames> buffers{};
+	VkSampler sampler{ VK_NULL_HANDLE };
+	VkDeviceMemory fontMemory{ VK_NULL_HANDLE };
+	VkImage fontImage{ VK_NULL_HANDLE };
+	VkImageView fontView{ VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkDescriptorPool descriptorPool{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 	vks::VulkanDevice *device;
-	VkPhysicalDeviceDriverProperties driverProperties = {};
 	VulkanExampleBase *example;
 	ImGuiStyle vulkanStyle;
-	int selectedStyle = 0;
 public:
+	int selectedStyle = 0;
 	// UI params are set via push constants
 	struct PushConstBlock {
 		glm::vec2 scale;
 		glm::vec2 translate;
 	} pushConstBlock;
 
+	// Used to pass data between sample and ui
+	std::string sampleName;
+	std::string deviceName;
+	float lastFps{ 0.0f };
+	std::array<float, 50> fpsPlot{};
+	float fpsMin{ 10000.0f };
+	float fpsMax{ 0.0f };
+	bool displayModels = true;
+	bool displayLogos = true;
+	bool displayBackground = true;
+	bool animateLight = false;
+	float lightSpeed = 0.25f;
+	float lightTimer = 0.0f;
+
 	ImGUI(VulkanExampleBase *example) : example(example)
 	{
 		device = example->vulkanDevice;
 		ImGui::CreateContext();
-		
-		//SRS - Set ImGui font and style scale factors to handle retina and other HiDPI displays
+		// Set ImGui font and style scale factors to handle retina and other HiDPI displays
 		ImGuiIO& io = ImGui::GetIO();
 		io.FontGlobalScale = example->ui.scale;
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -70,13 +72,14 @@ public:
 	{
 		ImGui::DestroyContext();
 		// Release all Vulkan resources required for rendering imGui
-		vertexBuffer.destroy();
-		indexBuffer.destroy();
+		for (auto& buffer : buffers) {
+			buffer.vertexBuffer.destroy();
+			buffer.indexBuffer.destroy();
+		}
 		vkDestroyImage(device->logicalDevice, fontImage, nullptr);
 		vkDestroyImageView(device->logicalDevice, fontView, nullptr);
 		vkFreeMemory(device->logicalDevice, fontMemory, nullptr);
 		vkDestroySampler(device->logicalDevice, sampler, nullptr);
-		vkDestroyPipelineCache(device->logicalDevice, pipelineCache, nullptr);
 		vkDestroyPipeline(device->logicalDevice, pipeline, nullptr);
 		vkDestroyPipelineLayout(device->logicalDevice, pipelineLayout, nullptr);
 		vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
@@ -86,14 +89,13 @@ public:
 	// Initialize styles, keys, etc.
 	void init(float width, float height)
 	{
-		// Color scheme
+		// Add a custom color scheme
 		vulkanStyle = ImGui::GetStyle();
 		vulkanStyle.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
 		vulkanStyle.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
 		vulkanStyle.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
 		vulkanStyle.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
 		vulkanStyle.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-
 		setStyle(0);
 		
 		// Dimensions
@@ -114,7 +116,7 @@ public:
 #endif
 	}
 
-	void setStyle(uint32_t index)
+	void setStyle(uint32_t index) const
 	{
 		switch (index)
 		{
@@ -146,16 +148,6 @@ public:
 		int texWidth, texHeight;
 		io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
 		VkDeviceSize uploadSize = texWidth*texHeight * 4 * sizeof(char);
-
-		//SRS - Get Vulkan device driver information if available, use later for display
-		if (device->extensionSupported(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
-		{
-			VkPhysicalDeviceProperties2 deviceProperties2 = {};
-			deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-			deviceProperties2.pNext = &driverProperties;
-			driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
-			vkGetPhysicalDeviceProperties2(device->physicalDevice, &deviceProperties2);
-		}
 
 		// Create target image for copy
 		VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
@@ -285,11 +277,6 @@ public:
 		};
 		vkUpdateDescriptorSets(device->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
-		// Pipeline cache
-		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreatePipelineCache(device->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
-
 		// Pipeline layout
 		// Push constants for UI rendering parameters
 		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(PushConstBlock), 0);
@@ -299,11 +286,8 @@ public:
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 		// Setup graphics pipeline for UI rendering
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-			vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-
-		VkPipelineRasterizationStateCreateInfo rasterizationState =
-			vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
 		// Enable blending
 		VkPipelineColorBlendAttachmentState blendAttachmentState{};
@@ -316,38 +300,13 @@ public:
 		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 
-		VkPipelineColorBlendStateCreateInfo colorBlendState =
-			vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState =
-			vks::initializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
-
-		VkPipelineViewportStateCreateInfo viewportState =
-			vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
-
-		VkPipelineMultisampleStateCreateInfo multisampleState =
-			vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dynamicState =
-			vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-
+		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
+		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
+		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
-
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
-
-		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-		pipelineCreateInfo.pRasterizationState = &rasterizationState;
-		pipelineCreateInfo.pColorBlendState = &colorBlendState;
-		pipelineCreateInfo.pMultisampleState = &multisampleState;
-		pipelineCreateInfo.pViewportState = &viewportState;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCreateInfo.pStages = shaderStages.data();
 
 		// Vertex bindings an attributes based on ImGui vertex definition
 		std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
@@ -364,76 +323,75 @@ public:
 		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
 		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
-		pipelineCreateInfo.pVertexInputState = &vertexInputState;
+		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
+		pipelineCI.pVertexInputState = &vertexInputState;
+		pipelineCI.pInputAssemblyState = &inputAssemblyState;
+		pipelineCI.pRasterizationState = &rasterizationState;
+		pipelineCI.pColorBlendState = &colorBlendState;
+		pipelineCI.pMultisampleState = &multisampleState;
+		pipelineCI.pViewportState = &viewportState;
+		pipelineCI.pDepthStencilState = &depthStencilState;
+		pipelineCI.pDynamicState = &dynamicState;
+		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+		pipelineCI.pStages = shaderStages.data();
 
 		shaderStages[0] = example->loadShader(shadersPath + "imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = example->loadShader(shadersPath + "imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device->logicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline));
 	}
 
 	// Starts a new imGui frame and sets up windows and ui elements
-	void newFrame(VulkanExampleBase *example, bool updateFrameGraph)
+	void newFrame(VulkanExampleBase *example, bool updateFpsPlot)
 	{
+		const float uiScale = example->ui.scale;
+
+		// Being an intermediate mode UI, we generate a new UI frame on each draw
 		ImGui::NewFrame();
 
 		// Init imGui windows and elements
 
 		// Debug window
-		ImGui::SetWindowPos(ImVec2(20 * example->ui.scale, 20 * example->ui.scale), ImGuiSetCond_FirstUseEver);
-        ImGui::SetWindowSize(ImVec2(300 * example->ui.scale, 300 * example->ui.scale), ImGuiSetCond_Always);
-		ImGui::TextUnformatted(example->title.c_str());
-		ImGui::TextUnformatted(device->properties.deviceName);
-		
-		//SRS - Display Vulkan API version and device driver information if available (otherwise blank)
-		ImGui::Text("Vulkan API %i.%i.%i", VK_API_VERSION_MAJOR(device->properties.apiVersion), VK_API_VERSION_MINOR(device->properties.apiVersion), VK_API_VERSION_PATCH(device->properties.apiVersion));
-		ImGui::Text("%s %s", driverProperties.driverName, driverProperties.driverInfo);
-
-		// Update frame time display
-		if (updateFrameGraph) {
-			std::rotate(uiSettings.frameTimes.begin(), uiSettings.frameTimes.begin() + 1, uiSettings.frameTimes.end());
-			float frameTime = 1000.0f / (example->frameTimer * 1000.0f);
-			uiSettings.frameTimes.back() = frameTime;
-			if (frameTime < uiSettings.frameTimeMin) {
-				uiSettings.frameTimeMin = frameTime;
+		ImGui::SetWindowPos(ImVec2(20 * uiScale, 20 * uiScale), ImGuiSetCond_FirstUseEver);
+		ImGui::SetWindowSize(ImVec2(300 * uiScale, 175 * uiScale), ImGuiSetCond_Always);
+		ImGui::TextUnformatted(sampleName.c_str());
+		ImGui::TextUnformatted(deviceName.c_str());
+		// Render a fps plot
+		if (updateFpsPlot) {
+			std::rotate(fpsPlot.begin(), fpsPlot.begin() + 1, fpsPlot.end());
+			fpsPlot.back() = lastFps;
+			if (lastFps < fpsMin) {
+				fpsMin = lastFps;
 			}
-			if (frameTime > uiSettings.frameTimeMax) {
-				uiSettings.frameTimeMax = frameTime;
+			if (lastFps > fpsMax) {
+				fpsMax = lastFps;
 			}
 		}
-
-		ImGui::PlotLines("Frame Times", &uiSettings.frameTimes[0], 50, 0, "", uiSettings.frameTimeMin, uiSettings.frameTimeMax, ImVec2(0, 80));
-
-		ImGui::Text("Camera");
-		ImGui::InputFloat3("position", &example->camera.position.x, 2);
-		ImGui::InputFloat3("rotation", &example->camera.rotation.x, 2);
-
+		ImGui::PlotLines("Frame Times", &fpsPlot[0], 50, 0, "", fpsMin, fpsMax, ImVec2(0, 80));
+		
 		// Example settings window
-		ImGui::SetNextWindowPos(ImVec2(20 * example->ui.scale, 360 * example->ui.scale), ImGuiSetCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(300 * example->ui.scale, 200 * example->ui.scale), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(20 * uiScale, 360 * uiScale), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(300 * uiScale, 200 * uiScale), ImGuiSetCond_FirstUseEver);
 		ImGui::Begin("Example settings");
-		ImGui::Checkbox("Render models", &uiSettings.displayModels);
-		ImGui::Checkbox("Display logos", &uiSettings.displayLogos);
-		ImGui::Checkbox("Display background", &uiSettings.displayBackground);
-		ImGui::Checkbox("Animate light", &uiSettings.animateLight);
-		ImGui::SliderFloat("Light speed", &uiSettings.lightSpeed, 0.1f, 1.0f);
-		//ImGui::ShowStyleSelector("UI style");
-
+		ImGui::Checkbox("Render models", &displayModels);
+		ImGui::Checkbox("Display logos", &displayLogos);
+		ImGui::Checkbox("Display background", &displayBackground);
+		ImGui::Checkbox("Animate light", &animateLight);
+		ImGui::SliderFloat("Light speed", &lightSpeed, 0.1f, 1.0f);
 		if (ImGui::Combo("UI style", &selectedStyle, "Vulkan\0Classic\0Dark\0Light\0")) {
 			setStyle(selectedStyle);
 		}
 
 		ImGui::End();
 
-		//SRS - ShowDemoWindow() sets its own initial position and size, cannot override here
 		ImGui::ShowDemoWindow();
 
-		// Render to generate draw buffers
+		// This does not render the UI to the screen, but gathers the draw data for the UI frame that we'll use to render it
 		ImGui::Render();
 	}
 
 	// Update vertex and index buffer containing the imGui elements when required
-	void updateBuffers()
+	void updateBuffers(uint32_t currentBuffer)
 	{
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 
@@ -448,26 +406,26 @@ public:
 		// Update buffers only if vertex or index count has been changed compared to current buffer size
 
 		// Vertex buffer
-		if ((vertexBuffer.buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
-			vertexBuffer.unmap();
-			vertexBuffer.destroy();
-			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &vertexBuffer, vertexBufferSize));
-			vertexCount = imDrawData->TotalVtxCount;
-			vertexBuffer.map();
+		if ((buffers[currentBuffer].vertexBuffer.buffer == VK_NULL_HANDLE) || (buffers[currentBuffer].vertexCount != imDrawData->TotalVtxCount)) {
+			buffers[currentBuffer].vertexBuffer.unmap();
+			buffers[currentBuffer].vertexBuffer.destroy();
+			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &buffers[currentBuffer].vertexBuffer, vertexBufferSize));
+			buffers[currentBuffer].vertexCount = imDrawData->TotalVtxCount;
+			buffers[currentBuffer].vertexBuffer.map();
 		}
 
 		// Index buffer
-		if ((indexBuffer.buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
-			indexBuffer.unmap();
-			indexBuffer.destroy();
-			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &indexBuffer, indexBufferSize));
-			indexCount = imDrawData->TotalIdxCount;
-			indexBuffer.map();
+		if ((buffers[currentBuffer].indexBuffer.buffer == VK_NULL_HANDLE) || (buffers[currentBuffer].indexCount < imDrawData->TotalIdxCount)) {
+			buffers[currentBuffer].indexBuffer.unmap();
+			buffers[currentBuffer].indexBuffer.destroy();
+			VK_CHECK_RESULT(device->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &buffers[currentBuffer].indexBuffer, indexBufferSize));
+			buffers[currentBuffer].indexCount = imDrawData->TotalIdxCount;
+			buffers[currentBuffer].indexBuffer.map();
 		}
 
 		// Upload data
-		ImDrawVert* vtxDst = (ImDrawVert*)vertexBuffer.mapped;
-		ImDrawIdx* idxDst = (ImDrawIdx*)indexBuffer.mapped;
+		ImDrawVert* vtxDst = (ImDrawVert*)buffers[currentBuffer].vertexBuffer.mapped;
+		ImDrawIdx* idxDst = (ImDrawIdx*)buffers[currentBuffer].indexBuffer.mapped;
 
 		for (int n = 0; n < imDrawData->CmdListsCount; n++) {
 			const ImDrawList* cmd_list = imDrawData->CmdLists[n];
@@ -478,12 +436,12 @@ public:
 		}
 
 		// Flush to make writes visible to GPU
-		vertexBuffer.flush();
-		indexBuffer.flush();
+		buffers[currentBuffer].vertexBuffer.flush();
+		buffers[currentBuffer].indexBuffer.flush();
 	}
 
 	// Draw current imGui frame into a command buffer
-	void drawFrame(VkCommandBuffer commandBuffer)
+	void drawFrame(VkCommandBuffer commandBuffer, uint32_t currentBuffer)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -506,16 +464,14 @@ public:
 		if (imDrawData->CmdListsCount > 0) {
 
 			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffers[currentBuffer].vertexBuffer.buffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, buffers[currentBuffer].indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-			for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
-			{
+			for (int32_t i = 0; i < imDrawData->CmdListsCount; i++) {
 				const ImDrawList* cmd_list = imDrawData->CmdLists[i];
-				for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
-				{
+				for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
 					const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
-					VkRect2D scissorRect;
+					VkRect2D scissorRect{};
 					scissorRect.offset.x = std::max((int32_t)(pcmd->ClipRect.x), 0);
 					scissorRect.offset.y = std::max((int32_t)(pcmd->ClipRect.y), 0);
 					scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
@@ -552,30 +508,25 @@ public:
 		vkglTF::Model background;
 	} models;
 
-	vks::Buffer uniformBufferVS;
-
-	struct UBOVS {
+	struct UniformData {
 		glm::mat4 projection;
 		glm::mat4 modelview;
 		glm::vec4 lightPos;
-	} uboVS;
+	} uniformData;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
-	VkPipelineLayout pipelineLayout;
-	VkPipeline pipeline;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkDescriptorSet descriptorSet;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkPipeline pipeline{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
 		title = "User interfaces with ImGui";
 		camera.type = Camera::CameraType::lookat;
-		camera.setPosition(glm::vec3(0.0f, 0.0f, -4.8f));
+		camera.setPosition(glm::vec3(-1.0f, 0.0f, -4.8f));
 		camera.setRotation(glm::vec3(4.5f, -380.0f, 0.0f));
 		camera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
-		
-		//SRS - Enable VK_KHR_get_physical_device_properties2 to retrieve device driver information for display
-		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-
 		// Don't use the ImGui overlay of the base framework in this sample
 		settings.overlay = false;
 	}
@@ -585,76 +536,13 @@ public:
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-		uniformBufferVS.destroy();
-
+		for (auto& buffer : uniformBuffers) {
+			buffer.destroy();
+		}
 		delete imGui;
 	}
 
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f} };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		imGui->newFrame(this, (frameCounter == 0));
-		imGui->updateBuffers();
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-			// Render scene
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-			VkDeviceSize offsets[1] = { 0 };
-			if (uiSettings.displayBackground) {
-				models.background.draw(drawCmdBuffers[i]);
-			}
-
-			if (uiSettings.displayModels) {
-				models.models.draw(drawCmdBuffers[i]);
-			}
-
-			if (uiSettings.displayLogos) {
-				models.logos.draw(drawCmdBuffers[i]);
-			}
-
-			// Render imGui
-			if (ui.visible) {
-				imGui->drawFrame(drawCmdBuffers[i]);
-			}
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
-	}
-
-	void setupLayoutsAndDescriptors()
+	void setupDescriptors()
 	{
 		// descriptor pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -672,22 +560,25 @@ public:
 			vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		// Pipeline layout
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
-
-		// Descriptor set
-		VkDescriptorSetAllocateInfo allocInfo =	vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBufferVS.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		// Sets per frame, just like the buffers themselves
+		// Images do not need to be duplicated per frame, we reuse the same one for each frame
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
 	{
-		// Rendering
+		// Layout
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+
+		// Pipeline for the 3D scene object
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0,	VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -697,8 +588,7 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-
-		std::array<VkPipelineShaderStageCreateInfo,2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
 		pipelineCI.pInputAssemblyState = &inputAssemblyState;
@@ -720,43 +610,24 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Vertex shader uniform buffer block
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBufferVS,
-			sizeof(uboVS),
-			&uboVS));
-
-		updateUniformBuffers();
+		for (auto& buffer : uniformBuffers) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData)));
+			VK_CHECK_RESULT(buffer.map());
+		}
 	}
 
 	void updateUniformBuffers()
 	{
 		// Vertex shader
-		uboVS.projection = camera.matrices.perspective;
-		uboVS.modelview = camera.matrices.view * glm::mat4(1.0f);
-
+		uniformData.projection = camera.matrices.perspective;
+		uniformData.modelview = camera.matrices.view * glm::mat4(1.0f);
 		// Light source
-		if (uiSettings.animateLight) {
-			uiSettings.lightTimer += frameTimer * uiSettings.lightSpeed;
-			uboVS.lightPos.x = sin(glm::radians(uiSettings.lightTimer * 360.0f)) * 15.0f;
-			uboVS.lightPos.z = cos(glm::radians(uiSettings.lightTimer * 360.0f)) * 15.0f;
+		if (imGui->animateLight) {
+			imGui->lightTimer += frameTimer * imGui->lightSpeed;
+			uniformData.lightPos.x = sin(glm::radians(imGui->lightTimer * 360.0f)) * 15.0f;
+			uniformData.lightPos.z = cos(glm::radians(imGui->lightTimer * 360.0f)) * 15.0f;
 		};
-
-		VK_CHECK_RESULT(uniformBufferVS.map());
-		memcpy(uniformBufferVS.mapped, &uboVS, sizeof(uboVS));
-		uniformBufferVS.unmap();
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-		buildCommandBuffers();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
+		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void loadAssets()
@@ -772,6 +643,8 @@ public:
 		imGui = new ImGUI(this);
 		imGui->init((float)width, (float)height);
 		imGui->initResources(renderPass, queue, getShadersPath());
+		imGui->sampleName = title;
+		imGui->deviceName = deviceProperties.deviceName;
 	}
 
 	void prepare()
@@ -779,11 +652,72 @@ public:
 		VulkanExampleBase::prepare();
 		loadAssets();
 		prepareUniformBuffers();
-		setupLayoutsAndDescriptors();
+		setupDescriptors();
 		preparePipelines();
 		prepareImGui();
-		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void buildCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f} };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+		// Update fps plot once a second
+		bool updateFpsPlot = (frameCounter == 0);
+		imGui->newFrame(this, updateFpsPlot);
+		imGui->updateBuffers(currentBuffer);
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		// Render scene
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+		VkDeviceSize offsets[1] = { 0 };
+		if (imGui->displayBackground) {
+			models.background.draw(cmdBuffer);
+		}
+
+		if (imGui->displayModels) {
+			models.models.draw(cmdBuffer);
+		}
+
+		if (imGui->displayLogos) {
+			models.logos.draw(cmdBuffer);
+		}
+
+		// Render imGui
+		if (ui.visible) {
+			imGui->drawFrame(cmdBuffer, currentBuffer);
+		}
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	virtual void render()
@@ -791,20 +725,21 @@ public:
 		if (!prepared)
 			return;
 
-		updateUniformBuffers();
-
 		// Update imGui
 		ImGuiIO& io = ImGui::GetIO();
-
 		io.DisplaySize = ImVec2((float)width, (float)height);
 		io.DeltaTime = frameTimer;
-
 		io.MousePos = ImVec2(mouseState.position.x, mouseState.position.y);
 		io.MouseDown[0] = mouseState.buttons.left && ui.visible;
 		io.MouseDown[1] = mouseState.buttons.right && ui.visible;
 		io.MouseDown[2] = mouseState.buttons.middle && ui.visible;
+		// Pass values to be displayed in imGui
+		imGui->lastFps = static_cast<float>(lastFPS);
 
-		draw();
+		VulkanExampleBase::prepareFrame();
+		updateUniformBuffers();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void mouseMoved(double x, double y, bool &handled)

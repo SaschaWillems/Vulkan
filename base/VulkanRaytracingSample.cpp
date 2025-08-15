@@ -1,7 +1,7 @@
 /*
 * Extended sample base class for ray tracing based samples
 *
-* Copyright (C) 2020-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -139,6 +139,9 @@ void VulkanRaytracingSample::enableExtensions()
 
 	// Required by VK_KHR_spirv_1_4
 	enabledDeviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+
+	// Format for the storage image is decided at runtime, so we can't explicilily state it in the shader
+	enabledFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
 }
 
 VulkanRaytracingSample::ScratchBuffer VulkanRaytracingSample::createScratchBuffer(VkDeviceSize size)

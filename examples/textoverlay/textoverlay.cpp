@@ -23,23 +23,19 @@
 	This class contains all Vulkan resources for drawing the text overlay
 	It can be plugged into an existing renderpass/command buffer
 */
-class TextOverlay
+struct TextOverlay
 {
-private:
-	// Created by this class
 	// Font image
 	VkSampler sampler;
 	VkImage image;
 	VkImageView view;
 	VkDeviceMemory imageMemory;
-	// Character vertex buffer
-	VkBuffer buffer;
-	VkDeviceMemory memory;
+	// Stores the characters
+	std::array<vks::Buffer, maxConcurrentFrames> vertexBuffers;
 	VkDescriptorPool descriptorPool;
-	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
+	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout pipelineLayout;
-	VkPipelineCache pipelineCache;
 	VkPipeline pipeline;
 
 	// Passed from the sample
@@ -51,14 +47,13 @@ private:
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 	float scale;
 
-	// Pointer to mapped vertex buffer
-	glm::vec4 *mapped = nullptr;
-
 	stb_fontchar stbFontData[STB_FONT_consolas_24_latin1_NUM_CHARS];
-public:
-	enum TextAlign { alignLeft, alignCenter, alignRight };
 
+	enum TextAlign { alignLeft, alignCenter, alignRight };
+	uint32_t currentBuffer;
 	uint32_t numLetters;
+	// Current position in the vertex buffer
+	glm::vec4* mapped = nullptr;
 	bool visible = true;
 
 	TextOverlay(
@@ -88,14 +83,14 @@ public:
 		vkDestroySampler(vulkanDevice->logicalDevice, sampler, nullptr);
 		vkDestroyImage(vulkanDevice->logicalDevice, image, nullptr);
 		vkDestroyImageView(vulkanDevice->logicalDevice, view, nullptr);
-		vkDestroyBuffer(vulkanDevice->logicalDevice, buffer, nullptr);
-		vkFreeMemory(vulkanDevice->logicalDevice, memory, nullptr);
 		vkFreeMemory(vulkanDevice->logicalDevice, imageMemory, nullptr);
 		vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
 		vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
 		vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
-		vkDestroyPipelineCache(vulkanDevice->logicalDevice, pipelineCache, nullptr);
 		vkDestroyPipeline(vulkanDevice->logicalDevice, pipeline, nullptr);
+		for (auto& buffer : vertexBuffers) {
+			buffer.destroy();
+		}
 	}
 
 	// Prepare all vulkan resources required to render the font
@@ -108,21 +103,13 @@ public:
 		static unsigned char font24pixels[fontHeight][fontWidth];
 		stb_font_consolas_24_latin1(stbFontData, font24pixels, fontHeight);
 
-		// Vertex buffer
+		// Vertex buffers containing the text information per max. concurrent frames
 		VkDeviceSize bufferSize = TEXTOVERLAY_MAX_CHAR_COUNT * sizeof(glm::vec4);
-
-		VkBufferCreateInfo bufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, bufferSize);
-		VK_CHECK_RESULT(vkCreateBuffer(vulkanDevice->logicalDevice, &bufferInfo, nullptr, &buffer));
-
-		VkMemoryRequirements memReqs;
-		VkMemoryAllocateInfo allocInfo = vks::initializers::memoryAllocateInfo();
-
-		vkGetBufferMemoryRequirements(vulkanDevice->logicalDevice, buffer, &memReqs);
-		allocInfo.allocationSize = memReqs.size;
-		allocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		VK_CHECK_RESULT(vkAllocateMemory(vulkanDevice->logicalDevice, &allocInfo, nullptr, &memory));
-		VK_CHECK_RESULT(vkBindBufferMemory(vulkanDevice->logicalDevice, buffer, memory, 0));
+		for (auto& buffer : vertexBuffers) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, bufferSize));
+			// These buffers are frequently written to, so we map them persistent
+			VK_CHECK_RESULT(buffer.map());
+		}
 
 		// Font texture
 		VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
@@ -138,58 +125,43 @@ public:
 		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
 		VK_CHECK_RESULT(vkCreateImage(vulkanDevice->logicalDevice, &imageInfo, nullptr, &image));
 
+		VkMemoryRequirements memReqs;
+		VkMemoryAllocateInfo allocInfo = vks::initializers::memoryAllocateInfo();
 		vkGetImageMemoryRequirements(vulkanDevice->logicalDevice, image, &memReqs);
 		allocInfo.allocationSize = memReqs.size;
 		allocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
 		VK_CHECK_RESULT(vkAllocateMemory(vulkanDevice->logicalDevice, &allocInfo, nullptr, &imageMemory));
 		VK_CHECK_RESULT(vkBindImageMemory(vulkanDevice->logicalDevice, image, imageMemory, 0));
 
 		// Staging
-
-		struct {
-			VkDeviceMemory memory;
-			VkBuffer buffer;
-		} stagingBuffer;
+		vks::Buffer stagingBuffer;
 
 		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
 		bufferCreateInfo.size = allocInfo.allocationSize;
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
 		VK_CHECK_RESULT(vkCreateBuffer(vulkanDevice->logicalDevice, &bufferCreateInfo, nullptr, &stagingBuffer.buffer));
 
 		// Get memory requirements for the staging buffer (alignment, memory type bits)
 		vkGetBufferMemoryRequirements(vulkanDevice->logicalDevice, stagingBuffer.buffer, &memReqs);
-
 		allocInfo.allocationSize = memReqs.size;
 		// Get memory type index for a host visible buffer
 		allocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
 		VK_CHECK_RESULT(vkAllocateMemory(vulkanDevice->logicalDevice, &allocInfo, nullptr, &stagingBuffer.memory));
 		VK_CHECK_RESULT(vkBindBufferMemory(vulkanDevice->logicalDevice, stagingBuffer.buffer, stagingBuffer.memory, 0));
 
-		uint8_t *data;
+		uint8_t* data{ nullptr };
 		VK_CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, stagingBuffer.memory, 0, allocInfo.allocationSize, 0, (void **)&data));
 		// Size of the font texture is WIDTH * HEIGHT * 1 byte (only one channel)
 		memcpy(data, &font24pixels[0][0], fontWidth * fontHeight);
 		vkUnmapMemory(vulkanDevice->logicalDevice, stagingBuffer.memory);
 
 		// Copy to image
-
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 		// Prepare for transfer
-		vks::tools::setImageLayout(
-			copyCmd,
-			image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
+		vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		VkBufferImageCopy bufferCopyRegion = {};
 		bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		bufferCopyRegion.imageSubresource.mipLevel = 0;
@@ -197,23 +169,10 @@ public:
 		bufferCopyRegion.imageExtent.width = fontWidth;
 		bufferCopyRegion.imageExtent.height = fontHeight;
 		bufferCopyRegion.imageExtent.depth = 1;
-
-		vkCmdCopyBufferToImage(
-			copyCmd,
-			stagingBuffer.buffer,
-			image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&bufferCopyRegion
-			);
+		vkCmdCopyBufferToImage(copyCmd, stagingBuffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
 
 		// Prepare for shader read
-		vks::tools::setImageLayout(
-			copyCmd,
-			image,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		vulkanDevice->flushCommandBuffer(copyCmd, queue);
 
@@ -245,43 +204,33 @@ public:
 
 		// Descriptor
 		// Font uses a separate descriptor pool
-		std::array<VkDescriptorPoolSize, 1> poolSizes;
-		poolSizes[0] = vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1);
-
-		VkDescriptorPoolCreateInfo descriptorPoolInfo =
-			vks::initializers::descriptorPoolCreateInfo(
-				static_cast<uint32_t>(poolSizes.size()),
-				poolSizes.data(),
-				1);
-
+		std::array<VkDescriptorPoolSize, 1> poolSizes = {
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
+		};
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), 1);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Descriptor set layout
-		std::array<VkDescriptorSetLayoutBinding, 1> setLayoutBindings;
-		setLayoutBindings[0] = vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+		std::array<VkDescriptorSetLayoutBinding, 1> setLayoutBindings = {
+			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0)
+		};
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout));
 
+		// Descriptor for the font image
+		VkDescriptorImageInfo texDescriptor = vks::initializers::descriptorImageInfo(sampler, view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		// Descriptor set
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &descriptorSetAllocInfo, &descriptorSet));
-
-		// Descriptor for the font image
-		VkDescriptorImageInfo texDescriptor = vks::initializers::descriptorImageInfo(sampler, view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	
-		std::array<VkWriteDescriptorSet, 1> writeDescriptorSets;
-		writeDescriptorSets[0] = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &texDescriptor);
+		std::array<VkWriteDescriptorSet, 1> writeDescriptorSets = {
+			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &texDescriptor)
+		};
 		vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
 	// Prepare a separate pipeline for the font rendering decoupled from the main application
 	void preparePipeline()
 	{
-		// Pipeline cache
-		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreatePipelineCache(vulkanDevice->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
-
 		// Layout
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout));
@@ -332,23 +281,13 @@ public:
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
-
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
-	}
-
-	// Map buffer
-	void beginTextUpdate()
-	{
-		VK_CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, memory, 0, VK_WHOLE_SIZE, 0, (void **)&mapped));
-		numLetters = 0;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
 	// Add text to the current buffer
 	void addText(std::string text, float x, float y, TextAlign align)
 	{
 		const uint32_t firstChar = STB_FONT_consolas_24_latin1_FIRST_CHAR;
-
-		assert(mapped != nullptr);
 
 		const float charW = 1.5f * scale / *frameBufferWidth;
 		const float charH = 1.5f * scale / *frameBufferHeight;
@@ -413,23 +352,14 @@ public:
 		}
 	}
 
-	// Unmap buffer and update command buffers
-	void endTextUpdate()
-	{
-		vkUnmapMemory(vulkanDevice->logicalDevice, memory);
-		mapped = nullptr;
-		//updateCommandBuffers();
-	}
-
 	// Issue the draw commands for the characters of the overlay
 	void draw(VkCommandBuffer cmdBuffer)
 	{
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-
 		VkDeviceSize offsets = 0;
-		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &buffer, &offsets);
-		vkCmdBindVertexBuffers(cmdBuffer, 1, 1, &buffer, &offsets);
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBuffers[currentBuffer].buffer, &offsets);
+		vkCmdBindVertexBuffers(cmdBuffer, 1, 1, &vertexBuffers[currentBuffer].buffer, &offsets);
 		// One draw command for every character. This is okay for a debug overlay, but not optimal
 		// In a real-world application one would try to batch draw commands
 		for (uint32_t j = 0; j < numLetters; j++) {
@@ -453,12 +383,12 @@ public:
 		glm::mat4 modelView;
 		glm::vec4 lightPos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	} uniformData;
-	vks::Buffer uniformBuffer;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -476,98 +406,10 @@ public:
 			vkDestroyPipeline(device, pipeline, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-			uniformBuffer.destroy();
-			delete(textOverlay);
-		}
-	}
-
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[3];
-
-		clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-			model.draw(drawCmdBuffers[i]);
-
-			if (textOverlay->visible) {
-				textOverlay->draw(drawCmdBuffers[i]);
+			for (auto& buffer : uniformBuffers) {
+				buffer.destroy();
 			}
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
-
-		vkQueueWaitIdle(queue);
-	}
-
-	// Update the text buffer displayed by the text overlay
-	void updateTextOverlay(void)
-	{
-		uint32_t lastNumLetters = textOverlay->numLetters;
-
-		textOverlay->beginTextUpdate();
-
-		textOverlay->addText(title, 5.0f * ui.scale, 5.0f * ui.scale, TextOverlay::alignLeft);
-
-		std::stringstream ss;
-		ss << std::fixed << std::setprecision(2) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
-		textOverlay->addText(ss.str(), 5.0f * ui.scale, 25.0f * ui.scale, TextOverlay::alignLeft);
-
-		textOverlay->addText(deviceProperties.deviceName, 5.0f * ui.scale, 45.0f * ui.scale, TextOverlay::alignLeft);
-
-		// Display current model view matrix
-		textOverlay->addText("model view matrix", (float)width - 5.0f * ui.scale, 5.0f * ui.scale, TextOverlay::alignRight);
-
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			ss.str("");
-			ss << std::fixed << std::setprecision(2) << std::showpos;
-			ss << uniformData.modelView[0][i] << " " << uniformData.modelView[1][i] << " " << uniformData.modelView[2][i] << " " << uniformData.modelView[3][i];
-			textOverlay->addText(ss.str(), (float)width - 5.0f * ui.scale, (25.0f + (float)i * 20.0f) * ui.scale, TextOverlay::alignRight);
-		}
-
-		glm::vec3 projected = glm::project(glm::vec3(0.0f), uniformData.modelView, uniformData.projection, glm::vec4(0, 0, (float)width, (float)height));
-		textOverlay->addText("A torus knot", projected.x, projected.y, TextOverlay::alignCenter);
-
-#if defined(__ANDROID__)
-#else
-		textOverlay->addText("Press \"space\" to toggle text overlay", 5.0f * ui.scale, 65.0f * ui.scale, TextOverlay::alignLeft);
-		textOverlay->addText("Hold middle mouse button and drag to move", 5.0f * ui.scale, 85.0f * ui.scale, TextOverlay::alignLeft);
-#endif
-		textOverlay->endTextUpdate();
-
-		// If the no. of letters changed, the no. of draw commands also changes which requires a rebuild of the command buffers
-		if (lastNumLetters != textOverlay->numLetters) {
-			std::cout << "rebuild cb\n";
-			buildCommandBuffers();
+			delete(textOverlay);
 		}
 	}
 
@@ -581,9 +423,9 @@ public:
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames),
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 2);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Layout
@@ -594,14 +436,16 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 		
-		// Set
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			// Binding 0: Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		// Sets per frame, just like the buffers themselves
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				// Binding 0: Vertex shader uniform buffer
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
@@ -620,7 +464,7 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass);
 		pipelineCI.pInputAssemblyState = &inputAssemblyState;
@@ -642,15 +486,58 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer, sizeof(UniformData)));
-		VK_CHECK_RESULT(uniformBuffer.map());
+		for (auto& buffer : uniformBuffers) {
+			// Scene matrices uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData)));
+			VK_CHECK_RESULT(buffer.map());
+		}
 	}
 
 	void updateUniformBuffers()
 	{
 		uniformData.projection = camera.matrices.perspective;
 		uniformData.modelView = camera.matrices.view;
-		memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
+		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
+	}
+
+	// Update the text buffer displayed by the text overlay
+	void updateTextOverlay(void)
+	{
+		textOverlay->currentBuffer = currentBuffer;
+		textOverlay->numLetters = 0;
+		// textOverlay->addText writes to the vertex buffer for the current frame, so we need to it point at that
+		textOverlay->mapped = static_cast<glm::vec4*>(textOverlay->vertexBuffers[currentBuffer].mapped);
+
+		// textOverlay->addText writes to the vertex buffer for the current frame
+		//VK_CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, textOverlay->vertexBuffers[currentBuffer].memory, 0, VK_WHOLE_SIZE, 0, (void**)&textOverlay->mapped));
+
+		textOverlay->addText(title, 5.0f * ui.scale, 5.0f * ui.scale, TextOverlay::alignLeft);
+
+		std::stringstream ss;
+		ss << std::fixed << std::setprecision(2) << (frameTimer * 1000.0f) << "ms (" << lastFPS << " fps)";
+		textOverlay->addText(ss.str(), 5.0f * ui.scale, 25.0f * ui.scale, TextOverlay::alignLeft);
+
+		textOverlay->addText(deviceProperties.deviceName, 5.0f * ui.scale, 45.0f * ui.scale, TextOverlay::alignLeft);
+
+		// Display current model view matrix
+		textOverlay->addText("model view matrix", (float)width - 5.0f * ui.scale, 5.0f * ui.scale, TextOverlay::alignRight);
+		for (uint32_t i = 0; i < 4; i++) {
+			ss.str("");
+			ss << std::fixed << std::setprecision(2) << std::showpos;
+			ss << uniformData.modelView[0][i] << " " << uniformData.modelView[1][i] << " " << uniformData.modelView[2][i] << " " << uniformData.modelView[3][i];
+			textOverlay->addText(ss.str(), (float)width - 5.0f * ui.scale, (25.0f + (float)i * 20.0f) * ui.scale, TextOverlay::alignRight);
+		}
+
+		glm::vec3 projected = glm::project(glm::vec3(0.0f), uniformData.modelView, uniformData.projection, glm::vec4(0, 0, (float)width, (float)height));
+		textOverlay->addText("A torus knot", projected.x, projected.y, TextOverlay::alignCenter);
+
+#if defined(__ANDROID__)
+#else
+		textOverlay->addText("Press \"space\" to toggle text overlay", 5.0f * ui.scale, 65.0f * ui.scale, TextOverlay::alignLeft);
+		textOverlay->addText("Hold middle mouse button and drag to move", 5.0f * ui.scale, 85.0f * ui.scale, TextOverlay::alignLeft);
+#endif
+
+		//vkUnmapMemory(vulkanDevice->logicalDevice, textOverlay->vertexBuffers[currentBuffer].memory);
 	}
 
 	void prepareTextOverlay()
@@ -659,7 +546,6 @@ public:
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 		shaderStages.push_back(loadShader(getShadersPath() + "textoverlay/text.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
 		shaderStages.push_back(loadShader(getShadersPath() + "textoverlay/text.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
-
 		textOverlay = new TextOverlay(
 			vulkanDevice,
 			queue,
@@ -668,8 +554,7 @@ public:
 			&height,
 			ui.scale,
 			shaderStages
-			);
-		updateTextOverlay();
+		);
 	}
 
 	void prepare()
@@ -680,28 +565,59 @@ public:
 		setupDescriptors();
 		preparePipelines();
 		prepareTextOverlay();
-		buildCommandBuffers();
 		prepared = true;
 	}
 
-	void draw()
+	void buildCommandBuffer()
 	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+		model.draw(cmdBuffer);
+
+		if (textOverlay->visible) {
+			textOverlay->draw(cmdBuffer);
+		}
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
+		VulkanExampleBase::prepareFrame();
+		updateTextOverlay();
 		updateUniformBuffers();
-		if (camera.updated) {
-			updateTextOverlay();
-		}
-		draw();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void keyPressed(uint32_t keyCode)
@@ -711,7 +627,7 @@ public:
 		case KEY_KPADD:
 		case KEY_SPACE:
 			textOverlay->visible = !textOverlay->visible;
-			buildCommandBuffers();
+			break;
 		}
 	}
 };

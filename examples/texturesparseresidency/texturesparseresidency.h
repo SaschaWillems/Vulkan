@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Sparse texture residency example
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -85,12 +85,12 @@ public:
 		glm::vec4 viewPos;
 		float lodBias = 0.0f;
 	} uniformData;
-	vks::Buffer uniformBuffer;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	//todo: comment
 	VkSemaphore bindSparseSemaphore{ VK_NULL_HANDLE };
@@ -103,8 +103,7 @@ public:
 	void prepareSparseTexture(uint32_t width, uint32_t height, uint32_t layerCount, VkFormat format);
 	// @todo: move to dtor of texture
 	void destroyTextureImage(SparseTexture texture);
-	void buildCommandBuffers();
-	void draw();
+	void buildCommandBuffer();
 	void loadAssets();
 	void setupDescriptors();
 	void preparePipelines();

@@ -56,8 +56,6 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <string>
-#include <numeric>
-#include <array>
 
 #include "vulkan/vulkan.h"
 
@@ -74,6 +72,8 @@
 #include "VulkanInitializers.hpp"
 #include "camera.hpp"
 #include "benchmark.hpp"
+
+constexpr uint32_t maxConcurrentFrames{ 2 };
 
 class VulkanExampleBase
 {
@@ -130,18 +130,12 @@ protected:
 	VkFormat depthFormat{VK_FORMAT_UNDEFINED};
 	// Command buffer pool
 	VkCommandPool cmdPool{ VK_NULL_HANDLE };
-	/** @brief Pipeline stages used to wait at for graphics queue submissions */
-	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	// Contains command buffers and semaphores to be presented to the queue
-	VkSubmitInfo submitInfo{};
 	// Command buffers used for rendering
-	std::vector<VkCommandBuffer> drawCmdBuffers;
+	std::array<VkCommandBuffer, maxConcurrentFrames> drawCmdBuffers;
 	// Global render pass for frame buffer writes
 	VkRenderPass renderPass{ VK_NULL_HANDLE };
 	// List of available frame buffers (same as number of swap chain images)
 	std::vector<VkFramebuffer>frameBuffers;
-	// Active frame buffer index
-	uint32_t currentBuffer = 0;
 	// Descriptor set pool
 	VkDescriptorPool descriptorPool{ VK_NULL_HANDLE };
 	// List of shader modules created (stored for cleanup)
@@ -150,19 +144,19 @@ protected:
 	VkPipelineCache pipelineCache{ VK_NULL_HANDLE };
 	// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VulkanSwapChain swapChain;
-	// Synchronization semaphores
-	struct {
-		// Swap chain image presentation
-		VkSemaphore presentComplete;
-		// Command buffer submission and execution
-		VkSemaphore renderComplete;
-	} semaphores{};
-	std::vector<VkFence> waitFences;
+
+	// Synchronization related objects and variables
+	// These are used to have multiple frame buffers "in flight" to get some CPU/GPU parallelism
+	uint32_t currentImageIndex{ 0 };
+	uint32_t currentBuffer{ 0 };
+	std::array<VkSemaphore, maxConcurrentFrames> presentCompleteSemaphores{};
+	std::vector<VkSemaphore> renderCompleteSemaphores{};
+	std::array<VkFence, maxConcurrentFrames> waitFences;
+
 	bool requiresStencil{ false };
 public:
 	bool prepared = false;
 	bool resized = false;
-	bool viewUpdated = false;
 	uint32_t width = 1280;
 	uint32_t height = 720;
 
@@ -316,44 +310,25 @@ public:
 	struct xdg_surface *setupWindow();
 	void initWaylandConnection();
 	void setSize(int width, int height);
-	static void registryGlobalCb(void *data, struct wl_registry *registry,
-			uint32_t name, const char *interface, uint32_t version);
-	void registryGlobal(struct wl_registry *registry, uint32_t name,
-			const char *interface, uint32_t version);
-	static void registryGlobalRemoveCb(void *data, struct wl_registry *registry,
-			uint32_t name);
+	static void registryGlobalCb(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version);
+	void registryGlobal(struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version);
+	static void registryGlobalRemoveCb(void *data, struct wl_registry *registry, uint32_t name);
 	static void seatCapabilitiesCb(void *data, wl_seat *seat, uint32_t caps);
 	void seatCapabilities(wl_seat *seat, uint32_t caps);
-	static void pointerEnterCb(void *data, struct wl_pointer *pointer,
-			uint32_t serial, struct wl_surface *surface, wl_fixed_t sx,
-			wl_fixed_t sy);
-	static void pointerLeaveCb(void *data, struct wl_pointer *pointer,
-			uint32_t serial, struct wl_surface *surface);
-	static void pointerMotionCb(void *data, struct wl_pointer *pointer,
-			uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
-	void pointerMotion(struct wl_pointer *pointer,
-			uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
-	static void pointerButtonCb(void *data, struct wl_pointer *wl_pointer,
-			uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
-	void pointerButton(struct wl_pointer *wl_pointer,
-			uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
-	static void pointerAxisCb(void *data, struct wl_pointer *wl_pointer,
-			uint32_t time, uint32_t axis, wl_fixed_t value);
-	void pointerAxis(struct wl_pointer *wl_pointer,
-			uint32_t time, uint32_t axis, wl_fixed_t value);
-	static void keyboardKeymapCb(void *data, struct wl_keyboard *keyboard,
-			uint32_t format, int fd, uint32_t size);
-	static void keyboardEnterCb(void *data, struct wl_keyboard *keyboard,
-			uint32_t serial, struct wl_surface *surface, struct wl_array *keys);
-	static void keyboardLeaveCb(void *data, struct wl_keyboard *keyboard,
-			uint32_t serial, struct wl_surface *surface);
-	static void keyboardKeyCb(void *data, struct wl_keyboard *keyboard,
-			uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
-	void keyboardKey(struct wl_keyboard *keyboard,
-			uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
-	static void keyboardModifiersCb(void *data, struct wl_keyboard *keyboard,
-			uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched,
-			uint32_t mods_locked, uint32_t group);
+	static void pointerEnterCb(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy);
+	static void pointerLeaveCb(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface);
+	static void pointerMotionCb(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
+	void pointerMotion(struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
+	static void pointerButtonCb(void *data, struct wl_pointer *wl_pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
+	void pointerButton(struct wl_pointer *wl_pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
+	static void pointerAxisCb(void *data, struct wl_pointer *wl_pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
+	void pointerAxis(struct wl_pointer *wl_pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
+	static void keyboardKeymapCb(void *data, struct wl_keyboard *keyboard, uint32_t format, int fd, uint32_t size);
+	static void keyboardEnterCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface, struct wl_array *keys);
+	static void keyboardLeaveCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface);
+	static void keyboardKeyCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
+	void keyboardKey(struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
+	static void keyboardModifiersCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group);
 
 #elif defined(_DIRECT2DISPLAY)
 //
@@ -377,8 +352,6 @@ public:
 	virtual void mouseMoved(double x, double y, bool &handled);
 	/** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
 	virtual void windowResized();
-	/** @brief (Virtual) Called when resources have been recreated that require a rebuild of the command buffers (e.g. frame buffer), to be implemented by the sample application */
-	virtual void buildCommandBuffers();
 	/** @brief (Virtual) Setup default depth and stencil views */
 	virtual void setupDepthStencil();
 	/** @brief (Virtual) Setup default framebuffers for all requested swapchain images */
@@ -404,12 +377,10 @@ public:
 	/** @brief Adds the drawing commands for the ImGui overlay to the given command buffer */
 	void drawUI(const VkCommandBuffer commandBuffer);
 
-	/** Prepare the next frame for workload submission by acquiring the next swap chain image */
-	void prepareFrame();
+	/** Prepare the next frame for workload submission by acquiring the next swap chain image and waiting for the previous command buffer to finish */
+	void prepareFrame(bool waitForFence = true);
 	/** @brief Presents the current image to the swap chain */
-	void submitFrame();
-	/** @brief (Virtual) Default image acquire + submission and command buffer submission function */
-	virtual void renderFrame();
+	void submitFrame(bool skipQueueSubmit = false);
 
 	/** @brief (Virtual) Called when the UI overlay is updating, can be used to add custom elements to the overlay */
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay);

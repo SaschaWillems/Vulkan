@@ -85,10 +85,6 @@ Note that some examples require specific device features, and if you are on a mu
 
 Vulkan consumes shaders in an intermediate representation called SPIR-V. This makes it possible to use different shader languages by compiling them to that bytecode format. The primary shader language used here is [GLSL](shaders/glsl), most samples also come with [slang](shaders/slang/) and [HLSL](shaders/hlsl) shader sources, making it easy to compare the differences between those shading languages. The [Rust GPU](https://rust-gpu.github.io/) project maintains [Rust](https://www.rust-lang.org/) shader sources in a [separate repo](https://github.com/Rust-GPU/VulkanShaderExamples/tree/master/shaders/rust).
 
-## A note on synchronization
-
-Synchronization in the master branch currently isn't optimal und uses ```vkDeviceQueueWaitIdle``` at the end of each frame. This is a heavy operation and is suboptimal in regards to having CPU and GPU operations run in parallel. I'm currently reworking this in the [this branch](https://github.com/SaschaWillems/Vulkan/tree/sync_rework_second_attempt). While still work-in-progress, if you're interested in a more proper way of synchronization in Vulkan, please take a look at the [PR for that branch](https://github.com/SaschaWillems/Vulkan/pull/1224) to see progress.
-
 ## Examples
 
 ### Basics

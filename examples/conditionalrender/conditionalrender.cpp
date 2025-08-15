@@ -6,7 +6,7 @@
 * With conditional rendering it's possible to execute certain rendering commands based on a buffer value instead of having to rebuild the command buffers.
 * This example sets up a conditional buffer with one value per glTF part, that is used to toggle visibility of single model parts.
 *
-* Copyright (C) 2018-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -27,15 +27,15 @@ public:
 		glm::mat4 view;
 		glm::mat4 model;
 	} uniformData;
-	vks::Buffer uniformBuffer;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	std::vector<int32_t> conditionalVisibility{};
-	vks::Buffer conditionalBuffer;
+	std::array<vks::Buffer, maxConcurrentFrames> conditionalBuffers;
 
 	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
 	VkPipeline pipeline{ VK_NULL_HANDLE };
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -59,8 +59,12 @@ public:
 			vkDestroyPipeline(device, pipeline, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-			uniformBuffer.destroy();
-			conditionalBuffer.destroy();
+			for (auto& buffer : uniformBuffers) {
+				buffer.destroy();
+			}
+			for (auto& buffer : conditionalBuffers) {
+				buffer.destroy();
+			}
 		}
 	}
 
@@ -68,7 +72,7 @@ public:
 		if (node->mesh) {
 			for (vkglTF::Primitive * primitive : node->mesh->primitives) {
 				const std::vector<VkDescriptorSet> descriptorsets = {
-					descriptorSet,
+					descriptorSets[currentBuffer],
 					node->mesh->uniformBuffer.descriptorSet
 				};
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, static_cast<uint32_t>(descriptorsets.size()), descriptorsets.data(), 0, NULL);
@@ -80,7 +84,7 @@ public:
 				*/
 				VkConditionalRenderingBeginInfoEXT conditionalRenderingBeginInfo{};
 				conditionalRenderingBeginInfo.sType = VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT;
-				conditionalRenderingBeginInfo.buffer = conditionalBuffer.buffer;
+				conditionalRenderingBeginInfo.buffer = conditionalBuffers[currentBuffer].buffer;
 				conditionalRenderingBeginInfo.offset = sizeof(int32_t) * node->index;
 
 				/*
@@ -101,56 +105,7 @@ public:
 		}
 	}
 
-
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 1.0f, 1.0f, 1.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i) {
-			renderPassBeginInfo.framebuffer = frameBuffers[i];
-
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-			const VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &scene.vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			for (auto node : scene.nodes) {
-				renderNode(node, drawCmdBuffers[i]);
-			}
-
-			drawUI(drawCmdBuffers[i]);
-
-			vkCmdEndRenderPass(drawCmdBuffers[i]);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
-	}
-
-	void loadAssets()
+		void loadAssets()
 	{
 		scene.loadFromFile(getAssetPath() + "models/gltf/glTF-Embedded/Buggy.gltf", vulkanDevice, queue);
 	}
@@ -159,9 +114,9 @@ public:
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames),
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolCI = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
+		VkDescriptorPoolCreateInfo descriptorPoolCI = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
 
 		// Layouts
@@ -174,13 +129,15 @@ public:
 		descriptorLayoutCI.pBindings = setLayoutBindings.data();
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayout));
 
-		// Sets
-		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocateInfo, &descriptorSet));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffer.descriptor)
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		// Sets per frame, just like the buffers themselves
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocateInfo, &descriptorSets[i]));
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor)
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
@@ -229,13 +186,11 @@ public:
 
 	void prepareUniformBuffers()
 	{
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffer,
-			sizeof(UniformData)));
-		VK_CHECK_RESULT(uniformBuffer.map());
-		updateUniformBuffers();
+		for (auto& buffer : uniformBuffers) {
+			// Scene matrices uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData)));
+			VK_CHECK_RESULT(buffer.map());
+		}
 	}
 
 	void updateUniformBuffers()
@@ -243,12 +198,12 @@ public:
 		uniformData.projection = camera.matrices.perspective;
 		uniformData.view = glm::scale(camera.matrices.view, glm::vec3(0.1f , -0.1f, 0.1f));
 		uniformData.model = glm::translate(glm::mat4(1.0f), scene.dimensions.min);
-		memcpy(uniformBuffer.mapped, &uniformData, sizeof(UniformData));
+		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void updateConditionalBuffer()
 	{
-		memcpy(conditionalBuffer.mapped, conditionalVisibility.data(), sizeof(int32_t) * conditionalVisibility.size());
+		memcpy(conditionalBuffers[currentBuffer].mapped, conditionalVisibility.data(), sizeof(int32_t) * conditionalVisibility.size());
 	}
 
 	/*
@@ -274,37 +229,29 @@ public:
 
 		/*
 			Create the buffer that contains the conditional rendering information
-
-			A single conditional value is 32 bits and if it's zero the rendering commands are discarded
-			This sample renders multiple rows of objects conditionally, so we setup a buffer with one value per row
 		*/
 		conditionalVisibility.resize(scene.linearNodes.size());
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&conditionalBuffer,
-			sizeof(int32_t) *conditionalVisibility.size(),
-			conditionalVisibility.data()));
-		VK_CHECK_RESULT(conditionalBuffer.map());
-
-		// By default, all parts of the glTF are visible
+		/*
+			By default, all parts of the glTF are visible
+		*/
 		for (auto i = 0; i < conditionalVisibility.size(); i++) {
 			conditionalVisibility[i] = 1;
 		}
 
 		/*
-			Copy visibility data
+			A single conditional value is 32 bits and if it's zero the rendering commands are discarded
+			This sample renders multiple rows of objects conditionally, so we setup a buffer with one value per row
+			As buffers are written by the CPU and read by the GPU, we need one buffer per frame in flight
 		*/
-		updateConditionalBuffer();
-	}
-
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
+		for (auto& buffer : conditionalBuffers) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&buffer,
+				sizeof(int32_t) * conditionalVisibility.size(),
+				conditionalVisibility.data()));
+			VK_CHECK_RESULT(buffer.map());
+		}
 	}
 
 	void prepare()
@@ -315,16 +262,57 @@ public:
 		prepareUniformBuffers();
 		setupDescriptors();
 		preparePipelines();
-		buildCommandBuffers();
 		prepared = true;
+	}
+
+	void buildCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = { { 1.0f, 1.0f, 1.0f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		const VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &scene.vertices.buffer, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, scene.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		for (auto node : scene.nodes) {
+			renderNode(node, cmdBuffer);
+		}
+		drawUI(cmdBuffer);
+		vkCmdEndRenderPass(cmdBuffer);
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
+		VulkanExampleBase::prepareFrame();
 		updateUniformBuffers();
-		draw();
+		updateConditionalBuffer();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
@@ -335,14 +323,12 @@ public:
 				for (auto i = 0; i < conditionalVisibility.size(); i++) {
 					conditionalVisibility[i] = 1;
 				}
-				updateConditionalBuffer();
 			}
 			ImGui::SameLine();
 			if (overlay->button("None")) {
 				for (auto i = 0; i < conditionalVisibility.size(); i++) {
 					conditionalVisibility[i] = 0;
 				}
-				updateConditionalBuffer();
 			}
 			ImGui::NewLine();
 
@@ -350,9 +336,7 @@ public:
 			for (auto node : scene.linearNodes) {
 				// Add visibility toggle checkboxes for all model nodes with a mesh
 				if (node->mesh) {
-					if (overlay->checkBox(("[" + std::to_string(node->index) + "] " + node->mesh->name).c_str(), &conditionalVisibility[node->index])) {
-						updateConditionalBuffer();
-					}
+					overlay->checkBox(("[" + std::to_string(node->index) + "] " + node->mesh->name).c_str(), &conditionalVisibility[node->index]);
 				}
 			}
 			ImGui::EndChild();

@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Variable rate shading
 *
-* Copyright (C) 2020-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2020-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -23,26 +23,24 @@ public:
 	bool enableShadingRate = true;
 	bool colorShadingRate = false;
 
-	struct ShaderData {
-		vks::Buffer buffer;
-		struct Values {
-			glm::mat4 projection;
-			glm::mat4 view;
-			glm::mat4 model = glm::mat4(1.0f);
-			glm::vec4 lightPos = glm::vec4(0.0f, 2.5f, 0.0f, 1.0f);
-			glm::vec4 viewPos;
-			int32_t colorShadingRate;
-		} values;
-	} shaderData;
+	struct UniformData {
+		glm::mat4 projection;
+		glm::mat4 view;
+		glm::mat4 model = glm::mat4(1.0f);
+		glm::vec4 lightPos = glm::vec4(0.0f, 2.5f, 0.0f, 1.0f);
+		glm::vec4 viewPos;
+		int32_t colorShadingRate;
+	} uniformData;
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
 	struct Pipelines {
-		VkPipeline opaque;
-		VkPipeline masked;
+		VkPipeline opaque{ VK_NULL_HANDLE };
+		VkPipeline masked{ VK_NULL_HANDLE };
 	} pipelines;
 
-	VkPipelineLayout pipelineLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
 	VkPhysicalDeviceFragmentShadingRatePropertiesKHR physicalDeviceShadingRateImageProperties{};
 	VkPhysicalDeviceFragmentShadingRateFeaturesKHR enabledPhysicalDeviceShadingRateImageFeaturesKHR{};
@@ -55,7 +53,7 @@ public:
 	~VulkanExample();
 	virtual void getEnabledFeatures() override;
 	void handleResize();
-	void buildCommandBuffers() override;
+	void buildCommandBuffer();
 	void loadAssets();
 	void prepareShadingRateImage();
 	void setupDescriptors();

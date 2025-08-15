@@ -1,7 +1,7 @@
 /*
 * Vulkan Example - Omni directional shadows using a dynamic cube map
 *
-* Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -34,10 +34,11 @@ public:
 	};
 	UniformData uniformDataScene, uniformDataOffscreen;
 
-	struct {
+	struct UniformBuffers {
 		vks::Buffer scene;
 		vks::Buffer offscreen;
-	} uniformBuffers;
+	};
+	std::array<UniformBuffers, maxConcurrentFrames> uniformBuffers;
 
 	struct {
 		VkPipeline scene{ VK_NULL_HANDLE };
@@ -50,10 +51,11 @@ public:
 		VkPipelineLayout offscreen{ VK_NULL_HANDLE };
 	} pipelineLayouts;
 
-	struct {
+	struct DescriptorSets {
 		VkDescriptorSet scene{ VK_NULL_HANDLE };
 		VkDescriptorSet offscreen{ VK_NULL_HANDLE };
-	} descriptorSets;
+	};
+	std::array<DescriptorSets, maxConcurrentFrames> descriptorSets;
 
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 
@@ -99,37 +101,28 @@ public:
 			for (uint32_t i = 0; i < 6; i++) {
 				vkDestroyImageView(device, shadowCubeMapFaceImageViews[i], nullptr);
 			}
-
 			vkDestroyImageView(device, shadowCubeMap.view, nullptr);
 			vkDestroyImage(device, shadowCubeMap.image, nullptr);
 			vkDestroySampler(device, shadowCubeMap.sampler, nullptr);
 			vkFreeMemory(device, shadowCubeMap.deviceMemory, nullptr);
-
-			// Depth attachment
 			vkDestroyImageView(device, offscreenPass.depth.view, nullptr);
 			vkDestroyImage(device, offscreenPass.depth.image, nullptr);
 			vkFreeMemory(device, offscreenPass.depth.mem, nullptr);
-
 			for (uint32_t i = 0; i < 6; i++)
 			{
 				vkDestroyFramebuffer(device, offscreenPass.frameBuffers[i], nullptr);
 			}
-
 			vkDestroyRenderPass(device, offscreenPass.renderPass, nullptr);
-
-			// Pipelines
 			vkDestroyPipeline(device, pipelines.scene, nullptr);
 			vkDestroyPipeline(device, pipelines.offscreen, nullptr);
 			vkDestroyPipeline(device, pipelines.cubemapDisplay, nullptr);
-
 			vkDestroyPipelineLayout(device, pipelineLayouts.scene, nullptr);
 			vkDestroyPipelineLayout(device, pipelineLayouts.offscreen, nullptr);
-
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-			// Uniform buffers
-			uniformBuffers.offscreen.destroy();
-			uniformBuffers.scene.destroy();
+			for (auto& buffer : uniformBuffers) {
+				buffer.offscreen.destroy();
+				buffer.scene.destroy();
+			}
 		}
 	}
 
@@ -370,146 +363,6 @@ public:
 		}
 	}
 
-	// Updates a single cube map face
-	// Renders the scene with face's view directly to the cubemap layer `faceIndex`
-	// Uses push constants for quick update of view matrix for the current cube map face
-	void updateCubeFace(uint32_t faceIndex, VkCommandBuffer commandBuffer)
-	{
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		// Reuse render pass from example pass
-		renderPassBeginInfo.renderPass = offscreenPass.renderPass;
-		renderPassBeginInfo.framebuffer = offscreenPass.frameBuffers[faceIndex];
-		renderPassBeginInfo.renderArea.extent.width = offscreenPass.width;
-		renderPassBeginInfo.renderArea.extent.height = offscreenPass.height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		// Update view matrix via push constant
-
-		glm::mat4 viewMatrix = glm::mat4(1.0f);
-		switch (faceIndex)
-		{
-		case 0: // POSITIVE_X
-			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			break;
-		case 1:	// NEGATIVE_X
-			viewMatrix = glm::rotate(viewMatrix, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			break;
-		case 2:	// POSITIVE_Y
-			viewMatrix = glm::rotate(viewMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			break;
-		case 3:	// NEGATIVE_Y
-			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			break;
-		case 4:	// POSITIVE_Z
-			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			break;
-		case 5:	// NEGATIVE_Z
-			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			break;
-		}
-
-		// Render scene from cube face's point of view
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		// Update shader push constant block
-		// Contains current face view matrix
-		vkCmdPushConstants(
-			commandBuffer,
-			pipelineLayouts.offscreen,
-			VK_SHADER_STAGE_VERTEX_BIT,
-			0,
-			sizeof(glm::mat4),
-			&viewMatrix);
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets.offscreen, 0, NULL);
-		models.scene.draw(commandBuffer);
-
-		vkCmdEndRenderPass(commandBuffer);
-	}
-
-	void buildCommandBuffers()
-	{
-		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-		{
-			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-
-			/*
-				Generate shadow cube maps using one render pass per face
-			*/
-			{
-				VkViewport viewport = vks::initializers::viewport((float)offscreenPass.width, (float)offscreenPass.height, 0.0f, 1.0f);
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-				VkRect2D scissor = vks::initializers::rect2D(offscreenPass.width, offscreenPass.height, 0, 0);
-				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-				for (uint32_t face = 0; face < 6; face++) {
-					updateCubeFace(face, drawCmdBuffers[i]);
-				}
-			}
-
-			/*
-				Note: Explicit synchronization is not required between the render pass, as this is done implicit via sub pass dependencies
-			*/
-
-			/*
-				Scene rendering with applied shadow map
-			*/
-			{
-				VkClearValue clearValues[2];
-				clearValues[0].color = defaultClearColor;
-				clearValues[1].depthStencil = { 1.0f, 0 };
-
-				VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-				renderPassBeginInfo.renderPass = renderPass;
-				renderPassBeginInfo.framebuffer = frameBuffers[i];
-				renderPassBeginInfo.renderArea.extent.width = width;
-				renderPassBeginInfo.renderArea.extent.height = height;
-				renderPassBeginInfo.clearValueCount = 2;
-				renderPassBeginInfo.pClearValues = clearValues;
-
-				vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-				vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-
-				VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-				vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets.scene, 0, NULL);
-
-				if (displayCubeMap)
-				{
-					// Display all six sides of the shadow cube map
-					// Note: Visualization of the different faces is done in the fragment shader, see cubemapdisplay.frag
-					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.cubemapDisplay);
-					models.debugcube.draw(drawCmdBuffers[i]);
-				}
-				else
-				{
-					vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.scene);
-					models.scene.draw(drawCmdBuffers[i]);
-				}
-
-				drawUI(drawCmdBuffers[i]);
-
-				vkCmdEndRenderPass(drawCmdBuffers[i]);
-			}
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
-		}
-	}
-
 	void loadAssets()
 	{
 		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
@@ -521,10 +374,10 @@ public:
 	{
 		// Pool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames * 3),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxConcurrentFrames *  2)
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 3);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames * 2);
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Layout
@@ -537,33 +390,30 @@ public:
 		VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &descriptorSetLayout));
 
-		// Sets
+		// Sets per frame, just like the buffers themselves
+		// Images do not need to be duplicated per frame, we reuse the same one for each frame
+		VkDescriptorImageInfo texDescriptor = vks::initializers::descriptorImageInfo(shadowCubeMap.sampler, shadowCubeMap.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		
-		// 3D scene
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.scene));
-		// Image descriptor for the cube map
-		VkDescriptorImageInfo texDescriptor =
-			vks::initializers::descriptorImageInfo(
-				shadowCubeMap.sampler,
-				shadowCubeMap.view,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			// Scene display
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].scene));
 
-		std::vector<VkWriteDescriptorSet> sceneDescriptorSets = {
-			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
-			// Binding 1 : Fragment shader shadow sampler
-			vks::initializers::writeDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texDescriptor)
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(sceneDescriptorSets.size()), sceneDescriptorSets.data(), 0, nullptr);
+			std::vector<VkWriteDescriptorSet> sceneDescriptorSets = {
+				// Binding 0 : Vertex shader uniform buffer
+				vks::initializers::writeDescriptorSet(descriptorSets[i].scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].scene.descriptor),
+				// Binding 1 : Fragment shader shadow sampler
+				vks::initializers::writeDescriptorSet(descriptorSets[i].scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texDescriptor)
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(sceneDescriptorSets.size()), sceneDescriptorSets.data(), 0, nullptr);
 
-		// Offscreen
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets.offscreen));
-		std::vector<VkWriteDescriptorSet> offScreenWriteDescriptorSets = {
-			// Binding 0 : Vertex shader uniform buffer
-			vks::initializers::writeDescriptorSet(descriptorSets.offscreen, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.offscreen.descriptor),
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(offScreenWriteDescriptorSets.size()), offScreenWriteDescriptorSets.data(), 0, nullptr);
+			// Offscreen
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].offscreen));
+			std::vector<VkWriteDescriptorSet> offScreenWriteDescriptorSets = {
+				// Binding 0 : Vertex shader uniform buffer
+				vks::initializers::writeDescriptorSet(descriptorSets[i].offscreen, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].offscreen.descriptor),
+			};
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(offScreenWriteDescriptorSets.size()), offScreenWriteDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	void preparePipelines()
@@ -634,42 +484,36 @@ public:
 	// Prepare and initialize uniform buffer containing shader uniforms
 	void prepareUniformBuffers()
 	{
-		// Offscreen vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.offscreen, sizeof(UniformData)));
-		// Scene vertex shader uniform buffer
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers.scene, sizeof(UniformData)));
-		// Map persistent
-		VK_CHECK_RESULT(uniformBuffers.offscreen.map());
-		VK_CHECK_RESULT(uniformBuffers.scene.map());
+		for (auto& buffer : uniformBuffers) {
+			// Offscreen uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.offscreen, sizeof(UniformData)));
+			// Scene uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer.scene, sizeof(UniformData)));
+			// Map persistent
+			VK_CHECK_RESULT(buffer.offscreen.map());
+			VK_CHECK_RESULT(buffer.scene.map());
+		}
 	}
 
 	void updateUniformBuffers()
 	{
-		uniformDataScene.projection = camera.matrices.perspective;
-		uniformDataScene.view = camera.matrices.view;
-		uniformDataScene.model = glm::mat4(1.0f);
-		uniformDataScene.lightPos = lightPos;
-		memcpy(uniformBuffers.scene.mapped, &uniformDataScene, sizeof(UniformData));
-	}
-
-	void updateUniformBufferOffscreen()
-	{
-		lightPos.x = sin(glm::radians(timer * 360.0f)) * 0.15f;
-		lightPos.z = cos(glm::radians(timer * 360.0f)) * 0.15f;
+		// Depth rendering
+		if (!paused) {
+			lightPos.x = sin(glm::radians(timer * 360.0f)) * 0.15f;
+			lightPos.z = cos(glm::radians(timer * 360.0f)) * 0.15f;
+		}
 		uniformDataOffscreen.projection = glm::perspective((float)(M_PI / 2.0), 1.0f, zNear, zFar);
 		uniformDataOffscreen.view = glm::mat4(1.0f);
 		uniformDataOffscreen.model = glm::translate(glm::mat4(1.0f), glm::vec3(-lightPos.x, -lightPos.y, -lightPos.z));
 		uniformDataOffscreen.lightPos = lightPos;
-		memcpy(uniformBuffers.offscreen.mapped, &uniformDataOffscreen, sizeof(UniformData));
-	}
+		memcpy(uniformBuffers[currentBuffer].offscreen.mapped, &uniformDataOffscreen, sizeof(UniformData));
 
-	void draw()
-	{
-		VulkanExampleBase::prepareFrame();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-		VulkanExampleBase::submitFrame();
+		// Scene rendering
+		uniformDataScene.projection = camera.matrices.perspective;
+		uniformDataScene.view = camera.matrices.view;
+		uniformDataScene.model = glm::mat4(1.0f);
+		uniformDataScene.lightPos = lightPos;
+		memcpy(uniformBuffers[currentBuffer].scene.mapped, &uniformDataScene, sizeof(UniformData));
 	}
 
 	void prepare()
@@ -682,25 +526,162 @@ public:
 		prepareOffscreenRenderpass();
 		preparePipelines();
 		prepareOffscreenFramebuffer();
-		buildCommandBuffers();
 		prepared = true;
+	}
+
+	// Updates a single cube map face
+	// Renders the scene with face's view directly to the cubemap layer `faceIndex`
+	// Uses push constants for quick update of view matrix for the current cube map face
+	void updateCubeFace(uint32_t faceIndex, VkCommandBuffer commandBuffer)
+	{
+		VkClearValue clearValues[2];
+		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+		// Reuse render pass from example pass
+		renderPassBeginInfo.renderPass = offscreenPass.renderPass;
+		renderPassBeginInfo.framebuffer = offscreenPass.frameBuffers[faceIndex];
+		renderPassBeginInfo.renderArea.extent.width = offscreenPass.width;
+		renderPassBeginInfo.renderArea.extent.height = offscreenPass.height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+
+		// Update view matrix via push constant
+
+		glm::mat4 viewMatrix = glm::mat4(1.0f);
+		switch (faceIndex)
+		{
+		case 0: // POSITIVE_X
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			break;
+		case 1:	// NEGATIVE_X
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			break;
+		case 2:	// POSITIVE_Y
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			break;
+		case 3:	// NEGATIVE_Y
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			break;
+		case 4:	// POSITIVE_Z
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			break;
+		case 5:	// NEGATIVE_Z
+			viewMatrix = glm::rotate(viewMatrix, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			break;
+		}
+
+		// Render scene from cube face's point of view
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		// Update shader push constant block
+		// Contains current face view matrix
+		vkCmdPushConstants(
+			commandBuffer,
+			pipelineLayouts.offscreen,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			0,
+			sizeof(glm::mat4),
+			&viewMatrix);
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets[currentBuffer].offscreen, 0, nullptr);
+		models.scene.draw(commandBuffer);
+
+		vkCmdEndRenderPass(commandBuffer);
+	}
+
+	void buildCommandBuffer()
+	{
+		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+		
+		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+
+		/*
+			Generate shadow cube maps using one render pass per face
+		*/
+		{
+			VkViewport viewport = vks::initializers::viewport((float)offscreenPass.width, (float)offscreenPass.height, 0.0f, 1.0f);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor = vks::initializers::rect2D(offscreenPass.width, offscreenPass.height, 0, 0);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+			for (uint32_t face = 0; face < 6; face++) {
+				updateCubeFace(face, cmdBuffer);
+			}
+		}
+
+		/*
+			Note: Explicit synchronization is not required between the render pass, as this is done implicit via sub pass dependencies
+		*/
+
+		/*
+			Scene rendering with applied shadow map
+		*/
+		{
+			VkClearValue clearValues[2];
+			clearValues[0].color = defaultClearColor;
+			clearValues[1].depthStencil = { 1.0f, 0 };
+
+			VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo.renderPass = renderPass;
+			renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+			renderPassBeginInfo.renderArea.extent.width = width;
+			renderPassBeginInfo.renderArea.extent.height = height;
+			renderPassBeginInfo.clearValueCount = 2;
+			renderPassBeginInfo.pClearValues = clearValues;
+
+			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.scene, 0, 1, &descriptorSets[currentBuffer].scene, 0, nullptr);
+
+			if (displayCubeMap)
+			{
+				// Display all six sides of the shadow cube map
+				// Note: Visualization of the different faces is done in the fragment shader, see cubemapdisplay.frag
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.cubemapDisplay);
+				models.debugcube.draw(cmdBuffer);
+			}
+			else
+			{
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.scene);
+				models.scene.draw(cmdBuffer);
+			}
+
+			drawUI(cmdBuffer);
+
+			vkCmdEndRenderPass(cmdBuffer);
+		}
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	virtual void render()
 	{
 		if (!prepared)
 			return;
+		VulkanExampleBase::prepareFrame();
 		updateUniformBuffers();
-		updateUniformBufferOffscreen();
-		draw();
+		buildCommandBuffer();
+		VulkanExampleBase::submitFrame();
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Settings")) {
-			if (overlay->checkBox("Display shadow cube render target", &displayCubeMap)) {
-				buildCommandBuffers();
-			}
+			overlay->checkBox("Display shadow cube render target", &displayCubeMap);
 		}
 	}
 };

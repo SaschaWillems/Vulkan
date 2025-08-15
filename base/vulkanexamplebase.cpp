@@ -179,15 +179,6 @@ VkResult VulkanExampleBase::createInstance()
 	return result;
 }
 
-void VulkanExampleBase::renderFrame()
-{
-	VulkanExampleBase::prepareFrame();
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-	VulkanExampleBase::submitFrame();
-}
-
 std::string VulkanExampleBase::getWindowTitle() const
 {
 	std::string windowTitle{ title + " - " + deviceProperties.deviceName };
@@ -199,8 +190,6 @@ std::string VulkanExampleBase::getWindowTitle() const
 
 void VulkanExampleBase::createCommandBuffers()
 {
-	// Create one command buffer for each swap chain image
-	drawCmdBuffers.resize(swapChain.images.size());
 	VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data()));
 }
@@ -235,6 +224,7 @@ void VulkanExampleBase::prepare()
 	setupFrameBuffer();
 	settings.overlay = settings.overlay && (!benchmark.active);
 	if (settings.overlay) {
+		ui.maxConcurrentFrames = maxConcurrentFrames;
 		ui.device = vulkanDevice;
 		ui.queue = queue;
 		ui.shaders = {
@@ -265,11 +255,6 @@ VkPipelineShaderStageCreateInfo VulkanExampleBase::loadShader(std::string fileNa
 void VulkanExampleBase::nextFrame()
 {
 	auto tStart = std::chrono::high_resolution_clock::now();
-	if (viewUpdated)
-	{
-		viewUpdated = false;
-	}
-
 	render();
 	frameCounter++;
 	auto tEnd = std::chrono::high_resolution_clock::now();
@@ -281,10 +266,6 @@ void VulkanExampleBase::nextFrame()
 #endif
 	frameTimer = (float)tDiff / 1000.0f;
 	camera.update(frameTimer);
-	if (camera.moving())
-	{
-		viewUpdated = true;
-	}
 	// Convert to clamped timer value
 	if (!paused)
 	{
@@ -308,8 +289,6 @@ void VulkanExampleBase::nextFrame()
 		lastTimestamp = tEnd;
 	}
 	tPrevEnd = tEnd;
-
-	updateOverlay();
 }
 
 void VulkanExampleBase::renderLoop()
@@ -461,20 +440,12 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 		render();
 		frameCounter++;
 		auto tEnd = std::chrono::high_resolution_clock::now();
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -497,10 +468,6 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 		DFBWindowEvent event;
 		while (!event_buffer->GetEvent(event_buffer, DFB_EVENT(&event)))
 		{
@@ -512,10 +479,6 @@ void VulkanExampleBase::renderLoop()
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -538,10 +501,6 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 
 		while (!configured)
 		{
@@ -564,10 +523,6 @@ void VulkanExampleBase::renderLoop()
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -596,10 +551,6 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 		xcb_generic_event_t *event;
 		while ((event = xcb_poll_for_event(connection)))
 		{
@@ -612,10 +563,6 @@ void VulkanExampleBase::renderLoop()
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		if (!paused)
 		{
@@ -645,20 +592,12 @@ void VulkanExampleBase::renderLoop()
 	while (!quit)
 	{
 		auto tStart = std::chrono::high_resolution_clock::now();
-		if (viewUpdated)
-		{
-			viewUpdated = false;
-		}
 		render();
 		frameCounter++;
 		auto tEnd = std::chrono::high_resolution_clock::now();
 		auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 		frameTimer = tDiff / 1000.0f;
 		camera.update(frameTimer);
-		if (camera.moving())
-		{
-			viewUpdated = true;
-		}
 		// Convert to clamped timer value
 		timer += timerSpeed * frameTimer;
 		if (timer > 1.0)
@@ -696,15 +635,6 @@ void VulkanExampleBase::updateOverlay()
 	if (!settings.overlay)
 		return;
 
-	// The overlay does not need to be updated with each frame, so we limit the update rate
-	// Not only does this save performance but it also makes display of fast changig values like fps more stable
-	ui.updateTimer -= frameTimer;
-	if (ui.updateTimer >= 0.0f) {
-		return;
-	}
-	// Update at max. rate of 30 fps
-	ui.updateTimer = 1.0f / 30.0f;
-
 	ImGuiIO& io = ImGui::GetIO();
 
 	io.DisplaySize = ImVec2((float)width, (float)height);
@@ -739,10 +669,7 @@ void VulkanExampleBase::updateOverlay()
 	ImGui::PopStyleVar();
 	ImGui::Render();
 
-	if (ui.update() || ui.updated) {
-		buildCommandBuffers();
-		ui.updated = false;
-	}
+	ui.update(currentBuffer);
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 	if (mouseState.buttons.left) {
@@ -758,17 +685,22 @@ void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-		ui.draw(commandBuffer);
+		ui.draw(commandBuffer, currentBuffer);
 	}
 }
 
-void VulkanExampleBase::prepareFrame()
+void VulkanExampleBase::prepareFrame(bool waitForFence)
 {
+	// Ensure command buffer execution has finished
+	if (waitForFence) {
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+	}
+	updateOverlay();
 	// Acquire the next image from the swap chain
-	VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, currentBuffer);
+	VkResult result = swapChain.acquireNextImage(presentCompleteSemaphores[currentBuffer], currentImageIndex);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
-	// SRS - If no longer optimal (VK_SUBOPTIMAL_KHR), wait until submitFrame() in case number of swapchain images will change on resize
+	// If no longer optimal (VK_SUBOPTIMAL_KHR), wait until submitFrame() in case number of swapchain images will change on resize
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			windowResize();
@@ -780,9 +712,28 @@ void VulkanExampleBase::prepareFrame()
 	}
 }
 
-void VulkanExampleBase::submitFrame()
+void VulkanExampleBase::submitFrame(bool skipQueueSubmit)
 {
-	VkResult result = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+	if (!skipQueueSubmit) {
+		const VkPipelineStageFlags waitPipelineStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		VkSubmitInfo submitInfo{ .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		submitInfo.pWaitDstStageMask = &waitPipelineStage;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentBuffer];
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
+		submitInfo.signalSemaphoreCount = 1;
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+	}
+
+	VkPresentInfoKHR presentInfo{ .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &swapChain.swapChain;
+	presentInfo.pImageIndices = &currentImageIndex;
+	VkResult result = vkQueuePresentKHR(queue, &presentInfo);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
 		windowResize();
@@ -793,7 +744,8 @@ void VulkanExampleBase::submitFrame()
 	else {
 		VK_CHECK_RESULT(result);
 	}
-	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+	// Select the next frame to render to, based on the max. no. of concurrent frames
+	currentBuffer = (currentBuffer + 1) % maxConcurrentFrames;
 }
 
 VulkanExampleBase::VulkanExampleBase()
@@ -966,10 +918,15 @@ VulkanExampleBase::~VulkanExampleBase()
 
 	vkDestroyCommandPool(device, cmdPool, nullptr);
 
-	vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
-	vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
 	for (auto& fence : waitFences) {
 		vkDestroyFence(device, fence, nullptr);
+	}
+
+	for (auto& semaphore : presentCompleteSemaphores) {
+		vkDestroySemaphore(device, semaphore, nullptr);
+	}
+	for (auto& semaphore : renderCompleteSemaphores) {
+		vkDestroySemaphore(device, semaphore, nullptr);
 	}
 
 	if (settings.overlay) {
@@ -1134,25 +1091,6 @@ bool VulkanExampleBase::initVulkan()
 	assert(validFormat);
 
 	swapChain.setContext(instance, physicalDevice, device);
-
-	// Create synchronization objects
-	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-	// Create a semaphore used to synchronize image presentation
-	// Ensures that the image is displayed before we start submitting new commands to the queue
-	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete));
-	// Create a semaphore used to synchronize command submission
-	// Ensures that the image is not presented until all commands have been submitted and executed
-	VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete));
-
-	// Set up submit info structure
-	// Semaphores will stay the same during application lifetime
-	// Command buffer submission info is set by each example
-	submitInfo = vks::initializers::submitInfo();
-	submitInfo.pWaitDstStageMask = &submitPipelineStages;
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 	return true;
 }
@@ -1331,7 +1269,6 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			break;
 		case KEY_F1:
 			ui.visible = !ui.visible;
-			ui.updated = true;
 			break;
 		case KEY_F2:
 			if (camera.type == Camera::CameraType::lookat) {
@@ -1411,7 +1348,6 @@ void VulkanExampleBase::handleMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	{
 		short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 		camera.translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f));
-		viewUpdated = true;
 		break;
 	}
 	case WM_MOUSEMOVE:
@@ -1570,7 +1506,6 @@ int32_t VulkanExampleBase::handleAppInput(struct android_app* app, AInputEvent* 
 		case AKEYCODE_F1:
 		case AKEYCODE_BUTTON_L1:
 			vulkanExample->ui.visible = !vulkanExample->ui.visible;
-			vulkanExample->ui.updated = true;
 			break;
 		case AKEYCODE_BUTTON_R1:
 			vulkanExample->keyPressed(GAMEPAD_BUTTON_R1);
@@ -1774,7 +1709,6 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 		case KEY_1:										// support keyboards with no function keys
 		case KEY_F1:
 			vulkanExample->ui.visible = !vulkanExample->ui.visible;
-			vulkanExample->ui.updated = true;
 			break;
 		case KEY_DELETE:								// support keyboards with no escape key
 		case KEY_ESCAPE:
@@ -1892,25 +1826,7 @@ static CVReturn displayLinkOutputCallback(CVDisplayLinkRef displayLink, const CV
 	short wheelDelta = [event deltaY];
 	vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f,
 		-(float)wheelDelta * 0.05f * vulkanExample->camera.movementSpeed));
-	vulkanExample->viewUpdated = true;
 }
-
-// SRS - Window resizing already handled by windowResize() in VulkanExampleBase::submitFrame()
-//	   - handling window resize events here is redundant and can cause thread interaction problems
-/*
-- (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
-{
-	CVDisplayLinkStop(displayLink);
-	vulkanExample->windowWillResize(frameSize.width, frameSize.height);
-	return frameSize;
-}
-
-- (void)windowDidResize:(NSNotification *)notification
-{
-	vulkanExample->windowDidResize();
-	CVDisplayLinkStart(displayLink);
-}
-*/
 
 - (void)windowWillEnterFullScreen:(NSNotification *)notification
 {
@@ -2170,8 +2086,6 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 				break;
 			case KEY_F1:
 				ui.visible = !ui.visible;
-				ui.updated = true;
-				break;
 			default:
 				break;
 		}
@@ -2209,34 +2123,27 @@ void VulkanExampleBase::handleEvent(const DFBWindowEvent *event)
 	}
 }
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-/*static*/void VulkanExampleBase::registryGlobalCb(void *data,
-		wl_registry *registry, uint32_t name, const char *interface,
-		uint32_t version)
+/*static*/void VulkanExampleBase::registryGlobalCb(void *data, wl_registry *registry, uint32_t name, const char *interface, uint32_t version)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->registryGlobal(registry, name, interface, version);
 }
 
-/*static*/void VulkanExampleBase::seatCapabilitiesCb(void *data, wl_seat *seat,
-		uint32_t caps)
+/*static*/void VulkanExampleBase::seatCapabilitiesCb(void *data, wl_seat *seat, uint32_t caps)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->seatCapabilities(seat, caps);
 }
 
-/*static*/void VulkanExampleBase::pointerEnterCb(void *data,
-		wl_pointer *pointer, uint32_t serial, wl_surface *surface,
-		wl_fixed_t sx, wl_fixed_t sy)
+/*static*/void VulkanExampleBase::pointerEnterCb(void *data, wl_pointer *pointer, uint32_t serial, wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy)
 {
 }
 
-/*static*/void VulkanExampleBase::pointerLeaveCb(void *data,
-		wl_pointer *pointer, uint32_t serial, wl_surface *surface)
+/*static*/void VulkanExampleBase::pointerLeaveCb(void *data, wl_pointer *pointer, uint32_t serial, wl_surface *surface)
 {
 }
 
-/*static*/void VulkanExampleBase::pointerMotionCb(void *data,
-		wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy)
+/*static*/void VulkanExampleBase::pointerMotionCb(void *data, wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->pointerMotion(pointer, time, sx, sy);
@@ -2246,16 +2153,13 @@ void VulkanExampleBase::pointerMotion(wl_pointer *pointer, uint32_t time, wl_fix
 	handleMouseMove(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
 }
 
-/*static*/void VulkanExampleBase::pointerButtonCb(void *data,
-		wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button,
-		uint32_t state)
+/*static*/void VulkanExampleBase::pointerButtonCb(void *data, wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->pointerButton(pointer, serial, time, button, state);
 }
 
-void VulkanExampleBase::pointerButton(struct wl_pointer *pointer,
-		uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
+void VulkanExampleBase::pointerButton(struct wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
 {
 	switch (button)
 	{
@@ -2273,56 +2177,44 @@ void VulkanExampleBase::pointerButton(struct wl_pointer *pointer,
 	}
 }
 
-/*static*/void VulkanExampleBase::pointerAxisCb(void *data,
-		wl_pointer *pointer, uint32_t time, uint32_t axis,
-		wl_fixed_t value)
+/*static*/void VulkanExampleBase::pointerAxisCb(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->pointerAxis(pointer, time, axis, value);
 }
 
-void VulkanExampleBase::pointerAxis(wl_pointer *pointer, uint32_t time,
-		uint32_t axis, wl_fixed_t value)
+void VulkanExampleBase::pointerAxis(wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value)
 {
 	double d = wl_fixed_to_double(value);
 	switch (axis)
 	{
 	case REL_X:
 		camera.translate(glm::vec3(0.0f, 0.0f, d * 0.005f));
-		viewUpdated = true;
 		break;
 	default:
 		break;
 	}
 }
 
-/*static*/void VulkanExampleBase::keyboardKeymapCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t format, int fd, uint32_t size)
+/*static*/void VulkanExampleBase::keyboardKeymapCb(void *data, struct wl_keyboard *keyboard, uint32_t format, int fd, uint32_t size)
 {
 }
 
-/*static*/void VulkanExampleBase::keyboardEnterCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t serial,
-		struct wl_surface *surface, struct wl_array *keys)
+/*static*/void VulkanExampleBase::keyboardEnterCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface, struct wl_array *keys)
 {
 }
 
-/*static*/void VulkanExampleBase::keyboardLeaveCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t serial,
-		struct wl_surface *surface)
+/*static*/void VulkanExampleBase::keyboardLeaveCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface)
 {
 }
 
-/*static*/void VulkanExampleBase::keyboardKeyCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t serial, uint32_t time,
-		uint32_t key, uint32_t state)
+/*static*/void VulkanExampleBase::keyboardKeyCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
 {
 	VulkanExampleBase *self = reinterpret_cast<VulkanExampleBase *>(data);
 	self->keyboardKey(keyboard, serial, time, key, state);
 }
 
-void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
-		uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
+void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
 {
 	switch (key)
 	{
@@ -2345,7 +2237,6 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 	case KEY_F1:
 		if (state) {
 			ui.visible = !ui.visible;
-			ui.updated = true;
 		}
 		break;
 	case KEY_ESCAPE:
@@ -2357,9 +2248,7 @@ void VulkanExampleBase::keyboardKey(struct wl_keyboard *keyboard,
 		keyPressed(key);
 }
 
-/*static*/void VulkanExampleBase::keyboardModifiersCb(void *data,
-		struct wl_keyboard *keyboard, uint32_t serial, uint32_t mods_depressed,
-		uint32_t mods_latched, uint32_t mods_locked, uint32_t group)
+/*static*/void VulkanExampleBase::keyboardModifiersCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group)
 {
 }
 
@@ -2403,8 +2292,7 @@ static const struct xdg_wm_base_listener xdg_wm_base_listener = {
 	xdg_wm_base_ping,
 };
 
-void VulkanExampleBase::registryGlobal(wl_registry *registry, uint32_t name,
-		const char *interface, uint32_t version)
+void VulkanExampleBase::registryGlobal(wl_registry *registry, uint32_t name, const char *interface, uint32_t version)
 {
 	if (strcmp(interface, "wl_compositor") == 0)
 	{
@@ -2428,8 +2316,7 @@ void VulkanExampleBase::registryGlobal(wl_registry *registry, uint32_t name,
 	}
 }
 
-/*static*/void VulkanExampleBase::registryGlobalRemoveCb(void *data,
-		struct wl_registry *registry, uint32_t name)
+/*static*/void VulkanExampleBase::registryGlobalRemoveCb(void *data, struct wl_registry *registry, uint32_t name)
 {
 }
 
@@ -2481,8 +2368,7 @@ void VulkanExampleBase::setSize(int width, int height)
 }
 
 static void
-xdg_surface_handle_configure(void *data, struct xdg_surface *surface,
-			     uint32_t serial)
+xdg_surface_handle_configure(void *data, struct xdg_surface *surface, uint32_t serial)
 {
 	VulkanExampleBase *base = (VulkanExampleBase *) data;
 
@@ -2496,9 +2382,7 @@ static const struct xdg_surface_listener xdg_surface_listener = {
 
 
 static void
-xdg_toplevel_handle_configure(void *data, struct xdg_toplevel *toplevel,
-			      int32_t width, int32_t height,
-			      struct wl_array *states)
+xdg_toplevel_handle_configure(void *data, struct xdg_toplevel *toplevel, int32_t width, int32_t height, struct wl_array *states)
 {
 	VulkanExampleBase *base = (VulkanExampleBase *) data;
 
@@ -2713,7 +2597,6 @@ void VulkanExampleBase::handleEvent(const xcb_generic_event_t *event)
 				break;
 			case KEY_F1:
 				ui.visible = !ui.visible;
-				ui.updated = true;
 				break;
 		}
 	}
@@ -2839,7 +2722,6 @@ void VulkanExampleBase::handleEvent()
 							break;
 						case KEYCODE_F1:
 							ui.visible = !ui.visible;
-							ui.updated = true;
 							break;
 						default:
 							break;
@@ -2933,7 +2815,6 @@ void VulkanExampleBase::handleEvent()
 				}
 				if (val != 0) {
 					camera.translate(glm::vec3(0.0f, 0.0f, (float)val * 0.005f));
-					viewUpdated = true;
 				}
 
 				rc = screen_get_event_property_iv(screen_event, SCREEN_PROPERTY_POSITION, pos);
@@ -3050,15 +2931,23 @@ void VulkanExampleBase::keyPressed(uint32_t) {}
 
 void VulkanExampleBase::mouseMoved(double x, double y, bool & handled) {}
 
-void VulkanExampleBase::buildCommandBuffers() {}
-
 void VulkanExampleBase::createSynchronizationPrimitives()
 {
 	// Wait fences to sync command buffer access
 	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-	waitFences.resize(drawCmdBuffers.size());
 	for (auto& fence : waitFences) {
 		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+	}
+	// Used to ensure that image presentation is complete before starting to submit again
+	for (auto& semaphore : presentCompleteSemaphores) {
+		VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
+	}
+	// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
+	renderCompleteSemaphores.resize(swapChain.images.size());
+	for (auto& semaphore : renderCompleteSemaphores) {
+		VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
 	}
 }
 
@@ -3244,13 +3133,12 @@ void VulkanExampleBase::windowResize()
 		}
 	}
 
-	// Command buffers need to be recreated as they may store
-	// references to the recreated frame buffer
-	destroyCommandBuffers();
-	createCommandBuffers();
-	buildCommandBuffers();
-
-	// SRS - Recreate fences in case number of swapchain images has changed on resize
+	for (auto& semaphore : presentCompleteSemaphores) {
+		vkDestroySemaphore(device, semaphore, nullptr);
+	}
+	for (auto& semaphore : renderCompleteSemaphores) {
+		vkDestroySemaphore(device, semaphore, nullptr);
+	}
 	for (auto& fence : waitFences) {
 		vkDestroyFence(device, fence, nullptr);
 	}
@@ -3288,15 +3176,12 @@ void VulkanExampleBase::handleMouseMove(int32_t x, int32_t y)
 
 	if (mouseState.buttons.left) {
 		camera.rotate(glm::vec3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
-		viewUpdated = true;
 	}
 	if (mouseState.buttons.right) {
 		camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f));
-		viewUpdated = true;
 	}
 	if (mouseState.buttons.middle) {
 		camera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
-		viewUpdated = true;
 	}
 	mouseState.position = glm::vec2((float)x, (float)y);
 }

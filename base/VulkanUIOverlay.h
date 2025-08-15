@@ -1,7 +1,7 @@
 /*
 * UI overlay class using ImGui
 *
-* Copyright (C) 2017-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -43,10 +43,15 @@ namespace vks
 		VkSampleCountFlagBits rasterizationSamples{ VK_SAMPLE_COUNT_1_BIT };
 		uint32_t subpass{ 0 };
 
-		vks::Buffer vertexBuffer;
-		vks::Buffer indexBuffer;
-		int32_t vertexCount{ 0 };
-		int32_t indexCount{ 0 };
+		struct Buffers {
+			vks::Buffer vertexBuffer;
+			vks::Buffer indexBuffer;
+			int32_t vertexCount{ 0 };
+			int32_t indexCount{ 0 };
+		};
+		std::vector<Buffers> buffers;
+		uint32_t maxConcurrentFrames{ 0 };
+		uint32_t currentBuffer{ 0 };
 
 		std::vector<VkPipelineShaderStageCreateInfo> shaders;
 
@@ -67,9 +72,7 @@ namespace vks
 		} pushConstBlock;
 
 		bool visible{ true };
-		bool updated{ false };
 		float scale{ 1.0f };
-		float updateTimer{ 0.0f };
 
 		UIOverlay();
 		~UIOverlay();
@@ -77,8 +80,8 @@ namespace vks
 		void preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass, const VkFormat colorFormat, const VkFormat depthFormat);
 		void prepareResources();
 
-		bool update();
-		void draw(const VkCommandBuffer commandBuffer);
+		void update(uint32_t currentBuffer);
+		void draw(const VkCommandBuffer commandBuffer, uint32_t currentBuffer);
 		void resize(uint32_t width, uint32_t height);
 
 		void freeResources();

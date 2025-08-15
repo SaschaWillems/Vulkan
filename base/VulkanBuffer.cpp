@@ -3,7 +3,7 @@
 *
 * Encapsulates a Vulkan buffer
 *
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -126,10 +126,12 @@ namespace vks
 		if (buffer)
 		{
 			vkDestroyBuffer(device, buffer, nullptr);
+			buffer = VK_NULL_HANDLE;
 		}
 		if (memory)
 		{
 			vkFreeMemory(device, memory, nullptr);
+			memory = VK_NULL_HANDLE;
 		}
 	}
 };

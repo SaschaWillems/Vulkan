@@ -1,7 +1,7 @@
 /*
  * Vulkan Example - Passing vertex attributes using interleaved and separate buffers
  *
- * Copyright (C) 2022-2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2022-2025 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -160,7 +160,9 @@ VulkanExample::~VulkanExample()
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.textures, nullptr);
 		indices.destroy();
-		shaderData.buffer.destroy();
+		for (auto& buffer : uniformBuffers) {
+			buffer.destroy();
+		}
 		separateVertexBuffers.normal.destroy();
 		separateVertexBuffers.pos.destroy();
 		separateVertexBuffers.tangent.destroy();
@@ -204,66 +206,6 @@ void VulkanExample::drawSceneNode(VkCommandBuffer commandBuffer, Node node)
 	}
 	for (auto& child : node.children) {
 		drawSceneNode(commandBuffer, child);
-	}
-}
-
-void VulkanExample::buildCommandBuffers()
-{
-	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-	VkClearValue clearValues[2];
-	clearValues[0].color = defaultClearColor;
-	clearValues[0].color = { { 0.25f, 0.25f, 0.25f, 1.0f } };;
-	clearValues[1].depthStencil = { 1.0f, 0 };
-
-	VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-	renderPassBeginInfo.renderPass = renderPass;
-	renderPassBeginInfo.renderArea.offset.x = 0;
-	renderPassBeginInfo.renderArea.offset.y = 0;
-	renderPassBeginInfo.renderArea.extent.width = width;
-	renderPassBeginInfo.renderArea.extent.height = height;
-	renderPassBeginInfo.clearValueCount = 2;
-	renderPassBeginInfo.pClearValues = clearValues;
-
-	const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-	const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-
-	for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
-	{
-		renderPassBeginInfo.framebuffer = frameBuffers[i];
-		VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-		vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-		vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
-		// Select the separate or interleaved vertex binding pipeline
-		vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vertexAttributeSettings == VertexAttributeSettings::separate ? pipelines.vertexAttributesSeparate : pipelines.vertexAttributesInterleaved);
-
-		// Bind scene matrices descriptor to set 0
-		vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-
-		// Use the same index buffer, no matter how vertex attributes are passed
-		vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-		if (vertexAttributeSettings == VertexAttributeSettings::separate) {
-			// Using separate vertex attribute bindings requires binding multiple attribute buffers
-			VkDeviceSize offsets[4] = { 0, 0, 0, 0 };
-			std::array<VkBuffer, 4> buffers = { separateVertexBuffers.pos.buffer, separateVertexBuffers.normal.buffer, separateVertexBuffers.uv.buffer, separateVertexBuffers.tangent.buffer };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, static_cast<uint32_t>(buffers.size()), buffers.data(), offsets);
-		}
-		else {
-			// Using interleaved attribute bindings only requires one buffer to be bound
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &interleavedVertexBuffer.buffer, offsets);
-		}
-		// Render all nodes starting at top-level
-		for (auto& node : nodes) {
-			drawSceneNode(drawCmdBuffers[i], node);
-		}
-
-		drawUI(drawCmdBuffers[i]);
-		vkCmdEndRenderPass(drawCmdBuffers[i]);
-		VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 	}
 }
 
@@ -427,7 +369,7 @@ void VulkanExample::setupDescriptors()
 	// One ubo to pass dynamic data to the shader
 	// Two combined image samplers per material as each material uses color and normal maps
 	std::vector<VkDescriptorPoolSize> poolSizes = {
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames),
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(scene.materials.size()) * 2),
 	};
 	// One set for matrices and one per model image/texture
@@ -461,11 +403,15 @@ void VulkanExample::setupDescriptors()
 	pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
 	VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 
-	// Descriptor set for scene matrices
+	// Descriptor set for scene matrices per frame, just like the buffers themselves
 	VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayouts.matrices, 1);
-	VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-	VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor);
-	vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+	for (auto i = 0; i < uniformBuffers.size(); i++) {
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i]));
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor),
+		};
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+	}
 
 	// Descriptor sets for the materials
 	for (auto& material : scene.materials) {
@@ -546,21 +492,18 @@ void VulkanExample::preparePipelines()
 
 void VulkanExample::prepareUniformBuffers()
 {
-	VK_CHECK_RESULT(vulkanDevice->createBuffer(
-		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		&shaderData.buffer,
-		sizeof(shaderData.values)));
-	VK_CHECK_RESULT(shaderData.buffer.map());
-	updateUniformBuffers();
+	for (auto& buffer : uniformBuffers) {
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData), &uniformData));
+		VK_CHECK_RESULT(buffer.map());
+	}
 }
 
 void VulkanExample::updateUniformBuffers()
 {
-	shaderData.values.projection = camera.matrices.perspective;
-	shaderData.values.view = camera.matrices.view;
-	shaderData.values.viewPos = camera.viewPos;
-	memcpy(shaderData.buffer.mapped, &shaderData.values, sizeof(shaderData.values));
+	uniformData.projection = camera.matrices.perspective;
+	uniformData.view = camera.matrices.view;
+	uniformData.viewPos = camera.viewPos;
+	memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 }
 
 void VulkanExample::prepare()
@@ -570,14 +513,74 @@ void VulkanExample::prepare()
 	prepareUniformBuffers();
 	setupDescriptors();
 	preparePipelines();
-	buildCommandBuffers();
 	prepared = true;
+}
+
+void VulkanExample::buildCommandBuffer()
+{
+	VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
+	
+	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+	VkClearValue clearValues[2]{};
+	clearValues[0].color = defaultClearColor;
+	clearValues[0].color = { { 0.25f, 0.25f, 0.25f, 1.0f } };;
+	clearValues[1].depthStencil = { 1.0f, 0 };
+
+	VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+	renderPassBeginInfo.renderPass = renderPass;
+	renderPassBeginInfo.renderArea.offset.x = 0;
+	renderPassBeginInfo.renderArea.offset.y = 0;
+	renderPassBeginInfo.renderArea.extent.width = width;
+	renderPassBeginInfo.renderArea.extent.height = height;
+	renderPassBeginInfo.clearValueCount = 2;
+	renderPassBeginInfo.pClearValues = clearValues;
+	renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+
+	const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+	const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+
+	VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+	vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+	// Select the separate or interleaved vertex binding pipeline
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vertexAttributeSettings == VertexAttributeSettings::separate ? pipelines.vertexAttributesSeparate : pipelines.vertexAttributesInterleaved);
+
+	// Bind scene matrices descriptor to set 0
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+
+	// Use the same index buffer, no matter how vertex attributes are passed
+	vkCmdBindIndexBuffer(cmdBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+	if (vertexAttributeSettings == VertexAttributeSettings::separate) {
+		// Using separate vertex attribute bindings requires binding multiple attribute buffers
+		VkDeviceSize offsets[4] = { 0, 0, 0, 0 };
+		std::array<VkBuffer, 4> buffers = { separateVertexBuffers.pos.buffer, separateVertexBuffers.normal.buffer, separateVertexBuffers.uv.buffer, separateVertexBuffers.tangent.buffer };
+		vkCmdBindVertexBuffers(cmdBuffer, 0, static_cast<uint32_t>(buffers.size()), buffers.data(), offsets);
+	}
+	else {
+		// Using interleaved attribute bindings only requires one buffer to be bound
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &interleavedVertexBuffer.buffer, offsets);
+	}
+	// Render all nodes starting at top-level
+	for (auto& node : nodes) {
+		drawSceneNode(cmdBuffer, node);
+	}
+
+	drawUI(cmdBuffer);
+	vkCmdEndRenderPass(cmdBuffer);
+	VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 }
 
 void VulkanExample::render()
 {
+	VulkanExampleBase::prepareFrame();
 	updateUniformBuffers();
-	renderFrame();
+	buildCommandBuffer();
+	VulkanExampleBase::submitFrame();
 }
 
 void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
@@ -587,11 +590,9 @@ void VulkanExample::OnUpdateUIOverlay(vks::UIOverlay* overlay)
 		bool separate = (vertexAttributeSettings == VertexAttributeSettings::separate);
 		if (overlay->radioButton("Interleaved", interleaved)) {
 			vertexAttributeSettings = VertexAttributeSettings::interleaved;
-			buildCommandBuffers();
 		}
 		if (overlay->radioButton("Separate", separate)) {
 			vertexAttributeSettings = VertexAttributeSettings::separate;
-			buildCommandBuffers();
 		}
 	}
 }
