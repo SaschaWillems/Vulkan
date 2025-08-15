@@ -104,7 +104,7 @@ struct TextOverlay
 		stb_font_consolas_24_latin1(stbFontData, font24pixels, fontHeight);
 
 		// Vertex buffers containing the text information per max. concurrent frames
-		VkDeviceSize bufferSize = TEXTOVERLAY_MAX_CHAR_COUNT * sizeof(glm::vec4);
+		VkDeviceSize bufferSize = TEXTOVERLAY_MAX_CHAR_COUNT * sizeof(glm::vec4) * 6;
 		for (auto& buffer : vertexBuffers) {
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, bufferSize));
 			// These buffers are frequently written to, so we map them persistent
@@ -246,7 +246,7 @@ struct TextOverlay
 		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, 0, VK_FALSE);
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE, 0);
 		VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -285,7 +285,7 @@ struct TextOverlay
 	}
 
 	// Add text to the current buffer
-	void addText(std::string text, float x, float y, TextAlign align)
+	void addText(std::string text, float x, float y, TextAlign align) 
 	{
 		const uint32_t firstChar = STB_FONT_consolas_24_latin1_FIRST_CHAR;
 
@@ -318,33 +318,35 @@ struct TextOverlay
 		}
 
 		// Generate a uv mapped quad per char in the new text
-		for (auto letter : text)
+		for (auto letter : text) 
 		{
 			stb_fontchar *charData = &stbFontData[(uint32_t)letter - firstChar];
 
-			mapped->x = (x + (float)charData->x0 * charW);
-			mapped->y = (y + (float)charData->y0 * charH);
-			mapped->z = charData->s0;
-			mapped->w = charData->t0;
-			mapped++;
+			const uint32_t letterOffset = numLetters * 6;
 
-			mapped->x = (x + (float)charData->x1 * charW);
-			mapped->y = (y + (float)charData->y0 * charH);
-			mapped->z = charData->s1;
-			mapped->w = charData->t0;
-			mapped++;
+			mapped[letterOffset + 0].x = (x + (float)charData->x0 * charW);
+			mapped[letterOffset + 0].y = (y + (float)charData->y0 * charH);
+			mapped[letterOffset + 0].z = charData->s0;
+			mapped[letterOffset + 0].w = charData->t0;
 
-			mapped->x = (x + (float)charData->x0 * charW);
-			mapped->y = (y + (float)charData->y1 * charH);
-			mapped->z = charData->s0;
-			mapped->w = charData->t1;
-			mapped++;
+			mapped[letterOffset + 1].x = (x + (float)charData->x1 * charW);
+			mapped[letterOffset + 1].y = (y + (float)charData->y0 * charH);
+			mapped[letterOffset + 1].z = charData->s1;
+			mapped[letterOffset + 1].w = charData->t0;
 
-			mapped->x = (x + (float)charData->x1 * charW);
-			mapped->y = (y + (float)charData->y1 * charH);
-			mapped->z = charData->s1;
-			mapped->w = charData->t1;
-			mapped++;
+			mapped[letterOffset + 2].x = (x + (float)charData->x0 * charW);
+			mapped[letterOffset + 2].y = (y + (float)charData->y1 * charH);
+			mapped[letterOffset + 2].z = charData->s0;
+			mapped[letterOffset + 2].w = charData->t1;
+
+			mapped[letterOffset + 3] = mapped[letterOffset + 1];
+
+			mapped[letterOffset + 4].x = (x + (float)charData->x1 * charW);
+			mapped[letterOffset + 4].y = (y + (float)charData->y1 * charH);
+			mapped[letterOffset + 4].z = charData->s1;
+			mapped[letterOffset + 4].w = charData->t1;
+
+			mapped[letterOffset + 5] = mapped[letterOffset + 2];
 
 			x += charData->advance * charW;
 
@@ -353,18 +355,14 @@ struct TextOverlay
 	}
 
 	// Issue the draw commands for the characters of the overlay
-	void draw(VkCommandBuffer cmdBuffer)
+	void draw(VkCommandBuffer cmdBuffer) 
 	{
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 		VkDeviceSize offsets = 0;
 		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBuffers[currentBuffer].buffer, &offsets);
 		vkCmdBindVertexBuffers(cmdBuffer, 1, 1, &vertexBuffers[currentBuffer].buffer, &offsets);
-		// One draw command for every character. This is okay for a debug overlay, but not optimal
-		// In a real-world application one would try to batch draw commands
-		for (uint32_t j = 0; j < numLetters; j++) {
-			vkCmdDraw(cmdBuffer, 4, 1, j * 4, 0);
-		}
+		vkCmdDraw(cmdBuffer, 6 * numLetters, 1, 0, 0);
 	}
 };
 
