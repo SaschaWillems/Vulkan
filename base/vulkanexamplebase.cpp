@@ -727,7 +727,7 @@ void VulkanExampleBase::submitFrame(bool skipQueueSubmit)
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
 	}
 
-	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	VkPresentInfoKHR presentInfo{ .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
 	presentInfo.swapchainCount = 1;

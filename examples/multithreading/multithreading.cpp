@@ -453,12 +453,9 @@ public:
 	{
 		if (!prepared)
 			return;
-		// Needs fence wait on primary cmd!
 		VulkanExampleBase::prepareFrame();
 		updateCommandBuffer();
 		updateMatrices();
-		// @todo: maybe find a better way than passing the cmd buffer like this
-		// Or use drawCmdBuffes from base
 		VulkanExampleBase::submitFrame();
 	}
 

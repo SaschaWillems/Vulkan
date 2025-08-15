@@ -435,7 +435,7 @@ public:
 		vkCmdBindShadersEXT(cmdBuffer, 2, stages, shaders);
 		scene.draw(cmdBuffer);
 
-		// @todo: Currently disabled, the UI needs to be adopated to work with shader objects
+		// @todo: Currently disabled, the UI needs to be adopted to work with shader objects
 		// drawUI(cmdBuffer);
 
 		// End dynamic rendering
