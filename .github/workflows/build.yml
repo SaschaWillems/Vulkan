@@ -109,4 +109,4 @@ jobs:
 
       - name: Build
         working-directory: android
-        run: NDK_CCACHE=1 NDK_CCACHE_BIN=ccache ./gradlew assembleDebug--info
+        run: NDK_CCACHE=1 NDK_CCACHE_BIN=ccache ./gradlew assembleDebug --info
