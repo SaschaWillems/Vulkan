@@ -219,6 +219,14 @@ public:
 	*/
 	void createStorageImage()
 	{
+		// Release ressources if image is to be recreated
+		if (storageImage.image != VK_NULL_HANDLE) {
+			vkDestroyImageView(device, storageImage.view, nullptr);
+			vkDestroyImage(device, storageImage.image, nullptr);
+			vkFreeMemory(device, storageImage.memory, nullptr);
+			storageImage = {};
+		}
+
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
 		image.imageType = VK_IMAGE_TYPE_2D;
 		image.format = swapChain.colorFormat;
@@ -735,10 +743,6 @@ public:
 	*/
 	void handleResize()
 	{
-		// Delete allocated resources
-		vkDestroyImageView(device, storageImage.view, nullptr);
-		vkDestroyImage(device, storageImage.image, nullptr);
-		vkFreeMemory(device, storageImage.memory, nullptr);
 		// Recreate image
 		createStorageImage();
 		// Update descriptors
@@ -747,6 +751,7 @@ public:
 			VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
 			vkUpdateDescriptorSets(device, 1, &resultImageWrite, 0, VK_NULL_HANDLE);
 		}
+		resized = false;
 	}
 
 	void updateUniformBuffers()
