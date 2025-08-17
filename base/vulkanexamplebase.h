@@ -85,13 +85,8 @@ private:
 	void handleMouseMove(int32_t x, int32_t y);
 	void nextFrame();
 	void updateOverlay();
-	void createPipelineCache();
-	void createCommandPool();
-	void createSynchronizationPrimitives();
-	void createSurface();
 	void createSwapChain();
-	void createCommandBuffers();
-	void destroyCommandBuffers();
+	VkResult createInstance();
 	std::string shaderDir = "glsl";
 protected:
 	// Returns the path to the root of the glsl, hlsl or slang shader directory.
@@ -146,7 +141,7 @@ protected:
 	VulkanSwapChain swapChain;
 
 	// Synchronization related objects and variables
-	// These are used to have multiple frame buffers "in flight" to get some CPU/GPU parallelism
+	// These are used to have multiple frames "in flight" to get some CPU/GPU parallelism
 	uint32_t currentImageIndex{ 0 };
 	uint32_t currentBuffer{ 0 };
 	std::array<VkSemaphore, maxConcurrentFrames> presentCompleteSemaphores{};
@@ -342,8 +337,6 @@ public:
 #else
 	void setupWindow();
 #endif
-	/** @brief (Virtual) Creates the application wide Vulkan instance */
-	virtual VkResult createInstance();
 	/** @brief (Pure virtual) Render function to be implemented by the sample application */
 	virtual void render() = 0;
 	/** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */
@@ -375,7 +368,7 @@ public:
 	void renderLoop();
 
 	/** @brief Adds the drawing commands for the ImGui overlay to the given command buffer */
-	void drawUI(const VkCommandBuffer commandBuffer);
+	void drawUI(VkCommandBuffer commandBuffer);
 
 	/** Prepare the next frame for workload submission by acquiring the next swap chain image and waiting for the previous command buffer to finish */
 	void prepareFrame(bool waitForFence = true);
