@@ -95,14 +95,13 @@ void VulkanRaytracingSample::setupRenderPass()
 
 void VulkanRaytracingSample::setupFrameBuffer()
 {
-	VkImageView attachments[2];
+	VkImageView attachments[2]{};
 
 	// Depth/Stencil attachment is the same for all frame buffers
 	attachments[1] = depthStencil.view;
 
-	VkFramebufferCreateInfo frameBufferCreateInfo = {};
+	VkFramebufferCreateInfo frameBufferCreateInfo{};
 	frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	frameBufferCreateInfo.pNext = NULL;
 	frameBufferCreateInfo.renderPass = renderPass;
 	frameBufferCreateInfo.attachmentCount = 2;
 	frameBufferCreateInfo.pAttachments = attachments;
@@ -342,7 +341,7 @@ void VulkanRaytracingSample::createShaderBindingTable(ShaderBindingTable& shader
 
 void VulkanRaytracingSample::drawUI(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer)
 {
-	VkClearValue clearValues[2];
+	VkClearValue clearValues[2]{};
 	clearValues[0].color = defaultClearColor;
 	clearValues[1].depthStencil = { 1.0f, 0 };
 

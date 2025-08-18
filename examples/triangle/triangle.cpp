@@ -30,7 +30,7 @@
 // We want to keep GPU and CPU busy. To do that we may start building a new command buffer while the previous one is still being executed
 // This number defines how many frames may be worked on simultaneously at once
 // Increasing this number may improve performance but will also introduce additional latency
-#define MAX_CONCURRENT_FRAMES 2
+constexpr auto MAX_CONCURRENT_FRAMES = 2;
 
 class VulkanExample : public VulkanExampleBase
 {

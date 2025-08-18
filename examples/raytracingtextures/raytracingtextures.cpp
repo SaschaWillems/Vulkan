@@ -628,7 +628,7 @@ public:
 		struct BufferReferences {
 			uint64_t vertices;
 			uint64_t indices;
-		} bufferReferences;
+		} bufferReferences{};
 
 		bufferReferences.vertices = getBufferDeviceAddress(vertexBuffer.buffer);
 		bufferReferences.indices = getBufferDeviceAddress(indexBuffer.buffer);

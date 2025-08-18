@@ -27,16 +27,16 @@ struct AccelerationStructure {
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
-	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
-	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;
-	PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR;
-	PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceAddressKHR;
-	PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR;
-	PFN_vkBuildAccelerationStructuresKHR vkBuildAccelerationStructuresKHR;
-	PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
-	PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
-	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
+	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR{ nullptr };
+	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR{ nullptr };
+	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR{ nullptr };
+	PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR{ nullptr };
+	PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceAddressKHR{ nullptr };
+	PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR{ nullptr };
+	PFN_vkBuildAccelerationStructuresKHR vkBuildAccelerationStructuresKHR{ nullptr };
+	PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR{ nullptr };
+	PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR{ nullptr };
+	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR{ nullptr };
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
@@ -50,7 +50,7 @@ public:
 
 	vks::Buffer vertexBuffer;
 	vks::Buffer indexBuffer;
-	uint32_t indexCount;
+	uint32_t indexCount{ 0 };
 	vks::Buffer transformBuffer;
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
 	vks::Buffer raygenShaderBindingTable;
@@ -62,7 +62,7 @@ public:
 		VkImage image;
 		VkImageView view;
 		VkFormat format;
-	} storageImage;
+	} storageImage{};
 
 	struct UniformData {
 		glm::mat4 viewInverse;

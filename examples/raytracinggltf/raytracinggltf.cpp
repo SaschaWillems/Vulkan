@@ -580,7 +580,7 @@ public:
 
 			// Image descriptors for the variable no. of images of the glTF model
 			std::vector<VkDescriptorImageInfo> textureDescriptors{};
-			for (auto texture : model.textures) {
+			for (auto& texture : model.textures) {
 				VkDescriptorImageInfo descriptor{};
 				descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				descriptor.sampler = texture.sampler;
