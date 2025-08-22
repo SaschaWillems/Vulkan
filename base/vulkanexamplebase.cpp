@@ -3198,6 +3198,8 @@ void VulkanExampleBase::createSurface()
 void VulkanExampleBase::createSwapChain()
 {
 	swapChain.create(width, height, settings.vsync, settings.fullscreen);
+	// @todo: comment
+	camera.preTransform = swapChain.surfCaps.currentTransform;
 }
 
 void VulkanExampleBase::OnUpdateUIOverlay(vks::UIOverlay *overlay) {}

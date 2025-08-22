@@ -1,7 +1,7 @@
 /*
 * Basic camera class providing a look-at and first-person camera
 *
-* Copyright (C) 2016-2024 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -44,6 +44,25 @@ private:
 			matrices.view = transM * rotM;
 		}
 
+		// @todo: test
+		double radians = 0.0f;
+		switch (preTransform) {
+		case VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR:
+			radians = glm::radians(90.0f);
+			break;
+		case VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR:
+			radians = glm::radians(180.0f);
+			break;
+		case VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR:
+			radians = glm::radians(270.0);
+			break;
+		default:
+			break;
+		}
+		glm::mat4 preRotate = glm::rotate(glm::mat4(1.0f), (float)radians, glm::vec3(0.0f, 0.0f, 1.0f));
+
+		matrices.view = preRotate * matrices.view;
+
 		viewPos = glm::vec4(position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
 		if (matrices.view != currentMatrix) {
@@ -63,6 +82,8 @@ public:
 
 	bool updated = true;
 	bool flipY = false;
+
+	VkSurfaceTransformFlagBitsKHR preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 
 	struct
 	{
