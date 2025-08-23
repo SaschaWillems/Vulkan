@@ -192,7 +192,12 @@ std::string VulkanExampleBase::getWindowTitle() const
 
 void VulkanExampleBase::createCommandBuffers()
 {
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(drawCmdBuffers.size()));
+	VkCommandBufferAllocateInfo cmdBufAllocateInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = cmdPool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = static_cast<uint32_t>(drawCmdBuffers.size()),
+	};
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data()));
 }
 
@@ -208,8 +213,7 @@ std::string VulkanExampleBase::getShadersPath() const
 
 void VulkanExampleBase::createPipelineCache()
 {
-	VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-	pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+	VkPipelineCacheCreateInfo pipelineCacheCreateInfo { .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
 	VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
 }
 
@@ -679,8 +683,8 @@ void VulkanExampleBase::updateOverlay()
 void VulkanExampleBase::drawUI(const VkCommandBuffer commandBuffer)
 {
 	if (settings.overlay && ui.visible) {
-		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+		const VkViewport viewport{ .width = (float)width, .height = (float)height, .minDepth = 0.0f, .maxDepth = 1.0f};
+		const VkRect2D scissor{ .extent = {.width = width, .height = height } };
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 		ui.draw(commandBuffer, currentBuffer);
@@ -2921,19 +2925,19 @@ void VulkanExampleBase::mouseMoved(double x, double y, bool & handled) {}
 void VulkanExampleBase::createSynchronizationPrimitives()
 {
 	// Wait fences to sync command buffer access
-	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+	VkFenceCreateInfo fenceCreateInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
 	for (auto& fence : waitFences) {
 		VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
 	}
 	// Used to ensure that image presentation is complete before starting to submit again
 	for (auto& semaphore : presentCompleteSemaphores) {
-		VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+		VkSemaphoreCreateInfo semaphoreCI{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
 	}
 	// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
 	renderCompleteSemaphores.resize(swapChain.images.size());
 	for (auto& semaphore : renderCompleteSemaphores) {
-		VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+		VkSemaphoreCreateInfo semaphoreCI{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
 	}
 }
