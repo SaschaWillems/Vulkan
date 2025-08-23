@@ -191,11 +191,12 @@ namespace vks
 		if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
 		{
 			queueFamilyIndices.graphics = getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
-			VkDeviceQueueCreateInfo queueInfo{};
-			queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueInfo.queueFamilyIndex = queueFamilyIndices.graphics;
-			queueInfo.queueCount = 1;
-			queueInfo.pQueuePriorities = &defaultQueuePriority;
+			VkDeviceQueueCreateInfo queueInfo{
+				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				.queueFamilyIndex = queueFamilyIndices.graphics,
+				.queueCount = 1,
+				.pQueuePriorities = &defaultQueuePriority
+			};
 			queueCreateInfos.push_back(queueInfo);
 		}
 		else
@@ -210,11 +211,12 @@ namespace vks
 			if (queueFamilyIndices.compute != queueFamilyIndices.graphics)
 			{
 				// If compute family index differs, we need an additional queue create info for the compute queue
-				VkDeviceQueueCreateInfo queueInfo{};
-				queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-				queueInfo.queueFamilyIndex = queueFamilyIndices.compute;
-				queueInfo.queueCount = 1;
-				queueInfo.pQueuePriorities = &defaultQueuePriority;
+				VkDeviceQueueCreateInfo queueInfo{
+					.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+					.queueFamilyIndex = queueFamilyIndices.compute,
+					.queueCount = 1,
+					.pQueuePriorities = &defaultQueuePriority,
+				};
 				queueCreateInfos.push_back(queueInfo);
 			}
 		}
@@ -231,11 +233,12 @@ namespace vks
 			if ((queueFamilyIndices.transfer != queueFamilyIndices.graphics) && (queueFamilyIndices.transfer != queueFamilyIndices.compute))
 			{
 				// If transfer family index differs, we need an additional queue create info for the transfer queue
-				VkDeviceQueueCreateInfo queueInfo{};
-				queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-				queueInfo.queueFamilyIndex = queueFamilyIndices.transfer;
-				queueInfo.queueCount = 1;
-				queueInfo.pQueuePriorities = &defaultQueuePriority;
+				VkDeviceQueueCreateInfo queueInfo{
+					.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+					.queueFamilyIndex = queueFamilyIndices.transfer,
+					.queueCount = 1,
+					.pQueuePriorities = &defaultQueuePriority
+				};
 				queueCreateInfos.push_back(queueInfo);
 			}
 		}
@@ -253,11 +256,12 @@ namespace vks
 			deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 		}
 
-		VkDeviceCreateInfo deviceCreateInfo = {};
-		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
-		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-		deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+		VkDeviceCreateInfo deviceCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+			.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+			.pQueueCreateInfos = queueCreateInfos.data(),
+			.pEnabledFeatures = &enabledFeatures
+		};
 		
 		// If a pNext(Chain) has been passed, we need to add it to the device creation info
 		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
@@ -348,10 +352,11 @@ namespace vks
 			// If host coherency hasn't been requested, do a manual flush to make writes visible
 			if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
 			{
-				VkMappedMemoryRange mappedRange = vks::initializers::mappedMemoryRange();
-				mappedRange.memory = *memory;
-				mappedRange.offset = 0;
-				mappedRange.size = size;
+				VkMappedMemoryRange mappedRange{
+					.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+					.memory = *memory,
+					.size = size
+				};
 				vkFlushMappedMemoryRanges(logicalDevice, 1, &mappedRange);
 			}
 			vkUnmapMemory(logicalDevice, *memory);
@@ -463,10 +468,11 @@ namespace vks
 	*/
 	VkCommandPool VulkanDevice::createCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
 	{
-		VkCommandPoolCreateInfo cmdPoolInfo = {};
-		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		cmdPoolInfo.queueFamilyIndex = queueFamilyIndex;
-		cmdPoolInfo.flags = createFlags;
+		VkCommandPoolCreateInfo cmdPoolInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			.flags = createFlags,
+			.queueFamilyIndex = queueFamilyIndex
+		};
 		VkCommandPool cmdPool;
 		VK_CHECK_RESULT(vkCreateCommandPool(logicalDevice, &cmdPoolInfo, nullptr, &cmdPool));
 		return cmdPool;
@@ -520,9 +526,11 @@ namespace vks
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
-		VkSubmitInfo submitInfo = vks::initializers::submitInfo();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
+		VkSubmitInfo submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.commandBufferCount = 1,
+			.pCommandBuffers = &commandBuffer
+		};
 		// Create fence to ensure that the command buffer has finished executing
 		VkFenceCreateInfo fenceInfo = vks::initializers::fenceCreateInfo(VK_FLAGS_NONE);
 		VkFence fence;
