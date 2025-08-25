@@ -40,7 +40,7 @@
 #   include "../examples/triangle/triangle.cpp"
 #endif
 
-// Does not run. MoltenVK does not yet support Vulkan 1.3
+// Supported as of MoltenVK version 1.3.0 / Vulkan SDK 1.4.321.0
 #ifdef MVK_trianglevulkan13
 #   include "../examples/trianglevulkan13/trianglevulkan13.cpp"
 #endif

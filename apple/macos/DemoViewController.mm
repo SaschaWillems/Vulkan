@@ -26,8 +26,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink,
                                     CVOptionFlags flagsIn,
                                     CVOptionFlags* flagsOut,
                                     void* target) {
-    //((MVKExample*)target)->renderFrame();
-    ((MVKExample*)target)->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to animate frames vs. renderFrame() for static image
+    ((MVKExample*)target)->displayLinkOutputCb();   // SRS - Call displayLinkOutputCb() to render/animate at displayLink frame rate
     return kCVReturnSuccess;
 }
 
