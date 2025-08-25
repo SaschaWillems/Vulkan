@@ -9,10 +9,6 @@
 #include "MVKExample.h"
 #include "examples.h"
 
-void MVKExample::renderFrame() {
-	_vulkanExample->renderFrame();
-}
-
 void MVKExample::displayLinkOutputCb() {                        // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
     _vulkanExample->displayLinkOutputCb();
 }
@@ -26,7 +22,6 @@ void MVKExample::keyPressed(uint32_t keyChar) {					// SRS - handle keyboard key
 		case KEY_1:												// SRS - support keyboards with no function keys
 		case KEY_F1:
 			_vulkanExample->ui.visible = !_vulkanExample->ui.visible;
-			_vulkanExample->ui.updated = true;
 			break;
 		default:
 			_vulkanExample->keyPressed(keyChar);
@@ -112,7 +107,6 @@ void MVKExample::mouseDragged(double x, double y) {
 
 void MVKExample::scrollWheel(short wheelDelta) {
     _vulkanExample->camera.translate(glm::vec3(0.0f, 0.0f, wheelDelta * 0.05f * _vulkanExample->camera.movementSpeed));
-	_vulkanExample->viewUpdated = true;
 }
 
 void MVKExample::fullScreen(bool fullscreen) {
