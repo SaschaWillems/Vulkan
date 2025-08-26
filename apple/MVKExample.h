@@ -13,7 +13,6 @@
 class MVKExample {
 
 public:
-	void renderFrame();
     void displayLinkOutputCb();                     // SRS - expose VulkanExampleBase::displayLinkOutputCb() to DemoViewController
     
     void keyPressed(uint32_t keyChar);              // SRS - expose keyboard events to DemoViewController
