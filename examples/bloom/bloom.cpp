@@ -53,7 +53,7 @@ public:
 	struct {
 		VkPipelineLayout blur;
 		VkPipelineLayout scene;
-	} pipelineLayouts;
+	} pipelineLayouts{};
 
 	struct {
 		VkPipeline blurVert;
@@ -61,12 +61,12 @@ public:
 		VkPipeline glowPass;
 		VkPipeline phongPass;
 		VkPipeline skyBox;
-	} pipelines;
+	} pipelines{};
 
 	struct {
 		VkDescriptorSetLayout blur;
 		VkDescriptorSetLayout scene;
-	} descriptorSetLayouts;
+	} descriptorSetLayouts{};
 
 	struct DescriptorSets {
 		VkDescriptorSet blurVert;
@@ -92,7 +92,7 @@ public:
 		VkRenderPass renderPass;
 		VkSampler sampler;
 		std::array<FrameBuffer, 2> framebuffers;
-	} offscreenPass;
+	} offscreenPass{};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -206,9 +206,10 @@ public:
 		depthStencilView.image = frameBuf->depth.image;
 		VK_CHECK_RESULT(vkCreateImageView(device, &depthStencilView, nullptr, &frameBuf->depth.view));
 
-		VkImageView attachments[2];
-		attachments[0] = frameBuf->color.view;
-		attachments[1] = frameBuf->depth.view;
+		VkImageView attachments[2]{
+			frameBuf->color.view,
+			frameBuf->depth.view
+		};
 
 		VkFramebufferCreateInfo fbufCreateInfo = vks::initializers::framebufferCreateInfo();
 		fbufCreateInfo.renderPass = offscreenPass.renderPass;
