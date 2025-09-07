@@ -17,9 +17,9 @@ struct Triangle {
 
 struct BufferReferences {
     // Pointer to the buffer with the scene's MVP matrix
-    ConstBufferPointer<float4> vertices;
+    float4* vertices;
     // Pointer to the buffer for the data for each model
-    ConstBufferPointer<uint> indices;
+    uint* indices;
 };
 [[vk::push_constant]] BufferReferences bufferReferences;
 
