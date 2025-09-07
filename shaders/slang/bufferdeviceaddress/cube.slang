@@ -14,15 +14,10 @@ struct VSInput
     float3 Color;
 };
 
-struct MatrixReference {
-    float4x4 matrix;
-};
-
+// Pointers to the matrices, addresses are set in the application
 struct PushConsts {
-    // Pointer to the buffer with the scene's MVP matrix
-    ConstBufferPointer<MatrixReference> sceneDataReference;
-    // Pointer to the buffer for the data for each model
-    ConstBufferPointer<MatrixReference> modelDataReference;
+    float4x4 *sceneMatrices;
+    float4x4 *modelMatrices;
 };
 
 struct VSOutput
@@ -36,14 +31,11 @@ struct VSOutput
 [shader("vertex")]
 VSOutput vertexMain(VSInput input, uniform PushConsts pushConstants) 
 {
-    MatrixReference sceneData = pushConstants.sceneDataReference.get();
-    MatrixReference modelData = pushConstants.modelDataReference.get();
-
     VSOutput output;
     output.Normal = input.Normal;
     output.Color = input.Color;
     output.UV = input.UV;
-    output.Pos = mul(sceneData.matrix, mul(modelData.matrix, float4(input.Pos.xyz, 1.0)));
+    output.Pos = mul(*pushConstants.sceneMatrices, mul(*pushConstants.modelMatrices, float4(input.Pos.xyz, 1.0)));
     return output;
 }
 
