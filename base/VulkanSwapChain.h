@@ -86,16 +86,6 @@ public:
 	* @return VkResult of the image acquisition
 	*/
 	VkResult acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t& imageIndex);
-	/**
-	* Queue an image for presentation
-	*
-	* @param queue Presentation queue for presenting the image
-	* @param imageIndex Index of the swapchain image to queue for presentation
-	* @param waitSemaphore (Optional) Semaphore that is waited on before the image is presented (only used if != VK_NULL_HANDLE)
-	*
-	* @return VkResult of the queue presentation
-	*/
-	VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 	/* Free all Vulkan resources acquired by the swapchain */
 	void cleanup();
 };
