@@ -473,6 +473,10 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 
     Shows how to use a new semaphore type that has a way of setting and identifying a given point on a timeline. Compared to the core binary semaphores, this simplifies synchronization as a single timeline semaphore can replace multiple binary semaphores.
 
+- [Fragment shader barycentrics (`VK_KHR_fragment_shader_barycentric`)](./examples/fragmentshaderbarycentrics/)
+
+    Demonstrates how to access barycentric coordinates in a fragment shader to create a wireframe visual effect.
+
 ### Effects
 
 Assorted samples showing graphical effects not special to Vulkan.

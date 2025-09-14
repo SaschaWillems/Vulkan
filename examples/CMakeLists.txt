@@ -112,6 +112,7 @@ set(EXAMPLES
 	dynamicrenderingmultisampling
 	dynamicstate
 	dynamicuniformbuffer	
+	fragmentshaderbarycentrics
 	gears
 	geometryshader
 	gltfloading
