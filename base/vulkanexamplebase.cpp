@@ -1128,20 +1128,20 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 {
 	this->windowInstance = hinstance;
 
-	WNDCLASSEX wndClass{};
-
-	wndClass.cbSize = sizeof(WNDCLASSEX);
-	wndClass.style = CS_HREDRAW | CS_VREDRAW;
-	wndClass.lpfnWndProc = wndproc;
-	wndClass.cbClsExtra = 0;
-	wndClass.cbWndExtra = 0;
-	wndClass.hInstance = hinstance;
-	wndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wndClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-	wndClass.lpszMenuName = NULL;
-	wndClass.lpszClassName = name.c_str();
-	wndClass.hIconSm = LoadIcon(NULL, IDI_WINLOGO);
+	WNDCLASSEX wndClass{
+		.cbSize = sizeof(WNDCLASSEX),
+		.style = CS_HREDRAW | CS_VREDRAW,
+		.lpfnWndProc = wndproc,
+		.cbClsExtra = 0,
+		.cbWndExtra = 0,
+		.hInstance = hinstance,
+		.hIcon = LoadIcon(NULL, IDI_APPLICATION),
+		.hCursor = LoadCursor(NULL, IDC_ARROW),
+		.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
+		.lpszMenuName = NULL,
+		.lpszClassName = name.c_str(),
+		.hIconSm = LoadIcon(NULL, IDI_WINLOGO),
+	};
 
 	if (!RegisterClassEx(&wndClass))
 	{
@@ -1195,13 +1195,12 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 	}
 
-	RECT windowRect = {
-		0L,
-		0L,
-		settings.fullscreen ? (long)screenWidth : (long)width,
-		settings.fullscreen ? (long)screenHeight : (long)height
+	RECT windowRect{
+		.left = 0L,
+		.top = 0L,
+		.right = settings.fullscreen ? (long)screenWidth : (long)width,
+		.bottom = settings.fullscreen ? (long)screenHeight : (long)height
 	};
-
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
 	std::string windowTitle = getWindowTitle();
