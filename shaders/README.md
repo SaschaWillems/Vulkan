@@ -6,4 +6,4 @@ Note that not all samples may come with all shading language variants. So some s
 
 A note for using **slang** shaders: These require a different SPIR-V environment than glsl/hlsl. When selecting slang shaders, the base requirement for all samples is raised to at least Vulkan 1.1 with the SPIRV 1.4 extension.
 
-If you want to compile **slang** shaders to SPIR-V, please use the latest release from [here](https://github.com/shader-slang/slang/releases) to get the latest bug fixes and features required for some of the samples.
+If you want to compile **slang** shaders to SPIR-V, please use the latest release from [here](https://github.com/shader-slang/slang/releases) to get the latest bug fixes and features required for some of the samples. Minimum version for all shader to properly compile is `2025.16.1`.
