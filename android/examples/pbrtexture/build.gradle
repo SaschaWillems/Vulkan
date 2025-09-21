@@ -15,7 +15,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++14"
-                arguments "-DANDROID_STL=c++_shared", '-DANDROID_TOOLCHAIN=clang'
+                arguments "-DANDROID_STL=c++_shared", '-DANDROID_TOOLCHAIN=clang', '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
             }
         }
     }
