@@ -76,7 +76,7 @@ public:
 		apiVersion = VK_API_VERSION_1_1;
 
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-		
+
 		enabledDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
@@ -90,7 +90,7 @@ public:
 		enabledDeviceDescriptorBufferFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT;
 		enabledDeviceDescriptorBufferFeaturesEXT.descriptorBuffer = VK_TRUE;
 		enabledDeviceDescriptorBufferFeaturesEXT.pNext = &enabledBufferDeviceAddresFeatures;
-		
+
 		deviceCreatepNextChain = &enabledDeviceDescriptorBufferFeaturesEXT;
 	}
 
@@ -340,7 +340,7 @@ public:
 	void buildCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2]{};
@@ -376,7 +376,7 @@ public:
 		// Set 0 = uniform buffer
 		VkDescriptorBufferBindingInfoEXT bindingInfos[2]{};
 		bindingInfos[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-		bindingInfos[0].address = uniformDescriptor.buffers[1].deviceAddress;
+		bindingInfos[0].address = uniformDescriptor.buffers[currentBuffer].deviceAddress;
 		bindingInfos[0].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 		// Set 1 = Image
 		bindingInfos[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
@@ -427,7 +427,6 @@ public:
 		updateUniformBuffers();
 		buildCommandBuffer();
 		VulkanExampleBase::submitFrame();
-
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
