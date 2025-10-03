@@ -102,10 +102,11 @@ jobs:
           distribution: "zulu"
           cache: gradle
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2.9
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
         with:
-          key: ${{ github.job }}-android
+          gradle-version: wrapper
+          cache-read-only: false
 
       - name: Build
         working-directory: android
