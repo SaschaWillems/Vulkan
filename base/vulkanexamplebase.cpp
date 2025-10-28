@@ -848,7 +848,7 @@ VulkanExampleBase::VulkanExampleBase()
 		{
 			for (VkExtensionProperties& extension : extensions)
 			{
-				if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_EXT_LAYER_SETTINGS_EXTENSION_NAME) != supportedInstanceExtensions.end())
+				if (std::strcmp(extension.extensionName, VK_EXT_LAYER_SETTINGS_EXTENSION_NAME) == 0)
 				{
 					enabledInstanceExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
 
@@ -863,6 +863,8 @@ VulkanExampleBase::VulkanExampleBase()
 					static const VkBool32 layerSettingOn = VK_TRUE;
 					layerSetting.pValues = &layerSettingOn;
 					enabledLayerSettings.push_back(layerSetting);
+					
+					break;
 				}
 			}
 		}
