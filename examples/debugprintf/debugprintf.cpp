@@ -50,9 +50,6 @@ public:
 		// SRS - Force validation on since shader printf provided by VK_LAYER_KHRONOS_validation on macOS
 		settings.validation = true;
 
-		// Use layer settings extension to configure Validation Layer
-		enabledInstanceExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
-
 		// SRS - Enable the Validation Layer's printf feature
 		VkLayerSettingEXT layerSetting;
 		layerSetting.pLayerName = "VK_LAYER_KHRONOS_validation";
