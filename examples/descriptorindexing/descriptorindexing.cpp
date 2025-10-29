@@ -70,20 +70,38 @@ public:
 		deviceCreatepNextChain = &physicalDeviceDescriptorIndexingFeatures;
 
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
-		// Use layer settings extension to configure MoltenVK
-		enabledInstanceExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+		// If the VK_EXT_layer_settings extension is available at runtime use layer settings to configure MoltenVK
+		// Other implementations like lavapipe and KosmicKrisp do not need this and will skip the layer setting
+		uint32_t instanceExtCount = 0;
+		vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtCount, nullptr);
+		if (instanceExtCount > 0)
+		{
+			std::vector<VkExtensionProperties> extensions(instanceExtCount);
+			if (vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtCount, &extensions.front()) == VK_SUCCESS)
+			{
+				for (VkExtensionProperties extension : extensions)
+				{
+					if (strcmp(extension.extensionName, VK_EXT_LAYER_SETTINGS_EXTENSION_NAME) == 0)
+					{
+						enabledInstanceExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
 
-		// Configure MoltenVK to use Metal argument buffers (needed for descriptor indexing)
-		VkLayerSettingEXT layerSetting;
-		layerSetting.pLayerName = "MoltenVK";
-		layerSetting.pSettingName = "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS";
-		layerSetting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
-		layerSetting.valueCount = 1;
+						// Configure MoltenVK to use Metal argument buffers (needed for descriptor indexing)
+						VkLayerSettingEXT layerSetting;
+						layerSetting.pLayerName = "MoltenVK";
+						layerSetting.pSettingName = "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS";
+						layerSetting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+						layerSetting.valueCount = 1;
 
-		// Make this static so layer setting reference remains valid after leaving constructor scope
-		static const VkBool32 layerSettingOn = VK_TRUE;
-		layerSetting.pValues = &layerSettingOn;
-		enabledLayerSettings.push_back(layerSetting);
+						// Make this static so layer setting reference remains valid after leaving constructor scope
+						static const VkBool32 layerSettingOn = VK_TRUE;
+						layerSetting.pValues = &layerSettingOn;
+						enabledLayerSettings.push_back(layerSetting);
+
+						break;
+					}
+				}
+			}
+		}
 #endif
 	}
 
@@ -254,6 +272,7 @@ public:
 
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 		// Disable variable descriptor count feature on macOS/iOS until MoltenVK supports this feature when using combined image sampler textures
+		// Other implementations like lavapipe and KosmicKrisp do not need this, but retain for compatibility (for now) across drivers on macOS & iOS
 		// Note we are using only 1 descriptor set with a fixed descriptor count/pool size, so we can simply turn off the capability for now
 		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags = {
 			0,
