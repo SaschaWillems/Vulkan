@@ -68,23 +68,6 @@ public:
 		physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
 
 		deviceCreatepNextChain = &physicalDeviceDescriptorIndexingFeatures;
-
-#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
-		// Use layer settings extension to configure MoltenVK
-		enabledInstanceExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
-
-		// Configure MoltenVK to use Metal argument buffers (needed for descriptor indexing)
-		VkLayerSettingEXT layerSetting;
-		layerSetting.pLayerName = "MoltenVK";
-		layerSetting.pSettingName = "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS";
-		layerSetting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
-		layerSetting.valueCount = 1;
-
-		// Make this static so layer setting reference remains valid after leaving constructor scope
-		static const VkBool32 layerSettingOn = VK_TRUE;
-		layerSetting.pValues = &layerSettingOn;
-		enabledLayerSettings.push_back(layerSetting);
-#endif
 	}
 
 	~VulkanExample()
@@ -251,27 +234,6 @@ public:
 		// Binding 1 are the fragment shader images, which use indexing
 		// In the fragment shader:
 		//	layout (set = 0, binding = 1) uniform sampler2D textures[];
-
-#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
-		// Disable variable descriptor count feature on macOS/iOS until MoltenVK supports this feature when using combined image sampler textures
-		// Note we are using only 1 descriptor set with a fixed descriptor count/pool size, so we can simply turn off the capability for now
-		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags = {
-			0,
-			0
-		};
-		setLayoutBindingFlags.pBindingFlags = descriptorBindingFlags.data();
-
-		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-		// Increase the per-stage descriptor samplers limit on macOS/iOS (maxPerStageDescriptorUpdateAfterBindSamplers > maxPerStageDescriptorSamplers)
-		descriptorSetLayoutCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-		descriptorSetLayoutCI.pNext = &setLayoutBindingFlags;
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout));
-
-		// [POI] Descriptor sets
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		allocInfo.pNext = nullptr;
-#else
-		// Enable variable descriptor count feature on platforms other than macOS/iOS
 		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags = {
 			0,
 			VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
@@ -279,6 +241,10 @@ public:
 		setLayoutBindingFlags.pBindingFlags = descriptorBindingFlags.data();
 
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
+		// Increase the per-stage descriptor samplers limit on macOS/iOS (maxPerStageDescriptorUpdateAfterBindSamplers > maxPerStageDescriptorSamplers)
+		descriptorSetLayoutCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+#endif
 		descriptorSetLayoutCI.pNext = &setLayoutBindingFlags;
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout));
 
@@ -295,7 +261,6 @@ public:
 
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		allocInfo.pNext = &variableDescriptorCountAllocInfo;
-#endif
 
 		// Image descriptors for the texture array
 		std::vector<VkDescriptorImageInfo> textureDescriptors(textures.size());
