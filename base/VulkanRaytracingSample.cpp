@@ -132,6 +132,7 @@ void VulkanRaytracingSample::enableExtensions()
 
 	// Format for the storage image is decided at runtime, so we can't explicilily state it in the shader
 	enabledFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
+	enabledFeatures.shaderStorageImageReadWithoutFormat = VK_TRUE;
 }
 
 VulkanRaytracingSample::ScratchBuffer VulkanRaytracingSample::createScratchBuffer(VkDeviceSize size)
