@@ -9,6 +9,7 @@ import sys
 
 parser = argparse.ArgumentParser(description='Compile all .hlsl shaders')
 parser.add_argument('--dxc', type=str, help='path to DXC executable')
+parser.add_argument('--sample', type=str, help='can be used to compile shaders for a single sample only')
 args = parser.parse_args()
 
 def findDXC():
@@ -29,12 +30,23 @@ def findDXC():
 
     sys.exit("Could not find DXC executable on PATH, and was not specified with --dxc")
 
+compile_single_sample = ""
+if args.sample != None:
+    compile_single_sample = args.sample
+    if (not os.path.isdir(compile_single_sample)):
+        print("ERROR: No directory found with name %s" % compile_single_sample)
+        exit(-1)
+
 file_extensions = tuple([".vert", ".frag", ".comp", ".geom", ".tesc", ".tese", ".rgen", ".rchit", ".rmiss", ".mesh", ".task"])
 
 dxc_path = findDXC()
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
 for root, dirs, files in os.walk(dir_path):
+    folder_name = os.path.basename(root)
+    if (compile_single_sample != "" and folder_name != compile_single_sample):
+        continue
+
     for file in files:
         if file.endswith(file_extensions):
             hlsl_file = os.path.join(root, file)
