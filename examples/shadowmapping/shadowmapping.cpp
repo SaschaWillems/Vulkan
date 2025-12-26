@@ -425,6 +425,12 @@ public:
 
 	void updateUniformBuffers()
 	{
+		// Matrix from light's point of view for generating the shadow map
+		glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
+		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
+		glm::mat4 depthModelMatrix = glm::mat4(1.0f);
+		uniformDataOffscreen.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
+		memcpy(uniformBuffers[currentBuffer].offscreen.mapped, &uniformDataOffscreen, sizeof(UniformDataOffscreen));
 		// Uniform data for drawing the scene
 		uniformDataScene.projection = camera.matrices.perspective;
 		uniformDataScene.view = camera.matrices.view;
@@ -434,12 +440,6 @@ public:
 		uniformDataScene.zNear = zNear;
 		uniformDataScene.zFar = zFar;
 		memcpy(uniformBuffers[currentBuffer].scene.mapped, &uniformDataScene, sizeof(UniformDataScene));
-		// Matrix from light's point of view for generating the shadow map
-		glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
-		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
-		glm::mat4 depthModelMatrix = glm::mat4(1.0f);
-		uniformDataOffscreen.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
-		memcpy(uniformBuffers[currentBuffer].offscreen.mapped, &uniformDataOffscreen, sizeof(UniformDataOffscreen));
 	}
 
 	void prepare()
