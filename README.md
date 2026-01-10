@@ -30,6 +30,10 @@ A comprehensive collection of open source C++ examples for [Vulkan®](https://ww
     + [Misc](#Misc)
 + [Credits and Attributions](#credits-and-attributions)
 
+## How to Vulkan in 2026
+
+For an introduction on how to use Vulkan for graphics in 2026, see [this repository](https://github.com/SaschaWillems/HowToVulkan). It's esp. helpful if you haven't done much with Vulkan (yet) and want to understand how Vulkan (and in turn these samples) work.
+
 ## Official Khronos Vulkan Samples
 
 Khronos has made an official Vulkan Samples repository available to the public ([press release](https://www.khronos.org/blog/vulkan-releases-unified-samples-repository?utm_source=Khronos%20Blog&utm_medium=Twitter&utm_campaign=Vulkan%20Repository)).
