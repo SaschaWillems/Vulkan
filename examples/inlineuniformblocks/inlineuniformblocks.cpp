@@ -115,7 +115,7 @@ public:
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames),
 			/* [POI] Allocate inline uniform blocks */
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, static_cast<uint32_t>(objects.size()) * sizeof(Object::Material)),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, maxConcurrentFrames * static_cast<uint32_t>(objects.size()) * sizeof(Object::Material)),
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolCI = vks::initializers::descriptorPoolCreateInfo(poolSizes, (static_cast<uint32_t>(objects.size()) + 1) * maxConcurrentFrames);
 		/*
