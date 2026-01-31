@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Vulkan Example - Using input attachments
  *
  * Copyright (C) 2018-2025 by Sascha Willems - www.saschawillems.de
@@ -564,6 +564,11 @@ public:
 		vkCmdEndRenderPass(cmdBuffer);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+	}
+
+	void windowResized() override
+	{
+		preparePipelines();
 	}
 
 	virtual void render()
