@@ -48,7 +48,7 @@ public:
 		VkDescriptorSetLayout setLayout;
 	};
 	
-	vks::Buffer descriptorHeap;
+	vks::Buffer descriptorHeapResources;
 	vks::Buffer descriptorHeapSamplers;
 	vks::Buffer uniformBuffers{};
 
@@ -215,10 +215,10 @@ public:
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&descriptorHeap,
+			&descriptorHeapResources,
 			heapSizeBuf));
-		descriptorHeap.map();
-		getBufferDeviceAddress(descriptorHeap);
+		descriptorHeapResources.map();
+		getBufferDeviceAddress(descriptorHeapResources);
 
 		const VkDeviceSize heapSizeImg = vks::tools::alignedVkSize(512 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
@@ -259,8 +259,8 @@ public:
 		}
 
 		VkHostAddressRangeEXT vharBuf{
-			.address = static_cast<uint8_t*>(descriptorHeap.mapped),
-			.size = descriptorHeap.size
+			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped),
+			.size = descriptorHeapResources.size
 		};
 
 		VkDeviceAddressRangeEXT input_address_range = { uniformBuffers.deviceAddress, uniformBuffers.size };
@@ -378,8 +378,8 @@ public:
 			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
 			.pNext = nullptr,
 			.heapRange{
-				.address = descriptorHeap.deviceAddress,
-				.size = descriptorHeap.size
+				.address = descriptorHeapResources.deviceAddress,
+				.size = descriptorHeapResources.size
 			},
 			.reservedRangeSize = descriptorHeapProperties.minResourceHeapReservedRange
 		};
