@@ -154,14 +154,14 @@ public:
 
 		VkDescriptorSetAndBindingMappingEXT setAndBindingMappingImages{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
-			.descriptorSet = 2,
+			.descriptorSet = 1,
 			.firstBinding = 0,
 			.bindingCount = 1,
 			.resourceMask = VK_SPIRV_RESOURCE_TYPE_COMBINED_SAMPLED_IMAGE_BIT_EXT,
 			.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
 		};
 
-		std::array<VkDescriptorSetAndBindingMappingEXT, 3> sabms = { setAndBindingMappingBuffers, setAndBindingMappingImages };
+		std::array<VkDescriptorSetAndBindingMappingEXT, 2> sabms = { setAndBindingMappingBuffers, setAndBindingMappingImages };
 
 		VkShaderDescriptorSetAndBindingMappingInfoEXT descriptorSetAndBindingMappingInfo{
 			.sType = VK_STRUCTURE_TYPE_SHADER_DESCRIPTOR_SET_AND_BINDING_MAPPING_INFO_EXT,
