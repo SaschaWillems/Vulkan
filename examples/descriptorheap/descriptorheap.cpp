@@ -36,6 +36,7 @@ public:
 	PFN_vkWriteResourceDescriptorsEXT vkWriteResourceDescriptorsEXT{ nullptr };
 	PFN_vkCmdBindResourceHeapEXT vkCmdBindResourceHeapEXT{ nullptr };
 	PFN_vkCmdBindSamplerHeapEXT vkCmdBindSamplerHeapEXT{ nullptr };
+	PFN_vkWriteSamplerDescriptorsEXT vkWriteSamplerDescriptorsEXT{ nullptr };
 	PFN_vkGetPhysicalDeviceDescriptorSizeEXT vkGetPhysicalDeviceDescriptorSizeEXT{ nullptr };
 
 	// Stores all values that are required to setup a descriptor buffer for a resource buffer
@@ -208,12 +209,12 @@ public:
 		descriptorHeapResources.map();
 		getBufferDeviceAddress(descriptorHeapResources);
 
-		const VkDeviceSize heapSizeImg = vks::tools::alignedVkSize(512 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
+		const VkDeviceSize heapSizeSamplers = vks::tools::alignedVkSize(512 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&descriptorHeapSamplers,
-			heapSizeImg));
+			heapSizeSamplers));
 		descriptorHeapSamplers.map();
 		getBufferDeviceAddress(descriptorHeapSamplers);
 
@@ -246,20 +247,46 @@ public:
 			vkWriteResourceDescriptorsEXT(device, 1, &rdiImg, &vharImg);
 		}
 
+		// Sampler heap
+		// @todo: Multiple samplers?
+
+		VkSamplerCreateInfo samplerCI{
+			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+			.magFilter = VK_FILTER_NEAREST,
+			.minFilter = VK_FILTER_NEAREST,
+			.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+			.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+			.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+			.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+			.mipLodBias = 0.0f,
+			.maxAnisotropy = 1.0,
+			.compareOp = VK_COMPARE_OP_NEVER,
+			.minLod = 0.0f,
+			.maxLod = 0.0f,
+			.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+		};
+
+		VkHostAddressRangeEXT vharSampler{
+			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped),
+			.size = descriptorHeapSamplers.size
+		};
+		vkWriteSamplerDescriptorsEXT(device, 1, &samplerCI, &vharSampler);
+
+		// Resource heap (buffer and images)
 		VkHostAddressRangeEXT vharBuf{
 			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped),
 			.size = descriptorHeapResources.size
 		};
 
-		VkDeviceAddressRangeEXT input_address_range = { uniformBuffers.deviceAddress, uniformBuffers.size };
-		VkResourceDescriptorInfoEXT in_descriptor_info = {
+		VkDeviceAddressRangeEXT darBuf = { uniformBuffers.deviceAddress, uniformBuffers.size };
+		VkResourceDescriptorInfoEXT rdi = {
 			.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
 			.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			.data = {
-				.pAddressRange = &input_address_range
+				.pAddressRange = &darBuf
 			}
 		};
-		vkWriteResourceDescriptorsEXT(device, 1, &in_descriptor_info, &vharBuf);
+		vkWriteResourceDescriptorsEXT(device, 1, &rdi, &vharBuf);
 	}
 
 	void loadAssets()
@@ -301,6 +328,7 @@ public:
 		vkCmdBindResourceHeapEXT = reinterpret_cast<PFN_vkCmdBindResourceHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindResourceHeapEXT"));
 		vkCmdBindSamplerHeapEXT = reinterpret_cast<PFN_vkCmdBindSamplerHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindSamplerHeapEXT"));
 		vkGetPhysicalDeviceDescriptorSizeEXT = reinterpret_cast<PFN_vkGetPhysicalDeviceDescriptorSizeEXT>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceDescriptorSizeEXT"));
+		vkWriteSamplerDescriptorsEXT = reinterpret_cast<PFN_vkWriteSamplerDescriptorsEXT>(vkGetInstanceProcAddr(instance, "vkWriteSamplerDescriptorsEXT"));
 
 		loadAssets();
 		prepareDescriptorHeaps();
