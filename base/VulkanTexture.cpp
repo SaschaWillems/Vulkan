@@ -73,6 +73,7 @@ namespace vks
 		width = ktxTexture->baseWidth;
 		height = ktxTexture->baseHeight;
 		mipLevels = ktxTexture->numLevels;
+		this->format = format;
 
 		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
 		ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);

@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2025, Sascha Willems
+# Copyright (c) 2016-2026, Sascha Willems
 # SPDX-License-Identifier: MIT
 
 # Function for building single example
@@ -104,6 +104,7 @@ set(EXAMPLES
 	deferredmultisampling
 	deferredshadows
 	descriptorbuffer
+	descriptorheap
 	descriptorindexing
 	descriptorsets
 	displacement
