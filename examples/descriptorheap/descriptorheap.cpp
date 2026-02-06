@@ -18,12 +18,9 @@ public:
 	struct Cube {
 		glm::mat4 matrix;
 		vks::Texture2D texture;
-		std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 		glm::vec3 rotation;
 	};
 	std::array<Cube, 2> cubes;
-
-	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffersCamera;
 
 	vkglTF::Model model;
 
@@ -101,17 +98,8 @@ public:
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		for (auto& cube : cubes) {
-			for (auto& buffer : cube.uniformBuffers) {
-				buffer.destroy();
-			}
 			cube.texture.destroy();
 		}
-		for (auto& buffer : uniformBuffersCamera) {
-			buffer.destroy();
-		}
-		//for (auto& buffer : uniformDescriptor.buffers) {
-		//	buffer.destroy();
-		//}
 		combinedImageDescriptor.buffer.destroy();
 	}
 
@@ -282,20 +270,6 @@ public:
 		cubes[1].texture.loadFromFile(getAssetPath() + "textures/crate02_color_height_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
-	void prepareUniformBuffers()
-	{
-		for (uint32_t i = 0; i < maxConcurrentFrames; i++) {
-			// UBO for camera matrices
-			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffersCamera[i], sizeof(glm::mat4) * 2));
-			VK_CHECK_RESULT(uniformBuffersCamera[i].map());
-			// UBOs for model matrices
-			for (auto& cube : cubes) {
-				VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &cube.uniformBuffers[i], sizeof(glm::mat4)));
-				VK_CHECK_RESULT(cube.uniformBuffers[i].map());
-			}
-		}
-	}
-
 	void updateUniformBuffers()
 	{
 		char* bufDataPtr = (char*)uniformBuffers.mapped;
@@ -329,7 +303,6 @@ public:
 		vkGetPhysicalDeviceDescriptorSizeEXT = reinterpret_cast<PFN_vkGetPhysicalDeviceDescriptorSizeEXT>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceDescriptorSizeEXT"));
 
 		loadAssets();
-		prepareUniformBuffers();
 		prepareDescriptorHeaps();
 		preparePipelines();
 		prepared = true;
