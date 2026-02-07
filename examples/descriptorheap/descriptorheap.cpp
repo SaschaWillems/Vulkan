@@ -25,7 +25,6 @@ public:
 	vkglTF::Model model;
 
 	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
 	
 	VkPhysicalDeviceDescriptorHeapFeaturesEXT enabledDeviceDescriptorHeapFeaturesEXT{};
 	VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddressFeatures{};
@@ -39,20 +38,9 @@ public:
 	PFN_vkWriteSamplerDescriptorsEXT vkWriteSamplerDescriptorsEXT{ nullptr };
 	PFN_vkGetPhysicalDeviceDescriptorSizeEXT vkGetPhysicalDeviceDescriptorSizeEXT{ nullptr };
 
-	// Stores all values that are required to setup a descriptor buffer for a resource buffer
-	struct DescriptorInfo {
-		VkDeviceSize layoutOffset;
-		VkDeviceSize layoutSize;
-		VkDescriptorSetLayout setLayout;
-	};
-	
 	vks::Buffer descriptorHeapResources;
 	vks::Buffer descriptorHeapSamplers;
 	vks::Buffer uniformBuffers{};
-
-	struct ImageDescriptorInfo : DescriptorInfo {
-		vks::Buffer buffer;
-	} combinedImageDescriptor{};
 
 	VkDeviceSize bufferOffset;
 	VkDeviceSize sizeBuf;
@@ -100,13 +88,10 @@ public:
 	~VulkanExample()
 	{
 		//vkDestroyDescriptorSetLayout(device, uniformDescriptor.setLayout, nullptr);
-		vkDestroyDescriptorSetLayout(device, combinedImageDescriptor.setLayout, nullptr);
 		vkDestroyPipeline(device, pipeline, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		for (auto& cube : cubes) {
 			cube.texture.destroy();
 		}
-		combinedImageDescriptor.buffer.destroy();
 	}
 
 	virtual void getEnabledFeatures()
@@ -118,10 +103,6 @@ public:
 
 	void preparePipelines()
 	{
-		VkPipelineLayoutCreateInfo pipelineLayoutCI{};
-		pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
-
 		const std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
@@ -300,9 +281,9 @@ public:
 		};
 
 		// Images
-		std::array<VkImageViewCreateInfo, 2> vcis;
-		std::array<VkImageDescriptorInfoEXT, 2> idis;
-		std::array<VkResourceDescriptorInfoEXT, 2> rdisImg;
+		std::array<VkImageViewCreateInfo, 2> vcis{};
+		std::array<VkImageDescriptorInfoEXT, 2> idis{};
+		std::array<VkResourceDescriptorInfoEXT, 2> rdisImg{};
 
 		for (uint32_t i = 0; i < static_cast<uint32_t>(cubes.size()); i++) {
 			vcis[i] = {
@@ -326,13 +307,6 @@ public:
 					.pImage = &idis[i]
 				}
 			};
-			//const VkDeviceSize imgDescSize = vkGetPhysicalDeviceDescriptorSizeEXT(physicalDevice, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-			//auto imgDescData = std::make_unique<uint8_t[]>(static_cast<size_t>(imgDescSize));
-			//VkHostAddressRangeEXT vharImg{
-			//	.address = imgDescData.get(),
-			//	.size = static_cast<size_t>(imgDescSize)
-			//};
-			//vkWriteResourceDescriptorsEXT(device, 1, &rdiImg, &vharImg);
 		}
 
 		std::vector<VkResourceDescriptorInfoEXT> rdis{ rdiBuf, rdisImg[0] };
@@ -452,8 +426,6 @@ public:
 		model.bindBuffers(cmdBuffer);
 		auto &primitive = model.nodeFromName("cube")->mesh[0].primitives[0];
 		for (uint32_t j = 0; j < static_cast<uint32_t>(cubes.size()); j++) {
-			uint32_t bufferIndexImage = 1;
-			VkDeviceSize imageBufferOffset = j * combinedImageDescriptor.layoutSize;
 			vkCmdDrawIndexed(cmdBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, j);			
 		}
 
