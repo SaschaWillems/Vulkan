@@ -1,6 +1,7 @@
 #version 450
 
-layout (set = 1, binding = 0) uniform sampler2D samplerColorMap;
+layout (set = 1, binding = 0) uniform texture2D textureImage;
+layout (set = 2, binding = 0) uniform sampler textureSampler;
 
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec3 inColor;
@@ -10,6 +11,5 @@ layout (location = 0) out vec4 outFragColor;
 
 void main() 
 {
-	//outFragColor = texture(samplerColorMap, inUV) * vec4(inColor, 1.0);
-	outFragColor = vec4(inColor, 1.0);
+	outFragColor = texture(sampler2D(textureImage, textureSampler), inUV) * vec4(inColor, 1.0);
 }
