@@ -46,6 +46,7 @@ public:
 	VkDeviceSize sizeBuf;
 	VkDeviceSize imgOffset;
 	VkDeviceSize sizeImg;
+	VkDeviceSize samplerOffset;
 
 	// Descriptor heap makes heavy use of buffer device addresses
 	uint64_t getBufferDeviceAddress(vks::Buffer &buffer)
@@ -148,6 +149,11 @@ public:
 			.bindingCount = 1,
 			.resourceMask = VK_SPIRV_RESOURCE_TYPE_SAMPLER_BIT_EXT,
 			.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
+			.sourceData = {
+				.constantOffset = {
+					.heapOffset = static_cast<uint32_t>(samplerOffset)
+				}
+			}
 		};
 
 		std::array<VkDescriptorSetAndBindingMappingEXT, 3> sabms = { setAndBindingMappingBuffers, setAndBindingMappingImages, setAndBindingMappingSamplers };
@@ -221,6 +227,9 @@ public:
 		// Sampler heap
 		// @todo: Multiple samplers?
 
+		auto sizeSampler = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
+		auto sampStart = vks::tools::alignedVkSize(descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerDescriptorAlignment);
+		samplerOffset = vks::tools::alignedVkSize(sampStart, descriptorHeapProperties.samplerDescriptorSize);
 		VkSamplerCreateInfo samplerCI{
 			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 			.magFilter = VK_FILTER_LINEAR,
@@ -230,16 +239,16 @@ public:
 			.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
 			.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
 			.mipLodBias = 0.0f,
-			.maxAnisotropy = 8.0f,
+			.maxAnisotropy = 16.0f,
 			.compareOp = VK_COMPARE_OP_NEVER,
 			.minLod = 0.0f,
-			.maxLod = 0.0f,
+			.maxLod = (float)cubes[0].texture.mipLevels,
 			.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
 		};
 
 		VkHostAddressRangeEXT vharSampler{
-			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped),
-			.size = descriptorHeapSamplers.size
+			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped) + samplerOffset,
+			.size = sizeSampler
 		};
 		vkWriteSamplerDescriptorsEXT(device, 1, &samplerCI, &vharSampler);
 
@@ -426,7 +435,7 @@ public:
 		model.bindBuffers(cmdBuffer);
 		auto &primitive = model.nodeFromName("cube")->mesh[0].primitives[0];
 		for (uint32_t j = 0; j < static_cast<uint32_t>(cubes.size()); j++) {
-			vkCmdDrawIndexed(cmdBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, j);			
+			vkCmdDrawIndexed(cmdBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, j);
 		}
 
 		drawUI(cmdBuffer);
