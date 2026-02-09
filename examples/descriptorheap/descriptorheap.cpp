@@ -40,6 +40,7 @@ public:
 
 	vks::Buffer descriptorHeapResources;
 	vks::Buffer descriptorHeapSamplers;
+	// @todo: FiF
 	vks::Buffer uniformBuffers{};
 
 	VkDeviceSize bufferOffset;
@@ -137,7 +138,8 @@ public:
 			.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
 			.sourceData = {
 				.constantOffset = {
-					.heapOffset = static_cast<uint32_t>(imgOffset)
+					.heapOffset = static_cast<uint32_t>(imgOffset),
+					.heapArrayStride = static_cast<uint32_t>(descriptorHeapProperties.imageDescriptorSize)
 				}
 			}
 		};
@@ -230,6 +232,7 @@ public:
 		auto sizeSampler = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
 		auto sampStart = vks::tools::alignedVkSize(descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerDescriptorAlignment);
 		samplerOffset = vks::tools::alignedVkSize(sampStart, descriptorHeapProperties.samplerDescriptorSize);
+
 		VkSamplerCreateInfo samplerCI{
 			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 			.magFilter = VK_FILTER_LINEAR,
@@ -267,16 +270,21 @@ public:
 		sizeBuf = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize * 1, descriptorHeapProperties.bufferDescriptorAlignment);
 		imgOffset = vks::tools::alignedVkSize(bufferOffset + sizeBuf, descriptorHeapProperties.imageDescriptorAlignment);
 		sizeImg = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize * 2, descriptorHeapProperties.imageDescriptorAlignment);
+		auto sizeSingleImg = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 
 		// Uniform buffers
 
-		std::array<VkHostAddressRangeEXT, 2> vharsRes;
+		std::array<VkHostAddressRangeEXT, 3> vharsRes;
 		vharsRes[0] = {
 			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped),
 			.size = sizeBuf
 		};
 		vharsRes[1] = {
 			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imgOffset,
+			.size = sizeImg
+		};
+		vharsRes[2] = {
+			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imgOffset + sizeSingleImg,
 			.size = sizeImg
 		};
 
@@ -318,7 +326,7 @@ public:
 			};
 		}
 
-		std::vector<VkResourceDescriptorInfoEXT> rdis{ rdiBuf, rdisImg[0] };
+		std::vector<VkResourceDescriptorInfoEXT> rdis{ rdiBuf, rdisImg[0], rdisImg[1] };
 		vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(rdis.size()), rdis.data(), vharsRes.data());
 	}
 
@@ -419,6 +427,7 @@ public:
 		};
 		vkCmdBindResourceHeapEXT(cmdBuffer, &bindHeapInfoRes);
 		// Sampler heap
+
 		VkBindHeapInfoEXT bindHeapInfoSamplers{
 			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
 			.heapRange{
