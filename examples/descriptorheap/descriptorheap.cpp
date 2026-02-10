@@ -13,8 +13,8 @@
 
 // todo:
 // FiF
-// Dynamic rendering
 // Cleanup
+// Size calculations
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -54,11 +54,15 @@ public:
 	// @todo: FiF
 	vks::Buffer uniformBuffers{};
 
+	// Size and offset values for heap objects
 	VkDeviceSize bufferOffset{ 0 };
-	VkDeviceSize sizeBuf{ 0 };
-	VkDeviceSize imgOffset{ 0 };
-	VkDeviceSize sizeImg{ 0 };
+	VkDeviceSize bufferSize{ 0 };
+	
+	VkDeviceSize imageOffset{ 0 };
+	VkDeviceSize imageSize{ 0 };
+	
 	VkDeviceSize samplerOffset{ 0 };
+	VkDeviceSize samplerSize{ 0 };
 
 	std::vector<std::string> samplerNames{ "Linear", "Nearest" };
 
@@ -84,6 +88,7 @@ public:
 		apiVersion = VK_API_VERSION_1_3;
 
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME);
+		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
 
 		enabledBufferDeviceAddressFeatures = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
@@ -118,6 +123,155 @@ public:
 		};
 	}
 
+	void prepareDescriptorHeaps()
+	{
+		// @todo: move?
+
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniformBuffers,
+			sizeof(UniformData)));
+		uniformBuffers.map();
+		getBufferDeviceAddress(uniformBuffers);
+
+		// Descriptor heaps have varying offset, size and alignment requirements, so we store it's properties for later user
+		VkPhysicalDeviceProperties2 deviceProps2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+		descriptorHeapProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
+		deviceProps2.pNext = &descriptorHeapProperties;
+		vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProps2);
+
+		// There are two descriptor heap types: One that can store resources (buffers, images) and one that can store samplers
+
+		const VkDeviceSize heapbufferSize = vks::tools::alignedVkSize(512 * 4 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&descriptorHeapResources,
+			heapbufferSize));
+		descriptorHeapResources.map();
+		getBufferDeviceAddress(descriptorHeapResources);
+
+		const VkDeviceSize heapSizeSamplers = vks::tools::alignedVkSize(512 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&descriptorHeapSamplers,
+			heapSizeSamplers));
+		descriptorHeapSamplers.map();
+		getBufferDeviceAddress(descriptorHeapSamplers);
+
+		// Sampler heap
+		// We need to calculate some aligned offsets, heaps and strides to make sure we properly accress the descriptors
+		samplerSize = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
+		auto samplerStart = vks::tools::alignedVkSize(descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerDescriptorAlignment);
+		samplerOffset = vks::tools::alignedVkSize(samplerStart, descriptorHeapProperties.samplerDescriptorSize);
+
+		// No need to create an actual VkSampler, we can simply pass the create info that describes the sampler
+		std::array<VkSamplerCreateInfo, 2> samplerCreateInfos{
+			VkSamplerCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+				.magFilter = VK_FILTER_LINEAR,
+				.minFilter = VK_FILTER_LINEAR,
+				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.mipLodBias = 0.0f,
+				.maxAnisotropy = 16.0f,
+				.compareOp = VK_COMPARE_OP_NEVER,
+				.minLod = 0.0f,
+				.maxLod = (float)cubes[0].texture.mipLevels,
+				.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+			},
+			VkSamplerCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+				.magFilter = VK_FILTER_NEAREST,
+				.minFilter = VK_FILTER_NEAREST,
+				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.mipLodBias = 0.0f,
+				.maxAnisotropy = 16.0f,
+				.compareOp = VK_COMPARE_OP_NEVER,
+				.minLod = 0.0f,
+				.maxLod = (float)cubes[0].texture.mipLevels,
+				.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+			}
+		};
+
+		VkHostAddressRangeEXT hostAddressRangeSamplers{
+			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped) + samplerOffset,
+			.size = samplerSize * static_cast<uint32_t>(samplerCreateInfos.size())
+		};
+		vkWriteSamplerDescriptorsEXT(device, 1, samplerCreateInfos.data(), &hostAddressRangeSamplers);
+
+		// Resource heap (buffers and images)
+
+		// @todo: FiF
+
+		bufferSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize * 1, descriptorHeapProperties.bufferDescriptorAlignment);
+		// Images are storted after the last buffer (aligned)
+		imageOffset = vks::tools::alignedVkSize(bufferSize, descriptorHeapProperties.imageDescriptorAlignment);
+		imageSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
+
+		std::array<VkHostAddressRangeEXT, 3> vharsRes;
+		vharsRes[0] = {
+			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped),
+			.size = bufferSize
+		};
+		vharsRes[1] = {
+			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imageOffset,
+			.size = imageSize
+		};
+		vharsRes[2] = {
+			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imageOffset + imageSize,
+			.size = imageSize
+		};
+
+		VkDeviceAddressRangeEXT darBuf = { uniformBuffers.deviceAddress, uniformBuffers.size };
+		VkResourceDescriptorInfoEXT rdiBuf = {
+			.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
+			.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.data = {
+				.pAddressRange = &darBuf
+			}
+		};
+
+		// Images
+		std::array<VkImageViewCreateInfo, 2> vcis{};
+		std::array<VkImageDescriptorInfoEXT, 2> idis{};
+		std::array<VkResourceDescriptorInfoEXT, 2> rdisImg{};
+
+		for (uint32_t i = 0; i < static_cast<uint32_t>(cubes.size()); i++) {
+			vcis[i] = {
+				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				.image = cubes[i].texture.image,
+				.viewType = VK_IMAGE_VIEW_TYPE_2D,
+				.format = cubes[i].texture.format,
+				.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = cubes[i].texture.mipLevels, .baseArrayLayer = 0, .layerCount = 1},
+			};
+
+			idis[i] = {
+				.sType = VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT,
+				.pView = &vcis[i],
+				.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			};
+
+			rdisImg[i] = {
+				.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
+				.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				.data = {
+					.pImage = &idis[i]
+				}
+			};
+		}
+
+		std::vector<VkResourceDescriptorInfoEXT> rdis{ rdiBuf, rdisImg[0], rdisImg[1] };
+		vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(rdis.size()), rdis.data(), vharsRes.data());
+	}
+
 	void preparePipelines()
 	{
 		const std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
@@ -150,7 +304,7 @@ public:
 				.resourceMask = VK_SPIRV_RESOURCE_TYPE_UNIFORM_BUFFER_BIT_EXT,
 				.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
 			},
-			
+
 			// We are using multiple images, which requires us to set heapArrayStride to let the implementation know where image n+1 starts
 			VkDescriptorSetAndBindingMappingEXT{
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
@@ -161,9 +315,8 @@ public:
 				.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
 				.sourceData = {
 					.constantOffset = {
-						.heapOffset = static_cast<uint32_t>(imgOffset),
-						// @todo: align
-						.heapArrayStride = static_cast<uint32_t>(descriptorHeapProperties.imageDescriptorSize)
+						.heapOffset = static_cast<uint32_t>(imageOffset),
+						.heapArrayStride = static_cast<uint32_t>(imageSize)
 					}
 				}
 			},
@@ -179,8 +332,7 @@ public:
 				.sourceData = {
 					.constantOffset = {
 						.heapOffset = static_cast<uint32_t>(samplerOffset),
-						// @todo: align
-						.heapArrayStride = static_cast<uint32_t>(descriptorHeapProperties.samplerDescriptorSize)
+						.heapArrayStride = static_cast<uint32_t>(samplerSize)
 					}
 				}
 			}
@@ -225,159 +377,6 @@ public:
 		pipelineCI.pNext = &pipelineCreateFlags2CI;
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
-	}
-
-	void prepareDescriptorHeaps()
-	{
-		// @todo: move?
-
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers,
-			sizeof(UniformData)));
-		uniformBuffers.map();
-		getBufferDeviceAddress(uniformBuffers);
-
-		// Descriptor heaps have varying offset, size and alignment requirements, so we store it's properties for later user
-		VkPhysicalDeviceProperties2 deviceProps2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
-		descriptorHeapProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
-		deviceProps2.pNext = &descriptorHeapProperties;
-		vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProps2);
-
-		// There are two descriptor heap types: One that can store resources (buffers, images) and one that can store samplers
-
-		const VkDeviceSize heapSizeBuf = vks::tools::alignedVkSize(512 * 4 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&descriptorHeapResources,
-			heapSizeBuf));
-		descriptorHeapResources.map();
-		getBufferDeviceAddress(descriptorHeapResources);
-
-		const VkDeviceSize heapSizeSamplers = vks::tools::alignedVkSize(512 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&descriptorHeapSamplers,
-			heapSizeSamplers));
-		descriptorHeapSamplers.map();
-		getBufferDeviceAddress(descriptorHeapSamplers);
-	
-		// Sampler heap
-		// @todo: Multiple samplers?
-
-		auto sizeSampler = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
-		auto sampStart = vks::tools::alignedVkSize(descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerDescriptorAlignment);
-		samplerOffset = vks::tools::alignedVkSize(sampStart, descriptorHeapProperties.samplerDescriptorSize);
-
-		// No need to create an actual VkSampler, we can simply pass the create info that describes the sampler
-		std::array<VkSamplerCreateInfo, 2> samplerCreateInfos{
-			VkSamplerCreateInfo{
-				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-				.magFilter = VK_FILTER_LINEAR,
-				.minFilter = VK_FILTER_LINEAR,
-				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.mipLodBias = 0.0f,
-				.maxAnisotropy = 16.0f,
-				.compareOp = VK_COMPARE_OP_NEVER,
-				.minLod = 0.0f,
-				.maxLod = (float)cubes[0].texture.mipLevels,
-				.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
-			},
-			VkSamplerCreateInfo{
-				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-				.magFilter = VK_FILTER_NEAREST,
-				.minFilter = VK_FILTER_NEAREST,
-				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.mipLodBias = 0.0f,
-				.maxAnisotropy = 16.0f,
-				.compareOp = VK_COMPARE_OP_NEVER,
-				.minLod = 0.0f,
-				.maxLod = (float)cubes[0].texture.mipLevels,
-				.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
-			}
-		};
-
-		VkHostAddressRangeEXT hostAddressRangeSamplers{
-			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped) + samplerOffset,
-			.size = sizeSampler * static_cast<uint32_t>(samplerCreateInfos.size())
-		};
-		vkWriteSamplerDescriptorsEXT(device, 1, samplerCreateInfos.data(), &hostAddressRangeSamplers);
-
-		// Resource heap (buffer and images)
-
-		// @todo: FiF
-
-		bufferOffset = 0;
-		sizeBuf = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize * 1, descriptorHeapProperties.bufferDescriptorAlignment);
-		imgOffset = vks::tools::alignedVkSize(bufferOffset + sizeBuf, descriptorHeapProperties.imageDescriptorAlignment);
-		sizeImg = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize * 2, descriptorHeapProperties.imageDescriptorAlignment);
-		auto sizeSingleImg = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
-
-		// Uniform buffers
-
-		std::array<VkHostAddressRangeEXT, 3> vharsRes;
-		vharsRes[0] = {
-			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped),
-			.size = sizeBuf
-		};
-		vharsRes[1] = {
-			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imgOffset,
-			.size = sizeImg
-		};
-		vharsRes[2] = {
-			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imgOffset + sizeSingleImg,
-			.size = sizeImg
-		};
-
-		VkDeviceAddressRangeEXT darBuf = { uniformBuffers.deviceAddress, uniformBuffers.size };
-		VkResourceDescriptorInfoEXT rdiBuf = {
-			.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
-			.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.data = {
-				.pAddressRange = &darBuf
-			}
-		};
-
-		// Images
-		std::array<VkImageViewCreateInfo, 2> vcis{};
-		std::array<VkImageDescriptorInfoEXT, 2> idis{};
-		std::array<VkResourceDescriptorInfoEXT, 2> rdisImg{};
-
-		for (uint32_t i = 0; i < static_cast<uint32_t>(cubes.size()); i++) {
-			vcis[i] = {
-				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-				.image = cubes[i].texture.image,
-				.viewType = VK_IMAGE_VIEW_TYPE_2D,
-				.format = cubes[i].texture.format,
-				.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = cubes[i].texture.mipLevels, .baseArrayLayer = 0, .layerCount = 1},
-			};
-
-			idis[i] = {
-				.sType = VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT,
-				.pView = &vcis[i],
-				.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			};
-
-			rdisImg[i] = {
-				.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
-				.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.data = {
-					.pImage = &idis[i]
-				}
-			};
-		}
-
-		std::vector<VkResourceDescriptorInfoEXT> rdis{ rdiBuf, rdisImg[0], rdisImg[1] };
-		vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(rdis.size()), rdis.data(), vharsRes.data());
 	}
 
 	void loadAssets()
