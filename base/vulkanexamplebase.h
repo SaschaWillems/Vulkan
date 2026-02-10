@@ -1,7 +1,7 @@
 /*
 * Vulkan Example base class
 *
-* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2026 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -223,6 +223,10 @@ public:
 		VkImageView view;
 	} depthStencil{};
 
+	/** @brief Can be used by samples that use the core version of dynamic rendering */
+	bool useDynamicRendering{ false };
+	VkPhysicalDeviceDynamicRenderingFeatures baseDynamicRenderingFeatures{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES, .dynamicRendering = VK_TRUE };
+
 	// OS specific
 #if defined(_WIN32)
 	HWND window;
@@ -362,6 +366,10 @@ public:
 	virtual void getEnabledFeatures();
 	/** @brief (Virtual) Called after the physical device extensions have been read, can be used to enable extensions based on the supported extension listing*/
 	virtual void getEnabledExtensions();
+	/** @brief Begin dynamic rendering with the default setup for the base class color and depth attachment */
+	void beginDynamicRendering(VkCommandBuffer cmdBuffer);
+	/** @brief End dynamic rendering with the default setup for the base class color and depth attachment */
+	void endDynamicRendering(VkCommandBuffer cmdBuffer);
 
 	/** @brief Prepares all Vulkan resources and functions required to run the sample */
 	virtual void prepare();
