@@ -556,6 +556,8 @@ public:
 		vkDestroySampler(device, multiviewPass.sampler, nullptr);
 		vkDestroyFramebuffer(device, multiviewPass.frameBuffer, nullptr);
 
+		VK_CHECK_RESULT(vkResetDescriptorPool(device, descriptorPool, 0));
+
 		prepareMultiview();
 		updateDescriptors();
 		
