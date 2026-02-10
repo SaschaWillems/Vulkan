@@ -216,36 +216,29 @@ public:
 		imageOffset = vks::tools::alignedVkSize(bufferSize, descriptorHeapProperties.imageDescriptorAlignment);
 		imageSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 
-		std::array<VkHostAddressRangeEXT, 3> vharsRes;
-		vharsRes[0] = {
-			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped),
-			.size = bufferSize
-		};
-		vharsRes[1] = {
-			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imageOffset,
-			.size = imageSize
-		};
-		vharsRes[2] = {
-			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imageOffset + imageSize,
-			.size = imageSize
-		};
-
-		VkDeviceAddressRangeEXT darBuf = { uniformBuffers.deviceAddress, uniformBuffers.size };
-		VkResourceDescriptorInfoEXT rdiBuf = {
+		std::array<VkHostAddressRangeEXT, 3> hostAddressRangesResources{};
+		std::array< VkResourceDescriptorInfoEXT, 3> resourceDescriptorInfos{};
+		
+		// Buffer
+		VkDeviceAddressRangeEXT deviceAddressRangeUniformBuffer{ uniformBuffers.deviceAddress, uniformBuffers.size };
+		resourceDescriptorInfos[0] = {
 			.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
 			.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			.data = {
-				.pAddressRange = &darBuf
+				.pAddressRange = &deviceAddressRangeUniformBuffer
 			}
+		};
+		hostAddressRangesResources[0] = {
+			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped),
+			.size = bufferSize
 		};
 
 		// Images
-		std::array<VkImageViewCreateInfo, 2> vcis{};
-		std::array<VkImageDescriptorInfoEXT, 2> idis{};
-		std::array<VkResourceDescriptorInfoEXT, 2> rdisImg{};
+		std::array<VkImageViewCreateInfo, 2> imageViewCreateInfos{};
+		std::array<VkImageDescriptorInfoEXT, 2> imageDescriptorInfo{};
 
-		for (uint32_t i = 0; i < static_cast<uint32_t>(cubes.size()); i++) {
-			vcis[i] = {
+		for (auto i = 0; i < cubes.size(); i++) {
+			imageViewCreateInfos[i] = {
 				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 				.image = cubes[i].texture.image,
 				.viewType = VK_IMAGE_VIEW_TYPE_2D,
@@ -253,23 +246,27 @@ public:
 				.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = cubes[i].texture.mipLevels, .baseArrayLayer = 0, .layerCount = 1},
 			};
 
-			idis[i] = {
+			imageDescriptorInfo[i] = {
 				.sType = VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT,
-				.pView = &vcis[i],
+				.pView = &imageViewCreateInfos[i],
 				.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			};
 
-			rdisImg[i] = {
+			resourceDescriptorInfos[i + 1] = {
 				.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
 				.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.data = {
-					.pImage = &idis[i]
+					.pImage = &imageDescriptorInfo[i]
 				}
+			};
+
+			hostAddressRangesResources[i + 1] = {
+				.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imageOffset + imageSize * i,
+				.size = imageSize
 			};
 		}
 
-		std::vector<VkResourceDescriptorInfoEXT> rdis{ rdiBuf, rdisImg[0], rdisImg[1] };
-		vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(rdis.size()), rdis.data(), vharsRes.data());
+		vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(resourceDescriptorInfos.size()), resourceDescriptorInfos.data(), hostAddressRangesResources.data());
 	}
 
 	void preparePipelines()
