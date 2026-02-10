@@ -43,16 +43,14 @@ public:
 
 	VkPhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapProperties{};
 
-	PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR{ nullptr };
-	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR{ nullptr };
 	PFN_vkWriteResourceDescriptorsEXT vkWriteResourceDescriptorsEXT{ nullptr };
 	PFN_vkCmdBindResourceHeapEXT vkCmdBindResourceHeapEXT{ nullptr };
 	PFN_vkCmdBindSamplerHeapEXT vkCmdBindSamplerHeapEXT{ nullptr };
 	PFN_vkWriteSamplerDescriptorsEXT vkWriteSamplerDescriptorsEXT{ nullptr };
 	PFN_vkGetPhysicalDeviceDescriptorSizeEXT vkGetPhysicalDeviceDescriptorSizeEXT{ nullptr };
 
-	vks::Buffer descriptorHeapResources{ nullptr };
-	vks::Buffer descriptorHeapSamplers{ nullptr };
+	vks::Buffer descriptorHeapResources{};
+	vks::Buffer descriptorHeapSamplers{};
 	// @todo: FiF
 	vks::Buffer uniformBuffers{};
 
@@ -68,28 +66,28 @@ public:
 	uint64_t getBufferDeviceAddress(vks::Buffer &buffer)
 	{
 		VkBufferDeviceAddressInfoKHR bufferDeviceAI{ .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = buffer.buffer };
-		buffer.deviceAddress = vkGetBufferDeviceAddressKHR(device, &bufferDeviceAI);
+		buffer.deviceAddress = vkGetBufferDeviceAddress(device, &bufferDeviceAI);
 		return buffer.deviceAddress;
 	}
 
 	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Descriptor heaps (VK_EXT_descriptor_heap)";
+		useDynamicRendering = true;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
 		camera.setRotation(glm::vec3(0.0f, 0.0f, 0.0f));
 		camera.setTranslation(glm::vec3(0.0f, 0.0f, -5.0f));
 
-		apiVersion = VK_API_VERSION_1_2;
+		// We use 1.3 as a baseline, so we can use the dynamic rendering functionality of the base class
+		// Descriptor heaps do work with earlier versions though
+		apiVersion = VK_API_VERSION_1_3;
 
-		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-		enabledDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
-		enabledDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME);
 
 		enabledBufferDeviceAddressFeatures = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
+			.pNext = &baseDynamicRenderingFeatures,
 			.bufferDeviceAddress = VK_TRUE
 		};
 
@@ -199,7 +197,6 @@ public:
 		shaderStages[1].pNext = &descriptorSetAndBindingMappingInfo;
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo();
-		pipelineCI.renderPass = renderPass;
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 		pipelineCI.pRasterizationState = &rasterizationStateCI;
 		pipelineCI.pColorBlendState = &colorBlendStateCI;
@@ -210,11 +207,19 @@ public:
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color });
-
+		VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+			.colorAttachmentCount = 1,
+			.pColorAttachmentFormats = &swapChain.colorFormat,
+			.depthAttachmentFormat = depthFormat,
+			.stencilAttachmentFormat = depthFormat
+		};
+		
 		// With descriptor heaps we no longer need a pipeline layout
 		// This struct must be chained into pipeline creation to enable the use of heaps (allowing us to leave pipelineLayout empty)
 		VkPipelineCreateFlags2CreateInfo pipelineCreateFlags2CI{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+			.pNext = &pipelineRenderingCreateInfo,
 			.flags = VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
 		};
 		pipelineCI.pNext = &pipelineCreateFlags2CI;
@@ -235,11 +240,10 @@ public:
 		getBufferDeviceAddress(uniformBuffers);
 
 		// Descriptor heaps have varying offset, size and alignment requirements, so we store it's properties for later user
-		assert(vkGetPhysicalDeviceProperties2KHR);
-		VkPhysicalDeviceProperties2KHR deviceProps2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR };
+		VkPhysicalDeviceProperties2 deviceProps2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
 		descriptorHeapProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
 		deviceProps2.pNext = &descriptorHeapProperties;
-		vkGetPhysicalDeviceProperties2KHR(physicalDevice, &deviceProps2);
+		vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProps2);
 
 		// There are two descriptor heap types: One that can store resources (buffers, images) and one that can store samplers
 
@@ -405,8 +409,6 @@ public:
 		VulkanExampleBase::prepare();
 
 		// Using descriptor heaps requires some extensions, and with that functions to be loaded explicitly
-		vkGetPhysicalDeviceProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2KHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR"));
-		vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(device, "vkGetBufferDeviceAddressKHR"));
 		vkWriteResourceDescriptorsEXT = reinterpret_cast<PFN_vkWriteResourceDescriptorsEXT>(vkGetDeviceProcAddr(device, "vkWriteResourceDescriptorsEXT"));
 		vkCmdBindResourceHeapEXT = reinterpret_cast<PFN_vkCmdBindResourceHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindResourceHeapEXT"));
 		vkCmdBindSamplerHeapEXT = reinterpret_cast<PFN_vkCmdBindSamplerHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindSamplerHeapEXT"));
@@ -425,36 +427,18 @@ public:
 
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[2]{};
-		clearValues[0].color = defaultClearColor;
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
-
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
 
-		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		beginDynamicRendering(cmdBuffer);
 
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
 		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
-
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
-
 		VkDeviceSize offsets[1] = { 0 };
 		model.bindBuffers(cmdBuffer);
 
-		// Res Heap
 		// @todo: offset per fif
 		// Bind the heap containing resources (buffers and images)
 		VkBindHeapInfoEXT bindHeapInfoRes{
@@ -485,9 +469,7 @@ public:
 		}
 
 		drawUI(cmdBuffer);
-
-		vkCmdEndRenderPass(cmdBuffer);
-
+		endDynamicRendering(cmdBuffer);
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
