@@ -220,6 +220,11 @@ void VulkanExampleBase::createPipelineCache()
 
 void VulkanExampleBase::prepare()
 {
+	if (useDynamicRendering && apiVersion < VK_API_VERSION_1_3) {
+		std::cerr << "Error: Using the core variant of dynamic rendering requires Vulkan 1.3";
+		exit(-1);
+	}
+
 	createSurface();
 	createCommandPool();
 	createSwapChain();
