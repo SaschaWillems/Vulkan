@@ -1,5 +1,7 @@
 /*
  * Vulkan Example - Using descriptor heaps via VK_EXT_descriptor_heap
+ * 
+ * Descriptor heaps fundamentally rework how shader resources are bound. Descriptors are simply stored in buffers (heaps).
  *
  * Copyright (C) 2026 by Sascha Willems - www.saschawillems.de
  *
@@ -9,6 +11,10 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
+// todo:
+// FiF
+// Dynamic rendering
+// Cleanup
 
 class VulkanExample : public VulkanExampleBase
 {
@@ -16,21 +22,28 @@ public:
 	bool animate = true;
 
 	struct Cube {
-		glm::mat4 matrix;
 		vks::Texture2D texture;
 		glm::vec3 rotation;
 	};
 	std::array<Cube, 2> cubes;
 
+	struct UniformData {
+		glm::mat4 projectionMatrix;
+		glm::mat4 viewMatrix;
+		glm::mat4 modelMatrix[2];
+		int32_t selectedSampler{ 0 };
+	} uniformData;
+
 	vkglTF::Model model;
 
-	VkPipeline pipeline;
+	VkPipeline pipeline{ nullptr };
 	
 	VkPhysicalDeviceDescriptorHeapFeaturesEXT enabledDeviceDescriptorHeapFeaturesEXT{};
 	VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddressFeatures{};
 
 	VkPhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapProperties{};
 
+	PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR{ nullptr };
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR{ nullptr };
 	PFN_vkWriteResourceDescriptorsEXT vkWriteResourceDescriptorsEXT{ nullptr };
 	PFN_vkCmdBindResourceHeapEXT vkCmdBindResourceHeapEXT{ nullptr };
@@ -38,16 +51,18 @@ public:
 	PFN_vkWriteSamplerDescriptorsEXT vkWriteSamplerDescriptorsEXT{ nullptr };
 	PFN_vkGetPhysicalDeviceDescriptorSizeEXT vkGetPhysicalDeviceDescriptorSizeEXT{ nullptr };
 
-	vks::Buffer descriptorHeapResources;
-	vks::Buffer descriptorHeapSamplers;
+	vks::Buffer descriptorHeapResources{ nullptr };
+	vks::Buffer descriptorHeapSamplers{ nullptr };
 	// @todo: FiF
 	vks::Buffer uniformBuffers{};
 
-	VkDeviceSize bufferOffset;
-	VkDeviceSize sizeBuf;
-	VkDeviceSize imgOffset;
-	VkDeviceSize sizeImg;
-	VkDeviceSize samplerOffset;
+	VkDeviceSize bufferOffset{ 0 };
+	VkDeviceSize sizeBuf{ 0 };
+	VkDeviceSize imgOffset{ 0 };
+	VkDeviceSize sizeImg{ 0 };
+	VkDeviceSize samplerOffset{ 0 };
+
+	std::vector<std::string> samplerNames{ "Linear", "Nearest" };
 
 	// Descriptor heap makes heavy use of buffer device addresses
 	uint64_t getBufferDeviceAddress(vks::Buffer &buffer)
@@ -89,7 +104,9 @@ public:
 
 	~VulkanExample()
 	{
-		//vkDestroyDescriptorSetLayout(device, uniformDescriptor.setLayout, nullptr);
+		vkDestroyBuffer(device, uniformBuffers.buffer, nullptr);
+		vkDestroyBuffer(device, descriptorHeapResources.buffer, nullptr);
+		vkDestroyBuffer(device, descriptorHeapSamplers.buffer, nullptr);
 		vkDestroyPipeline(device, pipeline, nullptr);
 		for (auto& cube : cubes) {
 			cube.texture.destroy();
@@ -120,59 +137,66 @@ public:
 			loadShader(getShadersPath() + "descriptorheap/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
-		VkDescriptorSetAndBindingMappingEXT setAndBindingMappingBuffers{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
-			.descriptorSet = 0,
-			.firstBinding = 0,
-			.bindingCount = 1,
-			.resourceMask = VK_SPIRV_RESOURCE_TYPE_UNIFORM_BUFFER_BIT_EXT,
-			.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
-		};
+		// Descriptor heaps can be used without having to explicitly change the shaders
+		// This is done by specifiying the bindings and their types at the shader stage level
+		// As samplers require a different heap (than images), we can't use combined images
 
-		VkDescriptorSetAndBindingMappingEXT setAndBindingMappingImages{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
-			.descriptorSet = 1,
-			.firstBinding = 0,
-			.bindingCount = 1,
-			.resourceMask = VK_SPIRV_RESOURCE_TYPE_SAMPLED_IMAGE_BIT_EXT,
-			.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
-			.sourceData = {
-				.constantOffset = {
-					.heapOffset = static_cast<uint32_t>(imgOffset),
-					.heapArrayStride = static_cast<uint32_t>(descriptorHeapProperties.imageDescriptorSize)
+		std::array<VkDescriptorSetAndBindingMappingEXT, 3> setAndBindingMappings = {
+
+			// Buffer binding is straigt forward
+			VkDescriptorSetAndBindingMappingEXT{
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
+				.descriptorSet = 0,
+				.firstBinding = 0,
+				.bindingCount = 1,
+				.resourceMask = VK_SPIRV_RESOURCE_TYPE_UNIFORM_BUFFER_BIT_EXT,
+				.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
+			},
+			
+			// We are using multiple images, which requires us to set heapArrayStride to let the implementation know where image n+1 starts
+			VkDescriptorSetAndBindingMappingEXT{
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
+				.descriptorSet = 1,
+				.firstBinding = 0,
+				.bindingCount = 1,
+				.resourceMask = VK_SPIRV_RESOURCE_TYPE_SAMPLED_IMAGE_BIT_EXT,
+				.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
+				.sourceData = {
+					.constantOffset = {
+						.heapOffset = static_cast<uint32_t>(imgOffset),
+						// @todo: align
+						.heapArrayStride = static_cast<uint32_t>(descriptorHeapProperties.imageDescriptorSize)
+					}
+				}
+			},
+
+			// As samplers require a different heap (than images), we can't use combined images but split image and sampler
+			VkDescriptorSetAndBindingMappingEXT{
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
+				.descriptorSet = 2,
+				.firstBinding = 0,
+				.bindingCount = 1,
+				.resourceMask = VK_SPIRV_RESOURCE_TYPE_SAMPLER_BIT_EXT,
+				.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
+				.sourceData = {
+					.constantOffset = {
+						.heapOffset = static_cast<uint32_t>(samplerOffset),
+						// @todo: align
+						.heapArrayStride = static_cast<uint32_t>(descriptorHeapProperties.samplerDescriptorSize)
+					}
 				}
 			}
-		};
 
-		VkDescriptorSetAndBindingMappingEXT setAndBindingMappingSamplers{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
-			.descriptorSet = 2,
-			.firstBinding = 0,
-			.bindingCount = 1,
-			.resourceMask = VK_SPIRV_RESOURCE_TYPE_SAMPLER_BIT_EXT,
-			.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
-			.sourceData = {
-				.constantOffset = {
-					.heapOffset = static_cast<uint32_t>(samplerOffset)
-				}
-			}
 		};
-
-		std::array<VkDescriptorSetAndBindingMappingEXT, 3> sabms = { setAndBindingMappingBuffers, setAndBindingMappingImages, setAndBindingMappingSamplers };
 
 		VkShaderDescriptorSetAndBindingMappingInfoEXT descriptorSetAndBindingMappingInfo{
 			.sType = VK_STRUCTURE_TYPE_SHADER_DESCRIPTOR_SET_AND_BINDING_MAPPING_INFO_EXT,
-			.mappingCount = static_cast<uint32_t>(sabms.size()),
-			.pMappings = sabms.data()
+			.mappingCount = static_cast<uint32_t>(setAndBindingMappings.size()),
+			.pMappings = setAndBindingMappings.data()
 		};
 
 		shaderStages[0].pNext = &descriptorSetAndBindingMappingInfo;
 		shaderStages[1].pNext = &descriptorSetAndBindingMappingInfo;
-
-		VkPipelineCreateFlags2CreateInfo pcf2ci{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
-			.flags = VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
-		};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo();
 		pipelineCI.renderPass = renderPass;
@@ -186,27 +210,38 @@ public:
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color });
-		pipelineCI.pNext = &pcf2ci;
+
+		// With descriptor heaps we no longer need a pipeline layout
+		// This struct must be chained into pipeline creation to enable the use of heaps (allowing us to leave pipelineLayout empty)
+		VkPipelineCreateFlags2CreateInfo pipelineCreateFlags2CI{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+			.flags = VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
+		};
+		pipelineCI.pNext = &pipelineCreateFlags2CI;
+
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
 
 	void prepareDescriptorHeaps()
 	{
-		PFN_vkGetPhysicalDeviceProperties2KHR vkGetPhysicalDeviceProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2KHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR"));
-		assert(vkGetPhysicalDeviceProperties2KHR);
-		VkPhysicalDeviceProperties2KHR deviceProps2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR };
-		descriptorHeapProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
-		deviceProps2.pNext = &descriptorHeapProperties;
-		vkGetPhysicalDeviceProperties2KHR(physicalDevice, &deviceProps2);		
+		// @todo: move?
 
-		const VkDeviceSize uBufSize = sizeof(glm::mat4) * 4;
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&uniformBuffers,
-			uBufSize));
+			sizeof(UniformData)));
 		uniformBuffers.map();
 		getBufferDeviceAddress(uniformBuffers);
+
+		// Descriptor heaps have varying offset, size and alignment requirements, so we store it's properties for later user
+		assert(vkGetPhysicalDeviceProperties2KHR);
+		VkPhysicalDeviceProperties2KHR deviceProps2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR };
+		descriptorHeapProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
+		deviceProps2.pNext = &descriptorHeapProperties;
+		vkGetPhysicalDeviceProperties2KHR(physicalDevice, &deviceProps2);
+
+		// There are two descriptor heap types: One that can store resources (buffers, images) and one that can store samplers
 
 		const VkDeviceSize heapSizeBuf = vks::tools::alignedVkSize(512 * 4 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
@@ -233,36 +268,47 @@ public:
 		auto sampStart = vks::tools::alignedVkSize(descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerDescriptorAlignment);
 		samplerOffset = vks::tools::alignedVkSize(sampStart, descriptorHeapProperties.samplerDescriptorSize);
 
-		VkSamplerCreateInfo samplerCI{
-			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-			.magFilter = VK_FILTER_LINEAR,
-			.minFilter = VK_FILTER_LINEAR,
-			.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-			.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-			.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-			.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-			.mipLodBias = 0.0f,
-			.maxAnisotropy = 16.0f,
-			.compareOp = VK_COMPARE_OP_NEVER,
-			.minLod = 0.0f,
-			.maxLod = (float)cubes[0].texture.mipLevels,
-			.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+		// No need to create an actual VkSampler, we can simply pass the create info that describes the sampler
+		std::array<VkSamplerCreateInfo, 2> samplerCreateInfos{
+			VkSamplerCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+				.magFilter = VK_FILTER_LINEAR,
+				.minFilter = VK_FILTER_LINEAR,
+				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.mipLodBias = 0.0f,
+				.maxAnisotropy = 16.0f,
+				.compareOp = VK_COMPARE_OP_NEVER,
+				.minLod = 0.0f,
+				.maxLod = (float)cubes[0].texture.mipLevels,
+				.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+			},
+			VkSamplerCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+				.magFilter = VK_FILTER_NEAREST,
+				.minFilter = VK_FILTER_NEAREST,
+				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.mipLodBias = 0.0f,
+				.maxAnisotropy = 16.0f,
+				.compareOp = VK_COMPARE_OP_NEVER,
+				.minLod = 0.0f,
+				.maxLod = (float)cubes[0].texture.mipLevels,
+				.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+			}
 		};
 
-		VkHostAddressRangeEXT vharSampler{
+		VkHostAddressRangeEXT hostAddressRangeSamplers{
 			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped) + samplerOffset,
-			.size = sizeSampler
+			.size = sizeSampler * static_cast<uint32_t>(samplerCreateInfos.size())
 		};
-		vkWriteSamplerDescriptorsEXT(device, 1, &samplerCI, &vharSampler);
+		vkWriteSamplerDescriptorsEXT(device, 1, samplerCreateInfos.data(), &hostAddressRangeSamplers);
 
 		// Resource heap (buffer and images)
-
-		/*
-		const VkDeviceSize image_offset = AlignedAppend(resource_heap_tracker, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-		const VkDeviceSize image_size = resource_heap_tracker - image_offset;
-		const VkDeviceSize buffer_offset = AlignedAppend(resource_heap_tracker, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		const VkDeviceSize buffer_size = resource_heap_tracker - buffer_offset;
-		*/
 
 		// @todo: FiF
 
@@ -340,23 +386,18 @@ public:
 
 	void updateUniformBuffers()
 	{
-		char* bufDataPtr = (char*)uniformBuffers.mapped;
-		size_t sInc = sizeof(glm::mat4);
-		memcpy(bufDataPtr, &camera.matrices.perspective, sizeof(glm::mat4));
-		bufDataPtr += sInc;
-		memcpy(bufDataPtr, &camera.matrices.view, sizeof(glm::mat4));
-
-		cubes[0].matrix = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 0.0f, 0.0f));
-		cubes[1].matrix = glm::translate(glm::mat4(1.0f), glm::vec3( 1.5f, 0.5f, 0.0f));
-		for (auto& cube : cubes) {
-			bufDataPtr += sInc;
-			cube.matrix = glm::rotate(cube.matrix, glm::radians(cube.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			cube.matrix = glm::rotate(cube.matrix, glm::radians(cube.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-			cube.matrix = glm::rotate(cube.matrix, glm::radians(cube.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-			cube.matrix = glm::scale(cube.matrix, glm::vec3(0.25f));
-			memcpy(bufDataPtr, &cube.matrix, sizeof(glm::mat4));
+		uniformData.projectionMatrix = camera.matrices.perspective;
+		uniformData.viewMatrix = camera.matrices.view;
+		std::array<glm::vec3, 2> positions = { glm::vec3(-2.0f, 0.0f, 0.0f), glm::vec3(1.5f, 0.5f, 0.0f) };
+		for (auto i = 0; i < cubes.size(); i++) {
+			glm::mat4 cubeMat = glm::translate(glm::mat4(1.0f), positions[i]);
+			cubeMat = glm::rotate(cubeMat, glm::radians(cubes[i].rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+			cubeMat = glm::rotate(cubeMat, glm::radians(cubes[i].rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+			cubeMat = glm::rotate(cubeMat, glm::radians(cubes[i].rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+			cubeMat = glm::scale(cubeMat, glm::vec3(0.25f));
+			uniformData.modelMatrix[i] = cubeMat;
 		}
-
+		memcpy(uniformBuffers.mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void prepare()
@@ -364,6 +405,7 @@ public:
 		VulkanExampleBase::prepare();
 
 		// Using descriptor heaps requires some extensions, and with that functions to be loaded explicitly
+		vkGetPhysicalDeviceProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2KHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR"));
 		vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(device, "vkGetBufferDeviceAddressKHR"));
 		vkWriteResourceDescriptorsEXT = reinterpret_cast<PFN_vkWriteResourceDescriptorsEXT>(vkGetDeviceProcAddr(device, "vkWriteResourceDescriptorsEXT"));
 		vkCmdBindResourceHeapEXT = reinterpret_cast<PFN_vkCmdBindResourceHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindResourceHeapEXT"));
@@ -412,11 +454,9 @@ public:
 		VkDeviceSize offsets[1] = { 0 };
 		model.bindBuffers(cmdBuffer);
 
-		const VkDeviceSize resStrideBuf = std::max(descriptorHeapProperties.resourceHeapAlignment, descriptorHeapProperties.bufferDescriptorAlignment);
-		const VkDeviceSize resStrideImg = std::max(descriptorHeapProperties.resourceHeapAlignment, descriptorHeapProperties.imageDescriptorAlignment);
-
-		// @todo
 		// Res Heap
+		// @todo: offset per fif
+		// Bind the heap containing resources (buffers and images)
 		VkBindHeapInfoEXT bindHeapInfoRes{
 			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
 			.heapRange{
@@ -426,8 +466,8 @@ public:
 			.reservedRangeSize = descriptorHeapProperties.minResourceHeapReservedRange
 		};
 		vkCmdBindResourceHeapEXT(cmdBuffer, &bindHeapInfoRes);
-		// Sampler heap
-
+		
+		// Bind the heap containing samplers
 		VkBindHeapInfoEXT bindHeapInfoSamplers{
 			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
 			.heapRange{
@@ -437,9 +477,6 @@ public:
 			.reservedRangeSize = descriptorHeapProperties.minSamplerHeapReservedRange
 		};
 		vkCmdBindSamplerHeapEXT(cmdBuffer, &bindHeapInfoSamplers);
-
-		uint32_t bufferIndexUbo = 0;
-		VkDeviceSize globalBufferOffset = 0;
 
 		model.bindBuffers(cmdBuffer);
 		auto &primitive = model.nodeFromName("cube")->mesh[0].primitives[0];
@@ -476,6 +513,9 @@ public:
 	{
 		if (overlay->header("Settings")) {
 			overlay->checkBox("Animate", &animate);
+		}
+		if (overlay->comboBox("Sampler", &uniformData.selectedSampler, samplerNames)) {
+			updateUniformBuffers();
 		}
 	}
 };
