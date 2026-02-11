@@ -11,11 +11,6 @@
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-// todo:
-// FiF
-// Cleanup
-// Size calculations
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
@@ -31,9 +26,9 @@ public:
 		glm::mat4 projectionMatrix;
 		glm::mat4 viewMatrix;
 		glm::mat4 modelMatrix[2];
-		int32_t selectedSampler{ 0 };
 	} uniformData;
 
+	int32_t selectedSampler{ 0 };
 	vkglTF::Model model;
 
 	VkPipeline pipeline{ nullptr };
@@ -47,16 +42,16 @@ public:
 	PFN_vkCmdBindResourceHeapEXT vkCmdBindResourceHeapEXT{ nullptr };
 	PFN_vkCmdBindSamplerHeapEXT vkCmdBindSamplerHeapEXT{ nullptr };
 	PFN_vkWriteSamplerDescriptorsEXT vkWriteSamplerDescriptorsEXT{ nullptr };
+	PFN_vkCmdPushDataEXT vkCmdPushDataEXT{ nullptr };
 	PFN_vkGetPhysicalDeviceDescriptorSizeEXT vkGetPhysicalDeviceDescriptorSizeEXT{ nullptr };
 
 	vks::Buffer descriptorHeapResources{};
 	vks::Buffer descriptorHeapSamplers{};
-	// @todo: FiF
-	vks::Buffer uniformBuffers{};
+	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers{};
 
 	// Size and offset values for heap objects
 	VkDeviceSize bufferOffset{ 0 };
-	VkDeviceSize bufferSize{ 0 };
+	VkDeviceSize bufferDescriptorSize{ 0 };
 	
 	VkDeviceSize imageOffset{ 0 };
 	VkDeviceSize imageSize{ 0 };
@@ -107,12 +102,18 @@ public:
 
 	~VulkanExample()
 	{
-		vkDestroyBuffer(device, uniformBuffers.buffer, nullptr);
-		vkDestroyBuffer(device, descriptorHeapResources.buffer, nullptr);
-		vkDestroyBuffer(device, descriptorHeapSamplers.buffer, nullptr);
-		vkDestroyPipeline(device, pipeline, nullptr);
-		for (auto& cube : cubes) {
-			cube.texture.destroy();
+		if (device) {
+			for (auto& uniformBuffer : uniformBuffers) {
+				uniformBuffer.destroy();
+			}
+			descriptorHeapResources.destroy();
+			descriptorHeapSamplers.destroy();
+			vkDestroyBuffer(device, descriptorHeapResources.buffer, nullptr);
+			vkDestroyBuffer(device, descriptorHeapSamplers.buffer, nullptr);
+			vkDestroyPipeline(device, pipeline, nullptr);
+			for (auto& cube : cubes) {
+				cube.texture.destroy();
+			}
 		}
 	}
 
@@ -125,15 +126,16 @@ public:
 
 	void prepareDescriptorHeaps()
 	{
-		// @todo: move?
-
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&uniformBuffers,
-			sizeof(UniformData)));
-		uniformBuffers.map();
-		getBufferDeviceAddress(uniformBuffers);
+		// One buffer that per uniform buffers per frames-in-flight
+		for (uint32_t i = 0; i < maxConcurrentFrames; i++) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				&uniformBuffers[i],
+				sizeof(UniformData)));
+			uniformBuffers[i].map();
+			getBufferDeviceAddress(uniformBuffers[i]);
+		}
 
 		// Descriptor heaps have varying offset, size and alignment requirements, so we store it's properties for later user
 		VkPhysicalDeviceProperties2 deviceProps2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
@@ -142,8 +144,8 @@ public:
 		vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProps2);
 
 		// There are two descriptor heap types: One that can store resources (buffers, images) and one that can store samplers
-
-		const VkDeviceSize heapbufferSize = vks::tools::alignedVkSize(512 * 4 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
+		// We create heaps with a fixed size that's guaranteed to fit in the few descriptors we use
+		const VkDeviceSize heapbufferSize = vks::tools::alignedVkSize(2048 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -152,7 +154,7 @@ public:
 		descriptorHeapResources.map();
 		getBufferDeviceAddress(descriptorHeapResources);
 
-		const VkDeviceSize heapSizeSamplers = vks::tools::alignedVkSize(512 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
+		const VkDeviceSize heapSizeSamplers = vks::tools::alignedVkSize(2048 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -208,35 +210,41 @@ public:
 		vkWriteSamplerDescriptorsEXT(device, 1, samplerCreateInfos.data(), &hostAddressRangeSamplers);
 
 		// Resource heap (buffers and images)
-
-		// @todo: FiF
-
-		bufferSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize * 1, descriptorHeapProperties.bufferDescriptorAlignment);
+		bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
 		// Images are storted after the last buffer (aligned)
-		imageOffset = vks::tools::alignedVkSize(bufferSize, descriptorHeapProperties.imageDescriptorAlignment);
+		imageOffset = vks::tools::alignedVkSize(bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 		imageSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 
-		std::array<VkHostAddressRangeEXT, 3> hostAddressRangesResources{};
-		std::array< VkResourceDescriptorInfoEXT, 3> resourceDescriptorInfos{};
+		auto vectorSize{ maxConcurrentFrames + cubes.size() };
+		std::vector<VkHostAddressRangeEXT> hostAddressRangesResources(vectorSize);
+		std::vector<VkResourceDescriptorInfoEXT> resourceDescriptorInfos(vectorSize);
 		
+		size_t heapResIndex{ 0 };
+
 		// Buffer
-		VkDeviceAddressRangeEXT deviceAddressRangeUniformBuffer{ uniformBuffers.deviceAddress, uniformBuffers.size };
-		resourceDescriptorInfos[0] = {
-			.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
-			.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.data = {
-				.pAddressRange = &deviceAddressRangeUniformBuffer
-			}
-		};
-		hostAddressRangesResources[0] = {
-			.address = static_cast<uint8_t*>(descriptorHeapResources.mapped),
-			.size = bufferSize
-		};
+		std::array<VkDeviceAddressRangeEXT, maxConcurrentFrames> deviceAddressRangesUniformBuffer{};
+		for (auto i = 0; i < uniformBuffers.size(); i++) {
+			deviceAddressRangesUniformBuffer[i] = { .address = uniformBuffers[i].deviceAddress, .size = uniformBuffers[i].size};
+			resourceDescriptorInfos[heapResIndex] = {
+				.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
+				.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.data = {
+					.pAddressRange = &deviceAddressRangesUniformBuffer[i]
+				}
+			};
+			hostAddressRangesResources[heapResIndex] = {
+				.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + bufferDescriptorSize * i,
+				.size = bufferDescriptorSize
+			};
+
+			heapResIndex++;
+		}
 
 		// Images
 		std::array<VkImageViewCreateInfo, 2> imageViewCreateInfos{};
 		std::array<VkImageDescriptorInfoEXT, 2> imageDescriptorInfo{};
 
+		// @offset
 		for (auto i = 0; i < cubes.size(); i++) {
 			imageViewCreateInfos[i] = {
 				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -252,7 +260,7 @@ public:
 				.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			};
 
-			resourceDescriptorInfos[i + 1] = {
+			resourceDescriptorInfos[heapResIndex] = {
 				.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
 				.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.data = {
@@ -260,10 +268,12 @@ public:
 				}
 			};
 
-			hostAddressRangesResources[i + 1] = {
+			hostAddressRangesResources[heapResIndex] = {
 				.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imageOffset + imageSize * i,
 				.size = imageSize
 			};
+
+			heapResIndex++;
 		}
 
 		vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(resourceDescriptorInfos.size()), resourceDescriptorInfos.data(), hostAddressRangesResources.data());
@@ -292,7 +302,7 @@ public:
 
 		std::array<VkDescriptorSetAndBindingMappingEXT, 3> setAndBindingMappings = {
 
-			// Buffer binding is straigt forward
+			// Buffer binding
 			VkDescriptorSetAndBindingMappingEXT{
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
 				.descriptorSet = 0,
@@ -300,6 +310,11 @@ public:
 				.bindingCount = 1,
 				.resourceMask = VK_SPIRV_RESOURCE_TYPE_UNIFORM_BUFFER_BIT_EXT,
 				.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
+				.sourceData = {
+					.constantOffset = {
+						.heapArrayStride = static_cast<uint32_t>(bufferDescriptorSize)
+					}
+				}
 			},
 
 			// We are using multiple images, which requires us to set heapArrayStride to let the implementation know where image n+1 starts
@@ -385,7 +400,7 @@ public:
 	}
 
 	void updateUniformBuffers()
-	{
+	{		
 		uniformData.projectionMatrix = camera.matrices.perspective;
 		uniformData.viewMatrix = camera.matrices.view;
 		std::array<glm::vec3, 2> positions = { glm::vec3(-2.0f, 0.0f, 0.0f), glm::vec3(1.5f, 0.5f, 0.0f) };
@@ -397,7 +412,7 @@ public:
 			cubeMat = glm::scale(cubeMat, glm::vec3(0.25f));
 			uniformData.modelMatrix[i] = cubeMat;
 		}
-		memcpy(uniformBuffers.mapped, &uniformData, sizeof(UniformData));
+		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 	}
 
 	void prepare()
@@ -410,6 +425,7 @@ public:
 		vkCmdBindSamplerHeapEXT = reinterpret_cast<PFN_vkCmdBindSamplerHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindSamplerHeapEXT"));
 		vkGetPhysicalDeviceDescriptorSizeEXT = reinterpret_cast<PFN_vkGetPhysicalDeviceDescriptorSizeEXT>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceDescriptorSizeEXT"));
 		vkWriteSamplerDescriptorsEXT = reinterpret_cast<PFN_vkWriteSamplerDescriptorsEXT>(vkGetInstanceProcAddr(instance, "vkWriteSamplerDescriptorsEXT"));
+		vkCmdPushDataEXT = reinterpret_cast<PFN_vkCmdPushDataEXT>(vkGetInstanceProcAddr(instance, "vkCmdPushDataEXT"));
 
 		loadAssets();
 		prepareDescriptorHeaps();
@@ -435,7 +451,20 @@ public:
 		VkDeviceSize offsets[1] = { 0 };
 		model.bindBuffers(cmdBuffer);
 
-		// @todo: offset per fif
+		// Pass options as push data
+		struct PushData {
+			int32_t samplerIndex;
+			int32_t frameIndex;
+		} pushData = {
+			.samplerIndex = selectedSampler,
+			.frameIndex = static_cast<int32_t>(currentBuffer),
+		};
+		VkPushDataInfoEXT pushDataInfo{
+			.sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+			.data = { .address = &pushData, .size = sizeof(PushData) }
+		};
+		vkCmdPushDataEXT(cmdBuffer, &pushDataInfo);
+
 		// Bind the heap containing resources (buffers and images)
 		VkBindHeapInfoEXT bindHeapInfoRes{
 			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
@@ -443,7 +472,7 @@ public:
 				.address = descriptorHeapResources.deviceAddress,
 				.size = descriptorHeapResources.size
 			},
-			.reservedRangeSize = descriptorHeapProperties.minResourceHeapReservedRange
+			.reservedRangeSize = descriptorHeapProperties.minResourceHeapReservedRange,
 		};
 		vkCmdBindResourceHeapEXT(cmdBuffer, &bindHeapInfoRes);
 		
@@ -492,7 +521,7 @@ public:
 		if (overlay->header("Settings")) {
 			overlay->checkBox("Animate", &animate);
 		}
-		if (overlay->comboBox("Sampler", &uniformData.selectedSampler, samplerNames)) {
+		if (overlay->comboBox("Sampler", &selectedSampler, samplerNames)) {
 			updateUniformBuffers();
 		}
 	}

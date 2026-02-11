@@ -25,26 +25,25 @@ struct UBO {
     float4x4 projection;
     float4x4 view;
     float4x4 model[2];
-    int selectedSampler;
 };
-[[vk::binding(0, 0)]] ConstantBuffer<UBO> ubo;
+[[vk::binding(0, 0)]] ConstantBuffer<UBO> ubo[2];
 [[vk::binding(0, 1)]] Texture2D textureImage[2];
 [[vk::binding(0, 2)]] SamplerState textureSampler[2];
 
 [shader("vertex")]
-VSOutput vertexMain(VSInput input, uint InstanceIndex: SV_VulkanInstanceID)
+VSOutput vertexMain(VSInput input, uint InstanceIndex: SV_VulkanInstanceID, uniform int samplerIndex, uniform int frameIndex)
 {
     VSOutput output;
     output.Normal = input.Normal;
     output.Color = input.Color;
     output.UV = input.UV;
-    output.Pos = mul(ubo.projection, mul(ubo.view, mul(ubo.model[InstanceIndex], float4(input.Pos.xyz, 1.0))));
+    output.Pos = mul(ubo[frameIndex].projection, mul(ubo[frameIndex].view, mul(ubo[frameIndex].model[InstanceIndex], float4(input.Pos.xyz, 1.0))));
     output.InstanceIndex = InstanceIndex;
     return output;
 }
 
 [shader("fragment")]
-float4 fragmentMain(VSOutput input)
+float4 fragmentMain(VSOutput input, uniform int samplerIndex, uniform int frameIndex)
 {
-    return textureImage[input.InstanceIndex].Sample(textureSampler[ubo.selectedSampler], input.UV) * float4(input.Color, 1.0);
+    return textureImage[input.InstanceIndex].Sample(textureSampler[samplerIndex], input.UV) * float4(input.Color, 1.0);
 }
