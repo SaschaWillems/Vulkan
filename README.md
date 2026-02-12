@@ -421,15 +421,13 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 
     Shows how to use printf in a shader to output additional information per invocation. This information can help debugging shader related issues in tools like RenderDoc.
 
-> [!NOTE]
-> This sample should be run from a graphics debugger like RenderDoc.
+    **Note:**: This sample should be run from a graphics debugger like RenderDoc.
 
 - [Debug utils](examples/debugutils/) - `VK_EXT_debug_utils`
 
     Shows how to use debug utils for adding labels and colors to Vulkan objects for graphics debuggers. This information helps to identify resources in tools like RenderDoc.
 
-> [!NOTE]
-> This sample should be run from a graphics debugger like RenderDoc.
+    **Note:** This sample should be run from a graphics debugger like RenderDoc.
 
 - [Negative viewport height](examples/negativeviewportheight/) - `VK_KHR_Maintenance1` or `Vulkan 1.1`
 
@@ -467,8 +465,7 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 
     Basic sample showing how to use descriptor buffers to replace descriptor sets.
 
-> [!NOTE]
-> Descriptor buffers have been superseded by descriptor heaps.
+    **Note:** Descriptor buffers have been superseded by descriptor heaps.
 
 - [Shader objects](./examples/shaderobjects/) - `VK_EXT_shader_object`
 
