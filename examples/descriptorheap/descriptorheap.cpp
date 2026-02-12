@@ -50,14 +50,12 @@ public:
 	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers{};
 
 	// Size and offset values for heap objects
-	VkDeviceSize bufferOffset{ 0 };
+	VkDeviceSize bufferHeapOffset{ 0 };
 	VkDeviceSize bufferDescriptorSize{ 0 };
-	
-	VkDeviceSize imageOffset{ 0 };
-	VkDeviceSize imageSize{ 0 };
-	
-	VkDeviceSize samplerOffset{ 0 };
-	VkDeviceSize samplerSize{ 0 };
+	VkDeviceSize imageHeapOffset{ 0 };
+	VkDeviceSize imageDescriptorSize{ 0 };
+	VkDeviceSize samplerHeapOffset{ 0 };
+	VkDeviceSize samplerDescriptorSize{ 0 };
 
 	std::vector<std::string> samplerNames{ "Linear", "Nearest" };
 
@@ -165,9 +163,7 @@ public:
 
 		// Sampler heap
 		// We need to calculate some aligned offsets, heaps and strides to make sure we properly accress the descriptors
-		samplerSize = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
-		auto samplerStart = vks::tools::alignedVkSize(descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerDescriptorAlignment);
-		samplerOffset = vks::tools::alignedVkSize(samplerStart, descriptorHeapProperties.samplerDescriptorSize);
+		samplerDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
 
 		// No need to create an actual VkSampler, we can simply pass the create info that describes the sampler
 		std::array<VkSamplerCreateInfo, 2> samplerCreateInfos{
@@ -204,16 +200,16 @@ public:
 		};
 
 		VkHostAddressRangeEXT hostAddressRangeSamplers{
-			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped) + samplerOffset,
-			.size = samplerSize * static_cast<uint32_t>(samplerCreateInfos.size())
+			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped),
+			.size = samplerDescriptorSize * static_cast<uint32_t>(samplerCreateInfos.size())
 		};
 		vkWriteSamplerDescriptorsEXT(device, 1, samplerCreateInfos.data(), &hostAddressRangeSamplers);
 
 		// Resource heap (buffers and images)
 		bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
 		// Images are storted after the last buffer (aligned)
-		imageOffset = vks::tools::alignedVkSize(bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
-		imageSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
+		imageHeapOffset = vks::tools::alignedVkSize(bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
+		imageDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 
 		auto vectorSize{ maxConcurrentFrames + cubes.size() };
 		std::vector<VkHostAddressRangeEXT> hostAddressRangesResources(vectorSize);
@@ -269,8 +265,8 @@ public:
 			};
 
 			hostAddressRangesResources[heapResIndex] = {
-				.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imageOffset + imageSize * i,
-				.size = imageSize
+				.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imageHeapOffset + imageDescriptorSize * i,
+				.size = imageDescriptorSize
 			};
 
 			heapResIndex++;
@@ -327,8 +323,8 @@ public:
 				.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
 				.sourceData = {
 					.constantOffset = {
-						.heapOffset = static_cast<uint32_t>(imageOffset),
-						.heapArrayStride = static_cast<uint32_t>(imageSize)
+						.heapOffset = static_cast<uint32_t>(imageHeapOffset),
+						.heapArrayStride = static_cast<uint32_t>(imageDescriptorSize)
 					}
 				}
 			},
@@ -343,8 +339,8 @@ public:
 				.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
 				.sourceData = {
 					.constantOffset = {
-						.heapOffset = static_cast<uint32_t>(samplerOffset),
-						.heapArrayStride = static_cast<uint32_t>(samplerSize)
+						.heapOffset = static_cast<uint32_t>(samplerHeapOffset),
+						.heapArrayStride = static_cast<uint32_t>(samplerDescriptorSize)
 					}
 				}
 			}
