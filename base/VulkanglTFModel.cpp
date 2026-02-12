@@ -1576,6 +1576,16 @@ vkglTF::Node* vkglTF::Model::nodeFromIndex(uint32_t index) {
 	return nodeFound;
 }
 
+vkglTF::Node* vkglTF::Model::nodeFromName(const std::string name) {
+	Node* nodeFound = nullptr;
+	for (auto& node : linearNodes) {
+		if (node->name == name) {
+			return node;
+		}
+	}
+	return nullptr;
+}
+
 void vkglTF::Model::prepareNodeDescriptor(vkglTF::Node* node, VkDescriptorSetLayout descriptorSetLayout) {
 	if (node->mesh) {
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo{

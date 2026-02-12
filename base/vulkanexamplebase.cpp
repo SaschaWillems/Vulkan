@@ -1,7 +1,7 @@
 /*
 * Vulkan Example base class
 *
-* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2026 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -220,6 +220,11 @@ void VulkanExampleBase::createPipelineCache()
 
 void VulkanExampleBase::prepare()
 {
+	if (useDynamicRendering && apiVersion < VK_API_VERSION_1_3) {
+		std::cerr << "Error: Using the core variant of dynamic rendering requires Vulkan 1.3";
+		exit(-1);
+	}
+
 	createSurface();
 	createCommandPool();
 	createSwapChain();
@@ -3017,6 +3022,11 @@ void VulkanExampleBase::setupDepthStencil()
 
 void VulkanExampleBase::setupFrameBuffer()
 {
+	if (useDynamicRendering) {
+		// When dynamic rendering is enabled, render passes are no longer required
+		renderPass = VK_NULL_HANDLE;
+		return;
+	}
 	// Create frame buffers for every swap chain image, only one depth/stencil attachment is required, as this is owned by the application
 	frameBuffers.resize(swapChain.images.size());
 	for (uint32_t i = 0; i < frameBuffers.size(); i++) {
@@ -3036,6 +3046,11 @@ void VulkanExampleBase::setupFrameBuffer()
 
 void VulkanExampleBase::setupRenderPass()
 {
+	if (useDynamicRendering) {
+		// When dynamic rendering is enabled, render passes are no longer required
+		renderPass = VK_NULL_HANDLE;
+		return;
+	}
 	std::array<VkAttachmentDescription, 2> attachments{
 		// Color attachment
 		VkAttachmentDescription{
@@ -3106,6 +3121,72 @@ void VulkanExampleBase::setupRenderPass()
 void VulkanExampleBase::getEnabledFeatures() {}
 
 void VulkanExampleBase::getEnabledExtensions() {}
+
+void VulkanExampleBase::beginDynamicRendering(VkCommandBuffer cmdBuffer)
+{
+	vks::tools::insertImageMemoryBarrier(
+		cmdBuffer,
+		swapChain.images[currentImageIndex],
+		0,
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+	vks::tools::insertImageMemoryBarrier(
+		cmdBuffer,
+		depthStencil.image,
+		0,
+		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+		VkImageSubresourceRange{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 });
+
+	VkRenderingAttachmentInfoKHR colorAttachment{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+		.imageView = swapChain.imageViews[currentImageIndex],
+		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.clearValue = {.color = { 0.0f, 0.0f, 0.0f, 0.0f } }
+	};
+	VkRenderingAttachmentInfoKHR depthStencilAttachment{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+		.imageView = depthStencil.view,
+		.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.clearValue = {.depthStencil = { 1.0f,  0 } }
+	};
+	VkRenderingInfoKHR renderingInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+		.renderArea = { 0, 0, width, height },
+		.layerCount = 1,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorAttachment,
+		.pDepthAttachment = &depthStencilAttachment,
+		.pStencilAttachment = &depthStencilAttachment
+	};
+	vkCmdBeginRendering(cmdBuffer, &renderingInfo);
+}
+
+void VulkanExampleBase::endDynamicRendering(VkCommandBuffer cmdBuffer)
+{
+	vkCmdEndRendering(cmdBuffer);
+	vks::tools::insertImageMemoryBarrier(
+		cmdBuffer,
+		swapChain.images[currentImageIndex],
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		0,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+}
 
 void VulkanExampleBase::windowResize()
 {

@@ -421,7 +421,7 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 
     Shows how to use printf in a shader to output additional information per invocation. This information can help debugging shader related issues in tools like RenderDoc.
 
-    **Note:** This sample should be run from a graphics debugger like RenderDoc.
+    **Note:**: This sample should be run from a graphics debugger like RenderDoc.
 
 - [Debug utils](examples/debugutils/) - `VK_EXT_debug_utils`
 
@@ -457,9 +457,15 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 
     Basic sample demonstrating how to use the mesh shading pipeline as a replacement for the traditional vertex pipeline.
 
+- [Descriptor heap](./examples/descriptorheap/) - `VK_EXT_descriptor_heap`
+
+    Basic sample showing how to use descriptor heaps, which fully replace Vulkan's original descriptor system. [Khronos blog](https://www.khronos.org/blog/vulkan-introduces-roadmap-2026-and-new-descriptor-heap-extension#descriptor_heaps).
+
 - [Descriptor buffers](./examples/descriptorbuffer/) - `VK_EXT_descriptor_buffer`
 
     Basic sample showing how to use descriptor buffers to replace descriptor sets.
+
+    **Note:** Descriptor buffers have been superseded by descriptor heaps.
 
 - [Shader objects](./examples/shaderobjects/) - `VK_EXT_shader_object`
 
