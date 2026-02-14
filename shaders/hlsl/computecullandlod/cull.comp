@@ -17,7 +17,7 @@ struct IndexedIndirectCommand
 	uint indexCount;
 	uint instanceCount;
 	uint firstIndex;
-	uint vertexOffset;
+	int vertexOffset;
 	uint firstInstance;
 };
 
