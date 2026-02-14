@@ -203,7 +203,7 @@ public:
 			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped),
 			.size = samplerDescriptorSize * static_cast<uint32_t>(samplerCreateInfos.size())
 		};
-		vkWriteSamplerDescriptorsEXT(device, 1, samplerCreateInfos.data(), &hostAddressRangeSamplers);
+		VK_CHECK_RESULT(vkWriteSamplerDescriptorsEXT(device, 1, samplerCreateInfos.data(), &hostAddressRangeSamplers));
 
 		// Resource heap (buffers and images)
 		bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
@@ -272,7 +272,7 @@ public:
 			heapResIndex++;
 		}
 
-		vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(resourceDescriptorInfos.size()), resourceDescriptorInfos.data(), hostAddressRangesResources.data());
+		VK_CHECK_RESULT(vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(resourceDescriptorInfos.size()), resourceDescriptorInfos.data(), hostAddressRangesResources.data()));
 	}
 
 	void preparePipelines()
