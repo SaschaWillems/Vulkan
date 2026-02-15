@@ -208,7 +208,7 @@ public:
 		// Resource heap (buffers and images)
 		bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
 		// Images are storted after the last buffer (aligned)
-		imageHeapOffset = vks::tools::alignedVkSize(bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
+		imageHeapOffset = vks::tools::alignedVkSize(uniformBuffers.size() * bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 		imageDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 
 		auto vectorSize{ maxConcurrentFrames + cubes.size() };
