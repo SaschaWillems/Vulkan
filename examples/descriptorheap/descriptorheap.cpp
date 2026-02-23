@@ -445,7 +445,6 @@ public:
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 		VkDeviceSize offsets[1] = { 0 };
-		model.bindBuffers(cmdBuffer);
 
 		// Pass options as push data
 		struct PushData {
