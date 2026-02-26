@@ -182,12 +182,9 @@ public:
 				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
 				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
 				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.mipLodBias = 0.0f,
 				.maxAnisotropy = 16.0f,
 				.compareOp = VK_COMPARE_OP_NEVER,
-				.minLod = 0.0f,
 				.maxLod = (float)cubes[0].texture.mipLevels,
-				.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
 			},
 			VkSamplerCreateInfo{
 				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -197,12 +194,9 @@ public:
 				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
 				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
 				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.mipLodBias = 0.0f,
 				.maxAnisotropy = 16.0f,
 				.compareOp = VK_COMPARE_OP_NEVER,
-				.minLod = 0.0f,
 				.maxLod = (float)cubes[0].texture.mipLevels,
-				.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
 			}
 		};
 
