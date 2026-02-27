@@ -172,6 +172,11 @@ public:
 		// We need to calculate some aligned offsets, heaps and strides to make sure we properly accress the descriptors
 		samplerDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
 
+		std::array<VkHostAddressRangeEXT, 2> hostAddressRangesSamplers{};
+
+		auto samplerStart = vks::tools::alignedVkSize(descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerDescriptorAlignment);
+		samplerHeapOffset = vks::tools::alignedVkSize(samplerStart, descriptorHeapProperties.samplerDescriptorSize);
+
 		// No need to create an actual VkSampler, we can simply pass the create info that describes the sampler
 		std::array<VkSamplerCreateInfo, 2> samplerCreateInfos{
 			VkSamplerCreateInfo{
@@ -179,32 +184,34 @@ public:
 				.magFilter = VK_FILTER_LINEAR,
 				.minFilter = VK_FILTER_LINEAR,
 				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 				.maxAnisotropy = 16.0f,
-				.compareOp = VK_COMPARE_OP_NEVER,
 				.maxLod = (float)cubes[0].texture.mipLevels,
 			},
 			VkSamplerCreateInfo{
 				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 				.magFilter = VK_FILTER_NEAREST,
 				.minFilter = VK_FILTER_NEAREST,
-				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-				.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-				.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+				.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 				.maxAnisotropy = 16.0f,
-				.compareOp = VK_COMPARE_OP_NEVER,
 				.maxLod = (float)cubes[0].texture.mipLevels,
 			}
 		};
 
-		VkHostAddressRangeEXT hostAddressRangeSamplers{
-			.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped),
-			.size = samplerDescriptorSize * static_cast<uint32_t>(samplerCreateInfos.size())
-		};
-		VK_CHECK_RESULT(vkWriteSamplerDescriptorsEXT(device, 1, samplerCreateInfos.data(), &hostAddressRangeSamplers));
+		for (auto i = 0; i < static_cast<uint32_t>(samplerCreateInfos.size()); i++)
+		{
+			hostAddressRangesSamplers[i] = {
+				.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped) + samplerHeapOffset + samplerDescriptorSize * i,
+				.size = samplerDescriptorSize
+			};
+		}
+
+		VK_CHECK_RESULT(vkWriteSamplerDescriptorsEXT(device, static_cast<uint32_t>(samplerCreateInfos.size()), samplerCreateInfos.data(), hostAddressRangesSamplers.data()));
 
 		// Resource heap (buffers and images)
 		bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
