@@ -10,6 +10,7 @@
 #include "VulkanglTFModel.h"
 #include <thread>
 #include <mutex>
+#define FRAGMENT_SHADER_COUNT 4
 
 class VulkanExample: public VulkanExampleBase
 {
@@ -35,7 +36,7 @@ public:
 		VkPipeline vertexInputInterface;
 		VkPipeline preRasterizationShaders;
 		VkPipeline fragmentOutputInterface;
-		std::vector<VkPipeline> fragmentShaders;
+		VkPipeline fragmentShaders[FRAGMENT_SHADER_COUNT];
 	} pipelineLibrary;
 
 	std::vector<VkPipeline> pipelines{};
@@ -183,14 +184,13 @@ public:
 			VkGraphicsPipelineCreateInfo pipelineLibraryCI{};
 			pipelineLibraryCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 			pipelineLibraryCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
-			pipelineLibraryCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 			pipelineLibraryCI.pNext = &libraryInfo;
 			pipelineLibraryCI.pInputAssemblyState = &inputAssemblyState;
 			pipelineLibraryCI.pVertexInputState = &vertexInputState;
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineLibraryCI, nullptr, &pipelineLibrary.vertexInputInterface));
 		}
 
-		// Creata a pipeline library for the vertex shader stage
+		// Create a pipeline library for the vertex shader stage
 		{
 			VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
 			libraryInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT;
@@ -242,6 +242,58 @@ public:
 			delete[] shaderInfo.code;
 		}
 
+		// Create pipeline libraries for the fragment shader stage
+		{
+			VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
+			libraryInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT;
+			libraryInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT;
+
+			VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+
+			// Using the pipeline library extension, we can skip the pipeline shader module creation and directly pass the shader code to the pipeline
+			ShaderInfo shaderInfo{};
+			loadShaderFile(getShadersPath() + "graphicspipelinelibrary/uber.frag.spv", shaderInfo);
+
+			VkShaderModuleCreateInfo shaderModuleCI{};
+			shaderModuleCI.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			shaderModuleCI.codeSize = shaderInfo.size;
+			shaderModuleCI.pCode = shaderInfo.code;
+
+			VkPipelineShaderStageCreateInfo shaderStageCI{};
+			shaderStageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			shaderStageCI.pNext = &shaderModuleCI;
+			shaderStageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			shaderStageCI.pName = "main";
+
+			// Each shader constant of a shader stage corresponds to one map entry
+			VkSpecializationMapEntry specializationMapEntry{};
+			specializationMapEntry.constantID = 0;
+			specializationMapEntry.size = sizeof(uint32_t);
+			for (uint32_t i = 0; i < FRAGMENT_SHADER_COUNT; ++i) {
+				uint32_t lighting_model = i;
+				VkSpecializationInfo specializationInfo{};
+				specializationInfo.mapEntryCount = 1;
+				specializationInfo.pMapEntries = &specializationMapEntry;
+				specializationInfo.dataSize = sizeof(uint32_t);
+				specializationInfo.pData = &lighting_model;
+
+				shaderStageCI.pSpecializationInfo = &specializationInfo;
+
+				VkGraphicsPipelineCreateInfo pipelineCI{};
+				pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+				pipelineCI.pNext = &libraryInfo;
+				pipelineCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+				pipelineCI.stageCount = 1;
+				pipelineCI.pStages = &shaderStageCI;
+				pipelineCI.layout = pipelineLayout;
+				pipelineCI.renderPass = renderPass;
+				pipelineCI.pDepthStencilState = &depthStencilState;
+
+				VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, threadPipelineCache, 1, &pipelineCI, nullptr,&pipelineLibrary.fragmentShaders[lighting_model]));
+			}
+			delete[] shaderInfo.code;
+		}
+
 		// Create a pipeline library for the fragment output interface
 		{
 			VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
@@ -287,65 +339,16 @@ public:
 	// Used from a thread
 	void prepareNewPipeline()
 	{
-		// Create the fragment shader part of the pipeline library with some random options
-		VkGraphicsPipelineLibraryCreateInfoEXT libraryInfo{};
-		libraryInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT;
-		libraryInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT;
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-		VkPipelineMultisampleStateCreateInfo  multisampleState = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
-
-		// Using the pipeline library extension, we can skip the pipeline shader module creation and directly pass the shader code to the pipeline
-		ShaderInfo shaderInfo{};
-		loadShaderFile(getShadersPath() + "graphicspipelinelibrary/uber.frag.spv", shaderInfo);
-
-		VkShaderModuleCreateInfo shaderModuleCI{};
-		shaderModuleCI.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		shaderModuleCI.codeSize = shaderInfo.size;
-		shaderModuleCI.pCode = shaderInfo.code;
-
-		VkPipelineShaderStageCreateInfo shaderStageCI{};
-		shaderStageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStageCI.pNext = &shaderModuleCI;
-		shaderStageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		shaderStageCI.pName = "main";
-
 		// Select lighting model using a specialization constant
 		srand(benchmark.active ? 0 : ((unsigned int)time(NULL)));
-		uint32_t lighting_model = (int)(rand() % 4);
-
-		// Each shader constant of a shader stage corresponds to one map entry
-		VkSpecializationMapEntry specializationMapEntry{};
-		specializationMapEntry.constantID = 0;
-		specializationMapEntry.size = sizeof(uint32_t);
-
-		VkSpecializationInfo specializationInfo{};
-		specializationInfo.mapEntryCount = 1;
-		specializationInfo.pMapEntries = &specializationMapEntry;
-		specializationInfo.dataSize = sizeof(uint32_t);
-		specializationInfo.pData = &lighting_model;
-
-		shaderStageCI.pSpecializationInfo = &specializationInfo;
-
-		VkGraphicsPipelineCreateInfo pipelineCI{};
-		pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineCI.pNext = &libraryInfo;
-		pipelineCI.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
-		pipelineCI.stageCount = 1;
-		pipelineCI.pStages = &shaderStageCI;
-		pipelineCI.layout = pipelineLayout;
-		pipelineCI.renderPass = renderPass;
-		pipelineCI.pDepthStencilState = &depthStencilState;
-		pipelineCI.pMultisampleState = &multisampleState;
-		VkPipeline fragmentShader = VK_NULL_HANDLE;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, threadPipelineCache, 1, &pipelineCI, nullptr, &fragmentShader));
+		uint32_t lighting_model = (int)(rand() % FRAGMENT_SHADER_COUNT);
 
 		// Create the pipeline using the pre-built pipeline library parts
-		// Except for above fragment shader part all parts have been pre-built and will be re-used
+		// All parts have been pre-built and will be re-used
 		std::vector<VkPipeline> libraries = {
 			pipelineLibrary.vertexInputInterface,
 			pipelineLibrary.preRasterizationShaders,
-			fragmentShader,
+			pipelineLibrary.fragmentShaders[lighting_model],
 			pipelineLibrary.fragmentOutputInterface };
 
 		// Link the library parts into a graphics pipeline
@@ -373,10 +376,6 @@ public:
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, threadPipelineCache, 1, &executablePipelineCI, nullptr, &executable));
 
 		pipelines.push_back(executable);
-		// Push fragment shader to list for deletion in the sample's destructor
-		pipelineLibrary.fragmentShaders.push_back(fragmentShader);
-
-		delete[] shaderInfo.code;
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
