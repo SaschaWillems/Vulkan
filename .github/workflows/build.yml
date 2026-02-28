@@ -85,3 +85,29 @@ jobs:
   #         ln -s ~/VulkanSDK/latest/macOS/lib/MoltenVK.xcframework
   #         xcodebuild -scheme examples-ios build CODE_SIGNING_ALLOWED=NO
   #         xcodebuild -scheme examples-macos build
+
+  build_android:
+    name: "Build Android"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - name: Install JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "zulu"
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+          cache-read-only: false
+
+      - name: Build
+        working-directory: android
+        run: NDK_CCACHE=1 NDK_CCACHE_BIN=ccache ./gradlew assembleDebug --info
