@@ -35,7 +35,7 @@ jobs:
     - uses: ilammy/msvc-dev-cmd@v1
 
     - name: Configure
-      run: cmake -A "${{env.Platform}}" -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.Configuration}} #-DCMAKE_PREFIX_PATH=vcpkg\installed\x64-windows
+      run: cmake -A "${{env.Platform}}" -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.Configuration}} -DUSE_RELATIVE_ASSET_PATH=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.Configuration}}
