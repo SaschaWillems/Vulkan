@@ -6,7 +6,7 @@ env:
   Branch: ${{github.ref_name}}
   Platform: Any CPU #Win32|x86|x64 - Check .sln file for available ones
   Configuration: Release
-  Artifacts: build/Release
+  Artifacts: build\bin\Release
   Title: Vulkan Samples
 
 on:
