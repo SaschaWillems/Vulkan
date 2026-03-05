@@ -38,6 +38,7 @@ jobs:
           make
 
   build_windows:
+    name: Build Windows
     runs-on: windows-2025
     steps:
 
