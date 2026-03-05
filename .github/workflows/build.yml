@@ -40,6 +40,11 @@ jobs:
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.Configuration}}
 
+    - name: Deploy
+      shell: cmd
+      run: |
+        xcopy "assets\" "${{env.Artifacts}}\assets\" /s
+        
     - name: List files
       run: ls -R
 
