@@ -6,7 +6,7 @@ env:
   Branch: ${{github.ref_name}}
   Platform: x64
   Configuration: Release
-  Artifacts: build\bin\Release
+  Artifacts: build\bin
   Title: Vulkan Samples
 
 on:
@@ -43,11 +43,10 @@ jobs:
     - name: Deploy
       shell: cmd
       run: |
-        mkdir bin
-        move * bin
+        move ${{env.Artifacts}}\${{env.Configuration}} ${{env.Artifacts}}\bin
         xcopy "assets\" "${{env.Artifacts}}\assets\" /s
         xcopy "shaders\" "${{env.Artifacts}}\shaders\" /s
-        
+
     - name: List files
       run: ls -R
 
