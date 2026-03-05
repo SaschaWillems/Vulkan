@@ -1,4 +1,4 @@
-name: Build
+name: Build Project
 
 env:
   GH_TOKEN: ${{github.token}}
@@ -10,9 +10,11 @@ env:
 
 on:
   push:
-    Branches: $Branch
+    branches:
+      - master
   pull_request:
-    Branches: $Branch
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
@@ -36,7 +38,7 @@ jobs:
           make
 
   build_windows:
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
 
     - name: Clone repo and submodules
