@@ -1,4 +1,3 @@
-#Based on template from: https://github.com/ThreeDeeJay/GitHub-Actions-build-templates/blob/main/Windows-CMake.yml
 name: Build
 
 env:
@@ -22,7 +21,7 @@ jobs:
     steps:
 
     - name: Clone repo and submodules
-      run: git clone https://${{github.repository_owner}}:${{github.token}}@github.com/${{github.repository}}.git "${{github.workspace}}" --branch ${{env.Branch}} --recurse-submodules #--depth 1 - Fetches entire commit history but breaks commit count
+      run: git clone https://${{github.repository_owner}}:${{github.token}}@github.com/${{github.repository}}.git "${{github.workspace}}" --branch ${{env.Branch}} --recurse-submodules
 
     - name: Get current date, commit hash and count
       run: |
@@ -46,9 +45,6 @@ jobs:
         move ${{env.Artifacts}}\${{env.Configuration}} ${{env.Artifacts}}\bin
         xcopy "assets\" "${{env.Artifacts}}\assets\" /s
         xcopy "shaders\" "${{env.Artifacts}}\shaders\" /s
-
-    - name: List files
-      run: ls -R
 
     - name: Upload artifacts to GitHub
       uses: actions/upload-artifact@v4
