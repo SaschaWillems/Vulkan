@@ -43,7 +43,9 @@ jobs:
     - name: Deploy
       shell: cmd
       run: |
-        xcopy "assets\" "${{env.Artifacts}}\" /s
+        mkdir bin
+        move * bin
+        xcopy "assets\" "${{env.Artifacts}}\assets\" /s
         xcopy "shaders\" "${{env.Artifacts}}\shaders\" /s
         
     - name: List files
