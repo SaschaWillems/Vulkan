@@ -1,87 +1,78 @@
-name: Build Project
+#Based on template from: https://github.com/ThreeDeeJay/GitHub-Actions-build-templates/blob/main/Windows-CMake.yml
+name: Build
+
+env:
+  GH_TOKEN: ${{github.token}}
+  Branch: ${{github.ref_name}}
+  Platform: Any CPU #Win32|x86|x64 - Check .sln file for available ones
+  Configuration: Release
+  Artifacts: build/Release
+  Title: Vulkan Samples
 
 on:
   push:
-    branches:
-      - master
+    Branches: $Branch
   pull_request:
-    branches:
-      - master
+    Branches: $Branch
+  workflow_dispatch:
 
 jobs:
-  build_ubuntu_x11:
-    name: Build Ubuntu
-    runs-on: ubuntu-latest
-
+  Windows:
+    runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: "recursive"
 
-      - name: Install Vulkan libraries
-        run: |
-          sudo apt update
-          sudo apt install libvulkan-dev libxcb1-dev
+    - name: Clone repo and submodules
+      run: git clone https://${{github.repository_owner}}:${{github.token}}@github.com/${{github.repository}}.git "${{github.workspace}}" --branch ${{env.Branch}} --recurse-submodules #--depth 1 - Fetches entire commit history but breaks commit count
 
-      - name: Build
-        run: |
-          cmake .
-          make
+    - name: Get current date, commit hash and count
+      run: |
+        echo "FirstCommitHash=$(git rev-list --max-parents=0 HEAD --first-parent)" >> $env:GITHUB_ENV
+        echo "CommitHash=$(git rev-parse HEAD)" >> $env:GITHUB_ENV
+        echo "CommitHashShort=$(git rev-parse --short=7 HEAD)" >> $env:GITHUB_ENV
+        echo "CommitCount=$(git rev-list --count HEAD)" >> $env:GITHUB_ENV
+        echo "CommitDate=$(git show -s --date=format:'%Y-%m-%d' --format=%cd)" >> $env:GITHUB_ENV
 
-  build_windows:
-    name: Build Windows
-    runs-on: windows-latest
+    - uses: ilammy/msvc-dev-cmd@v1
 
-    steps:
-      - uses: ilammy/msvc-dev-cmd@v1
+    - name: Configure
+      run: cmake -A "${{env.Platform}}" -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.Configuration}} #-DCMAKE_PREFIX_PATH=vcpkg\installed\x64-windows
 
-      - uses: actions/checkout@v4
-        with:
-          submodules: "recursive"
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.Configuration}}
 
-      - name: Build
-        env:
-          TARGET_PLATFORM: windows
-        run: |
-          cmake .
-          cmake --build .
+    - name: List files
+      run: ls -R
 
-  build_macOS:
-    name: Build macOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: "recursive"  
-      - name: Setup
-        run: |
-          brew install vulkan-tools
-          brew install libomp
-      - name: Build
-        run: |
-          export LIBOMP_PREFIX=$(brew --prefix libomp)
-          cmake -G "Xcode" -DOpenMP_omp_LIBRARY=$LIBOMP_PREFIX/lib/libomp.dylib .
-          cmake --build .
+    - name: Upload artifacts to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: "${{env.Title}}_r${{env.CommitCount}}@${{env.CommitHashShort}}"
+        path: "${{github.workspace}}/${{env.Artifacts}}/"
 
-  # build_iOS:
-  #   name: Build iOS
-  #   runs-on: macos-13
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         submodules: "recursive"  
-  #     - name: Setup
-  #       run: |
-  #         curl -L "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.zip" -o /tmp/vulkan-sdk.zip
-  #         unzip /tmp/vulkan-sdk.zip -d /tmp
-  #         /tmp/InstallVulkan.app/Contents/MacOS/InstallVulkan \
-  #             --root ~/VulkanSDK/latest --accept-licenses --default-answer --confirm-command install          
-  #         cd ~/VulkanSDK/latest   
-  #         sudo ./install_vulkan.py
-  #     - name: Build
-  #       run: |
-  #         cd apple
-  #         rm MoltenVK.xcframework
-  #         ln -s ~/VulkanSDK/latest/macOS/lib/MoltenVK.xcframework
-  #         xcodebuild -scheme examples-ios build CODE_SIGNING_ALLOWED=NO
-  #         xcodebuild -scheme examples-macos build
+    - name: Compress artifacts
+      if: github.event_name == 'push'
+      run: |
+        mkdir Release
+        7z a "Release/${{env.Title}}.zip" "${{github.workspace}}/${{env.Artifacts}}/*" -mx=9
+        cp "Release/${{env.Title}}.zip" "Release/${{env.Title}}_r${{env.CommitCount}}@${{env.CommitHashShort}}.zip"
+
+    - name: Purge tag - latest-${{env.Branch}}
+      if: github.event_name == 'push'
+      run: |
+        gh release delete latest-${{env.Branch}} --repo ${{github.repository}} --cleanup-tag --yes || true
+
+    - name: Release - archive-${{env.Branch}}
+      if: github.event_name == 'push'
+      run: |
+        gh release create archive-${{env.Branch}} --repo ${{github.repository}} --target ${{env.FirstCommitHash}} --latest=false --prerelease --title "${{env.Title}} ${{env.Branch}} build archive" --notes "Latest build: https://github.com/${{github.repository}}/releases/latest-${{env.Branch}}
+        Build logs: https://github.com/${{github.repository}}/actions" || true
+        gh release edit archive-${{env.Branch}} --repo ${{github.repository}} --target ${{env.FirstCommitHash}} --latest=false --prerelease --title "${{env.Title}} ${{env.Branch}} build archive" --notes "Latest build: https://github.com/${{github.repository}}/releases/latest-${{env.Branch}}
+        Build logs: https://github.com/${{github.repository}}/actions" || true
+        gh release upload archive-${{env.Branch}} --repo ${{github.repository}} --clobber "Release/${{env.Title}}_r${{env.CommitCount}}@${{env.CommitHashShort}}.zip"
+
+    - name: Release - latest-${{env.Branch}}
+      if: github.event_name == 'push'
+      run: |
+        gh release create latest-${{env.Branch}} --repo ${{github.repository}} --target ${{env.CommitHash}} --generate-notes --latest=true --title "${{env.Title}} r${{env.CommitCount}}@${{env.CommitHashShort}}" --notes "Build archive: https://github.com/${{github.repository}}/releases/tag/archive-${{env.Branch}}
+        Build log: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+        gh release upload latest-${{env.Branch}} --repo ${{github.repository}} --clobber "Release/${{env.Title}}.zip"
