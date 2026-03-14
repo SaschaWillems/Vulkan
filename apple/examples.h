@@ -1,7 +1,7 @@
 /*
  *  examples.h
  *
- *  Copyright (c) 2016-2017 The Brenwill Workshop Ltd.
+ *  Copyright (c) 2016-2026 The Brenwill Workshop Ltd.
  *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  *
  *
@@ -439,6 +439,11 @@
 #   include "../examples/meshshader/meshshader.cpp"
 #endif
 
+// Does not run. Requires VK_EXT_descriptor_heap.
+#ifdef MVK_descriptorheap
+#   include "../examples/descriptorheap/descriptorheap.cpp"
+#endif
+
 // Does not run. Requires VK_EXT_descriptor_buffer.
 #ifdef MVK_descriptorbuffer
 #   include "../examples/descriptorbuffer/descriptorbuffer.cpp"
@@ -460,6 +465,11 @@
 
 #ifdef MVK_timelinesemaphore
 #   include "../examples/timelinesemaphore/timelinesemaphore.cpp"
+#endif
+
+// Not supported on iOS Simulator.
+#ifdef MVK_fragmentshaderbarycentrics
+#   include "../examples/fragmentshaderbarycentrics/fragmentshaderbarycentrics.cpp"
 #endif
 
 // Runs, but most VK_EXT_extended_dynamic_state3 features not supported on MoltenVK.
