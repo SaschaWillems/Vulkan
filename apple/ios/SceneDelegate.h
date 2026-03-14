@@ -1,5 +1,5 @@
 /*
- *  AppDelegate.h
+ *  SceneDelegate.h
  *
  *  Copyright (c) 2016-2026 The Brenwill Workshop Ltd.
  *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
@@ -7,8 +7,9 @@
 
 #import <UIKit/UIKit.h>
 
-@interface AppDelegate : UIResponder <UIApplicationDelegate>
+@interface SceneDelegate : UIResponder <UIWindowSceneDelegate>
 
+@property (strong, nonatomic) UIWindow *window;
 @property (strong, nonatomic) UIViewController *viewController;
 
 @end

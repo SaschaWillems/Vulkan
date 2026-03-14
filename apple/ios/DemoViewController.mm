@@ -1,11 +1,12 @@
 /*
  *  DemoViewController.mm
  *
- *  Copyright (c) 2016-2017 The Brenwill Workshop Ltd.
+ *  Copyright (c) 2016-2026 The Brenwill Workshop Ltd.
  *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
 
 #import "DemoViewController.h"
+#import "SceneDelegate.h"
 #import "AppDelegate.h"
 
 #include "MVKExample.h"
@@ -19,6 +20,7 @@ const std::string getShaderBasePath() {
 }
 
 CALayer* layer;
+DemoView* demoView;
 
 #pragma mark -
 #pragma mark DemoViewController
@@ -31,26 +33,21 @@ CALayer* layer;
 	CGPoint _startPoint;
 }
 
-/** Since this is a single-view app, init Vulkan when the view is loaded. */
+/** Since this is a single-view app, initialize when the view is loaded. */
 -(void) viewDidLoad {
 	[super viewDidLoad];
 
-	layer = [self.view layer];		// SRS - When creating a Vulkan Metal surface, need the layer backing the view
+	// SRS - Allocate and add a Metal-compatible sub-view
+	demoView = [[DemoView alloc] initWithFrame:self.view.bounds];
+	[self.view addSubview:demoView];
 
-	layer.contentsScale = UIScreen.mainScreen.nativeScale;
-
-	// SRS - Calculate UI overlay scale factor based on backing layer scale factor and device type for readable UIOverlay on iOS devices
-	auto UIOverlayScale = layer.contentsScale * ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone ? 2.0/3.0 : 1.0 );
-	_mvkExample = new MVKExample(self.view, UIOverlayScale);
-	
 	// SRS - Enable AppDelegate to call into DemoViewController for handling app lifecycle events (e.g. termination)
 	auto appDelegate = (AppDelegate *)UIApplication.sharedApplication.delegate;
 	appDelegate.viewController = self;
-	
-    uint32_t fps = 60;
-    _displayLink = [CADisplayLink displayLinkWithTarget: self selector: @selector(renderFrame)];
-    [_displayLink setFrameInterval: 60 / fps];
-    [_displayLink addToRunLoop: NSRunLoop.currentRunLoop forMode: NSDefaultRunLoopMode];
+
+	// SRS - Enable SceneDelegate to call into DemoViewController for handling scene lifecycle events (e.g. foreground, background)
+	auto sceneDelegate = (SceneDelegate *)UIApplication.sharedApplication.connectedScenes.allObjects[0].delegate;
+	sceneDelegate.viewController = self;
 
 	// Setup double tap gesture to toggle virtual keyboard
     UITapGestureRecognizer* tapSelector = [[[UITapGestureRecognizer alloc]
@@ -58,7 +55,7 @@ CALayer* layer;
     tapSelector.numberOfTapsRequired = 2;
     tapSelector.cancelsTouchesInView = YES;
 	tapSelector.requiresExclusiveTouchType = YES;
-    [self.view addGestureRecognizer: tapSelector];
+    [demoView addGestureRecognizer: tapSelector];
 
 	// SRS - Setup pan gesture to detect and activate translation
 	UIPanGestureRecognizer* panSelector = [[[UIPanGestureRecognizer alloc]
@@ -66,22 +63,40 @@ CALayer* layer;
 	panSelector.minimumNumberOfTouches = 2;
 	panSelector.cancelsTouchesInView = YES;
 	panSelector.requiresExclusiveTouchType = YES;
-	[self.view addGestureRecognizer: panSelector];
+	[demoView addGestureRecognizer: panSelector];
 
 	// SRS - Setup pinch gesture to detect and activate zoom
 	UIPinchGestureRecognizer* pinchSelector = [[[UIPinchGestureRecognizer alloc]
 										   initWithTarget: self action: @selector(handlePinchGesture:)] autorelease];
 	pinchSelector.cancelsTouchesInView = YES;
 	pinchSelector.requiresExclusiveTouchType = YES;
-	[self.view addGestureRecognizer: pinchSelector];
+	[demoView addGestureRecognizer: pinchSelector];
 
     _viewHasAppeared = NO;
 	_appInForeground = NO;
 }
 
+/** Initialize Vulkan and DisplayLink after the view appears - allows for better debug messaging. */
 -(void) viewDidAppear: (BOOL) animated {
     [super viewDidAppear: animated];
+
+	layer = [demoView layer];		// SRS - For a Vulkan Metal surface and swapchain, need the layer backing a Metal-compatible view
+
+	layer.contentsScale = UIScreen.mainScreen.nativeScale;
+
+	// SRS - Calculate UI overlay scale factor based on backing layer scale factor and device type for readable UIOverlay on iOS devices
+	auto UIOverlayScale = layer.contentsScale * ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone ? 2.0/3.0 : 1.0 );
+
+	_mvkExample = new MVKExample(demoView, UIOverlayScale);
+
+	// SRS - Initialize DisplayLink after Vulkan is ready and set render loop to run at 60 fps
+	uint32_t fps = 60;
+	_displayLink = [CADisplayLink displayLinkWithTarget: self selector: @selector(renderFrame)];
+	[_displayLink setFrameInterval: 60 / fps];
+	[_displayLink addToRunLoop: NSRunLoop.currentRunLoop forMode: NSDefaultRunLoopMode];
+
     _viewHasAppeared = YES;
+	_appInForeground = YES;
 }
 
 -(BOOL) canBecomeFirstResponder { return _viewHasAppeared; }
@@ -144,9 +159,9 @@ CALayer* layer;
 
 -(CGPoint) getTouchLocalPoint:(UIEvent*) theEvent {
 	UITouch *touch = [[theEvent allTouches] anyObject];
-	CGPoint point = [touch locationInView: self.view];
-	point.x *= self.view.contentScaleFactor;
-	point.y *= self.view.contentScaleFactor;
+	CGPoint point = [touch locationInView: demoView];
+	point.x *= demoView.contentScaleFactor;
+	point.y *= demoView.contentScaleFactor;
 	return point;
 }
 
@@ -176,9 +191,9 @@ CALayer* layer;
 #pragma mark UIGesture methods
 
 -(CGPoint) getGestureLocalPoint:(UIGestureRecognizer*) gestureRecognizer {
-	CGPoint point = [gestureRecognizer locationInView: self.view];
-	point.x *= self.view.contentScaleFactor;
-	point.y *= self.view.contentScaleFactor;
+	CGPoint point = [gestureRecognizer locationInView: demoView];
+	point.x *= demoView.contentScaleFactor;
+	point.y *= demoView.contentScaleFactor;
 	return point;
 }
 
@@ -191,9 +206,9 @@ CALayer* layer;
 			break;
 		}
 		case UIGestureRecognizerStateChanged: {
-			auto translation = [gestureRecognizer translationInView: self.view];
-			translation.x *= self.view.contentScaleFactor;
-			translation.y *= self.view.contentScaleFactor;
+			auto translation = [gestureRecognizer translationInView: demoView];
+			translation.x *= demoView.contentScaleFactor;
+			translation.y *= demoView.contentScaleFactor;
 			_mvkExample->mouseDragged(_startPoint.x + translation.x, _startPoint.y + translation.y);
 			break;
 		}
@@ -213,7 +228,7 @@ CALayer* layer;
 			break;
 		}
 		case UIGestureRecognizerStateChanged: {
-			_mvkExample->mouseDragged(_startPoint.x, _startPoint.y - self.view.frame.size.height * log(gestureRecognizer.scale));
+			_mvkExample->mouseDragged(_startPoint.x, _startPoint.y - demoView.frame.size.height * log(gestureRecognizer.scale));
 			break;
 		}
 		default: {
