@@ -33,17 +33,21 @@ DemoView* demoView;
 	CGPoint _startPoint;
 }
 
-/** Since this is a single-view app, init Vulkan when the view is loaded. */
+/** Since this is a single-view app, initialize when the view is loaded. */
 -(void) viewDidLoad {
 	[super viewDidLoad];
 
+	// SRS - Allocate and add a Metal-compatible sub-view
 	demoView = [[DemoView alloc] initWithFrame:self.view.bounds];
 	[self.view addSubview:demoView];
 
-    uint32_t fps = 60;
-    _displayLink = [CADisplayLink displayLinkWithTarget: self selector: @selector(renderFrame)];
-    [_displayLink setFrameInterval: 60 / fps];
-    [_displayLink addToRunLoop: NSRunLoop.currentRunLoop forMode: NSDefaultRunLoopMode];
+	// SRS - Enable AppDelegate to call into DemoViewController for handling app lifecycle events (e.g. termination)
+	auto appDelegate = (AppDelegate *)UIApplication.sharedApplication.delegate;
+	appDelegate.viewController = self;
+
+	// SRS - Enable SceneDelegate to call into DemoViewController for handling scene lifecycle events (e.g. foreground, background)
+	auto sceneDelegate = (SceneDelegate *)UIApplication.sharedApplication.connectedScenes.allObjects[0].delegate;
+	sceneDelegate.viewController = self;
 
 	// Setup double tap gesture to toggle virtual keyboard
     UITapGestureRecognizer* tapSelector = [[[UITapGestureRecognizer alloc]
@@ -72,24 +76,24 @@ DemoView* demoView;
 	_appInForeground = NO;
 }
 
+/** Initialize Vulkan and DisplayLink after the view appears - allows for better debug messaging. */
 -(void) viewDidAppear: (BOOL) animated {
     [super viewDidAppear: animated];
 
-	layer = [demoView layer];		// SRS - For a Vulkan Metal surface and swapchain, need a Metal-compatible layer backing the view
+	layer = [demoView layer];		// SRS - For a Vulkan Metal surface and swapchain, need the layer backing a Metal-compatible view
 
 	layer.contentsScale = UIScreen.mainScreen.nativeScale;
 
 	// SRS - Calculate UI overlay scale factor based on backing layer scale factor and device type for readable UIOverlay on iOS devices
 	auto UIOverlayScale = layer.contentsScale * ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone ? 2.0/3.0 : 1.0 );
+
 	_mvkExample = new MVKExample(demoView, UIOverlayScale);
 
-	// SRS - Enable AppDelegate to call into DemoViewController for handling app lifecycle events (e.g. termination)
-	auto appDelegate = (AppDelegate *)UIApplication.sharedApplication.delegate;
-	appDelegate.viewController = self;
-
-	// SRS - Enable SceneDelegate to call into DemoViewController for handling scene lifecycle events (e.g. foreground, background)
-	auto sceneDelegate = (SceneDelegate *)UIApplication.sharedApplication.connectedScenes.allObjects[0].delegate;
-	sceneDelegate.viewController = self;
+	// SRS - Initialize DisplayLink after Vulkan is ready and set render loop to run at 60 fps
+	uint32_t fps = 60;
+	_displayLink = [CADisplayLink displayLinkWithTarget: self selector: @selector(renderFrame)];
+	[_displayLink setFrameInterval: 60 / fps];
+	[_displayLink addToRunLoop: NSRunLoop.currentRunLoop forMode: NSDefaultRunLoopMode];
 
     _viewHasAppeared = YES;
 	_appInForeground = YES;
