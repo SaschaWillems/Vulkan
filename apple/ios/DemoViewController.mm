@@ -20,12 +20,12 @@ const std::string getShaderBasePath() {
 }
 
 CALayer* layer;
-DemoView* demoView;
 
 #pragma mark -
 #pragma mark DemoViewController
 
 @implementation DemoViewController {
+	DemoView* _demoView;
     MVKExample* _mvkExample;
     CADisplayLink* _displayLink;
     BOOL _viewHasAppeared;
@@ -38,8 +38,8 @@ DemoView* demoView;
 	[super viewDidLoad];
 
 	// SRS - Allocate and add a Metal-compatible sub-view
-	demoView = [[DemoView alloc] initWithFrame:self.view.bounds];
-	[self.view addSubview:demoView];
+	_demoView = [[DemoView alloc] initWithFrame:self.view.bounds];
+	[self.view addSubview:_demoView];
 
 	// SRS - Enable AppDelegate to call into DemoViewController for handling app lifecycle events (e.g. termination)
 	auto appDelegate = (AppDelegate *)UIApplication.sharedApplication.delegate;
@@ -55,7 +55,7 @@ DemoView* demoView;
     tapSelector.numberOfTapsRequired = 2;
     tapSelector.cancelsTouchesInView = YES;
 	tapSelector.requiresExclusiveTouchType = YES;
-    [demoView addGestureRecognizer: tapSelector];
+    [_demoView addGestureRecognizer: tapSelector];
 
 	// SRS - Setup pan gesture to detect and activate translation
 	UIPanGestureRecognizer* panSelector = [[[UIPanGestureRecognizer alloc]
@@ -63,14 +63,14 @@ DemoView* demoView;
 	panSelector.minimumNumberOfTouches = 2;
 	panSelector.cancelsTouchesInView = YES;
 	panSelector.requiresExclusiveTouchType = YES;
-	[demoView addGestureRecognizer: panSelector];
+	[_demoView addGestureRecognizer: panSelector];
 
 	// SRS - Setup pinch gesture to detect and activate zoom
 	UIPinchGestureRecognizer* pinchSelector = [[[UIPinchGestureRecognizer alloc]
 										   initWithTarget: self action: @selector(handlePinchGesture:)] autorelease];
 	pinchSelector.cancelsTouchesInView = YES;
 	pinchSelector.requiresExclusiveTouchType = YES;
-	[demoView addGestureRecognizer: pinchSelector];
+	[_demoView addGestureRecognizer: pinchSelector];
 
     _viewHasAppeared = NO;
 	_appInForeground = NO;
@@ -80,14 +80,14 @@ DemoView* demoView;
 -(void) viewDidAppear: (BOOL) animated {
     [super viewDidAppear: animated];
 
-	layer = [demoView layer];		// SRS - For a Vulkan Metal surface and swapchain, need the layer backing a Metal-compatible view
+	layer = [_demoView layer];		// SRS - For a Vulkan Metal surface and swapchain, need the layer backing a Metal-compatible view
 
 	layer.contentsScale = UIScreen.mainScreen.nativeScale;
 
 	// SRS - Calculate UI overlay scale factor based on backing layer scale factor and device type for readable UIOverlay on iOS devices
 	auto UIOverlayScale = layer.contentsScale * ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone ? 2.0/3.0 : 1.0 );
 
-	_mvkExample = new MVKExample(demoView, UIOverlayScale);
+	_mvkExample = new MVKExample(_demoView, UIOverlayScale);
 
 	// SRS - Initialize DisplayLink after Vulkan is ready and set render loop to run at 60 fps
 	uint32_t fps = 60;
@@ -159,9 +159,9 @@ DemoView* demoView;
 
 -(CGPoint) getTouchLocalPoint:(UIEvent*) theEvent {
 	UITouch *touch = [[theEvent allTouches] anyObject];
-	CGPoint point = [touch locationInView: demoView];
-	point.x *= demoView.contentScaleFactor;
-	point.y *= demoView.contentScaleFactor;
+	CGPoint point = [touch locationInView: _demoView];
+	point.x *= _demoView.contentScaleFactor;
+	point.y *= _demoView.contentScaleFactor;
 	return point;
 }
 
@@ -191,9 +191,9 @@ DemoView* demoView;
 #pragma mark UIGesture methods
 
 -(CGPoint) getGestureLocalPoint:(UIGestureRecognizer*) gestureRecognizer {
-	CGPoint point = [gestureRecognizer locationInView: demoView];
-	point.x *= demoView.contentScaleFactor;
-	point.y *= demoView.contentScaleFactor;
+	CGPoint point = [gestureRecognizer locationInView: _demoView];
+	point.x *= _demoView.contentScaleFactor;
+	point.y *= _demoView.contentScaleFactor;
 	return point;
 }
 
@@ -206,9 +206,9 @@ DemoView* demoView;
 			break;
 		}
 		case UIGestureRecognizerStateChanged: {
-			auto translation = [gestureRecognizer translationInView: demoView];
-			translation.x *= demoView.contentScaleFactor;
-			translation.y *= demoView.contentScaleFactor;
+			auto translation = [gestureRecognizer translationInView: _demoView];
+			translation.x *= _demoView.contentScaleFactor;
+			translation.y *= _demoView.contentScaleFactor;
 			_mvkExample->mouseDragged(_startPoint.x + translation.x, _startPoint.y + translation.y);
 			break;
 		}
@@ -228,7 +228,7 @@ DemoView* demoView;
 			break;
 		}
 		case UIGestureRecognizerStateChanged: {
-			_mvkExample->mouseDragged(_startPoint.x, _startPoint.y - demoView.frame.size.height * log(gestureRecognizer.scale));
+			_mvkExample->mouseDragged(_startPoint.x, _startPoint.y - _demoView.frame.size.height * log(gestureRecognizer.scale));
 			break;
 		}
 		default: {
