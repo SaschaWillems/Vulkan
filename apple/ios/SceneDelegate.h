@@ -1,7 +1,7 @@
 /*
  *  SceneDelegate.h
  *
- *  Copyright (c) 2016-2026 The Brenwill Workshop Ltd.
+ *  Copyright (c) 2026 Stephen Saunders
  *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
 
