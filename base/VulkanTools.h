@@ -1,7 +1,7 @@
 /*
  * Assorted Vulkan helper functions
  *
- * Copyright (C) 2016-2023 by Sascha Willems - www.saschawillems.de
+ * Copyright (C) 2016-2026 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
@@ -16,6 +16,7 @@
 #include <string>
 #include <cstring>
 #include <fstream>
+#include <format>
 #include <assert.h>
 #include <stdio.h>
 #include <vector>
@@ -44,8 +45,9 @@
 	VkResult res = (f);																					\
 	if (res != VK_SUCCESS)																				\
 	{																									\
-		LOGE("Fatal : VkResult is \" %s \" in %s at line %d", vks::tools::errorString(res).c_str(), __FILE__, __LINE__); \
-		assert(res == VK_SUCCESS);																		\
+		std::string message = std::format("Fatal : VkResult is {} in {} at line {}", vks::tools::errorString(res), __FILE__, __LINE__); \
+		LOGE("%s", message.c_str());																	\
+		vks::tools::exitFatal(message, -1);																\
 	}																									\
 }
 #else
@@ -54,8 +56,8 @@
 	VkResult res = (f);																					\
 	if (res != VK_SUCCESS)																				\
 	{																									\
-		std::cout << "Fatal : VkResult is \"" << vks::tools::errorString(res) << "\" in " << __FILE__ << " at line " << __LINE__ << "\n"; \
-		assert(res == VK_SUCCESS);																		\
+		std::string message = std::format("Fatal : VkResult is {} in {} at line {}", vks::tools::errorString(res), __FILE__, __LINE__); \
+		vks::tools::exitFatal(message, -1);																\
 	}																									\
 }
 #endif
