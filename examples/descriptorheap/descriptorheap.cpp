@@ -203,7 +203,7 @@ public:
 			}
 		};
 
-		for (auto i = 0; i < static_cast<uint32_t>(samplerCreateInfos.size()); i++)
+		for (auto i = 0; i < samplerCreateInfos.size(); i++)
 		{
 			hostAddressRangesSamplers[i] = {
 				.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped) + samplerHeapOffset + samplerDescriptorSize * i,
