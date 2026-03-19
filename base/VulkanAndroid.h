@@ -1,7 +1,7 @@
 /*
 * Android Vulkan function pointer prototypes
 *
-* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2026 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -56,6 +56,7 @@ extern PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperti
 extern PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
 extern PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties;
 extern PFN_vkCmdPipelineBarrier vkCmdPipelineBarrier;
+extern PFN_vkCmdPipelineBarrier2 vkCmdPipelineBarrier2;
 extern PFN_vkCreateShaderModule vkCreateShaderModule;
 extern PFN_vkCreateBuffer vkCreateBuffer;
 extern PFN_vkGetBufferMemoryRequirements vkGetBufferMemoryRequirements;
