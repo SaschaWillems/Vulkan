@@ -332,7 +332,7 @@ public:
 
 	void loadAssets()
 	{
-		uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY;
+		uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::FlipY | vkglTF::FileLoadingFlags::FlipUV;
 		models.terrain.loadFromFile(getAssetPath() + "models/terrain_gridlines.gltf", vulkanDevice, queue, glTFLoadingFlags);
 		models.tree.loadFromFile(getAssetPath() + "models/oaktree.gltf", vulkanDevice, queue, glTFLoadingFlags);
 	}

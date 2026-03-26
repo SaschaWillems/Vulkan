@@ -1,7 +1,7 @@
 /*
 * Vulkan glTF model and texture loading class based on tinyglTF (https://github.com/syoyo/tinygltf)
 *
-* Copyright (C) 2018-2025 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2018-2026 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -1242,6 +1242,7 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 		const bool preTransform = fileLoadingFlags & FileLoadingFlags::PreTransformVertices;
 		const bool preMultiplyColor = fileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors;
 		const bool flipY = fileLoadingFlags & FileLoadingFlags::FlipY;
+		const bool flipUV = fileLoadingFlags & FileLoadingFlags::FlipUV;
 		for (Node* node : linearNodes) {
 			if (node->mesh) {
 				const glm::mat4 localMatrix = node->getMatrix();
@@ -1257,6 +1258,10 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 						if (flipY) {
 							vertex.pos.y *= -1.0f;
 							vertex.normal.y *= -1.0f;
+						}
+						// Flip textures verticall
+						if (flipUV) {
+							vertex.uv.t = 1.0 - vertex.uv.t;
 						}
 						// Pre-Multiply vertex colors with material base color
 						if (preMultiplyColor) {
