@@ -242,7 +242,7 @@ namespace vkglTF
 		PreMultiplyVertexColors = 0x00000002,
 		FlipY = 0x00000004,
 		DontLoadImages = 0x00000008,
-		FlipUV = 0x00000016
+		FlipUV = 0x00000010
 	};
 
 	enum RenderFlags {
