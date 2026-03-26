@@ -129,6 +129,7 @@ set(EXAMPLES
 	instancing
 	meshshader
 	multisampling
+	multisamplingalphatocoverage
 	multithreading
 	multiview
 	negativeviewportheight	
