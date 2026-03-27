@@ -187,6 +187,10 @@ These samples show how implement different features of the [glTF 2.0 3D format](
 
     Implements multisample anti-aliasing (MSAA) using a renderpass with multisampled attachments and resolve attachments that get resolved into the visible frame buffer.
 
+- [Alpha to coverage with multi sampling](examples/multisamplingalphatocoverage/)
+
+    Uses multisampling with alpha to coverage to implement an order-independent way of rendering overlapping transparent objects.
+
 - [High dynamic range](examples/hdr/)
 
     Implements a high dynamic range rendering pipeline using 16/32 bit floating point precision for all internal formats, textures and calculations, including a bloom pass, manual exposure and tone mapping.
