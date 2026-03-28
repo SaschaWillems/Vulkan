@@ -30,11 +30,11 @@ These examples require **Vulkan SDK 1.3.275.0** or later.
 
 Follow these instructions to install the latest Vulkan SDK containing **MoltenVK**:
 
-1. [Download](https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.dmg) the latest
+1. [Download](https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.zip) the latest
    **Vulkan SDK** for macOS.  This includes the required **MoltenVK** library frameworks
    for *iOS*, the *iOS Simulator*, and *macOS*.  The latest getting started information can be found at [Getting Started](https://vulkan.lunarg.com/doc/sdk/latest/mac/getting_started.html).
 
-2. Install the downloaded **vulkansdk-macos-*version*.dmg** package to the default location.
+2. Unzip and install the downloaded **vulkansdk-macOS-_version_** package to the default location.
 
 3. Open a *Terminal* session and navigate to the directory containing this document,
    remove the existing `MoltenVK.xcframework` symbolic link in this directory, and create
@@ -52,13 +52,13 @@ Running the Vulkan Examples
 The single `examples.xcodeproj` *Xcode* project can be used to run any of the examples
 in this repository on *iOS*, the *iOS Simulator*, or *macOS*. To do so, follow these instructions:
 
-1. Open the `examples.xcodeproj` *Xcode* project using **Xcode 14** or later.  <ins>Earlier versions of *Xcode* are not supported and will not successfully build this project</ins>.
+1. Open the `examples.xcodeproj` *Xcode* project using **Xcode 15.3** or later.  <ins>Earlier versions of *Xcode* are not supported and will not successfully build this project</ins>.
 
 2. Specify which of the many examples within this respository you wish to run, by opening
    the `examples.h` file within *Xcode*, and following the instructions in the comments
    within that file to indicate which of the examples you wish to run. Some examples may not be supported on *iOS* or *macOS* - please see the comments.
 
-3. Run either the `examples-iOS` or `examples-macOS` *Xcode Scheme* to run the example in *iOS*, the *iOS Simulator*, or *macOS* respectively.
+3. Run either the `examples-iOS` or `examples-macOS` *Xcode* scheme to run the example in *iOS*, the *iOS Simulator*, or *macOS* respectively. To deploy on *iOS*, the application bundle must be signed by specifying a Development Team (Apple Development Certificate) and unique Bundle Identifier within the `examples-iOS` scheme. On *macOS* the example is signed by default to run locally using the `examples-macOS` scheme.
 
 4. Many of the examples include an option to press keys to control the display of features
    and scene components:
