@@ -79,7 +79,7 @@ Example of cmake generating for Xcode with **libomp** library path defined and X
 
 ```
 cmake -G "Xcode" -DOpenMP_omp_LIBRARY=$LIBOMP_PREFIX/lib/libomp.dylib . \
--DCMAKE_XCODE_GENERATE_SCHEME=ON -DCMAKE_XCODE_SCHEME_ENABLE_GPU_API_VALIDATION=OFF
+-DCMAKE_XCODE_SCHEME_ENABLE_GPU_API_VALIDATION=OFF
 ```
 
 Open the generated Xcode project, select an example using the Xcode scheme dropdown list, and build using command-B.
