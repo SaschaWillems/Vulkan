@@ -52,13 +52,20 @@ If you want to build and install on a connected device or emulator image, run ``
 
 ### <img src="./images/applelogo.png" alt="" height="32px"> macOS and iOS
 
-**Note:** Running these examples on macOS and iOS requires [**MoltenVK**](https://github.com/KhronosGroup/MoltenVK) and a device that supports the *Metal* api.
+**Note:** Running these examples on macOS and iOS requires a Vulkan driver (**MoltenVK** or **KosmicKrisp**) that supports the *Metal* api.
 
 #### macOS
-Download the most recent Vulkan SDK using:
-```curl -O https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.dmg```
+Download and unzip the most recent Vulkan SDK using:
 
-Open **vulkan_sdk.dmg** and install the Vulkan SDK with *System Global Installation* selected.
+```
+curl -O https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.zip
+unzip vulkan_sdk.zip
+```
+Open **vulkansdk-macOS-_version_** and install the Vulkan SDK with *System Global Installation* selected. The **MoltenVK** driver will be used by default for Apple Silicon and x86_64 Macs. On Apple Silicon machines you can optionally install **KosmicKrisp**, and then activate it via:
+
+```
+export VK_DRIVER_FILES=/usr/local/share/vulkan/icd.d/libkosmickrisp_icd.json
+```
 
 Install **libomp** from [homebrew](https://brew.sh) using:
 ```brew install libomp```
@@ -68,8 +75,14 @@ Define the **libomp** path prefix using:
 
 Use [CMake](https://cmake.org) to generate a build configuration for Xcode or your preferred build method (e.g. Unix Makefiles or Ninja).
 
-Example of cmake generating for Xcode with **libomp** library path defined:
-```cmake -G "Xcode" -DOpenMP_omp_LIBRARY=$LIBOMP_PREFIX/lib/libomp.dylib .```
+Example of cmake generating for Xcode with **libomp** library path defined and Xcode's Metal API Validation disabled:
+
+```
+cmake -G "Xcode" -DOpenMP_omp_LIBRARY=$LIBOMP_PREFIX/lib/libomp.dylib . \
+-DCMAKE_XCODE_SCHEME_ENABLE_GPU_API_VALIDATION=OFF
+```
+
+Open the generated Xcode project, select an example using the Xcode scheme dropdown list, and build using command-B.
 
 #### iOS
 Navigate to the [apple](apple/) folder and follow the instructions in [README\_MoltenVK_Examples.md](apple/README_MoltenVK_Examples.md)

@@ -132,6 +132,10 @@
 #   include "../examples/multisampling/multisampling.cpp"
 #endif
 
+#ifdef MVK_multisamplingalphatocoverage
+#   include "../examples/multisamplingalphatocoverage/multisamplingalphatocoverage.cpp"
+#endif
+
 #ifdef MVK_hdr
 #   include "../examples/hdr/hdr.cpp"
 #endif

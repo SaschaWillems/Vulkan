@@ -414,7 +414,12 @@ public:
 
 		// Create first pipeline using a background thread
 		std::thread pipelineGenerationThread(&VulkanExample::threadFn, this);
-		pipelineGenerationThread.detach();
+
+		// Stall in benchmark mode until pipeline creation is finished to measure work more consistently
+		if (benchmark.active)
+            pipelineGenerationThread.join();
+		else
+			pipelineGenerationThread.detach();
 
 		prepared = true;
 	}
@@ -422,7 +427,7 @@ public:
 	void buildCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2]{};
