@@ -110,6 +110,7 @@ set(EXAMPLES
 	displacement
 	distancefieldfonts
 	dynamicrendering
+	dynamicrenderinglocalread	
 	dynamicrenderingmultisampling
 	dynamicstate
 	dynamicuniformbuffer	
