@@ -195,62 +195,57 @@ public:
 		}
 		assert(aspectMask > 0);
 
-		VkImageCreateInfo image_ci = vks::initializers::imageCreateInfo();
-		image_ci.imageType = VK_IMAGE_TYPE_2D;
-		image_ci.format = format;
-		image_ci.extent.width = attachments.width;
-		image_ci.extent.height = attachments.height;
-		image_ci.extent.depth = 1;
-		image_ci.mipLevels = 1;
-		image_ci.arrayLayers = 1;
-		image_ci.samples = VK_SAMPLE_COUNT_1_BIT;
-		image_ci.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image_ci.usage = usage | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-		image_ci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkImageCreateInfo imageCI{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = format,
+			.extent = {.width = static_cast<uint32_t>(attachments.width), .height = static_cast<uint32_t>(attachments.height), .depth = 1 },
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = usage | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		};
 
-		VkMemoryAllocateInfo memory_ai = vks::initializers::memoryAllocateInfo();
-		VkMemoryRequirements memory_requirements{};
-
-		VK_CHECK_RESULT(vkCreateImage(device, &image_ci, nullptr, &attachment.image));
-		vkGetImageMemoryRequirements(device, attachment.image, &memory_requirements);
-		memory_ai.allocationSize = memory_requirements.size;
-		memory_ai.memoryTypeIndex = vulkanDevice->getMemoryType(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memory_ai, nullptr, &attachment.memory));
+		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
+		VkMemoryRequirements memReqs{};
+		VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &attachment.image));
+		vkGetImageMemoryRequirements(device, attachment.image, &memReqs);
+		memAllocInfo.allocationSize = memReqs.size;
+		memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &attachment.memory));
 		VK_CHECK_RESULT(vkBindImageMemory(device, attachment.image, attachment.memory, 0));
 
-		VkImageViewCreateInfo image_view_ci = vks::initializers::imageViewCreateInfo();
-		image_view_ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		image_view_ci.format = format;
-		image_view_ci.subresourceRange = {};
-		image_view_ci.subresourceRange.aspectMask = aspectMask;
-		image_view_ci.subresourceRange.baseMipLevel = 0;
-		image_view_ci.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-		image_view_ci.subresourceRange.baseArrayLayer = 0;
-		image_view_ci.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-		image_view_ci.image = attachment.image;
-		VK_CHECK_RESULT(vkCreateImageView(device, &image_view_ci, nullptr, &attachment.view));
+		VkImageViewCreateInfo imageViewCI{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = attachment.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = format,
+			.subresourceRange = {.aspectMask = aspectMask, .baseMipLevel = 0, .levelCount = VK_REMAINING_MIP_LEVELS, .baseArrayLayer = 0, .layerCount = VK_REMAINING_ARRAY_LAYERS },
+		};
+		VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &attachment.view));
 
 		// Without render passes and their implicit layout transitions, we need to explicitly transition the attachments
 		// We use a new layout introduced by this extension that makes writes to images visible via input attachments
-		VkCommandBuffer command_buffer = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-		VkImageMemoryBarrier2KHR imageMemoryBarrier{};
-		imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR;
-		imageMemoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
-		imageMemoryBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
-		imageMemoryBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR;
-		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR;
-		imageMemoryBarrier.subresourceRange = image_view_ci.subresourceRange;
-		imageMemoryBarrier.image = attachment.image;
-
-		VkDependencyInfoKHR dependencyInfo{};
-		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR;
-		dependencyInfo.imageMemoryBarrierCount = 1;
-		dependencyInfo.pImageMemoryBarriers = &imageMemoryBarrier;
-		vkCmdPipelineBarrier2KHR(command_buffer, &dependencyInfo);
-
-		vulkanDevice->flushCommandBuffer(command_buffer, queue);
+		VkCommandBuffer cmdBuf = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkImageMemoryBarrier2KHR imageMemoryBarrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
+			.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
+			.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
+			.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+			.image = attachment.image,
+			.subresourceRange = imageViewCI.subresourceRange,
+		};
+		VkDependencyInfoKHR dependencyInfo{
+			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR,
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers = &imageMemoryBarrier
+		};
+		vkCmdPipelineBarrier2KHR(cmdBuf, &dependencyInfo);
+		vulkanDevice->flushCommandBuffer(cmdBuf, queue);
 	}
 
 	void destroyAttachment(FrameBufferAttachment& attachment)
