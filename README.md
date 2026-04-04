@@ -445,9 +445,13 @@ Vulkan is an extensible api with lots of functionality added by extensions. Thes
 
     Demonstrates the use of VK_EXT_descriptor_indexing for creating descriptor sets with a variable size that can be dynamically indexed in a shader using `GL_EXT_nonuniform_qualifier` and `SPV_EXT_descriptor_indexing`.
 
-- [Dynamic rendering](examples/dynamicrendering/) - VK_KHR_dynamic_rendering
+- [Dynamic rendering](examples/dynamicrendering/) - `VK_KHR_dynamic_rendering`
 
     Shows usage of the VK_KHR_dynamic_rendering extension, which simplifies the rendering setup by no longer requiring render pass objects or framebuffers.
+
+- [Dynamic rendering local read](examples/dynamicrenderinglocalread/) - `VK_KHR_dynamic_rendering_local_read`
+
+    Shows usage of the VK_KHR_dynamic_rendering extension in combination with VK_KHR_dynamic_rendering_local_read to replace render passes and sub passes. Local read ensures that reads stay local on tile memory.
 
 - [Dynamic rendering with multi sampling](examples/dynamicrenderingmultisampling/) - `VK_KHR_dynamic_rendering`
 
