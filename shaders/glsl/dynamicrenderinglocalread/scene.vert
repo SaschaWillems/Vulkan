@@ -23,11 +23,6 @@ layout (location = 1) out vec4 outColor;
 layout (location = 2) out vec3 outWorldPos;
 layout (location = 3) out vec2 outUV;
 
-//layout(push_constant) uniform SceneNode {
-//	mat4 matrix;
-//	vec4 color;
-//} sceneNode;
-
 void main() 
 {
 	gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos, 1.0);
