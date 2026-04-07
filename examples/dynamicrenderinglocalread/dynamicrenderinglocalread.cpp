@@ -141,7 +141,7 @@ public:
 	{
 		// With VK_KHR_dynamic_rendering we no longer need a frame buffer, so skip the sample base framebuffer setup
 
-		if (attachments.width != width || attachments.height != height)
+		if (resized)
 		{
 			attachments.width = width;
 			attachments.height = height;
@@ -160,6 +160,7 @@ public:
 				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(passes.composition.descriptorSet, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, static_cast<uint32_t>(i), &descriptorImageInfos[i]));
 			}
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+			resized = false;
 		}
 
 	}
@@ -458,6 +459,9 @@ public:
 		vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR"));
 		vkCmdPipelineBarrier2KHR = reinterpret_cast<PFN_vkCmdPipelineBarrier2KHR>(vkGetDeviceProcAddr(device, "vkCmdPipelineBarrier2KHR"));
 		vkCmdSetRenderingInputAttachmentIndicesKHR = reinterpret_cast<PFN_vkCmdSetRenderingInputAttachmentIndicesKHR>(vkGetDeviceProcAddr(device, "vkCmdSetRenderingInputAttachmentIndicesKHR"));
+
+		attachments.width = width;
+		attachments.height = height;
 
 		initLights();
 		createAttachments();
