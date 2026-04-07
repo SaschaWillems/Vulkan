@@ -103,8 +103,19 @@ public:
 		};
 		deviceCreatepNextChain = &enabledSynchronization2FeaturesKHR;
 
-		attachments.width = width;
-		attachments.height = height;
+#if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)) && TARGET_OS_SIMULATOR
+		static const VkBool32 valueFalse = VK_FALSE;
+
+		// On iOS Simulator use layer setting to disable MoltenVK's Metal argument buffers - otherwise blank display
+		VkLayerSettingEXT layerSetting;
+		layerSetting.pLayerName = "MoltenVK";
+		layerSetting.pSettingName = "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS";
+		layerSetting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+		layerSetting.pValues = &valueFalse;
+		layerSetting.valueCount = 1;
+
+		enabledLayerSettings.push_back( layerSetting );
+#endif
 	}
 
 	~VulkanExample()
