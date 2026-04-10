@@ -32,6 +32,8 @@ VkResult VulkanExampleBase::createInstance()
 	instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#elif defined (VK_USE_PLATFORM_OHOS)
+    instanceExtensions.push_back(VK_OHOS_SURFACE_EXTENSION_NAME);
 #elif defined(_DIRECT2DISPLAY)
 	instanceExtensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
@@ -449,6 +451,75 @@ void VulkanExampleBase::renderLoop()
 			}
 		}
 	}
+#elif defined (VK_USE_PLATFORM_OHOS)
+		// Render frame
+		if (prepared)
+		{
+			auto tStart = std::chrono::high_resolution_clock::now();
+			render();
+//            std::this_thread::sleep_for(std::chrono::milliseconds(8));
+            frameCounter++;
+            auto tEnd = std::chrono::high_resolution_clock::now();
+			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+			frameTimer = tDiff / 1000.0f;
+			camera.update(frameTimer);
+			// Convert to clamped timer value
+			if (!paused)
+			{
+				timer += timerSpeed * frameTimer;
+				if (timer > 1.0)
+				{
+					timer -= 1.0f;
+				}
+			}
+			float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count();
+			if (fpsTimer > 1000.0f)
+			{
+				lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
+				frameCounter = 0;
+				lastTimestamp = tEnd;
+			}
+
+            // 更新UI;
+            updateOverlay();
+
+			bool updateView = false;
+
+			// Check touch state (for movement)
+            if (touchDown) {
+				touchTimer += frameTimer;
+			}
+			if (touchTimer >= 1.0) {
+				camera.keys.up = true;
+			}
+
+			// Check gamepad state
+			const float deadZone = 0.0015f;
+			if (camera.type != Camera::CameraType::firstperson)
+			{
+				// Rotate
+				if (std::abs(gamePadState.axisLeft.x) > deadZone)
+				{
+					camera.rotate(glm::vec3(0.0f, gamePadState.axisLeft.x * 0.5f, 0.0f));
+					updateView = true;
+				}
+				if (std::abs(gamePadState.axisLeft.y) > deadZone)
+				{
+					camera.rotate(glm::vec3(gamePadState.axisLeft.y * 0.5f, 0.0f, 0.0f));
+					updateView = true;
+				}
+				// Zoom
+				if (std::abs(gamePadState.axisRight.y) > deadZone)
+				{
+					camera.translate(glm::vec3(0.0f, 0.0f, gamePadState.axisRight.y * 0.01f));
+					updateView = true;
+				}
+			}
+			else
+			{
+				updateView = camera.updatePad(gamePadState.axisLeft, gamePadState.axisRight, frameTimer);
+			}
+		}
 #elif defined(_DIRECT2DISPLAY)
 	while (!quit)
 	{
@@ -747,7 +818,7 @@ void VulkanExampleBase::submitFrame(bool skipQueueSubmit)
 	};
 	VkResult result = vkQueuePresentKHR(queue, &presentInfo);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR) || (result == VK_ERROR_SURFACE_LOST_KHR)) {
 		windowResize();
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			return;
@@ -876,7 +947,7 @@ VulkanExampleBase::VulkanExampleBase()
 	}
 #endif
 
-#if !defined(VK_USE_PLATFORM_ANDROID_KHR)
+#if !defined(VK_USE_PLATFORM_ANDROID_KHR) && !defined(VK_USE_PLATFORM_OHOS) 
 	// Check for a valid asset path
 	struct stat info;
 	if (stat(getAssetPath().c_str(), &info) != 0)
@@ -1045,7 +1116,7 @@ bool VulkanExampleBase::initVulkan()
 	// Defaults to the first device unless specified by command line
 	uint32_t selectedDevice = 0;
 
-#if !defined(VK_USE_PLATFORM_ANDROID_KHR)
+#if !defined(VK_USE_PLATFORM_ANDROID_KHR) && !defined(VK_USE_PLATFORM_OHOS)
 	// GPU selection via command line argument
 	if (commandLineParser.isSet("gpuselection")) {
 		uint32_t index = commandLineParser.getValueAsInt("gpuselection", 0);
@@ -1587,6 +1658,112 @@ void VulkanExampleBase::handleAppCommand(android_app * app, int32_t cmd)
 		}
 		break;
 	}
+}
+#elif defined (VK_USE_PLATFORM_OHOS)
+void VulkanExampleBase::handleAppInput(OH_NativeXComponent *component, void *window, void* pThis) {
+    OH_NativeXComponent_TouchEvent touchEvent;
+
+    // 获取触摸事件信息
+    int32_t ret = OH_NativeXComponent_GetTouchEvent(component, window, &touchEvent);
+    if (ret != OH_NATIVEXCOMPONENT_RESULT_SUCCESS) {
+        return;
+    } 
+    VulkanExampleBase* vulkanExample = static_cast<VulkanExampleBase*>(pThis);
+    LOGD("DispatchTouchEventCB, touchEvent.type = %{public}u, touchEvent.numPoints = %{public}u", touchEvent.type, touchEvent.numPoints);
+    switch (touchEvent.type) {
+        case OH_NativeXComponent_TouchEventType::OH_NATIVEXCOMPONENT_UP: {
+            vulkanExample->lastTapTime = touchEvent.timeStamp;
+            vulkanExample->touchPos.x = touchEvent.screenX;
+            vulkanExample->touchPos.y = touchEvent.screenY;
+            vulkanExample->touchTimer = 0.0;
+            vulkanExample->touchDown = false;
+            vulkanExample->camera.keys.up = false;
+
+            // Detect single tap
+            int64_t eventTime = touchEvent.timeStamp;
+            if (eventTime - vulkanExample->touchDownTime <= vks::OHOS::TAP_TIMEOUT) {
+                float deadZone = (160.f / vks::OHOS::screenDensity) * vks::OHOS::TAP_SLOP * vks::OHOS::TAP_SLOP;
+                float dx = touchEvent.screenX - (float)vulkanExample->touchPos.x;
+                float dy = touchEvent.screenY - (float)vulkanExample->touchPos.y;
+                if ((dx * dx + dy * dy) < deadZone) {
+                    vulkanExample->mouseState.position.x = touchEvent.screenX;
+                    vulkanExample->mouseState.position.y = touchEvent.screenY;
+                    vulkanExample->mouseState.buttons.left = true;
+                }
+            };
+            break;
+        }
+        case OH_NativeXComponent_TouchEventType::OH_NATIVEXCOMPONENT_DOWN : {
+            // Detect double tap
+            int64_t eventTime = touchEvent.timeStamp;
+            if (eventTime - vulkanExample->lastTapTime <= vks::OHOS::DOUBLE_TAP_TIMEOUT) {
+                float deadZone = (160.f / vks::OHOS::screenDensity) * vks::OHOS::DOUBLE_TAP_SLOP * vks::OHOS::DOUBLE_TAP_SLOP;
+                float x = touchEvent.screenX - vulkanExample->touchPos.x;
+                float y = touchEvent.screenY - vulkanExample->touchPos.y;
+                if ((x * x + y * y) < deadZone) {
+                    vulkanExample->keyPressed(TOUCH_DOUBLE_TAP);
+                    vulkanExample->touchDown = false;
+                }
+            }
+            else {
+                vulkanExample->touchDown = true;
+                vulkanExample->touchDownTime = eventTime;
+            }
+            vulkanExample->touchPos.x = touchEvent.screenX;
+            vulkanExample->touchPos.y = touchEvent.screenY;
+            vulkanExample->mouseState.position.x = touchEvent.screenX;
+            vulkanExample->mouseState.position.y = touchEvent.screenY;
+            break;
+        }
+        case OH_NativeXComponent_TouchEventType::OH_NATIVEXCOMPONENT_MOVE: {
+            vulkanExample->mouseState.position.x = touchEvent.screenX;
+            vulkanExample->mouseState.position.y = touchEvent.screenY;
+            bool handled = false;
+            if (vulkanExample->settings.overlay) {
+                ImGuiIO& io = ImGui::GetIO();
+                handled = io.WantCaptureMouse && vulkanExample->ui.visible;
+            }
+            if (!handled) {
+                int32_t eventX = touchEvent.screenX;
+                int32_t eventY = touchEvent.screenY;
+
+                float deltaX = (float)(vulkanExample->touchPos.y - eventY) * vulkanExample->camera.rotationSpeed * 0.5f;
+                float deltaY = (float)(vulkanExample->touchPos.x - eventX) * vulkanExample->camera.rotationSpeed * 0.5f;
+
+                vulkanExample->camera.rotate(glm::vec3(deltaX, 0.0f, 0.0f));
+                vulkanExample->camera.rotate(glm::vec3(0.0f, -deltaY, 0.0f));
+
+                vulkanExample->touchPos.x = eventX;
+                vulkanExample->touchPos.y = eventY;
+            }
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void VulkanExampleBase::onMessageCallbackStatic(uv_async_t* handle) {
+    if (!handle) {
+        LOGE("onMessageCallbackStatic: handle is nullptr");
+        return;
+    }
+    // Get the VulkanExampleBase instance from the handle's data field
+    VulkanExampleBase* pThis = static_cast<VulkanExampleBase*>(handle->data);
+    if (!pThis) {
+        LOGE("onMessageCallbackStatic: instance pointer is nullptr");
+        return;
+    }
+    pThis->onMessageCallback();
+}
+
+void VulkanExampleBase::onMessageCallback() {
+    if (this->prepared) {
+        this->renderLoop();
+        uv_async_send(&msgSignal);
+    } else {
+        LOGD("Instance not prepared yet, skipping renderLoop");
+    }
 }
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 #if defined(VK_EXAMPLE_XCODE_GENERATED)
@@ -3281,6 +3458,8 @@ void VulkanExampleBase::createSurface()
 	swapChain.initSurface(windowInstance, window);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	swapChain.initSurface(androidApp->window);
+#elif defined(VK_USE_PLATFORM_OHOS)
+    swapChain.initSurface(nativeWindow);
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK))
 	swapChain.initSurface(view);
 #elif defined(VK_USE_PLATFORM_METAL_EXT)

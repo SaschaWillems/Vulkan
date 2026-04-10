@@ -70,6 +70,10 @@
 #endif
 #endif
 
+#ifdef __OHOS__
+#include <rawfile/raw_file_manager.h>
+#endif
+
 #ifdef __GNUC__
 #if (__GNUC__ < 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ <= 8))
 #define TINYGLTF_NOEXCEPT
@@ -179,6 +183,10 @@ namespace tinygltf {
 
 #define TINYGLTF_DOUBLE_EPS (1.e-12)
 #define TINYGLTF_DOUBLE_EQUAL(a, b) (std::fabs((b) - (a)) < TINYGLTF_DOUBLE_EPS)
+
+#ifdef __OHOS__
+NativeResourceManager *rawfile_manager = nullptr;
+#endif
 
 #ifdef __ANDROID__
 #ifdef TINYGLTF_ANDROID_LOAD_FROM_ASSETS
@@ -1567,7 +1575,7 @@ class TinyGLTF {
 
 #endif
 
-#elif !defined(__ANDROID__)
+#elif !defined(__ANDROID__) && !defined(__OHOS__)
 #include <wordexp.h>
 #endif
 
@@ -2501,6 +2509,18 @@ bool FileExists(const std::string &abs_filename, void *) {
     return false;
   }
 #else
+#ifdef __OHOS__
+    if (rawfile_manager) {
+        RawFile* asset = OH_ResourceManager_OpenRawFile(rawfile_manager, abs_filename.c_str());
+        if (!asset) {
+            return false;
+        }
+        OH_ResourceManager_CloseRawFile(asset);
+        ret = true;
+    } else {
+        return false;
+    }
+#endif
 #ifdef _WIN32
 #if defined(_MSC_VER) || defined(__GLIBCXX__)
   FILE *fp = nullptr;
@@ -2544,7 +2564,7 @@ std::string ExpandFilePath(const std::string &filepath, void *) {
 #else
 
 #if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR) || \
-    defined(__ANDROID__) || defined(__EMSCRIPTEN__)
+    defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(__OHOS__)
   // no expansion
   std::string s = filepath;
 #else
@@ -2609,6 +2629,35 @@ bool ReadWholeFile(std::vector<unsigned char> *out, std::string *err,
     return false;
   }
 #else
+#ifdef __OHOS__
+
+
+    // 读取全文件；
+    if (rawfile_manager) {
+        RawFile* rawfile = OH_ResourceManager_OpenRawFile(rawfile_manager, filepath.c_str());
+        if (!rawfile) {
+            if (err) {
+                (*err) += "File open error : " + filepath + "\n";
+            }
+            return false;
+        }
+        size_t size = OH_ResourceManager_GetRawFileSize(rawfile);
+        if (size <= 0) {
+            if (err) {
+                (*err) += "Invalid file size : " + filepath + " (does the path point to a directory?)";
+            }
+        }
+        out->resize(size);
+        OH_ResourceManager_ReadRawFile(rawfile, reinterpret_cast<char *>(&out->at(0)), size);
+        OH_ResourceManager_CloseRawFile(rawfile);
+        return true;
+    } else {
+        if (err) {
+            (*err) += "No asset manager specified : " + filepath + "\n";
+        }
+        return false;
+    }
+#endif
 #ifdef _WIN32
 #if defined(__GLIBCXX__)  // mingw
   int file_descriptor =

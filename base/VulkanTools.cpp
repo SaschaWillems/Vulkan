@@ -15,7 +15,7 @@ const std::string getAssetPath()
 if (vks::tools::resourcePath != "") {
 	return vks::tools::resourcePath + "/assets/";
 }
-#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR) || defined (VK_USE_PLATFORM_OHOS)
 	return "";
 #elif defined(VK_EXAMPLE_ASSETS_DIR)
 	return VK_EXAMPLE_ASSETS_DIR;
@@ -29,7 +29,7 @@ const std::string getShaderBasePath()
 if (vks::tools::resourcePath != "") {
 	return vks::tools::resourcePath + "/shaders/";
 }
-#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR) || defined (VK_USE_PLATFORM_OHOS)
 	return "shaders/";
 #elif defined(VK_EXAMPLE_SHADERS_DIR)
 	return VK_EXAMPLE_SHADERS_DIR;
@@ -353,9 +353,11 @@ namespace vks
 #elif defined(__ANDROID__)
             LOGE("Fatal error: %s", message.c_str());
 			vks::android::showAlert(message.c_str());
+#elif defined (__OHOS__)
+            LOGE("Fatal error: %{public}s", message.c_str());
 #endif
 			std::cerr << message << "\n";
-#if !defined(__ANDROID__)
+#if !defined(__ANDROID__) && !defined(__OHOS__)
 			exit(exitCode);
 #endif
 		}
@@ -391,6 +393,44 @@ namespace vks
 			VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
 
 			delete[] shaderCode;
+
+			return shaderModule;
+		}
+#elif defined (__OHOS__)
+        /**
+         * Load shader from HarmonyOS raw resources using ResourceManager singleton
+         * This is the preferred method - no need to pass NativeResourceManager explicitly
+         */
+        VkShaderModule loadShader(const char *fileName, VkDevice device) {
+            NativeResourceManager* resourceMgr = ResourceManager::getInstance().getNativeResourceManager();
+            if (!resourceMgr) {
+                std::string msg = "ResourceManager not initialized. Call ResourceManager::getInstance().initialize() first.";
+                // vks::tools::exitFatal(msg, -1);
+            }
+
+            RawFile *rawfile = OH_ResourceManager_OpenRawFile(resourceMgr, fileName);
+            if (!rawfile) {
+                std::string msg = "Could not load shader from " + std::string(fileName);
+                vks::tools::exitFatal(msg, -1);
+            }
+
+            size_t size = OH_ResourceManager_GetRawFileSize(rawfile);
+            assert(size > 0);
+
+            char *shaderCode = new char[size];
+            OH_ResourceManager_ReadRawFile(rawfile, shaderCode, size);
+            OH_ResourceManager_CloseRawFile(rawfile);
+
+            VkShaderModule shaderModule;
+            VkShaderModuleCreateInfo moduleCreateInfo;
+            moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            moduleCreateInfo.pNext = NULL;
+            moduleCreateInfo.codeSize = size;
+            moduleCreateInfo.pCode = (uint32_t *)shaderCode;
+            moduleCreateInfo.flags = 0;
+
+            VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
+            delete[] shaderCode;
 
 			return shaderModule;
 		}

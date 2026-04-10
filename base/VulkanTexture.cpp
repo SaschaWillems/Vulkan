@@ -43,6 +43,25 @@ namespace vks
 		AAsset_close(asset);
 		result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, target);
 		delete[] textureData;
+#elif defined (__OHOS__)
+        // Load texture from HarmonyOS raw resources using ResourceManager singleton
+        NativeResourceManager* resourceMgr = ResourceManager::getInstance().getNativeResourceManager();
+        if (!resourceMgr) {
+            // vks::tools::exitFatal("ResourceManager not initialized. Call ResourceManager::getInstance().initialize() first.", -1);
+        }
+
+        RawFile* rawFile = OH_ResourceManager_OpenRawFile(resourceMgr, filename.c_str());
+        if (!rawFile) {
+             vks::tools::exitFatal("Could not load texture from " + filename + "\n\nMake sure the assets submodule has been checked out and is up-to-date.", -1);
+        }
+        size_t size = OH_ResourceManager_GetRawFileSize(rawFile);
+        assert(size > 0);
+
+        ktx_uint8_t *textureData = new ktx_uint8_t[size];
+        OH_ResourceManager_ReadRawFile(rawFile, textureData, size);
+        OH_ResourceManager_CloseRawFile(rawFile);
+        result = ktxTexture_CreateFromMemory(textureData, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, target);
+        delete[] textureData;
 #else
 		if (!vks::tools::fileExists(filename)) {
 			vks::tools::exitFatal("Could not load texture from " + filename + "\n\nMake sure the assets submodule has been checked out and is up-to-date.", -1);
