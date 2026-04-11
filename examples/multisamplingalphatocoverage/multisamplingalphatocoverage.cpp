@@ -327,7 +327,10 @@ public:
 		VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 		std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{
+			loadShader(getShadersPath() + "multisamplingalphatocoverage/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "multisamplingalphatocoverage/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+		};
 
 		// Setup multi sampling
 		VkPipelineMultisampleStateCreateInfo multisampleState{
@@ -336,10 +339,6 @@ public:
 			// Enabling alpha to coverage will generated coverage values based on the alpha component of the fragment’s first color output
 			.alphaToCoverageEnable = VK_TRUE
 		};
-
-		shaderStages[0] = loadShader(getShadersPath() + "multisamplingalphatocoverage/texture.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "multisamplingalphatocoverage/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
 
 		VkGraphicsPipelineCreateInfo pipelineCI{
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,

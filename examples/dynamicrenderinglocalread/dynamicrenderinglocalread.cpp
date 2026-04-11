@@ -52,7 +52,6 @@ public:
 	};
 	struct Attachments {
 		FrameBufferAttachment positionDepth, normal, albedo;
-		int32_t width, height;
 	} attachments{};
 
 	struct Light {
@@ -142,20 +141,15 @@ public:
 		}
 	}
 
-	void setupRenderPass()
-	{
-		// With VK_KHR_dynamic_rendering we no longer need a render pass, so skip the sample base render pass setup
-		renderPass = VK_NULL_HANDLE;
-	}
+	// With VK_KHR_dynamic_rendering we no longer need a render pass, so skip the sample base render pass setup
+	void setupRenderPass() override {}
 
-	void setupFrameBuffer()
-	{
-		// With VK_KHR_dynamic_rendering we no longer need a frame buffer, so skip the sample base framebuffer setup
+	// With VK_KHR_dynamic_rendering we no longer need a frame buffer, so skip the sample base framebuffer setup
+	void setupFrameBuffer() override {}
 
-		if (resized)
-		{
-			attachments.width = width;
-			attachments.height = height;
+	void windowResized() override
+	{
+		if (resized) {
 			createAttachments();
 			// Dynamic rendering uses a new layout to make writes to attachments visible for reads via input attachments
 			const VkImageLayout image_layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR;
@@ -173,7 +167,6 @@ public:
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 			resized = false;
 		}
-
 	}
 
 	// Enable physical device features required for this example
@@ -211,7 +204,7 @@ public:
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 			.imageType = VK_IMAGE_TYPE_2D,
 			.format = format,
-			.extent = {.width = static_cast<uint32_t>(attachments.width), .height = static_cast<uint32_t>(attachments.height), .depth = 1 },
+			.extent = {.width = width, .height = height, .depth = 1 },
 			.mipLevels = 1,
 			.arrayLayers = 1,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
@@ -464,15 +457,11 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-
 		// Since we use an extension, we need to expliclity load the function pointers for extension related Vulkan commands
 		vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdBeginRenderingKHR"));
 		vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR"));
 		vkCmdPipelineBarrier2KHR = reinterpret_cast<PFN_vkCmdPipelineBarrier2KHR>(vkGetDeviceProcAddr(device, "vkCmdPipelineBarrier2KHR"));
 		vkCmdSetRenderingInputAttachmentIndicesKHR = reinterpret_cast<PFN_vkCmdSetRenderingInputAttachmentIndicesKHR>(vkGetDeviceProcAddr(device, "vkCmdSetRenderingInputAttachmentIndicesKHR"));
-
-		attachments.width = width;
-		attachments.height = height;
 
 		initLights();
 		createAttachments();
