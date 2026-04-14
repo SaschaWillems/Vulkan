@@ -138,6 +138,8 @@ public:
 			for (auto& buffer : uniformBuffers) {
 				buffer.destroy();
 			}
+			vkDestroyBuffer(device, lightsBuffer.buffer, nullptr);
+			vkFreeMemory(device, lightsBuffer.memory, nullptr);
 		}
 	}
 
@@ -170,7 +172,7 @@ public:
 	}
 
 	// Enable physical device features required for this example
-	virtual void getEnabledFeatures()
+	virtual void getEnabledFeatures() override
 	{
 		// Enable anisotropic filtering if supported
 		if (deviceFeatures.samplerAnisotropy) {
@@ -454,7 +456,7 @@ public:
 		}
 	}
 
-	void prepare()
+	void prepare() override
 	{
 		VulkanExampleBase::prepare();
 		// Since we use an extension, we need to expliclity load the function pointers for extension related Vulkan commands
@@ -508,7 +510,7 @@ public:
 			colorAttachments[i] = {
 				.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 				.imageView = imageViewList[i],
-				.imageLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+				.imageLayout = (i == 0) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
 				.resolveMode = VK_RESOLVE_MODE_NONE,
 				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -579,6 +581,15 @@ public:
 		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, passes.composition.pipelineLayout, 0, 1, &passes.composition.descriptorSet, 0, nullptr);
 		vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
+		vkCmdEndRenderingKHR(cmdBuffer);
+
+		// Update renderingInfo to use current swapchain image as single color attachment for the UI
+		colorAttachments[0].imageView = swapChain.imageViews[currentImageIndex];
+		colorAttachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		renderingInfo.colorAttachmentCount = 1;
+
+		vkCmdBeginRenderingKHR(cmdBuffer, &renderingInfo);
+
 		drawUI(cmdBuffer);
 
 		vkCmdEndRenderingKHR(cmdBuffer);
@@ -598,7 +609,7 @@ public:
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
-	virtual void render()
+	virtual void render() override
 	{
 		if (!prepared)
 			return;
