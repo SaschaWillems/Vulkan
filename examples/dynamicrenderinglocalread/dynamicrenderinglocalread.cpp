@@ -124,6 +124,7 @@ public:
 			for (auto& buffer : uniformBuffers) {
 				buffer.destroy();
 			}
+			lightsBuffer.destroy();
 		}
 	}
 
