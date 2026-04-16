@@ -1261,7 +1261,7 @@ void vkglTF::Model::loadFromFile(std::string filename, vks::VulkanDevice *device
 						}
 						// Flip textures verticall
 						if (flipUV) {
-							vertex.uv.t = 1.0 - vertex.uv.t;
+							vertex.uv.t = 1.0f - vertex.uv.t;
 						}
 						// Pre-Multiply vertex colors with material base color
 						if (preMultiplyColor) {
