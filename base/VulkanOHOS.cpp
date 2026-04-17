@@ -1,6 +1,8 @@
-//
-// Created by luzehui on 26-3-11.
-//
+/*
+ * Copyright (C) 2016-2026 by Sascha Willems - www.saschawillems.de
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 
 /*
  * Resource Manager Implementation
