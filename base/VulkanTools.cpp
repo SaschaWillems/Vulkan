@@ -383,7 +383,7 @@ namespace vks
 			AAsset_close(asset);
 
 			VkShaderModule shaderModule;
-			VkShaderModuleCreateInfo moduleCreateInfo;
+			VkShaderModuleCreateInfo moduleCreateInfo{};
 			moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 			moduleCreateInfo.pNext = NULL;
 			moduleCreateInfo.codeSize = size;
