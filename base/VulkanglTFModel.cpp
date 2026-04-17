@@ -305,12 +305,12 @@ void vkglTF::Texture::fromglTfImage(tinygltf::Image &gltfimage, std::string path
 #elif defined (__OHOS__)
         NativeResourceManager* resourceMgr = ResourceManager::getInstance().getNativeResourceManager();
         if (!resourceMgr) {
-//             vks::tools::exitFatal("ResourceManager not initialized. Call ResourceManager::getInstance().initialize() first.", -1);
+             vks::tools::exitFatal("ResourceManager not initialized. Call ResourceManager::getInstance().initialize() first.", -1);
         }
 
         RawFile *rawfile = OH_ResourceManager_OpenRawFile(resourceMgr, filename.c_str());
         if (!rawfile) {
-//             vks::tools::exitFatal("Could not load texture from " + filename + "\n\nMake sure the assets submodule has been checked out and is up-to-date.", -1);
+             vks::tools::exitFatal("Could not load texture from " + filename + "\n\nMake sure the assets submodule has been checked out and is up-to-date.", -1);
         }
         size_t size = OH_ResourceManager_GetRawFileSize(rawfile);
         assert(size > 0);

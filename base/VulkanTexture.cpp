@@ -47,7 +47,7 @@ namespace vks
         // Load texture from HarmonyOS raw resources using ResourceManager singleton
         NativeResourceManager* resourceMgr = ResourceManager::getInstance().getNativeResourceManager();
         if (!resourceMgr) {
-            // vks::tools::exitFatal("ResourceManager not initialized. Call ResourceManager::getInstance().initialize() first.", -1);
+             vks::tools::exitFatal("ResourceManager not initialized. Call ResourceManager::getInstance().initialize() first.", -1);
         }
 
         RawFile* rawFile = OH_ResourceManager_OpenRawFile(resourceMgr, filename.c_str());
