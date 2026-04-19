@@ -3,7 +3,7 @@
 * 
 * This sample shows how to use host image copies to directly upload an image to the devic without having to use staging
 *
-* Copyright (C) 2024-2025 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2024-2026 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -143,12 +143,14 @@ public:
 		// Note: All formats that support sampling are required to support this flag
 		// So for the format used here (R8G8B8A8_UNORM) we could skip this check
 		// The flag we need to check is an extension flag, so we need to go through VkFormatProperties3 
-		VkFormatProperties3 formatProperties3{};
-		formatProperties3.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3_KHR;
+		VkFormatProperties3 formatProperties3{
+			.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3_KHR
+		};
 		// Properties3 need to be chained into Properties2
-		VkFormatProperties2 formatProperties2{};
-		formatProperties2.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2;
-		formatProperties2.pNext = &formatProperties3;
+		VkFormatProperties2 formatProperties2{
+			.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2,
+			.pNext = &formatProperties3
+		};
 		vkGetPhysicalDeviceFormatProperties2(physicalDevice, imageFormat, &formatProperties2);
 
 		if ((formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_HOST_IMAGE_TRANSFER_BIT_EXT) == 0) {
@@ -156,18 +158,20 @@ public:
 		}
 
 		// Create optimal tiled target image on the device
-		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.format = imageFormat;
-		imageCreateInfo.mipLevels = texture.mipLevels;
-		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageCreateInfo.extent = { texture.width, texture.height, 1 };
-		// For images that use host image copy we need to specify the VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT usage flag
-		imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT;
+		VkImageCreateInfo imageCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = imageFormat,
+			.extent = { texture.width, texture.height, 1 },
+			.mipLevels = texture.mipLevels,
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			// For images that use host image copy we need to specify the VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT usage flag
+			.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT,
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		};
 		VK_CHECK_RESULT(vkCreateImage(device, &imageCreateInfo, nullptr, &texture.image));
 
 		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
@@ -185,81 +189,81 @@ public:
 		// Set up copy information for all mip levels stored in the image
 		std::vector<VkMemoryToImageCopyEXT> memoryToImageCopies{};
 		for (uint32_t i = 0; i < texture.mipLevels; i++) {
-			// Setup a buffer image copy structure for the current mip level
-			VkMemoryToImageCopyEXT memoryToImageCopy = {};
-			memoryToImageCopy.sType = VK_STRUCTURE_TYPE_MEMORY_TO_IMAGE_COPY_EXT;
-			memoryToImageCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			memoryToImageCopy.imageSubresource.mipLevel = i;
-			memoryToImageCopy.imageSubresource.baseArrayLayer = 0;
-			memoryToImageCopy.imageSubresource.layerCount = 1;
-			memoryToImageCopy.imageExtent.width = ktxTexture->baseWidth >> i;
-			memoryToImageCopy.imageExtent.height = ktxTexture->baseHeight >> i;
-			memoryToImageCopy.imageExtent.depth = 1;
-
 			// This tells the implementation where to read the data from
 			// As the KTX file is tightly packed, we can simply offset into that buffer for the current mip level
 			ktx_size_t offset;
 			KTX_error_code ret = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
 			assert(ret == KTX_SUCCESS);
-			memoryToImageCopy.pHostPointer = ktxTextureData + offset;
-
+			
+			// Setup a buffer image copy structure for the current mip level
+			VkMemoryToImageCopyEXT memoryToImageCopy{
+				.sType = VK_STRUCTURE_TYPE_MEMORY_TO_IMAGE_COPY_EXT,
+				.pHostPointer = ktxTextureData + offset,
+				.imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = i, .baseArrayLayer = 0, .layerCount = 1 },
+				.imageExtent = {.width = ktxTexture->baseWidth >> i, .height = ktxTexture->baseHeight >> i, .depth = 1, }
+			};
 			memoryToImageCopies.push_back(memoryToImageCopy);
 		}
 
-		VkImageSubresourceRange subresourceRange{};
-		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = texture.mipLevels;
-		subresourceRange.layerCount = 1;
+		VkImageSubresourceRange subresourceRange{
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = texture.mipLevels,
+			.layerCount = 1
+		};
 
 		// VK_EXT_host_image_copy als introduces a simplified way of doing the required image transition on the host
 		// This no longer requires a dedicated command buffer to submit the barrier
 		// We also no longer need multiple transitions, and only have to do one for the final layout
-		VkHostImageLayoutTransitionInfoEXT hostImageLayoutTransitionInfo{};
-		hostImageLayoutTransitionInfo.sType = VK_STRUCTURE_TYPE_HOST_IMAGE_LAYOUT_TRANSITION_INFO_EXT;
-		hostImageLayoutTransitionInfo.image = texture.image;
-		hostImageLayoutTransitionInfo.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		hostImageLayoutTransitionInfo.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		hostImageLayoutTransitionInfo.subresourceRange = subresourceRange;
-
+		VkHostImageLayoutTransitionInfoEXT hostImageLayoutTransitionInfo{
+			.sType = VK_STRUCTURE_TYPE_HOST_IMAGE_LAYOUT_TRANSITION_INFO_EXT,
+			.image = texture.image,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			.subresourceRange = subresourceRange,
+		};
 		vkTransitionImageLayoutEXT(device, 1, &hostImageLayoutTransitionInfo);
 
 		// With the image in the correct layout and copy information for all mip levels setup, we can now issue the copy to our taget image from the host
 		// The implementation will then convert this to an implementation specific optimal tiling layout
-		VkCopyMemoryToImageInfoEXT copyMemoryInfo{};
-		copyMemoryInfo.sType = VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INFO_EXT;
-		copyMemoryInfo.dstImage = texture.image;
-		copyMemoryInfo.dstImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		copyMemoryInfo.regionCount = static_cast<uint32_t>(memoryToImageCopies.size());
-		copyMemoryInfo.pRegions = memoryToImageCopies.data();
-
+		VkCopyMemoryToImageInfoEXT copyMemoryInfo{
+			.sType = VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INFO_EXT,
+			.dstImage = texture.image,
+			.dstImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			.regionCount = static_cast<uint32_t>(memoryToImageCopies.size()),
+			.pRegions = memoryToImageCopies.data(),
+		};
 		vkCopyMemoryToImageEXT(device, &copyMemoryInfo);
 
 		ktxTexture_Destroy(ktxTexture);
 
 		// Create a texture sampler
-		VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
-		sampler.magFilter = VK_FILTER_LINEAR;
-		sampler.minFilter = VK_FILTER_LINEAR;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.mipLodBias = 0.0f;
-		sampler.compareOp = VK_COMPARE_OP_NEVER;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = (float)texture.mipLevels;
-		sampler.maxAnisotropy = vulkanDevice->properties.limits.maxSamplerAnisotropy;
-		sampler.anisotropyEnable = VK_TRUE;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		VkSamplerCreateInfo sampler{
+			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+			.magFilter = VK_FILTER_LINEAR,
+			.minFilter = VK_FILTER_LINEAR,
+			.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+			.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+			.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+			.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+			.mipLodBias = 0.0f,
+			.anisotropyEnable = VK_TRUE,
+			.maxAnisotropy = vulkanDevice->properties.limits.maxSamplerAnisotropy,
+			.compareOp = VK_COMPARE_OP_NEVER,
+			.minLod = 0.0f,
+			.maxLod = (float)texture.mipLevels,
+			.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+		};
 		VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &texture.sampler));
 
 		// Create image view
-		VkImageViewCreateInfo view = vks::initializers::imageViewCreateInfo();
-		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		view.format = imageFormat;
-		view.subresourceRange = subresourceRange;
-		view.image = texture.image;
+		VkImageViewCreateInfo view{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = texture.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = imageFormat,
+			.subresourceRange = subresourceRange,
+		};
 		VK_CHECK_RESULT(vkCreateImageView(device, &view, nullptr, &texture.view));
 	}
 
@@ -296,10 +300,11 @@ public:
 		// Dynamic and static resources in one set for simplicity
 
 		// Setup a descriptor image info for the current texture to be used as a combined image sampler
-		VkDescriptorImageInfo textureDescriptor{};
-		textureDescriptor.imageView = texture.view;
-		textureDescriptor.sampler = texture.sampler;
-		textureDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		VkDescriptorImageInfo textureDescriptor{
+			.sampler = texture.sampler,
+			.imageView = texture.view,
+			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		};
 
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
 		for (auto i = 0; i < uniformBuffers.size(); i++) {
@@ -336,18 +341,24 @@ public:
 		    loadShader(getShadersPath() + "texture/texture.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
         };
 
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
-		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-		pipelineCreateInfo.pRasterizationState = &rasterizationState;
-		pipelineCreateInfo.pColorBlendState = &colorBlendState;
-		pipelineCreateInfo.pMultisampleState = &multisampleState;
-		pipelineCreateInfo.pViewportState = &viewportState;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCreateInfo.pStages = shaderStages.data();
-		pipelineCreateInfo.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Normal });
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
+		//VkGraphicsPipelineCreateInfo pipelineCreateInfo = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
+
+		VkGraphicsPipelineCreateInfo pipelineCI{
+			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			.stageCount = static_cast<uint32_t>(shaderStages.size()),
+			.pStages = shaderStages.data(),
+			.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({ vkglTF::VertexComponent::Position, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Normal }),
+			.pInputAssemblyState = &inputAssemblyState,
+			.pViewportState = &viewportState,
+			.pRasterizationState = &rasterizationState,
+			.pMultisampleState = &multisampleState,
+			.pDepthStencilState = &depthStencilState,
+			.pColorBlendState = &colorBlendState,
+			.pDynamicState = &dynamicState,
+			.layout = pipelineLayout,
+			.renderPass = renderPass,
+		};
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
 
 	// Prepare and initialize uniform buffer containing shader uniforms
@@ -400,33 +411,25 @@ public:
 		clearValues[0].color = defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
-
+		VkRenderPassBeginInfo renderPassBeginInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.renderPass = renderPass,
+			.framebuffer = frameBuffers[currentImageIndex],
+			.renderArea = {.offset = {.x = 0, .y = 0 }, .extent = {.width = width, .height = height } },
+			.clearValueCount = 2,
+			.pClearValues = clearValues,
+		};
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
 
 		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
 		VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
-
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
-
 		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
 		plane.draw(cmdBuffer);
-
 		drawUI(cmdBuffer);
-
 		vkCmdEndRenderPass(cmdBuffer);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
