@@ -19,7 +19,7 @@ struct Index {
       XComponent({
         id: 'xcomponentId',
         type: XComponentType.SURFACE,
-        libraryname: 'triangle' // 利用id和libraryname属性在Native侧获取NativeXcomponent并绑定Surface生命周期
+        libraryname: 'triangle'
       })
         .onLoad((xComponentContext) => {
           this.context = xComponentContext
