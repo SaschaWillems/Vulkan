@@ -269,11 +269,12 @@ public:
 
 					// Append data to model's vertex buffer
 					for (size_t v = 0; v < vertexCount; v++) {
-						Vertex vert{};
-						vert.pos = glm::vec4(glm::make_vec3(&positionBuffer[v * 3]), 1.0f);
-						vert.normal = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f)));
-						vert.uv = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f);
-						vert.color = glm::vec3(1.0f);
+						Vertex vert{
+							.pos = glm::vec4(glm::make_vec3(&positionBuffer[v * 3]), 1.0f),
+							.normal = glm::normalize(glm::vec3(normalsBuffer ? glm::make_vec3(&normalsBuffer[v * 3]) : glm::vec3(0.0f))),
+							.uv = texCoordsBuffer ? glm::make_vec2(&texCoordsBuffer[v * 2]) : glm::vec3(0.0f),
+							.color = glm::vec3(1.0f),
+						};
 						vertexBuffer.push_back(vert);
 					}
 				}
