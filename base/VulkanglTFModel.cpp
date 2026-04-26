@@ -732,6 +732,8 @@ void vkglTF::Model::createEmptyTexture(VkQueue transferQueue)
 	emptyTexture.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	emptyTexture.descriptor.imageView = emptyTexture.view;
 	emptyTexture.descriptor.sampler = emptyTexture.sampler;
+
+	delete[] buffer;
 }
 
 /*
