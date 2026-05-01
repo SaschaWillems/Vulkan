@@ -7,7 +7,7 @@
 *
 * Relevant code parts are marked with [POI]
 *
-* Copyright (C) 2021-2025 Sascha Willems - www.saschawillems.de
+* Copyright (C) 2021-2026 Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -206,11 +206,16 @@ public:
 	void setupDescriptors()
 	{
 		// Descriptor pool
-		std::vector<VkDescriptorPoolSize> poolSizes = {
+		std::vector<VkDescriptorPoolSize> poolSizes{
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxConcurrentFrames),
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(textures.size()) * maxConcurrentFrames)
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, maxConcurrentFrames);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.maxSets = maxConcurrentFrames,
+			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+			.pPoolSizes = poolSizes.data(),
+		};
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 		// Increase the per-stage descriptor samplers limit on macOS/iOS (maxPerStageDescriptorUpdateAfterBindSamplers > maxPerStageDescriptorSamplers)
 		descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
@@ -218,7 +223,7 @@ public:
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// Descriptor set layout
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{
 			// Binding 0 : Vertex shader uniform buffer
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			// [POI] Binding 1 contains a texture array that is dynamically non-uniform sampled from in the fragment shader:
@@ -227,58 +232,72 @@ public:
 		};
 
 		// [POI] The fragment shader will be using an unsized array of samplers, which has to be marked with the VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
-		VkDescriptorSetLayoutBindingFlagsCreateInfoEXT setLayoutBindingFlags{};
-		setLayoutBindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
-		setLayoutBindingFlags.bindingCount = 2;
 		// Binding 0 is the vertex shader uniform buffer, which does not use indexing
 		// Binding 1 are the fragment shader images, which use indexing
 		// In the fragment shader:
 		//	layout (set = 0, binding = 1) uniform sampler2D textures[];
-		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags = {
+		std::vector<VkDescriptorBindingFlagsEXT> descriptorBindingFlags{
 			0,
 			VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT
 		};
-		setLayoutBindingFlags.pBindingFlags = descriptorBindingFlags.data();
-
-		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+		VkDescriptorSetLayoutBindingFlagsCreateInfoEXT setLayoutBindingFlags{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT,
+			.bindingCount = 2,
+			.pBindingFlags = descriptorBindingFlags.data()
+		};
+		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			.pNext = &setLayoutBindingFlags,
+			.bindingCount = static_cast<uint32_t>(setLayoutBindings.size()),
+			.pBindings = setLayoutBindings.data()
+		};
 #if (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 		// Increase the per-stage descriptor samplers limit on macOS/iOS (maxPerStageDescriptorUpdateAfterBindSamplers > maxPerStageDescriptorSamplers)
 		descriptorSetLayoutCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 #endif
-		descriptorSetLayoutCI.pNext = &setLayoutBindingFlags;
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout));
 
 		// [POI] Descriptor sets
 		// We need to provide the descriptor counts for bindings with variable counts using a new structure
-		std::vector<uint32_t> variableDesciptorCounts = {
+		std::vector<uint32_t> variableDesciptorCounts{
 			static_cast<uint32_t>(textures.size())
 		};
 
-		VkDescriptorSetVariableDescriptorCountAllocateInfoEXT variableDescriptorCountAllocInfo = {};
-		variableDescriptorCountAllocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
-		variableDescriptorCountAllocInfo.descriptorSetCount = static_cast<uint32_t>(variableDesciptorCounts.size());
-		variableDescriptorCountAllocInfo.pDescriptorCounts  = variableDesciptorCounts.data();
+		VkDescriptorSetVariableDescriptorCountAllocateInfoEXT variableDescriptorCountAllocInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT,
+			.descriptorSetCount = static_cast<uint32_t>(variableDesciptorCounts.size()),
+			.pDescriptorCounts = variableDesciptorCounts.data()
+		};
 
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
-		allocInfo.pNext = &variableDescriptorCountAllocInfo;
+		// vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorSetLayout, 1);
+		VkDescriptorSetAllocateInfo allocInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.pNext = &variableDescriptorCountAllocInfo,
+			.descriptorPool = descriptorPool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = &descriptorSetLayout
+		};
 
 		// Image descriptors for the texture array
 		std::vector<VkDescriptorImageInfo> textureDescriptors(textures.size());
 		for (size_t i = 0; i < textures.size(); i++) {
-			textureDescriptors[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			textureDescriptors[i].sampler = textures[i].sampler;;
-			textureDescriptors[i].imageView = textures[i].view;
+			textureDescriptors[i] = {
+				.sampler = textures[i].sampler,
+				.imageView = textures[i].view,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
 		}
 		// [POI] Second and final descriptor is a texture array
 		// Unlike an array texture, these are adressed like typical arrays
-		VkWriteDescriptorSet textureArrayDescriptorWrite = {};
-		textureArrayDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		textureArrayDescriptorWrite.dstBinding = 1;
-		textureArrayDescriptorWrite.dstArrayElement = 0;
-		textureArrayDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		textureArrayDescriptorWrite.descriptorCount = static_cast<uint32_t>(textures.size());
-		textureArrayDescriptorWrite.pBufferInfo = 0;
-		textureArrayDescriptorWrite.pImageInfo = textureDescriptors.data();
+		VkWriteDescriptorSet textureArrayDescriptorWrite{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstBinding = 1,
+			.dstArrayElement = 0,
+			.descriptorCount = static_cast<uint32_t>(textures.size()),
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.pImageInfo = textureDescriptors.data(),
+			.pBufferInfo = 0
+		};
 
 		// Sets per frame, just like the buffers themselves
 		// Images do not need to be duplicated per frame, we reuse the same one for each frame
@@ -311,17 +330,19 @@ public:
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 
 		// Vertex bindings and attributes
-		VkVertexInputBindingDescription vertexInputBinding = { 0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX };
-		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+		VkVertexInputBindingDescription vertexInputBinding{ 0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX };
+		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes{
 			{ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) },
 			{ 1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv) },
 			{ 2, 0, VK_FORMAT_R32_SINT, offsetof(Vertex, textureIndex) }
 		};
-		VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vks::initializers::pipelineVertexInputStateCreateInfo();
-		vertexInputStateCI.vertexBindingDescriptionCount = 1;
-		vertexInputStateCI.pVertexBindingDescriptions = &vertexInputBinding;
-		vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
+		VkPipelineVertexInputStateCreateInfo vertexInputStateCI{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+			.vertexBindingDescriptionCount = 1,
+			.pVertexBindingDescriptions = &vertexInputBinding,
+			.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size()),
+			.pVertexAttributeDescriptions = vertexInputAttributes.data()
+		};
 
 		// Instacing pipeline
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
@@ -330,18 +351,21 @@ public:
 		// [POI] The fragment shader does non-uniform access into our sampler array, so we need to use nonuniformEXT: texture(textures[nonuniformEXT(inTexIndex)], inUV) in it (see descriptorindexing.frag)
 		shaderStages[1] = loadShader(getShadersPath() + "descriptorindexing/descriptorindexing.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
-		pipelineCI.pVertexInputState = &vertexInputStateCI;
-		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
-		pipelineCI.pRasterizationState = &rasterizationStateCI;
-		pipelineCI.pColorBlendState = &colorBlendStateCI;
-		pipelineCI.pMultisampleState = &multisampleStateCI;
-		pipelineCI.pViewportState = &viewportStateCI;
-		pipelineCI.pDepthStencilState = &depthStencilStateCI;
-		pipelineCI.pDynamicState = &dynamicStateCI;
-		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCI.pStages = shaderStages.data();
-
+		VkGraphicsPipelineCreateInfo pipelineCI{
+			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			.stageCount = static_cast<uint32_t>(shaderStages.size()),
+			.pStages = shaderStages.data(),
+			.pVertexInputState = &vertexInputStateCI,
+			.pInputAssemblyState = &inputAssemblyStateCI,
+			.pViewportState = &viewportStateCI,
+			.pRasterizationState = &rasterizationStateCI,
+			.pMultisampleState = &multisampleStateCI,
+			.pDepthStencilState = &depthStencilStateCI,
+			.pColorBlendState = &colorBlendStateCI,
+			.pDynamicState = &dynamicStateCI,
+			.layout = pipelineLayout,
+			.renderPass = renderPass
+		};
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
 
@@ -380,15 +404,14 @@ public:
 		clearValues[0].color = defaultClearColor;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
-		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-		renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex];
+		VkRenderPassBeginInfo renderPassBeginInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.renderPass = renderPass,
+			.framebuffer = frameBuffers[currentImageIndex],
+			.renderArea = {.offset = {.x = 0, .y = 0 }, .extent = {.width = width, .height = height } },
+			.clearValueCount = 2,
+			.pClearValues = clearValues,
+		};
 
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
