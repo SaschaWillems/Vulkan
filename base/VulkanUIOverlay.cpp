@@ -2,7 +2,7 @@
 /*
 * UI overlay class using ImGui
 *
-* Copyright (C) 2017-2025 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2026 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -56,7 +56,7 @@ namespace vks
 	}
 
 	/** Prepare all vulkan resources required to render the UI overlay */
-	void UIOverlay::prepareResources()
+	void UIOverlay::prepare()
 	{
 		assert(maxConcurrentFrames > 0);
 
@@ -192,11 +192,7 @@ namespace vks
 
 		// Buffers per max. frames-in-flight
 		buffers.resize(maxConcurrentFrames);
-	}
 
-	/** Prepare a separate pipeline for the UI overlay rendering decoupled from the main application */
-	void UIOverlay::preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass, const VkFormat colorFormat, const VkFormat depthFormat)
-	{
 		// Pipeline layout
 		// Push constants for UI rendering parameters
 		VkPushConstantRange pushConstantRange{ .stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .size = sizeof(PushConstBlock) };
@@ -276,7 +272,7 @@ namespace vks
 			pipelineCreateInfo.pNext = &pipelineRenderingCreateInfo;
 		}
 #endif
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device->logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &pipeline));
 	}
 
 	/** Update vertex and index buffer containing the imGui elements when required */

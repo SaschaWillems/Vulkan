@@ -110,6 +110,7 @@ set(EXAMPLES
 	displacement
 	distancefieldfonts
 	dynamicrendering
+	dynamicrenderinglocalread	
 	dynamicrenderingmultisampling
 	dynamicstate
 	dynamicuniformbuffer	
@@ -129,6 +130,7 @@ set(EXAMPLES
 	instancing
 	meshshader
 	multisampling
+	multisamplingalphatocoverage
 	multithreading
 	multiview
 	negativeviewportheight	

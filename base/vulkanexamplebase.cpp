@@ -239,12 +239,14 @@ void VulkanExampleBase::prepare()
 		ui.maxConcurrentFrames = maxConcurrentFrames;
 		ui.device = vulkanDevice;
 		ui.queue = queue;
+		ui.renderPass = renderPass;
+		ui.colorFormat = swapChain.colorFormat;
+		ui.depthFormat = depthFormat;
 		ui.shaders = {
 			loadShader(getShadersPath() + "base/uioverlay.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
 			loadShader(getShadersPath() + "base/uioverlay.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
 		};
-		ui.prepareResources();
-		ui.preparePipeline(pipelineCache, renderPass, swapChain.colorFormat, depthFormat);
+		ui.prepare();
 	}
 }
 

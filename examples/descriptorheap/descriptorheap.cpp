@@ -174,9 +174,6 @@ public:
 
 		std::array<VkHostAddressRangeEXT, 2> hostAddressRangesSamplers{};
 
-		auto samplerStart = vks::tools::alignedVkSize(descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerDescriptorAlignment);
-		samplerHeapOffset = vks::tools::alignedVkSize(samplerStart, descriptorHeapProperties.samplerDescriptorSize);
-
 		// No need to create an actual VkSampler, we can simply pass the create info that describes the sampler
 		std::array<VkSamplerCreateInfo, 2> samplerCreateInfos{
 			VkSamplerCreateInfo{
@@ -203,10 +200,10 @@ public:
 			}
 		};
 
-		for (auto i = 0; i < static_cast<uint32_t>(samplerCreateInfos.size()); i++)
+		for (auto i = 0; i < samplerCreateInfos.size(); i++)
 		{
 			hostAddressRangesSamplers[i] = {
-				.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped) + samplerHeapOffset + samplerDescriptorSize * i,
+				.address = static_cast<uint8_t*>(descriptorHeapSamplers.mapped) + samplerDescriptorSize * i,
 				.size = samplerDescriptorSize
 			};
 		}
@@ -477,6 +474,8 @@ public:
 				.address = descriptorHeapResources.deviceAddress,
 				.size = descriptorHeapResources.size
 			},
+			// Put the reserved range after our descriptors, simplifies some calculations
+			.reservedRangeOffset = descriptorHeapResources.size - descriptorHeapProperties.minResourceHeapReservedRange,
 			.reservedRangeSize = descriptorHeapProperties.minResourceHeapReservedRange,
 		};
 		vkCmdBindResourceHeapEXT(cmdBuffer, &bindHeapInfoRes);
@@ -488,6 +487,8 @@ public:
 				.address = descriptorHeapSamplers.deviceAddress,
 				.size = descriptorHeapSamplers.size
 			},
+			// Put the reserved range after our descriptors, simplifies some calculations
+			.reservedRangeOffset = descriptorHeapSamplers.size - descriptorHeapProperties.minSamplerHeapReservedRange,
 			.reservedRangeSize = descriptorHeapProperties.minSamplerHeapReservedRange
 		};
 		vkCmdBindSamplerHeapEXT(cmdBuffer, &bindHeapInfoSamplers);

@@ -1,7 +1,7 @@
 /*
  *  AppDelegate.h
  *
- *  Copyright (c) 2016-2017 The Brenwill Workshop Ltd.
+ *  Copyright (c) 2016-2026 The Brenwill Workshop Ltd.
  *  This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
 
@@ -9,7 +9,6 @@
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
-@property (strong, nonatomic) UIWindow *window;
 @property (strong, nonatomic) UIViewController *viewController;
 
 @end

@@ -1,7 +1,7 @@
 /*
 * UI overlay class using ImGui
 *
-* Copyright (C) 2017-2025 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2017-2026 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -74,11 +74,14 @@ namespace vks
 		bool visible{ true };
 		float scale{ 1.0f };
 
+		VkRenderPass renderPass{ VK_NULL_HANDLE };
+		VkFormat colorFormat{ VK_FORMAT_UNDEFINED };
+		VkFormat depthFormat{ VK_FORMAT_UNDEFINED };
+
 		UIOverlay();
 		~UIOverlay();
 
-		void preparePipeline(const VkPipelineCache pipelineCache, const VkRenderPass renderPass, const VkFormat colorFormat, const VkFormat depthFormat);
-		void prepareResources();
+		void prepare();
 
 		void update(uint32_t currentBuffer);
 		void draw(const VkCommandBuffer commandBuffer, uint32_t currentBuffer);
