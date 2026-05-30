@@ -1,6 +1,6 @@
 /*
 * Vulkan Example - Compute shader based ray tracing
-* 
+*
 * This samples implements a basic ray tracer with materials and reflections using a compute shader
 * Shader storage buffers are used to pass geometry information for spheres and planes to the computer shader
 * The compute shader then uses these as the scene geometry for ray tracing and outputs the results to a storage image
@@ -22,7 +22,7 @@ public:
 
 	// Resources for the graphics part of the example. The graphics pipeline simply displays the compute shader output
 	struct Graphics {
-		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };	
+		VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 		VkPipeline pipeline{ VK_NULL_HANDLE };
 		VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
@@ -113,7 +113,7 @@ public:
 
 	// Prepare a storage image that is used to store the compute shader ray tracing output
 	void prepareStorageImage()
-	{		
+	{
 #if defined(__ANDROID__)
 		// Use a smaller image on Android for performance reasons
 		const uint32_t textureSize = 1024;
@@ -236,7 +236,7 @@ public:
 			sphere.objectType = (uint32_t)SceneObjectType::Sphere;
 			sceneObjects.push_back(sphere);
 			};
-		
+
 		auto addPlane = [&sceneObjects, &currentId](glm::vec3 normal, float distance, glm::vec3 diffuse, float specular) {
 			SceneObject plane{};
 			plane.id = currentId++;
@@ -245,8 +245,8 @@ public:
 			plane.specular = specular;
 			plane.objectType = (uint32_t)SceneObjectType::Plane;
 			sceneObjects.push_back(plane);
-			};	
-		
+			};
+
 		addSphere(glm::vec3(1.75f, -0.5f, 0.0f), 1.0f, glm::vec3(0.0f, 1.0f, 0.0f), 32.0f);
 		addSphere(glm::vec3(0.0f, 1.0f, -0.5f), 1.0f, glm::vec3(0.65f, 0.77f, 0.97f), 32.0f);
 		addSphere(glm::vec3(-1.75f, -0.75f, -0.5f), 1.25f, glm::vec3(0.9f, 0.76f, 0.46f), 32.0f);
@@ -293,7 +293,7 @@ public:
 
 		// The graphics pipeline uses one set and one binding
 		// Binding 0: Storage image with raytraced output as a sampled image for displaying it
-		
+
 		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 			vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0)
 		};
@@ -311,7 +311,7 @@ public:
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&graphics.descriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &graphics.pipelineLayout));
 
-		// Pipeline 
+		// Pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
@@ -446,7 +446,7 @@ public:
 	void buildGraphicsCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2]{};
@@ -540,13 +540,13 @@ public:
 				1, &imageMemoryBarrier);
 		}
 
-		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));	
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 	}
 
 	void buildComputeCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = compute.commandBuffers[currentBuffer];
-		
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
@@ -607,6 +607,8 @@ public:
 		// Use a fence to ensure that compute command buffer has finished executing before using it again
 		vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX);
 		vkResetFences(device, 1, &compute.fences[currentBuffer]);
+
+		updateUniformBuffers();
 		buildComputeCommandBuffer();
 
 		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
@@ -615,7 +617,6 @@ public:
 		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
 
 		VulkanExampleBase::prepareFrame();
-		updateUniformBuffers();
 		buildGraphicsCommandBuffer();
 		VulkanExampleBase::submitFrame();
 	}
