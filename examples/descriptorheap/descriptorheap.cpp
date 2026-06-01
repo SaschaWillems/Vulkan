@@ -142,7 +142,7 @@ public:
 			getBufferDeviceAddress(uniformBuffers[i]);
 		}
 
-		// Descriptor heaps have varying offset, size and alignment requirements, so we store it's properties for later user
+		// Descriptor heaps have varying offset, size and alignment requirements, so we store its properties for later use
 		VkPhysicalDeviceProperties2 deviceProps2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
 		descriptorHeapProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
 		deviceProps2.pNext = &descriptorHeapProperties;
