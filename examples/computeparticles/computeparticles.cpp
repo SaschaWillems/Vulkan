@@ -389,7 +389,7 @@ public:
 	void buildGraphicsCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2]{};
@@ -486,7 +486,7 @@ public:
 	void buildComputeCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = compute.commandBuffers[currentBuffer];
-		
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
@@ -562,6 +562,8 @@ public:
 		// Use a fence to ensure that compute command buffer has finished executing before using it again
 		vkWaitForFences(device, 1, &compute.fences[currentBuffer], VK_TRUE, UINT64_MAX);
 		vkResetFences(device, 1, &compute.fences[currentBuffer]);
+
+		updateUniformBuffers();
 		buildComputeCommandBuffer();
 
 		VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
@@ -570,7 +572,6 @@ public:
 		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, compute.fences[currentBuffer]));
 
 		VulkanExampleBase::prepareFrame();
-		updateUniformBuffers();
 		buildGraphicsCommandBuffer();
 		VulkanExampleBase::submitFrame();
 	}
