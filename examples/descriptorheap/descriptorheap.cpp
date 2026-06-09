@@ -35,7 +35,7 @@ public:
 	
 	VkPhysicalDeviceDescriptorHeapFeaturesEXT enabledDeviceDescriptorHeapFeaturesEXT{};
 	VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddressFeatures{};
-	VkPhysicalDeviceSynchronization2Features enabledynchronization2Features{};
+	VkPhysicalDeviceSynchronization2Features enabledSynchronization2Features{};
 
 	VkPhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapProperties{};
 
@@ -84,7 +84,7 @@ public:
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
 
-		enabledynchronization2Features = {
+		enabledSynchronization2Features = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
 			.pNext = &baseDynamicRenderingFeatures,
 			.synchronization2 = VK_TRUE
@@ -92,7 +92,7 @@ public:
 
 		enabledBufferDeviceAddressFeatures = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-			.pNext = &enabledynchronization2Features,
+			.pNext = &enabledSynchronization2Features,
 			.bufferDeviceAddress = VK_TRUE
 		};
 
