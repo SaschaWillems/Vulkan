@@ -427,8 +427,8 @@ public:
 		vkCmdBindResourceHeapEXT = reinterpret_cast<PFN_vkCmdBindResourceHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindResourceHeapEXT"));
 		vkCmdBindSamplerHeapEXT = reinterpret_cast<PFN_vkCmdBindSamplerHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindSamplerHeapEXT"));
 		vkGetPhysicalDeviceDescriptorSizeEXT = reinterpret_cast<PFN_vkGetPhysicalDeviceDescriptorSizeEXT>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceDescriptorSizeEXT"));
-		vkWriteSamplerDescriptorsEXT = reinterpret_cast<PFN_vkWriteSamplerDescriptorsEXT>(vkGetInstanceProcAddr(instance, "vkWriteSamplerDescriptorsEXT"));
-		vkCmdPushDataEXT = reinterpret_cast<PFN_vkCmdPushDataEXT>(vkGetInstanceProcAddr(instance, "vkCmdPushDataEXT"));
+		vkWriteSamplerDescriptorsEXT = reinterpret_cast<PFN_vkWriteSamplerDescriptorsEXT>(vkGetDeviceProcAddr(device, "vkWriteSamplerDescriptorsEXT"));
+		vkCmdPushDataEXT = reinterpret_cast<PFN_vkCmdPushDataEXT>(vkGetDeviceProcAddr(device, "vkCmdPushDataEXT"));
 
 		loadAssets();
 		prepareDescriptorHeaps();

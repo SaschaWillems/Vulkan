@@ -45,7 +45,6 @@ public:
 	PFN_vkCmdBindSamplerHeapEXT vkCmdBindSamplerHeapEXT{ nullptr };
 	PFN_vkWriteSamplerDescriptorsEXT vkWriteSamplerDescriptorsEXT{ nullptr };
 	PFN_vkCmdPushDataEXT vkCmdPushDataEXT{ nullptr };
-	PFN_vkGetPhysicalDeviceDescriptorSizeEXT vkGetPhysicalDeviceDescriptorSizeEXT{ nullptr };
 
 	vks::Buffer descriptorHeapResources{};
 	vks::Buffer descriptorHeapSamplers{};
@@ -102,7 +101,6 @@ public:
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
 			.pNext = &enabledBufferDeviceAddressFeatures,
 			.descriptorHeap = VK_TRUE,
-			.descriptorHeapCaptureReplay = VK_TRUE,
 		};
 
 		enabledShaderUntypedPointersFeaturesKHR = {
@@ -142,7 +140,6 @@ public:
 		for (uint32_t i = 0; i < maxConcurrentFrames; i++) {
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers[i], sizeof(UniformData)));
 			VK_CHECK_RESULT(uniformBuffers[i].map());		
-			VkBufferDeviceAddressInfo bufferDeviceAdressInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = uniformBuffers[i].buffer };
 			getBufferDeviceAddress(uniformBuffers[i]);
 		}
 	}
@@ -345,9 +342,8 @@ public:
 		vkWriteResourceDescriptorsEXT = reinterpret_cast<PFN_vkWriteResourceDescriptorsEXT>(vkGetDeviceProcAddr(device, "vkWriteResourceDescriptorsEXT"));
 		vkCmdBindResourceHeapEXT = reinterpret_cast<PFN_vkCmdBindResourceHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindResourceHeapEXT"));
 		vkCmdBindSamplerHeapEXT = reinterpret_cast<PFN_vkCmdBindSamplerHeapEXT>(vkGetDeviceProcAddr(device, "vkCmdBindSamplerHeapEXT"));
-		vkGetPhysicalDeviceDescriptorSizeEXT = reinterpret_cast<PFN_vkGetPhysicalDeviceDescriptorSizeEXT>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceDescriptorSizeEXT"));
-		vkWriteSamplerDescriptorsEXT = reinterpret_cast<PFN_vkWriteSamplerDescriptorsEXT>(vkGetInstanceProcAddr(instance, "vkWriteSamplerDescriptorsEXT"));
-		vkCmdPushDataEXT = reinterpret_cast<PFN_vkCmdPushDataEXT>(vkGetInstanceProcAddr(instance, "vkCmdPushDataEXT"));
+		vkWriteSamplerDescriptorsEXT = reinterpret_cast<PFN_vkWriteSamplerDescriptorsEXT>(vkGetDeviceProcAddr(device, "vkWriteSamplerDescriptorsEXT"));
+		vkCmdPushDataEXT = reinterpret_cast<PFN_vkCmdPushDataEXT>(vkGetDeviceProcAddr(device, "vkCmdPushDataEXT"));
 
 		loadAssets();
 		prepareUniformBuffers();
@@ -371,7 +367,6 @@ public:
 		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
-		VkDeviceSize offsets[1] = { 0 };
 
 		// Bind the heap containing resources (images)
 		VkBindHeapInfoEXT bindHeapInfoRes{
