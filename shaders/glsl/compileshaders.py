@@ -66,6 +66,9 @@ for root, dirs, files in os.walk(dir_path):
             # Mesh and task shader also require different settings
             if file.endswith(".mesh") or file.endswith(".task"):
                 add_params = add_params + " --target-env spirv1.4"
+            #
+            if "heap" in root:
+                add_params = add_params + " --target-env spirv1.4"
 
             res = subprocess.call("%s -V %s -o %s %s" % (glslang_path, input_file, output_file, add_params), shell=True)
             if res != 0:
