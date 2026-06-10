@@ -14,16 +14,13 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	bool animate = true;
-
-	struct Cube {
-		vks::Texture2D texture;
-		glm::vec3 rotation;
-	};
-	std::array<Cube, 2> cubes;
+	std::array<vks::Texture2D, 2> textures;
 
 	struct UniformData {
 		glm::mat4 mvp;
+		glm::vec4 color[2];
+		glm::vec4 pos[2];
+		uint32_t samplerIndex;
 	} uniformData;
 	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
@@ -73,7 +70,7 @@ public:
 
 	VulkanExample() : VulkanExampleBase()
 	{
-		title = "Descriptor heaps (VK_EXT_descriptor_heap)";
+		title = "Untyped descriptor heaps (VK_EXT_descriptor_heap)";
 		useDynamicRendering = true;
 		camera.type = Camera::CameraType::lookat;
 		camera.setPerspective(60.0f, (float)width / (float)height, 0.1f, 512.0f);
@@ -104,13 +101,14 @@ public:
 		enabledDeviceDescriptorHeapFeaturesEXT = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
 			.pNext = &enabledBufferDeviceAddressFeatures,
-			.descriptorHeap = VK_TRUE 
+			.descriptorHeap = VK_TRUE,
+			.descriptorHeapCaptureReplay = VK_TRUE,
 		};
 
 		enabledShaderUntypedPointersFeaturesKHR = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR,
 			.pNext = &enabledDeviceDescriptorHeapFeaturesEXT,
-			.shaderUntypedPointers = VK_TRUE
+			.shaderUntypedPointers = VK_TRUE,
 		};
 		deviceCreatepNextChain = &enabledShaderUntypedPointersFeaturesKHR;
 	}
@@ -126,8 +124,8 @@ public:
 			vkDestroyBuffer(device, descriptorHeapResources.buffer, nullptr);
 			vkDestroyBuffer(device, descriptorHeapSamplers.buffer, nullptr);
 			vkDestroyPipeline(device, pipeline, nullptr);
-			for (auto& cube : cubes) {
-				cube.texture.destroy();
+			for (auto& texture : textures) {
+				texture.destroy();
 			}
 		}
 	}
@@ -194,7 +192,7 @@ public:
 				.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 				.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 				.maxAnisotropy = 16.0f,
-				.maxLod = (float)cubes[0].texture.mipLevels,
+				.maxLod = (float)textures[0].mipLevels,
 			},
 			VkSamplerCreateInfo{
 				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -205,7 +203,7 @@ public:
 				.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 				.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 				.maxAnisotropy = 16.0f,
-				.maxLod = (float)cubes[0].texture.mipLevels,
+				.maxLod = (float)textures[0].mipLevels,
 			}
 		};
 
@@ -225,7 +223,7 @@ public:
 		imageHeapOffset = 0; // vks::tools::alignedVkSize(uniformBuffers.size() * bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 		imageDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 
-		auto vectorSize{ cubes.size() };
+		const auto vectorSize{ 2 };
 		std::vector<VkHostAddressRangeEXT> hostAddressRangesResources(vectorSize);
 		std::vector<VkResourceDescriptorInfoEXT> resourceDescriptorInfos(vectorSize);
 		
@@ -236,13 +234,13 @@ public:
 		std::array<VkImageDescriptorInfoEXT, 2> imageDescriptorInfo{};
 
 		// @offset
-		for (auto i = 0; i < cubes.size(); i++) {
+		for (auto i = 0; i < vectorSize; i++) {
 			imageViewCreateInfos[i] = {
 				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-				.image = cubes[i].texture.image,
+				.image = textures[i].image,
 				.viewType = VK_IMAGE_VIEW_TYPE_2D,
-				.format = cubes[i].texture.format,
-				.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = cubes[i].texture.mipLevels, .baseArrayLayer = 0, .layerCount = 1},
+				.format = textures[i].format,
+				.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = textures[i].mipLevels, .baseArrayLayer = 0, .layerCount = 1},
 			};
 
 			imageDescriptorInfo[i] = {
@@ -275,7 +273,7 @@ public:
 		const std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
 		VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -324,13 +322,18 @@ public:
 	{
 		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 		model.loadFromFile(getAssetPath() + "models/cube.gltf", vulkanDevice, queue, glTFLoadingFlags);
-		cubes[0].texture.loadFromFile(getAssetPath() + "textures/crate01_color_height_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
-		cubes[1].texture.loadFromFile(getAssetPath() + "textures/crate02_color_height_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		textures[0].loadFromFile(getAssetPath() + "textures/crate01_color_height_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
+		textures[1].loadFromFile(getAssetPath() + "textures/crate02_color_height_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	void updateUniformBuffers()
 	{		
-		uniformData.mvp = camera.matrices.perspective * camera.matrices.view * glm::mat4(1.0f);
+		uniformData.mvp = camera.matrices.perspective* camera.matrices.view;
+		uniformData.color[0] = glm::vec4(0.0f, 0.5f, 1.0f, 1.0f);
+		uniformData.color[1] = glm::vec4(0.5f, 1.0f, 0.5f, 1.0f);
+		uniformData.pos[0] = glm::vec4(-2.0f, 0.0f, 0.0f, 0.0f);
+		uniformData.pos[1] = glm::vec4(2.0f, 0.0f, 0.0f, 0.0f);
+		uniformData.samplerIndex = selectedSampler;
 		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 	}
 
@@ -370,26 +373,6 @@ public:
 		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 		VkDeviceSize offsets[1] = { 0 };
 
-		/*
-		// Pass options as push data
-		struct PushData {
-			int32_t samplerIndex;
-			int32_t frameIndex;
-		} pushData = {
-			.samplerIndex = selectedSampler,
-			.frameIndex = static_cast<int32_t>(currentBuffer),
-		};
-		*/
-
-		PushConstantBlock references{};
-		// Pass pointer to the global matrix via a buffer device address
-		references.matrixReference = uniformBuffers[currentBuffer].deviceAddress;
-		VkPushDataInfoEXT pushDataInfo{
-			.sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
-			.data = {.address = &references, .size = sizeof(PushConstantBlock) }
-		};
-		vkCmdPushDataEXT(cmdBuffer, &pushDataInfo);
-
 		// Bind the heap containing resources (images)
 		VkBindHeapInfoEXT bindHeapInfoRes{
 			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
@@ -416,9 +399,18 @@ public:
 		};
 		vkCmdBindSamplerHeapEXT(cmdBuffer, &bindHeapInfoSamplers);
 
+		PushConstantBlock references{};
+		// Pass pointer to the global matrix via a buffer device address
+		references.matrixReference = uniformBuffers[currentBuffer].deviceAddress;
+		VkPushDataInfoEXT pushDataInfo{
+			.sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+			.data = {.address = &references, .size = sizeof(PushConstantBlock) }
+		};
+		vkCmdPushDataEXT(cmdBuffer, &pushDataInfo);
+
 		model.bindBuffers(cmdBuffer);
 		auto &primitive = model.nodeFromName("cube")->mesh[0].primitives[0];
-		for (uint32_t j = 0; j < static_cast<uint32_t>(cubes.size()); j++) {
+		for (uint32_t j = 0; j < 2; j++) {
 			vkCmdDrawIndexed(cmdBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, j);
 		}
 
@@ -431,14 +423,6 @@ public:
 	{
 		if (!prepared)
 			return;
-		if (animate && !paused) {
-			cubes[0].rotation.x += 2.5f * frameTimer;
-			if (cubes[0].rotation.x > 360.0f)
-				cubes[0].rotation.x -= 360.0f;
-			cubes[1].rotation.y += 2.0f * frameTimer;
-			if (cubes[1].rotation.y > 360.0f)
-				cubes[1].rotation.y -= 360.0f;
-		}
 		VulkanExampleBase::prepareFrame();
 		updateUniformBuffers();
 		buildCommandBuffer();
@@ -447,9 +431,6 @@ public:
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		if (overlay->header("Settings")) {
-			overlay->checkBox("Animate", &animate);
-		}
 		if (overlay->comboBox("Sampler", &selectedSampler, samplerNames)) {
 			updateUniformBuffers();
 		}
