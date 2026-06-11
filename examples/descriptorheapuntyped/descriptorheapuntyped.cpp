@@ -2,6 +2,8 @@
  * Vulkan Example - Using untyped descriptor heaps via VK_EXT_descriptor_heap
  * 
  * Descriptor heaps fundamentally rework how shader resources are bound. Descriptors are simply stored in buffers (heaps).
+ * 
+ * Note: This sample also uses uniform buffers and buffer device address to pass global data
  *
  * Copyright (C) 2026 by Sascha Willems - www.saschawillems.de
  *
@@ -14,15 +16,16 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	std::array<vks::Texture2D, 2> textures;
+	std::array<vks::Texture2D, 2> textures{};
 
 	struct UniformData {
-		glm::mat4 mvp;
-		uint32_t samplerIndex;
-		uint32_t imageHeapIndexOffset;
+		glm::mat4 mvp{ glm::mat4(1.0f) };
+		uint32_t samplerIndex{ 0 };
+		uint32_t imageHeapIndexOffset{ 0 };
 	} uniformData;
 	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
 
+	// This per-model data will be accessed via resource heaps
 	struct ModelData {
 		glm::vec4 pos;
 		glm::vec4 color;
@@ -123,6 +126,9 @@ public:
 		if (device) {
 			for (auto& uniformBuffer : uniformBuffers) {
 				uniformBuffer.destroy();
+			}
+			for (auto& modelDataBuffer : modelDataBuffers) {
+				modelDataBuffer.destroy();
 			}
 			descriptorHeapResources.destroy();
 			descriptorHeapSamplers.destroy();
