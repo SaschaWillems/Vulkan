@@ -18,11 +18,16 @@ public:
 
 	struct UniformData {
 		glm::mat4 mvp;
-		glm::vec4 color[2];
-		glm::vec4 pos[2];
 		uint32_t samplerIndex;
+		uint32_t imageHeapIndexOffset;
 	} uniformData;
 	std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers;
+
+	struct ModelData {
+		glm::vec4 pos;
+		glm::vec4 color;
+	};
+	vks::Buffer modelDataBuffers[2];
 
 	struct PushConstantBlock {
 		VkDeviceAddress matrixReference;
@@ -33,8 +38,8 @@ public:
 
 	VkPipeline pipeline{ nullptr };
 	
+	VkPhysicalDeviceVulkan12Features enabledDeviceVulkan12Features{};
 	VkPhysicalDeviceDescriptorHeapFeaturesEXT enabledDeviceDescriptorHeapFeaturesEXT{};
-	VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddressFeatures{};
 	VkPhysicalDeviceSynchronization2Features enabledSynchronization2Features{};
 	VkPhysicalDeviceShaderUntypedPointersFeaturesKHR enabledShaderUntypedPointersFeaturesKHR{};
 
@@ -50,8 +55,8 @@ public:
 	vks::Buffer descriptorHeapSamplers{};
 
 	// Size and offset values for heap objects
-	//VkDeviceSize bufferHeapOffset{ 0 };
-	//VkDeviceSize bufferDescriptorSize{ 0 };
+	VkDeviceSize bufferHeapOffset{ 0 };
+	VkDeviceSize bufferDescriptorSize{ 0 };
 	VkDeviceSize imageHeapOffset{ 0 };
 	VkDeviceSize imageDescriptorSize{ 0 };
 	VkDeviceSize samplerHeapOffset{ 0 };
@@ -85,21 +90,23 @@ public:
 		enabledDeviceExtensions.push_back(VK_KHR_SHADER_UNTYPED_POINTERS_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
 
-		enabledSynchronization2Features = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+		enabledDeviceVulkan12Features = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
 			.pNext = &baseDynamicRenderingFeatures,
-			.synchronization2 = VK_TRUE
+			.shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+			.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE,
+			.bufferDeviceAddress = VK_TRUE,
 		};
 
-		enabledBufferDeviceAddressFeatures = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-			.pNext = &enabledSynchronization2Features,
-			.bufferDeviceAddress = VK_TRUE
+		enabledSynchronization2Features = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+			.pNext = &enabledDeviceVulkan12Features,
+			.synchronization2 = VK_TRUE
 		};
 
 		enabledDeviceDescriptorHeapFeaturesEXT = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
-			.pNext = &enabledBufferDeviceAddressFeatures,
+			.pNext = &enabledSynchronization2Features,
 			.descriptorHeap = VK_TRUE,
 		};
 
@@ -139,7 +146,7 @@ public:
 	{
 		for (uint32_t i = 0; i < maxConcurrentFrames; i++) {
 			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers[i], sizeof(UniformData)));
-			VK_CHECK_RESULT(uniformBuffers[i].map());		
+			VK_CHECK_RESULT(uniformBuffers[i].map());
 			getBufferDeviceAddress(uniformBuffers[i]);
 		}
 	}
@@ -215,23 +222,49 @@ public:
 		VK_CHECK_RESULT(vkWriteSamplerDescriptorsEXT(device, static_cast<uint32_t>(samplerCreateInfos.size()), samplerCreateInfos.data(), hostAddressRangesSamplers.data()));
 
 		// Resource heap (buffers and images)
-		//bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
+		bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
 		// Images are storted after the last buffer (aligned)
-		imageHeapOffset = 0; // vks::tools::alignedVkSize(uniformBuffers.size() * bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
+		imageHeapOffset = vks::tools::alignedVkSize(2 * bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 		imageDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 
-		const auto vectorSize{ 2 };
+		const auto vectorSize{ 4 };
 		std::vector<VkHostAddressRangeEXT> hostAddressRangesResources(vectorSize);
 		std::vector<VkResourceDescriptorInfoEXT> resourceDescriptorInfos(vectorSize);
 		
 		size_t heapResIndex{ 0 };
 
+		// Buffer data
+		std::array<VkDeviceAddressRangeEXT, 2> deviceAddressRangesModelData{};
+
+		for (auto i = 0; i < 2; i++) {
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &modelDataBuffers[i], sizeof(ModelData)));
+			VK_CHECK_RESULT(modelDataBuffers[i].map());
+			getBufferDeviceAddress(modelDataBuffers[i]);
+			const glm::vec4 positions[2] = { glm::vec4(-1.5f, 0.0f, 0.0f, 0.0f), glm::vec4(1.5f, 0.0f, 0.0f, 0.0f) };
+			const glm::vec4 colors[2] = { glm::vec4(0.5f, 1.0f, 0.5f, 0.0f), glm::vec4(0.5f, 0.5f, 1.0f, 0.0f) };
+			ModelData mdata{ .pos = positions[i], .color = colors[i] };
+			memcpy(modelDataBuffers[i].mapped, &mdata, sizeof(ModelData));
+
+			deviceAddressRangesModelData[i] = {.address = modelDataBuffers[i].deviceAddress, .size = modelDataBuffers[i].size};
+			resourceDescriptorInfos[heapResIndex] = {
+				.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
+				.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				.data = {
+					.pAddressRange = &deviceAddressRangesModelData[i],
+				}
+			};
+			hostAddressRangesResources[heapResIndex] = {
+				.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + bufferDescriptorSize * i,
+				.size = bufferDescriptorSize
+			};
+			heapResIndex++;
+		}
+
 		// Images
 		std::array<VkImageViewCreateInfo, 2> imageViewCreateInfos{};
 		std::array<VkImageDescriptorInfoEXT, 2> imageDescriptorInfo{};
 
-		// @offset
-		for (auto i = 0; i < vectorSize; i++) {
+		for (auto i = 0; i < 2; i++) {
 			imageViewCreateInfos[i] = {
 				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 				.image = textures[i].image,
@@ -261,6 +294,9 @@ public:
 
 			heapResIndex++;
 		}
+		// With untyped pointers we need to manually offset into the resource heap as images are stored after the buffers
+		// We calulcate this and pass it to the fragment shader to be used as an offset there
+		uniformData.imageHeapIndexOffset = static_cast<uint32_t>(imageHeapOffset / imageDescriptorSize);
 
 		VK_CHECK_RESULT(vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(resourceDescriptorInfos.size()), resourceDescriptorInfos.data(), hostAddressRangesResources.data()));
 	}
@@ -326,10 +362,6 @@ public:
 	void updateUniformBuffers()
 	{		
 		uniformData.mvp = camera.matrices.perspective* camera.matrices.view;
-		uniformData.color[0] = glm::vec4(0.0f, 0.5f, 1.0f, 1.0f);
-		uniformData.color[1] = glm::vec4(0.5f, 1.0f, 0.5f, 1.0f);
-		uniformData.pos[0] = glm::vec4(-2.0f, 0.0f, 0.0f, 0.0f);
-		uniformData.pos[1] = glm::vec4(2.0f, 0.0f, 0.0f, 0.0f);
 		uniformData.samplerIndex = selectedSampler;
 		memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(UniformData));
 	}
@@ -368,7 +400,7 @@ public:
 		VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
-		// Bind the heap containing resources (images)
+		// Bind the heap containing resources (buffers and images)
 		VkBindHeapInfoEXT bindHeapInfoRes{
 			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
 			.heapRange{

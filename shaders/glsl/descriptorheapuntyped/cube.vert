@@ -8,18 +8,24 @@
 
 #extension GL_EXT_descriptor_heap: require
 #extension GL_EXT_buffer_reference : require
+#extension GL_EXT_nonuniform_qualifier : require
 
 layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inUV;
 layout (location = 3) in vec3 inColor;
 
-// Untyped pointers don't support structured buffers (yet), so we use BDA for that insteadf
+// Per-Model data via heaps
+layout(descriptor_heap) buffer ModelData {
+	vec4 pos;
+	vec4 color;
+} modelData[];
+
+// Global data via BDA
 layout (buffer_reference) readonly buffer MatrixReference {
 	mat4 mvp;
-	vec4 color[2];
-	vec4 pos[2];
 	uint samplerIndex;
+	uint imageHeapIndexOffset;
 };
 
 layout (push_constant) uniform PushConstants
@@ -31,7 +37,6 @@ layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
 layout (location = 2) out vec2 outUV;
 layout (location = 3) flat out int outInstanceIndex;
-layout (location = 4) flat out uint outSamplerIndex;
 
 void main() 
 {
@@ -40,11 +45,10 @@ void main()
 	outUV = inUV;
 	MatrixReference uniformData = pushConstants.matrixReference;
 	
-	vec3 localPos = inPos * 0.25f + uniformData.pos[gl_InstanceIndex].xyz;
+	vec3 localPos = inPos * 0.25f + modelData[nonuniformEXT(gl_InstanceIndex)].pos.xyz;
 
 	gl_Position = uniformData.mvp * vec4(localPos, 1.0);
-	outColor = uniformData.color[gl_InstanceIndex].rgb;
+	outColor = modelData[nonuniformEXT(gl_InstanceIndex)].color.rgb;
 
-	outSamplerIndex = uniformData.samplerIndex;
 	outInstanceIndex = gl_InstanceIndex;
 }

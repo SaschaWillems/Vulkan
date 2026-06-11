@@ -7,6 +7,7 @@
 #version 450
 
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_buffer_reference : require
 #extension GL_EXT_descriptor_heap: require
 
 layout(descriptor_heap) uniform texture2D textureImage[];
@@ -20,7 +21,21 @@ layout (location = 4) flat in uint inSamplerIndex;
 
 layout (location = 0) out vec4 outFragColor;
 
+// Global data via BDA
+layout (buffer_reference) readonly buffer MatrixReference {
+	mat4 mvp;
+	uint samplerIndex;
+	uint imageHeapIndexOffset;
+};
+
+layout (push_constant) uniform PushConstants
+{
+	MatrixReference matrixReference;
+} pushConstants;
+
+
 void main() 
 {
-	outFragColor = texture(sampler2D(textureImage[inInstanceIndex], textureSampler[inSamplerIndex]), inUV) * vec4(inColor, 1.0);
+	MatrixReference uniformData = pushConstants.matrixReference;
+	outFragColor = texture(sampler2D(textureImage[uniformData.imageHeapIndexOffset + inInstanceIndex], textureSampler[uniformData.samplerIndex]), inUV) * vec4(inColor, 1.0);
 }
