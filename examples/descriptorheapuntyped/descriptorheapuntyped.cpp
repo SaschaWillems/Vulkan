@@ -166,17 +166,13 @@ public:
 		vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProps2);
 
 		// There are two descriptor heap types: One that can store resources (buffers, images) and one that can store samplers
-		// We create heaps with a fixed size that's guaranteed to fit in the few descriptors we use
-		const VkDeviceSize heapSizeResources = vks::tools::alignedVkSize(2048 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
-		VK_CHECK_RESULT(vulkanDevice->createBuffer(
-			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&descriptorHeapResources,
-			heapSizeResources));
-		descriptorHeapResources.map();
-		getBufferDeviceAddress(descriptorHeapResources);
 
-		const VkDeviceSize heapSizeSamplers = vks::tools::alignedVkSize(2048 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
+		// Sampler heap
+		// We need to calculate some aligned offsets, heaps and strides to make sure we properly accress the descriptors
+		samplerDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
+
+		// Size calculations for the heap also need to accomodate for the reserved range, used by the driver for internal bookkeeping
+		const VkDeviceSize heapSizeSamplers = vks::tools::alignedVkSize(samplerDescriptorSize * 2 + descriptorHeapProperties.minSamplerHeapReservedRange, descriptorHeapProperties.samplerHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -184,10 +180,6 @@ public:
 			heapSizeSamplers));
 		descriptorHeapSamplers.map();
 		getBufferDeviceAddress(descriptorHeapSamplers);
-
-		// Sampler heap
-		// We need to calculate some aligned offsets, heaps and strides to make sure we properly accress the descriptors
-		samplerDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.samplerDescriptorSize, descriptorHeapProperties.samplerDescriptorAlignment);
 
 		std::array<VkHostAddressRangeEXT, 2> hostAddressRangesSamplers{};
 
@@ -228,10 +220,21 @@ public:
 		VK_CHECK_RESULT(vkWriteSamplerDescriptorsEXT(device, static_cast<uint32_t>(samplerCreateInfos.size()), samplerCreateInfos.data(), hostAddressRangesSamplers.data()));
 
 		// Resource heap (buffers and images)
+
 		bufferDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.bufferDescriptorSize, descriptorHeapProperties.bufferDescriptorAlignment);
 		// Images are storted after the last buffer (aligned)
 		imageHeapOffset = vks::tools::alignedVkSize(2 * bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 		imageDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
+
+		// Size calculations for the heap also need to accomodate for the reserved range, used by the driver for internal bookkeeping
+		const VkDeviceSize heapSizeResources = vks::tools::alignedVkSize(bufferDescriptorSize * 2 + imageDescriptorSize * 2 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(
+			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&descriptorHeapResources,
+			heapSizeResources));
+		descriptorHeapResources.map();
+		getBufferDeviceAddress(descriptorHeapResources);
 
 		std::vector<VkHostAddressRangeEXT> hostAddressRangesResources{};
 		std::vector<VkResourceDescriptorInfoEXT> resourceDescriptorInfos{};
