@@ -150,12 +150,12 @@ public:
 
 		// There are two descriptor heap types: One that can store resources (buffers, images) and one that can store samplers
 		// We create heaps with a fixed size that's guaranteed to fit in the few descriptors we use
-		const VkDeviceSize heapbufferSize = vks::tools::alignedVkSize(2048 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
+		const VkDeviceSize heapSizeResources = vks::tools::alignedVkSize(2048 + descriptorHeapProperties.minResourceHeapReservedRange, descriptorHeapProperties.resourceHeapAlignment);
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&descriptorHeapResources,
-			heapbufferSize));
+			heapSizeResources));
 		descriptorHeapResources.map();
 		getBufferDeviceAddress(descriptorHeapResources);
 
@@ -216,29 +216,24 @@ public:
 		imageHeapOffset = vks::tools::alignedVkSize(uniformBuffers.size() * bufferDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 		imageDescriptorSize = vks::tools::alignedVkSize(descriptorHeapProperties.imageDescriptorSize, descriptorHeapProperties.imageDescriptorAlignment);
 
-		auto vectorSize{ maxConcurrentFrames + cubes.size() };
-		std::vector<VkHostAddressRangeEXT> hostAddressRangesResources(vectorSize);
-		std::vector<VkResourceDescriptorInfoEXT> resourceDescriptorInfos(vectorSize);
-		
-		size_t heapResIndex{ 0 };
+		std::vector<VkHostAddressRangeEXT> hostAddressRangesResources{};
+		std::vector<VkResourceDescriptorInfoEXT> resourceDescriptorInfos{};
 
 		// Buffer
 		std::array<VkDeviceAddressRangeEXT, maxConcurrentFrames> deviceAddressRangesUniformBuffer{};
 		for (auto i = 0; i < uniformBuffers.size(); i++) {
 			deviceAddressRangesUniformBuffer[i] = { .address = uniformBuffers[i].deviceAddress, .size = uniformBuffers[i].size};
-			resourceDescriptorInfos[heapResIndex] = {
+			resourceDescriptorInfos.push_back({
 				.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
 				.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				.data = {
 					.pAddressRange = &deviceAddressRangesUniformBuffer[i]
 				}
-			};
-			hostAddressRangesResources[heapResIndex] = {
+			});
+			hostAddressRangesResources.push_back({
 				.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + bufferDescriptorSize * i,
 				.size = bufferDescriptorSize
-			};
-
-			heapResIndex++;
+			});
 		}
 
 		// Images
@@ -261,20 +256,18 @@ public:
 				.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			};
 
-			resourceDescriptorInfos[heapResIndex] = {
+			resourceDescriptorInfos.push_back({
 				.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
 				.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.data = {
 					.pImage = &imageDescriptorInfo[i]
 				}
-			};
+			});
 
-			hostAddressRangesResources[heapResIndex] = {
+			hostAddressRangesResources.push_back({
 				.address = static_cast<uint8_t*>(descriptorHeapResources.mapped) + imageHeapOffset + imageDescriptorSize * i,
 				.size = imageDescriptorSize
-			};
-
-			heapResIndex++;
+			});
 		}
 
 		VK_CHECK_RESULT(vkWriteResourceDescriptorsEXT(device, static_cast<uint32_t>(resourceDescriptorInfos.size()), resourceDescriptorInfos.data(), hostAddressRangesResources.data()));
