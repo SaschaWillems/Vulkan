@@ -105,6 +105,7 @@ set(EXAMPLES
 	deferredshadows
 	descriptorbuffer
 	descriptorheap
+	descriptorheapuntyped
 	descriptorindexing
 	descriptorsets
 	displacement
