@@ -79,6 +79,7 @@ if args.sample != None:
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
+caps = ""
 for root, dirs, files in os.walk(dir_path):
     folder_name = os.path.basename(root)
     if (compile_single_sample != "" and folder_name != compile_single_sample):
@@ -122,10 +123,12 @@ for root, dirs, files in os.walk(dir_path):
                         output_ext = ".tesc"
                     case "domain":
                         output_ext = ".tese"
+                if "descriptorheapuntyped" in folder_name:
+                    caps = "-capability spvDescriptorHeapEXT"
                 output_file = output_base_file_name + output_ext + ".spv"
                 output_file = output_file.replace(".slang", "")
                 print(output_file)
-                res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s -warnings-disable 39001" % (compiler_path, input_file, output_file, entry_point, stage), shell=True)
+                res = subprocess.call("%s %s -profile spirv_1_4 -matrix-layout-column-major -target spirv -o %s -entry %s -stage %s %s -warnings-disable 39001" % (compiler_path, input_file, output_file, entry_point, stage, caps), shell=True)
                 if res != 0:
                     print("Error %s", res)
                     sys.exit(res)
