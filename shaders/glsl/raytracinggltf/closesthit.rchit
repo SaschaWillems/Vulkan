@@ -13,8 +13,10 @@
 #extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-layout(location = 0) rayPayloadInEXT vec3 hitValue;
-layout(location = 2) rayPayloadEXT bool shadowed;
+#include "payload.glsl"
+
+layout(location = 0) rayPayloadInEXT RayPayload payloadIn;
+
 hitAttributeEXT vec2 attribs;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
@@ -36,7 +38,7 @@ layout(binding = 5, set = 0) uniform sampler2D textures[];
 void main()
 {
 	Triangle tri = unpackTriangle(gl_PrimitiveID, 112);
-	hitValue = vec3(tri.normal);
+	payloadIn.hitValue = vec3(tri.normal);
 
 	GeometryNode geometryNode = geometryNodes.nodes[gl_GeometryIndexEXT];
 
@@ -46,18 +48,18 @@ void main()
 		color *= occlusion;
 	}
 
-	hitValue = color;
+	payloadIn.hitValue = color;
 
 	// Shadow casting
 	float tmin = 0.001;
 	float tmax = 10000.0;
 	float epsilon = 0.001;
 	vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT + tri.normal * epsilon;
-	shadowed = true;  
+	payloadIn.shadowed = true;
 	vec3 lightVector = vec3(-5.0, -2.5, -5.0);
 	// Trace shadow ray and offset indices to match shadow hit/miss shader group indices
-//	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, origin, tmin, lightVector, tmax, 2);
+//	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, origin, tmin, lightVector, tmax, 0);
 //	if (shadowed) {
-//		hitValue *= 0.7;
+//		payloadIn.hitValue *= 0.7;
 //	}
 }
