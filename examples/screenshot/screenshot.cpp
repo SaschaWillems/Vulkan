@@ -138,7 +138,7 @@ public:
 
 	// Take a screenshot from the current swapchain image
 	// This is done using a blit from the swapchain image to a linear image whose memory content is then saved as a ppm image
-	// Getting the image date directly from a swapchain image wouldn't work as they're usually stored in an implementation dependent optimal tiling format
+	// Getting the image data directly from a swapchain image wouldn't work as they're usually stored in an implementation dependent optimal tiling format
 	// Note: This requires the swapchain images to be created with the VK_IMAGE_USAGE_TRANSFER_SRC_BIT flag (see VulkanSwapChain::create)
 	void saveScreenshot(const char *filename)
 	{
@@ -194,11 +194,11 @@ public:
 		VK_CHECK_RESULT(vkBindImageMemory(device, dstImage, dstImageMemory, 0));
 
 		// Do the actual blit from the swapchain image to our host visible destination image
-		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		VkCommandBuffer transferCmdBuffer = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 		// Transition destination image to transfer destination layout
 		vks::tools::insertImageMemoryBarrier(
-			copyCmd,
+			transferCmdBuffer,
 			dstImage,
 			0,
 			VK_ACCESS_TRANSFER_WRITE_BIT,
@@ -210,7 +210,7 @@ public:
 
 		// Transition swapchain image from present to transfer source layout
 		vks::tools::insertImageMemoryBarrier(
-			copyCmd,
+			transferCmdBuffer,
 			srcImage,
 			VK_ACCESS_MEMORY_READ_BIT,
 			VK_ACCESS_TRANSFER_READ_BIT,
@@ -238,7 +238,7 @@ public:
 
 			// Issue the blit command
 			vkCmdBlitImage(
-				copyCmd,
+				transferCmdBuffer,
 				srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				1,
@@ -259,7 +259,7 @@ public:
 
 			// Issue the copy command
 			vkCmdCopyImage(
-				copyCmd,
+				transferCmdBuffer,
 				srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				1,
@@ -268,7 +268,7 @@ public:
 
 		// Transition destination image to general layout, which is the required layout for mapping the image memory later on
 		vks::tools::insertImageMemoryBarrier(
-			copyCmd,
+			transferCmdBuffer,
 			dstImage,
 			VK_ACCESS_TRANSFER_WRITE_BIT,
 			VK_ACCESS_MEMORY_READ_BIT,
@@ -280,7 +280,7 @@ public:
 
 		// Transition back the swap chain image after the blit is done
 		vks::tools::insertImageMemoryBarrier(
-			copyCmd,
+			transferCmdBuffer,
 			srcImage,
 			VK_ACCESS_TRANSFER_READ_BIT,
 			VK_ACCESS_MEMORY_READ_BIT,
@@ -290,7 +290,7 @@ public:
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
 
-		vulkanDevice->flushCommandBuffer(copyCmd, queue);
+		vulkanDevice->flushCommandBuffer(transferCmdBuffer, queue);
 
 		// Get layout of the image (including row pitch)
 		VkImageSubresource subResource { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
