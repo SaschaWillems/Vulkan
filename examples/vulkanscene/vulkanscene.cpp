@@ -1,7 +1,7 @@
 /*
 * Vulkan Demo Scene
 *
-* Don't take this a an example, it's more of a playground
+* Don't take this as an example, it's more of a playground
 *
 * Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 *

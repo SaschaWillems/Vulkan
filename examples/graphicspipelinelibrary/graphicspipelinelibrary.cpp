@@ -526,7 +526,7 @@ public:
 	{
 		overlay->checkBox("Link time optimization", &linkTimeOptimization);
 		if (overlay->button("New pipeline")) {
-			// Spwan a thread to create a new pipeline in the background
+			// Spawn a thread to create a new pipeline in the background
 			std::thread pipelineGenerationThread(&VulkanExample::threadFn, this);
 			pipelineGenerationThread.detach();
 		}
