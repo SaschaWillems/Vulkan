@@ -429,6 +429,10 @@
 #   include "../examples/dynamicrendering/dynamicrendering.cpp"
 #endif
 
+#ifdef MVK_dynamicrenderinglocalread
+#   include "../examples/dynamicrenderinglocalread/dynamicrenderinglocalread.cpp"
+#endif
+
 #ifdef MVK_dynamicrenderingmultisampling
 #   include "../examples/dynamicrenderingmultisampling/dynamicrenderingmultisampling.cpp"
 #endif
