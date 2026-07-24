@@ -38,6 +38,9 @@
 #endif
 #include "tiny_gltf.h"
 
+#ifdef  __OHOS__
+#include <rawfile/raw_file_manager.h>
+#endif
 #if defined(__ANDROID__)
 #include <android/asset_manager.h>
 #endif

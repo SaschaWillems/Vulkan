@@ -47,6 +47,8 @@ public:
 	void initSurface(void* platformHandle, void* platformWindow);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	void initSurface(ANativeWindow* window);
+#elif defined (VK_USE_PLATFORM_OHOS)
+    void initSurface(NativeWindow* window);
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
 	void initSurface(IDirectFB* dfb, IDirectFBSurface* window);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
