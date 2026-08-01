@@ -403,7 +403,7 @@ public:
 				vks::initializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, &textureDescriptor)
 			};
 
-			// Binding 2: Contains an array of samplers that can be switched from the UI to demonstrate different filteirng modes
+			// Binding 2: Contains an array of samplers that can be switched from the UI to demonstrate different filtering modes
 			std::vector<VkDescriptorImageInfo> samplerDescriptors;
 			for (auto j = 0; j < samplers.size(); j++) {
 				samplerDescriptors.push_back(vks::initializers::descriptorImageInfo(samplers[j], VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));

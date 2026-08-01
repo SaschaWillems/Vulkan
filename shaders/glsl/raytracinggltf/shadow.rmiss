@@ -1,9 +1,12 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
+#extension GL_GOOGLE_include_directive : require
 
-layout(location = 2) rayPayloadInEXT bool shadowed;
+#include "payload.glsl"
+
+layout(location = 0) rayPayloadInEXT RayPayload payloadIn;
 
 void main()
 {
-	shadowed = false;
+	payloadIn.shadowed = false;
 }

@@ -638,7 +638,7 @@ public:
 			pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCreateInfo.pStages = shaderStages.data();
 
-			// Vertex bindings an attributes
+			// Vertex bindings and attributes
 			// Binding description
 			std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
 				vks::initializers::vertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX),

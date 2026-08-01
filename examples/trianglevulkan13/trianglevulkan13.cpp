@@ -175,7 +175,7 @@ public:
 	{
 		// Fences are per frame in flight
 		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {		
-			// Fence used to ensure that command buffer has completed exection before using it again
+			// Fence used to ensure that command buffer has completed execution before using it again
 			VkFenceCreateInfo fenceCI{
 				.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 				// Create the fences in signaled state (so we don't wait on first render of each command buffer)

@@ -31,7 +31,7 @@ def findGlslang():
 
     sys.exit("Could not find glslangvalidator executable on PATH, and was not specified with --glslang")
 
-file_extensions = tuple([".vert", ".frag", ".comp", ".geom", ".tesc", ".tese", ".rgen", ".rchit", ".rint", ".rmiss", ".mesh", ".task"])
+file_extensions = tuple([".vert", ".frag", ".comp", ".geom", ".tesc", ".tese", ".rgen", ".rchit", ".rint", ".rmiss", ".rahit", ".mesh", ".task"])
 
 compile_single_sample = ""
 if args.sample != None:
@@ -58,7 +58,7 @@ for root, dirs, files in os.walk(dir_path):
                 add_params = "-g"
 
             # Ray tracing shaders require a different target environment           
-            if file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rint") or file.endswith(".rmiss"):
+            if file.endswith(".rgen") or file.endswith(".rchit") or file.endswith(".rint") or file.endswith(".rmiss") or file.endswith(".rahit"):
                add_params = add_params + " --target-env vulkan1.2"
             # Same goes for samples that use ray queries
             if root.endswith("rayquery") and file.endswith(".frag"):

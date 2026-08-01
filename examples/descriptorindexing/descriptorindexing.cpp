@@ -288,7 +288,7 @@ public:
 			};
 		}
 		// [POI] Second and final descriptor is a texture array
-		// Unlike an array texture, these are adressed like typical arrays
+		// Unlike an array texture, these are addressed like typical arrays
 		VkWriteDescriptorSet textureArrayDescriptorWrite{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.dstBinding = 1,
