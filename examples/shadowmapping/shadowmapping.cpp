@@ -195,8 +195,8 @@ public:
 	// The depth attachment of this framebuffer will then be used to sample from in the fragment shader of the shadowing pass
 	void prepareOffscreenFramebuffer()
 	{
-		offscreenPass.width = shadowMapize;
-		offscreenPass.height = shadowMapize;
+		offscreenPass.width = shadowMapSize;
+		offscreenPass.height = shadowMapSize;
 
 		// For shadow mapping we only need a depth attachment
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
