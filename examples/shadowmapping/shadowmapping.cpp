@@ -91,9 +91,9 @@ public:
 	// Shadow map dimension
 #if defined(__ANDROID__)
 	// Use a smaller size on Android for performance reasons
-	const uint32_t shadowMapize{ 1024 };
+	const uint32_t shadowMapSize{ 1024 };
 #else
-	const uint32_t shadowMapize{ 2048 };
+	const uint32_t shadowMapSize{ 2048 };
 #endif
 
 	VulkanExample() : VulkanExampleBase()
