@@ -3140,7 +3140,7 @@ void VulkanExampleBase::beginDynamicRendering(VkCommandBuffer cmdBuffer)
 	vks::tools::insertImageMemoryBarrier(
 		cmdBuffer,
 		depthStencil.image,
-		0,
+		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
