@@ -3,7 +3,7 @@
 * 
 * This sample shows how to get the conents of the swapchain (render output) and store them to disk (see saveScreenshot)
 *
-* Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
+* Copyright (C) 2016-2026 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
@@ -29,6 +29,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
 	std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
 
+	bool screenshotRequested{ false };
 	bool screenshotSaved{ false };
 
 	VulkanExample() : VulkanExampleBase()
@@ -140,7 +141,7 @@ public:
 	// This is done using a blit from the swapchain image to a linear image whose memory content is then saved as a ppm image
 	// Getting the image data directly from a swapchain image wouldn't work as they're usually stored in an implementation dependent optimal tiling format
 	// Note: This requires the swapchain images to be created with the VK_IMAGE_USAGE_TRANSFER_SRC_BIT flag (see VulkanSwapChain::create)
-	void saveScreenshot(const char *filename)
+	void saveScreenshot(const char* filename)
 	{
 		screenshotSaved = false;
 		bool supportsBlit = true;
@@ -163,7 +164,7 @@ public:
 		}
 
 		// Source for the copy is the last rendered swapchain image
-		VkImage srcImage = swapChain.images[currentBuffer];
+		VkImage srcImage = swapChain.images[currentImageIndex];
 
 		// Create the linear tiled destination image to copy to and to read the memory from
 		VkImageCreateInfo imageCreateCI(vks::initializers::imageCreateInfo());
@@ -400,14 +401,59 @@ public:
 		VulkanExampleBase::prepareFrame();
 		updateUniformBuffers();
 		buildCommandBuffer();
-		VulkanExampleBase::submitFrame();
+
+		// As we are taking screenshots directly from the swapchain image, we need to make sure
+		// * It has been acquired (done via VulkanExampleBase::prepareFrame();
+		// * The command buffer writing to it has been submitted (below code, copied from VulkanExampleBase::submitFrame())
+		// * The connected semaphore has been signalled
+		const VkPipelineStageFlags waitPipelineStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		VkSubmitInfo submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores = &presentCompleteSemaphores[currentBuffer],
+			.pWaitDstStageMask = &waitPipelineStage,
+			.commandBufferCount = 1,
+			.pCommandBuffers = &drawCmdBuffers[currentBuffer],
+			.signalSemaphoreCount = 1,
+			.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex]
+		};
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+
+		if (screenshotRequested) {
+			screenshotRequested = false;
+			saveScreenshot("screenshot.ppm");
+		}
+
+		VkPresentInfoKHR presentInfo{
+			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex],
+			.swapchainCount = 1,
+			.pSwapchains = &swapChain.swapChain,
+			.pImageIndices = &currentImageIndex
+		};
+		VkResult result = vkQueuePresentKHR(queue, &presentInfo);
+		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+			windowResize();
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+				return;
+			}
+		}
+		else {
+			VK_CHECK_RESULT(result);
+		}
+		// Select the next frame to render to, based on the max. no. of concurrent frames
+		currentBuffer = (currentBuffer + 1) % maxConcurrentFrames;
+
 	}
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
 		if (overlay->header("Functions")) {
 			if (overlay->button("Take screenshot")) {
-				saveScreenshot("screenshot.ppm");
+				//saveScreenshot("screenshot.ppm");
+				screenshotRequested = true;
 			}
 			if (screenshotSaved) {
 				overlay->text("Screenshot saved as screenshot.ppm");
