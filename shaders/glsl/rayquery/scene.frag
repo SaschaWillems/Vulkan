@@ -32,6 +32,6 @@ void main()
 
 	// If the intersection has hit a triangle, the fragment is shadowed
 	if (rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT ) {
-		outFragColor *= 0.1;
+		outFragColor.rgb *= 0.1;
 	}
 }
